@@ -1,0 +1,14 @@
+[package]
+name = "driftwood/game"
+version = "0.1.0"
+registry = "https://github.com/UpliftGames/wally-index"
+realm = "shared"
+
+[dependencies]
+# module individuale din RbxUtil (Sleitnick), publicate separat pe Wally [nota: frameworks-2026]
+Trove = "sleitnick/trove@^1.0.0"
+Signal = "sleitnick/signal@^1.0.0"
+
+[server-dependencies]
+# ProfileStore ruleaza doar pe server (DataStore) [DECIZII D11]
+ProfileStore = "lm-loleris/profilestore@1.0.3"

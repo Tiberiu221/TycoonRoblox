@@ -1,0 +1,24 @@
+# Generate de Rojo
+/sourcemap.json
+*.rbxl.lock
+*.rbxlx.lock
+
+# Build-uri locale (regenerate cu `rojo build`)
+/*.rbxl
+/*.rbxlx
+
+# Pachete Wally (regenerate din wally.toml + wally.lock)
+/Packages/
+/ServerPackages/
+
+# macOS
+.DS_Store
+._*
+
+# Editor
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+
+# Duplicate din prima rulare de research (pastrate local, nu in repo)
+/docs/research/_dup/

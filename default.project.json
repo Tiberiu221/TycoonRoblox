@@ -1,0 +1,71 @@
+{
+  "name": "Driftwood",
+  "globIgnorePaths": [
+    "**/*.spec.luau",
+    "**/*.test.luau"
+  ],
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedFirst": {
+      "$className": "ReplicatedFirst",
+      "$path": "src/ReplicatedFirst"
+    },
+    "ReplicatedStorage": {
+      "$className": "ReplicatedStorage",
+      "Shared": {
+        "$className": "Folder",
+        "Modules": {
+          "$path": "src/Shared/Modules"
+        },
+        "Config": {
+          "$path": "src/Shared/Config"
+        }
+      },
+      "Net": {
+        "$path": "src/Shared/Net"
+      },
+      "Packages": {
+        "$path": {
+          "optional": "Packages"
+        }
+      }
+    },
+    "ServerScriptService": {
+      "$className": "ServerScriptService",
+      "$path": "src/Server"
+    },
+    "ServerStorage": {
+      "$className": "ServerStorage",
+      "Config": {
+        "$path": "src/ServerStorage/Config"
+      },
+      "ServerPackages": {
+        "$path": {
+          "optional": "ServerPackages"
+        }
+      }
+    },
+    "StarterPlayer": {
+      "$className": "StarterPlayer",
+      "StarterPlayerScripts": {
+        "$className": "StarterPlayerScripts",
+        "$path": "src/Client"
+      }
+    },
+    "StarterGui": {
+      "$className": "StarterGui"
+    },
+    "Workspace": {
+      "$className": "Workspace",
+      "$properties": {
+        "StreamingEnabled": false
+      }
+    },
+    "Players": {
+      "$className": "Players",
+      "$properties": {
+        "CharacterAutoLoads": false
+      }
+    }
+  }
+}

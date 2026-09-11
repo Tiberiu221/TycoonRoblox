@@ -1,0 +1,1 @@
+frktest v0.0.2, MIT, https://github.com/itsfrank/frktest @ aa7204871bdb9dda7a92359ba53fd4324ae78b7d, vendorizat 2026-09-09 pentru Lune (Wally-ul genereaza require-uri Roblox, inutilizabile in Lune)

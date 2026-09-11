@@ -1,0 +1,36 @@
+local frktest = require("@frktest/frktest")
+local test = frktest.test
+local check = frktest.assert.check
+
+local OfflineCalc = require("../src/Shared/Modules/OfflineCalc")
+local H = 3600
+
+return function()
+    test.suite("OfflineCalc.computeOffline", function()
+        test.case("plasa Start: 1 obiect/ora, 8 sloturi, se umple in 8h [D15]", function()
+            local r = OfflineCalc.computeOffline(1000 + 8 * H, 1000, H, 8)
+            check.equal(r.itemsCaught, 8)
+            check.is_true(r.cappedByCapacity)
+            check.is_false(r.cappedByTime)
+        end)
+        test.case("sub ambele plafoane: dupa 3h a prins 3", function()
+            check.equal(OfflineCalc.computeOffline(3 * H, 0, H, 8).itemsCaught, 3)
+        end)
+        test.case("capacitatea limiteaza inaintea back-stop-ului de 24h", function()
+            local r = OfflineCalc.computeOffline(30 * H, 0, H, 8)
+            check.equal(r.itemsCaught, 8)
+            check.is_true(r.cappedByTime)
+        end)
+        test.case("back-stop-ul de 24h limiteaza o plasa cu multe sloturi libere", function()
+            check.equal(OfflineCalc.computeOffline(100 * H, 0, H, 1000).itemsCaught, 24)
+        end)
+        test.case("nu produce valori negative daca ceasul merge inapoi", function()
+            check.equal(OfflineCalc.computeOffline(4000, 5000, H, 8).itemsCaught, 0)
+        end)
+        test.case("clamp la 30 de zile pentru date corupte [D14]", function()
+            local r = OfflineCalc.computeOffline(400 * 24 * H, 0, H, 1000)
+            check.equal(r.itemsCaught, 24)
+            check.is_true(r.cappedByTime)
+        end)
+    end)
+end

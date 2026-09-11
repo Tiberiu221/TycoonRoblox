@@ -1,0 +1,8 @@
+# Extensie locala a standard library-ului selene "roblox": functii Luau pe care
+# dictionarul generat de selene nu le are inca (math.isfinite e cerut de MASTERPLAN 4.3.4).
+---
+base: roblox
+globals:
+  math.isfinite:
+    args:
+      - type: number

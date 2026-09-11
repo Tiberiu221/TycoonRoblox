@@ -1,0 +1,33 @@
+name: Promote to production
+
+on:
+  workflow_dispatch:
+    inputs:
+      staging_run_id:
+        description: "Run ID din CI, ale carui artifacte .rbxl se promoveaza"
+        required: true
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Download staged build artifact
+        uses: actions/download-artifact@v4
+        with:
+          run-id: ${{ inputs.staging_run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          pattern: driftwood-staging-*
+          path: ./build
+
+      - name: Publish to Driftwood (production)
+        env:
+          ROBLOX_API_KEY: ${{ secrets.ROBLOX_PRODUCTION_API_KEY }}
+        run: |
+          FILE=$(find ./build -name '*.rbxl' | head -n1)
+          curl -sSL --fail \
+            --header "x-api-key: $ROBLOX_API_KEY" \
+            --header "Content-Type: application/octet-stream" \
+            --data-binary "@$FILE" \
+            --request POST \
+            "https://apis.roblox.com/universes/v1/${{ vars.PRODUCTION_UNIVERSE_ID }}/places/${{ vars.PRODUCTION_PLACE_ID }}/versions?versionType=Published"

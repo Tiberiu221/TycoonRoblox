@@ -1,0 +1,103 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint-format-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rokit
+        run: curl -sSf https://raw.githubusercontent.com/rojo-rbx/rokit/main/scripts/install.sh | bash
+
+      - name: Add Rokit to PATH
+        run: echo "$HOME/.rokit/bin" >> "$GITHUB_PATH"
+
+      - name: Install pinned toolchain
+        run: rokit install --no-trust-check
+
+      - name: Format check (StyLua)
+        run: stylua --check src/ tests/
+
+      - name: Lint (selene, std roblox)
+        run: selene src/
+
+      - name: Install Wally packages
+        run: wally install
+
+      - name: Unit tests (Lune + frktest)
+        run: lune run tests/_run.luau
+
+      # Iese cu eroare daca vreo platforma nu creste venitul cu cel putin 0,5% (docs/TYCOON.md)
+      - name: Economy simulator
+        run: python3 scripts/economy/sim_tycoon.py
+
+      - name: Build place
+        run: rojo build default.project.json -o Driftwood.rbxl
+
+      # Caile de require gresite trec de stylua, selene si rojo; se vad abia la rulare
+      - name: Check require paths resolve
+        run: lune run scripts/check_requires Driftwood.rbxl
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: driftwood-build-${{ github.sha }}
+          path: Driftwood.rbxl
+          retention-days: 90
+
+  publish-staging:
+    needs: lint-format-test
+    if: github.ref == 'refs/heads/main' && vars.STAGING_UNIVERSE_ID != ''
+    runs-on: ubuntu-latest
+    concurrency:
+      group: driftwood-staging-publish
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rokit
+        run: curl -sSf https://raw.githubusercontent.com/rojo-rbx/rokit/main/scripts/install.sh | bash
+      - run: echo "$HOME/.rokit/bin" >> "$GITHUB_PATH"
+      - run: rokit install --no-trust-check
+      - run: wally install
+      - name: Build place
+        run: rojo build default.project.json -o Driftwood.rbxl
+
+      - name: Publish to Driftwood-Staging (Open Cloud)
+        id: publish
+        env:
+          ROBLOX_API_KEY: ${{ secrets.ROBLOX_STAGING_API_KEY }}
+        run: |
+          RESPONSE=$(curl -sSL --fail \
+            --header "x-api-key: $ROBLOX_API_KEY" \
+            --header "Content-Type: application/octet-stream" \
+            --data-binary "@Driftwood.rbxl" \
+            --request POST \
+            "https://apis.roblox.com/universes/v1/${{ vars.STAGING_UNIVERSE_ID }}/places/${{ vars.STAGING_PLACE_ID }}/versions?versionType=Published")
+          echo "$RESPONSE"
+          echo "version=$(echo "$RESPONSE" | jq -r '.versionNumber')" >> "$GITHUB_OUTPUT"
+
+      - name: Upload artifact tagged with versionNumber
+        uses: actions/upload-artifact@v4
+        with:
+          name: driftwood-staging-v${{ steps.publish.outputs.version }}
+          path: Driftwood.rbxl
+          retention-days: 90
+
+  smoke-test-staging:
+    needs: publish-staging
+    runs-on: ubuntu-latest
+    concurrency:
+      group: driftwood-luau-execution
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run smoke tests via Open Cloud Luau Execution
+        env:
+          ROBLOX_API_KEY: ${{ secrets.ROBLOX_LUAU_EXEC_API_KEY }}
+          ROBLOX_STAGING_UNIVERSE_ID: ${{ vars.STAGING_UNIVERSE_ID }}
+          ROBLOX_STAGING_PLACE_ID: ${{ vars.STAGING_PLACE_ID }}
+        run: python scripts/run_cloud_smoke_tests.py
