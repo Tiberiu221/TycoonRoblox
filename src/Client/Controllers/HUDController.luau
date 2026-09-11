@@ -1,22 +1,24 @@
 --!strict
 -- HUD-ul permanent: doar ce trebuie sa vada jucatorul TOT timpul [DECIZII D05].
 --
--- Ce s-a scos de aici si de ce: linia de fps, linia de diagnostic si sirul de taste stateau
--- permanent peste lume. Un ecran incarcat cu text plutitor e tiparul cel mai des reclamat pe
--- jocurile care pierd jucatori in primul minut. Diagnosticul a plecat in consola de dezvoltare,
--- unde ii e locul; tastele se invata din obiective, la momentul potrivit.
+-- Rescris pentru tycoon [F0 spec 4.2]: cifrele de colonie (hrana, materiale, gramada, oameni,
+-- paturi) au disparut -- un singur numar conteaza acum, monedele, plus rata pe secunda si cat de
+-- plina e traista. Restul (joystick, buton de interactiune, mesaje scurte) ramane neschimbat:
+-- nu tine de colonie, tine de cum se joaca orice ecran 2D pe telefon.
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
+local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
 
 local HUDController = {}
-local chips: { [string]: TextLabel } = {}
-local alertButton: TextButton
-local alertLabel: TextLabel
-local alertClick: (() -> ())? = nil
+local coinValue: TextLabel
+local rateValue: TextLabel
+local sackValue: TextLabel
+local sackChip: Frame
 local toastLabel: TextLabel
 -- treimea de sus, centrat: liber la orice latime, si acolo se uita ochiul
 local TOAST_HOME = UDim2.fromScale(0.5, 0.26)
@@ -31,6 +33,7 @@ local ACTION_SIZE = 108
 local toastToken = 0
 local fps = 60
 local touchButtons: { TextButton } = {}
+local lastSackFull = false
 
 local function touchButton(
     parent: Instance,
@@ -75,73 +78,51 @@ end
 
 function HUDController.Init(deps: {
     HudGui: Frame,
-    VisibleCount: () -> number,
-    SettlerCount: (() -> number)?,
-    Diagnostics: (() -> string)?,
     SetStick: (number, number) -> (),
     Interact: () -> (),
     PanelsOpen: (() -> boolean)?,
 })
-    -- Cipurile de resurse: pictograma plus numar. Numarul singur nu spune ce reprezinta.
-    local bar = Instance.new("Frame")
-    bar.Name = "ResourceBar"
-    bar.BackgroundTransparency = 1
-    bar.Position = UDim2.fromOffset(Theme.SPACE.lg, Theme.SPACE.md)
-    bar.Size = UDim2.fromOffset(600, 40)
-    bar.ZIndex = 12
-    bar.Parent = deps.HudGui
-    local layout = Instance.new("UIListLayout")
-    layout.FillDirection = Enum.FillDirection.Horizontal
-    layout.Padding = UDim.new(0, Theme.SPACE.sm)
-    layout.Parent = bar
+    -- Numarul central: monedele. Mare, cu pictograma, fiindca e SINGURUL numar la care contribuie
+    -- toata bucla -- nimic altceva nu mai merita acelasi loc pe ecran [DECIZII D45].
+    local coinRow = Instance.new("Frame")
+    coinRow.Name = "Coins"
+    coinRow.BackgroundTransparency = 1
+    coinRow.Position = UDim2.fromOffset(Theme.SPACE.lg, Theme.SPACE.md)
+    coinRow.Size = UDim2.fromOffset(280, 40)
+    coinRow.ZIndex = 12
+    coinRow.Parent = deps.HudGui
+    local coinLayout = Instance.new("UIListLayout")
+    coinLayout.FillDirection = Enum.FillDirection.Horizontal
+    coinLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+    coinLayout.Padding = UDim.new(0, Theme.SPACE.sm)
+    coinLayout.Parent = coinRow
+    local coinIcon = Widgets.CoinIcon(coinRow, 30, 13)
+    coinIcon.LayoutOrder = 1
+    coinValue = Widgets.Label(coinRow, "0", Theme.TEXT.title, Theme.COLOR.onDark, "display")
+    coinValue.LayoutOrder = 2
+    coinValue.AutomaticSize = Enum.AutomaticSize.X
+    coinValue.Size = UDim2.fromOffset(0, Theme.TEXT.title + 4)
+    coinValue.ZIndex = 13
+    Theme.punch(coinValue)
 
-    -- Numele lipseau cu totul: cinci pictograme si cinci cifre, iar "gramada" nu se ghiceste
-    -- dintr-o iconita. Cuvintele sunt cele din lume, nu din cod -- "Salvage", nu "pile".
-    for i, spec in
-        {
-            { key = "food", icon = "food", name = "Food" },
-            { key = "materials", icon = "materials", name = "Materials" },
-            { key = "pile", icon = "crate", name = "Salvage" },
-            { key = "people", icon = "people", name = "People" },
-            { key = "beds", icon = "bed", name = "Beds" },
-        }
-    do
-        local chip, value = Widgets.Chip(bar, spec.icon, 12, spec.name)
-        chip.LayoutOrder = i
-        chip.Size = UDim2.fromOffset(104, 52)
-        chips[spec.key] = value
-    end
+    -- rata: cat de repede creste numarul de sus, cat timp nu faci nimic. Sub cifra mare, nu
+    -- langa ea -- e o completare, nu al doilea numar principal.
+    -- TEXT.body, nu small: la scara HUD-ului pe un ecran de laptop, 15 px ajungeau la ~12 si
+    -- rata abia se citea (vazut in Studio, 2026-09-11)
+    rateValue = Widgets.Label(deps.HudGui, "+0.0/s", Theme.TEXT.body, Theme.COLOR.gold, "strong")
+    rateValue.Position = UDim2.fromOffset(Theme.SPACE.lg + 38, Theme.SPACE.md + 36)
+    rateValue.Size = UDim2.fromOffset(200, 24)
+    rateValue.ZIndex = 12
+    Theme.punch(rateValue, 2)
 
-    -- Alerta de administrator: apare doar cand chiar e nevoie de tine, si duce direct la panou.
-    alertButton = Instance.new("TextButton")
-    alertButton.Name = "Alert"
-    alertButton.Position = UDim2.fromOffset(Theme.SPACE.lg, 74) -- randul de cifre a crescut de la 40 la 52
-    alertButton.Size = UDim2.fromOffset(300, 40)
-    alertButton.BackgroundColor3 = Theme.COLOR.bad
-    alertButton.BackgroundTransparency = 0.12
-    alertButton.AutoButtonColor = false
-    alertButton.Text = ""
-    alertButton.Visible = false
-    alertButton.ZIndex = 13
-    local ac = Instance.new("UICorner")
-    ac.CornerRadius = UDim.new(0, 8)
-    ac.Parent = alertButton
-    alertButton.Parent = deps.HudGui
-    alertLabel = Widgets.Label(alertButton, "", Theme.TEXT.small, Theme.COLOR.onDark, "strong")
-    alertLabel.Position = UDim2.fromOffset(Theme.SPACE.md, 0)
-    alertLabel.Size = UDim2.new(1, -Theme.SPACE.md * 2, 1, 0)
-    alertLabel.ZIndex = 14
-    alertButton.Activated:Connect(function()
-        if alertClick ~= nil then
-            alertClick()
-        end
-    end)
+    -- traista: cat mai poti duce inainte sa trebuiasca sa mergi la debarcader. Se incalzeste
+    -- si se aprinde rosu cand se umple -- semnalul de "du-te si vinde" [DECIZII D40, D43].
+    sackChip, sackValue = Widgets.Chip(deps.HudGui, "crate", 12, "Sack")
+    sackChip.Position = UDim2.fromOffset(Theme.SPACE.lg, 78)
+    sackChip.Size = UDim2.fromOffset(120, 52)
 
     -- Mesajele scurte stau in TREIMEA DE SUS, centrat, si urca stingandu-se -- pozitia clasica
     -- de "Not enough gold!" din jocurile mobile de constructie.
-    -- Erau jos-centru, la -150 px: exact peste caseta de dialog si peste d-pad-ul de telefon.
-    -- Replici de personaj ("X arrived by boat") apareau acolo in stil de notificare, deci parea
-    -- un al doilea sistem de dialog, in formatul vechi. Sus e liber la orice latime de ecran.
     toastLabel = Widgets.PlateLabel(deps.HudGui, "", Theme.TEXT.heading, "display")
     toastLabel.Name = "Toast"
     toastLabel.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -289,107 +270,49 @@ function HUDController.Perf(): number
     return fps
 end
 
--- Cifra care se schimba, aratata LANGA cifra. Fara asta, dai Scrap si undeva sus, in alt colt
--- al ecranului, un numar creste in tacere: actiunea si urmarea ei nu se leaga niciodata in
--- mintea jucatorului. E acelasi truc din jocurile mobile de constructie -- si e jumatate din
--- motivul pentru care acolo se intelege imediat ce face fiecare buton.
-local function floatDelta(label: TextLabel, delta: number)
-    local chip = label.Parent
-    if chip == nil or not chip:IsA("GuiObject") then
-        return
+-- floor: monedele curg fractionar pe server, dar jucatorul numara in bucati [F0 spec 4.2].
+function HUDController.SetCoins(coins: number)
+    if coinValue ~= nil then
+        coinValue.Text = TycoonMath.formatNumber(coins)
     end
-    local up = delta > 0
-    local tag = Instance.new("TextLabel")
-    tag.Name = "Delta"
-    tag.BackgroundTransparency = 1
-    tag.AnchorPoint = Vector2.new(0.5, 1)
-    tag.Position = UDim2.fromScale(0.5, 0)
-    tag.Size = UDim2.fromOffset(90, 24)
-    tag.TextColor3 = if up then Theme.COLOR.good else Theme.COLOR.bad
-    tag.TextSize = Theme.TEXT.body
-    tag.Text = if up then `+{delta}` else tostring(delta)
-    tag.ZIndex = 30
-    Theme.applyFont(tag, "display")
-    Theme.punch(tag, 2)
-    tag.Parent = chip
-
-    local rise = TweenService:Create(
-        tag,
-        TweenInfo.new(0.9, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-        { Position = UDim2.new(0.5, 0, 0, -26), TextTransparency = 1 }
-    )
-    rise:Play()
-    task.delay(1, function()
-        tag:Destroy()
-    end)
 end
 
--- Resursele se ACUMULEAZA fractionar pe server (hrana = FISH_FOOD * multiplicatorul de
--- trasatura al colonistului), dar jucatorul numara in bucati. Fara rotunjire, chipul arata
--- "45.700000" -- adica valoarea reala 45.70000000000001, taiata de latimea etichetei.
-local lastChip: { [string]: number } = {}
-
-local function setChip(key: string, value: number)
-    local label = chips[key]
-    if label == nil then
-        return
+function HUDController.SetIncome(perSec: number)
+    if rateValue ~= nil then
+        rateValue.Text = `+{TycoonMath.formatRate(perSec)}/s`
     end
-    local whole = math.floor(value)
-    local text = tostring(whole)
-    if label.Text ~= text then
-        label.Text = text
-    end
-    local before = lastChip[key]
-    lastChip[key] = whole
-    -- prima valoare e doar incarcarea profilului, nu o schimbare pe care a facut-o jucatorul
-    if before == nil or before == whole then
-        return
-    end
-    floatDelta(label, whole - before)
 end
 
-function HUDController.SetWorkshop(pile: number, _repaired: number, materials: number)
-    setChip("pile", pile)
-    setChip("materials", materials)
-end
-
-function HUDController.SetColony(people: number, beds: number)
-    setChip("people", people)
-    setChip("beds", beds)
-end
-
--- Hrana isi schimba culoarea inainte sa se termine: un numar care scade nu se observa,
--- unul care devine rosu, da.
-function HUDController.SetFood(food: number, hungry: boolean)
-    setChip("food", food)
-    local label = chips.food
-    if label == nil then
+-- Se incalzeste cu cat se apropie de plin, si devine rosie cand chiar e plina -- semnalul care
+-- spune "du-te la debarcader" inainte ca o colectare sa fie refuzata in tacere [D40, D43].
+function HUDController.SetSack(count: number, capacity: number)
+    if sackValue == nil then
         return
     end
-    local color = if hungry or food <= 0
+    sackValue.Text = `{count}/{capacity}`
+    local full = capacity > 0 and count >= capacity
+    local warm = capacity > 0 and count >= capacity * 0.75
+    local color = if full
         then Theme.COLOR.bad
-        elseif food < 20 then Theme.COLOR.warn
+        elseif warm then Theme.COLOR.warn
         else Theme.COLOR.onDark
-    if label.TextColor3 ~= color then
-        label.TextColor3 = color
+    if sackValue.TextColor3 ~= color then
+        sackValue.TextColor3 = color
     end
-end
-
-function HUDController.SetInventory(_inventory: { [string]: number }) end
-
-function HUDController.SetAlert(count: number, label: string?, onClick: (() -> ())?)
-    if alertButton == nil then
-        return
+    -- Un singur puls, chiar in clipa in care se umple -- nu la fiecare stare de TycoonState cat
+    -- ramane plina. UIScale + Back/Out, acelasi truc ca SceneArt.Flourish (marime mare instant,
+    -- revine tweenuit): mai simplu decat sa refacem manual Size dus-intors.
+    if full and not lastSackFull then
+        local scale = sackChip:FindFirstChildOfClass("UIScale") or Instance.new("UIScale")
+        scale.Parent = sackChip
+        scale.Scale = 1.18
+        TweenService:Create(
+            scale,
+            TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+            { Scale = 1 }
+        ):Play()
     end
-    if count <= 0 then
-        if alertButton.Visible then
-            alertButton.Visible = false
-        end
-        return
-    end
-    alertButton.Visible = true
-    alertLabel.Text = label or `{count} settlers need help`
-    alertClick = onClick
+    lastSackFull = full
 end
 
 function HUDController.Toast(message: string)

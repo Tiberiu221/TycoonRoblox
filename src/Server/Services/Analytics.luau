@@ -4,15 +4,15 @@ local AnalyticsService = game:GetService("AnalyticsService")
 
 local Analytics = {}
 
+-- Renumerotat la pivotul D45 (tycoon): fara jucatori reali inca, deci renumerotarea e sigura [F0 spec 3.7]
 Analytics.STEPS = {
     Joined = 1,
-    PlacedFirstNet = 2,
-    CaughtFirstItem = 3,
-    ReachedWorkshop = 4,
-    StartedFirstRepair = 5,
-    FirstRepairComplete = 6,
-    SawOfflineHook = 7,
-    NotificationOptInShown = 8,
+    BoughtFirstNet = 2,
+    FirstCatch = 3,
+    FirstCollect = 4,
+    FirstSell = 5,
+    BoughtSecondNet = 6,
+    BoughtPad5 = 7,
 }
 
 function Analytics.Funnel(player: Player, stepName: string)

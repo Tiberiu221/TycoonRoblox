@@ -8,16 +8,16 @@ export type Config = {
     WORLD_HEIGHT: number,
     RIVER_TOP: number,
     RIVER_BOTTOM: number,
-    BUILDINGS: { { x: number, y: number, w: number, h: number } },
 }
 
--- `buildings` sunt cladirile ASEZATE, din starea serverului. Cand lipsesc, se cade inapoi pe
--- lista din configuratie, care e o ramasita de la prototip: acolo sunt case care nu se deseneaza
--- nicaieri, deci jucatorul se lovea de ziduri invizibile, iar cladirile lui reale nu opreau deloc.
-function WorldMap.blockedRects(cfg: Config, buildings: { Rect }?): { Rect }
+-- Doar raul blocheaza acum [F0 spec 4.6]: platformele, plasele si debarcaderul NU blocheaza --
+-- jucatorul trebuie sa poata calca pe o platforma ca sa o cumpere. `extra` ramane un parametru
+-- optional (nu mai vine din RiverConfig.BUILDINGS, care a disparut o data cu coliziunea de colonie)
+-- pentru orice obstacol viitor care chiar trebuie sa opreasca mersul.
+function WorldMap.blockedRects(cfg: Config, extra: { Rect }?): { Rect }
     local rects: { Rect } =
         { { x = 0, y = cfg.RIVER_TOP, w = cfg.WORLD_WIDTH, h = cfg.RIVER_BOTTOM - cfg.RIVER_TOP } }
-    for _, b in buildings or cfg.BUILDINGS do
+    for _, b in extra or {} do
         table.insert(rects, { x = b.x, y = b.y, w = b.w, h = b.h })
     end
     return rects

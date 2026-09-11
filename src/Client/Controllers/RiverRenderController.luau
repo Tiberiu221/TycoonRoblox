@@ -144,10 +144,12 @@ function RiverRenderController.Hide(objectId: number)
     releaseFrame(objectId)
 end
 
+-- Raul e acum doar decor ambiental: platformele prind bunuri pe un ritm calculat pe server
+-- (TycoonMath), nu mai exista o plasa care ciocneste cu un obiect anume de-al RiverSim-ului, deci
+-- nu mai e nimic de "ascuns" cand se prinde ceva. ObjectCaught a disparut o data cu asta [F0 spec 1.4].
 function RiverRenderController.Init(deps: {
     Layers: SceneArt.Layers,
     RiverConfig: RemoteEvent,
-    ObjectCaught: RemoteEvent,
 })
     buildScene(deps.Layers)
     deps.RiverConfig.OnClientEvent:Connect(function(config: { [string]: any })
@@ -156,9 +158,6 @@ function RiverRenderController.Init(deps: {
         c.SPAWNS_PER_WINDOW = config.spawnsPerWindow or RiverConfig.SPAWNS_PER_WINDOW
         cfg = c
         table.clear(scheduleCache)
-    end)
-    deps.ObjectCaught.OnClientEvent:Connect(function(objectId: number)
-        RiverRenderController.Hide(objectId)
     end)
     RunService.PreRender:Connect(render)
 end

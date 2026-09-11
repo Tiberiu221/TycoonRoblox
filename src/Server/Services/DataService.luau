@@ -1,90 +1,91 @@
 --!strict
 -- Profilul jucatorului prin ProfileStore: session locking, autosave, Reconcile [DECIZII D11, D14]
 -- In Studio fara acces la API, ProfileStore foloseste automat un store Mock (datele se pierd la Stop).
+-- Schema v2 (pivotul D45 la tycoon) [F0 spec 1.3]: cheia de store ramane PlayerData_v1, doar
+-- continutul se schimba; ProfileMigrate.toV2 goleste orice profil vechi inainte de Reconcile.
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
 local ProfileStore = require(ServerStorage.ServerPackages.ProfileStore)
+local ProfileMigrate = require(ReplicatedStorage.Shared.Modules.ProfileMigrate)
+local Analytics = require(script.Parent.Analytics)
 
-export type NetData = {
-    id: number,
-    slotId: number,
+-- Catch = ce a prins o plasa: id-ul bunului; pentru "named", id-ul din catalog + tier-ul.
+export type Catch = { g: string, c: string?, t: string? }
+export type NetState = { goods: { Catch }, nextCatchAt: number, caught: number }
+export type PileItem = { id: number, tier: string, caughtAt: number, catalog: string? }
+export type RepairSlot = {
+    itemId: number,
     tier: string,
-    placedAt: number,
-    lastCollectedAt: number,
-    items: { string },
+    startedAt: number,
+    finishAt: number,
+    catalog: string?,
 }
+
 export type ProfileData = {
     Meta: { version: number, createdAt: number, lastSeenAt: number },
-    Nets: { [string]: NetData }, -- cheie = tostring(netId) (DataStore nu accepta chei numerice sparse)
-    NextNetId: number,
-    Inventory: { [string]: number }, -- pastrat pentru compatibilitate; obiectele stau in Pile
-    -- gramada nesortata, cheie = tostring(id). `catalog` = id din ItemConfig; lipseste la
-    -- profilele facute inainte de Index si se completeaza la prima atingere.
-    Pile: {
-        [string]: { id: number, tier: string, caughtAt: number, catalog: string? },
-    },
+    Coins: number, -- float; interfata arata floor
+    Pads: { [string]: boolean },
+    Nets: { [string]: NetState },
+    Sack: { items: { Catch } },
+    Pile: { [string]: PileItem }, -- pastrat pentru WorkshopService (F1)
     NextItemId: number,
-    Workshop: {
-        repairs: {
-            [string]: {
-                itemId: number, -- id-ul din gramada, nu din catalog
-                tier: string,
-                startedAt: number,
-                finishAt: number,
-                catalog: string?, -- id din ItemConfig: ce obiect anume se repara
-            },
-        },
-    }, -- cheie = slotIndex
-    Repaired: { [string]: number }, -- cate obiecte reparate per tier (pastrat: profile vechi)
-    -- INDEXUL [DECIZII D17]: de cate ori a fost reparat fiecare obiect din catalog. Asta e
-    -- singurul lucru pe care reparatia il produce si dezmembrarea nu -- deci singurul motiv
-    -- sa repari ceva. Inainte, reparatia scria un contor pe care nu-l citea nimeni.
-    Index: { [string]: number },
-    Materials: number,
-    Buildings: {
-        [string]: { id: number, defId: string, x: number, y: number, progress: number },
+    Workshop: { repairs: { [string]: RepairSlot } },
+    Index: { [string]: number }, -- PASTRAT din v1: de cate ori a fost reparat fiecare obiect din catalog
+    Hands: { [string]: any }, -- runners/maini: vine in F1
+    Stations: { [string]: any }, -- build/upgrade/refine per jucator: vine mai tarziu
+    Vault: { stored: number, updatedAt: number },
+    Rebirths: number,
+    Stats: {
+        sessions: number,
+        catches: number,
+        collects: number,
+        sells: number,
+        coinsEarned: number,
+        padsBought: number,
+        repairs: number, -- pentru WorkshopService (F1)
+        scraps: number, -- pentru WorkshopService (F1)
     },
-    NextBuildingId: number,
-    Stats: { [string]: number },
-    Objectives: { index: number, done: { string } },
-    Stores: { [string]: number },
-    Settlers: { list: { { [string]: any } }, nextId: number },
     Firsts: { [string]: boolean },
 }
 
 local PROFILE_TEMPLATE: ProfileData = {
-    Meta = { version = 1, createdAt = 0, lastSeenAt = 0 },
+    Meta = { version = 2, createdAt = 0, lastSeenAt = 0 },
+    Coins = 0,
+    Pads = {},
     Nets = {},
-    NextNetId = 1,
-    Inventory = {},
+    Sack = { items = {} },
     Pile = {},
     NextItemId = 1,
     Workshop = { repairs = {} },
-    Repaired = {},
     Index = {},
-    Materials = 30, -- start: destul pentru un cort si un firepit
-    Buildings = {},
-    NextBuildingId = 1,
+    Hands = {},
+    Stations = {},
+    Vault = { stored = 0, updatedAt = 0 },
+    Rebirths = 0,
     Stats = {
+        sessions = 0,
         catches = 0,
         collects = 0,
-        sessions = 0,
+        sells = 0,
+        coinsEarned = 0,
+        padsBought = 0,
         repairs = 0,
-        -- contori pentru lantul de obiective (RIVERKEEP 2)
-        netsPlaced = 0,
         scraps = 0,
-        buildsPlaced = 0,
-        buildsFinished = 0,
-        jobsAssigned = 0,
-        settlersArrived = 0,
     },
-    Objectives = { index = 1, done = {} },
-    Stores = { food = 40 }, -- hrana coloniei [RIVERKEEP 5]
-    -- Colonistii se salveaza cu tot cu nume, meserie, nevoi si trasaturi: o colonie crescuta
-    -- in cateva sesiuni nu are voie sa se intoarca la un singur strain dupa o repornire.
-    Settlers = { list = {}, nextId = 1 },
     Firsts = {},
 }
+
+local function deepCopy(value: any): any
+    if typeof(value) ~= "table" then
+        return value
+    end
+    local copy = {}
+    for k, v in value do
+        copy[k] = deepCopy(v)
+    end
+    return copy
+end
 
 local DataService = {}
 local store = ProfileStore.New("PlayerData_v1", PROFILE_TEMPLATE)
@@ -101,6 +102,28 @@ function DataService.Get(player: Player): ProfileData?
     return nil
 end
 
+-- UNEALTA DE DEZVOLTARE (reset): goleste profilul si il reumple din sablon, pastrand Indexul.
+-- Muteaza tabelul EXISTENT (nu il inlocuieste): ProfileStore tine o referinta la profile.Data.
+function DataService.Reset(player: Player): boolean
+    local data = DataService.Get(player)
+    if data == nil then
+        return false
+    end
+    local raw = data :: any
+    local keptIndex = data.Index
+    local createdAt = data.Meta.createdAt
+    for key in raw do
+        raw[key] = nil
+    end
+    for key, value in PROFILE_TEMPLATE :: any do
+        raw[key] = deepCopy(value)
+    end
+    data.Index = keptIndex
+    data.Meta.createdAt = createdAt
+    data.Meta.lastSeenAt = os.time()
+    return true
+end
+
 local function onPlayerAdded(player: Player)
     local profile = store:StartSessionAsync(`Player_{player.UserId}`, {
         Cancel = function()
@@ -108,15 +131,16 @@ local function onPlayerAdded(player: Player)
         end,
     })
     if profile == nil then
-        player:Kick("Datele nu s-au putut incarca. Reincearca in cateva secunde.") -- gate de incarcare [MASTERPLAN 4.3.5]
+        player:Kick("Could not load your save. Please rejoin in a few seconds.") -- gate de incarcare [MASTERPLAN 4.3.5]
         return
     end
     profile:AddUserId(player.UserId)
+    ProfileMigrate.toV2(profile.Data) -- inainte de Reconcile: goleste orice profil sub v2 [F0 spec 1.3]
     profile:Reconcile()
     profile.OnSessionEnd:Connect(function()
         profiles[player] = nil
         if player.Parent == Players then
-            player:Kick("Sesiunea de date s-a inchis (alt server a preluat profilul).")
+            player:Kick("Your save session ended (another server took over your profile).")
         end
     end)
     if player.Parent ~= Players then
@@ -128,6 +152,10 @@ local function onPlayerAdded(player: Player)
         data.Meta.createdAt = os.time()
     end
     data.Stats.sessions += 1
+    if not data.Firsts.Joined then
+        data.Firsts.Joined = true
+        Analytics.Funnel(player, "Joined")
+    end
     profiles[player] = profile
     -- ATENTIE: se trimite DOAR jucatorul, niciodata tabelul de date.
     -- BindableEvent copiaza tabelele la trecerea prin el. Cand semnalul ducea si `data`,

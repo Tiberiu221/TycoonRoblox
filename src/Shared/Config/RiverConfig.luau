@@ -16,7 +16,8 @@ local RiverConfig = {
     SPEED_MAX = 160,
     OBJECT_WIDTH = 64,
     OBJECT_HEIGHT = 48,
-    NET_SLOT_XS = { 600, 1000, 1400 }, -- 3 sloturi pe terenul jucatorului; slotul i acopera banda i
+    -- NET_WIDTH/HEIGHT: doar marimea vizuala a cutiei plasei in NetController; pozitia vine acum
+    -- din TycoonState (F0 spec 1.4), nu din NET_SLOT_XS (scos -- era sistemul de sloturi vechi).
     NET_WIDTH = 144,
     NET_HEIGHT = 84, -- 48x28 x3
     INTERACT_DISTANCE = 130,
@@ -32,82 +33,9 @@ local RiverConfig = {
         WIDTH = 48,
         HEIGHT = 72,
     },
-    -- Cladiri placeholder (x, y, w, h, eticheta): blocheaza mersul; devin locuri reale la pasii 3 si 5
-    -- Cladiri: `kind` decide ce nevoie satisfac sau ce munca gazduiesc; `slots` = cati colonisti
-    -- pot lucra/sta simultan; usa e punctul spre care merg colonistii [RIVERKEEP 4.3]
-    BUILDINGS = {
-        {
-            id = "workshop",
-            x = 260,
-            y = 880,
-            w = 192,
-            h = 192,
-            label = "Workshop",
-            kind = "work",
-            slots = 3,
-        },
-        {
-            id = "kitchen",
-            x = 700,
-            y = 1400,
-            w = 144,
-            h = 144,
-            label = "Kitchen",
-            kind = "food",
-            slots = 2,
-        },
-        {
-            id = "house_a",
-            x = 1050,
-            y = 1450,
-            w = 144,
-            h = 144,
-            label = "Bunkhouse",
-            kind = "rest",
-            slots = 4,
-        },
-        {
-            id = "house_b",
-            x = 1300,
-            y = 1450,
-            w = 144,
-            h = 144,
-            label = "Cottage",
-            kind = "rest",
-            slots = 3,
-        },
-        {
-            id = "hall",
-            x = 1700,
-            y = 1250,
-            w = 192,
-            h = 192,
-            label = "Meeting hall",
-            kind = "joy",
-            slots = 4,
-        },
-        {
-            id = "town_workshop",
-            x = 2300,
-            y = 1000,
-            w = 256,
-            h = 256,
-            label = "Town workshop (later)",
-            kind = "none",
-            slots = 0,
-        },
-        {
-            id = "upstream",
-            x = 2000,
-            y = 120,
-            w = 192,
-            h = 192,
-            label = "Upstream (later)",
-            kind = "none",
-            slots = 0,
-        },
-    },
-    PLOT = { x = 200, y = 800, w = 1500, h = 700 }, -- terenul jucatorului (mal de sud)
+    -- Zona in care WorldDecor nu pune copaci/pietre: toate cele 12 platforme ale Erei 1 si
+    -- debarcaderul incap in acest dreptunghi (verificat in tests/WorldDecor.test.luau) [F0 spec 4.6].
+    PLOT = { x = 200, y = 800, w = 1500, h = 700 },
     TIERS = {
         { id = "common", weight = 0.537, rgb = { 160, 110, 60 } },
         { id = "uncommon", weight = 0.248, rgb = { 90, 160, 90 } },
@@ -116,14 +44,6 @@ local RiverConfig = {
         { id = "legendary", weight = 0.021, rgb = { 240, 170, 40 } },
         { id = "mythic", weight = 0.0045, rgb = { 240, 60, 90 } },
     },
-}
-
--- Debarcaderul: unde trage barca de sosire si unde arata indicatorul de la pasul "uita-te la apa".
--- E in dreptul terenului, nu in mijlocul lumii. Cand cele doua nu coincid, sageata trimite
--- jucatorul intr-o parte si barca apare in cealalta, adica indiciul minte.
-RiverConfig.LANDING = {
-    x = RiverConfig.PLOT.x + RiverConfig.PLOT.w / 2,
-    y = (RiverConfig.RIVER_TOP + RiverConfig.RIVER_BOTTOM) / 2 + 40,
 }
 
 return RiverConfig

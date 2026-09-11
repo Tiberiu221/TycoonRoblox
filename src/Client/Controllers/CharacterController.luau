@@ -3,13 +3,14 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local BuildingConfig = require(ReplicatedStorage.Shared.Config.BuildingConfig)
 local RiverConfig = require(ReplicatedStorage.Shared.Config.RiverConfig)
+local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 local WorldMap = require(ReplicatedStorage.Shared.Modules.WorldMap)
 local SceneArt = require(script.Parent.SceneArt)
 
 local CharacterController = {}
-local x, y = RiverConfig.CHARACTER.START_X, RiverConfig.CHARACTER.START_Y
+-- SPAWN, nu RiverConfig.CHARACTER.START_X/Y: locul de start e acum al tycoon-ului [F0 spec 1.1].
+local x, y = TycoonConfig.SPAWN.x, TycoonConfig.SPAWN.y
 local facing = "down"
 local keys: { [string]: boolean } = {}
 -- directia de la joystick, ca vector: -1..1 pe fiecare axa. Patru butoane dadeau doar 8
@@ -17,8 +18,9 @@ local keys: { [string]: boolean } = {}
 local stickX, stickY = 0, 0
 local locked = false
 local onPlayerInput: (() -> ())? = nil
--- se reface de fiecare data cand se schimba cladirile; lista din configuratie e doar rezerva
-local rects = WorldMap.blockedRects(RiverConfig, {})
+-- Static: nu mai exista cladiri de colonie care sa blocheze mersul, iar platformele tycoon-ului
+-- NU blocheaza (trebuie sa poti calca pe ele ca sa le cumperi) -- doar raul opreste personajul.
+local rects = WorldMap.blockedRects(RiverConfig)
 
 local KEYMAP: { [Enum.KeyCode]: string } = {
     [Enum.KeyCode.A] = "left",
@@ -30,23 +32,6 @@ local KEYMAP: { [Enum.KeyCode]: string } = {
     [Enum.KeyCode.S] = "down",
     [Enum.KeyCode.Down] = "down",
 }
-
--- Cladirile asezate blocheaza trecerea. Fara asta, jucatorul umbla prin propriile cladiri.
-function CharacterController.SetBuildings(list: { { [string]: any } })
-    local out: { { x: number, y: number, w: number, h: number } } = {}
-    for _, b in list do
-        local d = BuildingConfig.get(b.defId)
-        if d ~= nil then
-            table.insert(out, {
-                x = b.x,
-                y = b.y,
-                w = d.w * RiverConfig.TILE,
-                h = d.h * RiverConfig.TILE,
-            })
-        end
-    end
-    rects = WorldMap.blockedRects(RiverConfig, out)
-end
 
 function CharacterController.Position(): (number, number)
     return x, y

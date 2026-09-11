@@ -1,24 +1,20 @@
 --!strict
--- Consola de dezvoltare: un singur remote, o comanda pe apel, DOAR in Studio.
+-- Consola de dezvoltare: un singur remote, o comanda pe apel, DOAR in Studio [F0 spec 3.6].
 -- Poarta e verificata pe SERVER, nu pe client: in productie handler-ul nici nu se conecteaza,
 -- deci un pachet trimis de mana nu are ce sa faca. Fiecare comanda intoarce o linie de raspuns,
 -- afisata in jurnalul panoului.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
+local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
+local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
 
-local BuildService = require(script.Parent.BuildService)
 local DataService = require(script.Parent.DataService)
 local DevState = require(script.Parent.DevState)
-local SettlerService = require(script.Parent.SettlerService)
-local ObjectiveConfig = require(ReplicatedStorage.Shared.Config.ObjectiveConfig)
-local RiverConfig = require(ReplicatedStorage.Shared.Config.RiverConfig)
-local ObjectiveService = require(script.Parent.ObjectiveService)
-local StoreService = require(script.Parent.StoreService)
-local StorytellerService = require(script.Parent.StorytellerService)
-local WorkshopService = require(script.Parent.WorkshopService)
+local EconomyService = require(script.Parent.EconomyService)
+local NetService = require(script.Parent.NetService)
+local PadService = require(script.Parent.PadService)
 
 local DevService = {}
-local deps: { Remotes: { [string]: RemoteEvent } }
+local deps: { Remotes: { [string]: RemoteEvent }, PushState: ((Player) -> ())? }
 
 local function number(value: unknown, fallback: number): number
     if typeof(value) == "number" and math.isfinite(value :: number) then
@@ -30,158 +26,75 @@ end
 type Handler = (player: Player, arg: unknown) -> string
 
 local HANDLERS: { [string]: Handler } = {
-    materials = function(player: Player, arg: unknown): string
-        local delta = math.floor(number(arg, 50))
-        local total = WorkshopService.AddMaterials(player, delta)
-        WorkshopService.PushState(player)
-        return `materials {if delta >= 0 then "+" else ""}{delta} → {total}`
+    coins = function(player: Player, arg: unknown): string
+        local delta = number(arg, 50)
+        EconomyService.AddCoins(player, delta, "dev")
+        return `coins {if delta >= 0 then "+" else ""}{delta} → {EconomyService.GetCoins(player)}`
     end,
 
-    pile = function(player: Player, arg: unknown): string
-        local n = math.floor(number(arg, 5))
-        local added = WorkshopService.AddToPile(player, n, "common")
-        WorkshopService.PushState(player)
-        return `{added} items dropped in the pile`
-    end,
-
-    food = function(_player: Player, arg: unknown): string
-        local delta = math.floor(number(arg, 100))
-        local moved = StoreService.AddFood(delta)
-        return `food {if moved >= 0 then "+" else ""}{moved} → {StoreService.Food()}`
-    end,
-
-    finish_sites = function(_player: Player, _arg: unknown): string
-        local n = BuildService.FinishAllSites()
-        return if n > 0 then `{n} sites finished` else "no sites under construction"
-    end,
-
-    reset_buildings = function(_player: Player, _arg: unknown): string
-        local n = BuildService.ResetToStarter()
-        return `colony reset to {n} starter buildings`
-    end,
-
-    settlers = function(_player: Player, arg: unknown): string
-        local n = math.floor(number(arg, 12))
-        SettlerService.SetCount(n)
-        return `settler count set to {SettlerService.Count()}`
-    end,
-
-    add_settlers = function(_player: Player, arg: unknown): string
-        local n = math.floor(number(arg, 1))
-        local joined = SettlerService.Add(n)
-        return if joined > 0
-            then `{joined} settlers joined`
-            else `no free beds ({SettlerService.Count()} people, {BuildService.Beds()} beds)`
-    end,
-
-    fill_needs = function(_player: Player, _arg: unknown): string
-        SettlerService.FillNeeds()
-        return "everyone is fed, rested and content"
-    end,
-
-    drain_needs = function(_player: Player, arg: unknown): string
-        local to = math.clamp(math.floor(number(arg, 18)), 0, 100)
-        SettlerService.DrainNeeds(to)
-        return `all needs capped at {to}`
-    end,
-
-    timescale = function(_player: Player, arg: unknown): string
-        local scale = number(arg, 1)
-        DevState.SetTimeScale(scale)
-        return `time scale ×{DevState.TimeScale()}`
-    end,
-
-    event = function(_player: Player, arg: unknown): string
-        local id = if typeof(arg) == "string" then arg :: string else nil
-        local entry = StorytellerService.Fire(id)
-        if entry == nil then
-            return if id ~= nil then `no event named "{id}"` else "nothing is eligible right now"
-        end
-        return `event: {entry.title}`
-    end,
-
-    pause_story = function(_player: Player, arg: unknown): string
-        local paused = arg == true or arg == 1
-        DevState.SetStorytellerPaused(paused)
-        return if paused then "storyteller paused" else "storyteller running"
-    end,
-
-    objective = function(player: Player, arg: unknown): string
+    setcoins = function(player: Player, arg: unknown): string
+        local n = math.max(0, number(arg, 0))
         local data = DataService.Get(player)
         if data == nil then
             return "no profile"
         end
-        local index = math.max(1, math.floor(number(arg, 1)))
-        data.Objectives.index = index
-        ObjectiveService.Send(player)
-        local step = ObjectiveConfig.stepAt(index)
-        return if step ~= nil
-            then `objective {index}: {step.title}`
-            else `objective chain finished ({index})`
+        data.Coins = n
+        return `coins set to {n}`
     end,
 
-    report = function(player: Player, _arg: unknown): string
-        local data = DataService.Get(player)
-        local s = SettlerService.Summary()
-        local materials = if data ~= nil then data.Materials else 0
-        return `{s.count} people · {BuildService.Beds()} beds · {materials} mat · next event in {StorytellerService.SecondsToNext()}s`
+    reset = function(player: Player, _arg: unknown): string
+        local ok = DataService.Reset(player)
+        if not ok then
+            return "no profile"
+        end
+        PadService.Invalidate(player)
+        return "profile reset to a fresh save (Index kept)"
     end,
-}
 
--- ADAUGATE dupa ce au aparut Indexul, meseriile cu post de lucru si plecarea cu avertisment:
--- niciuna din comenzile vechi nu le atingea, deci singurul mod de a le verifica era sa joci
--- douazeci de minute. O unealta de dezvoltare care nu acopera ce ai construit ieri nu ajuta.
+    fill = function(player: Player, _arg: unknown): string
+        local n = NetService.DevFill(player)
+        return `{n} items added across your nets`
+    end,
 
-HANDLERS.index = function(player: Player, arg: unknown): string
-    local n = math.floor(number(arg, 9))
-    local added = WorkshopService.DevFillIndex(player, n)
-    WorkshopService.PushState(player)
-    local found, total, frac = WorkshopService.IndexProgress(DataService.Get(player) :: any)
-    return `index +{added} → {found}/{total} ({math.floor(frac * 100)}%)`
-end
+    sack = function(player: Player, _arg: unknown): string
+        local n = EconomyService.DevFillSack(player)
+        return `{n} driftwood added to the sack`
+    end,
 
-HANDLERS.job = function(_player: Player, arg: unknown): string
-    local job = if typeof(arg) == "string" then arg :: string else "Gardener"
-    local n = SettlerService.SetAllJobs(job)
-    return `{n} people set to {job}`
-end
+    skip = function(player: Player, arg: unknown): string
+        local seconds = number(arg, 60)
+        local n = NetService.DevSkip(player, seconds)
+        return `{n} nets moved {seconds}s ahead`
+    end,
 
-HANDLERS.place = function(player: Player, arg: unknown): string
-    local defId = if typeof(arg) == "string" then arg :: string else "garden"
-    -- cautam primul loc valid din teren, ca sa nu trebuiasca sa dai si coordonate
-    local plot = RiverConfig.PLOT
-    for y = plot.y, plot.y + plot.h - RiverConfig.TILE, RiverConfig.TILE do
-        for x = plot.x, plot.x + plot.w - RiverConfig.TILE, RiverConfig.TILE do
-            local ok = BuildService.CanPlace(defId, x, y)
-            if ok then
-                local placed = BuildService.Place(player, defId, x, y)
-                if placed then
-                    BuildService.FinishAllSites()
-                    BuildService.SendTo(player)
-                    return `{defId} built at {x},{y}`
-                end
+    buyto = function(player: Player, arg: unknown): string
+        local k = math.clamp(math.floor(number(arg, 2)), 1, #TycoonConfig.PADS + 1)
+        local granted = 0
+        for _, pad in TycoonConfig.PADS do
+            if pad.index >= k then
+                break
+            end
+            if PadService.DevGrant(player, pad.id) then
+                granted += 1
             end
         end
-    end
-    return `no free spot for {defId}`
-end
+        return `granted {granted} pads (up to index {k - 1})`
+    end,
 
-HANDLERS.leave = function(_player: Player, _arg: unknown): string
-    local name = SettlerService.ForceLeaving()
-    if name == nil then
-        return "nobody here to send away"
-    end
-    return `{name} is now seconds from leaving — watch the sign above their head`
-end
-
-HANDLERS.arrive = function(_player: Player, _arg: unknown): string
-    local before = SettlerService.Count()
-    local after = SettlerService.Add(1)
-    if after <= before then
-        return "no free bed — build one first"
-    end
-    return `someone arrived · {after} people`
-end
+    state = function(player: Player, _arg: unknown): string
+        local data = DataService.Get(player)
+        if data == nil then
+            return "no profile"
+        end
+        local sack = EconomyService.SackSnapshot(player)
+        local padsOwned = 0
+        for _ in data.Pads do
+            padsOwned += 1
+        end
+        local income = TycoonMath.formatRate(EconomyService.IncomePerSec(player))
+        return `coins {TycoonMath.formatNumber(data.Coins)} · income {income}/s · {padsOwned} pads · sack {sack.count}/{sack.capacity}`
+    end,
+}
 
 function DevService.Run(player: Player, command: string, arg: unknown): string
     local handler = HANDLERS[command]
@@ -189,6 +102,9 @@ function DevService.Run(player: Player, command: string, arg: unknown): string
         return `unknown command: {command}`
     end
     local ok, result = pcall(handler, player, arg)
+    if deps.PushState ~= nil then
+        deps.PushState(player)
+    end
     if not ok then
         return `error: {result}`
     end
@@ -212,7 +128,7 @@ function DevService.Init(d: typeof(deps))
         local reply = DevService.Run(player, command :: string, arg)
         remote:FireClient(player, command, reply)
     end)
-    print(`[Driftwood] consola de dezvoltare activa in Studio ({RunService:IsStudio()})`)
+    print("[Driftwood] consola de dezvoltare activa in Studio")
 end
 
 return DevService

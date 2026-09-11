@@ -546,6 +546,12 @@ Prima variantă, cu prețurile ghicite, avea **nouă defecte**, toate invizibile
 Povestitorul și evenimentele nu dispar ca idee — revin în faza de conținut (Q2), ca evenimente cu
 preaviz, nu ca motor de colonie.
 
+**Precizare la pornirea F0 (2026-09-11):** `SettlerService`, `BuildService`,
+`BuildingRenderController` și `BuildingCardController` depind de fișiere tăiate, deci ies și ele în
+F0. Se recuperează din commit-ul `62bd1cc` când le vine faza: angajații (I1–I2), cartonașul de
+stație (M3), randarea stațiilor (G). `SettlerConfig`, `SettlerRenderController` și `DialogueConfig`
+rămân în repo, neconectate, până atunci.
+
 ---
 
 ## 7. Fazele, cu porți de validare
@@ -574,19 +580,25 @@ Ordinea de execuție. Fiecare ID trimite la aria lui din §4.
 
 **F0 — Curățenie și schelet**
 - [x] F0.1 Snapshot git înainte de tăiere — primul commit pe `main`, 2026-09-11
-- [ ] F0.2 S1 Schema de profil v2 + migrare cu start curat, Indexul păstrat
-- [ ] F0.3 A1 `TycoonConfig.luau`, derivat din simulator
-- [ ] F0.4 A2 `TycoonMath.luau` (venit, energie, offline, renaștere) — modul pur
-- [ ] F0.5 A3 Teste Lune pentru `TycoonMath` și regula celor patru motive
-- [ ] F0.6 A4 `EconomyService`: monede, venit calculat pe server
-- [ ] F0.7 B2 `PadService`: listă, ordine, validare, efect, persistență
-- [ ] F0.8 B3 `PadController`: stări, preț, inel de progres, cumpărare la contact
-- [ ] F0.9 W1 Sacul · W2 debarcaderul cu vânzare
-- [ ] F0.10 E1 Plasa ca obiect (rată, capacitate, bandă) · E3 capacitatea vizibilă
-- [ ] F0.11 M1 HUD nou: monede, venit/s, sac · A5 formatare K/M/B
-- [ ] F0.12 U Scoaterea fișierelor de colonie din §6, în același pas
-- [ ] F0.13 T2 Unelte de dezvoltare noi
-- [ ] F0.14 **Poarta:** plasa 1 → strâng → vând → cumpăr plasa 2
+- [x] F0.2 S1 Schema de profil v2 + migrare cu start curat, Indexul păstrat
+- [x] F0.3 A1 `TycoonConfig.luau`, derivat din simulator
+- [x] F0.4 A2 `TycoonMath.luau` (venit, energie, offline, renaștere) — modul pur
+- [x] F0.5 A3 Teste Lune pentru `TycoonMath` și regula celor patru motive
+- [x] F0.6 A4 `EconomyService`: monede, venit calculat pe server
+- [x] F0.7 B2 `PadService`: listă, ordine, validare, efect, persistență
+- [x] F0.8 B3 `PadController`: stări, preț, inel de progres, cumpărare la contact
+- [x] F0.9 W1 Sacul · W2 debarcaderul cu vânzare
+- [x] F0.10 E1 Plasa ca obiect (rată, capacitate, bandă) · E3 capacitatea vizibilă
+- [x] F0.11 M1 HUD nou: monede, venit/s, sac · A5 formatare K/M/B
+- [x] F0.12 U Scoaterea fișierelor de colonie din §6, în același pas
+- [x] F0.13 T2 Unelte de dezvoltare noi
+- [x] F0.14 **Poarta:** plasa 1 → strâng → vând → cumpăr plasa 2 — trecută de owner în Studio pe
+  2026-09-11 (până la Sorting Crate, 1,5/s). Singura eroare găsită: panoul atelierului citea
+  câmpurile vechi (materiale), reparată în aceeași zi.
+
+*Notă F0:* plasele prind pe cronometru (`nextCatchAt`), nu prin coliziune cu obiectele de pe râu; de
+aceea o revenire după absență le umple singură până la capacitate. Obiectele care plutesc sunt, deocamdată,
+doar decor — în F1 (D2) prinderea trebuie să se vadă: bunul intră în plasă în clipa în care e prins.
 
 **F1 — Era 1 completă**
 - [ ] B1 Harta celor 4 zone · B4 garduri și estompare · B5 terenul ca unitate cu origine proprie

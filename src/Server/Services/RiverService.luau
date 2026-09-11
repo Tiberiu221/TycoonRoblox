@@ -5,10 +5,13 @@ local Workspace = game:GetService("Workspace")
 
 local RiverSim = require(ReplicatedStorage.Shared.Modules.RiverSim)
 local RiverConfig = require(ReplicatedStorage.Shared.Config.RiverConfig)
-local EconomyConfig = require(ReplicatedStorage.Shared.Config.EconomyConfig)
 
 local BASE_SEED = 12345 -- pasul 1: fix; per oras + sezon la pasul 5 [MASTERPLAN 4.3.3]
 local SEASON_EPOCH = 1_757_376_000 -- 2025-09-09T00:00:00Z, ancora sezonului [DECIZII D19] (DE CONFIRMAT la lansare)
+-- Mutate din EconomyConfig (sters la pivotul D45): constantele de sezon nu mai au un al doilea
+-- consumator, deci nu mai justifica un fisier shared separat.
+local SEASON_LENGTH_SECONDS = 28 * 24 * 3600
+local SEASONS = { "spring", "summer", "autumn", "winter" }
 
 local DEBUG_ATTR = "DebugSpawnsPerWindow" -- test de performanta: workspace:SetAttribute("DebugSpawnsPerWindow", 800)
 
@@ -40,8 +43,7 @@ function RiverService.Now(): number
 end
 
 function RiverService.SeasonIndex(unixTime: number): number
-    return math.floor((unixTime - SEASON_EPOCH) / EconomyConfig.SEASON_LENGTH_SECONDS)
-        % #EconomyConfig.SEASONS
+    return math.floor((unixTime - SEASON_EPOCH) / SEASON_LENGTH_SECONDS) % #SEASONS
 end
 
 function RiverService.Schedule(windowIndex: number): { RiverSim.RiverObject }

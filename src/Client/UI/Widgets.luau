@@ -415,6 +415,92 @@ function Widgets.Bar(
     return track, fill
 end
 
+-- Moneda placeholder: niciun sprite de moneda pe platforma, deci un cerc auriu cu inel mai inchis
+-- tine locul lui. Widgets.Icon intoarce nil pentru chei fara sprite -- asta ramane vizibil oricum.
+function Widgets.CoinIcon(parent: Instance, px: number, z: number): Frame
+    local coin = Instance.new("Frame")
+    coin.Name = "CoinIcon"
+    coin.Size = UDim2.fromOffset(px, px)
+    coin.BackgroundColor3 = Theme.COLOR.gold
+    coin.ZIndex = z
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(1, 0)
+    c.Parent = coin
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(158, 112, 30) -- auriu inchis, doar pentru muchia monedei
+    stroke.Thickness = math.max(1, math.floor(px / 12))
+    stroke.Parent = coin
+    coin.Parent = parent
+    return coin
+end
+
+-- Inel de progres (coins/price) fara imagini: un UIGradient cu doua trepte dure, pus pe conturul
+-- unui cerc, coloreaza `progress` din circumferinta cu `bright` si restul cu `dim`. Intoarce
+-- (cadrul, functia care actualizeaza progresul) -- apelantul retine ambele.
+function Widgets.Ring(
+    parent: Instance,
+    diameter: number,
+    thickness: number,
+    z: number
+): (Frame, (progress: number, bright: Color3, dim: Color3) -> ())
+    local ring = Instance.new("Frame")
+    ring.Name = "Ring"
+    ring.BackgroundTransparency = 1
+    ring.Size = UDim2.fromOffset(diameter, diameter)
+    ring.ZIndex = z
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(1, 0)
+    corner.Parent = ring
+    local stroke = Instance.new("UIStroke")
+    stroke.Thickness = thickness
+    stroke.Parent = ring
+    local grad = Instance.new("UIGradient")
+    grad.Parent = stroke
+    ring.Parent = parent
+
+    local function setProgress(progress: number, bright: Color3, dim: Color3)
+        -- capetele 0 si 1 sunt obligatorii si treptele trebuie strict crescatoare, altfel
+        -- ColorSequence.new arunca -- de-aia pragul se tine departe de 0 si de 1
+        local p = math.clamp(progress, 0.001, 0.998)
+        local p2 = math.min(p + 0.001, 0.999)
+        grad.Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, bright),
+            ColorSequenceKeypoint.new(p, bright),
+            ColorSequenceKeypoint.new(p2, dim),
+            ColorSequenceKeypoint.new(1, dim),
+        })
+    end
+    return ring, setProgress
+end
+
+-- Text care apare langa ceva, urca si se stinge: rasplata vizibila pentru un +1 sau +N. Fara ea,
+-- o cifra se schimba undeva si nimeni nu leaga schimbarea de actiunea care tocmai s-a intamplat
+-- [DECIZII D43].
+function Widgets.FloatText(parent: GuiObject, text: string, color: Color3, z: number)
+    local tag = Instance.new("TextLabel")
+    tag.Name = "FloatText"
+    tag.BackgroundTransparency = 1
+    tag.AnchorPoint = Vector2.new(0.5, 1)
+    tag.Position = UDim2.fromScale(0.5, 0)
+    tag.Size = UDim2.fromOffset(140, 28)
+    tag.TextColor3 = color
+    tag.TextSize = Theme.TEXT.heading
+    tag.Text = text
+    tag.ZIndex = z
+    Theme.applyFont(tag, "display")
+    Theme.punch(tag, 2)
+    tag.Parent = parent
+    local rise = TweenService:Create(
+        tag,
+        TweenInfo.new(0.9, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+        { Position = UDim2.new(0.5, 0, 0, -34), TextTransparency = 1 }
+    )
+    rise:Play()
+    task.delay(1, function()
+        tag:Destroy()
+    end)
+end
+
 -- Cip de resursa pentru HUD: pictograma plus numar, pe placa
 -- `name` scrie sub cifra ce reprezinta. Fara el, primul lucru pe care il vede un jucator nou
 -- sunt cinci pictograme fara text si cinci numere fara unitate -- iar "gramada" nu se ghiceste

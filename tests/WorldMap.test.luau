@@ -14,11 +14,18 @@ return function()
             )
             check.is_false(WorldMap.isBlocked(rects, cfg, 1000, cfg.RIVER_BOTTOM + 100))
         end)
-        test.case("cladirile si marginile blocheaza", function()
-            local b = cfg.BUILDINGS[1]
-            check.is_true(WorldMap.isBlocked(rects, cfg, b.x + 10, b.y + 10))
+        test.case("marginile lumii blocheaza", function()
             check.is_true(WorldMap.isBlocked(rects, cfg, -5, 100))
             check.is_true(WorldMap.isBlocked(rects, cfg, 100, cfg.WORLD_HEIGHT + 5))
+        end)
+        -- Platformele NU blocheaza [F0 spec 4.6]: jucatorul trebuie sa poata calca pe ele ca sa
+        -- le cumpere. Testul apara exact asta -- fara `extra`, rects contine doar raul.
+        test.case("o platforma nu blocheaza", function()
+            check.is_false(WorldMap.isBlocked(rects, cfg, 500, 840))
+        end)
+        test.case("un obstacol suplimentar explicit tot blocheaza", function()
+            local withExtra = WorldMap.blockedRects(cfg, { { x = 900, y = 900, w = 100, h = 100 } })
+            check.is_true(WorldMap.isBlocked(withExtra, cfg, 910, 910))
         end)
     end)
 end

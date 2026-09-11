@@ -2,12 +2,10 @@
 -- Consola de dezvoltare (tasta ` sau F4). Se construieste DOAR in Studio, iar serverul refuza
 -- comenzile oricum in productie, deci sunt doua porti independente.
 -- Fiecare buton trimite o comanda si primeste inapoi o linie, care se scrie in jurnalul de jos.
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
-local EventConfig = require(ReplicatedStorage.Shared.Config.EventConfig)
 local Panels = require(script.Parent.Panels)
 local Theme = require(script.Parent.Parent.UI.Theme)
 
@@ -134,7 +132,7 @@ function DevPanelController.Init(deps: {
     panel = Instance.new("Frame")
     panel.Name = "DevPanel"
     panel.Position = UDim2.fromOffset(-520, 70)
-    panel.Size = UDim2.fromOffset(500, 750)
+    panel.Size = UDim2.fromOffset(500, 480)
     panel.BackgroundColor3 = BG
     panel.BackgroundTransparency = 0.06
     panel.Visible = false
@@ -159,306 +157,118 @@ function DevPanelController.Init(deps: {
     Theme.applyFont(title, "display")
     title.Parent = panel
 
-    groupLabel("materials and pile", 46)
+    -- Comenzile din F0 spec 3.6 (Agent B / DevService). `coins`/`setcoins` iau un numar; restul
+    -- (`reset`, `fill`, `sack`, `state`) n-au argument.
+    groupLabel("coins", 46)
     row(66, {
         {
-            label = "+50 mat",
+            label = "+10",
             run = function()
-                send("materials", 50)
+                send("coins", 10)
             end,
         },
         {
-            label = "+500 mat",
+            label = "+100",
             run = function()
-                send("materials", 500)
+                send("coins", 100)
             end,
         },
         {
-            label = "-25 mat",
+            label = "+1000",
             run = function()
-                send("materials", -25)
+                send("coins", 1000)
             end,
         },
         {
-            label = "+100 food",
+            label = "set 0",
             run = function()
-                send("food", 100)
+                send("setcoins", 0)
             end,
         },
         {
-            label = "-100 food",
+            label = "set 100000",
             run = function()
-                send("food", -100)
-            end,
-        },
-        {
-            label = "+5 pile",
-            run = function()
-                send("pile", 5)
-            end,
-        },
-        {
-            label = "+25 pile",
-            run = function()
-                send("pile", 25)
+                send("setcoins", 100000)
             end,
         },
     })
 
-    groupLabel("buildings", 106)
+    groupLabel("nets and sack", 106)
     row(126, {
         {
-            label = "finish all sites",
+            label = "fill all nets",
             run = function()
-                send("finish_sites", nil)
+                send("fill", nil)
             end,
         },
         {
-            label = "reset buildings",
+            label = "fill sack",
             run = function()
-                send("reset_buildings", nil)
+                send("sack", nil)
+            end,
+        },
+        {
+            label = "skip 60s",
+            run = function()
+                send("skip", 60)
+            end,
+        },
+        {
+            label = "skip 600s",
+            run = function()
+                send("skip", 600)
             end,
         },
     })
 
-    groupLabel("population", 166)
+    groupLabel("pads (era 1 has 12)", 166)
     row(186, {
         {
-            label = "12",
+            label = "buy to 2",
             run = function()
-                send("settlers", 12)
+                send("buyto", 2)
             end,
         },
         {
-            label = "40",
+            label = "buy to 5",
             run = function()
-                send("settlers", 40)
+                send("buyto", 5)
             end,
         },
         {
-            label = "60",
+            label = "buy to 12",
             run = function()
-                send("settlers", 60)
+                send("buyto", 12)
             end,
         },
         {
-            label = "80",
+            label = "buy to 24",
             run = function()
-                send("settlers", 80)
-            end,
-        },
-        {
-            label = "+2 people",
-            run = function()
-                send("add_settlers", 2)
+                send("buyto", 24)
             end,
         },
     })
 
-    groupLabel("needs", 226)
+    groupLabel("profile", 226)
     row(246, {
         {
-            label = "fill all needs",
+            label = "reset (keeps Index)",
             run = function()
-                send("fill_needs", nil)
+                send("reset", nil)
             end,
         },
         {
-            label = "drain to 18",
+            label = "print state",
             run = function()
-                send("drain_needs", 18)
-            end,
-        },
-        {
-            label = "drain to 0",
-            run = function()
-                send("drain_needs", 0)
+                send("state", nil)
             end,
         },
     })
 
-    groupLabel("time scale (needs decay, boats, events)", 286)
-    row(306, {
-        {
-            label = "×1",
-            run = function()
-                send("timescale", 1)
-            end,
-        },
-        {
-            label = "×10",
-            run = function()
-                send("timescale", 10)
-            end,
-        },
-        {
-            label = "×30",
-            run = function()
-                send("timescale", 30)
-            end,
-        },
-        {
-            label = "×60",
-            run = function()
-                send("timescale", 60)
-            end,
-        },
-    })
-
-    groupLabel("objectives", 346)
-    row(366, {
-        {
-            label = "step 1",
-            run = function()
-                send("objective", 1)
-            end,
-        },
-        {
-            label = "step 4",
-            run = function()
-                send("objective", 4)
-            end,
-        },
-        {
-            label = "step 7",
-            run = function()
-                send("objective", 7)
-            end,
-        },
-        {
-            label = "unlock all",
-            run = function()
-                send("objective", 99)
-            end,
-        },
-    })
-
-    -- Grupul asta acopera ce s-a construit dupa consola: Indexul, meseriile cu post de lucru,
-    -- plecarea cu avertisment, sosirea pe apa. Fara el, singurul mod de a le verifica era sa
-    -- joci douazeci de minute pana se intampla de la sine.
-    groupLabel("index, jobs, arrivals", 406)
-    row(426, {
-        {
-            label = "index +9",
-            run = function()
-                send("index", 9)
-            end,
-        },
-        {
-            label = "index +18",
-            run = function()
-                send("index", 18)
-            end,
-        },
-        {
-            label = "all gardeners",
-            run = function()
-                send("job", "Gardener")
-            end,
-        },
-        {
-            label = "all crafters",
-            run = function()
-                send("job", "Crafter")
-            end,
-        },
-        {
-            label = "build garden",
-            run = function()
-                send("place", "garden")
-            end,
-        },
-        {
-            label = "build hall",
-            run = function()
-                send("place", "hall")
-            end,
-        },
-        {
-            label = "someone leaves",
-            run = function()
-                send("leave", nil)
-            end,
-        },
-        {
-            label = "boat arrives",
-            run = function()
-                send("arrive", nil)
-            end,
-        },
-    })
-
-    groupLabel("storyteller", 466)
-    row(486, {
-        {
-            label = "random event",
-            run = function()
-                send("event", nil)
-            end,
-        },
-        {
-            label = "pause",
-            run = function()
-                send("pause_story", true)
-            end,
-        },
-        {
-            label = "resume",
-            run = function()
-                send("pause_story", false)
-            end,
-        },
-        {
-            label = "report",
-            run = function()
-                send("report", nil)
-            end,
-        },
-    })
-
-    -- lista completa de evenimente, ca sa poata fi declansat exact cel dorit
-    local list = Instance.new("ScrollingFrame")
-    list.Position = UDim2.fromOffset(16, 522)
-    list.Size = UDim2.fromOffset(468, 92)
-    list.BackgroundColor3 = Color3.fromRGB(26, 32, 40) -- paleta consolei, fara corespondent in Theme
-    list.BorderSizePixel = 0
-    list.ScrollBarThickness = 6
-    list.CanvasSize = UDim2.fromOffset(0, 0)
-    list.AutomaticCanvasSize = Enum.AutomaticSize.Y
-    list.ZIndex = 41
-    corner(list, 6)
-    local layout = Instance.new("UIGridLayout")
-    layout.CellSize = UDim2.fromOffset(148, 26)
-    layout.CellPadding = UDim2.fromOffset(6, 6)
-    layout.Parent = list
-    local pad = Instance.new("UIPadding")
-    pad.PaddingTop = UDim.new(0, 6)
-    pad.PaddingLeft = UDim.new(0, 6)
-    pad.Parent = list
-    list.Parent = panel
-
-    for _, e in EventConfig.EVENTS do
-        local b = Instance.new("TextButton")
-        b.Size = UDim2.fromOffset(148, 26)
-        b.BackgroundColor3 = Color3.fromRGB(48, 62, 78) -- paleta consolei, fara corespondent in Theme
-        b.AutoButtonColor = false
-        b.TextColor3 = Color3.fromRGB(220, 232, 242) -- paleta consolei, fara corespondent in Theme
-        b.TextSize = Theme.TEXT.tiny
-        b.Text = e.id
-        b.ZIndex = 42
-        Theme.applyFont(b, "strong")
-        corner(b, 5)
-        local eventId = e.id
-        b.Activated:Connect(function()
-            send("event", eventId)
-        end)
-        b.Parent = list
-    end
-
-    groupLabel("replies", 622)
+    groupLabel("replies", 286)
     local logBox = Instance.new("Frame")
-    logBox.Position = UDim2.fromOffset(16, 642)
-    logBox.Size = UDim2.fromOffset(468, 94)
+    logBox.Position = UDim2.fromOffset(16, 306)
+    logBox.Size = UDim2.fromOffset(468, 140)
     logBox.BackgroundColor3 = Color3.fromRGB(12, 16, 20) -- paleta consolei, fara corespondent in Theme
     logBox.ZIndex = 41
     corner(logBox, 6)
@@ -466,7 +276,7 @@ function DevPanelController.Init(deps: {
 
     logLabel = Instance.new("TextLabel")
     logLabel.Position = UDim2.fromOffset(10, 6)
-    logLabel.Size = UDim2.fromOffset(448, 82)
+    logLabel.Size = UDim2.fromOffset(448, 128)
     logLabel.BackgroundTransparency = 1
     logLabel.TextXAlignment = Enum.TextXAlignment.Left
     logLabel.TextYAlignment = Enum.TextYAlignment.Top

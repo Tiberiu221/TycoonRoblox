@@ -19,15 +19,16 @@ local ENDPOINT = "http://127.0.0.1:8787/report"
 
 -- Elementele despre care vreau adevarul. Un dump al intregului arbore ar fi enorm si scump;
 -- astea sunt cele pe care le-am construit sau modificat si pe care nu le pot vedea.
+-- F0 (tycoon): HUD-ul nou, debarcaderul si primele platforme, dupa numele din controllere.
 local WATCH = {
+    "Coins",
     "Toast",
-    "BuildingCard",
-    "BuildingSelection",
-    "ObjectiveCard",
-    "DialogueBox",
+    "ActionButton",
     "MenuBar",
-    "ResourceBar",
-    "ObjectiveMarker",
+    "Dock",
+    "first_net",
+    "second_net",
+    "bigger_sack",
 }
 
 local toolbar = plugin:CreateToolbar("Driftwood")

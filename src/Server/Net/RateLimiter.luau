@@ -5,8 +5,9 @@ local RateLimiter = {}
 type Bucket = { tokens: number, lastRefill: number }
 local buckets: { [Player]: { [string]: Bucket } } = {}
 local LIMITS: { [string]: { capacity: number, refillPerSecond: number } } = {
-    PlaceNet = { capacity = 3, refillPerSecond = 0.5 },
+    BuyPad = { capacity = 3, refillPerSecond = 1 },
     CollectNet = { capacity = 5, refillPerSecond = 2 },
+    SellSack = { capacity = 3, refillPerSecond = 1 },
     RequestState = { capacity = 2, refillPerSecond = 0.2 },
 }
 

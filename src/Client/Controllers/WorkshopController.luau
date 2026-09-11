@@ -1,10 +1,10 @@
 --!strict
--- Atelierul: gramada nesortata, sloturi de reparatie cu cronometru, materiale [DECIZII D16].
+-- Atelierul: gramada nesortata, sloturi de reparatie cu cronometru; dezmembrarea plateste in
+-- monede [DECIZII D16, D45]. Adormit in F0 (nu are buton in bara), revine in F1.
 --
 -- Construit din trusa comuna (rama de lemn, pergament, randuri scobite, butoane cu trei stari).
 -- Varianta veche era desenata de mana, cu Gotham si 17 culori scrise direct in cod, si arata ca
 -- un dialog generic lipit peste un joc pixelat.
-local TweenService = game:GetService("TweenService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
@@ -20,10 +20,9 @@ local WorkshopController = {}
 local deps: { HudGui: Frame, Remotes: { [string]: RemoteEvent }, OnToast: (string) -> () }
 local panel: Frame
 local pileList: ScrollingFrame
-local currentStep: (() -> string?)? = nil
 local pileCount: TextLabel
 local slotFrames: { Frame } = {}
-local materialsValue: TextLabel
+local foundValue: TextLabel
 local repairedValue: TextLabel
 local state: { [string]: any }? = nil
 local serverOffset = 0 -- os.time() client vs server (Studio: 0)
@@ -40,13 +39,6 @@ for _, t in RiverConfig.TIERS do
 end
 
 -- Numele obiectului din catalog. Cade elegant la tier pentru obiectele prinse inainte de Index.
--- Pasul curent din lantul de obiective, daca panoul a fost legat la el. Fara legatura,
--- intoarce nil si atelierul se poarta normal -- adica exact ca inainte de tutorial.
-local function tutorialStep(): string?
-    local ask = currentStep
-    return if ask ~= nil then ask() else nil
-end
-
 local function itemName(entry: { [string]: any }): string
     local catalog = entry.catalog
     if catalog ~= nil and catalog ~= "" then
@@ -138,14 +130,13 @@ local function rebuildPile()
         name.ZIndex = Z + 4
 
         -- Repair si Scrap sunt alegeri OPUSE -- una pastreaza obiectul in Index pentru totdeauna,
-        -- cealalta il pierde pe loc pentru materiale -- deci fiecare isi are banda ei, cu
+        -- cealalta il vinde pe loc pentru monede -- deci fiecare isi are banda ei, cu
         -- explicatia lipita de butonul care o declanseaza. Text la Theme.TEXT.small: e informatie
         -- de care depinde alegerea, nu o eticheta decorativa (tiny ramane doar pentru etichete).
         -- coloana de text: x60, latime 398, pana unde incepe butonul (x470 pe un rand de 584).
-        local matPart = if rule.materialsCost > 0 then ` · {rule.materialsCost} mat` else ""
         local repairInfo = Widgets.Label(
             row,
-            `{fmt(rule.repairSeconds)} to repair{matPart} — joins Index`,
+            `{fmt(rule.repairSeconds)} to repair — joins Index`,
             Theme.TEXT.small,
             Theme.COLOR.inkSoft,
             "body"
@@ -162,12 +153,6 @@ local function rebuildPile()
             height = 36,
             z = Z + 4,
             onClick = function()
-                -- garda in APASARE, nu doar pe aspect: `Active = false` pe un TextButton nu
-                -- opreste sigur evenimentul, iar aici opreste un drum fara iesire.
-                if tutorialStep() == "scrap_item" then
-                    deps.OnToast("Scrap this one first — you need materials to build.")
-                    return
-                end
                 local slot = firstFreeSlot()
                 if slot == nil then
                     deps.OnToast("All repair slots are busy — collect one or scrap instead")
@@ -178,21 +163,12 @@ local function rebuildPile()
         })
         repairBtn.Position = UDim2.new(1, -114, 0, 34)
 
-        -- La pasul care cere DEZMEMBRARE, reparatul se opreste. Doua butoane identice, unul
-        -- langa altul, iar tutorialul cerea unul anume: cine n-a citit textul apasa pe celalalt,
-        -- pierde singurul obiect din gramada si pasul nu se mai poate termina pana nu se umple
-        -- plasa din nou. Ghidarea nu e text, e sa nu poti gresi.
-        if tutorialStep() == "scrap_item" then
-            repairBtn.Active = false
-            repairBtn.AutoButtonColor = false
-            repairBtn.BackgroundTransparency = 0.6
-            repairInfo.Text = "Repairing comes later — right now you need materials."
-            repairInfo.TextTransparency = 0.35
-        end
-
+        -- Dezmembrarea plateste in monede cat ar da debarcaderul (WorkshopService.ScrapItem).
+        -- Suma exacta depinde de multiplicatorii de vanzare, pe care panoul nu-i primeste --
+        -- deci nu scriem o cifra care ar putea minti [D40].
         local scrapInfo = Widgets.Label(
             row,
-            `+{rule.scrapYield} materials now — item is lost for good`,
+            "Sell it for coins now — item is lost for good",
             Theme.TEXT.small,
             Theme.COLOR.inkSoft,
             "body"
@@ -213,21 +189,6 @@ local function rebuildPile()
             end,
         })
         scrapBtn.Position = UDim2.new(1, -114, 0, 78)
-
-        -- ...si Scrap se aprinde, cu acelasi inel auriu ca butoanele din bara laterala, ca sa
-        -- fie acelasi limbaj peste tot: auriu care pulseaza = apasa aici acum.
-        if tutorialStep() == "scrap_item" then
-            local halo = Instance.new("UIStroke")
-            halo.Color = Theme.COLOR.gold
-            halo.Thickness = 3
-            halo.Parent = scrapBtn
-            local pulse = TweenService:Create(
-                halo,
-                TweenInfo.new(0.85, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
-                { Transparency = 0.55 }
-            )
-            pulse:Play()
-        end
     end
 end
 
@@ -275,11 +236,14 @@ local function refreshSlots()
         end
     end
 
-    materialsValue.Text = tostring(s.materials)
-    local total = 0
-    for _, n in s.repaired do
+    -- Din Index (schema v2): cate obiecte distincte ai gasit si de cate ori ai reparat in total.
+    -- Materialele si contorul pe tier au disparut odata cu colonia.
+    local found, total = 0, 0
+    for _, n in s.index or {} do
+        found += 1
         total += n
     end
+    foundValue.Text = tostring(found)
     repairedValue.Text = tostring(total)
 end
 
@@ -354,12 +318,6 @@ local function buildSlotCard(parent: Instance, index: number, y: number): Frame
     return card
 end
 
--- Legatura cu lantul de obiective. Setter separat, ca sa nu modific forma lui `deps`: atelierul
--- functioneaza si fara ea, doar ca nu se mai ghideaza singur.
-function WorkshopController.SetStepSource(fn: () -> string?)
-    currentStep = fn
-end
-
 function WorkshopController.Init(d: typeof(deps))
     deps = d
     Panels.Register(
@@ -392,7 +350,7 @@ function WorkshopController.Init(d: typeof(deps))
 
     local pileHint = Widgets.Label(
         body,
-        "Always more crates than slots. Repair the good ones, scrap the rest for materials.",
+        "Always more crates than slots. Repair the good ones, sell the rest for coins.",
         Theme.TEXT.tiny,
         Theme.COLOR.inkSoft,
         "body"
@@ -440,11 +398,11 @@ function WorkshopController.Init(d: typeof(deps))
     footerLayout.Padding = UDim.new(0, Theme.SPACE.md)
     footerLayout.Parent = footer
 
-    local matChip, matValue = Widgets.Chip(footer, "materials", Z + 3)
-    matChip.LayoutOrder = 1
-    matChip.BackgroundTransparency = 0.85
-    matValue.TextColor3 = Theme.COLOR.ink
-    materialsValue = matValue
+    local foundChip, foundText = Widgets.Chip(footer, "crate", Z + 3)
+    foundChip.LayoutOrder = 1
+    foundChip.BackgroundTransparency = 0.85
+    foundText.TextColor3 = Theme.COLOR.ink
+    foundValue = foundText
 
     local repChip, repValue = Widgets.Chip(footer, "check", Z + 3)
     repChip.LayoutOrder = 2
@@ -452,13 +410,8 @@ function WorkshopController.Init(d: typeof(deps))
     repValue.TextColor3 = Theme.COLOR.ink
     repairedValue = repValue
 
-    local footerHint = Widgets.Label(
-        footer,
-        "materials  ·  repaired",
-        Theme.TEXT.tiny,
-        Theme.COLOR.inkSoft,
-        "body"
-    )
+    local footerHint =
+        Widgets.Label(footer, "found  ·  repaired", Theme.TEXT.tiny, Theme.COLOR.inkSoft, "body")
     footerHint.LayoutOrder = 3
     footerHint.Size = UDim2.fromOffset(220, 20)
 

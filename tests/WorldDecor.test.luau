@@ -3,6 +3,8 @@ local test = frktest.test
 local check = frktest.assert.check
 
 local WorldDecor = require("../src/Shared/Modules/WorldDecor")
+local RiverConfig = require("../src/Shared/Config/RiverConfig")
+local TycoonConfig = require("../src/Shared/Config/TycoonConfig")
 
 local BOUNDS = {
     width = 2880,
@@ -74,6 +76,37 @@ return function()
             local items = WorldDecor.build(14, BOUNDS, 80)
             for i = 2, #items do
                 check.is_true(items[i].y >= items[i - 1].y)
+            end
+        end)
+
+        -- F0 spec 4.6: platformele, plasele si debarcaderul sunt zone fara decor. Plasele sunt
+        -- deja acoperite de excluderea raului de mai sus (LANE_Y cade intre RIVER_TOP si
+        -- RIVER_BOTTOM); aici se verifica explicit platformele Erei 1 si debarcaderul, cu
+        -- geometria REALA din RiverConfig/TycoonConfig, nu cu fixture-ul sintetic BOUNDS.
+        test.case("platformele si debarcaderul raman fara copaci si pietre", function()
+            local realBounds = {
+                width = RiverConfig.WORLD_WIDTH,
+                height = RiverConfig.WORLD_HEIGHT,
+                riverTop = RiverConfig.RIVER_TOP,
+                riverBottom = RiverConfig.RIVER_BOTTOM,
+                plot = RiverConfig.PLOT,
+            }
+            local half = TycoonConfig.PAD_SIZE / 2
+            local items = WorldDecor.build(2026091101, realBounds, 220)
+            for _, p in TycoonConfig.PADS do
+                if p.x == nil or p.y == nil then
+                    continue
+                end
+                local px, py = p.x :: number, p.y :: number
+                for _, item in items do
+                    local dx, dy = math.abs(item.x - px), math.abs(item.y - py)
+                    check.is_false(dx < half and dy < half)
+                end
+            end
+            local dock = TycoonConfig.DOCK
+            for _, item in items do
+                local dx, dy = math.abs(item.x - dock.x), math.abs(item.y - dock.y)
+                check.is_false(dx < half and dy < half)
             end
         end)
 

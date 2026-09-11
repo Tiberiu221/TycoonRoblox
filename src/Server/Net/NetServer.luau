@@ -1,21 +1,28 @@
 --!strict
--- Handlere de remote: valideaza input-ul (tip, isfinite, rate limit), apoi apeleaza Service-urile [MASTERPLAN 4.3.4]
+-- Handlere de remote: valideaza input-ul (tip, isfinite, rate limit), apoi apeleaza Service-urile
+-- [F0 spec 3.5]. Fara require-uri de servicii aici (doar Net/RateLimiter/TycoonConfig, module
+-- fara stare de joc) -- totul altceva vine prin Init(deps), cablat de Bootstrap.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Net = require(ReplicatedStorage.Net.Net)
+local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 local RateLimiter = require(script.Parent.RateLimiter)
 
 export type Deps = {
-    River: { GetConfigFor: (Player) -> { [string]: any } },
-    Nets: {
-        PlaceNet: (Player, number) -> (boolean, string | number),
-        CollectNet: (Player, number) -> (boolean, { string }, { [string]: number }),
-        Snapshot: (Player) -> { [string]: any },
+    River: { GetConfigFor: (Player) -> { [string]: any }, Now: () -> number },
+    Data: { ProfileLoaded: RBXScriptSignal },
+    Pads: {
+        Buy: (Player, string) -> (boolean, string?),
+        Statuses: (Player) -> { [string]: string },
     },
-    Build: {
-        Place: (Player, string, number, number) -> (boolean, string),
-        SendTo: (Player) -> (),
+    Nets: { Collect: (Player, string) -> (boolean, string?), Snapshot: (Player) -> { any } },
+    Economy: {
+        GetCoins: (Player) -> number,
+        IncomePerSec: (Player) -> number,
+        SellMult: (Player) -> number,
+        SackSnapshot: (Player) -> { count: number, capacity: number, value: number },
+        Sell: (Player) -> (boolean, number, number),
     },
     Workshop: {
         Snapshot: (Player) -> { [string]: any },
@@ -27,6 +34,7 @@ export type Deps = {
 
 local NetServer = {}
 local deps: Deps
+local pending: { [Player]: boolean } = {}
 
 local function isInteger(value: unknown): boolean
     return typeof(value) == "number"
@@ -34,48 +42,94 @@ local function isInteger(value: unknown): boolean
         and (value :: number) % 1 == 0
 end
 
-local function sendState(player: Player)
-    Net.Get("RiverConfig"):FireClient(player, deps.River.GetConfigFor(player))
-    Net.Get("StateSnapshot"):FireClient(player, deps.Nets.Snapshot(player))
-    -- si cladirile: transmisia de la incarcarea profilului pleaca inainte ca clientul sa fie
-    -- gata sa asculte, deci fara asta asezarea ramane invizibila pana la prima constructie
-    deps.Build.SendTo(player)
+local function isValidPadId(value: unknown): boolean
+    return typeof(value) == "string"
+        and #(value :: string) <= 40
+        and TycoonConfig.byId[value :: string] ~= nil
+end
+
+local function buildTycoonState(player: Player): { [string]: any }
+    return {
+        coins = deps.Economy.GetCoins(player),
+        incomePerSec = deps.Economy.IncomePerSec(player),
+        sellMult = deps.Economy.SellMult(player),
+        serverTime = deps.River.Now(),
+        pads = deps.Pads.Statuses(player),
+        nets = deps.Nets.Snapshot(player),
+        sack = deps.Economy.SackSnapshot(player),
+    }
+end
+
+-- Un singur push pe cadru per jucator: Buy/Collect/Sell/tick-ul de plase pot cere fiecare o
+-- retrimitere in aceeasi bucla, dar clientul are nevoie doar de ULTIMA stare, nu de una per apel.
+function NetServer.PushState(player: Player)
+    if pending[player] then
+        return
+    end
+    pending[player] = true
+    task.defer(function()
+        pending[player] = nil
+        if player.Parent ~= Players then
+            return
+        end
+        Net.Get("TycoonState"):FireClient(player, buildTycoonState(player))
+    end)
+end
+
+local function sendWorkshop(player: Player)
+    Net.Get("WorkshopState"):FireClient(player, deps.Workshop.Snapshot(player))
 end
 
 function NetServer.Init(d: Deps)
     deps = d
 
+    -- La incarcarea profilului: raul (vizual) + instantaneul tycoon complet. Firs-ul "Joined" e
+    -- decis de DataService, nu de aici -- el e cel care are deja `data` in mana la momentul asta.
+    deps.Data.ProfileLoaded:Connect(function(player: Player)
+        Net.Get("RiverConfig"):FireClient(player, deps.River.GetConfigFor(player))
+        NetServer.PushState(player)
+    end)
+
     Net.Get("RequestState").OnServerEvent:Connect(function(player: Player)
-        if RateLimiter.Allow(player, "RequestState") then
-            sendState(player)
-        end
-    end)
-
-    Net.Get("PlaceNet").OnServerEvent:Connect(function(player: Player, slotId: unknown)
-        if not RateLimiter.Allow(player, "PlaceNet") or not isInteger(slotId) then
+        if not RateLimiter.Allow(player, "RequestState") then
             return
         end
-        local ok, result = deps.Nets.PlaceNet(player, slotId :: number)
+        Net.Get("RiverConfig"):FireClient(player, deps.River.GetConfigFor(player))
+        NetServer.PushState(player)
+    end)
+
+    Net.Get("BuyPad").OnServerEvent:Connect(function(player: Player, padId: unknown)
+        if not RateLimiter.Allow(player, "BuyPad") or not isValidPadId(padId) then
+            return
+        end
+        local ok, reason = deps.Pads.Buy(player, padId :: string)
         if ok then
-            Net.Get("NetPlaced"):FireClient(player, result, slotId)
+            Net.Get("PadBought"):FireClient(player, padId)
         else
-            Net.Get("NetRejected"):FireClient(player, slotId, result)
+            Net.Get("PadRejected"):FireClient(player, padId, reason)
         end
     end)
 
-    Net.Get("CollectNet").OnServerEvent:Connect(function(player: Player, netId: unknown)
-        if not RateLimiter.Allow(player, "CollectNet") or not isInteger(netId) then
+    Net.Get("CollectNet").OnServerEvent:Connect(function(player: Player, padId: unknown)
+        if not RateLimiter.Allow(player, "CollectNet") or not isValidPadId(padId) then
             return
         end
-        local ok, items, inventory = deps.Nets.CollectNet(player, netId :: number)
+        -- Un colect care nu incape nicaieri (sack_full) nu are remote de refuz: clientul isi
+        -- verifica singur sacul. Nu se trimite nimic pe ramura aia [F0 spec: not spelled out].
+        deps.Nets.Collect(player, padId :: string)
+    end)
+
+    Net.Get("SellSack").OnServerEvent:Connect(function(player: Player)
+        if not RateLimiter.Allow(player, "SellSack") then
+            return
+        end
+        local ok, total, itemCount = deps.Economy.Sell(player)
         if ok then
-            Net.Get("NetCollected"):FireClient(player, netId, items, inventory)
+            Net.Get("Sold"):FireClient(player, total, itemCount)
         end
     end)
 
-    local function sendWorkshop(player: Player)
-        Net.Get("WorkshopState"):FireClient(player, deps.Workshop.Snapshot(player))
-    end
+    -- Atelierul: neschimbat fata de pasul anterior, doar mutat sub noile deps.
     Net.Get("RequestWorkshop").OnServerEvent:Connect(function(player: Player)
         if RateLimiter.Allow(player, "RequestState") then
             sendWorkshop(player)
@@ -103,8 +157,6 @@ function NetServer.Init(d: Deps)
         end
         local ok, reason = deps.Workshop.CollectRepair(player, slotIndex :: number)
         if ok then
-            -- la reusita, `reason` e id-ul obiectului din catalog: clientul il foloseste ca sa
-            -- arate ce anume a intrat in colectie, cu numele si replica lui
             Net.Get("RepairDone"):FireClient(player, reason)
         else
             Net.Get("WorkshopRejected"):FireClient(player, reason)
@@ -121,27 +173,10 @@ function NetServer.Init(d: Deps)
         end
         sendWorkshop(player)
     end)
-    -- dupa fiecare colectare din plasa, atelierul se schimba (gramada)
-    Net.Get("CollectNet").OnServerEvent:Connect(function(player: Player)
-        task.defer(sendWorkshop, player)
-    end)
-
-    Net.Get("PlaceBuilding").OnServerEvent
-        :Connect(function(player: Player, defId: unknown, x: unknown, y: unknown)
-            if not RateLimiter.Allow(player, "PlaceNet") then
-                return
-            end
-            if typeof(defId) ~= "string" or not isInteger(x) or not isInteger(y) then
-                return
-            end
-            local ok, reason = deps.Build.Place(player, defId :: string, x :: number, y :: number)
-            if not ok then
-                Net.Get("BuildRejected"):FireClient(player, reason)
-            end
-        end)
 
     Players.PlayerRemoving:Connect(function(player: Player)
         RateLimiter.Forget(player)
+        pending[player] = nil
     end)
 end
 

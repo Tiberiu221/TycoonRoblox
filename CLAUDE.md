@@ -40,6 +40,8 @@ Timp absolut (`finishAt`), niciodată „timp rămas". Râul e determinist pe se
 **Capcane cunoscute:** stylua șterge punctul-și-virgula din fața unei instrucțiuni care începe cu `(` —
 restructurează cu un `local`. `BindableEvent` copiază tabelele — trimite identități. Câmpurile trimise de
 server trebuie **copiate explicit** pe client (am pierdut de două ori nume/meserie/înfățișare așa).
+Și invers: când serverul scoate sau redenumește un câmp, caută **toți** cititorii din client — în F0,
+panoul atelierului a crăpat pe `s.materials` și nicio verificare statică nu l-a prins.
 
 ## Poarta, înainte de orice livrare
 
@@ -63,7 +65,10 @@ stylua/selene o prind. Rulează-le mereu pe toate, nu înlănțuite după o eroa
 
 ## Stare (2026-09-11)
 
-Planul tycoon e scris (`docs/TYCOON.md`); **faza F0 nu a început**. Codul din `src/` e încă cel de
-colonie și se taie în F0, în același pas în care intră înlocuitorul (lista în `TYCOON.md` §6).
-Rămas la owner: numele, terenuri multiple, lobby/DevEx, D19. Și F0-ul de cont:
-Grup Roblox, 2FA + ID, **W-8BEN până la 31 oct 2026**, universuri Staging/Prod.
+Planul tycoon e scris (`docs/TYCOON.md`). **F0 e scris** (2026-09-11): schema v2, `TycoonConfig`/
+`TycoonMath` (port exact al simulatorului, testat), `PadService`, `EconomyService`, `NetService` pe
+cronometru, sacul, debarcaderul, HUD-ul nou; codul de colonie e scos. **Poarta F0 trecută în Studio**
+de owner. Următorul: F1 — Era 1 completă (poarta ei: playtest cu ≥5 oameni din afară).
+În Studio, accesul la API e oprit: ProfileStore merge pe mock și nimic nu se salvează între sesiuni.
+Rămas la owner: numele, terenuri multiple, lobby/DevEx, D19. Și F0-ul de cont: Grup Roblox,
+**W-8BEN până la 31 oct 2026**, universuri Staging/Prod (2FA + ID făcute pe 2026-09-11).

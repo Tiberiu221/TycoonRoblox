@@ -5,15 +5,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local REMOTE_NAMES = {
+    -- Pastrate din pasul anterior [F0 spec 1.4]
     "RiverConfig", -- S->C
-    "PlaceNet", -- C->S
-    "NetPlaced", -- S->C
-    "NetRejected", -- S->C
-    "CollectNet", -- C->S
-    "NetCollected", -- S->C
-    "ObjectCaught", -- S->C: serverul a decis ca plasa a prins un obiect
     "RequestState", -- C->S
-    "StateSnapshot", -- S->C
     "WelcomeBack", -- S->C: rezumatul acumularii offline la login
     "RequestWorkshop", -- C->S
     "WorkshopState", -- S->C
@@ -24,28 +18,17 @@ local REMOTE_NAMES = {
     -- S->C {catalogId}: un obiect a intrat PERMANENT in colectie. E singura rasplata pe care
     -- dezmembrarea nu o da, deci trebuie sa se vada; pana acum se schimba doar o cifra, in tacere.
     "RepairDone",
-    "SettlersFull", -- S->C: lista completa de colonisti (la join / la schimbare de numar)
-    "SettlerPaths",
-    "SettlerLeft",
-    "BuildingsState", -- S->C: lista de cladiri + paturi
-    "PlaceBuilding", -- C->S {defId, x, y}
-    "BuildRejected", -- S->C {reason}
-    "BuildingDone", -- S->C {label}
-    "SettlerArrived",
-    "SetSettlerJob", -- C->S {settlerId, job}
-    "ColonyEvent", -- S->C: povestitorul a declansat un eveniment {id,title,body,tone,detail,at}
-    "ColonyStats", -- S->C: tabloul coloniei (populatie, paturi, nevoi medii, materiale)
-    "RequestColony", -- C->S: cere tabloul acum
     "DevCommand", -- C<->S: consola de dezvoltare, DOAR in Studio (poarta e pe server)
-    "ObjectiveState", -- S->C: pasul curent, telurile lungi si ce parti de interfata sunt deschise
-    "ObjectiveDone", -- S->C: un pas tocmai s-a terminat (moment de sarbatoare)
-    "RequestObjectives", -- C->S
-    "IntroBegin", -- S->C: incepe deschiderea; jucatorul e blocat pana se termina
-    "IntroTalk", -- S->C: colonistul a ajuns langa jucator {name, sceneId}
-    "IntroDone", -- C->S: jucatorul a terminat de citit
-    -- S->C {name}
-    -- S->C: un colonist a plecat pe apa
-    -- S->C: waypoint-uri pentru colonistii care si-au schimbat drumul
+
+    -- Noi la pivotul tycoon (D45) [F0 spec 1.4]
+    "TycoonState", -- S->C: instantaneul complet; clientul INLOCUIESTE starea, nu o combina
+    "BuyPad", -- C->S {padId}
+    "PadRejected", -- S->C {padId, reason}: "locked" | "owned" | "coins" | "no_profile"
+    "PadBought", -- S->C {padId}: doar semnalul pentru efectul de constructie; starea vine separat
+    "CollectNet", -- C->S {padId}
+    "NetCaught", -- S->C {padId, count, capacity, good, catalog?}
+    "SellSack", -- C->S
+    "Sold", -- S->C {total, itemCount}
 }
 
 local Net = {}
