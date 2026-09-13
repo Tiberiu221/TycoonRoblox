@@ -4,8 +4,9 @@
 Cheia API se citeste din ~/.driftwood_api_key (niciodata din argumente sau din repo).
 Doc: https://create.roblox.com/docs/cloud/guides/usage-assets  [nota: sprites-assets]
 Folosire: python3 scripts/upload_assets.py [nume_fara_extensie ...]   (fara argumente = toate PNG-urile fara prefix _)
+          python3 scripts/upload_assets.py --audio [cheie ...]          (assets/audio/sfx_<cheie>.ogg -> Assets.sounds)
 """
-import json, os, re, sys, time, urllib.request, uuid
+import json, os, re, sys, time, urllib.error, urllib.request, uuid
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SPRITES = os.path.join(ROOT, "assets", "sprites")
@@ -13,8 +14,21 @@ MANIFEST = os.path.join(ROOT, "src", "Shared", "Config", "Assets.luau")
 KEY_FILE = os.path.expanduser("~/.driftwood_api_key")
 API = "https://apis.roblox.com/assets/v1"
 
+# Coliziuni de prefix: doua fisiere diferite ar da aceeasi cheie dupa ce se taie prefixul, iar
+# write_manifest scrie prima potrivire -- adica al doilea upload l-ar suprascrie pe primul in
+# tacere. `prop_wheel` si `ui_wheel` sunt exact cazul asta (amandoua -> `wheel`).
+OVERRIDE = {
+    "ui_wheel": "wheel_face",
+    # tinutele stau in Assets.people.outfit cu numele meseriei; clientii tavernei [D50]
+    "outfit_townsfolk": "Townsfolk",
+    "outfit_traveler": "Traveler",
+}
+
+
 # numele PNG -> cheia din manifest (lazile in crate, cladirile in buildings)
 def manifest_key(name):
+    if name in OVERRIDE:
+        return OVERRIDE[name], True
     m = re.match(r"crate_(\w+)$", name)
     if m:
         return m.group(1), True
@@ -28,6 +42,12 @@ def manifest_key(name):
     if m:
         return m.group(1), True
     m = re.match(r"icon_(\w+)$", name)
+    if m:
+        return m.group(1), True
+    m = re.match(r"goods_(\w+)$", name)
+    if m:
+        return m.group(1), True
+    m = re.match(r"chapter_(\w+)$", name)
     if m:
         return m.group(1), True
     return name, False
@@ -52,30 +72,53 @@ def creator():
     return {"userId": str(cid)} if ctype == "user" else {"groupId": str(cid)}
 
 
-def upload(key, name, path):
+def upload(key, name, path, asset_type="Image", content_type="image/png", ext="png"):
     boundary = uuid.uuid4().hex
     request = {
-        "assetType": "Image",
+        "assetType": asset_type,
         "displayName": name,
-        "description": "Driftwood placeholder sprite",
+        "description": "Driftycoon " + (
+            ("music" if name.startswith("music_") else "sound effect") if asset_type == "Audio" else "sprite"
+        ),
         "creationContext": {"creator": creator()},
     }
     body = b""
     body += f"--{boundary}\r\nContent-Disposition: form-data; name=\"request\"\r\nContent-Type: application/json\r\n\r\n".encode() + json.dumps(request).encode() + b"\r\n"
-    body += f"--{boundary}\r\nContent-Disposition: form-data; name=\"fileContent\"; filename=\"{name}.png\"\r\nContent-Type: image/png\r\n\r\n".encode() + open(path, "rb").read() + b"\r\n"
+    body += f"--{boundary}\r\nContent-Disposition: form-data; name=\"fileContent\"; filename=\"{name}.{ext}\"\r\nContent-Type: {content_type}\r\n\r\n".encode() + open(path, "rb").read() + b"\r\n"
     body += f"--{boundary}--\r\n".encode()
     req = urllib.request.Request(f"{API}/assets", data=body, method="POST", headers={
         "x-api-key": key,
         "Content-Type": f"multipart/form-data; boundary={boundary}",
     })
-    with urllib.request.urlopen(req, timeout=60) as r:
-        op = json.load(r)
+    # Open Cloud intoarce uneori 500 trecator (vazut la primul upload audio, 2026-09-11):
+    # reincercam de cateva ori inainte sa renuntam; erorile 4xx raman fatale imediat.
+    for attempt in range(4):
+        try:
+            with urllib.request.urlopen(req, timeout=60) as r:
+                op = json.load(r)
+            break
+        except urllib.error.HTTPError as e:
+            if e.code < 500 or attempt == 3:
+                raise
+            time.sleep(3 * (attempt + 1))
     op_path = op.get("path") or op.get("operationId")
     for _ in range(60):  # pana la ~2 minute per asset
         time.sleep(2)
         req = urllib.request.Request(f"{API}/{op_path}" if "/" in op_path else f"{API}/operations/{op_path}", headers={"x-api-key": key})
-        with urllib.request.urlopen(req, timeout=30) as r:
-            status = json.load(r)
+        # Interogarea operatiei NU avea reincercare: un singur `SSLEOFError` trecator omora toata
+        # rularea, iar asset-urile deja urcate ramaneau orfane pe Roblox (fara ID scris nicaieri).
+        # Vazut pe 2026-09-12, la jumatatea unui lot de 16.
+        status = None
+        for attempt in range(4):
+            try:
+                with urllib.request.urlopen(req, timeout=30) as r:
+                    status = json.load(r)
+                break
+            except (urllib.error.URLError, TimeoutError, OSError) as e:
+                if attempt == 3:
+                    raise
+                print(f"    {name}: interogare esuata ({type(e).__name__}), reincerc")
+                time.sleep(3 * (attempt + 1))
         if status.get("done"):
             resp = status.get("response", {})
             if "assetId" in resp:
@@ -84,31 +127,92 @@ def upload(key, name, path):
     sys.exit(f"{name}: operatia nu s-a terminat in timp util ({op_path})")
 
 
-def write_manifest(results):
+def png_size(path):
+    # latimea si inaltimea stau in antetul IHDR, octetii 16..24 (big-endian)
+    with open(path, "rb") as f:
+        head = f.read(24)
+    return int.from_bytes(head[16:20], "big"), int.from_bytes(head[20:24], "big")
+
+
+def write_manifest(results, sizes=None):
     src = open(MANIFEST, encoding="utf-8").read()
     for name, asset_id in results.items():
         key, is_crate = manifest_key(name)
-        pattern = rf"(?<![A-Za-z_])({key}) = sprite\(\d+, "
-        src, n = re.subn(pattern, rf"\1 = sprite({asset_id}, ", src, count=1)
+        if sizes and name in sizes:
+            w, h = sizes[name]
+            pattern = rf"(?<![A-Za-z_])({key}) = sprite\(\d+, \d+, \d+\)"
+            src, n = re.subn(pattern, rf"\1 = sprite({asset_id}, {w}, {h})", src, count=1)
+        else:
+            pattern = rf"(?<![A-Za-z_])({key}) = sprite\(\d+, "
+            src, n = re.subn(pattern, rf"\1 = sprite({asset_id}, ", src, count=1)
         if n != 1:
             print(f"  ! {name}: nu am gasit intrarea `{key}` in manifest, ID-ul {asset_id} trebuie pus manual")
     open(MANIFEST, "w", encoding="utf-8").write(src)
 
 
-def main():
-    key = api_key()
-    names = sys.argv[1:] or sorted(f[:-4] for f in os.listdir(SPRITES) if f.endswith(".png") and not f.startswith("_"))
+AUDIO = os.path.join(ROOT, "assets", "audio")
+
+
+def write_sound_manifest(results):
+    # sunetele stau in tabelul `sounds` ca numere simple: `splash = 0,` -> `splash = <id>,`
+    src = open(MANIFEST, encoding="utf-8").read()
+    for key, asset_id in results.items():
+        pattern = rf"(?<![A-Za-z_])({key}) = \d+,"
+        src, n = re.subn(pattern, rf"\1 = {asset_id},", src, count=1)
+        if n != 1:
+            print(f"  ! sunetul {key}: nu am gasit intrarea in manifest, ID-ul {asset_id} trebuie pus manual")
+    open(MANIFEST, "w", encoding="utf-8").write(src)
+
+
+def audio_file(name):
+    # "splash" -> sfx_splash.ogg (Assets.sounds.splash); "music_river" -> music_river.ogg
+    # (Assets.music.river) [D51]. Cheia din manifest e ce ramane dupa prefix.
+    if name.startswith("music_"):
+        return name, name[len("music_"):]
+    return f"sfx_{name}", name
+
+
+def main_audio(key, names):
+    # fara nume: toate efectele sfx_<cheie>.ogg; muzica se urca doar numita explicit
+    files = names or sorted(f[4:-4] for f in os.listdir(AUDIO) if f.startswith("sfx_") and f.endswith(".ogg"))
     results = {}
-    for name in names:
-        path = os.path.join(SPRITES, name + ".png")
+    for name in files:
+        stem, manifest = audio_file(name)
+        path = os.path.join(AUDIO, f"{stem}.ogg")
         if not os.path.exists(path):
             print(f"  ! lipseste {path}")
             continue
-        asset_id, state = upload(key, name, path)
-        results[name] = asset_id
-        print(f"  {name:18s} -> {asset_id}  ({state})")
-    write_manifest(results)
-    print(f"{len(results)} asset-uri scrise in {os.path.relpath(MANIFEST, ROOT)}")
+        asset_id, state = upload(key, stem, path, "Audio", "audio/ogg", "ogg")
+        results[manifest] = asset_id
+        print(f"  {stem:18s} -> {asset_id}  ({state})")
+    write_sound_manifest(results)
+    print(f"{len(results)} sunete scrise in {os.path.relpath(MANIFEST, ROOT)}")
+
+
+def main():
+    key = api_key()
+    if sys.argv[1:2] == ["--audio"]:
+        main_audio(key, sys.argv[2:])
+        return
+    names = sys.argv[1:] or sorted(f[:-4] for f in os.listdir(SPRITES) if f.endswith(".png") and not f.startswith("_"))
+    results = {}
+    sizes = {}
+    try:
+        for name in names:
+            path = os.path.join(SPRITES, name + ".png")
+            if not os.path.exists(path):
+                print(f"  ! lipseste {path}")
+                continue
+            asset_id, state = upload(key, name, path)
+            results[name] = asset_id
+            sizes[name] = png_size(path)
+            print(f"  {name:18s} -> {asset_id}  ({state})")
+    finally:
+        # SI pe drumul cu eroare: un asset urcat pentru care nu scriem ID-ul e pierdut definitiv
+        # (reluarea creeaza un duplicat). Scrie ce s-a obtinut, apoi lasa exceptia sa iasa.
+        if results:
+            write_manifest(results, sizes)
+            print(f"{len(results)} asset-uri scrise in {os.path.relpath(MANIFEST, ROOT)}")
 
 
 if __name__ == "__main__":

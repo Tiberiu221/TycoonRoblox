@@ -23,4 +23,27 @@ local function computeOffline(
     }
 end
 
-return { computeOffline = computeOffline, BACKSTOP_SECONDS = BACKSTOP_SECONDS }
+-- CASTIGUL DE CAT AI LIPSIT, pentru modelul cu lant. Functia de mai sus numara bucati prinse pana
+-- se umple plasa; aici conteaza altceva: cat a mers LANTUL fara tine. Fara Mana si fara Negustor,
+-- `idleRate` e zero si castigul e zero -- nu ca pedeapsa, ci pentru ca n-avea cine sa care si cine
+-- sa vanda. Nimic nu se pierde [P2], dar nici nu apare de nicaieri.
+export type IdleResult = { seconds: number, coins: number, cappedByTime: boolean }
+
+local function computeIdle(now: number, lastSeenAt: number, idleRate: number): IdleResult
+    if lastSeenAt <= 0 or idleRate <= 0 then
+        return { seconds = 0, coins = 0, cappedByTime = false }
+    end
+    local elapsed = math.clamp(now - lastSeenAt, 0, ABS_MAX_ELAPSED)
+    local counted = math.min(elapsed, BACKSTOP_SECONDS)
+    return {
+        seconds = counted,
+        coins = counted * idleRate,
+        cappedByTime = elapsed > BACKSTOP_SECONDS,
+    }
+end
+
+return {
+    computeOffline = computeOffline,
+    computeIdle = computeIdle,
+    BACKSTOP_SECONDS = BACKSTOP_SECONDS,
+}

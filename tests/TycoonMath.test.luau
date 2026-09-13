@@ -5,247 +5,11 @@ local check = frktest.assert.check
 local TycoonMath = require("../src/Shared/Modules/TycoonMath")
 local TycoonConfig = require("../src/Shared/Config/TycoonConfig")
 
--- Valorile de aur, din scripts/economy/sim_tycoon.py (tura 1, lacom) [F0 spec 1.2]. Daca vreuna
--- nu cade exact, se cauta diferenta de portare -- nu se relaxeaza testul si nu se atinge sim-ul.
-local GOLD_PRICES = {
-    0,
-    9,
-    18,
-    25,
-    40,
-    50,
-    80,
-    130,
-    200,
-    220,
-    300,
-    450,
-    550,
-    750,
-    1200,
-    1500,
-    2000,
-    2500,
-    3500,
-    4000,
-    6000,
-    7500,
-    9000,
-    12000,
-    15000,
-    20000,
-    25000,
-    28000,
-    30000,
-    35000,
-    40000,
-    45000,
-    50000,
-    55000,
-    60000,
-    70000,
-    75000,
-    80000,
-    90000,
-    100000,
-    110000,
-    120000,
-    130000,
-    150000,
-    160000,
-    180000,
-    200000,
-    220000,
-}
-local GOLD_TIMES = {
-    0,
-    23,
-    48,
-    77,
-    110,
-    144,
-    183,
-    228,
-    280,
-    334,
-    395,
-    469,
-    550,
-    637,
-    736,
-    850,
-    983,
-    1124,
-    1297,
-    1477,
-    1689,
-    1924,
-    2196,
-    2487,
-    2803,
-    3189,
-    3604,
-    4045,
-    4447,
-    4867,
-    5301,
-    5708,
-    6112,
-    6551,
-    7011,
-    7516,
-    7967,
-    8400,
-    8850,
-    9327,
-    9781,
-    10241,
-    10723,
-    11244,
-    11687,
-    12156,
-    12557,
-    12971,
-}
-local GOLD_INCOMES = {
-    0.39963,
-    0.740056,
-    0.866922,
-    1.210702,
-    1.452842,
-    2.05524,
-    2.941776,
-    3.824309,
-    4.053767,
-    4.91314,
-    6.141424,
-    6.755567,
-    8.636956,
-    12.130964,
-    13.166857,
-    15.069944,
-    17.718349,
-    20.191911,
-    22.310636,
-    28.234388,
-    31.999095,
-    33.022928,
-    41.27866,
-    47.470459,
-    51.858671,
-    60.16882,
-    63.574602,
-    74.625642,
-    83.406177,
-    92.094947,
-    110.513936,
-    123.766427,
-    125.25351,
-    130.46402,
-    138.578412,
-    166.294094,
-    185.038358,
-    199.795691,
-    210.001653,
-    242.230074,
-    260.974338,
-    269.266683,
-    288.431756,
-    360.539695,
-    383.970025,
-    499.161032,
-    531.233324,
-    664.041656,
-}
+-- Paritatea cu simulatorul s-a MUTAT in tests/ChainMath.test.luau odata cu trecerea pe lantul cu
+-- trei verigi (E1.3): venitul nu mai e o suma peste platforme, deci `greedyRun`/`income`/`nice`
+-- n-au mai avut ce oglindi si au fost scoase din TycoonMath. Aici a ramas ce nu tine de venit.
 
 return function()
-    test.suite("TycoonMath - paritate cu simulatorul", function()
-        local rows = TycoonMath.greedyRun()
-
-        test.case("48 de randuri, un rand per platforma", function()
-            check.equal(#rows, 48)
-        end)
-
-        test.case("preturile cad exact ca in simulator", function()
-            for i, row in rows do
-                check.equal(row.price, GOLD_PRICES[i])
-            end
-        end)
-
-        test.case("timpii de cumparare (secunde, lacom) cad exact", function()
-            for i, row in rows do
-                check.equal(row.t, GOLD_TIMES[i])
-            end
-        end)
-
-        test.case("venitul dupa fiecare cumparare e in limita de 1e-6", function()
-            for i, row in rows do
-                check.is_true(math.abs(row.income - GOLD_INCOMES[i]) < 1e-6)
-            end
-        end)
-
-        test.case(
-            "regula celor patru motive: fiecare platforma k>1 creste venitul cu >0.5%",
-            function()
-                for i = 2, #rows do
-                    check.is_true(rows[i].income > rows[i].before * 1.005)
-                end
-            end
-        )
-
-        test.case("preturile cresc strict", function()
-            for i = 2, #rows do
-                check.is_true(rows[i].price > rows[i - 1].price)
-            end
-        end)
-
-        test.case("primele 5 platforme in cel mult 110s lacom [spec 18/24]", function()
-            check.is_true(rows[5].t <= 110)
-        end)
-
-        test.case("cea mai lunga asteptare intre doua cumparari e sub 540s lacom", function()
-            local longest = 0
-            for i = 2, #rows do
-                longest = math.max(longest, rows[i].t - rows[i - 1].t)
-            end
-            check.is_true(longest <= 540)
-        end)
-
-        test.case("scara renasterii: tura 2 si tura 3 termina sub 2 ore lacom", function()
-            local r2 = TycoonMath.greedyRun(1, 12, 3, GOLD_PRICES)
-            local r3 = TycoonMath.greedyRun(2, 24, 4, GOLD_PRICES)
-            check.equal(#r2, 36) -- se opreste dupa Era 3
-            check.equal(#r3, 48) -- se opreste dupa Era 4
-            check.is_true(r2[#r2].t <= 7200)
-            check.is_true(r3[#r3].t <= 7200)
-            -- valori exacte, verificate separat cu simulatorul (1h15m15s si 1h28m48s)
-            check.equal(r2[#r2].t, 4515)
-            check.equal(r3[#r3].t, 5328)
-        end)
-    end)
-
-    test.suite("TycoonMath.income - reteaua de energie", function()
-        test.case(
-            "doua statii active: energia merge la castigul cel mai mare pe unitate",
-            function()
-                -- comparat manual cu sim_tycoon.py: State(lanes=2, nets=[.33,.33,.33,.4,.4,.45], flow=5,
-                -- stations={driftwood:[3,1.6,4], scrap:[3,1,5]}) -> income() = 4.323200000000001
-                local s = TycoonMath.newState()
-                s.lanes = 2
-                s.nets = { 0.33, 0.33, 0.33, 0.4, 0.4, 0.45 }
-                s.flow = 5
-                s.stations.driftwood = { mult = 3.0, cap = 1.6, draw = 4.0 }
-                s.stations.scrap = { mult = 3.0, cap = 1.0, draw = 5.0 }
-                local inc = TycoonMath.income(s)
-                check.is_true(math.abs(inc - 4.323200000000001) < 1e-6)
-            end
-        )
-
-        test.case("fara plase, venitul e zero", function()
-            check.equal(TycoonMath.income(TycoonMath.newState()), 0)
-        end)
-    end)
-
     test.suite("TycoonMath.stateFor", function()
         test.case("live=true ignora efectele indexFound (Index-ul real le inlocuieste)", function()
             local bought = { workshop = true } -- Workshop: plus(index_found, 6)
@@ -256,91 +20,167 @@ return function()
             check.equal(sSim.indexFound, 106)
         end)
 
-        test.case("aplica efectele in ordinea PADS (Sawmill inainte de Sawmill II)", function()
-            local bought = { sawmill = true, sawmill_2 = true }
+        test.case("aplica efectele in ordinea PADS (Smelter inainte de Fine Ingots)", function()
+            -- Sawmill + Sawmill II era perechea de dinainte; gaterul a intrat in lantul Erei 1 [D48].
+            local bought = { smelter = true, fine_ingots = true }
             local s = TycoonMath.stateFor(bought, 0, 0)
-            check.equal(s.stations.driftwood.cap, 1.6 * 2.0) -- upgrade dupa build
+            check.equal(s.stations.scrap.mult, 3.0 * 1.5) -- rafinarea dupa constructie
+        end)
+
+        test.case("un upgrade fara statia lui de baza nu crapa", function()
+            -- sawmill_2 a ramas fara baza: calculul starii trebuie sa mearga mai departe
+            local s = TycoonMath.stateFor({ sawmill_2 = true }, 0, 0)
+            check.is_true(s.stations.driftwood == nil)
         end)
     end)
 
     test.suite("TycoonMath.padStatuses", function()
-        test.case("profil proaspat: primele doua plase available, Bigger Sack outline", function()
-            local statuses = TycoonMath.padStatuses({})
-            check.equal(statuses.first_net, "available")
-            check.equal(statuses.second_net, "available")
-            check.equal(statuses.bigger_sack, "outline")
-            check.equal(statuses.third_net, nil) -- ascunsa, dupa a treia eligibila
-        end)
-
-        test.case("dupa primele 5, drumul se opreste la First Runner (outline)", function()
+        -- Regula s-a schimbat la E1.3: nu mai e "primele doua din tabel", ci "toate cele care si-au
+        -- implinit conditia". Fara asta, jucatorul era obligat sa cumpere a treia plasa (inutila
+        -- cat timp caratul e gatuirea) inainte sa poata angaja prima Mana.
+        -- [D52] Toti cinci oamenii vin dupa prima plasa, iar plasele abia dupa ei: profilurile de mai
+        -- jos au de aceea oamenii deja angajati cand vorbesc despre plase.
+        local function withCrew(extra: { [string]: boolean }): { [string]: boolean }
             local bought = {
                 first_net = true,
-                second_net = true,
-                bigger_sack = true,
-                third_net = true,
-                sorting_crate = true,
+                first_runner = true,
+                hire_porter = true,
+                hire_sawyer = true,
+                hire_hauler = true,
+                dock_trader = true,
             }
-            local statuses = TycoonMath.padStatuses(bought)
-            check.equal(statuses.first_runner, "outline")
-            check.equal(statuses.far_lane_net, nil) -- nu s-a ajuns la ea
-        end)
-
-        test.case(
-            "clopotul e eligibil doar cand e ultima necumparata; nimic din era 2 inainte",
-            function()
-                local bought = {}
-                for _, p in TycoonConfig.PADS do
-                    if p.era == 1 and p.id ~= "landing_bell" then
-                        bought[p.id] = true
-                    end
-                end
-                local statuses = TycoonMath.padStatuses(bought)
-                check.equal(statuses.landing_bell, "outline")
-                check.equal(statuses.sawmill, nil)
-            end
-        )
-
-        -- In F0 clopotele nu sunt live, deci testul de mai sus le vede doar ca "opritor". Aici toate
-        -- platformele sunt live, ca in fazele urmatoare: clopotul nu are voie sa sara coada erei.
-        local allLive: { TycoonConfig.Pad } = {}
-        for _, p in TycoonConfig.PADS do
-            local copy = table.clone(p)
-            copy.live = true
-            table.insert(allLive, copy)
-        end
-        local function boughtEra1Except(...: string): { [string]: boolean }
-            local skip = {}
-            for _, id in { ... } do
-                skip[id] = true
-            end
-            local bought = {}
-            for _, p in TycoonConfig.PADS do
-                if p.era == 1 and not skip[p.id] then
-                    bought[p.id] = true
-                end
+            for id, value in extra do
+                bought[id] = value
             end
             return bought
         end
 
-        test.case("clopot live: nu se cumpara cat timp mai e ceva din era lui", function()
+        test.case("profil proaspat: doar prima plasa, si se vede ce urmeaza", function()
+            local statuses = TycoonMath.padStatuses({})
+            check.equal(statuses.first_net, "available")
+            check.equal(statuses.first_runner, "outline") -- Collector-ul cere o plasa detinuta [D52]
+            check.equal(statuses.second_net, nil)
+            check.equal(statuses.bigger_sack, nil)
+        end)
+
+        test.case("cu prima plasa se deschide Collector-ul, nu a doua plasa [D52]", function()
+            -- chiar cu nivelul 2 facut: plasa a doua asteapta Innkeeper-ul
+            local statuses = TycoonMath.padStatuses(
+                { first_net = true },
+                nil,
+                { first_net = TycoonConfig.PREV_NET_LEVEL }
+            )
+            check.equal(statuses.first_runner, "available")
+            check.equal(statuses.hire_porter, "outline") -- Porter-ul vine dupa Collector [D49]
+            check.equal(statuses.second_net, nil)
+        end)
+
+        test.case("Innkeeper-ul vine dupa Hauler, nu la trei plase [D52]", function()
+            local bought: { [string]: boolean } =
+                { first_net = true, first_runner = true, hire_porter = true, hire_sawyer = true }
+            local before = TycoonMath.padStatuses(bought, nil, { first_net = 5 })
+            check.equal(before.hire_hauler, "available")
+            check.equal(before.dock_trader, "outline")
+            bought.hire_hauler = true
+            local after = TycoonMath.padStatuses(bought, nil, { first_net = 5 })
+            check.equal(after.dock_trader, "available")
+            check.equal(after.second_net, "outline") -- nivelul e facut, lipseste doar Innkeeper-ul
+        end)
+
+        test.case(
+            "cu oamenii si doua plase: se deschid deodata traista si a treia plasa",
+            function()
+                local statuses = TycoonMath.padStatuses(withCrew({ second_net = true }))
+                check.equal(statuses.bigger_sack, "available") -- cere cel putin 2 plase
+                check.equal(statuses.third_net, "available") -- cere exact 2
+                check.equal(statuses.far_lane_net, "outline") -- cere exact 3: inca nu, dar urmeaza
+            end
+        )
+
+        test.case("o plasa in plus INCHIDE deblocarea care cerea exact atatea", function()
+            -- `netsExactly` tine lantul de plase in ordine: nu poti sari peste a treia
             local statuses =
-                TycoonMath.padStatuses(boughtEra1Except("dock_stall", "landing_bell"), allLive)
-            check.equal(statuses.dock_stall, "available")
-            check.equal(statuses.landing_bell, "outline")
-            check.equal(statuses.sawmill, nil)
+                TycoonMath.padStatuses(withCrew({ second_net = true, third_net = true }))
+            check.equal(statuses.third_net, "bought")
+            check.equal(statuses.far_lane_net, "available")
+            check.is_true(statuses.fifth_net ~= "available") -- cere exact 4
         end)
 
-        test.case("clopot live: devine available cand e ultima din era", function()
-            local statuses = TycoonMath.padStatuses(boughtEra1Except("landing_bell"), allLive)
+        test.case("plasa urmatoare apare abia cand cea dinainte e la nivelul cerut", function()
+            -- Owner-ul, in Studio: quest-ul cerea sa urce First Net, dar a doua plasa se putea deja
+            -- cumpara. Acum lumea asteapta nivelul -- aceeasi cifra din quest-ul `net_two`.
+            local bought = withCrew({})
+            local low = TycoonMath.padStatuses(bought, nil, { first_net = 1 })
+            check.equal(low.second_net, "outline") -- se vede ce urmeaza, dar nu se poate lua
+            local ready =
+                TycoonMath.padStatuses(bought, nil, { first_net = TycoonConfig.PREV_NET_LEVEL })
+            check.equal(ready.second_net, "available")
+
+            -- si mai departe, pe ULTIMA plasa detinuta, nu pe prima
+            local three = withCrew({ second_net = true, third_net = true })
+            local stale =
+                TycoonMath.padStatuses(three, nil, { first_net = 9, second_net = 9, third_net = 1 })
+            check.is_true(stale.far_lane_net ~= "available")
+            local fresh =
+                TycoonMath.padStatuses(three, nil, { first_net = 1, second_net = 1, third_net = 2 })
+            check.equal(fresh.far_lane_net, "available")
+        end)
+
+        test.case("fara tabel de niveluri, poarta nu blocheaza nimic", function()
+            -- Un apelant care nu stie de niveluri (erele fara niveluri, testele vechi) nu trebuie sa
+            -- vada lumea incremenita -- ar fi un blocaj fara nicio eroare care sa spuna de ce.
+            local statuses = TycoonMath.padStatuses(withCrew({}))
+            check.equal(statuses.second_net, "available")
+        end)
+
+        test.case("clopotul cere TOT restul erei cumparat", function()
+            local bought = {}
+            for _, p in TycoonConfig.PADS do
+                if p.era == 1 and p.id ~= "landing_bell" and p.id ~= "workshop" then
+                    bought[p.id] = true
+                end
+            end
+            local statuses = TycoonMath.padStatuses(bought)
+            check.equal(statuses.workshop, "available")
+            check.equal(statuses.landing_bell, "outline") -- se vede, dar nu se poate lua
+            check.equal(statuses.sawmill, nil) -- era 2 nu e live
+        end)
+
+        test.case("clopotul devine available cand chiar e ultimul", function()
+            local bought = {}
+            for _, p in TycoonConfig.PADS do
+                if p.era == 1 and p.id ~= "landing_bell" then
+                    bought[p.id] = true
+                end
+            end
+            local statuses = TycoonMath.padStatuses(bought)
             check.equal(statuses.landing_bell, "available")
-            check.equal(statuses.sawmill, nil) -- era 2 se deschide abia dupa clopot
         end)
 
-        test.case("clopot live: dupa el se deschide era urmatoare", function()
-            local statuses = TycoonMath.padStatuses(boughtEra1Except(), allLive)
-            check.equal(statuses.sawmill, "available")
-            check.equal(statuses.water_wheel, "available")
-            check.equal(statuses.flume, "outline")
+        test.case("dupa clopot se deschide era urmatoare", function()
+            local allLive: { TycoonConfig.Pad } = {}
+            for _, p in TycoonConfig.PADS do
+                local copy = table.clone(p)
+                copy.live = true
+                table.insert(allLive, copy)
+            end
+            local bought = {}
+            for _, p in TycoonConfig.PADS do
+                if p.era == 1 then
+                    bought[p.id] = true
+                end
+            end
+            local statuses = TycoonMath.padStatuses(bought, allLive)
+            -- erele 2-4 n-au inca `needs`, deci merg pe ordinea din tabel: toate eligibile. Prima
+            -- platforma a Erei 2 se cauta, nu se scrie de mana -- era `sawmill`, care s-a mutat [D48].
+            local firstEra2: string? = nil
+            for _, p in TycoonConfig.PADS do
+                if p.era == 2 then
+                    firstEra2 = p.id
+                    break
+                end
+            end
+            check.equal(statuses[firstEra2 :: string], "available")
         end)
 
         test.case("toate platformele cumparate: rezultat gol, fara eroare", function()
@@ -353,7 +193,62 @@ return function()
             for _ in statuses do
                 n += 1
             end
-            check.equal(n, 48) -- toate "bought", nimic altceva
+            check.equal(n, #TycoonConfig.PADS)
+        end)
+    end)
+
+    test.suite("TycoonMath - prinderea prezisa (D2)", function()
+        test.case("pickGood respecta ponderile si benzile", function()
+            -- banda 1: scrap si shards cad pe driftwood (0,70 + 0,13 + 0,04 = 0,87)
+            check.equal(TycoonMath.pickGood(0.0, 1), "driftwood")
+            check.equal(TycoonMath.pickGood(0.8699, 1), "driftwood")
+            check.equal(TycoonMath.pickGood(0.871, 1), "reeds")
+            check.equal(TycoonMath.pickGood(0.96, 1), "named")
+            -- banda 2: scrap exista, shards inca nu (0,74 driftwood, apoi 0,13 scrap)
+            check.equal(TycoonMath.pickGood(0.745, 2), "scrap")
+            check.equal(TycoonMath.pickGood(0.9999, 3), "named")
+        end)
+
+        test.case("pickGood: frecventele pe 20.000 de trageri urmeaza GOODS", function()
+            local counts: { [string]: number } = {}
+            local n = 20000
+            for i = 0, n - 1 do
+                local g = TycoonMath.pickGood((i + 0.5) / n, 3)
+                counts[g] = (counts[g] or 0) + 1
+            end
+            for _, g in TycoonConfig.GOODS do
+                check.is_true(math.abs((counts[g.id] or 0) / n - g.share) < 0.001)
+            end
+        end)
+
+        test.case("catchSeed e determinist si diferit pe plasa si pe prindere", function()
+            local a = TycoonMath.catchSeed(123, 1, 0)
+            check.equal(a, TycoonMath.catchSeed(123, 1, 0))
+            check.is_true(a ~= TycoonMath.catchSeed(123, 1, 1))
+            check.is_true(a ~= TycoonMath.catchSeed(123, 2, 0))
+        end)
+    end)
+
+    test.suite("TycoonMath - prima plasa grabita (D51)", function()
+        test.case("doar prima plasa, doar pana la prag", function()
+            local boost = TycoonConfig.FIRST_CATCH
+            check.equal(TycoonMath.catchBoost(boost.pad, 0), boost.speed)
+            check.equal(TycoonMath.catchBoost(boost.pad, boost.untilCollected - 1), boost.speed)
+            check.equal(TycoonMath.catchBoost(boost.pad, boost.untilCollected), 1)
+            check.equal(TycoonMath.catchBoost("second_net", 0), 1)
+            -- tine exact cat cere primul quest de colectare: o plasa plina
+            local QuestConfig = require("../src/Shared/Config/QuestConfig")
+            check.equal(QuestConfig.byId.collect_once.goal, boost.untilCollected)
+            check.equal(boost.untilCollected, TycoonConfig.NET_CAPACITY)
+        end)
+
+        test.case("cat e grabita, prima plasa nu se goleste decat plina", function()
+            local boost = TycoonConfig.FIRST_CATCH
+            check.is_true(TycoonMath.collectLocked(boost.pad, 0, 8, 12))
+            check.is_false(TycoonMath.collectLocked(boost.pad, 0, 12, 12))
+            -- dupa primii 12 colectati, sau pe alta plasa, se goleste oricand
+            check.is_false(TycoonMath.collectLocked(boost.pad, boost.untilCollected, 3, 12))
+            check.is_false(TycoonMath.collectLocked("second_net", 0, 3, 12))
         end)
     end)
 
@@ -408,6 +303,163 @@ return function()
             check.equal(TycoonMath.formatRate(0.39963), "0.4")
             check.equal(TycoonMath.formatRate(5), "5.0")
             check.equal(TycoonMath.formatRate(15), "15")
+        end)
+
+        test.case("formatPerMinute: pe minut, o zecimala sub 100, rotunjit [D52]", function()
+            check.equal(TycoonMath.formatPerMinute(0.33), "19.8") -- prima plasa, nivel 1
+            check.equal(TycoonMath.formatPerMinute(0.33 * 1.03), "20.4") -- un nivel: +3% se vede
+            check.equal(TycoonMath.formatPerMinute(0.5), "30") -- fara ".0" in coada
+            check.equal(TycoonMath.formatPerMinute(1.6663), "100") -- 99.98 urca la 100, nu "100.0"
+            check.equal(TycoonMath.formatPerMinute(4), "240")
+            check.equal(TycoonMath.formatPerMinute(40), "2.4K")
+            check.equal(TycoonMath.formatPerMinute(0), "0")
+            check.equal(TycoonMath.formatPerMinute(-1), "0")
+            check.equal(TycoonMath.formatPerMinute(math.huge), "0")
+        end)
+    end)
+
+    test.suite("TycoonMath.netTick [D53]", function()
+        test.case("inainte de moment: nimic, ceasul pe loc", function()
+            local n, nextAt = TycoonMath.netTick(100, 3, 99, 0, 12)
+            check.equal(n, 0)
+            check.equal(nextAt, 100)
+        end)
+
+        test.case("un moment trecut, cu loc: o prindere, ceasul un pas", function()
+            local n, nextAt = TycoonMath.netTick(100, 3, 100, 0, 12)
+            check.equal(n, 1)
+            check.equal(nextAt, 103)
+        end)
+
+        test.case("restante cu loc: toate, iar ceasul ramane in fata lui now", function()
+            local n, nextAt = TycoonMath.netTick(100, 3, 109.5, 0, 12)
+            check.equal(n, 4)
+            check.equal(nextAt, 112)
+        end)
+
+        test.case(
+            "se umple pe drum: prinde cat incape, apoi sare la primul moment de dupa now",
+            function()
+                local n, nextAt = TycoonMath.netTick(100, 3, 109.5, 10, 12)
+                check.equal(n, 2)
+                check.equal(nextAt, 112)
+            end
+        )
+
+        test.case("plina ore intregi: nicio prindere, ceasul ramane in ritm", function()
+            local now = 100 + 5 * 3600 + 1
+            local n, nextAt = TycoonMath.netTick(100, 3, now, 12, 12)
+            check.equal(n, 0)
+            check.is_true(nextAt > now and nextAt - now <= 3)
+            check.equal((nextAt - 100) % 3, 0)
+        end)
+
+        test.case(
+            "plina ore intregi, apoi golita: cel mult o prindere pe moment, fara rafala",
+            function()
+                local now = 100 + 5 * 3600 + 1
+                local _, nextAt = TycoonMath.netTick(100, 3, now, 12, 12)
+                -- golita chiar acum: pana la momentul urmator nu prinde nimic
+                local early = TycoonMath.netTick(nextAt, 3, now + 0.01, 0, 12)
+                check.equal(early, 0)
+                local atSlot, after = TycoonMath.netTick(nextAt, 3, nextAt, 0, 12)
+                check.equal(atSlot, 1)
+                check.equal(after, nextAt + 3)
+            end
+        )
+
+        test.case(
+            "nivel urcat cat e plina: sare in pasii noului interval, fara prinderi",
+            function()
+                local _, nextAt = TycoonMath.netTick(100, 3, 150, 12, 12)
+                check.equal(nextAt, 151)
+                local n, later = TycoonMath.netTick(nextAt, 2, 155, 12, 12)
+                check.equal(n, 0)
+                check.equal(later, 157)
+            end
+        )
+
+        test.case("interval nul sau nedefinit: nu prinde nimic si nu strica ceasul", function()
+            local n, nextAt = TycoonMath.netTick(100, 0, 500, 0, 12)
+            check.equal(n, 0)
+            check.equal(nextAt, 100)
+            local m = TycoonMath.netTick(100, 0 / 0, 500, 0, 12)
+            check.equal(m, 0)
+        end)
+    end)
+
+    test.suite("TycoonMath.padBlocker + Strings.padNeeds [D53]", function()
+        local Strings = require("../src/Shared/Config/Strings")
+        local function needs(
+            id: string,
+            bought: { [string]: boolean },
+            levels: { [string]: number }?
+        ): string?
+            local b = TycoonMath.padBlocker(TycoonConfig.byId[id], bought, levels)
+            return if b ~= nil then Strings.padNeeds(b) else nil
+        end
+
+        test.case("profil nou: fiecare platforma a Erei 1 spune ce ii lipseste", function()
+            local want = {
+                first_net = nil, -- se ia pe loc
+                first_runner = "Cast your first net",
+                hire_porter = "Hire a Collector first",
+                hire_sawyer = "Hire a Porter first",
+                hire_hauler = "Hire a Sawyer first",
+                dock_trader = "Hire a Hauler first",
+                second_net = "Hire an Innkeeper first",
+                third_net = "Cast the Second Net first",
+                bigger_sack = "Cast the Second Net first",
+                far_lane_net = "Cast the Third Net first",
+                workshop = "Cast the Fourth Net first",
+                fifth_net = "Cast the Fourth Net first",
+                landing_bell = "Rebuild everything else on The Landing first",
+            }
+            local seen = 0
+            for _, p in TycoonConfig.PADS do
+                if p.era == 1 then
+                    seen += 1
+                    check.equal(needs(p.id, {}, {}), want[p.id])
+                end
+            end
+            check.equal(seen, 13)
+        end)
+
+        test.case("doua conditii: intai omul, apoi nivelul plasei", function()
+            local crew = {
+                first_net = true,
+                first_runner = true,
+                hire_porter = true,
+                hire_sawyer = true,
+                hire_hauler = true,
+            }
+            check.equal(needs("second_net", crew, { first_net = 1 }), "Hire an Innkeeper first")
+            crew.dock_trader = true
+            check.equal(
+                needs("second_net", crew, { first_net = 1 }),
+                "Upgrade First Net to level 2 first"
+            )
+            check.equal(needs("second_net", crew, { first_net = 2 }), nil)
+        end)
+
+        test.case(
+            "textul spune exact ce verifica jocul: fara conditie, platforma e cumparabila",
+            function()
+                -- orice platforma fara blocaj trebuie sa fie chiar "available" (sau cumparata)
+                local bought = { first_net = true, first_runner = true }
+                local levels = { first_net = 1 }
+                local statuses = TycoonMath.padStatuses(bought, nil, levels)
+                for _, p in TycoonConfig.PADS do
+                    if p.era == 1 and not bought[p.id] then
+                        local blocked = TycoonMath.padBlocker(p, bought, levels) ~= nil
+                        check.equal(blocked, statuses[p.id] ~= "available")
+                    end
+                end
+            end
+        )
+
+        test.case("cumparata: nimic de spus", function()
+            check.equal(needs("first_net", { first_net = true }, {}), nil)
         end)
     end)
 end

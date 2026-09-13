@@ -45,6 +45,29 @@ local function clearHalo()
     end
 end
 
+-- Unde e butonul unei intrari, in coordonatele HUD-ului (AbsolutePosition, masurat de sub bara de sus).
+-- 0,0,0,0 cat timp nu se vede: tutorialul asteapta, nu aprinde un loc gol.
+function MenuBarController.EntryRect(name: string): (number, number, number, number)
+    local holder = buttons[name]
+    if holder == nil or not holder.Visible then
+        return 0, 0, 0, 0
+    end
+    local p, s = holder.AbsolutePosition, holder.AbsoluteSize
+    return p.X, p.Y, s.X, s.Y
+end
+
+-- [D51] Un buton stins, dar tot apasabil: muzica oprita se vede din bara, fara text.
+function MenuBarController.SetDimmed(name: string, dimmed: boolean)
+    local holder = buttons[name]
+    if holder == nil then
+        return
+    end
+    local icon = holder:FindFirstChildWhichIsA("ImageLabel", true)
+    if icon ~= nil then
+        icon.ImageTransparency = if dimmed then 0.6 else 0
+    end
+end
+
 function MenuBarController.Highlight(name: string?)
     if highlighted == name then
         return -- acelasi buton: nu repornim tween-ul, s-ar stivui la fiecare reimprospatare

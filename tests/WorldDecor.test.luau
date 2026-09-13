@@ -103,10 +103,41 @@ return function()
                     check.is_false(dx < half and dy < half)
                 end
             end
-            local dock = TycoonConfig.DOCK
+            -- taverna, prinsa de baza [D50]
+            local tavern = TycoonConfig.TAVERN
             for _, item in items do
-                local dx, dy = math.abs(item.x - dock.x), math.abs(item.y - dock.y)
-                check.is_false(dx < half and dy < half)
+                check.is_false(
+                    math.abs(item.x - tavern.x) < tavern.w / 2
+                        and item.y > tavern.y - tavern.h
+                        and item.y < tavern.y
+                )
+            end
+        end)
+
+        -- [F3 spec item 1] Malul construit: pontonul si drumurile sunt zone fara decor, la fel de
+        -- explicit ca platformele si taverna de mai sus -- ca un copac sau o piatra sa nu mai poata
+        -- aparea niciodata pe scandurile pontonului sau pe drum [D50].
+        test.case("pontonul si drumurile raman fara copaci si pietre", function()
+            local realBounds = {
+                width = RiverConfig.WORLD_WIDTH,
+                height = RiverConfig.WORLD_HEIGHT,
+                riverTop = RiverConfig.RIVER_TOP,
+                riverBottom = RiverConfig.RIVER_BOTTOM,
+                plot = RiverConfig.PLOT,
+            }
+            local items = WorldDecor.build(2026091101, realBounds, 220)
+            local function inRect(
+                x: number,
+                y: number,
+                r: { x0: number, x1: number, y0: number, y1: number }
+            ): boolean
+                return x >= r.x0 and x <= r.x1 and y >= r.y0 and y <= r.y1
+            end
+            for _, item in items do
+                check.is_false(inRect(item.x, item.y, TycoonConfig.DECK))
+                for _, road in TycoonConfig.ROADS do
+                    check.is_false(inRect(item.x, item.y, road))
+                end
             end
         end)
 

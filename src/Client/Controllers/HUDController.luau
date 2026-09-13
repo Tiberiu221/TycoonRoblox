@@ -10,16 +10,84 @@ local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
+local GuideMath = require(ReplicatedStorage.Shared.Modules.GuideMath)
 local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
+local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
+local Assets = require(ReplicatedStorage.Shared.Config.Assets)
+local Strings = require(ReplicatedStorage.Shared.Config.Strings)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
 
 local HUDController = {}
+local coinPill: Frame
+local coinRow: Frame
 local coinValue: TextLabel
+local ratePill: Frame
+local pearlPill: Frame
+local pearlValue: TextLabel
+local idlePill: Frame
+local idleValue: TextLabel
+local objPill: TextButton
+local objBadge: Frame
+local objBadgeLabel: TextLabel
+local questActive: { text: string, progress: number, goal: number }? = nil
+local objText: TextLabel
+local objNeed: TextLabel
+local objFill: Frame
+local objTrack: Frame
+local objStep: TextLabel -- [D51] al doilea rand: pasul de acum
 local rateValue: TextLabel
 local sackValue: TextLabel
 local sackChip: Frame
 local toastLabel: TextLabel
+-- Cartonasul de la apropiere [F3 spec item 5]: fix jos-centru in HUD, marime fixa -- nu mai urca
+-- deasupra platformei (asta traia in PadController pana acum) -- deci nu mai poate acoperi
+-- niciodata raul sau alta platforma, indiferent unde esti pe mal. PadController tot decide CAND
+-- (raza de 220px) si CE (care pad, afordabil sau nu); aici traieste doar desenul.
+-- 204, nu 148: cartonasul e acum o CONFIRMARE -- are in plus sprânceana, randul cu cat iti ramane
+-- si butonul de cumparare. Cutiile sunt verificate de scripts/art/check_panel_rows.py.
+local APPROACH_W, APPROACH_H = 440, 204
+local APPROACH_INSET_X, APPROACH_INSET_Y = 30, 20
+local APPROACH_BOTTOM_MARGIN = 132
+local approachCard: Frame
+local approachEyebrow: TextLabel
+local approachName: TextLabel
+local approachBlurb: TextLabel
+local approachDelta: TextLabel
+local approachNote: TextLabel
+local approachPrice: TextLabel
+local approachCoin: ImageLabel
+local approachSpend: TextLabel
+local approachBuy: TextButton
+local approachCanBuy = false -- ce arata butonul ACUM; apasarea nu face nimic cand e stins
+local approachBuyFn: (() -> ())? = nil -- dat de PadController; HUD-ul nu stie sa cumpere singur
+local approachId: string? = nil -- padId-ul curent, nil = ascuns
+local approachRuin = false -- [D53] cartonasul arata acum o ruina incuiata, nu o cumparare
+local APPROACH_POP = TweenInfo.new(0.18, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+-- pastilele monede/rata [F2 spec Agent U pct.3]: monede sus si mare, rata sub ea, sacul la dreapta
+-- Linia "NEXT" e si BANNERUL DE QUEST. La ei sunt doua lucruri diferite (o linie de obiectiv si o
+-- banda de quest sus); la noi ar fi spus mereu acelasi lucru pe doua randuri, asa ca e unul singur:
+-- cand exista quest activ, scrie quest-ul si contorul lui (0/1) si se poate APASA ca sa deschida
+-- lista; cand nu, ramane reperul vechi ("Saving for ...", cu bara si cat mai lipseste).
+-- Linia "NEXT": singurul lucru din HUD care raspunde, permanent, la "ce fac acum si de ce".
+-- Pana la ea, cand nu-ti ajungeau banii ghidajul tacea complet (GuideMath intorcea nil) -- adica
+-- exact in cele cateva minute de strans, jucatorul ramanea fara niciun reper. Sageata ramane
+-- nagul rar (11s fara progres); asta e reperul fix, mic si linistit.
+-- Pastila venitului pasiv. NU exista de la inceput: apare abia cand lantul poate merge fara tine
+-- (o Mana care cara si un Negustor care vinde). Momentul ala e rasplata jocului -- ai cumparat
+-- scaparea de o corvoada -- si se vede prin faptul ca in HUD apare ceva ce nu era [Idle Miner].
+local IDLE_W, IDLE_H = 176, 32
+local SACK_CHIP_W, SACK_CHIP_H = 120, 52
+-- A doua moneda sta LANGA prima, la aceeasi inaltime: doua monede despartite de alte pastile nu se
+-- mai citesc ca pereche. Chipul traistei si pastila IDLE se muta la dreapta lor.
+local PEARL_PILL_W = 150
+local OBJ_W, OBJ_H = 340, 58
+local OBJ_H_STEP = 78 -- [D51] cu randul pasului
+local COIN_PILL_W, COIN_PILL_H = 196, 48
+local RATE_PILL_W, RATE_PILL_H = 150, 32
+local STACK_GAP = Theme.SPACE.xs
+local coinTicker: ((number) -> ())? = nil
+local rateTicker: ((number) -> ())? = nil
 -- treimea de sus, centrat: liber la orice latime, si acolo se uita ochiul
 local TOAST_HOME = UDim2.fromScale(0.5, 0.26)
 -- Comenzile de atingere. Panza HUD e viewport/hudScale, deci astea sunt unitati logice:
@@ -76,21 +144,60 @@ local function touchButton(
     return b
 end
 
+local TICK_UP = TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+
+-- Numarul afisat urca lin spre o tinta noua (~250ms); o scadere (o cheltuiala) se vede imediat,
+-- fara animatie [F2 spec Agent U pct.3]. TweenService nu poate anima un numar Lua simplu, deci
+-- tweenuim un NumberValue ascuns si recitim valoarea lui la fiecare pas, formatata cu `format`.
+local function newTicker(label: TextLabel, format: (number) -> string): (number) -> ()
+    local holder = Instance.new("NumberValue")
+    local conn: RBXScriptConnection? = nil
+    return function(target: number)
+        if conn ~= nil then
+            conn:Disconnect()
+            conn = nil
+        end
+        -- `holder.Value` e chiar cifra afisata ACUM (in mijlocul unui tween, e valoarea
+        -- intermediara) -- de-aici pleaca urmatoarea urcare. Daca am porni de la ultima tinta,
+        -- o a doua vanzare venita in timpul primei ar face numarul sa sara inainte.
+        if target <= holder.Value then
+            holder.Value = target -- o scadere (o cheltuiala) se vede imediat, fara animatie
+            label.Text = format(target)
+            return
+        end
+        conn = holder:GetPropertyChangedSignal("Value"):Connect(function()
+            label.Text = format(holder.Value)
+        end)
+        TweenService:Create(holder, TICK_UP, { Value = target }):Play()
+    end
+end
+
 function HUDController.Init(deps: {
     HudGui: Frame,
     SetStick: (number, number) -> (),
     Interact: () -> (),
+    OpenQuests: (() -> ())?,
     PanelsOpen: (() -> boolean)?,
 })
-    -- Numarul central: monedele. Mare, cu pictograma, fiindca e SINGURUL numar la care contribuie
-    -- toata bucla -- nimic altceva nu mai merita acelasi loc pe ecran [DECIZII D45].
-    local coinRow = Instance.new("Frame")
+    -- Numarul central: monedele. Mare, cu pictograma, pe pastila proprie -- SINGURUL numar la
+    -- care contribuie toata bucla [DECIZII D45]. Rata sta sub el (o completare, nu al doilea numar
+    -- principal), sacul trece la DREAPTA grupului -- ierarhie clara in loc de trei randuri
+    -- stivuite [F2 spec Agent U pct.3].
+    coinPill = Instance.new("Frame")
+    coinPill.Name = "CoinPill"
+    coinPill.Position = UDim2.fromOffset(Theme.SPACE.lg, Theme.SPACE.md)
+    coinPill.Size = UDim2.fromOffset(COIN_PILL_W, COIN_PILL_H)
+    coinPill.ZIndex = 12
+    Widgets.PillBackground(coinPill, 12)
+    coinPill.Parent = deps.HudGui
+
+    coinRow = Instance.new("Frame")
     coinRow.Name = "Coins"
     coinRow.BackgroundTransparency = 1
-    coinRow.Position = UDim2.fromOffset(Theme.SPACE.lg, Theme.SPACE.md)
-    coinRow.Size = UDim2.fromOffset(280, 40)
-    coinRow.ZIndex = 12
-    coinRow.Parent = deps.HudGui
+    coinRow.Position = UDim2.fromOffset(Theme.SPACE.md, 0)
+    coinRow.Size = UDim2.new(1, -Theme.SPACE.md * 2, 1, 0)
+    coinRow.ZIndex = 13
+    coinRow.Parent = coinPill
     local coinLayout = Instance.new("UIListLayout")
     coinLayout.FillDirection = Enum.FillDirection.Horizontal
     coinLayout.VerticalAlignment = Enum.VerticalAlignment.Center
@@ -102,24 +209,189 @@ function HUDController.Init(deps: {
     coinValue.LayoutOrder = 2
     coinValue.AutomaticSize = Enum.AutomaticSize.X
     coinValue.Size = UDim2.fromOffset(0, Theme.TEXT.title + 4)
-    coinValue.ZIndex = 13
+    coinValue.ZIndex = 14
     Theme.punch(coinValue)
+    coinTicker = newTicker(coinValue, TycoonMath.formatNumber)
 
-    -- rata: cat de repede creste numarul de sus, cat timp nu faci nimic. Sub cifra mare, nu
-    -- langa ea -- e o completare, nu al doilea numar principal.
-    -- TEXT.body, nu small: la scara HUD-ului pe un ecran de laptop, 15 px ajungeau la ~12 si
-    -- rata abia se citea (vazut in Studio, 2026-09-11)
-    rateValue = Widgets.Label(deps.HudGui, "+0.0/s", Theme.TEXT.body, Theme.COLOR.gold, "strong")
-    rateValue.Position = UDim2.fromOffset(Theme.SPACE.lg + 38, Theme.SPACE.md + 36)
-    rateValue.Size = UDim2.fromOffset(200, 24)
-    rateValue.ZIndex = 12
+    -- rata: cat de repede creste numarul de sus, cat timp nu faci nimic -- pe pastila ei, direct
+    -- sub cea a monedelor. TEXT.body, nu small: la scara HUD-ului pe un ecran de laptop, 15 px
+    -- ajungeau la ~12 si rata abia se citea (vazut in Studio, 2026-09-11)
+    pearlPill = Instance.new("Frame")
+    pearlPill.Name = "PearlPill"
+    pearlPill.Position =
+        UDim2.fromOffset(Theme.SPACE.lg + COIN_PILL_W + Theme.SPACE.sm, Theme.SPACE.md)
+    pearlPill.Size = UDim2.fromOffset(PEARL_PILL_W, COIN_PILL_H)
+    pearlPill.ZIndex = 12
+    Widgets.PillBackground(pearlPill, 12)
+    pearlPill.Parent = deps.HudGui
+
+    local pearlDot = Widgets.PearlIcon(pearlPill, 22, 13)
+    pearlDot.AnchorPoint = Vector2.new(0, 0.5)
+    pearlDot.Position = UDim2.fromOffset(Theme.SPACE.md, COIN_PILL_H / 2)
+
+    pearlValue = Widgets.Label(pearlPill, "0", Theme.TEXT.heading, Theme.COLOR.onDark, "display")
+    pearlValue.AnchorPoint = Vector2.new(1, 0.5)
+    pearlValue.Position = UDim2.fromOffset(PEARL_PILL_W - Theme.SPACE.md, COIN_PILL_H / 2)
+    pearlValue.Size = UDim2.fromOffset(PEARL_PILL_W - 52, Theme.TEXT.heading + 6)
+    pearlValue.TextXAlignment = Enum.TextXAlignment.Right
+    pearlValue.ZIndex = 13
+
+    ratePill = Instance.new("Frame")
+    ratePill.Name = "RatePill"
+    ratePill.Position = UDim2.fromOffset(Theme.SPACE.lg, Theme.SPACE.md + COIN_PILL_H + STACK_GAP)
+    ratePill.Size = UDim2.fromOffset(RATE_PILL_W, RATE_PILL_H)
+    ratePill.ZIndex = 12
+    Widgets.PillBackground(ratePill, 12)
+    ratePill.Parent = deps.HudGui
+
+    rateValue = Widgets.Label(ratePill, "+0.0/s", Theme.TEXT.body, Theme.COLOR.gold, "strong")
+    rateValue.Position = UDim2.fromOffset(Theme.SPACE.sm, (RATE_PILL_H - Theme.TEXT.body) / 2 - 2)
+    rateValue.Size = UDim2.fromOffset(RATE_PILL_W - Theme.SPACE.sm * 2, Theme.TEXT.body + 6)
+
+    idlePill = Instance.new("Frame")
+    idlePill.Name = "IdlePill"
+    -- LA DREAPTA CHIPULUI DE TRAISTA, nu sub pastila de monede: acolo intra peste chip (verificat
+    -- cu aritmetica, nu cu ochiul -- cutiile se suprapuneau pe 120x16 pixeli).
+    idlePill.Position = UDim2.fromOffset(
+        Theme.SPACE.lg
+            + COIN_PILL_W
+            + Theme.SPACE.sm
+            + PEARL_PILL_W
+            + Theme.SPACE.sm
+            + SACK_CHIP_W
+            + Theme.SPACE.sm,
+        Theme.SPACE.md + (COIN_PILL_H + STACK_GAP + RATE_PILL_H - IDLE_H) / 2
+    )
+    idlePill.Size = UDim2.fromOffset(IDLE_W, IDLE_H)
+    idlePill.ZIndex = 12
+    idlePill.Visible = false
+    Widgets.PillBackground(idlePill, 12)
+    idlePill.Parent = deps.HudGui
+
+    -- Fulgerul inaintea cuvantului. Daca sprite-ul lipseste, Widgets.Icon da nil si cuvantul
+    -- ramane singur la stanga -- de-aici `eyebrowX` calculat, nu o constanta.
+    local idleBolt = Widgets.Icon(idlePill, "idle", 18)
+    local eyebrowX = Theme.SPACE.sm
+    if idleBolt ~= nil then
+        idleBolt.AnchorPoint = Vector2.new(0, 0.5)
+        idleBolt.Position = UDim2.fromOffset(Theme.SPACE.sm, IDLE_H / 2)
+        idleBolt.ZIndex = 13
+        eyebrowX = Theme.SPACE.sm + 18 + 4
+    end
+
+    local idleEyebrow = Widgets.Label(idlePill, "IDLE", Theme.TEXT.tiny, Theme.COLOR.cool, "strong")
+    idleEyebrow.Position = UDim2.fromOffset(eyebrowX, (IDLE_H - Theme.TEXT.tiny) / 2 - 2)
+    idleEyebrow.Size = UDim2.fromOffset(42, Theme.TEXT.tiny + 6)
+    idleEyebrow.ZIndex = 13
+
+    idleValue = Widgets.Label(idlePill, "0.0/s", Theme.TEXT.body, Theme.COLOR.cool, "strong")
+    idleValue.AnchorPoint = Vector2.new(1, 0)
+    idleValue.Position =
+        UDim2.fromOffset(IDLE_W - Theme.SPACE.sm, (IDLE_H - Theme.TEXT.body) / 2 - 2)
+    idleValue.Size = UDim2.fromOffset(IDLE_W - 58, Theme.TEXT.body + 6)
+    idleValue.TextXAlignment = Enum.TextXAlignment.Right
+    idleValue.ZIndex = 13
+
+    -- ---- linia "NEXT" -------------------------------------------------------------------------
+    objPill = Instance.new("TextButton")
+    objPill.Name = "Objective"
+    objPill.AutoButtonColor = false
+    objPill.Text = ""
+    objPill.Position = UDim2.fromOffset(
+        Theme.SPACE.lg,
+        Theme.SPACE.md + COIN_PILL_H + STACK_GAP + RATE_PILL_H + STACK_GAP
+    )
+    objPill.Size = UDim2.fromOffset(OBJ_W, OBJ_H)
+    objPill.ZIndex = 12
+    objPill.Visible = false
+    Widgets.PillBackground(objPill, 12)
+    objPill.Parent = deps.HudGui
+
+    local eyebrow = Widgets.Label(objPill, "NEXT", Theme.TEXT.tiny, Theme.COLOR.gold, "strong")
+    eyebrow.Position = UDim2.fromOffset(Theme.SPACE.md, 6)
+    eyebrow.Size = UDim2.fromOffset(60, 14)
+    eyebrow.ZIndex = 13
+
+    objText = Widgets.Label(objPill, "", Theme.TEXT.small, Theme.COLOR.onDark, "strong")
+    objText.Position = UDim2.fromOffset(Theme.SPACE.md + 52, 4)
+    objText.Size = UDim2.fromOffset(OBJ_W - Theme.SPACE.md * 2 - 52, 18)
+    objText.TextTruncate = Enum.TextTruncate.AtEnd
+    objText.ZIndex = 13
+
+    -- [D51] PASUL: cum si unde, acum. Quest-ul spune ce; randul asta spune ce faci in secunda asta,
+    -- exact textul de pe sageata din lume.
+    objStep = Widgets.Label(objPill, "", Theme.TEXT.small, Theme.COLOR.gold, "strong")
+    objStep.Position = UDim2.fromOffset(Theme.SPACE.md, 26)
+    objStep.Size = UDim2.fromOffset(OBJ_W - Theme.SPACE.md * 2, 18)
+    objStep.TextTruncate = Enum.TextTruncate.AtEnd
+    objStep.ZIndex = 13
+    objStep.Visible = false
+
+    objTrack, objFill =
+        Widgets.Bar(objPill, OBJ_W - Theme.SPACE.md * 2 - 86, 8, Theme.COLOR.gold, 13)
+    objTrack.Position = UDim2.fromOffset(Theme.SPACE.md, OBJ_H - 20)
+
+    objNeed = Widgets.Label(objPill, "", Theme.TEXT.tiny, Theme.COLOR.onDarkSoft, "body")
+    objNeed.Position = UDim2.fromOffset(OBJ_W - Theme.SPACE.md - 80, OBJ_H - 26)
+    objNeed.Size = UDim2.fromOffset(80, 16)
+    objNeed.TextXAlignment = Enum.TextXAlignment.Right
+    objNeed.ZIndex = 13
+
+    -- bulina rosie cu cate recompense asteapta. Sta pe coltul liniei, nu langa ea: pe coltul unui
+    -- lucru pe care il poti apasa, o bulina inseamna "aici ai ceva de luat" fara niciun cuvant.
+    objBadge = Instance.new("Frame")
+    objBadge.Name = "Badge"
+    objBadge.AnchorPoint = Vector2.new(0.5, 0.5)
+    objBadge.Position = UDim2.fromScale(1, 0)
+    objBadge.Size = UDim2.fromOffset(26, 26)
+    objBadge.BackgroundColor3 = Theme.COLOR.bad
+    objBadge.BorderSizePixel = 0
+    objBadge.Visible = false
+    objBadge.ZIndex = 14
+    objBadge.Parent = objPill
+    if Assets.has(Assets.ui.badge) then
+        local badgeImg = Instance.new("ImageLabel")
+        badgeImg.Name = "BadgeArt"
+        badgeImg.BackgroundTransparency = 1
+        badgeImg.Image = Assets.url(Assets.ui.badge)
+        badgeImg.ResampleMode = Enum.ResamplerMode.Pixelated
+        badgeImg.Size = UDim2.fromScale(1, 1)
+        badgeImg.ZIndex = 14
+        badgeImg.Parent = objBadge
+        objBadge.BackgroundTransparency = 1
+    else
+        local badgeCorner = Instance.new("UICorner")
+        badgeCorner.CornerRadius = UDim.new(1, 0)
+        badgeCorner.Parent = objBadge
+    end
+    objBadgeLabel = Widgets.Label(objBadge, "0", Theme.TEXT.tiny, Theme.COLOR.onDark, "display")
+    objBadgeLabel.AnchorPoint = Vector2.new(0.5, 0.5)
+    objBadgeLabel.Position = UDim2.fromScale(0.5, 0.5)
+    objBadgeLabel.Size = UDim2.fromOffset(24, 18)
+    objBadgeLabel.TextXAlignment = Enum.TextXAlignment.Center
+    objBadgeLabel.ZIndex = 15
+
+    objPill.Activated:Connect(function()
+        local onOpen = deps.OpenQuests
+        if onOpen ~= nil then
+            onOpen()
+        end
+    end)
+    rateValue.ZIndex = 13
     Theme.punch(rateValue, 2)
+    rateTicker = newTicker(rateValue, function(n: number): string
+        return `+{TycoonMath.formatRate(n)}/s`
+    end)
 
     -- traista: cat mai poti duce inainte sa trebuiasca sa mergi la debarcader. Se incalzeste
-    -- si se aprinde rosu cand se umple -- semnalul de "du-te si vinde" [DECIZII D40, D43].
-    sackChip, sackValue = Widgets.Chip(deps.HudGui, "crate", 12, "Sack")
-    sackChip.Position = UDim2.fromOffset(Theme.SPACE.lg, 78)
-    sackChip.Size = UDim2.fromOffset(120, 52)
+    -- si se aprinde rosu cand se umple -- semnalul de "du-te si vinde" [DECIZII D40, D43]. La
+    -- dreapta grupului monede+rata, centrata pe inaltimea lui [F2 spec Agent U pct.3].
+    sackChip, sackValue = Widgets.Chip(deps.HudGui, "capacity", 12, "Sack")
+    sackChip.Position = UDim2.fromOffset(
+        Theme.SPACE.lg + COIN_PILL_W + Theme.SPACE.sm + PEARL_PILL_W + Theme.SPACE.sm,
+        Theme.SPACE.md + (COIN_PILL_H + STACK_GAP + RATE_PILL_H - SACK_CHIP_H) / 2
+    )
+    sackChip.Size = UDim2.fromOffset(SACK_CHIP_W, SACK_CHIP_H)
 
     -- Mesajele scurte stau in TREIMEA DE SUS, centrat, si urca stingandu-se -- pozitia clasica
     -- de "Not enough gold!" din jocurile mobile de constructie.
@@ -127,14 +399,133 @@ function HUDController.Init(deps: {
     toastLabel.Name = "Toast"
     toastLabel.AnchorPoint = Vector2.new(0.5, 0.5)
     toastLabel.Position = TOAST_HOME
-    toastLabel.AutomaticSize = Enum.AutomaticSize.X -- pastila se strange pe mesaje scurte
+    toastLabel.AutomaticSize = Enum.AutomaticSize.XY -- pastila se strange pe mesaje scurte
     toastLabel.Size = UDim2.fromOffset(0, 46)
     toastLabel.TextXAlignment = Enum.TextXAlignment.Center
+    toastLabel.TextWrapped = true -- [F1 5.5] mesajele lungi (gasirea cu nume) trec pe doua randuri
     toastLabel.TextColor3 = Theme.COLOR.gold
     toastLabel.BackgroundTransparency = 0.2
     toastLabel.Visible = false
     toastLabel.ZIndex = 16
     Theme.punch(toastLabel)
+    -- Plafon de latime: fara el, un mesaj lung ar iesi din ecranul ingust al unui telefon pe
+    -- verticala (P6, telefon intai) -- AutomaticSize creste apoi pe inaltime cand da de plafon.
+    local toastConstraint = Instance.new("UISizeConstraint")
+    toastConstraint.MaxSize = Vector2.new(480, 10000)
+    toastConstraint.Parent = toastLabel
+
+    -- cartonasul de la apropiere: un singur exemplar, fix jos-centru, ascuns pana la primul pad
+    -- "available" din raza [F3 spec item 5]. Randuri manuale (nu AutomaticSize + UIListLayout): la
+    -- marime FIXA, un cursor `y` calculat in Luau e usor de verificat fara Studio, si nu se misca
+    -- niciodata cand un pad n-are `note` -- randul ramane, doar gol.
+    approachCard = Instance.new("Frame")
+    approachCard.Name = "ApproachCard"
+    approachCard.AnchorPoint = Vector2.new(0.5, 1)
+    -- marginea de jos e ocupata de joystick si de butonul de actiune, iar in Studio bara de
+    -- comenzi mai taie din ecran: cartonasul sta mai sus, ca sa se vada intreg [vazut 2026-09-12]
+    approachCard.Position = UDim2.new(0.5, 0, 1, -APPROACH_BOTTOM_MARGIN)
+    approachCard.Size = UDim2.fromOffset(APPROACH_W, APPROACH_H)
+    approachCard.Visible = false
+    approachCard.ZIndex = 9
+    approachCard.Parent = deps.HudGui
+    if Assets.has(Assets.tycoon.card) then
+        Widgets.NineSlice(approachCard, Assets.tycoon.card, Assets.UI_SLICE.card, 9)
+    else
+        approachCard.BackgroundColor3 = Theme.COLOR.parchment
+        approachCard.BackgroundTransparency = 0
+        local cardCorner = Instance.new("UICorner")
+        cardCorner.CornerRadius = UDim.new(0, 10)
+        cardCorner.Parent = approachCard
+        local cardStroke = Instance.new("UIStroke")
+        cardStroke.Color = Theme.COLOR.woodDark
+        cardStroke.Thickness = 3
+        cardStroke.Parent = approachCard
+    end
+    Theme.shadow(approachCard, 14, 0.5)
+
+    local approachContent = Instance.new("Frame")
+    approachContent.Name = "Content"
+    approachContent.BackgroundTransparency = 1
+    -- Rama cartonasului e un sprite cu 9 felii: coltul ei netintins are 10px de sprite, adica ~30
+    -- pe ecran. Cu o margine de doar 12, textul intra SUB rama si se taie ("Your first net" se
+    -- vedea "our first net") [vazut in Studio, 2026-09-12]. Marginea trebuie sa depaseasca rama.
+    local INSET_X, INSET_Y = APPROACH_INSET_X, APPROACH_INSET_Y
+    approachContent.Position = UDim2.fromOffset(INSET_X, INSET_Y)
+    approachContent.Size = UDim2.new(1, -INSET_X * 2, 1, -INSET_Y * 2)
+    approachContent.ZIndex = 10
+    approachContent.Parent = approachCard
+    local contentW = APPROACH_W - INSET_X * 2
+    local leftW, rightW = 180, contentW - 180 -- doua coloane, latimi fixe (numere curate, nu fractii)
+
+    -- Randurile, de sus in jos. `y` e in coordonatele continutului (380 lat, 164 inalt).
+    -- PERGAMENT, deci cerneala si lemn -- auriul pe pergament are contrast 1.9:1 si nu se citeste.
+    approachEyebrow = Widgets.Label(
+        approachContent,
+        Strings.PAD_EYEBROW,
+        Theme.TEXT.tiny,
+        Theme.COLOR.wood,
+        "strong"
+    )
+    approachEyebrow.Position = UDim2.fromOffset(0, 0)
+    approachEyebrow.Size = UDim2.fromOffset(contentW, 14)
+
+    approachName =
+        Widgets.Label(approachContent, "", Theme.TEXT.heading, Theme.COLOR.ink, "display")
+    approachName.Position = UDim2.fromOffset(0, 14)
+    approachName.Size = UDim2.fromOffset(contentW, 24)
+    approachName.TextTruncate = Enum.TextTruncate.AtEnd
+
+    -- CE e platforma asta -- vine direct din config (blurb), niciodata inventat aici [F2 task]
+    approachBlurb =
+        Widgets.Label(approachContent, "", Theme.TEXT.small, Theme.COLOR.inkSoft, "body")
+    approachBlurb.Position = UDim2.fromOffset(0, 38)
+    approachBlurb.Size = UDim2.fromOffset(contentW, 18)
+    approachBlurb.TextTruncate = Enum.TextTruncate.AtEnd
+
+    -- venitul exact (stanga) si efectul care NU se vede in venit (dreapta, doar cand pad-ul are
+    -- unul) -- pe acelasi rand, ca marimea cartonasului sa ramana FIXA indiferent de continut
+    approachDelta = Widgets.Label(approachContent, "", Theme.TEXT.small, Theme.COLOR.gold, "strong")
+    approachDelta.Position = UDim2.fromOffset(0, 60)
+    approachDelta.Size = UDim2.fromOffset(leftW, 20)
+
+    approachNote = Widgets.Label(approachContent, "", Theme.TEXT.tiny, Theme.COLOR.inkSoft, "body")
+    approachNote.AnchorPoint = Vector2.new(1, 0)
+    approachNote.Position = UDim2.new(1, 0, 0, 62)
+    approachNote.Size = UDim2.fromOffset(rightW, 18)
+    approachNote.TextXAlignment = Enum.TextXAlignment.Right
+    approachNote.TextTruncate = Enum.TextTruncate.AtEnd
+
+    approachCoin = Widgets.CoinIcon(approachContent, 18, approachContent.ZIndex + 1)
+    approachCoin.Position = UDim2.fromOffset(0, 86)
+
+    approachPrice =
+        Widgets.Label(approachContent, "", Theme.TEXT.small, Theme.COLOR.wood, "display")
+    approachPrice.Position = UDim2.fromOffset(24, 84)
+    approachPrice.Size = UDim2.fromOffset(leftW - 24, 22)
+
+    -- Cat ai si cat iti ramane: "343 → 330 left". Owner-ul a cerut sa se vada CAT cheltui.
+    approachSpend =
+        Widgets.Label(approachContent, "", Theme.TEXT.small, Theme.COLOR.inkSoft, "strong")
+    approachSpend.AnchorPoint = Vector2.new(1, 0)
+    approachSpend.Position = UDim2.new(1, 0, 0, 86)
+    approachSpend.Size = UDim2.fromOffset(rightW, 20)
+    approachSpend.TextXAlignment = Enum.TextXAlignment.Right
+
+    -- Butonul. Cumpararea NU se mai intampla calcand pe obiect: se intampla aici, cu tasta E sau
+    -- apasand obiectul -- dar numai cat cartonasul asta e ridicat pentru el.
+    approachBuy = Widgets.Button(approachContent, {
+        text = "",
+        icon = "coin",
+        width = contentW,
+        height = 44,
+        z = approachContent.ZIndex + 1,
+        onClick = function()
+            if approachCanBuy and approachBuyFn ~= nil then
+                (approachBuyFn :: () -> ())()
+            end
+        end,
+    })
+    approachBuy.Position = UDim2.fromOffset(0, 114)
 
     local showTouch = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
 
@@ -271,15 +662,69 @@ function HUDController.Perf(): number
 end
 
 -- floor: monedele curg fractionar pe server, dar jucatorul numara in bucati [F0 spec 4.2].
+-- Urca lin spre valoarea noua; o cheltuiala (scadere) se vede imediat [F2 spec Agent U pct.3].
 function HUDController.SetCoins(coins: number)
-    if coinValue ~= nil then
-        coinValue.Text = TycoonMath.formatNumber(coins)
+    if coinTicker ~= nil then
+        coinTicker(coins)
     end
 end
 
+-- Punctul de sosire pentru monedele care zboara de la debarcader [F1 spec 5.3, W4]. Centrul
+-- pictogramei de moneda, in coordonate HUD (aceleasi unitati offset ca WorldToHud) -- pastila +
+-- inset-ul fix al randului dinauntru, ca JuiceController sa nu aiba nevoie de Frame-uri.
+function HUDController.CoinAnchor(): (number, number)
+    if coinPill == nil then
+        return 0, 0
+    end
+    return coinPill.Position.X.Offset + Theme.SPACE.md + 15,
+        coinPill.Position.Y.Offset + COIN_PILL_H / 2
+end
+
+-- Punctul de sosire pentru eticheta "+delta/s" zburatoare la o cumparare [F2 spec Agent U pct.5] --
+-- centrul pastilei de rata, in aceleasi coordonate ca CoinAnchor de mai sus.
+function HUDController.RateAnchor(): (number, number)
+    if ratePill == nil then
+        return 0, 0
+    end
+    return ratePill.Position.X.Offset + RATE_PILL_W / 2,
+        ratePill.Position.Y.Offset + RATE_PILL_H / 2
+end
+
+-- Contorul "sare" cand monedele zburatoare ajung la el [F1 spec 5.3, O2] -- acelasi truc UIScale
+-- ca pulsul traistei pline mai jos.
+function HUDController.PulseCoins()
+    if coinValue == nil then
+        return
+    end
+    local scale = coinValue:FindFirstChildOfClass("UIScale") or Instance.new("UIScale")
+    scale.Parent = coinValue
+    scale.Scale = 1.25
+    TweenService:Create(
+        scale,
+        TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+        { Scale = 1 }
+    ):Play()
+end
+
+-- Acelasi puls, pentru rata -- aterizarea etichetei "+delta/s" la o cumparare [F2 spec Agent U pct.5].
+function HUDController.PulseRate()
+    if rateValue == nil then
+        return
+    end
+    local scale = rateValue:FindFirstChildOfClass("UIScale") or Instance.new("UIScale")
+    scale.Parent = rateValue
+    scale.Scale = 1.25
+    TweenService:Create(
+        scale,
+        TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+        { Scale = 1 }
+    ):Play()
+end
+
+-- Aceeasi regula ca la monede: urca lin, niciodata brusc [F2 spec Agent U pct.3].
 function HUDController.SetIncome(perSec: number)
-    if rateValue ~= nil then
-        rateValue.Text = `+{TycoonMath.formatRate(perSec)}/s`
+    if rateTicker ~= nil then
+        rateTicker(perSec)
     end
 end
 
@@ -315,20 +760,27 @@ function HUDController.SetSack(count: number, capacity: number)
     lastSackFull = full
 end
 
-function HUDController.Toast(message: string)
+-- `color`: implicit auriu (D40/D43 -- mesajele scurte sunt mereu vizibile). Optional, ca sa poata
+-- purta culoarea tierului la o gasire cu nume [F1 spec 5.5, L4] fara sa schimbe apelantii vechi.
+function HUDController.Toast(message: string, color: Color3?)
     toastToken += 1
     local token = toastToken
     toastLabel.Text = message
     toastLabel.Position = TOAST_HOME
     toastLabel.TextTransparency = 0
+    toastLabel.TextColor3 = color or Theme.COLOR.gold
     toastLabel.BackgroundTransparency = 0.2
     toastLabel.Visible = true
-    -- mica sarita la intrare: mesajul se face observat fara sa ceara o apasare
-    toastLabel.Size = UDim2.fromOffset(0, 38)
+    -- mica sarita la intrare: mesajul se face observat fara sa ceara o apasare. UIScale, nu Size --
+    -- AutomaticSize.XY (mai jos) calculeaza deja marimea din text, ca mesajele lungi sa treaca pe
+    -- doua randuri in loc sa iasa din ecran pe telefon [F1 spec 5.5, P6].
+    local pop = toastLabel:FindFirstChildOfClass("UIScale") or Instance.new("UIScale")
+    pop.Parent = toastLabel
+    pop.Scale = 0.85
     TweenService:Create(
-        toastLabel,
+        pop,
         TweenInfo.new(0.22, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
-        { Size = UDim2.fromOffset(0, 46) }
+        { Scale = 1 }
     ):Play()
     task.delay(2.6, function()
         if toastToken ~= token then
@@ -347,6 +799,239 @@ function HUDController.Toast(message: string)
             end
         end)
     end)
+end
+
+local function formatPadPrice(pad: TycoonConfig.Pad): string
+    return if pad.price == 0 then "FREE" else TycoonMath.formatNumber(pad.price)
+end
+
+-- Impins de PadController cand platforma cea mai apropiata (sub 220px) sau afordabilitatea ei se
+-- schimba [F3 spec item 5]. Fix jos-centru: nu mai are nevoie sa stie UNDE e platforma in lume, doar
+-- CE sa arate -- de-aia PadController trimite `pad` direct, nu o pozitie de ecran.
+-- Obiectivul curent, scris o singura data cand se schimba (textul) si actualizat continuu doar
+-- unde conteaza (bara si "N more"). `goal` vine din GuideMath -- acelasi din care traieste si
+-- sageata, deci cele doua nu se pot contrazice niciodata.
+-- Venitul pasiv. Zero inseamna "lantul nu merge fara tine", deci pastila nici nu se arata:
+-- o pastila care scrie 0.0/s ar fi un reprosf permanent, nu o informatie.
+function HUDController.SetPearls(n: number)
+    if pearlValue ~= nil then
+        pearlValue.Text = TycoonMath.formatNumber(n)
+    end
+end
+
+function HUDController.SetIdle(perSec: number)
+    if idlePill == nil then
+        return
+    end
+    local on = perSec > 0
+    idlePill.Visible = on
+    if on then
+        idleValue.Text = `{TycoonMath.formatRate(perSec)}/s`
+    end
+end
+
+-- Quest-ul activ si cate recompense asteapta. Cand exista quest, EL scrie pe linie: e acelasi
+-- obiectiv pe care il arata si sageata (GuideMath regula 0), deci nu se pot contrazice.
+-- Dreptunghiul liniei de obiectiv, in coordonate de ecran. Tutorialul are nevoie de el ca sa taie
+-- gaura reflectorului EXACT peste elementul real -- nu peste niste cifre scrise de mana, care s-ar
+-- dezalinia la alta rezolutie.
+function HUDController.ObjectiveRect(): (number, number, number, number)
+    if objPill == nil then
+        return 0, 0, 0, 0
+    end
+    local p, sz = objPill.AbsolutePosition, objPill.AbsoluteSize
+    return p.X, p.Y, sz.X, sz.Y
+end
+
+function HUDController.SetQuest(
+    active: { text: string, progress: number, goal: number }?,
+    claimable: number
+)
+    if objPill == nil then
+        return
+    end
+    questActive = active
+    objBadge.Visible = claimable > 0
+    if claimable > 0 then
+        objBadgeLabel.Text = tostring(claimable)
+    end
+    if active ~= nil then
+        objPill.Visible = true
+        objText.Text = active.text
+        objTrack.Visible = true
+        objFill.Size =
+            UDim2.fromScale(math.clamp(active.progress / math.max(1, active.goal), 0, 1), 1)
+        objNeed.Text = `{math.floor(active.progress)}/{active.goal}`
+        objNeed.TextColor3 = if active.progress >= active.goal
+            then Theme.COLOR.good
+            else Theme.COLOR.onDarkSoft
+    end
+end
+
+-- [D51] Pasul ales de GuideMath, dupa ce SetQuest a scris quest-ul. Cu quest: randul al doilea spune
+-- pasul, iar cand pasul are un pret (o cumparare sau un nivel), bara si cifra din dreapta masoara
+-- monedele, nu 0/1 -- "Cast a second net · 2 more". Fara quest: linia scrie chiar pasul, pe un rand.
+-- Cheamat de Overlay la fiecare stare, dupa GuideController.Apply.
+function HUDController.SetStep(goal: GuideMath.Goal?, coinsNow: number)
+    if objPill == nil then
+        return -- o stare sosita inaintea HUD-ului; urmatoarea o gaseste construit
+    end
+    local quest = questActive
+    local stepText: string? = nil
+    if quest ~= nil then
+        if goal ~= nil and goal.text ~= quest.text then
+            stepText = goal.text
+        end
+    elseif goal ~= nil then
+        objPill.Visible = true
+        objText.Text = goal.text
+        objTrack.Visible = false
+        objNeed.Text = ""
+    else
+        objPill.Visible = false
+        return
+    end
+    objStep.Text = stepText or ""
+    objStep.Visible = stepText ~= nil
+    local h = if stepText ~= nil then OBJ_H_STEP else OBJ_H
+    objPill.Size = UDim2.fromOffset(OBJ_W, h)
+    objTrack.Position = UDim2.fromOffset(Theme.SPACE.md, h - 20)
+    objNeed.Position = UDim2.fromOffset(OBJ_W - Theme.SPACE.md - 80, h - 26)
+
+    local price = if goal ~= nil then goal.price else nil
+    if price == nil or price <= 0 then
+        return -- bara ramane a quest-ului (0/1, 7/12), scrisa de SetQuest
+    end
+    objTrack.Visible = true
+    objFill.Size = UDim2.fromScale(math.clamp(coinsNow / price, 0, 1), 1)
+    local missing = math.max(0, math.ceil(price - coinsNow))
+    objNeed.Text = if missing > 0
+        then `{TycoonMath.formatNumber(missing)} more`
+        else Strings.OBJ_READY
+    objNeed.TextColor3 = if missing > 0 then Theme.COLOR.onDarkSoft else Theme.COLOR.good
+end
+
+function HUDController.ShowApproachCard(
+    pad: TycoonConfig.Pad,
+    deltaPerSec: number,
+    affordable: boolean,
+    bottleneck: string?,
+    coins: number
+)
+    local isNew = approachId ~= pad.id or approachRuin
+    approachId = pad.id
+    -- [D53] de pe o ruina, randurile cumpararii revin
+    if approachRuin then
+        approachRuin = false
+        approachEyebrow.Text = Strings.PAD_EYEBROW
+        approachDelta.Visible = true
+        approachCoin.Visible = true
+        approachPrice.Visible = true
+        approachSpend.Visible = true
+        Widgets.SetButtonIcon(approachBuy, true)
+    end
+    approachName.Text = pad.name
+    approachBlurb.Text = pad.blurb
+    -- CARTONASUL NU MINTE. Cu lantul cu trei verigi, o platforma care nu apasa pe gatuire aduce
+    -- exact zero -- si atunci scrie de ce, in loc sa arate "+0.0/s" ca si cum ar fi o cifra [D40].
+    -- CAND SPUNE DE CE E ZERO, ARE NEVOIE DE TOT RANDUL. Mesajul e mai lung decat o cifra si
+    -- intra peste nota din dreapta -- doua texte unul peste altul, exact ce nu trebuie.
+    local noGain = deltaPerSec <= 0
+    if noGain then
+        approachDelta.Text = Strings.stationNoEffect(bottleneck or "nets")
+        approachDelta.TextColor3 = Theme.COLOR.bad
+        approachDelta.Size = UDim2.fromOffset(APPROACH_W - APPROACH_INSET_X * 2, 20)
+    else
+        approachDelta.Text = `+{TycoonMath.formatRate(deltaPerSec)}/s`
+        approachDelta.TextColor3 = Theme.COLOR.good
+        approachDelta.Size = UDim2.fromOffset(180, 20)
+    end
+    approachNote.Visible = not noGain
+    approachNote.Text = pad.note or ""
+    approachPrice.Text = formatPadPrice(pad)
+    approachPrice.TextColor3 = if affordable then Theme.COLOR.wood else Theme.COLOR.bad
+
+    -- Trei stari ale butonului, fiecare spune exact ce se intampla daca apesi [D40]:
+    -- gratis, platesti (cu cat ramai), sau inca nu ajung banii (si cati lipsesc).
+    local keyHint = if UserInputService.KeyboardEnabled then "  (E)" else ""
+    if pad.price <= 0 then
+        approachCanBuy = true
+        approachSpend.Text = ""
+        Widgets.SetButtonText(approachBuy, Strings.PAD_TAKE_FREE .. keyHint)
+        Widgets.SetButtonTone(approachBuy, Theme.COLOR.gold)
+    elseif affordable then
+        approachCanBuy = true
+        approachSpend.Text = Strings.padSpend(
+            TycoonMath.formatNumber(coins),
+            TycoonMath.formatNumber(coins - pad.price)
+        )
+        Widgets.SetButtonText(
+            approachBuy,
+            Strings.padBuyFor(TycoonMath.formatNumber(pad.price)) .. keyHint
+        )
+        Widgets.SetButtonTone(approachBuy, Theme.COLOR.gold)
+    else
+        approachCanBuy = false
+        approachSpend.Text = ""
+        Widgets.SetButtonText(
+            approachBuy,
+            Strings.padNeedMore(TycoonMath.formatNumber(math.ceil(pad.price - coins)))
+        )
+        -- stins, nu ascuns: se vede ca exista o actiune, doar ca nu e inca la indemana
+        Widgets.SetButtonTone(approachBuy, Color3.fromRGB(150, 144, 136))
+    end
+
+    if isNew or not approachCard.Visible then
+        approachCard.Visible = true
+        -- un mic puls la intrare, ca aparitia sa se simta -- acelasi truc Back/Out ca restul HUD-ului
+        local scale = approachCard:FindFirstChildOfClass("UIScale") or Instance.new("UIScale")
+        scale.Parent = approachCard
+        scale.Scale = 0.92
+        TweenService:Create(scale, APPROACH_POP, { Scale = 1 }):Play()
+    end
+end
+
+-- [D53] CARTONASUL UNEI RUINE: acelasi cadru, alt mod. Nu se cumpara nimic, deci randurile de venit, pret si
+-- rest se ascund, iar butonul, stins si fara moneda, spune ce trebuie facut intai ("Hire a Hauler first").
+-- Textul vine din TycoonMath.padBlocker, adica exact conditia pe care o verifica jocul [D40].
+function HUDController.ShowRuinCard(pad: TycoonConfig.Pad, eyebrow: string, reason: string)
+    local isNew = approachId ~= pad.id or not approachRuin
+    approachId = pad.id
+    approachRuin = true
+    -- butonul stins tot raspunde: PadController.TryBuyFocused spune conditia ca toast [D43]
+    approachCanBuy = true
+    approachEyebrow.Text = eyebrow
+    approachName.Text = pad.name
+    approachBlurb.Text = pad.blurb
+    approachDelta.Visible = false
+    approachNote.Visible = false
+    approachCoin.Visible = false
+    approachPrice.Visible = false
+    approachSpend.Visible = false
+    Widgets.SetButtonText(approachBuy, reason)
+    Widgets.SetButtonIcon(approachBuy, false)
+    Widgets.SetButtonTone(approachBuy, Color3.fromRGB(150, 144, 136))
+    if isNew or not approachCard.Visible then
+        approachCard.Visible = true
+        local scale = approachCard:FindFirstChildOfClass("UIScale") or Instance.new("UIScale")
+        scale.Parent = approachCard
+        scale.Scale = 0.92
+        TweenService:Create(scale, APPROACH_POP, { Scale = 1 }):Play()
+    end
+end
+
+-- Ce face butonul cartonasului. Il da PadController, o singura data: el stie ce platforma e tinta
+-- si trimite cererea; HUD-ul doar deseneaza [F3 spec item 5 -- continutul aici, decizia acolo].
+function HUDController.SetApproachBuy(fn: () -> ())
+    approachBuyFn = fn
+end
+
+-- "hides when you walk away" [F2 spec Agent U pct.2] -- imediat, fara animatie de iesire.
+function HUDController.HideApproachCard()
+    approachId = nil
+    if approachCard ~= nil then
+        approachCard.Visible = false
+    end
 end
 
 return HUDController

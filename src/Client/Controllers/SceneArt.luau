@@ -5,9 +5,11 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 local AnimConfig = require(ReplicatedStorage.Shared.Config.AnimConfig)
 local RiverConfig = require(ReplicatedStorage.Shared.Config.RiverConfig)
+local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
+local Prng = require(ReplicatedStorage.Shared.Modules.Prng)
+local Shoreline = require(ReplicatedStorage.Shared.Modules.Shoreline)
 local WorldDecor = require(ReplicatedStorage.Shared.Modules.WorldDecor)
 local Assets = require(ReplicatedStorage.Shared.Config.Assets)
-local Theme = require(script.Parent.Parent.UI.Theme)
 
 local SceneArt = {}
 
@@ -86,6 +88,9 @@ export type Layers = { Fixed: Frame, Parallax: Frame, Scroll: Frame }
 -- Decorul se aseaza determinist din seed (WorldDecor), deci lumea arata la fel la fiecare intrare.
 local DECOR_COUNT = 130
 local DECOR_SEED = 20260910
+-- seed-urile hartii: aceleasi la fiecare intrare, deci malul si petele nu "sar" intre sesiuni
+local PATCH_SEED = 771104
+local FOREST_SEED = 480917
 
 local function decorSprite(kind: string): Assets.Sprite?
     local sprite = (Assets.props :: any)[kind]
@@ -99,8 +104,11 @@ local function buildDecor(scroll: Frame)
     local items = WorldDecor.build(DECOR_SEED, {
         width = RiverConfig.WORLD_WIDTH,
         height = RiverConfig.WORLD_HEIGHT,
-        riverTop = RiverConfig.RIVER_TOP,
-        riverBottom = RiverConfig.RIVER_BOTTOM,
+        -- Decorul trebuie sa stie cat de departe poate ajunge APA, nu unde e banda nominala:
+        -- de cand malurile serpuiesc, raul urca pana la 392 si coboara pana la 824, iar un copac
+        -- asezat dupa vechile 480/768 ar sta cu radacinile in rau.
+        riverTop = RiverConfig.SHORE_FAR.baseY - RiverConfig.SHORE_FAR.amp,
+        riverBottom = RiverConfig.SHORE_NEAR.baseY + RiverConfig.SHORE_NEAR.amp,
         plot = RiverConfig.PLOT,
     }, DECOR_COUNT)
 
@@ -147,79 +155,328 @@ function SceneArt.BuildBackground(layers: Layers)
         return
     end
 
-    tiled(scroll, Assets.grass_tile, 0, 0, W, H, 0)
+    -- ---- HARTA ----------------------------------------------------------------------------
+    -- Rescrisa 2026-09-12. Inainte: iarba plata + trei dreptunghiuri (apa si doua fasii de nisip),
+    -- toate cu muchii perfect drepte -- de aceea harta parea "desenata in paint". Acum linia apei
+    -- serpuieste (Shoreline: modul pur, testat), iarba are pete de nuanta, canalul are adancime,
+    -- malul are plaja cu nisip ud, pietre si spuma care se leagana.
+    local function layerFrame(name: string, z: number): Frame
+        local f = Instance.new("Frame")
+        f.Name = name
+        f.BackgroundTransparency = 1
+        f.Size = UDim2.fromOffset(W, H)
+        f.ZIndex = z
+        f.Parent = scroll
+        return f
+    end
+    -- Straturile hartii. Platformele si personajul stau la Z=5 (CameraController), deci TOT
+    -- fundalul trebuie sa incapa sub 5; ordinea in interiorul unui strat o da ZIndex-ul copiilor.
+    local groundLayer = layerFrame("Ground", 0)
+    local waterLayer = layerFrame("Water", 1)
+    local shoreLayer = layerFrame("Shore", 2)
+    local trimLayer = layerFrame("Trim", 3)
+    local builtLayer = layerFrame("Built", 4)
 
-    -- nisipul intra sub apa, ca marginea sa nu fie o linie dreapta
-    local sandH = Assets.sand_tile.height * Assets.PIXEL_SCALE
-    if Assets.has(Assets.sand_tile) then
-        tiled(scroll, Assets.sand_tile, 0, RiverConfig.RIVER_TOP - sandH + 20, W, sandH, 1)
-        tiled(scroll, Assets.sand_tile, 0, RiverConfig.RIVER_BOTTOM - 20, W, sandH, 1)
+    tiled(groundLayer, Assets.grass_tile, 0, 0, W, H, 0)
+    -- A doua tesatura, la o scara care NU e multiplu al primeia: ochiul prinde imediat un tile
+    -- repetat la 384px, dar doua tipare care nu se suprapun niciodata la fel nu mai au ritm.
+    local weave = image(groundLayer, Assets.grass_tile, -90, -140, W + 180, H + 280, 1)
+    weave.ScaleType = Enum.ScaleType.Tile
+    weave.TileSize = UDim2.fromOffset(
+        math.round(Assets.grass_tile.width * Assets.PIXEL_SCALE * 1.53),
+        math.round(Assets.grass_tile.height * Assets.PIXEL_SCALE * 1.37)
+    )
+    weave.ImageTransparency = 0.72
+
+    -- Petele de nuanta: nu sunt obiecte, doar culoare intinsa moale peste iarba. Rolul lor e ca
+    -- ochiul sa nu mai recunoasca un singur tile repetat la infinit.
+    local GRASS_TONES = {
+        Color3.fromRGB(152, 188, 106), -- bataia soarelui
+        Color3.fromRGB(64, 102, 54), -- umbra deasa
+        Color3.fromRGB(146, 126, 84), -- pamant calcat, uscat
+    }
+    -- Petele stau DOAR pe malul de sud, sub cea mai adanca intrare a apei (824): asa nu e nevoie
+    -- sa fie decupate dupa forma malului, si nu le acopera coloanele de mal desenate mai jos.
+    local patchArea = { x0 = 0, y0 = 860, x1 = W, y1 = H - 20, tones = #GRASS_TONES }
+    for _, p in Shoreline.patches(PATCH_SEED, patchArea, 84) do
+        local f = frame(groundLayer, p.x, p.y, p.w, p.h, GRASS_TONES[p.tone], 1)
+        f.BackgroundTransparency = 0.87
+        f.Rotation = p.rot
+        rounded(f, math.floor(math.min(p.w, p.h) / 2))
+        local g = Instance.new("UIGradient")
+        g.Rotation = p.rot + 90
+        g.Transparency = NumberSequence.new({
+            NumberSequenceKeypoint.new(0, 1),
+            NumberSequenceKeypoint.new(0.5, 0),
+            NumberSequenceKeypoint.new(1, 1),
+        })
+        g.Parent = f
     end
 
+    -- Apa se intinde DINCOLO de banda raului: coloanele de mal musca din ea in ambele sensuri,
+    -- deci sub iarba trebuie sa existe apa si acolo unde linia malului urca peste RIVER_TOP.
+    -- Marginile trebuie sa treaca DINCOLO de cea mai adanca intrare a fiecarui mal (392 sus,
+    -- 824 jos), altfel ar ramane iarba acolo unde malul s-a retras si ar trebui sa fie apa.
+    local waterTop = 368
+    local waterBottom = 848
+    local waterH = waterBottom - waterTop
     local tileW = Assets.water_tile.width * Assets.PIXEL_SCALE
-    local water = tiled(
-        scroll,
-        Assets.water_tile,
-        -tileW,
-        RiverConfig.RIVER_TOP,
-        W + tileW * 2,
-        RiverConfig.RIVER_BOTTOM - RiverConfig.RIVER_TOP,
-        1
-    )
+    local water = tiled(waterLayer, Assets.water_tile, -tileW, waterTop, W + tileW * 2, waterH, 1)
     -- al doilea strat de apa, translucid si mai lent: da senzatia de adancime fara shader
-    local shimmer = tiled(
-        scroll,
-        Assets.water_tile,
-        -tileW,
-        RiverConfig.RIVER_TOP,
-        W + tileW * 2,
-        RiverConfig.RIVER_BOTTOM - RiverConfig.RIVER_TOP,
-        2
-    )
+    local shimmer = tiled(waterLayer, Assets.water_tile, -tileW, waterTop, W + tileW * 2, waterH, 2)
     shimmer.ImageTransparency = 0.55
+    -- Canalul: mijlocul raului e mai adanc, deci mai intunecat. O SINGURA banda, nu cate una pe
+    -- coloana: incercarea pe coloane avea alt gradient in fiecare, iar la imbinari sareau
+    -- treptele -- in joc se vedeau dreptunghiuri negre la fiecare 32px. Capetele nu trebuie taiate
+    -- dupa forma malului: coloanele de iarba de deasupra o fac oricum.
+    local depth = frame(waterLayer, 0, waterTop, W, waterH, Color3.fromRGB(8, 34, 62), 3)
+    local depthGradient = Instance.new("UIGradient")
+    depthGradient.Rotation = 90
+    depthGradient.Transparency = NumberSequence.new({
+        NumberSequenceKeypoint.new(0, 1),
+        NumberSequenceKeypoint.new(0.5, 0.6),
+        NumberSequenceKeypoint.new(1, 1),
+    })
+    depthGradient.Parent = depth
 
-    local foamH = if Assets.has(Assets.foam_north)
-        then Assets.foam_north.height * Assets.PIXEL_SCALE
-        else 0
-    local foamTop, foamBottom
-    if foamH > 0 then
-        foamTop =
-            tiled(scroll, Assets.foam_south, -tileW, RiverConfig.RIVER_TOP, W + tileW * 2, foamH, 3)
-        foamBottom = tiled(
-            scroll,
-            Assets.foam_north,
-            -tileW,
-            RiverConfig.RIVER_BOTTOM - foamH,
-            W + tileW * 2,
-            foamH,
-            3
-        )
+    -- Cele doua maluri. Cifrele sunt in campurile SHORE din RiverConfig, ca sa le poata verifica testele:
+    -- uscatul nu are voie sa intre peste benzile bunurilor, iar apa nu are voie sa atinga
+    -- pontonul. Malul de nord se retrage spre nord (raul se latește pe alocuri), cel de sud spre
+    -- sud, iar in dreptul terenului construit ramane aproape drept -- e malul tau, amenajat.
+    local FAR: Shoreline.Edge = RiverConfig.SHORE_FAR
+    local NEAR: Shoreline.Edge = RiverConfig.SHORE_NEAR
+    local STEP = 32
+    local sandTileH = Assets.sand_tile.height * Assets.PIXEL_SCALE
+    local hasSand = Assets.has(Assets.sand_tile)
+
+    -- O coloana de mal: un dreptunghi DECUPAT in care iarba si nisipul se deseneaza cu acelasi
+    -- decalaj negativ ca pe restul hartii, deci tile-urile se leaga peste coloane, fara custuri.
+    -- Latimea plajei vine din coloana: pe portiuni intregi e zero, si atunci iarba ajunge in apa.
+    -- Coloana acopera DOAR fasia apei, nu tot malul: iarba de baza (cu petele ei) ramane vizibila
+    -- peste tot in rest. Daca ar merge pana la marginea lumii, ar redesena iarba plata peste pete.
+    local function bankColumn(c: Shoreline.Column, fromTop: boolean)
+        local edge = math.round(c.y)
+        local y0 = if fromTop then waterTop else edge
+        local h = if fromTop then edge - waterTop else waterBottom - edge
+        if h <= 0 then
+            return
+        end
+        local box = Instance.new("Frame")
+        box.Name = "Bank"
+        box.BackgroundTransparency = 1
+        box.ClipsDescendants = true
+        box.Position = UDim2.fromOffset(c.x, y0)
+        box.Size = UDim2.fromOffset(c.w, h)
+        box.ZIndex = 1
+        box.Parent = shoreLayer
+        tiled(box, Assets.grass_tile, -c.x, -y0, W, H, 1)
+        local beach = math.round(c.beach)
+        if not hasSand or beach <= 2 then
+            return
+        end
+        local sandY = if fromTop then h - beach else 0
+        local sandBox = Instance.new("Frame")
+        sandBox.Name = "Beach"
+        sandBox.BackgroundTransparency = 1
+        sandBox.ClipsDescendants = true
+        sandBox.Position = UDim2.fromOffset(0, sandY)
+        sandBox.Size = UDim2.fromOffset(c.w, beach)
+        sandBox.ZIndex = 2
+        sandBox.Parent = box
+        local sand = tiled(sandBox, Assets.sand_tile, -c.x, -(y0 + sandY), W, H + sandTileH, 1)
+        -- Nisip ud langa apa: capatul dinspre rau e mai inchis. E umbra malului, si ea face
+        -- diferenta dintre "o fasie galbena" si "o plaja".
+        local wet = Instance.new("UIGradient")
+        wet.Rotation = 90
+        local dry, soaked = Color3.new(1, 1, 1), Color3.fromRGB(132, 136, 150)
+        wet.Color = if fromTop
+            then ColorSequence.new(dry, soaked)
+            else ColorSequence.new(soaked, dry)
+        -- ...si se stinge spre iarba. Fara asta plaja are o muchie taiata cu foarfeca acolo unde
+        -- se termina nisipul, si tocmai muchiile drepte incercam sa le scoatem din harta.
+        local fade = {
+            NumberSequenceKeypoint.new(0, if fromTop then 0.95 else 0),
+            NumberSequenceKeypoint.new(0.45, 0),
+            NumberSequenceKeypoint.new(0.55, 0),
+            NumberSequenceKeypoint.new(1, if fromTop then 0 else 0.95),
+        }
+        wet.Transparency = NumberSequence.new(fade)
+        wet.Parent = sand
+    end
+
+    local farCols = Shoreline.columns(FAR, W, STEP)
+    local nearCols = Shoreline.columns(NEAR, W, STEP)
+    for _, c in farCols do
+        bankColumn(c, true)
+    end
+    for _, c in nearCols do
+        bankColumn(c, false)
+    end
+
+    -- Pietrele de pe plaja. `pebbles` le imprastie in jurul liniei; le impingem toate pe uscat,
+    -- ca sa nu pluteasca niciuna in mijlocul apei.
+    local STONE_TONES = {
+        Color3.fromRGB(152, 145, 132),
+        Color3.fromRGB(118, 110, 98),
+        Color3.fromRGB(172, 160, 142),
+    }
+    local function scatterStones(e: Shoreline.Edge, side: number)
+        for _, p in Shoreline.pebbles(e, W, 70, 16) do
+            local base = Shoreline.edgeY(e, p.x)
+            local y = base + side * (5 + math.abs(p.y - base))
+            local f = frame(
+                trimLayer,
+                p.x,
+                math.round(y),
+                p.r * 2,
+                math.max(3, p.r),
+                STONE_TONES[p.tone],
+                1
+            )
+            rounded(f, p.r)
+        end
+    end
+    scatterStones(FAR, -1)
+    scatterStones(NEAR, 1)
+
+    -- Spuma: pete albe pe linia apei, tinute intr-un singur cadru care se leagana. Un cadru care
+    -- se misca inseamna doua scrieri pe redare, nu 200 -- si arata ca apa care linge malul.
+    -- Rare si inegale: un sir continuu de liniute albe arata ca o bordura punctata, nu ca apa.
+    local function scatterFoam(e: Shoreline.Edge, side: number): Frame
+        local holder = Instance.new("Frame")
+        holder.Name = "Foam"
+        holder.BackgroundTransparency = 1
+        holder.Size = UDim2.fromOffset(W, H)
+        holder.ZIndex = 2
+        holder.Parent = trimLayer
+        for _, p in Shoreline.pebbles(e, W, 64, 7, 991) do
+            -- doar jumatate dintre ele sunt spuma vizibila; restul raman gauri in sir
+            if p.r % 2 == 0 then
+                continue
+            end
+            local h = math.max(3, p.r - 1)
+            local f = frame(
+                holder,
+                p.x,
+                p.y - side * 4,
+                p.r * (4 + p.tone * 2),
+                h,
+                Color3.fromRGB(238, 249, 255),
+                1
+            )
+            rounded(f, math.floor(h / 2))
+            f.BackgroundTransparency = 0.3 + (p.r % 3) * 0.18
+        end
+        return holder
+    end
+    local farFoam = scatterFoam(FAR, -1)
+    local nearFoam = scatterFoam(NEAR, 1)
+
+    -- Padurea de dincolo. Inchide harta fara zid si spune, dintr-o privire, ca acolo nu se
+    -- ajunge. NU e un dreptunghi verde inchis (asa era prima incercare, si arata exact ca un
+    -- dreptunghi): e o masa compacta sus, si sub ea coroane rotunde care fac silueta zdrentuita.
+    local forest = frame(trimLayer, 0, 0, W, 150, Color3.fromRGB(36, 62, 44), 3)
+    local forestGradient = Instance.new("UIGradient")
+    forestGradient.Rotation = 90
+    forestGradient.Transparency = NumberSequence.new({
+        NumberSequenceKeypoint.new(0, 0.1),
+        NumberSequenceKeypoint.new(0.7, 0.3),
+        NumberSequenceKeypoint.new(1, 0.8),
+    })
+    forestGradient.Parent = forest
+
+    local CROWNS = {
+        Color3.fromRGB(34, 60, 40),
+        Color3.fromRGB(46, 78, 48),
+        Color3.fromRGB(26, 48, 34),
+    }
+    local treeLine: Shoreline.Edge = { seed = FOREST_SEED, baseY = 312, amp = 96, side = -1 }
+    local rng = Prng.new(FOREST_SEED)
+    local cx = -40
+    while cx < W + 40 do
+        local base = Shoreline.edgeY(treeLine, math.max(0, cx))
+        -- patru randuri, pana sus: silueta de jos e cea care conteaza, dar daca deasupra ei
+        -- ramane un dreptunghi plat, tot a dreptunghi arata. Randurile de sus dau textura masei.
+        for row = 0, 3 do
+            local size = 54 + Prng.nextInteger(rng, 0, 66) - row * 6
+            local cy = base - row * 58 - Prng.nextInteger(rng, 0, 26)
+            local crown = frame(
+                trimLayer,
+                math.round(cx - size / 2),
+                math.round(cy - size / 2),
+                size,
+                math.round(size * 0.86),
+                CROWNS[Prng.nextInteger(rng, 1, #CROWNS)],
+                8 - row
+            )
+            rounded(crown, math.floor(size / 2))
+        end
+        cx += 22 + Prng.nextInteger(rng, 0, 12)
     end
 
     local t = 0
     RunService.PreRender:Connect(function(dt: number)
         t += dt
-        water.Position = UDim2.fromOffset(-tileW + ((t * 46) % tileW), RiverConfig.RIVER_TOP)
-        shimmer.Position = UDim2.fromOffset(-tileW + ((t * 22) % tileW), RiverConfig.RIVER_TOP)
-        if foamTop ~= nil and foamBottom ~= nil then
-            local drift = -tileW + ((t * 14) % tileW)
-            foamTop.Position = UDim2.fromOffset(drift, RiverConfig.RIVER_TOP)
-            foamBottom.Position = UDim2.fromOffset(drift, RiverConfig.RIVER_BOTTOM - foamH)
-        end
+        water.Position = UDim2.fromOffset(-tileW + ((t * 46) % tileW), waterTop)
+        shimmer.Position = UDim2.fromOffset(-tileW + ((t * 22) % tileW), waterTop)
+        -- spuma nu curge cu raul: se duce si se intoarce, ca valul mic de la mal
+        farFoam.Position = UDim2.fromOffset(math.sin(t * 0.9) * 7, math.cos(t * 0.7) * 2)
+        nearFoam.Position =
+            UDim2.fromOffset(math.sin(t * 0.8 + 1.7) * 7, math.cos(t * 0.62 + 0.4) * 2)
     end)
 
-    if Assets.has(Assets.path_tile) then
-        local pathW = 96
-        tiled(
-            scroll,
-            Assets.path_tile,
-            900,
-            RiverConfig.RIVER_BOTTOM + 24,
-            pathW,
-            H - RiverConfig.RIVER_BOTTOM - 24,
-            1
-        )
-        tiled(scroll, Assets.path_tile, 900, 1100, W - 900, pathW, 1)
+    -- [F3] Malul construit: pontonul (scandurile de-a lungul apei, unde stau stalpii plaselor) si
+    -- drumurile batatorite pe care merg oamenii [D50, TycoonConfig.DECK/ROADS].
+    local function groundStrip(
+        sprite: Assets.Sprite,
+        r: { x0: number, x1: number, y0: number, y1: number },
+        z: number,
+        ragged: boolean
+    )
+        local w, h = r.x1 - r.x0, r.y1 - r.y0
+        -- umbra dedesubt: fara ea scandurile par lipite pe iarba, nu asezate peste ea
+        local sh =
+            frame(builtLayer, r.x0 - 2, r.y0 + 7, w + 6, h + 2, Color3.fromRGB(26, 32, 24), z)
+        sh.BackgroundTransparency = 0.7
+        rounded(sh, 6)
+        local function tile(x: number, y: number, tw: number, th: number, zz: number)
+            if Assets.has(sprite) then
+                local img = tiled(builtLayer, sprite, x, y, tw, th, zz)
+                img.ClipsDescendants = true
+                if ragged then
+                    -- poteca batatorita: pamant, nu caramida. Fara tinta iese prea rosie langa
+                    -- iarba si trage ochiul mai tare decat pontonul, care e piesa importanta.
+                    img.ImageColor3 = Color3.fromRGB(214, 205, 186)
+                end
+                return
+            end
+            -- fara arta inca: o fasie de lemn plata tine locul, ca nicio statie sa nu ramana pe
+            -- iarba goala pana apare sprite-ul [item 6]
+            local fallback = frame(builtLayer, x, y, tw, th, Color3.fromRGB(150, 115, 78), zz)
+            fallback.BackgroundTransparency = 0.15
+        end
+        if not ragged then
+            tile(r.x0, r.y0, w, h, z + 1)
+            return
+        end
+        -- Poteca nu e un dreptunghi trasat cu rigla: e batatorita, deci latimea ei variaza si
+        -- marginile se rup. Bucati de 64px, fiecare putin altfel -- tot un tile, alta silueta.
+        local seg = 64
+        local x = r.x0
+        local i = 0
+        while x < r.x1 do
+            local segW = math.min(seg, r.x1 - x)
+            local wobble = math.floor(math.sin(i * 1.7) * 5 + math.sin(i * 0.6) * 4)
+            tile(x, r.y0 - wobble, segW + 1, h + wobble * 2, z + 1)
+            x += seg
+            i += 1
+        end
+    end
+    groundStrip(Assets.tycoon.deck_tile, TycoonConfig.DECK, 1, false)
+    -- bucla [D50]: aceleasi dreptunghiuri din care RoadGraph face drumurile oamenilor si dara de
+    -- ghidaj, deci ce e desenat ca drum e exact pe unde merge lumea
+    for _, road in TycoonConfig.ROADS do
+        groundStrip(Assets.path_tile, road, 3, true)
     end
 
     buildDecor(scroll)
@@ -236,8 +493,8 @@ function SceneArt.MakeCharacter(parent: Instance): (GuiObject, Pose)
         img.AnchorPoint = Vector2.new(0.5, 1)
 
         -- Straturile jucatorului [D44]. Corpul se deseneaza pe o rampa neutra si primeste nuanta
-        -- prin tint, la fel ca la colonisti; tinuta e `keeper`, pe care NICIUN colonist nu o
-        -- primeste -- de aici se vede cine e administratorul, nu doar din inelul de sub picioare.
+        -- prin tint, la fel ca la angajati; tinuta e `keeper`, pe care NICIUN angajat nu o
+        -- primeste -- de aici se vede cine e jucatorul.
         -- Cat timp foile nu sunt incarcate, ramane foaia dintr-o bucata, netonata, ca acum.
         local playerLayered = Assets.has(Assets.people.body.a)
             and Assets.has(Assets.people.outfit.keeper)
@@ -260,28 +517,8 @@ function SceneArt.MakeCharacter(parent: Instance): (GuiObject, Pose)
                 table.insert(extra, l)
             end
         end
-        -- INELUL DE SUB PICIOARE: singurul semn permanent care spune "asta esti tu". Nuanta
-        -- singura nu ajunge -- la departare toate siluetele se citesc la fel, iar jucatorul
-        -- pierde secunde bune cautandu-se pe ecran. Nu pulseaza: pulsul e limbajul obiectivelor,
-        -- si doua lucruri care pulseaza pe acelasi ecran se anuleaza reciproc.
-        local ring = Instance.new("Frame")
-        ring.Name = "YouRing"
-        ring.AnchorPoint = Vector2.new(0.5, 0.5)
-        ring.Position = UDim2.new(0.5, 0, 1, -4)
-        ring.Size = UDim2.fromOffset(40, 18)
-        ring.BackgroundColor3 = Theme.COLOR.gold
-        ring.BackgroundTransparency = 0.82
-        ring.BorderSizePixel = 0
-        ring.ZIndex = 4
-        local rc = Instance.new("UICorner")
-        rc.CornerRadius = UDim.new(1, 0)
-        rc.Parent = ring
-        local rs = Instance.new("UIStroke")
-        rs.Color = Theme.COLOR.gold
-        rs.Thickness = 2
-        rs.Transparency = 0.25
-        rs.Parent = ring
-        ring.Parent = img
+        -- Fara inel sub picioare: l-a scos owner-ul (2026-09-11). Pe mal nu mai sunt colonisti
+        -- de care sa te deosebesti, iar tinuta `keeper` ramane doar a jucatorului.
         if Assets.has(Assets.shadow) then
             local sh =
                 image(img, Assets.shadow, 0, 0, 16 * Assets.PIXEL_SCALE, 6 * Assets.PIXEL_SCALE, 5)
@@ -360,6 +597,7 @@ type Particle = {
     rise: number,
     sway: number,
     fade: number,
+    once: boolean, -- true: joaca o singura data si dispare (praful de pasi); false: bucla (fum, flacara)
 }
 
 local particles: { Particle } = {}
@@ -377,7 +615,12 @@ local function stepParticles(dt: number)
             continue
         end
         p.t += dt
-        local k = (p.t % p.dur) / p.dur
+        if p.once and p.t >= p.dur then
+            p.f:Destroy()
+            table.remove(particles, i)
+            continue
+        end
+        local k = if p.once then p.t / p.dur else (p.t % p.dur) / p.dur
         local size = math.round(p.size * (0.55 + k * 1.05))
         p.f.Position = UDim2.fromOffset(
             math.round(p.x + math.sin((p.t + p.x) * 1.8) * p.sway),
@@ -400,7 +643,9 @@ local function addParticle(
     dur: number,
     phase: number,
     sway: number,
-    fade: number
+    fade: number,
+    once: boolean?,
+    zIndex: number?
 )
     local f = Instance.new("Frame")
     f.Name = "Particle"
@@ -408,7 +653,7 @@ local function addParticle(
     f.BackgroundColor3 = color
     f.BorderSizePixel = 0
     f.Size = UDim2.fromOffset(size, size)
-    f.ZIndex = host.ZIndex + 2
+    f.ZIndex = zIndex or host.ZIndex + 2
     rounded(f, math.max(2, math.floor(size / 3)))
     f.Parent = host
     table.insert(particles, {
@@ -422,6 +667,7 @@ local function addParticle(
         rise = rise,
         sway = sway,
         fade = fade,
+        once = once == true,
     })
     if particleLoop == nil then
         particleLoop = RunService.PreRender:Connect(stepParticles)
@@ -492,21 +738,56 @@ function SceneArt.AddFire(host: GuiObject, fx: number, fy: number)
     end
 end
 
+-- Stropi la prindere: cateva particule deschise care sar si se sting repede [F1 spec 4.2, D2].
+-- `fx, fy` sunt fractiuni din cadrul lui `host` (0.5, 0.5 = centru), la fel ca AddSmoke/AddFire.
+function SceneArt.Splash(host: GuiObject, fx: number, fy: number)
+    local w, h = host.Size.X.Offset, host.Size.Y.Offset
+    local x, y = math.round(w * fx), math.round(h * fy)
+    for i = 1, 4 do
+        addParticle(
+            host,
+            Color3.fromRGB(224, 240, 250),
+            x,
+            y,
+            math.max(3, math.round(w * 0.09)),
+            h * 0.5,
+            0.45,
+            (i - 1) / 4,
+            8,
+            0.25,
+            true
+        )
+    end
+end
+
 -- Praf de santier: puffuri joase si maronii cat timp se lucreaza
 -- Praf sub picioare. Sta AICI, dupa addParticle, si se cheama prin tabelul modulului din
 -- MakeCharacter: campul se cauta la apel, deci ordinea functiilor din fisier nu mai conteaza.
+-- Praful de pasi se naste in LUME, la picioare, si ramane acolo cat se stinge -- in urma celui
+-- care merge. Inainte era copilul personajului si se repeta la nesfarsit: mergea odata cu el si
+-- fiecare pas mai adauga un puf care nu disparea niciodata (vazut de owner, 2026-09-11).
+-- `host` e personajul (AnchorPoint 0.5,1, pozitionat la picioare); x/y sunt in coordonatele lui.
 function SceneArt.FootDust(host: GuiObject, x: number, y: number, side: number, running: boolean)
+    local world = host.Parent
+    if world == nil or not world:IsA("GuiObject") then
+        return
+    end
+    -- din coordonatele personajului (colt stanga-sus) in coordonatele lumii, prin ancora lui
+    local wx = host.Position.X.Offset - host.Size.X.Offset * host.AnchorPoint.X + x
+    local wy = host.Position.Y.Offset - host.Size.Y.Offset * host.AnchorPoint.Y + y
     addParticle(
-        host,
+        world :: GuiObject,
         Color3.fromRGB(206, 190, 158),
-        x,
-        y,
+        wx,
+        wy,
         if running then 7 else 5,
         if running then 14 else 9,
         if running then 0.5 else 0.42,
         0,
         side * 0.6,
-        0.35
+        0.35,
+        true,
+        host.ZIndex - 1
     )
 end
 

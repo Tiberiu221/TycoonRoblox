@@ -32,9 +32,15 @@ jobs:
       - name: Unit tests (Lune + frktest)
         run: lune run tests/_run.luau
 
-      # Iese cu eroare daca vreo platforma nu creste venitul cu cel putin 0,5% (docs/TYCOON.md)
+      # Iese cu eroare daca vreo cumparatura scade venitul, daca o veriga e decor sau daca preturile
+      # din config s-au despartit; --robust: aceleasi porti cu fiecare constanta a oamenilor +-15% [D49]
       - name: Economy simulator
-        run: python3 scripts/economy/sim_tycoon.py
+        run: python3 scripts/economy/sim_tycoon.py --robust
+
+      # Asezarea randurilor din panouri: cutiile se socotesc din aceleasi constante ca in Luau si
+      # pica daca doua se ating. Prima rulare a gasit sase coliziuni pe care nu le prindea nimic.
+      - name: Panel row layout
+        run: python3 scripts/art/check_panel_rows.py
 
       - name: Build place
         run: rojo build default.project.json -o Driftwood.rbxl

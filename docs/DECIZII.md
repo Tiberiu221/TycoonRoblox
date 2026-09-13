@@ -11,6 +11,342 @@ Convenție: în tot proiectul, „server" înseamnă o instanță Roblox efemer�
 
 ---
 
+## D53 — Ruinele malului, bușteni care vin pe râu, atelierul nou
+**DECIS** (2026-09-13) — owner-ul, după D52: *„în locul acestor chestii cu negru care urmează a fi
+deblocate, să fie de fapt niște ruine sau lucruri stricate pe jos (dacă te duci la ele trebuie să scrie că
+se deblochează înainte X ca să poți aici)"*, *„ar trebui făcut ceva cu animația de prindere a
+driftwood-ului pentru că apar așa de nicăieri, ceva mai realistic din punct de vedere al logicii"*,
+*„change the texture to the workshop, looks awful"*. Alese de owner: **toate ruinele, de la început**;
+**avizier „Help wanted"** pentru Porter, Sawyer și Hauler (pe oameni îi angajezi, nu îi reconstruiești).
+
+1. **Ceasul plasei nu se mai oprește când e plină.** `TycoonMath.netTick` decide un tick: cu loc, prinde
+   câte momente au trecut (cel mult cât încape); plină, ceasul sare la primul moment de după acum, la
+   fiecare tick. Golirea — de mână sau de Collector — nu mai repornește ceasul la „acum + interval".
+   Prinderea de după golire vine la momentul ei din ritm: cel mult un interval mai devreme decât înainte.
+   Simulatorul nu modelează pauzele plaselor pline, deci prețurile rămân.
+2. **Buștenii vin pe râu** (`CatchFloat`, rescris): de la marginea din stânga a lumii, cu curentul
+   (130 px/s), pe **curentul de lângă plase** (`NEAR_CURRENT_Y` 552), apoi un cot lin în plasă, pe măsura
+   coborârii (`clamp(1,2 × coborârea, 120, 220)` px, pantă de cel mult 51°), exact la momentul prinderii;
+   apare estompat și intră micșorându-se. La o plasă plină trece pe lângă și se stinge. Cel mult 6 bușteni
+   spre o plasă, la cel puțin 0,9 s unul de altul. Test: niciun drum nu trece prin altă plasă.
+3. **Decorul râului** rămâne pe curentul din larg (516), mai mic (×0,35), la viteza șirului, cu bunurile
+   pe care încă nu le poți prinde (resturi / cioburi, după benzile atinse); lăzile coloniei ies.
+4. **Ruinele:** orice platformă a Erei 1 necumpărată stă pe mal ca ruină, pe locul exact al construcției;
+   încuiată e ușor stinsă, cumpărabilă are prețul deasupra, ca siluetele de dinainte. Lângă o ruină
+   încuiată (rază 120, după 0,4 s) cartonașul are un mod nou: „RUINS" / „HELP WANTED", numele, descrierea
+   și butonul stins cu **prima condiție neîndeplinită** (`TycoonMath.padBlocker` + `Strings.padNeeds`:
+   „Hire a Hauler first", „Cast the Fourth Net first", „Upgrade First Net to level 2 first"…) — aceleași
+   condiții pe care le verifică jocul. E, butonul și atingerea ruinei spun același lucru. Cardul unui
+   obiect (Take logs, Sell…) bate mereu o ruină.
+5. **Avizierele:** Porter, Sawyer, Hauler au un avizier strâmb cu un anunț rupt; după angajare, avizierul
+   curat cu pictograma meseriei (buștean / fierăstrău / scânduri), în locul platformei cu bifă.
+   Collector-ul își păstrează coliba: ruina colibei → coliba.
+6. **Atelierul nou** (`prop_workshop_e1`, 64×48, din aceeași familie cu taverna): bârne, șindrilă
+   verde-cenușie, fereastra-raft cu găsirile de pe râu (una strălucește), bancul cu menghina, uneltele pe
+   perete, firma cu ciocanul, hornul fierăriei. `b_workshop` din era coloniei rămâne doar cât noul nu e urcat.
+7. **Arta** (10 sprite-uri, `scripts/art/ruins_d53.py`) s-a urcat după aprobarea owner-ului pe
+   previzualizare (`scripts/art/preview_ruins.py`: *„urcă arta, ruinele arată bine"*), cu moderarea în
+   „Reviewing" la urcare. `Assets.has` știe doar dacă id-ul e 0: cât imaginea e încă în moderare, clientul
+   n-are cum să afle, deci ruina poate apărea goală o vreme, nu cu desenul de dinainte.
+
+**Găsite pe drum și reparate:** (a) textul ghidajului de deasupra țintei stătea în lume, **sub HUD**: cu
+taverna sus-stânga (când ești la gater), „Sell the planks at the tavern" cădea sub monede, traistă și
+linia NEXT și nu se citea [owner, Studio] — acum stă deasupra țintei dacă e loc, altfel sub inel, altfel
+deloc (textul e oricum pe linia NEXT), și nu iese din ecran (`GuideMath.labelPlacement`, testat); (b) un
+cot fix de 120 px ar fi dat, pe banda de lângă mal, un plonjon de 66°; (c) fără săritul ceasului la
+fiecare tick, scoaterea resetărilor ar fi adus o rafală de prinderi după o plasă lăsată plină.
+
+**Se abate** de la D47 („se vede obiectul direct, doar ca locked" — acum ca ruină, nu ca siluetă), de la
+plutirea din F1 (un singur bun, 300 px, în linie dreaptă) și de la D49 (Porter, Sawyer, Hauler fără desen).
+
+---
+
+## D52 — Oamenii înaintea plaselor, meniul obiectului simplu
+**DECIS** (2026-09-13) — owner-ul, după ce a jucat D51: *„vreau ca playerul să facă o singură dată un tur
+net – sawmill – tavern iar al doilea tur să își deblocheze treptat npc-urile. în prezent te pune să îți
+faci x nets și mai apoi npc-urile, ceea ce este greșit"*, *„meniurile astea trebuie schimbate pentru că nu
+prea înțeleg nimic din ele dacă închid un ochi"*. Alese de owner: toți cinci oamenii după prima vânzare,
+apoi plasele (confirmat după ce i s-a arătat compromisul de la pct. 3); ghidajul tace tot după cei cinci;
+meniul — varianta simplă, cu fontul din joc.
+
+1. **Ordinea Erei 1:** prima plasă → Collector (cere o singură plasă), Porter, Sawyer, Hauler,
+   **Innkeeper după Hauler** (nu la trei plase) → **a doua plasă abia după Innkeeper** (pe lângă nivelul
+   2 al primei) → a treia plasă, traista mare, a patra, Atelierul, a cincea, clopotul. Indexul
+   platformelor urmează ordinea cumpărărilor din simulator. Capitolul 1 are 11 quest-uri: bucla de mână,
+   cei cinci oameni, nivelul 2, a doua plasă. `sell_forty` iese; Innkeeper-ul dă 3 perle, deci totalul
+   quest-urilor rămâne 40.
+2. **Simulatorul urmează quest-ul:** cât lipsește un om al capitolului și condiția lui e împlinită,
+   jucătorul îl ia când are banii și nu cumpără nimic altceva până atunci — cu o singură plasă, un om
+   adaugă zero venit, deci lăcomia singură nu l-ar lua niciodată. Prețuri re-derivate: oamenii 13 / 15 /
+   18 / 20 / 25, Second Net 30, Third Net 100, Bigger Sack 90, Fourth Net 900, Workshop 7K, Fifth Net
+   7,5K; al doilea om 1,1K / 1,8K / 13K / 2,8K / 4,5K. 9 cumpărături în primele 5 minute reale.
+3. **Compromisul, ales de owner după ce l-a văzut explicat pe pașii tutorialului:** un om la treapta 1
+   lucrează de 7–12 ori mai repede decât o plasă. Cu toți cinci angajați devreme, veriga slabă e aproape
+   mereu plasele (47% din Era 1) sau adunatul (41%); gaterul, Hauler-ul și taverna sunt gâtuirea doar
+   2–3% — upgrade-urile lor rar aduc ceva în Era 1. Era 1 crește de la 27 la 34 de minute reale. ~200 de
+   variante de constante (costuri, viteze, baze, creșteri, munca jucătorului, oameni-ucenici) n-au ținut
+   pragul de 5% la ±15%; cea mai apropiată ordine care îl ținea era „Collector + Porter întâi". Poarta
+   „fiecare verigă e gâtuirea ≥5% din timp" coboară la **0,5%** (cea mai mică cotă la ±15% iese 0,7%):
+   prinde doar o verigă care nu e *niciodată* gâtuirea. Restul porților neschimbate.
+4. **Meniul obiectului, simplu:** nivelul („Level 3 → Level 4"), o casetă cu ce face și cât **pe minut**
+   („19.8 → 20.4 logs a minute"), pragul următor, **un rând colorat din câștigul real al unui nivel**
+   (câmp nou `gain` pe rândurile clădirilor): verde „Next level earns +1.2 coins a minute", sau portocaliu
+   „Won't earn more yet: your nets are slower" cu butonul „Go to Nets"; x1 / x10 / Max; butonul mare cu
+   prețul pe el. La meserie: treapta și oamenii, ce face omul, cine face treaba, apoi treapta și al doilea
+   om, fiecare cu prețul pe buton. Ies: cele șase pastile ale lanțului, debitele pe secundă, x50 (rămâne
+   pe server). Lista veche (`StationPanel`) nu se atinge.
+5. **Pe minut, nu pe secundă:** +3% la 0,33/s ieșea „0.3 → 0.3 (+0.0)" — adevărat și inutil; pe minut e
+   „19.8 → 20.4" (`TycoonMath.formatPerMinute`, rotunjit, nu tăiat).
+
+**Găsite pe drum și reparate:** (a) analytics-ul numea indexul 2 „BoughtSecondNet" — după reordonare ar
+fi etichetat Collector-ul; acum toate platformele sunt `BoughtPad<index>`; (b) rândul „This is your
+slowest link" al meniului vechi putea sta pe o verigă la egalitate, unde un nivel dă tot zero — rândul
+nou se sprijină pe câștigul calculat, iar la egalitate spune „just as slow", nu „slower".
+
+**Se abate** de la D51 pct. 1 (bucla repetată și „Sell 40 planks" înaintea extinderii, oamenii după trei
+plase), de la D49 (Innkeeper-ul la trei plase) și de la pragul de 5% al verigilor [D48, D49].
+
+---
+
+## D51 — Primul minut ghidat pas cu pas, cardul obiectului, sunetul plaselor, muzica
+**DECIS** (2026-09-13) — owner-ul, după ce a jucat D50: *„nu îmi place cum te ghidează jocul în acel
+tutorial, te împinge să îți faci net-uri cât mai multe dar fără materiale, jucătorul nu știe exact ce să
+facă la început"*, *„după ce pui driftwood-ul apare instant linia ghidaj către următorul obiectiv…
+trebuie să îl pună să stea până când tot driftwood-ul este gata plank"*, *„când te duci la un obiect
+vreau să existe opțiunea de upgrade, nu doar de la click"*, *„nu dispare partea neagră decât după al
+doilea click"*, *„când prind net-urile sunetul devine enervant"*, *„o muzică instrumentală specifică
+temei, fără copyright"*. Alese de owner: muzica compusă de noi, cartea după prima vânzare, recompensele
+în perle, prima colectare = plasa plină, care prima dată se umple mai repede.
+
+1. **Bucla se face de-adevăratelea înainte de extindere.** Capitolul 1 cere o plasă plină colectată
+   (12), tăiată toată și vândută toată, apoi un nivel, a doua plasă, **Sell 40 planks**, abia apoi a
+   treia plasă și oamenii. Quest-urile numără **bucăți** (`Stats.collected`, `Stats.sold`), nu gesturi.
+2. **Toate recompensele quest-urilor sunt perle.** Primele cinci dădeau 95 de monede, cât plasele 2 și
+   3 — se cumpărau din recompense, fără ca lemnul să treacă prin lanț. Simulatorul n-a numărat niciodată
+   recompensele, deci prețurile rămân; se schimbă doar ritmul real al începutului (a doua plasă pe la
+   ~1:25, din vânzare).
+3. **Prima plasă se umple de 3 ori mai repede** până la primii 12 bușteni colectați (~12 s, nu ~36 s),
+   cu eticheta „Fast first catch" pe ea: meniul arată ritmul normal, eticheta spune de ce e mai repede.
+   **Și se golește abia plină** (completat după Studio, aceeași zi: *„zice wait dar eu pot să iau și să
+   fug mai departe, ar trebui să fie locked până face 12/12"*): serverul refuză colectarea, cardul scrie
+   „Filling up: 8/12", E pe el spune același lucru (`TycoonMath.collectLocked`).
+4. **Ghidajul pe două niveluri:** quest-ul spune ce (linia NEXT), pasul spune cum și unde, din stare, în
+   ordinea în care nu sare nimic: bușteni în traistă → gater; bușteni la gater fără Sawyer → **stai în
+   inel până la ultimul**; scânduri gata → le iei; scânduri în traistă → taverna; depozit → plase. Un
+   quest de cumpărare **fără bani** arată bucla care face banii (sau „Coins are coming in" cât se scurge
+   grămada), nu platforma.
+5. **Tutorialul:** cardul capitolului → mâna la prima plasă; **cartea cu reflector vine după prima
+   vânzare**, când ai ce revendica, și se închide dintr-un singur click (pasul vechi verifica lista
+   deschisă abia după un click pe întuneric).
+6. **Cardul obiectului:** lângă plasă, depozit, gater, tavernă, atelier sau o platformă de meserie, un
+   card arată acțiunea care e cazul (sau starea) și **Upgrade**, care deschide meniul obiectului (tasta
+   U; butonul apare după prima vânzare și pulsează când pasul îl cere). Ținta e cea mai apropiată —
+   cartonașul de cumpărare inclus — și E face exact ce scrie pe card. Cât tai de mână, gaterul nu oferă
+   scândurile: plăcuța din D50 spune „Cutting — N left".
+7. **Stropii plaselor** doar la cel mult 420 px de plasa care a prins; clinchetul găsirilor rare se
+   aude oricum, mai încet de departe.
+8. **Muzica:** o buclă de 2:17 compusă și sintetizată de noi (`scripts/audio/make_music.py`: lăută,
+   fluier de lemn, pad, contrabas, kalimba, apă; re major, 84 BPM), fără drepturi de autor ale altcuiva;
+   buton în bară (tasta M), ținut minte în profil (`Settings.music`, remote `SetMusic`).
+
+**Găsite pe drum și reparate:** (a) canalul de analytics al quest-urilor trimitea „Quest_<id>" într-un
+canal unde nu exista asemenea pas — fiecare revendicare era aruncată; acum quest-urile au canalul lor, pe
+capitol; (b) `Apply` al tutorialului intra în „done" la prima plasă și nu mai ieșea; (c) un buton de
+muzică fără muzică urcată ar fi mințit — nu apare până nu există piesa.
+
+**Se abate** de la D50 pct. 3 (ghidajul care arăta direct ținta quest-ului) și de la vechea ordine a
+tutorialului (cartea la început).
+
+---
+
+## D50 — Harta în buclă, taverna, dâra de ghidaj, sunetul
+**DECIS** (2026-09-13) — owner-ul, după ce a jucat D49: *„la sawmill nu prea se vede textul că trebuie
+să stai aici"*, *„la tutorial vreau o săgeată care să ghideze playerul pe unde trebuie să o ia și unde
+trebuie să se ducă"*, *„trebuie schimbată iar poziționarea tuturor obiectelor… devin tot mai
+aglomerate"*, *„dock-ul să arate complet altfel… o tavernă în care stau degeaba niște npc-uri «ca la
+piață»"*, *„sunetul sawmill-ului devine foarte enervant… predominant când se prinde driftwood-ul în
+nets"*.
+
+1. **Harta e o buclă:** plasele pe râu → depozitul la capătul de est al punții → gaterul la sud-est →
+   taverna la vest, fiecare om pe drumul lui (Collector pe punte, Porter pe drumul de est, Hauler pe
+   drumul de sud și pintenul de vest). Drumurile sunt `TycoonConfig.ROADS`: dreptunghiuri care doar
+   se ating. Terenul Erei 1 se lărgește până la x 1860 și coboară până la y 1650; gardul Morii ține
+   toată înălțimea. Grămezile au locuri fixe (`PILES`), nu formule lipite de clădire.
+2. **Oamenii merg pe drumuri** (`RoadGraph` + `HandMath.cycle` cu `via`). Cât duce un om pe drum rămâne
+   debit × durată, deci meniul și simulatorul nu se schimbă. Măsurat: Collector 22 s cu cinci plase
+   (poarta: 30 s), Porter 7.5 s, Hauler 19.2 s.
+3. **Dâra de ghidaj:** săgeți care curg pe drumuri spre țintă, plus săgeata mare (34 → 48 px) și un inel
+   pe țintă. **Imediat, și doar până ai câte un om la fiecare meserie** — apoi ghidajul tace. Iarba
+   costă dublu: drumul se ia doar când scurtătura peste iarbă ar fi mai mult de jumătate din el
+   (altfel primul pas al tutorialului, spawn → prima plasă, 311 px, cobora la drumul mare și urca
+   înapoi, 826 px). Ținta e locul unde stai: stâlpul plasei, inelul gaterului, ușa tavernei.
+4. **La gater, locul tău are un inel pe jos și o plăcuță** — auriu „Stand here to cut" cât sunt bușteni
+   și nu ești acolo, verde „Cutting — N left" cât stai și taie — cât timp n-ai Sawyer.
+5. **Debarcaderul devine taverna** (`prop_tavern`, 192×144): în joc *Tavern* și *Innkeeper*; id-urile
+   rămân (`dock`, `dock_trader`, `trader`). **Clienții vin după vânzarea reală** — o fereastră de 20 s
+   peste evenimentele `Sold`, 1 + bucăți/s, cel mult 8 — nu după capacitatea tavernei, care ar fi
+   desenat clienți și fără nicio scândură [D40]. La fiecare vânzare unul pleacă ducând o scândură.
+   Poartă ținute noi, fără pălărie (`Townsfolk`, `Traveler`): ținuta e meseria [D44]. Pontonul cu
+   barca a rămas pe punte.
+6. **Sunetul:** volum pe sunet (stropul și clinchetul găsirilor 0.7, casa de marcat și monedele 0.3,
+   gaterul 0.12); gaterul se aude doar la cel mult 300 px și cel mult o dată la 4 s; predarea unui om
+   nu mai sună a bani.
+
+**De știut:** drumul tău de mână (prima plasă → gater → tavernă) crește de la 5.6 s la 7.8 s de mers.
+Economia nu se schimbă (simulatorul: aceleași 279 de cumpărături, 27m05s reali); dacă se simte lung
+în Studio, se strânge bucla, nu se ating prețurile.
+
+**Găsite pe drum și reparate:** (a) `HandDelivered` suna casa de marcat la fiecare predare — bani care
+nu existau [D40]; (b) „sack empty" ar fi apărut la fiecare trecere pe lângă ușa tavernei, acum lângă
+drumul mare — acum doar chiar la ușă; (c) între două plase de pe punte, drumul cobora 2 px până la
+linia de mijloc și urca înapoi — acum, cu ambele capete pe același drum, merge drept.
+
+**Se abate** de la D49 pct. 2 (gaterul la mijloc sub alee, depozitul sub prima plasă): se schimbă
+locurile, nu lanțul.
+
+---
+
+## D49 — Lanțul pe oameni: depozit, gater departe, cărăuși
+**DECIS** (2026-09-13) — owner-ul, după ce a jucat D48: *„sawmill-ul este prea aproape de nets"* și
+*„nu îmi place că se duce wood-ul prelucrat direct la vânzare, strică tot progresul cu transport"*.
+
+1. **Fiecare pas e muncă de om.** Lanțul are șase verigi, venitul e minimul lor:
+   `plase ─[Collector]─► DEPOZIT ─[Porter]─► GATER (Sawyer) ─[Hauler]─► DEBARCADER (Negustor) ─► monede`.
+   Ce pas n-are om îl faci tu, iar timpul tău se împarte între pașii rămași — de aceea fiecare
+   angajare grăbește tot, nu doar pasul ei. **Tăiatul de mână = stai lângă gater.**
+2. **Gaterul se mută la mijloc, sub alee**, cu o potecă pe lângă el până într-o curte în fața ușii;
+   **depozitul ia locul lui, sub prima plasă.** Nimic nu mai trece singur spre vânzare: debarcaderul
+   primește doar ce e tăiat, adus de tine sau de Hauler.
+3. **Oamenii au trepte (1–5), nu niveluri fără capăt**, și **al doilea om** pe aceeași meserie de la
+   treapta 3 — *„nu foarte multe, pentru că se presupune că sunt oameni"*. Clădirile își păstrează
+   nivelurile fără capăt. Un echipaj la maxim care e veriga slabă trimite la clopot, nu la „No gain yet".
+4. **Angajările vin în ordinea râului**: Collector (la 2 plase) → Porter → Sawyer → Hauler; Negustorul
+   separat (3 plase). **Venitul pasiv cere acum toate cinci meseriile.**
+5. **Veriga „Carry" cu niveluri dispare.** Monedele plătite pe ea se dau înapoi o singură dată, la
+   migrarea v5 — nimic nu se pierde.
+
+**Constantele, măsurate în simulator** (`--robust`: fiecare ±15%, toate porțile țin): timpul tău
+**3.6** (în D48 căratul tău era 1.2 — împărțit la patru pași, tu erai veriga slabă din prima secundă
+și 24 din 27 de cumpărături din primele 5 minute nu dădeau nimic), meseriile **4 / 6 / 9** (egale,
+stăteau la egalitate și o treaptă pe una singură dădea zero), treapta **×1 pe pas**, gaterul **2.4**
+(la 3.6 era gâtuire 3% din timp). **Era 1: 27m05s reali** (de la 31m35s), clopotul tot 10K; gâtuirea:
+plase 23% · adunat 24% · dus la gater 12% · tăiat 20% · dus la debarcader 10% · vânzare 12%.
+Jucătorul simulat **urmează quest-urile** în două locuri (nivelul 2 al ultimei plase; strânge pentru
+deblocarea următoare când veriga slabă n-are ce cumpăra) — fără ele porțile măsurau artefacte.
+
+**Id-urile rămân:** `first_runner` e platforma Collector-ului (id-ul e și cheia omului în profil și
+sămânța numelui lui), `hire_hand` e quest-ul Collector-ului — un quest redenumit s-ar fi putut
+revendica a doua oară. Noi: `hire_porter`, `hire_hauler`, quest-urile `saw_once`, `hire_porter`,
+`hire_hauler`.
+
+**Găsite pe drum și reparate:** (a) grămezile erau liste cu un tabel pe bucată — un Collector fără
+Porter ar fi umflat profilul peste limita DataStore (4 MB); acum sunt numărători, fără plafon;
+(b) o plasă de nivel mare își umplea cele 12 locuri în 2 s și stătea plină — prinderea reală era mult
+sub cifra din meniu; acum ține ~30 s de prindere; (c) `RateLimiter` lăsa să treacă orice nume de
+bucket necunoscut, iar `SpinWheel` împrumuta bucket-ul lui `SellSack`, care a dispărut; acum un nume
+necunoscut e refuzat și se aude; (d) ghidajul trimitea încă la debarcader traista cu bușteni, deși
+din D48 predarea era la gater; acum bușteni → gater, scânduri → debarcader.
+
+**Se abate** de la D48 (predarea la gater, scândurile singure spre debarcader, gaterul lângă plase,
+veriga de cărat cu niveluri) și merge mai departe cu abaterea de la regula de fază.
+
+---
+
+## D48 — Gaterul intră în lanțul Erei 1 · meniul de niveluri e al obiectului
+**DECIS** (2026-09-12) — owner-ul, după o sesiune în Studio.
+
+1. **Buștenii nu se mai vând bruți.** Lanțul are patru verigi: *prinderea → căratul → tăiatul →
+   vânzarea*, iar venitul e minimul lor. Gaterul există **de la început**, între punte și alee, la
+   dreapta debarcaderului; **acolo se predă traista** (E), acolo predau și Mâinile, iar debarcaderul
+   primește doar ce iese din gater. Driftwood-ul iese **scânduri**; restul trece neschimbat.
+2. **Scândura valorează cât buștenul.** Gaterul fiind acolo din secunda 0, un ×3 n-ar fi schimbat
+   ritmul — ar fi umflat doar cifrele și ar fi stricat tot ce e fix în monede (costuri de nivel,
+   recompense, premiile roții). Valoarea lui e veriga nouă de urcat, omul ei și transformarea
+   vizibilă. Un multiplicator de valoare se proiectează când se re-derivă Era 2.
+3. **Sawyer**: fără el gaterul merge la **35%** (manivela din §G), cu el la 100% și și când lipsești —
+   oglinda Negustorului. **Venitul pasiv cere acum Mână + Sawyer + Negustor.**
+4. **Meniul de niveluri e al obiectului atins** (plasa, gaterul, debarcaderul, omul angajat, `Go!` la
+   un quest de nivel): lanțul sus, cu obiectul evidențiat și veriga slabă marcată; nivelul; debitul
+   acum → la nivelul următor; de ce merge la 35%; dacă un nivel ajută acum. Lista cu toate stațiile
+   iese din bara de meniu și rămâne **ascunsă pe tasta U** — owner-ul decide mai târziu ce face cu ea.
+5. **Se abate de la regula de fază** (`TYCOON.md:586`): gaterul era proiectat pentru Era 2, iar poarta F1
+   nu e trecută. Consecința concretă: bucla pe care o măsoară F1 are patru verigi, nu trei. Decizia
+   owner-ului, cunoscând asta.
+
+**Ce a mutat simulatorul:** Era 1 de la 27m43s la **31m35s** reali (costul real al unei verigi în plus);
+prețurile rămân, cu excepția lui Third Net (50 → 55) și a Sawyer-ului nou (50). Sawyer-ul **nu urcă
+scara de așteptare** (`LADDER_EXEMPT`): numărat ca treaptă, făcea fiecare deblocare de după el cu 17%
+mai scumpă și Era 1 ajungea la 34m31s fără ca designul să ceară asta. Gaterul e gâtuirea ~15% din timp —
+nu e decor; simulatorul pică dacă vreo verigă nu e niciodată gâtuirea.
+
+**Găsite pe drum și reparate:** (a) `StationService` număra Negustorul ca Mână care cară — căratul afișat
+era umflat față de simulator, iar Negustorul singur dădea venit pasiv fără nicio Mână, contra D46;
+(b) tastele din bara de meniu nu erau legate nicăieri, deși tooltip-urile le afișau („Quests (J)"), iar
+atelierul avea tasta W — a mersului; acum sunt legate, atelierul e pe R; (c) „First sale" apare acum
+odată cu primii bani, nu la predare.
+
+---
+
+## D47 — Obiectul din lume e interfața: se cumpără cu confirmare, se urcă atingându-l
+**DECIS** (2026-09-12) — owner-ul, după o sesiune în Studio.
+
+1. **Nimic nu se mai cumpără călcând pe obiect.** Apropierea (sub 220px) aduce un cartonaș care
+   spune *ce* cumperi (`BUY`, numele, ce face), *cât* costă și **cât îți rămâne** (`343 → 330 left`).
+   Cumpărarea cere o apăsare: butonul cartonașului, tasta E sau obiectul însuși — toate trei merg
+   **doar** cât cartonașul arată acel obiect. Owner: *„nu aș vrea să mai avem chestia asta cu doar
+   du-te în acel obiect și se deblochează"*. Mersul rămâne (D46): cartonașul apare doar în rază.
+   Butonul unui obiect abia apărut pe cartonaș e viu după 0,35s, ca al doilea clic al unui
+   dublu-clic să nu cumpere obiectul următor fără să-i fi văzut prețul.
+2. **Un obiect cumpărat, atins, își deschide nivelul.** Plasa (și insigna ei `Lv N`), debarcaderul,
+   alergătorul și Negustorul deschid panoul de niveluri direct pe rândul lor; `Go!` la un quest de
+   nivel face la fel. Owner: *„nu am văzut opțiune de upgrade la următorul nivel pe nicăieri"* —
+   panoul exista, dar singura cale spre el era un buton din bara de meniu.
+3. **Plasa următoare cere ca cea dinainte să fie la nivelul 2** (`TycoonConfig.PREV_NET_LEVEL`), până
+   la ultima plasă. Motivul: lumea oferea plasa a doua în timp ce quest-ul cerea încă nivelul 5 al
+   primei. Consecință obligatorie: **înaintea fiecărei plase noi e un quest „Upgrade … to level 2"**
+   (`net_two`, `second_two`, `third_two`, `fourth_two`) — fără ele banda ar fi cerut o plasă încă
+   încuiată. Aceeași cifră stă în simulator, în config și în quest-uri; testele le țin împreună.
+4. **Simulatorul verifică acum prețurile din `TycoonConfig.luau`** și pică dacă diferă. Până aici,
+   testul „prețurile sunt exact cele din simulator" compara config-ul cu o listă scrisă de mână, iar
+   config-ul rămăsese cu 2500 / 2800 / 13000 în timp ce simulatorul derivase 1500 / 1600 / 10000.
+
+---
+
+## D46 — Era 1 pe structura Idle Miner: stații cu niveluri, lanț cu gâtuire, roată zilnică
+**DECIS** (2026-09-12) — owner-ul a jucat Idle Miner Tycoon, a trimis 18 capturi progresive și a
+cerut explicit bucla și ghidajul lor, cu NPC-urile noastre. Era 1 se face ca **șablon**; Era 2 e
+aceeași structură cu alte cifre.
+
+**Ce se schimbă față de D45:**
+1. **Era 1 nu mai e o linie de 12 platforme.** Sunt **10 deblocări** + **trei tipuri de stație cu
+   niveluri infinite** (plasele, căratul, debarcaderul). Fiecare nivel dă puțin (+3…6% din bază),
+   iar la nivelurile 10/25/50/100 se dublează. `Sorting Crate` și `Dock Stall` au devenit niveluri
+   ale debarcaderului; `Weighted Nets` a devenit pragul de nivel 10 al plaselor.
+2. **Venitul nu mai e o sumă, e minimul a trei debite** — prinderea, căratul, vânzarea. Veriga cea
+   mai slabă decide, iar repararea ei e decizia jucătorului.
+3. **Regula celor patru motive se rescrie** pentru modelul cu gâtuire: *orice cumpărătură trebuie
+   să crească venitul **atunci când țintește veriga slabă**, și niciodată nu-l scade.* Un upgrade
+   pe o verigă care nu e gâtuirea dă **exact zero** — asta nu e un bug, e lecția jocului, și se
+   scrie pe ecran în loc să se inventeze o cifră frumoasă [D40].
+4. **Două monede**: monede (din vânzare) și **perle** (premium). Perlele se cheltuie pe viteză,
+   spațiu și aspect — niciodată pe putere, deci P4 rămâne intact **pe monedă**.
+5. **Roata norocului intră în joc**, cu premii aleatorii. Asta **restrânge P4**: de la „niciodată
+   noroc" la **„niciodată noroc care scade ceva ce ai"**. Limitele care rămân:
+   - niciun premiu nu ia nimic — toate sunt în plus [P2 intact];
+   - rotirea e **gratuită**, una la 24h. Rotiri cumpărate **nu** intră: D20 spune „zero paid random
+     items", iar obiectele aleatorii plătite au reguli proprii de dezvăluire pe Roblox;
+   - **șansele se afișează**, și sunt calculate din chiar ponderile folosite la tragere [D40].
+6. **Venitul pasiv se câștigă.** Cere **și** o Mână care cară **și** un Negustor care vinde — cu una
+   singură lanțul e tăiat. Pastila `IDLE` din HUD apare abia atunci; înainte nu există.
+7. **Ghidajul**: capitole + listă de quest-uri + banner permanent + tutorial cu reflector. Progresul
+   quest-urilor se **citește din stare**, nu se numără pe evenimente — clasa de bug „am făcut deja,
+   dar nu s-a bifat" devine imposibilă.
+
+Rămân în vigoare, neatinse: P1, P2 (nimic nu se pierde), P3, P5, P6, D40 (textul nu minte),
+D43 (nimic în tăcere), D44, D20 (fără pay-to-win, fără obiecte aleatorii plătite), D13.
+
+---
+
 ## A. Platformă, cont, mediu
 
 ### D01 — Proprietate și conturi · DECIS

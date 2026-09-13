@@ -168,6 +168,10 @@ clopot (animație, sunet, zona nouă se luminează).
 
 ### E. Plasele
 
+> **[D53, 2026-09-13] Buștenii vin pe râu.** Pornesc de la marginea lumii, plutesc pe curentul de lângă
+> plase și cotesc în plasă exact la momentul prinderii; la o plasă plină trec pe lângă. Ceasul plasei nu
+> se mai oprește când e plină (golirea nu-l mai repornește). Vezi D53.
+
 **Detaliu:** o plasă are bandă, rată de prindere și capacitate. Capacitatea contează de două ori:
 când o golești de mână (plasa plină nu mai prinde — corvoada pe care o rezolvă automatizarea) și
 offline (plafonul real, nu ceasul [16]). Upgrade-uri globale: Weighted (+30%), Wide (+40%),
@@ -196,6 +200,20 @@ W3 multiplicatorii de preț · W4 „+N" care zboară de la debarcader la contor
 *(Aria se numește W, nu F, ca sarcinile ei să nu se confunde cu fazele F0–F9.)*
 
 ### G. Procesarea și energia
+
+> **[D50, 2026-09-13] Harta în buclă.** Depozitul la capătul de est al punții, gaterul la sud-est,
+> taverna (fostul debarcader) la vest; oamenii merg pe drumuri, iar clienții tavernei vin după cât
+> vinzi. Vezi D50.
+>
+> **[D49, 2026-09-13] Lanțul pe oameni.** Gaterul stă acum la mijloc, sub alee, departe de plase, cu un
+> depozit lângă plase și câte un om pe fiecare drum (Collector, Porter, Hauler). Fără Sawyer taie doar
+> cât stai lângă el. Vezi D49.
+>
+> **[D48, 2026-09-12] Gaterul s-a mutat în Era 1**, ca verigă permanentă a lanțului (prindere → cărat →
+> **tăiat** → vânzare), de la început, cu un Sawyer care îl duce de la 35% la 100%. Scândura valorează
+> cât buștenul acolo. Ce rămâne aici pentru Era 2 — roata de apă, Smelter, Loom, Kiln, Sawmill II și
+> orice multiplicator de valoare — se re-derivă pe modelul cu verigi când Era 2 devine live. Pad-ul
+> `sawmill` din Era 2 a fost scos din `TycoonConfig`.
 
 **Dezbatere 1 — fabrică liberă sau stații fixe?** Aceeași ca la B. **Stații fixe**, cu ce e mai bun
 din [dir04]: roata de apă care produce energie din curent și stații care se îmbunătățesc pe loc.
@@ -319,6 +337,16 @@ bonusul liniar · K5 setul de obiecte deblocat de fiecare renaștere.
 
 ### L. Primele cinci minute
 
+> **[D52, 2026-09-13] Oamenii înaintea plaselor.** Un singur tur de mână (plasa plină → gater →
+> tavernă), apoi cei cinci oameni la rând, câte unul pe vânzare (13 / 15 / 18 / 20 / 25), abia apoi
+> nivelul 2 și a doua plasă. „Sell 40 planks" a ieșit. Compromisul, ales de owner: gaterul și taverna
+> rar merită urcate în Era 1, iar Era 1 ține ~34 de minute reale. Vezi D52.
+
+> **[D51, 2026-09-13] Primul minut, refăcut.** Plasa plină (grăbită prima dată) → gater, stai în inel
+> până la ultima scândură → taverna → cartea de quest-uri; ghidajul pe două niveluri (quest + pas din
+> stare), recompensele în perle, bucla de „Sell 40 planks" înaintea extinderii. Tabelul de mai jos e
+> istoric. Vezi D51.
+
 **Dezbatere — dialogul de deschidere rămâne?**
 Owner-ul a cerut un NPC la început. Dar dialogul de 4 replici blochează jucătorul fix în secundele în
 care trebuie să se distreze [24]: *„get to the fun quickly"*.
@@ -347,6 +375,10 @@ analytics (arie T).
 
 ### M. Interfața
 
+> **[D52, 2026-09-13] Meniul obiectului, simplu.** Nivelul, cât face pe minut (acum → după), pragul, un
+> rând colorat din câștigul real („Next level earns +1.2 coins a minute" / „Won't earn more yet: your
+> nets are slower" + „Go to"), x1/x10/Max și butonul cu prețul pe el. Fără pastilele lanțului. Vezi D52.
+
 **Detaliu:**
 - **HUD:** monedele, mari; sub ele venitul pe secundă (*+12/s*); sacul (*8/30*); energia din Era 2.
 - **Dispar:** cele cinci cifre de colonie (Food, Materials, Salvage, People, Beds), cartonașul de
@@ -360,6 +392,10 @@ M4 panoul Shop · M5 panoul Rebirth.
 
 ### N. Arta
 
+> **[D53, 2026-09-13] Ruinele malului.** Orice platformă a Erei 1 necumpărată stă pe mal ca ruină (Porter,
+> Sawyer, Hauler: avizier „Help wanted"); lângă ea scrie ce trebuie făcut întâi. Atelierul nou,
+> `prop_workshop_e1`, în familia tavernei. 10 sprite-uri, urcate după aprobarea owner-ului. Vezi D53.
+
 Pipeline-ul din Python rămâne (`scripts/art/`). **De desenat:** platforma (4 stări) și plăcuța de preț
 · debarcaderul (3 niveluri) · roata de apă (animată) · gaterul, topitoria, războiul, cuptorul · jgheabul
 · lada de sortare, piața, macaraua, magazia, farul · barcile · clopotele · pictogramele celor 4 bunuri
@@ -368,6 +404,37 @@ de volum și ale celor 4 produse · gardurile zonelor blocate · stropi, praf de
 
 **Sarcini:** N1 platforma și plăcuța · N2 debarcaderul · N3 roata de apă · N4 cele 4 stații · N5
 restul clădirilor · N6 bunurile · N7 efectele.
+
+**N8 — arta Erei 1 după [D46] (2026-09-12, gata).** Tot ce interfața desena până acum din
+`Frame` + `UICorner` are acum sprite, generat de `scripts/art/tycoon_e1.py` și urcat:
+`icon_coin` (moneda, cu un val ștanțat — 6 locuri în cod), `icon_pearl`, `icon_idle`, `icon_lock`,
+`icon_capacity`, `icon_speed`, `icon_carry`, `icon_levelup`, `ui_book`, `ui_badge`,
+`ui_levelbadge`, `ui_hand`, `ui_glow`, `prop_wheel`, `ui_wheel`, `chapter_landing` (150×100 —
+**fundalul** cardului de capitol, la exact 4×, cu textul peste ea și două voaluri în degrade);
+plus
+`sfx_wheel.ogg` (clichet care se rărește). **Trei desene din plan au căzut, cu motiv:** `icon_plus`
+(HUD-ul n-are butoane „+"), `icon_catch` (rândul „total catch" e o plasă, iar `icons.net` există
+deja) și `ui_portrait` / `ui_banner` (ecranul de angajare nu există — angajezi călcând pe fantomă —
+iar banda obiectivului folosește `tycoon.pill`). `icon_speed` e desenat și urcat, dar **încă
+nefolosit**: panoul de niveluri a fost compactat la un singur rând per stație, deci n-are unde sta
+un rând „catch speed"; intră când se desfac rândurile de statistică.
+
+**N9 — depozitul [D49] (2026-09-13, gata).** `prop_storage` (40×32 → 120×96): stivă de bușteni cu
+capetele spre tine, sub un acoperiș de scânduri deschise — altfel decât gaterul (fără pânză, fără
+șindrilă). Generat de `tycoon_e1.py`, urcat. `icon_speed`, nefolosit din N8, e acum pastila „Haul" din
+lanțul meniului. Oamenii noi poartă ținutele existente (Porter: Crafter, Hauler: Gardener).
+
+**N10 — taverna și ghidajul [D50] (2026-09-13, gata).** `prop_tavern` (64×48 → 192×144): casă de bârne
+cu acoperiș de ardezie, fereastră-tejghea luminată cu două căni, firmă cu cană și monedă, butoaie —
+alt material decât gaterul (șindrilă) și depozitul (scânduri). `ui_chevron` (16×16, săgeata dârei) și
+`ui_groundring` (32×16, alb, colorat în cod). Clienții: `outfit_townsfolk` și `outfit_traveler`, fără
+pălărie, în culori pe care nu le poartă nicio meserie. Toate generate (`tycoon_e1.py`, `settlers.py`)
+și urcate.
+
+**N11 — muzica și butonul ei [D51] (2026-09-13, gata).** `music_river.ogg` (2:17, buclă fără cusătură),
+compusă și sintetizată de `scripts/audio/make_music.py` (lăută, fluier de lemn, pad, contrabas, kalimba,
+shaker, toacă, apă; re major, 84 BPM; egalizare finală măsurată pe benzi), ascultată și aprobată de
+owner, urcată. `icon_music` (16×16, două note legate) pentru butonul din bară.
 
 ### O. Sunet și „juice"
 
@@ -378,6 +445,9 @@ ecran** — telefon, copii.
 Mecanismele de celebrare la praguri sunt recomandate explicit de Roblox [onboard].
 
 **Sarcini:** O1 sunetele de bază · O2 efectele de număr și platformă · O3 clinchetele pe tier.
+
+> **[D50–D51, 2026-09-13] Amestecul.** Volum pe sunet (stropul și clinchetul sus, banii jos, gaterul
+> abia auzit); gaterul și stropii se aud doar de aproape; muzica are grupul ei și buton (M).
 
 ### P. Monetizarea
 
@@ -456,6 +526,10 @@ Fazele din §7, fiecare cu o **poartă de validare** pe oameni reali — eșecul
 ---
 
 ## 5. Economia, în cifre
+
+> **[D52, 2026-09-13]** Tabelul de mai jos e istoric (dinainte de D46). Cifrele vii le tipărește
+> simulatorul: Era 1 în 33m59s reali, 9 cumpărături în primele 5 minute; poarta verigilor e acum 0,5%
+> din timp (era 5%) — compromisul ordinii „oamenii înaintea plaselor". Vezi D52.
 
 Generat de `python3 scripts/economy/sim_tycoon.py --table`. Jucătorul simulat e **lacom** (cumpără
 imediat); coloana *real* folosește factorul 1,8× (IPOTEZĂ).
@@ -601,19 +675,22 @@ aceea o revenire după absență le umple singură până la capacitate. Obiecte
 doar decor — în F1 (D2) prinderea trebuie să se vadă: bunul intră în plasă în clipa în care e prins.
 
 **F1 — Era 1 completă**
-- [ ] B1 Harta celor 4 zone · B4 garduri și estompare · B5 terenul ca unitate cu origine proprie
-- [ ] C1 Cele 12 platforme ale Erei 1 · C5 ceremonia de clopot
-- [ ] D1 `GoodsConfig` · D2 bunuri de volum pe râu · D3 valoarea obiectelor cu nume
-- [ ] E2 Weighted Nets
-- [ ] W3 Multiplicatorii de preț · W4 „+N" spre contor
-- [ ] H1 Bonusul de Index · H2 atelierul la prima prindere cu nume · H3 vânzarea obiectelor cu nume
-- [ ] I1 `HandService` · I2 angajatul merge și lucrează · I3 rolul Runner · I4 replica lui
-- [ ] L1 Fraza · L2 săgeata primei platforme · L3 indiciul de 11 s · L4 · L5
-- [ ] M2 Scoaterea panourilor de colonie · M3 cartonașul de stație
-- [ ] N1 Platforma și plăcuța · N2 debarcaderul · N6 bunurile · N7 efectele de bază
-- [ ] O1 Sunetele de bază · O2 efectele de număr
-- [ ] T3 Pâlnia pe platforme · T5 sonda actualizată
-- [ ] **Poarta F1:** playtest cu ≥5 oameni din afară
+- [x] B1 Landing-ul așezat (plase la 200 px) și Moara vizibilă; Curtea și Portul vin cu erele lor ·
+  B4 garduri și estompare · B5 terenul ca unitate cu origine proprie (`PLOT_ORIGIN`)
+- [x] C1 Cele 12 platforme ale Erei 1 · C5 ceremonia de clopot
+- [x] D1 bunurile stau în `TycoonConfig.GOODS` (fără fișier separat) · D2 bunul plutește spre plasă și
+  intră în ea exact la prindere, prezis cu aceeași formulă ca serverul · D3 valoarea pe tier
+- [x] E2 Weighted Nets
+- [x] W3 Multiplicatorii de preț · W4 „+N" spre contor
+- [x] H1 Bonusul de Index · H2 după Workshop, găsirile cu nume merg în grămadă · H3 vânzarea lor
+- [x] I1 `HandService` · I2 angajatul merge și lucrează (`HandMath`, același traseu pe server și
+  client) · I3 rolul Runner (celelalte roluri vin cu erele lor) · I4 replica lui
+- [x] L1 Fraza · L2 săgeata primei platforme · L3 indiciul de 11 s · L4 · L5
+- [x] M2 Scoaterea panourilor de colonie · [ ] M3 cartonașul de stație — mutat în F3, cu stațiile
+- [x] N1 Platformele (provizoriu, din trusa UI) · N2 debarcaderul · N6 bunurile · N7 efectele de bază
+- [x] O1 Sunetele de bază (8, sintetizate de noi) · O2 efectele de număr
+- [x] T3 Pâlnia pe platforme · [ ] T5 sonda actualizată — doar lista de elemente, restul în F2
+- [ ] **Poarta F1:** playtest cu ≥5 oameni din afară — primii 1–2 în seara de 2026-09-11
 
 **F2 — Offline**
 - [ ] J1 Seiful · J2 calculul pe capacitate · J3 ecranul de bun venit · J4 upgrade-urile de Seif

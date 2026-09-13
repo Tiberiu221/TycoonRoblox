@@ -96,8 +96,76 @@ function Widgets.PlateLabel(parent: Instance, text: string, size: number, kind: 
     return l
 end
 
+-- Export public al ramei cu 9 felii, pentru compozitii noi care nu trec prin Panel/Button/Slot
+-- de mai sus (placuta si cartonasul platformei, pastilele din HUD) [F2 finisaj].
+function Widgets.NineSlice(
+    parent: Instance,
+    sprite: Assets.Sprite,
+    slice: number,
+    z: number
+): ImageLabel
+    local img = sliced(parent, sprite, slice)
+    img.ZIndex = z
+    return img
+end
+
+-- Insigna de NIVEL. Deliberat ALTA culoare decat pastilele obisnuite (monede, traista, IDLE,
+-- valoarea de la debarcader sunt toate acelasi lemn inchis): daca nivelul arata la fel ca restul,
+-- nu se mai vede din priviri care statie a ramas in urma -- si exact asta trebuie sa se vada fara
+-- sa deschizi vreun panou.
+function Widgets.LevelBadge(parent: GuiObject, z: number)
+    if Assets.has(Assets.ui.levelbadge) then
+        parent.BackgroundTransparency = 1
+        local skin = sliced(parent, Assets.ui.levelbadge, Assets.UI_SLICE.levelbadge)
+        skin.Name = "LevelSkin"
+        skin.ZIndex = z
+    else
+        Widgets.PillBackground(parent, z)
+    end
+end
+
+-- Fundalul comun al unei "pastile" (pastilele din HUD, eticheta plasei, valoarea la debarcader):
+-- imaginea cu 9 felii cand arta a aparut, altfel dreptunghiul plat de azi. Un singur loc, ca toate
+-- pastilele sa se actualizeze singure cand `Assets.tycoon.pill` capata un id real.
+function Widgets.PillBackground(parent: GuiObject, z: number)
+    if Assets.has(Assets.tycoon.pill) then
+        parent.BackgroundTransparency = 1
+        local skin = sliced(parent, Assets.tycoon.pill, Assets.UI_SLICE.pill)
+        skin.Name = "Skin"
+        skin.ZIndex = z
+    else
+        parent.BackgroundColor3 = Theme.COLOR.plate
+        parent.BackgroundTransparency = Theme.PLATE_TRANSPARENCY
+        if parent:FindFirstChildOfClass("UICorner") == nil then
+            local c = Instance.new("UICorner")
+            c.CornerRadius = UDim.new(0, 10)
+            c.Parent = parent
+        end
+    end
+end
+
+-- O recuzita simpla (nu 9 felii): stalp, stalpul plasei cumparate etc. Marimea vine din sprite,
+-- scalata ca orice alt obiect de lume (Assets.PIXEL_SCALE). Ancorata jos-centru implicit -- cele
+-- mai multe stau "pe sol"; apelantul schimba pozitia daca are nevoie de alta ancora.
+function Widgets.Prop(parent: Instance, sprite: Assets.Sprite, z: number): ImageLabel
+    local img = Instance.new("ImageLabel")
+    img.BackgroundTransparency = 1
+    img.Image = Assets.url(sprite)
+    img.ResampleMode = Enum.ResamplerMode.Pixelated
+    img.AnchorPoint = Vector2.new(0.5, 1)
+    img.Position = UDim2.fromScale(0.5, 1)
+    img.Size =
+        UDim2.fromOffset(sprite.width * Assets.PIXEL_SCALE, sprite.height * Assets.PIXEL_SCALE)
+    img.ZIndex = z
+    img.Parent = parent
+    return img
+end
+
+-- Cauta intai in `icons` (familia de 16x16), apoi in `ui`. Jurnalul de quest-uri e un desen de
+-- 28x28 si sta in `ui`, dar se cere ca orice alta pictograma -- fara cautarea asta, ar fi trebuit
+-- ori sa-l duplic in manifest, ori sa dau bara de meniu pe alt drum doar pentru un buton.
 function Widgets.Icon(parent: Instance, key: string, px: number): ImageLabel?
-    local sprite = (Assets.icons :: any)[key]
+    local sprite = (Assets.icons :: any)[key] or (Assets.ui :: any)[key]
     if sprite == nil or not Assets.has(sprite) then
         return nil
     end
@@ -119,6 +187,9 @@ export type ButtonOptions = {
     height: number,
     z: number,
     onClick: () -> (),
+    -- [D52] loc pentru moneda si pret DUPA eticheta ("Upgrade (moneda) 75"), completat cu
+    -- SetButtonPrice. Fara el, butonul ramane exact cum era.
+    price: boolean?,
 }
 
 -- Buton cu trei stari desenate. Un buton fara raspuns la hover si la apasare e semnul cel mai
@@ -149,6 +220,7 @@ function Widgets.Button(parent: Instance, o: ButtonOptions): TextButton
     end
 
     local row = Instance.new("Frame")
+    row.Name = "Row" -- cautat de SetButtonText
     row.BackgroundTransparency = 1
     row.Size = UDim2.fromScale(1, 1)
     row.ZIndex = o.z + 1
@@ -166,13 +238,29 @@ function Widgets.Button(parent: Instance, o: ButtonOptions): TextButton
             ico.LayoutOrder = 1
         end
     end
-    if o.text ~= "" then
-        local l = Widgets.Label(row, o.text, Theme.TEXT.body, Theme.COLOR.ink, "strong")
-        l.TextXAlignment = Enum.TextXAlignment.Center
-        l.AutomaticSize = Enum.AutomaticSize.X
-        l.Size = UDim2.fromOffset(0, o.height - 8)
-        l.LayoutOrder = 2
-        l.ZIndex = o.z + 2
+    -- Eticheta exista MEREU, chiar goala: altfel SetButtonText n-ar avea ce schimba la un buton
+    -- nascut fara text, si ar ajunge iar sa scrie pe `button.Text`.
+    local l = Widgets.Label(row, o.text, Theme.TEXT.body, Theme.COLOR.ink, "strong")
+    l.Name = "Label"
+    l.TextXAlignment = Enum.TextXAlignment.Center
+    l.AutomaticSize = Enum.AutomaticSize.X
+    l.Size = UDim2.fromOffset(0, o.height - 8)
+    l.LayoutOrder = 2
+    l.ZIndex = o.z + 2
+    l.Visible = o.text ~= ""
+    if o.price then
+        local coin = Widgets.CoinIcon(row, math.min(22, o.height - 14), o.z + 2)
+        coin.Name = "PriceCoin" -- cautat de SetButtonPrice
+        coin.LayoutOrder = 3
+        coin.Visible = false
+        local price = Widgets.Label(row, "", Theme.TEXT.body, Theme.COLOR.ink, "strong")
+        price.Name = "Price" -- cautat de SetButtonPrice
+        price.TextXAlignment = Enum.TextXAlignment.Center
+        price.AutomaticSize = Enum.AutomaticSize.X
+        price.Size = UDim2.fromOffset(0, o.height - 8)
+        price.LayoutOrder = 4
+        price.ZIndex = o.z + 2
+        price.Visible = false
     end
 
     local function setState(state: string)
@@ -203,6 +291,63 @@ function Widgets.Button(parent: Instance, o: ButtonOptions): TextButton
     end)
     b.Activated:Connect(o.onClick)
     return b
+end
+
+-- TEXTUL UNUI Widgets.Button SE SCHIMBA DOAR AICI. Butonul isi deseneaza eticheta intr-un copil
+-- (Row/Label), iar `button.Text` e al TextButton-ului insusi: scris acolo, apare A DOUA eticheta,
+-- cu fontul implicit, peste prima. Asa arata `Claim` din lista de quest-uri -- scris peste `Go!`.
+function Widgets.SetButtonText(button: TextButton, text: string)
+    local row = button:FindFirstChild("Row")
+    local label = if row ~= nil then row:FindFirstChild("Label") else nil
+    if label ~= nil and label:IsA("TextLabel") then
+        label.Text = text
+        label.Visible = text ~= ""
+    end
+end
+
+-- [D53] Pictograma dinaintea etichetei unui Widgets.Button: ascunsa cand butonul nu mai inseamna ce arata
+-- ea (moneda de pe butonul cartonasului, cand cartonasul spune "Hire a Hauler first").
+function Widgets.SetButtonIcon(button: TextButton, visible: boolean)
+    local row = button:FindFirstChild("Row")
+    if row == nil then
+        return
+    end
+    for _, child in row:GetChildren() do
+        if child:IsA("ImageLabel") and child.Name ~= "PriceCoin" then
+            child.Visible = visible
+        end
+    end
+end
+
+-- [D52] Pretul din interiorul unui Widgets.Button nascut cu `price = true`: moneda si cifra, in
+-- culoarea data (rosu cand nu ajung banii). `nil` le ascunde -- un buton blocat nu arata un pret.
+function Widgets.SetButtonPrice(button: TextButton, text: string?, color: Color3?)
+    local row = button:FindFirstChild("Row")
+    if row == nil then
+        return
+    end
+    local coin = row:FindFirstChild("PriceCoin")
+    if coin ~= nil and coin:IsA("GuiObject") then
+        coin.Visible = text ~= nil
+    end
+    local price = row:FindFirstChild("Price")
+    if price ~= nil and price:IsA("TextLabel") then
+        price.Text = text or ""
+        price.Visible = text ~= nil
+        price.TextColor3 = color or Theme.COLOR.ink
+    end
+end
+
+-- Culoarea unui Widgets.Button. Cand exista arta, fundalul e TRANSPARENT si skin-ul e un sprite --
+-- `BackgroundColor3` nu se vede deloc, deci se nuanteaza imaginea (se inmulteste cu culoarea).
+-- `nil` = inapoi la aspectul normal.
+function Widgets.SetButtonTone(button: TextButton, tone: Color3?)
+    local skin = button:FindFirstChild("Skin")
+    if skin ~= nil and skin:IsA("ImageLabel") then
+        skin.ImageColor3 = tone or Color3.new(1, 1, 1)
+    else
+        button.BackgroundColor3 = tone or Theme.COLOR.parchmentDim
+    end
 end
 
 -- Fereastra completa: rama, banderola cu titlu, buton de inchidere, si un corp gol pentru
@@ -257,12 +402,14 @@ function Widgets.Window(parent: Instance, o: WindowOptions): (Frame, Frame)
     if o.icon ~= nil then
         local ico = Widgets.Icon(header, o.icon, 34)
         if ico ~= nil then
+            ico.Name = "TitleIcon" -- cautat de SetWindowTitle
             ico.Position = UDim2.fromOffset(0, 2)
             ico.ZIndex = o.z + 3
             titleX = 44
         end
     end
     local title = Widgets.Label(header, o.title, Theme.TEXT.title, Theme.COLOR.ink, "display")
+    title.Name = "Title" -- cautat de SetWindowTitle
     title.Position = UDim2.fromOffset(titleX, 0)
     title.Size = UDim2.new(1, -titleX - 48, 0, 38)
     title.ZIndex = o.z + 3
@@ -288,6 +435,37 @@ function Widgets.Window(parent: Instance, o: WindowOptions): (Frame, Frame)
     body.ZIndex = o.z + 2
     body.Parent = content
     return root, body
+end
+
+-- Titlul si pictograma unei ferestre deja construite. O fereastra refolosita pentru obiecte diferite
+-- (meniul unei statii: plasa, gaterul, debarcaderul) trebuie sa-si schimbe numele fara sa se
+-- reconstruiasca. Pictograma lipsa cade pe `fallbackIcon`, ca titlul sa nu ramana cu un gol in stanga.
+function Widgets.SetWindowTitle(
+    root: Instance,
+    text: string,
+    iconKey: string?,
+    fallbackIcon: string?
+)
+    local header = root:FindFirstChild("Header", true)
+    if header == nil then
+        return
+    end
+    local title = header:FindFirstChild("Title")
+    if title ~= nil and title:IsA("TextLabel") then
+        title.Text = text
+    end
+    local ico = header:FindFirstChild("TitleIcon")
+    if iconKey ~= nil and ico ~= nil and ico:IsA("ImageLabel") then
+        local function spriteOf(key: string): Assets.Sprite?
+            local sp = (Assets.icons :: any)[key] or (Assets.ui :: any)[key]
+            return if sp ~= nil and Assets.has(sp) then sp else nil
+        end
+        local sprite = spriteOf(iconKey :: string)
+            or (if fallbackIcon ~= nil then spriteOf(fallbackIcon :: string) else nil)
+        if sprite ~= nil then
+            ico.Image = Assets.url(sprite :: Assets.Sprite)
+        end
+    end
 end
 
 -- Lista care se poate derula, pe fundal scobit. Bara de derulare ramane vizibila: fara ea,
@@ -415,23 +593,50 @@ function Widgets.Bar(
     return track, fill
 end
 
--- Moneda placeholder: niciun sprite de moneda pe platforma, deci un cerc auriu cu inel mai inchis
--- tine locul lui. Widgets.Icon intoarce nil pentru chei fara sprite -- asta ramane vizibil oricum.
-function Widgets.CoinIcon(parent: Instance, px: number, z: number): Frame
-    local coin = Instance.new("Frame")
-    coin.Name = "CoinIcon"
-    coin.Size = UDim2.fromOffset(px, px)
-    coin.BackgroundColor3 = Theme.COLOR.gold
-    coin.ZIndex = z
-    local c = Instance.new("UICorner")
-    c.CornerRadius = UDim.new(1, 0)
-    c.Parent = coin
-    local stroke = Instance.new("UIStroke")
-    stroke.Color = Color3.fromRGB(158, 112, 30) -- auriu inchis, doar pentru muchia monedei
-    stroke.Thickness = math.max(1, math.floor(px / 12))
-    stroke.Parent = coin
-    coin.Parent = parent
-    return coin
+-- Monedele. Sunt ImageLabel SI cand sprite-ul lipseste (imagine goala + fundal colorat), nu
+-- Frame -- asa apelantul poate anima `ImageTransparency` si `BackgroundTransparency` in aceeasi
+-- tranzitie, fara sa stie care din cele doua variante a primit. Inainte era Frame, iar zborul
+-- monedelor din JuiceController stingea doar fundalul; cu sprite, moneda ar fi ramas opaca si
+-- ar fi disparut brusc la capat.
+local function currencyIcon(
+    parent: Instance,
+    key: string,
+    fallback: Color3,
+    edge: Color3,
+    px: number,
+    z: number
+): ImageLabel
+    local icon = Instance.new("ImageLabel")
+    icon.Name = `{key}Icon`
+    icon.Size = UDim2.fromOffset(px, px)
+    icon.ZIndex = z
+    icon.BackgroundTransparency = 1
+    local sprite = (Assets.icons :: any)[key]
+    if sprite ~= nil and Assets.has(sprite) then
+        icon.Image = Assets.url(sprite)
+        icon.ResampleMode = Enum.ResamplerMode.Pixelated
+    else
+        icon.Image = ""
+        icon.BackgroundTransparency = 0
+        icon.BackgroundColor3 = fallback
+        local c = Instance.new("UICorner")
+        c.CornerRadius = UDim.new(1, 0)
+        c.Parent = icon
+        local stroke = Instance.new("UIStroke")
+        stroke.Color = edge
+        stroke.Thickness = math.max(1, math.floor(px / 12))
+        stroke.Parent = icon
+    end
+    icon.Parent = parent
+    return icon
+end
+
+function Widgets.CoinIcon(parent: Instance, px: number, z: number): ImageLabel
+    return currencyIcon(parent, "coin", Theme.COLOR.gold, Color3.fromRGB(158, 112, 30), px, z)
+end
+
+function Widgets.PearlIcon(parent: Instance, px: number, z: number): ImageLabel
+    return currencyIcon(parent, "pearl", Theme.COLOR.cool, Color3.fromRGB(120, 150, 180), px, z)
 end
 
 -- Inel de progres (coins/price) fara imagini: un UIGradient cu doua trepte dure, pus pe conturul
@@ -513,44 +718,54 @@ function Widgets.Chip(
     name: string?
 ): (Frame, TextLabel)
     local chip = Instance.new("Frame")
-    chip.BackgroundColor3 = Theme.COLOR.plate
-    chip.BackgroundTransparency = Theme.PLATE_TRANSPARENCY
     chip.Size = UDim2.fromOffset(120, if name ~= nil then 52 else 40)
     chip.ZIndex = z
-    local c = Instance.new("UICorner")
-    c.CornerRadius = UDim.new(0, 8)
-    c.Parent = chip
+    Widgets.PillBackground(chip, z) -- pastila cu 9 felii cand exista arta, altfel placa de azi
     chip.Parent = parent
+
+    -- continutul intr-un frame separat de fundal: skin-ul cu 9 felii de mai sus e un copil direct
+    -- al lui `chip`, iar UIListLayout repozitioneaza TOTI copiii directi ai parintelui lui -- daca
+    -- randul ar sta chiar in `chip`, skin-ul (marimea intregii pastile) ar intra si el in asezarea
+    -- orizontala si ar strica randul. Acelasi tipar radacina/continut ca la Widgets.Panel.
+    local content = Instance.new("Frame")
+    content.Name = "Content"
+    content.BackgroundTransparency = 1
+    content.Size = UDim2.fromScale(1, 1)
+    content.ZIndex = z + 1
+    content.Parent = chip
 
     local layout = Instance.new("UIListLayout")
     layout.FillDirection = Enum.FillDirection.Horizontal
     layout.VerticalAlignment = Enum.VerticalAlignment.Center
     layout.Padding = UDim.new(0, Theme.SPACE.sm)
-    layout.Parent = chip
+    layout.Parent = content
     local pad = Instance.new("UIPadding")
     pad.PaddingLeft = UDim.new(0, Theme.SPACE.sm)
     pad.PaddingRight = UDim.new(0, Theme.SPACE.sm)
-    pad.Parent = chip
+    pad.Parent = content
 
-    local ico = Widgets.Icon(chip, iconKey, 26)
+    local ico = Widgets.Icon(content, iconKey, 26)
     if ico ~= nil then
         ico.LayoutOrder = 1
     end
-    local value = Widgets.Label(chip, "0", Theme.TEXT.body, Theme.COLOR.onDark, "strong")
+    local value = Widgets.Label(content, "0", Theme.TEXT.body, Theme.COLOR.onDark, "strong")
     value.LayoutOrder = 2
     value.AutomaticSize = Enum.AutomaticSize.X
     value.Size = UDim2.fromOffset(0, 26)
-    value.ZIndex = z + 1
+    value.ZIndex = z + 2
 
     if name ~= nil then
-        -- eticheta sta SUB rand, in afara asezarii orizontale, ca sa nu imparta latimea cu cifra
+        -- Eticheta se parenteaza pe CHIP, nu pe `content`: content are UIListLayout, iar acesta
+        -- rearanjeaza TOTI copiii lui, indiferent de AnchorPoint/Position. Cu eticheta inauntru,
+        -- ea intra prima in rand (LayoutOrder 0) si impingea pictograma si cifra AFARA din pastila
+        -- -- pe ecran se vedea "Sack" in pastila si "0/30" langa ea, pe iarba [vazut 2026-09-12].
         local caption = Widgets.Label(chip, name, Theme.TEXT.tiny, Theme.COLOR.onDarkSoft, "body")
         caption.Name = "Caption"
         caption.AnchorPoint = Vector2.new(0.5, 1)
         caption.Position = UDim2.new(0.5, 0, 1, -2)
         caption.Size = UDim2.fromOffset(112, 14)
         caption.TextXAlignment = Enum.TextXAlignment.Center
-        caption.ZIndex = z + 1
+        caption.ZIndex = z + 2
         -- randul cu pictograma si cifra urca, ca sa faca loc etichetei
         pad.PaddingBottom = UDim.new(0, 14)
     end

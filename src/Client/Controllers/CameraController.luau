@@ -6,6 +6,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 local RiverConfig = require(ReplicatedStorage.Shared.Config.RiverConfig)
+local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 
 -- Cat de mare e un pixel de lume pe ecran. Podeaua tine sprite-urile citibile pe telefon.
 local REFERENCE_HEIGHT = 900 -- inaltime de lume vizibila pe un ecran mare
@@ -53,7 +54,7 @@ end
 -- ecranului, pânza se micsora sub ecran si se vedea fundalul pe margini.
 function CameraController.Init(
     deps: { WorldGui: Frame }
-): { Fixed: Frame, Parallax: Frame, Scroll: Frame }
+): { Fixed: Frame, Parallax: Frame, Scroll: Frame, Plot: Frame }
     local viewport = Instance.new("Frame")
     viewport.Name = "Viewport"
     viewport.BackgroundTransparency = 1
@@ -84,12 +85,42 @@ function CameraController.Init(
     parallax = layer("Parallax", 1)
     scroll = layer("Scroll", 2)
 
+    -- [B5] Terenul jucatorului: un singur Frame la PLOT_ORIGIN, in care platformele, plasele,
+    -- debarcaderul, alergatorii, cladirile si decorul de zona se aseaza in coordonate LOCALE
+    -- terenului. Azi PLOT_ORIGIN = (0,0), deci lume = local; conventia exista pentru cand vor
+    -- fi mai multe terenuri pe acelasi server (aria R) fara sa rescriem pozitiile copiilor.
+    local plot = Instance.new("Frame")
+    plot.Name = "Plot"
+    plot.BackgroundTransparency = 1
+    plot.Position = UDim2.fromOffset(TycoonConfig.PLOT_ORIGIN.x, TycoonConfig.PLOT_ORIGIN.y)
+    plot.Size = UDim2.fromOffset(0, 0) -- ancora pura; copiii nu sunt taiati (ClipsDescendants=false)
+    -- 5, nu 3: pontonul de scanduri se deseneaza la 4 (ca sa acopere spuma malului, care e la 3),
+    -- iar la 3 platformele si plasele ajungeau SUB scanduri -- se vedea doar varful placutelor
+    -- [vazut in Studio, 2026-09-12]. Terenul construit sta mereu peste sol, niciodata invers.
+    plot.ZIndex = 5
+    plot.Parent = scroll
+
     recompute()
     camera:GetPropertyChangedSignal("ViewportSize"):Connect(recompute)
-    return { Fixed = fixed, Parallax = parallax, Scroll = scroll }
+    return { Fixed = fixed, Parallax = parallax, Scroll = scroll, Plot = plot }
 end
 
 local focus: (() -> (number?, number?))? = nil
+-- Smucitura de la o cumparare mare: un decalaj mic care se stinge, aplicat LUMII, nu HUD-ului.
+-- (Prima varianta misca panza HUD: sareau monedele si butoanele, iar malul statea pe loc --
+-- exact invers decat trebuie.) Se aduna peste pozitia calculata de Follow, deci nu se bate cap in
+-- cap cu urmarirea personajului.
+local punchX, punchY, punchUntil, punchAt = 0, 0, 0, 0
+local PUNCH_SECONDS = 0.22
+
+-- `mag` in pixeli de lume; directia e aleatoare, ca doua cumparari la rand sa nu arate identic.
+function CameraController.Punch(mag: number?)
+    local m = mag or 8
+    local angle = math.random() * math.pi * 2
+    punchX, punchY = math.cos(angle) * m, math.sin(angle) * m
+    punchAt = os.clock()
+    punchUntil = punchAt + PUNCH_SECONDS
+end
 
 function CameraController.SetFocus(getter: (() -> (number?, number?))?)
     focus = getter
@@ -113,8 +144,16 @@ function CameraController.Follow(worldX: number, worldY: number)
     local maxY = math.max(0, RiverConfig.WORLD_HEIGHT - visibleH)
     camX = math.clamp(worldX - visibleW / 2, 0, maxX)
     camY = math.clamp(worldY - visibleH / 2, 0, maxY)
-    scroll.Position = UDim2.fromOffset(-camX, -camY)
-    parallax.Position = UDim2.fromOffset(-camX * 0.4, -camY * 0.4)
+    -- smucitura se stinge liniar; `camX/camY` raman curate, ca IsVisible/WorldOrigin sa nu
+    -- tresara si ele odata cu efectul
+    local ox, oy = 0, 0
+    local now = os.clock()
+    if now < punchUntil then
+        local k = 1 - (now - punchAt) / PUNCH_SECONDS
+        ox, oy = punchX * k, punchY * k
+    end
+    scroll.Position = UDim2.fromOffset(-camX + ox, -camY + oy)
+    parallax.Position = UDim2.fromOffset(-camX * 0.4 + ox * 0.4, -camY * 0.4 + oy * 0.4)
 end
 
 function CameraController.WorldOrigin(): (number, number)

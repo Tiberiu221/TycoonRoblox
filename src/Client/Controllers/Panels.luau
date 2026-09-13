@@ -46,6 +46,17 @@ function Panels.CanOpen(name: string): boolean
     return false
 end
 
+-- Inchide tot. Escape trebuie sa inchida ORICE panou, inclusiv pe cele adaugate mai tarziu --
+-- inainte, tasta era legata direct de doua controllere anume, iar panourile noi (quest-uri,
+-- statii) ramaneau deschise pentru ca nimeni nu le stia numele.
+function Panels.CloseAll()
+    for _, entry in registry do
+        if entry.isOpen() then
+            entry.close()
+        end
+    end
+end
+
 function Panels.AnyOpen(): boolean
     for _, entry in registry do
         if entry.isOpen() then

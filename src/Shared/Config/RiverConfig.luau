@@ -33,9 +33,30 @@ local RiverConfig = {
         WIDTH = 48,
         HEIGHT = 72,
     },
-    -- Zona in care WorldDecor nu pune copaci/pietre: toate cele 12 platforme ale Erei 1 si
-    -- debarcaderul incap in acest dreptunghi (verificat in tests/WorldDecor.test.luau) [F0 spec 4.6].
-    PLOT = { x = 200, y = 800, w = 1500, h = 700 },
+    -- MALURILE (vezi Shared/Modules/Shoreline). Cifrele stau AICI, nu in controllerul de desen,
+    -- ca testele sa poata verifica exact ce se deseneaza: uscatul nu are voie sa intre peste
+    -- benzile pe care plutesc bunurile (LANE_YS), iar in dreptul terenului construit malul
+    -- trebuie sa ramana aproape drept, ca apa sa nu musce din ponton (TycoonConfig.DECK.y0=772).
+    SHORE_FAR = {
+        seed = 20260912,
+        baseY = 488, -- cel mai jos punct al malului de nord; banda de sus e la 516
+        amp = 96, -- se retrage spre nord pana la 392: raul se face vizibil mai lat pe alocuri
+        side = -1,
+        beach = 58,
+    },
+    SHORE_NEAR = {
+        seed = 20265154,
+        baseY = 758, -- cel mai sus punct al malului de sud; pontonul incepe la 772
+        amp = 66, -- in salbaticie se retrage spre sud pana la 824: golfuri adevarate
+        side = 1,
+        beach = 46,
+        -- malul amenajat: de la marginea din stanga a pontonului pana la capatul terenului [D50]
+        calm = { x0 = 150, x1 = 1960, feather = 240, amp = 12 },
+    },
+    -- Zona in care WorldDecor nu pune copaci/pietre: tot ce e construit in Era 1 incape in acest
+    -- dreptunghi (verificat in tests/WorldDecor.test.luau) [F0 spec 4.6]. Se termina la x 1960, cu
+    -- 100 px dincolo de gardul Morii, exact unde se termina si malul amenajat (SHORE_NEAR.calm) [D50].
+    PLOT = { x = 200, y = 800, w = 1760, h = 850 },
     TIERS = {
         { id = "common", weight = 0.537, rgb = { 160, 110, 60 } },
         { id = "uncommon", weight = 0.248, rgb = { 90, 160, 90 } },

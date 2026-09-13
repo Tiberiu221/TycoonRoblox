@@ -53,6 +53,15 @@ OUTFITS = {
     "keeper":    dict(shirt=hexc("1f6b5c"), shirt_l=hexc("328a77"), shirt_d=hexc("134a3f"),
                        hat=hexc("2c4a70"), hat_d=hexc("1c3450"), hat_l=hexc("4a6d96"),
                        hat_kind="tricorn", coat=True),
+    # [D50] clientii tavernei: FARA acoperamant de cap, in culori pe care nu le poarta nicio
+    # meserie (prun si ardezie). Tinuta spune meseria [D44]: in hainele unui om al tau, un client
+    # ar parea inca un Collector care sta degeaba.
+    "townsfolk": dict(shirt=hexc("6a4c93"), shirt_l=hexc("8566ad"), shirt_d=hexc("4b3470"),
+                       hat=hexc("6a4c93"), hat_d=hexc("4b3470"), hat_l=hexc("8566ad"),
+                       hat_kind="none", coat=False),
+    "traveler":  dict(shirt=hexc("5f6b7a"), shirt_l=hexc("7a8696"), shirt_d=hexc("434c58"),
+                       hat=hexc("5f6b7a"), hat_d=hexc("434c58"), hat_l=hexc("7a8696"),
+                       hat_kind="none", coat=False),
 }
 _CUR = dict(OUTFITS["fisher"])
 
@@ -772,7 +781,7 @@ if __name__ == "__main__":
         s_hair = build_sheet("hair", hair=hair)
         png(f"hair_{hair}.png", s_hair.w, s_hair.h, s_hair.px)
 
-    for outfit in ("fisher", "crafter", "builder", "gardener", "innkeeper", "keeper"):
+    for outfit in ("fisher", "crafter", "builder", "gardener", "innkeeper", "keeper", "townsfolk", "traveler"):
         s_outfit = build_sheet("outfit", outfit=outfit)
         png(f"outfit_{outfit}.png", s_outfit.w, s_outfit.h, s_outfit.px)
 

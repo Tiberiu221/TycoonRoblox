@@ -7,14 +7,30 @@ local buckets: { [Player]: { [string]: Bucket } } = {}
 local LIMITS: { [string]: { capacity: number, refillPerSecond: number } } = {
     BuyPad = { capacity = 3, refillPerSecond = 1 },
     CollectNet = { capacity = 5, refillPerSecond = 2 },
-    SellSack = { capacity = 3, refillPerSecond = 1 },
+    -- gesturile de predare [D49]: depozit, gater, debarcader -- cate unul pe apasare de E
+    UsePlace = { capacity = 5, refillPerSecond = 2 },
+    -- "sunt la gater": la intrarea in raza, la iesire si o data la 2 s cat stai [D49]
+    AtSawmill = { capacity = 3, refillPerSecond = 1 },
+    SpinWheel = { capacity = 3, refillPerSecond = 1 },
+    -- [D51] butonul de muzica; fara bucket propriu, un nume necunoscut ar fi refuzat in tacere
+    SetMusic = { capacity = 4, refillPerSecond = 1 },
     RequestState = { capacity = 2, refillPerSecond = 0.2 },
 }
+RateLimiter.LIMITS = LIMITS
+
+-- UN NUME NECUNOSCUT NU INSEAMNA "FARA LIMITA". Pana in D49 intorcea `true`: SpinWheel imprumuta
+-- bucket-ul lui SellSack, iar scoaterea lui SellSack i-ar fi scos in tacere orice limita. Acum
+-- refuza si se aude [D43] -- o greseala de nume se vede la prima apasare, nu intr-un exploit.
+local warned: { [string]: boolean } = {}
 
 function RateLimiter.Allow(player: Player, remoteName: string, now: number?): boolean
     local limit = LIMITS[remoteName]
     if limit == nil then
-        return true
+        if not warned[remoteName] then
+            warned[remoteName] = true
+            warn(`[RateLimiter] bucket necunoscut: {remoteName} -- cererea e refuzata`)
+        end
+        return false
     end
     local t = now or os.clock()
     local perPlayer = buckets[player]

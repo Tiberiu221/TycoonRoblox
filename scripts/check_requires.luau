@@ -11,7 +11,9 @@ local roblox = require("@lune/roblox")
 
 local placePath = process.args[1] or "/tmp/check.rbxl"
 if not fs.isFile(placePath) then
-    print(`nu gasesc {placePath}; ruleaza intai: rojo build default.project.json --output {placePath}`)
+    print(
+        `nu gasesc {placePath}; ruleaza intai: rojo build default.project.json --output {placePath}`
+    )
     process.exit(1)
 end
 
@@ -51,11 +53,16 @@ end
 -- Aliasuri locale: `local Services = script.Parent.Services` sau `= game:GetService("X")`
 local function aliasMap(source: string): { [string]: string }
     local map: { [string]: string } = {}
-    for name, service in string.gmatch(source, 'local%s+([%w_]+)%s*=%s*game:GetService%("([%w]+)"%)') do
+    for name, service in
+        string.gmatch(source, 'local%s+([%w_]+)%s*=%s*game:GetService%("([%w]+)"%)')
+    do
         map[name] = `@service:{service}`
     end
     for name, path in string.gmatch(source, "local%s+([%w_]+)%s*=%s*([%w_][%w_%.]*)[%s\n]") do
-        if map[name] == nil and (string.find(path, "^script") ~= nil or string.find(path, "%.") ~= nil) then
+        if
+            map[name] == nil
+            and (string.find(path, "^script") ~= nil or string.find(path, "%.") ~= nil)
+        then
             map[name] = path
         end
     end
@@ -127,7 +134,7 @@ local function publicNames(source: string): { [string]: boolean }
     for name in string.gmatch(source, "\n%s*([%w_]+)%s*=") do
         names[name] = true
     end
-    for name in string.gmatch(source, "%[\"([%w_]+)\"%]%s*=") do
+    for name in string.gmatch(source, '%["([%w_]+)"%]%s*=') do
         names[name] = true
     end
     -- `return { nume = valoare }` pe o singura linie: si aici sunt campuri publice
@@ -218,6 +225,54 @@ local function checkPatterns(inst: Instance, source: string)
     end
 end
 
+-- ---- REMOTE-URI FOLOSITE PE AMANDOUA PARTILE -------------------------------------------------
+-- Bugul pe care il apara: un `Net.Get("X").OnServerEvent:Connect(...)` care nu ajunge niciodata in
+-- fisier (o inserare de cod esuata in tacere, o stergere la un refactor). Clientul trage remote-ul,
+-- nimeni nu asculta, si butonul pur si simplu nu face nimic -- fara nicio eroare, nicaieri.
+-- S-a intamplat exact asa cu ClaimQuest si SpinWheel.
+local remoteSide: { [string]: { server: boolean, client: boolean } } = {}
+local remoteNames: { string } = {}
+
+local function noteRemotes(inst: Instance, source: string)
+    local full = fullName(inst)
+    local isServer = string.find(full, "ServerScriptService", 1, true) ~= nil
+    local isClient = string.find(full, "StarterPlayer", 1, true) ~= nil
+    if not isServer and not isClient then
+        return
+    end
+    for name in string.gmatch(source, 'Net%.Get%(%s*"([%w_]+)"%s*%)') do
+        local entry = remoteSide[name]
+        if entry == nil then
+            entry = { server = false, client = false }
+            remoteSide[name] = entry
+        end
+        if isServer then
+            entry.server = true
+        else
+            entry.client = true
+        end
+    end
+end
+
+local function collectRemoteNames(inst: Instance, source: string)
+    if inst.Name ~= "Net" then
+        return
+    end
+    local block = string.match(source, "REMOTE_NAMES[^=]*=%s*{(.-)\n}")
+    if block == nil then
+        return
+    end
+    -- DOAR numele, adica sirul cu care INCEPE un rand din tabel. Un `string.gmatch` lacom peste tot
+    -- blocul aduna si sirurile din comentarii ("locked", "owned", ...) si raporteaza remote-uri
+    -- care nu exista.
+    for line in string.gmatch(block, "[^\n]+") do
+        local name = string.match(line, '^%s*"([%w_]+)",')
+        if name ~= nil then
+            table.insert(remoteNames, name)
+        end
+    end
+end
+
 local function scan(inst: Instance)
     if inst:IsA("ModuleScript") or inst:IsA("Script") or inst:IsA("LocalScript") then
         local source = normalize((inst :: any).Source :: string)
@@ -226,7 +281,10 @@ local function scan(inst: Instance)
             local target, reason = resolve(inst, path, aliases, 0)
             if target == nil then
                 if reason ~= "skip" then
-                    table.insert(problems, { script = fullName(inst), path = path, reason = reason })
+                    table.insert(
+                        problems,
+                        { script = fullName(inst), path = path, reason = reason }
+                    )
                 else
                     skipped += 1
                 end
@@ -242,6 +300,8 @@ local function scan(inst: Instance)
         end
         checkModuleApi(inst, source, aliases)
         checkPatterns(inst, source)
+        noteRemotes(inst, source)
+        collectRemoteNames(inst, source)
     end
     for _, child in inst:GetChildren() do
         scan(child)
@@ -250,8 +310,33 @@ end
 
 scan(game)
 
+local remotesChecked = 0
+for _, name in remoteNames do
+    local entry = remoteSide[name]
+    remotesChecked += 1
+    if entry == nil then
+        table.insert(problems, {
+            script = "Shared.Net.Net",
+            path = name,
+            reason = "remote declarat dar nefolosit nicaieri",
+        })
+    elseif not entry.server then
+        table.insert(problems, {
+            script = "Shared.Net.Net",
+            path = name,
+            reason = "remote folosit doar pe CLIENT -- nimeni nu asculta pe server",
+        })
+    elseif not entry.client then
+        table.insert(problems, {
+            script = "Shared.Net.Net",
+            path = name,
+            reason = "remote folosit doar pe SERVER -- clientul nu-l atinge",
+        })
+    end
+end
+
 print(
-    `require-uri verificate: {checked}   ·   campuri de modul verificate: {apiChecked}   ·   sarite: {skipped}`
+    `require-uri verificate: {checked}   ·   campuri de modul verificate: {apiChecked}   ·   remote-uri: {remotesChecked}   ·   sarite: {skipped}`
 )
 if #problems == 0 then
     print("toate caile si campurile se rezolva")

@@ -1,0 +1,345 @@
+-- Quest-urile se citesc DIN STARE, nu din evenimente. Testele apara exact clasa de bug pe care
+-- decizia asta o face imposibila: "am facut deja lucrul, dar quest-ul nu s-a bifat".
+local frktest = require("@frktest/frktest")
+local test = frktest.test
+local check = frktest.assert.check
+
+local QuestConfig = require("../src/Shared/Config/QuestConfig")
+local QuestMath = require("../src/Shared/Modules/QuestMath")
+
+local CHAPTER = QuestConfig.CHAPTERS[1]
+
+local function facts(over: { [string]: any }?): QuestMath.Facts
+    local f: QuestMath.Facts = {
+        pads = {},
+        collects = 0,
+        sells = 0,
+        sawn = 0,
+        collected = 0,
+        sold = 0,
+        netLevels = {},
+        dockLevel = 1,
+        idleRate = 0,
+        claimed = {},
+    }
+    for k, v in over or {} do
+        (f :: any)[k] = v
+    end
+    return f
+end
+
+local function stateOf(list: { QuestMath.QuestState }, id: string): string
+    for _, q in list do
+        if q.id == id then
+            return q.state
+        end
+    end
+    return "missing"
+end
+
+return function()
+    test.suite("QuestMath - progresul se citeste din stare", function()
+        test.case("un quest facut INAINTE sa se deschida e gata pe loc", function()
+            -- exact bugul pe care decizia il face imposibil: nimeni nu numara evenimente
+            local f = facts({ netLevels = { first_net = 9 } })
+            local quest = QuestConfig.byId.net_two
+            check.equal(QuestMath.progress(quest, f), 9)
+            check.is_true(QuestMath.isDone(quest, f))
+        end)
+
+        test.case("fiecare fel de quest citeste campul lui", function()
+            check.equal(
+                QuestMath.progress(
+                    QuestConfig.byId.cast_first,
+                    facts({ pads = { first_net = true } })
+                ),
+                1
+            )
+            -- [D51] bucati, nu gesturi: o colectare de 7 bustenii inseamna 7
+            check.equal(
+                QuestMath.progress(
+                    QuestConfig.byId.collect_once,
+                    facts({ collected = 7, collects = 1 })
+                ),
+                7
+            )
+            check.equal(
+                QuestMath.progress(QuestConfig.byId.sell_once, facts({ sold = 12, sells = 1 })),
+                12
+            )
+            check.equal(QuestMath.progress(QuestConfig.byId.saw_once, facts({ sawn = 6 })), 6)
+            check.equal(
+                QuestMath.progress(QuestConfig.byId.idle_one, facts({ idleRate = 3.5 })),
+                3.5
+            )
+        end)
+
+        test.case("Go! si bara de progres inteleg aceeasi statie din `arg`", function()
+            -- Butonul Go! deschide panoul pe statia din stationTarget, iar bara citeste nivelul
+            -- aceleiasi statii. Daca ar parsa fiecare separat, Go! ar putea deschide Dock-ul in
+            -- timp ce bara urmareste o plasa.
+            local seen = 0
+            for _, chapter in QuestConfig.CHAPTERS do
+                for _, q in chapter.quests do
+                    if q.kind == "level" then
+                        seen += 1
+                        local station, padId = QuestMath.stationTarget(q)
+                        check.not_nil(station)
+                        local over: { [string]: any } = {}
+                        if station == "net" then
+                            check.not_nil(padId)
+                            over.netLevels = { [padId :: string] = 7 }
+                        else
+                            check.equal(station, "dock")
+                            over.dockLevel = 7
+                        end
+                        check.equal(QuestMath.progress(q, facts(over)), 7)
+                    end
+                end
+            end
+            check.is_true(seen >= 2)
+            -- si un quest care nu e de nivel nu trimite nicaieri
+            local firstStation = QuestMath.stationTarget(CHAPTER.quests[1])
+            check.is_true(firstStation == nil)
+        end)
+
+        test.case("un quest necunoscut nu crapa, doar sta la zero", function()
+            local bogus = { id = "x", text = "x", kind = "nope", goal = 1, reward = {} }
+            check.equal(QuestMath.progress(bogus :: any, facts()), 0)
+        end)
+    end)
+
+    test.suite("QuestMath - ordinea si starile", function()
+        test.case("profil proaspat: primul e activ, restul inchise", function()
+            local list = QuestMath.chapterStates(CHAPTER, facts())
+            check.equal(stateOf(list, "cast_first"), "active")
+            check.equal(stateOf(list, "collect_once"), "locked")
+            check.equal(stateOf(list, "cast_second"), "locked") -- ultimul din capitolul 1
+            check.equal(stateOf(list, "ring_bell"), "missing") -- e in capitolul 2
+        end)
+
+        test.case("terminat dar nerevendicat ramane in lista, cu Claim", function()
+            local f = facts({ pads = { first_net = true } })
+            local list = QuestMath.chapterStates(CHAPTER, f)
+            check.equal(stateOf(list, "cast_first"), "done")
+            check.equal(stateOf(list, "collect_once"), "active")
+            check.equal(QuestMath.claimable(CHAPTER, f), 1)
+        end)
+
+        test.case("dupa revendicare nu se mai poate revendica", function()
+            local f = facts({ pads = { first_net = true }, claimed = { cast_first = true } })
+            check.equal(stateOf(QuestMath.chapterStates(CHAPTER, f), "cast_first"), "claimed")
+            check.equal(QuestMath.claimable(CHAPTER, f), 0)
+        end)
+
+        test.case("un singur quest activ, oricat de departe ai ajunge", function()
+            for _, f in
+                {
+                    facts(),
+                    facts({ pads = { first_net = true }, collected = 9 }),
+                    facts({
+                        pads = { first_net = true, second_net = true },
+                        collected = 30,
+                        sawn = 30,
+                        sold = 20,
+                        netLevels = { first_net = 7 },
+                    }),
+                }
+            do
+                local active = 0
+                for _, q in QuestMath.chapterStates(CHAPTER, f) do
+                    if q.state == "active" then
+                        active += 1
+                    end
+                end
+                check.is_true(active <= 1)
+            end
+        end)
+
+        test.case("active() e chiar primul neterminat", function()
+            local f = facts({ pads = { first_net = true }, collected = 12 })
+            local quest = QuestMath.active(CHAPTER, f) :: QuestConfig.Quest
+            check.equal(quest.id, "saw_once")
+            -- cu doar 11 bustean colectati, plasa plina inca nu e bifata
+            local short = facts({ pads = { first_net = true }, collected = 11 })
+            check.equal((QuestMath.active(CHAPTER, short) :: QuestConfig.Quest).id, "collect_once")
+        end)
+
+        test.case("tot capitolul terminat: nu mai e niciun activ", function()
+            local f = facts({
+                pads = {
+                    first_net = true,
+                    first_runner = true,
+                    hire_porter = true,
+                    hire_sawyer = true,
+                    hire_hauler = true,
+                    dock_trader = true,
+                    second_net = true,
+                },
+                collected = 50,
+                sawn = 50,
+                sold = 50,
+                -- si prima plasa peste nivelul 2: fara el, quest-ul `net_two` ramane deschis
+                netLevels = { first_net = 12 },
+            })
+            check.is_true(QuestMath.active(CHAPTER, f) == nil)
+            check.equal(QuestMath.completed(CHAPTER, f), #CHAPTER.quests)
+        end)
+
+        test.case("progresul afisat nu trece niciodata de tinta", function()
+            local f = facts({ collected = 999, sawn = 999, sold = 999 })
+            for _, q in QuestMath.chapterStates(CHAPTER, f) do
+                check.is_true(q.progress <= q.goal)
+            end
+        end)
+    end)
+
+    test.suite("QuestConfig - forma capitolului", function()
+        test.case("id-uri unice in tot jocul, fiecare quest cu recompensa", function()
+            -- 11: lantul de mana (prinzi, strangi, tai, vinzi), cei cinci oameni, apoi nivelul 2 si a
+            -- doua plasa [D52]
+            check.equal(#CHAPTER.quests, 11)
+            local seen: { [string]: boolean } = {}
+            local dupes, noReward = 0, 0
+            local all = {}
+            for _, ch in QuestConfig.CHAPTERS do
+                for _, q in ch.quests do
+                    table.insert(all, q)
+                end
+            end
+            for _, q in all do
+                if seen[q.id] then
+                    dupes += 1
+                end
+                seen[q.id] = true
+                if (q.reward.coins or 0) + (q.reward.pearls or 0) <= 0 then
+                    noReward += 1
+                end
+            end
+            check.equal(dupes, 0)
+            check.equal(noReward, 0)
+        end)
+
+        test.case(
+            "nicio recompensa de quest in monede: monedele vin doar din vanzare [D51]",
+            function()
+                -- 95 de monede in primele quest-uri cumparau plasele 2 si 3 inainte ca lemnul sa treaca
+                -- prin lant -- exact ce a vazut owner-ul
+                for _, ch in QuestConfig.CHAPTERS do
+                    check.is_true(ch.reward.coins == nil)
+                    for _, q in ch.quests do
+                        check.is_true(q.reward.coins == nil)
+                    end
+                end
+            end
+        )
+
+        test.case("fiecare tinta de quest e o platforma care exista chiar in joc", function()
+            local TycoonConfig = require("../src/Shared/Config/TycoonConfig")
+            local missing = 0
+            for _, ch in QuestConfig.CHAPTERS do
+                for _, q in ch.quests do
+                    if q.targetPad ~= nil and TycoonConfig.byId[q.targetPad] == nil then
+                        missing += 1
+                    end
+                    if q.kind == "pad" and TycoonConfig.byId[q.arg :: string] == nil then
+                        missing += 1
+                    end
+                end
+            end
+            check.equal(missing, 0)
+        end)
+
+        test.case("niciun quest nu cere ceva ce inca nu se poate cumpara", function()
+            -- BUGUL PE CARE IL APARA: prima varianta cerea Negustorul (care vrea 3 plase) imediat
+            -- dupa prima Mana, cand aveai doar 2 -- si niciun quest nu cerea a treia plasa. Ai fi
+            -- ramas blocat, cu bannerul aratand spre ceva ce nu puteai lua. Testul parcurge toate
+            -- capitolele in ordine si verifica, la fiecare pas, ca deblocarea ceruta e chiar
+            -- disponibila cu ce ai cumparat pana atunci.
+            -- CU NIVELURI: plasa urmatoare apare abia cand cea dinainte e la PREV_NET_LEVEL. Fara
+            -- `levels`, testul ar fi trecut si cu lista veche -- care cerea a treia plasa cat timp
+            -- a doua era inca la nivelul 1, adica exact contradictia vazuta in Studio.
+            local TycoonMath = require("../src/Shared/Modules/TycoonMath")
+            local bought: { [string]: boolean } = {}
+            local levels: { [string]: number } = {}
+            local blocked = {}
+            for _, ch in QuestConfig.CHAPTERS do
+                for _, q in ch.quests do
+                    if q.kind == "level" then
+                        local station, netId = QuestMath.stationTarget(q)
+                        if station == "net" and netId ~= nil then
+                            if not bought[netId :: string] then
+                                table.insert(blocked, `{q.id} urca {netId}, care nu e cumparata`)
+                            end
+                            levels[netId :: string] = math.max(levels[netId :: string] or 1, q.goal)
+                        end
+                    elseif q.kind == "pad" then
+                        local padId = q.arg :: string
+                        local status = TycoonMath.padStatuses(bought, nil, levels)[padId]
+                        if status ~= "available" then
+                            table.insert(
+                                blocked,
+                                `{q.id} cere {padId}, dar e "{status or "ascunsa"}"`
+                            )
+                        end
+                        bought[padId] = true
+                        levels[padId] = levels[padId] or 1
+                    end
+                end
+            end
+            for _, line in blocked do
+                print("  ! " .. line)
+            end
+            check.equal(#blocked, 0)
+        end)
+
+        test.case("quest-ul de nivel cere EXACT nivelul care deschide plasa urmatoare", function()
+            -- Daca quest-ul ar cere 5 si poarta ar fi 2, plasa urmatoare s-ar deschide la 2 in timp
+            -- ce banda de obiectiv inca cere 5 -- lumea si ghidajul s-ar contrazice iar.
+            local TycoonConfig = require("../src/Shared/Config/TycoonConfig")
+            local seen = 0
+            for _, ch in QuestConfig.CHAPTERS do
+                for i, q in ch.quests do
+                    local nextQ = ch.quests[i + 1]
+                    local station = QuestMath.stationTarget(q)
+                    if station == "net" and nextQ ~= nil and nextQ.kind == "pad" then
+                        seen += 1
+                        check.equal(q.goal, TycoonConfig.PREV_NET_LEVEL)
+                    end
+                end
+            end
+            check.equal(seen, 4) -- inaintea plasei 2, 3, 4 si 5
+        end)
+
+        test.case("textul unui quest de nivel spune nivelul pe care il si cere", function()
+            -- "Upgrade First Net to level 5" cu goal = 2 ar minti exact acolo unde jucatorul se uita
+            -- cel mai des [D40]. Cifra din text trebuie sa fie chiar `goal`.
+            for _, ch in QuestConfig.CHAPTERS do
+                for _, q in ch.quests do
+                    if q.kind == "level" then
+                        check.is_true(string.find(q.text, `level {q.goal}`, 1, true) ~= nil)
+                    end
+                end
+            end
+        end)
+
+        test.case("ultimul quest inchide chiar era: dupa el nu mai e nimic de cumparat", function()
+            local TycoonConfig = require("../src/Shared/Config/TycoonConfig")
+            local bought: { [string]: boolean } = {}
+            for _, ch in QuestConfig.CHAPTERS do
+                for _, q in ch.quests do
+                    if q.kind == "pad" then
+                        bought[q.arg :: string] = true
+                    end
+                end
+            end
+            local left = 0
+            for _, p in TycoonConfig.PADS do
+                if p.era == 1 and not bought[p.id] then
+                    left += 1
+                end
+            end
+            check.equal(left, 0)
+        end)
+    end)
+end

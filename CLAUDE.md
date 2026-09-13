@@ -4,8 +4,11 @@ Citit automat la fiecare sesiune. Ține-l scurt: fiecare cuvânt de aici se plă
 
 ## Ce construim
 
-Tycoon 2D pe Roblox, pe malul unui râu. **Râul aduce → plasele prind → vinzi la debarcader → cumperi
-următoarea platformă → prinzi mai mult.** Un singur număr central: monede pe secundă.
+Tycoon 2D pe Roblox, pe malul unui râu. **Râul aduce → Collector-ul adună în depozit → Porter-ul duce
+la gater → gaterul taie → Hauler-ul duce la tavernă → taverna vinde.** Venitul e **minimul
+celor șase debite**; ce pas n-are om îl faci tu [D49]. Veriga cea mai slabă decide, iar repararea ei e
+decizia jucătorului [D46]. Clădirile au **niveluri fără capăt** (salt la 10/25/50), oamenii **trepte
+1–5** și un al doilea om.
 Fraza pentru jucător: *This stretch of river is yours. Everything that floats past is money.*
 
 ## Surse de adevăr, în ordine
@@ -23,9 +26,11 @@ Arhivat, nu în proiect: masterplanul vechi, direcțiile concurente, documentele
 ## Reguli de design care nu se negociază
 
 - **Nimic nu se pierde.** Fără dezastre, fără furt, fără scădere; offline doar binevoitor.
-- **Banii cumpără viteză, spațiu, aspect.** Niciodată noroc, conținut sau ceva aleator.
+- **Banii cumpără viteză, spațiu, aspect.** Niciodată noroc **care scade ceva ce ai** [D46]. Roata
+  zilnică e gratuită, dă doar în plus, și își afișează șansele. Rotiri plătite nu există [D20].
 - **Orice se cumpără** prinde mai mult, vinde mai scump, scapă de o corvoadă sau deschide ce urmează.
-  **Nicio cumpărare nu scade venitul.**
+  **Nicio cumpărare nu scade venitul** — dar una care nu țintește veriga slabă poate să dea **zero**,
+  și atunci ecranul spune de ce, nu inventează o cifră [D46, D40].
 - **Nimic nu se întâmplă în tăcere** (D43); **textul nu minte** (D40); următorul pas se vede, nu se explică.
 - Textul din joc în **engleză**; comentariile și conversația în **română**.
 
@@ -49,7 +54,8 @@ panoul atelierului a crăpat pe `s.materials` și nicio verificare statică nu l
 stylua --check src/ tests/ && selene src/ && lune run tests/_run.luau
 rojo build default.project.json --output /tmp/check.rbxl
 lune run scripts/check_requires /tmp/check.rbxl
-python3 scripts/economy/sim_tycoon.py
+python3 scripts/economy/sim_tycoon.py --robust
+python3 scripts/art/check_panel_rows.py
 ```
 `rojo build` și `check_requires` **nu parsează Luau** — o eroare de sintaxă trece de ele; doar
 stylua/selene o prind. Rulează-le mereu pe toate, nu înlănțuite după o eroare.
@@ -63,12 +69,73 @@ stylua/selene o prind. Rulează-le mereu pe toate, nu înlănțuite după o eroa
   CI-ul rulează poarta (fără Studio) la fiecare push.
 - Cheia API în `~/.driftwood_api_key` — niciodată în chat, în repo sau ca argument de comandă.
 
-## Stare (2026-09-11)
+## Stare (2026-09-13)
+
+**Ruinele malului, bușteni care vin pe râu, atelierul nou [D53]** — scris și trece poarta (291 teste):
+ceasul plasei nu se oprește plină (`TycoonMath.netTick`), `CatchFloat` rescris (de la marginea lumii,
+cotul în plasă, trecere pe lângă plasa plină), decorul din larg cu ce nu se poate prinde încă, ruine
+pentru toate platformele Erei 1 cu cartonașul condiției (`TycoonMath.padBlocker`), avizierele, atelierul
+nou; textul ghidajului nu mai cade sub HUD (`GuideMath.labelPlacement`). Arta (10 sprite-uri) aprobată de
+owner pe previzualizare și **urcată** (moderare „Reviewing" la urcare). Neverificat încă în Studio.
+
+**Oamenii înaintea plaselor, meniul obiectului simplu [D52]** — jucat de owner în Studio (270 teste): un
+tur de mână, apoi cei cinci oameni la rând (13/15/18/20/25), abia apoi plasele; simulatorul urmează
+quest-ul (Era 1 la 33m59s reali). Compromis ales de owner: poarta verigilor coborâtă de la 5% la 0,5%,
+gaterul și taverna rar merită urcate în Era 1. Meniul obiectului pe minut, cu rândul „merită acum?" din
+câștigul real (`gain` pe rândurile clădirilor, „Go to" spre veriga care ține venitul) și prețul pe
+buton (`Widgets.SetButtonPrice`).
+
+**Primul minut ghidat, cardul obiectului, sunetul plaselor, muzica [D51]** — jucat de owner în Studio
+(lacătul „Filling up 12/12" adăugat după) (266 teste): capitolul 1 rescris (plasa plină, tot tăiat, tot vândut, „Sell 40 planks"), toate recompensele
+în perle, `Stats.collected/sold`, prima plasă grăbită (`TycoonMath.catchBoost`), `GuideMath.loopStep`
+(pasul din stare, „stai în inel până la ultimul"), linia NEXT pe două rânduri, tutorialul cu cartea după
+prima vânzare, `InteractController` (acțiunea care e cazul + Upgrade, E/U), stropii doar aproape,
+muzica compusă de noi (aprobată de owner, urcată) cu butonul M ținut minte în profil.
+
+**Harta în buclă, taverna, dâra de ghidaj, sunetul [D50]** — jucat de owner în Studio:
+`RoadGraph` (oamenii și dâra merg pe `TycoonConfig.ROADS`), `TavernCrowd` (clienții după vânzarea
+reală), `PersonView` (omul desenat, comun oamenilor și clienților), taverna cu clienți, inelul „Stand
+here to cut", amestecul de sunet, ghidajul care tace după cinci meserii; artă nouă urcată (taverna,
+săgeata, inelul, două ținute). Economia neschimbată.
+
+**Lanțul pe oameni [D49]** — jucat de owner în Studio: simulatorul pe șase verigi cu `--robust`
+(Era 1 la 27m05s reali), `ChainMath` + `CrewMath` + `HandRoutes` + `PileMath` (module pure, testate),
+profil **v5** (grămezi ca numărători, `Crews`, Carry rambursat), depozitul, gaterul cu curtea lui,
+prezența la gater, cele cinci meserii cu trepte și al doilea om, meniul meseriei, 13 platforme în
+Era 1, quest-uri și ghidaj pe bușteni/scânduri.
+
+## Stare, arhivă (2026-09-12)
+
+**Era 1 rescrisă pe structura Idle Miner [D46].** Ce e gata și trece poarta:
+`sim_tycoon.py` rescris (două axe + gâtuire, 405 cumpărături / 27m43s reali, verifică și prețurile din config);
+`ChainMath` + `StationConfig` (port bit-exact, teste de aur); grămada de la debarcader care se
+scurge în monede; `StationService` + panoul de nivel cu x1/x10/x50/Max; Negustorul ca NPC static;
+`QuestMath`/`QuestService`/`QuestController` (capitolul 1, nouă quest-uri); tutorialul cu reflector
+și săgeată; perlele; roata zilnică; venitul offline legat în sfârșit (`OfflineCalc` + `WelcomeBack`
++ `WelcomeController`, toate trei scrise demult și nefolosite). Profil **v3**, migrare aditivă.
+
+**Arta Erei 1 e gata** (2026-09-12): 16 sprite-uri noi + `sfx_wheel`, generate de
+`scripts/art/tycoon_e1.py` / `scripts/audio/make_sounds.py`, **urcate**, legate în cod. Moneda,
+perla, bulina, insigna de nivel și reflectorul nu mai sunt `Frame`+`UICorner`. Roata stă acum și ca
+**obiect în lume**, lângă debarcader, și se aprinde singură când e o rotire de luat.
+
+**Gaterul în lanț + meniul obiectului** (2026-09-12, D48): patru verigi, Sawyer (35% → 100%), profil
+**v4**, predarea la gater, meniul de niveluri al obiectului atins; Era 1 la 31m35s reali.
+
+**Cumpărarea se confirmă, nivelul se atinge din lume** (2026-09-12, D47): cartonaș cu preț și rest,
+plasa următoare cere nivelul 2 la cea dinainte, simulatorul verifică prețurile din config.
+
+**Rămas:** impulsurile temporare de NPC („Activate all") — **nefăcute intenționat**: un ×N gratuit
+repetat schimbă exact cifrele din care simulatorul derivă toate prețurile, deci se reglează după ce
+Era 1 e jucată o dată cap-coadă. Apoi capitolele 2-3, Era 2, poarta F1 (playtest cu ≥5 oameni).
+
+## Stare, arhivă (2026-09-11)
 
 Planul tycoon e scris (`docs/TYCOON.md`). **F0 e scris** (2026-09-11): schema v2, `TycoonConfig`/
 `TycoonMath` (port exact al simulatorului, testat), `PadService`, `EconomyService`, `NetService` pe
 cronometru, sacul, debarcaderul, HUD-ul nou; codul de colonie e scos. **Poarta F0 trecută în Studio**
-de owner. Următorul: F1 — Era 1 completă (poarta ei: playtest cu ≥5 oameni din afară).
+de owner. **F1 e scris** (Era 1 completă: alergătorul, atelierul, clopotul, prinderea vizibilă,
+ghidajul, sunetele); poarta lui e playtest-ul cu ≥5 oameni din afară.
 În Studio, accesul la API e oprit: ProfileStore merge pe mock și nimic nu se salvează între sesiuni.
 Rămas la owner: numele, terenuri multiple, lobby/DevEx, D19. Și F0-ul de cont: Grup Roblox,
 **W-8BEN până la 31 oct 2026**, universuri Staging/Prod (2FA + ID făcute pe 2026-09-11).

@@ -41,6 +41,9 @@ local Assets = {
             Gardener = sprite(121440047199288, 64, 360),
             Innkeeper = sprite(75711456309293, 64, 360),
             keeper = sprite(128266013737841, 64, 360), -- doar jucatorul
+            -- [D50] clientii tavernei: fara palarie, in culori pe care nu le poarta nicio meserie
+            Townsfolk = sprite(86564395088297, 64, 360),
+            Traveler = sprite(86791118967609, 64, 360),
         },
     },
     path_tile = sprite(124285357370417, 64, 64),
@@ -87,8 +90,32 @@ local Assets = {
         button_down = sprite(75003141578331, 20, 20),
         slot = sprite(133230716227295, 16, 16),
         ribbon = sprite(74980546165947, 20, 20),
+        -- E1.9: ce se desena pana acum din Frame+UICorner in client.
+        book = sprite(127191973761273, 28, 28), -- butonul cu jurnalul de quest-uri
+        badge = sprite(113965013124745, 16, 16), -- bulina rosie cu cifra; se INTINDE, nu are 9 felii (e patrata)
+        levelbadge = sprite(105967142732738, 20, 20), -- pastila albastra `Level N` de pe obiecte, 9 felii
+        hand = sprite(86879688969102, 24, 28), -- mana care arata, in tutorial
+        glow = sprite(126803264537609, 32, 32), -- inelul reflectorului, 9 felii, mijloc transparent
+        -- [D50] dara de ghidaj (sageata spre dreapta, rotita in cod) si inelul de pe jos (alb, colorat
+        -- in cod): tinta ghidajului si locul unde stai la gater
+        chevron = sprite(120621813543879, 16, 16),
+        groundring = sprite(138319155945387, 32, 16),
     },
-    UI_SLICE = { panel = 8, button = 7, slot = 6, ribbon = 7 },
+    -- Ilustratiile cardurilor de capitol. Cheia = id-ul capitolului din QuestConfig.
+    chapters = {
+        landing = sprite(86407273127369, 150, 100),
+    },
+    UI_SLICE = {
+        panel = 8,
+        button = 7,
+        slot = 6,
+        ribbon = 7,
+        plaque = 8,
+        card = 10,
+        pill = 8,
+        levelbadge = 8,
+        glow = 12,
+    },
     icons = {
         materials = sprite(130374632415580, 16, 16),
         people = sprite(139509950265480, 16, 16),
@@ -105,6 +132,19 @@ local Assets = {
         check = sprite(93089105864875, 16, 16),
         arrow = sprite(98144216396634, 16, 16),
         clock = sprite(138525428109478, 16, 16),
+        -- E1.9: monedele si randurile de statistica din panoul de niveluri.
+        coin = sprite(128440453230234, 16, 16),
+        music = sprite(127767294804282, 16, 16), -- [D51] butonul de muzica din bara
+        pearl = sprite(97091150455479, 16, 16),
+        idle = sprite(127534384783765, 16, 16),
+        lock = sprite(83409690070386, 16, 16),
+        capacity = sprite(85353863975751, 16, 16),
+        speed = sprite(89046216507626, 16, 16),
+        carry = sprite(112168472116671, 16, 16),
+        levelup = sprite(128109634867858, 16, 16),
+        saw = sprite(114993179316384, 16, 16), -- D48: panza gaterului, in lume si in meniul lui
+        -- `catch` nu are sprite propriu: randul "total catch" e o plasa, iar plasa exista deja
+        -- (icons.net). Un al doilea desen de plasa ar fi fost doar inca un fisier de intretinut.
     },
     net = sprite(87402404691704, 48, 28),
     crate = {
@@ -115,6 +155,82 @@ local Assets = {
         legendary = sprite(79610568405242, 32, 28),
         mythic = sprite(126926804949614, 32, 28),
     },
+    -- F1: bunurile de volum care plutesc spre plase (D2, N6). Driftwood refoloseste bustenul din
+    -- decor; celelalte vin din scripts/art (goods_*.png). Obiectele cu nume folosesc `crate`.
+    goods = {
+        driftwood = sprite(119096375971754, 36, 18),
+        reeds = sprite(98267392164439, 24, 18),
+        scrap = sprite(132122869387253, 24, 18),
+        shards = sprite(131249894514183, 24, 18),
+        planks = sprite(90552416808787, 24, 18), -- D48: ce iese din gater (fara id, gramada cade pe driftwood)
+    },
+    -- F1: constructiile Erei 1 (N1, N2): debarcaderul, clopotul, sacul mare, taraba (prop_*.png).
+    tycoon = {
+        pier = sprite(92244623264237, 64, 40),
+        bell = sprite(94872863229377, 40, 56),
+        sack = sprite(111594614951317, 24, 24),
+        stall = sprite(75165573713976, 48, 40),
+        -- F2 (finisaj): platforma ca obiect de lume, nu casuta de interfata
+        plaque = sprite(98141889721481, 48, 24), -- placuta de lemn cu pretul, 9 felii
+        post = sprite(91004597649738, 8, 26), -- stalpul placutei
+        card = sprite(123403307634386, 32, 32), -- rama cartonasului de la apropiere, 9 felii
+        pill = sprite(75464273669397, 24, 24), -- pastila din HUD (monede, rata, sac), 9 felii
+        netpost = sprite(108154450653369, 14, 30), -- stalpul plasei cumparate, pe mal
+        -- F3 (compozitia malului): plasa vazuta ca plasa in apa, nu ca o fereastra alba;
+        -- scandurile pontonului; platforma pe care sta o statie; greutatile de la Weighted Nets
+        net_water = sprite(84222071706088, 32, 18),
+        net_water_full = sprite(94489644287184, 32, 18),
+        deck_tile = sprite(88026317582529, 48, 48),
+        platform = sprite(136060284598059, 48, 24),
+        weights = sprite(116698981575799, 24, 16),
+        -- pier2 (64x48) a fost respins: se citea ca o lada cu capac. pier3 e pontonul inalt,
+        -- cu scanduri transversale, pe care se vede ca umbli.
+        pier3 = sprite(117181183797139, 32, 56),
+        -- lipsea din rezervarea initiala, dar agentul de arta o deseneaza [F2 spec, Agent H]:
+        -- adapostul lui First Runner odata cumparat, cere o cheie in manifest ca sa aiba unde intra
+        runner_hut = sprite(136213749143220, 40, 36),
+        -- [D53] ruinele malului, avizierele si atelierul nou (scripts/art/ruins_d53.py). Id 0 = inca neurcat:
+        -- `Assets.has` e fals si PadController ramane pe desenul de dinainte (siluetele).
+        ruin_netpost = sprite(91539585634485, 14, 30),
+        ruin_net = sprite(128052179414609, 32, 18),
+        ruin_hut = sprite(87006321578748, 40, 36),
+        ruin_stall = sprite(84392957824356, 48, 40),
+        ruin_sack = sprite(104094131297685, 24, 24),
+        ruin_bell = sprite(137845176943532, 40, 56),
+        ruin_workshop = sprite(138162606027239, 64, 48),
+        workshop_e1 = sprite(98687049648969, 64, 48),
+        board_old = sprite(82502800842325, 24, 32),
+        board = sprite(120551282583746, 24, 32),
+        -- E1.8: roata zilnica. 0 = generata local (scripts/art/tycoon_e1.py) dar inca neurcata --
+        -- pana atunci UI-ul deseneaza o rezerva plata, ca la orice sprite lipsa.
+        wheel = sprite(95698712031588, 40, 40),
+        -- D48: gaterul, cladirea dintre carat si vanzare (fara id -> sopron desenat in cod)
+        sawmill = sprite(75182981241928, 40, 32),
+        wheel_face = sprite(118757044132689, 64, 64),
+        -- D49: depozitul de langa plase, unde varsa Collector-ul (fara id -> sopron desenat in cod)
+        storage = sprite(100160905448383, 40, 32),
+        -- D50: taverna, locul de vanzare (fara id -> casa desenata in cod)
+        tavern = sprite(137193105345520, 64, 48),
+    },
+    -- F1 (O1): sunete sintetizate de noi (scripts/audio), urcate ca Audio. 0 = inca neincarcat ->
+    -- SoundController tace, fara eroare.
+    -- [D51] Muzica de fundal, compusa de noi (scripts/audio/make_music.py). 0 = neurcata -> tace, iar
+    -- butonul ei nu apare in bara.
+    music = {
+        river = 72095931356905,
+    },
+    sounds = {
+        splash = 125294013048224,
+        coin = 132354522900169,
+        build = 131776227537036,
+        register = 123381692932148,
+        chime = 132690579351252,
+        bell = 107388484123769,
+        click = 136514245754835,
+        pop = 126278560484276,
+        wheel = 90681910341082, -- E1.9: clichetul rotii zilnice
+        saw = 78733154399219, -- D48: panza gaterului, cand taie
+    },
 }
 
 function Assets.url(s: Sprite): string
@@ -123,6 +239,10 @@ end
 
 function Assets.has(s: Sprite): boolean
     return s.id ~= 0
+end
+
+function Assets.soundUrl(id: number): string
+    return `rbxassetid://{id}`
 end
 
 return Assets

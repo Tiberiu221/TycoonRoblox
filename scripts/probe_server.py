@@ -16,6 +16,7 @@ import datetime
 
 PORT = int(os.environ.get("DRIFTWOOD_PROBE_PORT", "8787"))
 OUT = "/tmp/driftwood_probe.json"
+QUEUE = "/tmp/driftwood_cmds.json"
 
 
 class Handler(http.server.BaseHTTPRequestHandler):
@@ -23,6 +24,31 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Headers", "*")
         self.send_header("Access-Control-Allow-Methods", "POST, OPTIONS")
+
+    def do_GET(self):
+        # Coada de comenzi pentru plugin: scriu un JSON cu actiuni in QUEUE, pluginul il ia si
+        # fisierul se goleste. Asa pot cere "cumpara prima plasa" si "raport" fara ca owner-ul sa
+        # apese nimic in Studio.
+        if self.path != "/cmd":
+            self.send_response(404)
+            self._cors()
+            self.end_headers()
+            return
+        payload = "[]"
+        if os.path.exists(QUEUE):
+            with open(QUEUE, encoding="utf-8") as f:
+                payload = f.read().strip() or "[]"
+            os.remove(QUEUE)
+        if payload != "[]":
+            print(f"-> comenzi trimise pluginului: {payload}")
+            sys.stdout.flush()
+        body = payload.encode("utf-8")
+        self.send_response(200)
+        self._cors()
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
 
     def do_OPTIONS(self):
         self.send_response(200)

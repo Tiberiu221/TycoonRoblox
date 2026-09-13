@@ -171,10 +171,93 @@ local function send()
     print("----8<---- SFARSIT ----8<----")
 end
 
-button.Click:Connect(function()
+local function httpOn()
     -- Plugin-urile au voie sa porneasca HTTP in Studio; fara asta RequestAsync cade din prima.
     pcall(function()
         HttpService.HttpEnabled = true
     end)
+end
+
+button.Click:Connect(function()
+    httpOn()
     send()
+end)
+
+-- ---- Bucla automata: raport fara sa apese nimeni, si comenzi venite din afara ---------------
+-- DE CE: pana acum adevarul de pe ecran ajungea la mine doar daca owner-ul apasa butonul si imi
+-- trimitea o captura. Cu bucla asta, Studio raporteaza singur cat timp jocul ruleaza, si pot cere
+-- actiuni (cumpara/strange/vinde/comanda de dezvoltare) ca sa verific bucla fara sa joace el.
+local POLL_SECONDS = 2
+-- semn de viata la incarcare, ca sa se vada in Output ca noua versiune a plugin-ului chiar rula
+print("[Driftwood] sonda incarcata, bucla de comenzi pornita")
+local CMD_URL = "http://127.0.0.1:8787/cmd"
+
+local function remotes(): Folder?
+    local rs = game:GetService("ReplicatedStorage")
+    local folder = rs:FindFirstChild("Remotes")
+    return if folder ~= nil and folder:IsA("Folder") then folder else nil
+end
+
+local function fire(name: string, ...)
+    local folder = remotes()
+    if folder == nil then
+        warn(`[Driftwood] fara Remotes (jocul nu ruleaza?): {name}`)
+        return
+    end
+    local remote = folder:FindFirstChild(name)
+    if remote == nil or not remote:IsA("RemoteEvent") then
+        warn(`[Driftwood] remote lipsa: {name}`)
+        return
+    end
+    remote:FireServer(...)
+    print(`[Driftwood] actiune: {name}`)
+end
+
+-- O comanda e un sir: "report" | "buy:<padId>" | "collect:<padId>" | "sell" | "dev:<cmd>:<arg>"
+local function runCommand(cmd: string)
+    local verb, a, b = string.match(cmd, "^(%w+):?([^:]*):?(.*)$")
+    if verb == "report" then
+        send()
+    elseif verb == "buy" then
+        fire("BuyPad", a)
+    elseif verb == "collect" then
+        fire("CollectNet", a)
+    elseif verb == "sell" then
+        fire("SellSack")
+    elseif verb == "dev" then
+        fire("DevCommand", a, tonumber(b) or b)
+    else
+        warn(`[Driftwood] comanda necunoscuta: {cmd}`)
+    end
+end
+
+task.spawn(function()
+    while true do
+        task.wait(POLL_SECONDS)
+        httpOn()
+        local ok, response = pcall(function()
+            return HttpService:RequestAsync({ Url = CMD_URL, Method = "GET" })
+        end)
+        if ok and response ~= nil and response.Success and response.Body ~= "" then
+            local decoded
+            local okDecode = pcall(function()
+                decoded = HttpService:JSONDecode(response.Body)
+            end)
+            if okDecode and typeof(decoded) == "table" then
+                local running = game:GetService("RunService"):IsRunning()
+                for _, cmd in decoded do
+                    if typeof(cmd) ~= "string" then
+                        continue
+                    end
+                    -- raportul merge si din Edit (spune ca jocul nu ruleaza, si atat); actiunile
+                    -- de joc au nevoie de o sesiune pornita, altfel n-au pe cine intreba
+                    if cmd == "report" or running then
+                        pcall(runCommand, cmd)
+                    else
+                        warn(`[Driftwood] jocul nu ruleaza, sar peste: {cmd}`)
+                    end
+                end
+            end
+        end
+    end
 end)

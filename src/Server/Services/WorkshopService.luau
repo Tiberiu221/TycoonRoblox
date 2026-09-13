@@ -11,8 +11,13 @@ local PadService = require(script.Parent.PadService)
 local EconomyService = require(script.Parent.EconomyService)
 
 local WorkshopService = {}
-local deps: { Remotes: { [string]: RemoteEvent }?, PushState: ((Player) -> ())? } =
-    { Remotes = nil, PushState = nil }
+local deps: {
+    Remotes: { [string]: RemoteEvent }?,
+    PushState: ((Player) -> ())?,
+    -- cache-ul lantului: o intrare noua in Index schimba bonusul de vanzare, deci si venitul
+    Stations: { Invalidate: (Player) -> () }?,
+} =
+    { Remotes = nil, PushState = nil, Stations = nil }
 
 -- Cat din catalog a fost reparat macar o data. Numara obiecte DISTINCTE: al doilea exemplar din
 -- acelasi lucru nu mai adauga nimic la colectie, deci nici la progres.
@@ -124,8 +129,14 @@ function WorkshopService.CollectRepair(player: Player, slotIndex: number): (bool
         local isNew = (data.Index[catalog] or 0) == 0
         data.Index[catalog] = (data.Index[catalog] or 0) + 1
         if isNew then
-            -- o intrare noua in Index urca bonusul de vanzare: starea din cache e acum veche
+            -- o intrare noua in Index urca bonusul de vanzare: starea din cache e acum veche.
+            -- AMANDOUA cache-urile: si al platformelor, si al lantului -- venitul si delta de pe
+            -- fantome ies din al doilea, deci ar fi ramas cu bonusul vechi pana la o alta cumparare.
             PadService.Invalidate(player)
+            local stations = deps.Stations
+            if stations ~= nil then
+                stations.Invalidate(player)
+            end
             if deps.PushState ~= nil then
                 deps.PushState(player)
             end
@@ -156,6 +167,41 @@ function WorkshopService.ScrapItem(player: Player, itemId: number): (boolean, st
         deps.PushState(player)
     end
     return true, "ok"
+end
+
+-- O prindere cu nume intra direct in gramada, fara sa treaca prin sac [F1 spec 3.1]: cu tier-ul
+-- si catalogul EI (nu valori implicite), ca jucatorul sa vada exact ce a prins, nu un obiect generic.
+function WorkshopService.AddCatch(player: Player, catch: DataService.Catch): boolean
+    if catch.g ~= "named" then
+        return false
+    end
+    local data = DataService.Get(player)
+    if data == nil then
+        return false
+    end
+    local id = data.NextItemId
+    data.NextItemId += 1
+    data.Pile[tostring(id)] = {
+        id = id,
+        tier = catch.t or "common",
+        caughtAt = os.time(),
+        catalog = catch.c,
+    }
+    return true
+end
+
+-- Cate obiecte asteapta in gramada -- TycoonState.pile [F1 spec 2.1]. Numarat, nu memorat: gramada
+-- e mica (fara plafon azi), nu merita un contor separat de intretinut in pas cu Pile.
+function WorkshopService.PileCount(player: Player): number
+    local data = DataService.Get(player)
+    if data == nil then
+        return 0
+    end
+    local n = 0
+    for _ in data.Pile do
+        n += 1
+    end
+    return n
 end
 
 -- Obiecte puse direct in gramada (unelte de dezvoltare; mai tarziu, alte surse in F1+).

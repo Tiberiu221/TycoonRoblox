@@ -22,13 +22,30 @@ local REMOTE_NAMES = {
 
     -- Noi la pivotul tycoon (D45) [F0 spec 1.4]
     "TycoonState", -- S->C: instantaneul complet; clientul INLOCUIESTE starea, nu o combina
+    "SpinWheel", -- C->S: cere rotirea gratuita a zilei
+    "SetMusic", -- C->S {on}: muzica pornita/oprita, tinuta minte in profil [D51]
+    "WheelResult", -- S->C: {prizeId, coins, pearls} sau {reason} daca n-a mers
+    "ClaimQuest", -- C->S: {questId} -- ia recompensa unui quest terminat
+    "QuestRejected", -- S->C: {reason}
+    "UpgradeStation", -- C->S: {kind, id, count} -- urca nivelul unei statii
+    "UpgradeRejected", -- S->C: {reason} -- de ce n-a mers (coins/locked/unknown)
     "BuyPad", -- C->S {padId}
     "PadRejected", -- S->C {padId, reason}: "locked" | "owned" | "coins" | "no_profile"
     "PadBought", -- S->C {padId}: doar semnalul pentru efectul de constructie; starea vine separat
     "CollectNet", -- C->S {padId}
-    "NetCaught", -- S->C {padId, count, capacity, good, catalog?}
-    "SellSack", -- C->S
+    "NetCaught", -- S->C {padId, count, capacity, good, catalog?, tier?}
     "Sold", -- S->C {total, itemCount}
+
+    -- Noi la F1 (Era 1 completa) [F1 spec 2.2]
+    "HandDelivered", -- S->C {handId, itemCount, place}: un om si-a lasat marfa (depozit/gater/debarcader)
+
+    -- Noi la D49 (lantul pe oameni)
+    "UseStorage", -- C->S: E la depozit -- lasi brutul, sau iei brut
+    "UseSawmill", -- C->S: E la gater -- lasi brutul, apoi iei ce e taiat
+    "DeliverDock", -- C->S: E la debarcader -- lasi ce e taiat
+    "UseResult", -- S->C {place, ok, reason, dropped, taken}: ce a facut gestul, pentru toast
+    "AtSawmill", -- C->S {present}: stai langa gater (fara Sawyer, doar atunci taie)
+    "UpgradeCrew", -- C->S {role, what}: "tier" sau "hire" (al doilea om)
 }
 
 local Net = {}

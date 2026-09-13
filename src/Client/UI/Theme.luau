@@ -35,6 +35,12 @@ Theme.COLOR = {
     warn = rgb(214, 140, 56),
     bad = rgb(190, 74, 62),
     gold = rgb(232, 178, 60),
+    -- [D52] Aceleasi semnale, pentru TEXT PE PERGAMENT. Verdele, portocaliul si rosul de mai sus sunt
+    -- facute pentru pastile si lume; pe hartie deschisa abia se citesc, iar randul care spune "merita
+    -- acum?" din meniul obiectului trebuie citit dintr-o privire.
+    goodInk = rgb(58, 116, 50),
+    warnInk = rgb(160, 90, 20),
+    badInk = rgb(150, 42, 34),
     cool = rgb(140, 175, 226), -- nevoia de odihna, apa, lucruri reci
     ghostOk = rgb(120, 210, 130), -- fantoma de asezare, loc valid
     ghostBad = rgb(214, 106, 100),
@@ -77,7 +83,9 @@ local function fontOr(name: string, fallback: Enum.Font): Enum.Font
     return fallback
 end
 
-local DISPLAY = fontOr("FredokaOne", Enum.Font.SourceSansBold)
+-- Joc desenat in pixeli: titlurile si cifrele cer un font de pixeli, nu unul rotunjit modern.
+-- `Arcade` e singurul font de pixeli din platforma; daca lipseste, cadem pe cel vechi.
+local DISPLAY = fontOr("Arcade", fontOr("FredokaOne", Enum.Font.SourceSansBold))
 local BODY = fontOr("Nunito", Enum.Font.SourceSans)
 -- Latime fixa, pentru jurnalul consolei de dezvoltare. Acolo alinierea pe coloane e FUNCTIONALA,
 -- nu decor: un jurnal cu latimi variabile nu se mai poate citi pe verticala.
@@ -95,7 +103,13 @@ local function makeFont(family: Enum.Font, weight: Enum.FontWeight): Font?
 end
 
 function Theme.applyFont(label: TextLabel | TextButton, kind: string)
-    local family = if kind == "display" then DISPLAY elseif kind == "mono" then MONO else BODY
+    -- "strong" (cifre, etichete scurte, indemnuri) merge tot pe fontul de pixeli: sunt texte
+    -- scurte, peste lume, unde consistenta cu arta conteaza mai mult decat lizibilitatea unei
+    -- fraze lungi. "body" (frazele intregi, ex. descrierea de pe cartonas) ramane pe Nunito.
+    local family = if kind == "display" or kind == "strong"
+        then DISPLAY
+        elseif kind == "mono" then MONO
+        else BODY
     local weight = if kind == "display"
         then Theme.WEIGHT.display
         elseif kind == "strong" then Theme.WEIGHT.strong

@@ -14,7 +14,9 @@ local Prng = require(ReplicatedStorage.Shared.Modules.Prng)
 local ServerTuning = require(ServerStorage.Config.ServerTuning)
 local DataService = require(script.Parent.DataService)
 local PadService = require(script.Parent.PadService)
+local StationService = require(script.Parent.StationService)
 local RiverService = require(script.Parent.RiverService)
+local WorkshopService = require(script.Parent.WorkshopService)
 local Analytics = require(script.Parent.Analytics)
 
 type Catch = DataService.Catch
@@ -28,6 +30,12 @@ local deps: { Remotes: { NetCaught: RemoteEvent }, PushState: ((Player) -> ())? 
     PushState = nil,
 }
 
+-- UNEALTA DE DEZVOLTARE (named): urmatoarea prindere a fiecarei plase DETINUTE devine o gasire cu
+-- nume, indiferent de sansa reala [F1 spec 3.7]. Flag EFEMER, per jucator per plasa -- nu se
+-- salveaza in profil, se consuma la prima prindere de dupa comanda. PlayerRemoving il curata mai
+-- jos, ca sa nu creasca tabelul la nesfarsit intre sesiuni de Studio.
+local forceNamedByNet: { [Player]: { [string]: boolean } } = {}
+
 -- Oglinda lui netEffectOf din PadService: rata/banda plasei acestei platforme.
 local function netEffectOf(pad: TycoonConfig.Pad): (number?, number?)
     for _, e in pad.effects do
@@ -36,41 +44,6 @@ local function netEffectOf(pad: TycoonConfig.Pad): (number?, number?)
         end
     end
     return nil, nil
-end
-
--- Bunurile sub minLanes cad pe driftwood -- oglinda lui income() din TycoonMath, dar pentru o
--- singura tragere, nu pentru agregat. Memoizat pe numarul de benzi (doar 1..3 posibile in F0).
-local sharesCache: { [number]: { { id: string, share: number } } } = {}
-local function activeShares(lanes: number): { { id: string, share: number } }
-    local cached = sharesCache[lanes]
-    if cached ~= nil then
-        return cached
-    end
-    local driftwoodShare = TycoonConfig.GOODS[1].share
-    local active: { { id: string, share: number } } = {}
-    for _, g in TycoonConfig.GOODS do
-        if g.minLanes and g.minLanes > lanes then
-            driftwoodShare += g.share
-        else
-            table.insert(active, { id = g.id, share = g.share })
-        end
-    end
-    active[1].share = driftwoodShare -- driftwood e mereu primul in GOODS si nu are minLanes
-    sharesCache[lanes] = active
-    return active
-end
-
-local function rollGood(rng: Prng.Prng, lanes: number): string
-    local active = activeShares(lanes)
-    local r = rng:nextNumber()
-    local acc = 0
-    for _, g in active do
-        acc += g.share
-        if r < acc then
-            return g.id
-        end
-    end
-    return active[1].id -- plasa de siguranta pentru erori de rotunjire
 end
 
 local TIER_ORDER = { "common", "uncommon", "rare", "epic", "legendary", "mythic" }
@@ -88,16 +61,21 @@ local function rollTier(rng: Prng.Prng): string
 end
 
 -- Determinist din (userId, index platforma, al catelea peste e in plasa asta): recalcularea
--- (offline, catch-up la rejoin) da acelasi rezultat fara sa salveze nimic in plus [D13].
+-- (offline, catch-up la rejoin) da acelasi rezultat fara sa salveze nimic in plus [D13]. Bunul
+-- vine din TycoonMath.pickGood aplicat PRIMEI trageri a rng-ului -- ACEEASI functie pe care o
+-- foloseste clientul (CatchFloat/D2) ca sa arate dinainte ce pluteste spre plasa; tier-ul vine
+-- din acelasi rng, imediat dupa [F1 spec 3.1: prinderile trebuie sa ramana identice cu F0].
+-- `forced`: unealta de dezvoltare (named) -- sare peste tragerea normala, tot restul e la fel.
 local function rollCatch(
     player: Player,
     pad: TycoonConfig.Pad,
     caughtIndex: number,
-    lanes: number
+    lanes: number,
+    forced: boolean
 ): Catch
-    local seed = player.UserId * 7919 + pad.index * 104729 + caughtIndex
+    local seed = TycoonMath.catchSeed(player.UserId, pad.index, caughtIndex)
     local rng = Prng.new(seed)
-    local goodId = rollGood(rng, lanes)
+    local goodId = if forced then "named" else TycoonMath.pickGood(rng:nextNumber(), lanes)
     if goodId == "named" then
         local tier = rollTier(rng)
         local picked = ItemConfig.pickFor(tier, seed)
@@ -106,9 +84,12 @@ local function rollCatch(
     return { g = goodId }
 end
 
--- Muta din plasa in sac pana cand sacul se umple sau plasa se goleste. Daca plasa era PLINA
--- inainte de colectare, cronometrul reporneste de acum -- o plasa plina nu banca prinderile
--- ratate cat a stat plina [F0 spec 3.4].
+-- Muta din plasa in sac pana cand sacul se umple sau plasa se goleste -- CU O EXCEPTIE [F1 spec
+-- 3.1]: daca Atelierul e cumparat, gasirile cu nume ocolesc sacul si intra direct in gramada
+-- (WorkshopService.AddCatch), fara sa fie limitate de capacitatea lui. Inainte de Atelier, merg
+-- in sac ca orice alt bun, la valoarea lor de tier (ca in F0). Ce nu incape in sac ramane in
+-- plasa -- nimic nu se pierde. Daca plasa era PLINA inainte de colectare, cronometrul reporneste
+-- de acum -- o plasa plina nu banca prinderile ratate cat a stat plina [F0 spec 3.4].
 function NetService.Collect(player: Player, padId: string): (boolean, string?)
     local data = DataService.Get(player)
     if data == nil then
@@ -118,27 +99,39 @@ function NetService.Collect(player: Player, padId: string): (boolean, string?)
     if net == nil then
         return false, "no_net"
     end
-    local pad = TycoonConfig.byId[padId]
     local capacity = TycoonMath.sackCapacity(PadService.StateFor(player))
-    local wasFull = #net.goods >= TycoonConfig.NET_CAPACITY
+    local netCapacity = StationService.NetCapacity(player, padId)
+    -- [D51] prima plasa, in tutorial, se goleste abia plina; clientul nu ofera gestul, deci aici se
+    -- ajunge doar fortat
+    if TycoonMath.collectLocked(padId, data.Stats.collected or 0, #net.goods, netCapacity) then
+        return false, "filling"
+    end
+    local workshopOwned = data.Pads.workshop == true
+
+    local remaining: { Catch } = {}
+    local sackRoom = capacity - #data.Sack.items
     local moved = 0
-    while #net.goods > 0 and #data.Sack.items < capacity do
-        local item = table.remove(net.goods) -- din capat, O(1); ordinea nu conteaza, toate merg in sac
-        if item ~= nil then
-            table.insert(data.Sack.items, item)
+    for _, item in net.goods do
+        if item.g == "named" and workshopOwned then
+            WorkshopService.AddCatch(player, item)
             moved += 1
+        elseif sackRoom > 0 then
+            table.insert(data.Sack.items, item)
+            sackRoom -= 1
+            moved += 1
+        else
+            table.insert(remaining, item)
         end
     end
+    net.goods = remaining
     if moved == 0 then
         return false, "sack_full"
     end
-    if wasFull and pad ~= nil then
-        local rate = netEffectOf(pad)
-        if rate ~= nil then
-            net.nextCatchAt = RiverService.Now()
-                + TycoonMath.netInterval(rate, PadService.StateFor(player))
-        end
-    end
+    -- [D51] ritmul primei plase depinde de cat ai colectat (TycoonMath.catchBoost): instantaneul de mai
+    -- jos trimite deja ritmul de dupa colectare.
+    -- [D53] Golirea NU mai reporneste ceasul la "acum + interval": plina, ceasul a mers mai departe in
+    -- ritm (NetService.tick), deci urmatoarea prindere vine la momentul ei, iar bustenii deja pe drum intra.
+    data.Stats.collected = (data.Stats.collected or 0) + moved
     data.Stats.collects += 1
     if not data.Firsts.FirstCollect then
         data.Firsts.FirstCollect = true
@@ -156,7 +149,6 @@ function NetService.Snapshot(player: Player): { { [string]: any } }
     if data == nil then
         return result
     end
-    local state = PadService.StateFor(player)
     for padId, net in data.Nets do
         local pad = TycoonConfig.byId[padId]
         if pad == nil then
@@ -166,15 +158,27 @@ function NetService.Snapshot(player: Player): { { [string]: any } }
         if rate == nil or lane == nil then
             continue
         end
+        -- CE e in plasa, nu doar cat: clientul deseneaza marfa stivuita, deci are nevoie de
+        -- feluri, nu de un numar [F3, marfa capata corp]. Cel mult 12 obiecte, deci rezumatul e
+        -- mic; ordinea GOODS tine desenul stabil intre doua stari.
+        local contents: { [string]: number } = {}
+        for _, item: Catch in net.goods do
+            contents[item.g] = (contents[item.g] or 0) + 1
+        end
         table.insert(result, {
             padId = padId,
+            contents = contents,
+            padIndex = pad.index, -- pentru TycoonMath.catchSeed pe client [F1 spec 2.1, D2]
             lane = lane,
             x = pad.x or 0,
             y = TycoonConfig.LANE_Y[lane] or 0,
             count = #net.goods,
-            capacity = TycoonConfig.NET_CAPACITY,
+            capacity = StationService.NetCapacity(player, padId),
+            caught = net.caught, -- indexul URMATOAREI prinderi -- vezi catchSeed
             nextCatchAt = net.nextCatchAt,
-            interval = TycoonMath.netInterval(rate, state),
+            interval = StationService.Interval(player, padId),
+            -- [D51] plasa prinde grabit, in tutorial: clientul scrie asta pe ea
+            boosted = TycoonMath.catchBoost(padId, data.Stats.collected or 0) > 1,
         })
     end
     return result
@@ -187,8 +191,8 @@ function NetService.DevFill(player: Player): number
         return 0
     end
     local added = 0
-    for _, net in data.Nets do
-        while #net.goods < TycoonConfig.NET_CAPACITY do
+    for padId, net in data.Nets do
+        while #net.goods < StationService.NetCapacity(player, padId) do
             table.insert(net.goods, { g = "driftwood" })
             added += 1
         end
@@ -210,13 +214,32 @@ function NetService.DevSkip(player: Player, seconds: number): number
     return n
 end
 
+-- UNEALTA DE DEZVOLTARE (named): vezi forceNamedByNet mai sus.
+function NetService.DevForceNamed(player: Player): number
+    local data = DataService.Get(player)
+    if data == nil then
+        return 0
+    end
+    local set = forceNamedByNet[player]
+    if set == nil then
+        set = {}
+        forceNamedByNet[player] = set
+    end
+    local n = 0
+    for padId in data.Nets do
+        set[padId] = true
+        n += 1
+    end
+    return n
+end
+
 local function tick(now: number)
     for _, player in Players:GetPlayers() do
         local data = DataService.Get(player)
         if data == nil then
             continue
         end
-        local state = PadService.StateFor(player)
+        local forcedSet = forceNamedByNet[player]
         for padId, net in data.Nets do
             local pad = TycoonConfig.byId[padId]
             if pad == nil then
@@ -226,19 +249,35 @@ local function tick(now: number)
             if rate == nil then
                 continue
             end
-            local interval = TycoonMath.netInterval(rate, state)
+            -- Intervalul vine din NIVELUL plasei, nu din rata fixa scrisa pe platforma: o plasa
+            -- urcata prinde mai des, si asta trebuie sa se vada in ceas, nu doar in cifra din HUD.
+            local interval = StationService.Interval(player, padId)
+            local netCapacity = StationService.NetCapacity(player, padId)
             local pushedState = false
-            while now >= net.nextCatchAt and #net.goods < TycoonConfig.NET_CAPACITY do
+            -- [D53] Cate prinderi acum si unde ramane ceasul -- TycoonMath.netTick. Plina, ceasul NU mai sta
+            -- pe loc: sare la primul moment de dupa `now`, ca ritmul sa ramana acelasi si clientul sa poata
+            -- arata bustenii venind de departe si inainte de golire.
+            local catches, nextAt =
+                TycoonMath.netTick(net.nextCatchAt, interval, now, #net.goods, netCapacity)
+            for _ = 1, catches do
                 -- verificat DIN NOU la fiecare tragere: un backlog lung poate trece de la
                 -- "prinde din urma" la "live" chiar in aceeasi bucla, pe masura ce se apropie de now
                 local catchingUp = (now - net.nextCatchAt) > CATCHUP_SECONDS
-                local catch = rollCatch(player, pad, net.caught, state.lanes)
+                local forced = forcedSet ~= nil and forcedSet[padId] == true
+                local catch =
+                    rollCatch(player, pad, net.caught, StationService.Lanes(player), forced)
+                if forced then
+                    forcedSet[padId] = nil
+                end
                 table.insert(net.goods, catch)
                 net.caught += 1
                 net.nextCatchAt += interval
                 if not data.Firsts.FirstCatch then
                     data.Firsts.FirstCatch = true
                     Analytics.Funnel(player, "FirstCatch")
+                end
+                if catch.g == "named" and not data.Firsts.FirstNamed then
+                    data.Firsts.FirstNamed = true
                 end
                 if catchingUp then
                     pushedState = true
@@ -247,18 +286,24 @@ local function tick(now: number)
                         player,
                         padId,
                         #net.goods,
-                        TycoonConfig.NET_CAPACITY,
+                        netCapacity,
                         catch.g,
-                        catch.c
+                        catch.c,
+                        catch.t
                     )
                 end
             end
+            net.nextCatchAt = nextAt
             if pushedState and deps.PushState ~= nil then
                 deps.PushState(player)
             end
         end
     end
 end
+
+Players.PlayerRemoving:Connect(function(player: Player)
+    forceNamedByNet[player] = nil
+end)
 
 function NetService.Init(d: typeof(deps))
     deps = d

@@ -6,6 +6,38 @@ local OfflineCalc = require("../src/Shared/Modules/OfflineCalc")
 local H = 3600
 
 return function()
+    test.suite("OfflineCalc.computeIdle - cat ai lipsit", function()
+        test.case("fara automatizare nu se castiga nimic", function()
+            -- nu e o pedeapsa: n-avea cine sa care si cine sa vanda [P2]
+            local r = OfflineCalc.computeIdle(10000, 1000, 0)
+            check.equal(r.coins, 0)
+            check.equal(r.seconds, 0)
+        end)
+
+        test.case("plateste exact rata x timpul", function()
+            local r = OfflineCalc.computeIdle(1000 + 600, 1000, 2.5)
+            check.equal(r.seconds, 600)
+            check.equal(r.coins, 1500)
+            check.is_false(r.cappedByTime)
+        end)
+
+        test.case("se opreste la 24 de ore, si o spune", function()
+            local r = OfflineCalc.computeIdle(1000 + 72 * 3600, 1000, 1)
+            check.equal(r.seconds, 24 * 3600)
+            check.is_true(r.cappedByTime)
+        end)
+
+        test.case("un ceas dat inapoi nu produce castig negativ", function()
+            local r = OfflineCalc.computeIdle(500, 1000, 3)
+            check.equal(r.coins, 0)
+        end)
+
+        test.case("un profil fara lastSeenAt (prima intrare) nu primeste nimic", function()
+            local r = OfflineCalc.computeIdle(99999, 0, 5)
+            check.equal(r.coins, 0)
+        end)
+    end)
+
     test.suite("OfflineCalc.computeOffline", function()
         test.case("plasa Start: 1 obiect/ora, 8 sloturi, se umple in 8h [D15]", function()
             local r = OfflineCalc.computeOffline(1000 + 8 * H, 1000, H, 8)
