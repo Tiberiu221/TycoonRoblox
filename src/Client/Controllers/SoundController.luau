@@ -11,6 +11,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SoundService = game:GetService("SoundService")
 
 local Assets = require(ReplicatedStorage.Shared.Config.Assets)
+local AudioLevels = require(ReplicatedStorage.Shared.Modules.AudioLevels)
 local RiverConfig = require(ReplicatedStorage.Shared.Config.RiverConfig)
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 
@@ -75,6 +76,50 @@ local VOLUME: { [string]: number } = {
     saw = 0.12,
 }
 
+-- [D54] Nivelul efectelor (0..10), ales in panoul "Sound", sta pe grupul "Effects": tabelul VOLUME ramane
+-- amestecul dintre ele, iar grupul le urca sau le coboara pe toate deodata.
+local effects: SoundGroup? = nil
+local level = AudioLevels.DEFAULT_SOUND
+local applied = false
+
+-- Creat la prima nevoie: un controller ii poate cere un sunet inainte de Init.
+local function effectsGroup(): SoundGroup
+    local existing = effects
+    if existing ~= nil then
+        return existing
+    end
+    local g = Instance.new("SoundGroup")
+    g.Name = "Effects"
+    g.Volume = AudioLevels.volume(level, AudioLevels.SOUND_MAX)
+    g.Parent = SoundService
+    effects = g
+    return g
+end
+
+function SoundController.Level(): number
+    return level
+end
+
+-- Din TycoonState: doar la PRIMA stare, ca la muzica (MusicController.Apply).
+function SoundController.Apply(saved: number)
+    if applied then
+        return
+    end
+    applied = true
+    level = if AudioLevels.valid(saved) then saved else AudioLevels.DEFAULT_SOUND
+    effectsGroup().Volume = AudioLevels.volume(level, AudioLevels.SOUND_MAX)
+end
+
+-- Din panoul "Sound": se aude pe loc.
+function SoundController.SetLevel(newLevel: number)
+    if not AudioLevels.valid(newLevel) then
+        return
+    end
+    applied = true
+    level = newLevel
+    effectsGroup().Volume = AudioLevels.volume(level, AudioLevels.SOUND_MAX)
+end
+
 -- `gain` (0..1) scade si mai mult un sunet din lume dupa distanta; volumul lui de baza e in VOLUME.
 function SoundController.Play(key: string, pitch: number?, gain: number?)
     local id = (Assets.sounds :: any)[key]
@@ -85,6 +130,7 @@ function SoundController.Play(key: string, pitch: number?, gain: number?)
     sound.SoundId = Assets.soundUrl(id)
     sound.PlaybackSpeed = pitch or 1
     sound.Volume = (VOLUME[key] or 0.5) * math.clamp(gain or 1, 0, 1)
+    sound.SoundGroup = effectsGroup()
     sound.Parent = SoundService
     sound:Play()
     Debris:AddItem(sound, 4) -- curatenie fara sa tinem evidenta manuala a fiecarui Sound

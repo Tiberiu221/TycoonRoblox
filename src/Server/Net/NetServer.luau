@@ -8,6 +8,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Net = require(ReplicatedStorage.Net.Net)
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 local RateLimiter = require(script.Parent.RateLimiter)
+local AudioLevels = require(ReplicatedStorage.Shared.Modules.AudioLevels)
 
 export type Deps = {
     River: { GetConfigFor: (Player) -> { [string]: any }, Now: () -> number },
@@ -16,8 +17,8 @@ export type Deps = {
     Data: {
         ProfileLoaded: RBXScriptSignal,
         Firsts: (Player) -> { collect: boolean, sell: boolean, named: boolean },
-        MusicOn: (Player) -> boolean,
-        SetMusic: (Player, boolean) -> (),
+        AudioLevels: (Player) -> (number, number),
+        SetAudioLevel: (Player, string, number) -> (),
     },
     Pads: {
         Buy: (Player, string) -> (boolean, string?),
@@ -86,6 +87,7 @@ local function buildTycoonState(player: Player): { [string]: any }
     local pads = deps.Pads.Statuses(player)
     local padDeltas, bottleneck = deps.Pads.Deltas(player)
     local firsts = deps.Data.Firsts(player)
+    local musicLevel, soundLevel = deps.Data.AudioLevels(player)
     return {
         coins = deps.Economy.GetCoins(player),
         pearls = deps.Economy.GetPearls(player),
@@ -128,8 +130,8 @@ local function buildTycoonState(player: Player): { [string]: any }
             runner = pads.first_runner == "bought",
             bell = pads.landing_bell == "bought",
         },
-        -- [D51] preferintele: muzica pornita sau oprita
-        settings = { music = deps.Data.MusicOn(player) },
+        -- [D54] preferintele: nivelul muzicii si al efectelor, 0..10
+        settings = { musicLevel = musicLevel, soundLevel = soundLevel },
     }
 end
 
@@ -239,12 +241,16 @@ function NetServer.Init(d: Deps)
         end
     end)
 
-    -- [D51] Butonul de muzica: doar o preferinta, dar tot din client, deci tot validata si limitata.
-    Net.Get("SetMusic").OnServerEvent:Connect(function(player: Player, on: any)
-        if type(on) ~= "boolean" or not RateLimiter.Allow(player, "SetMusic") then
+    -- [D54] Nivelul muzicii sau al efectelor, din panoul "Sound": doar o preferinta, dar tot din client,
+    -- deci tot validata (fel cunoscut, intreg finit 0..10) si limitata.
+    Net.Get("SetAudio").OnServerEvent:Connect(function(player: Player, kind: any, level: any)
+        if kind ~= "music" and kind ~= "sound" then
             return
         end
-        deps.Data.SetMusic(player, on)
+        if not AudioLevels.valid(level) or not RateLimiter.Allow(player, "SetAudio") then
+            return
+        end
+        deps.Data.SetAudioLevel(player, kind, level)
     end)
 
     -- Rotirea zilnica. Tragerea e pe server; clientul primeste premiul si abia apoi il animeaza.

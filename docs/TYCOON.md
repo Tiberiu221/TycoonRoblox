@@ -448,6 +448,8 @@ Mecanismele de celebrare la praguri sunt recomandate explicit de Roblox [onboard
 
 > **[D50–D51, 2026-09-13] Amestecul.** Volum pe sunet (stropul și clinchetul sus, banii jos, gaterul
 > abia auzit); gaterul și stropii se aud doar de aproape; muzica are grupul ei și buton (M).
+> **[D54]** Nivelul îl alege jucătorul, în panoul „Sound" (M): Music implicit 4/10 (de fundal, ~11 dB sub
+> vechiul volum fix), Sounds 10/10; fiecare pe grupul lui („Music", „Effects"), ținut minte în profil.
 
 ### P. Monetizarea
 

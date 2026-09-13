@@ -8,6 +8,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
 local ProfileStore = require(ServerStorage.ServerPackages.ProfileStore)
 local ProfileMigrate = require(ReplicatedStorage.Shared.Modules.ProfileMigrate)
+local AudioLevels = require(ReplicatedStorage.Shared.Modules.AudioLevels)
 local Analytics = require(script.Parent.Analytics)
 
 -- Catch = ce a prins o plasa: id-ul bunului; pentru "named", id-ul din catalog + tier-ul. `p` = trecut
@@ -94,12 +95,13 @@ export type ProfileData = {
         scraps: number, -- pentru WorkshopService (F1)
     },
     Firsts: { [string]: boolean },
-    -- [D51] preferintele jucatorului; muzica pornita implicit. Reconcile le adauga conturilor vechi.
-    Settings: { music: boolean },
+    -- [D51] preferintele jucatorului. [D54] nivelul muzicii si al efectelor, 0..10 (`music`, bool-ul vechi,
+    -- ramane in profilurile migrate, necitit).
+    Settings: { musicLevel: number, soundLevel: number, music: boolean? },
 }
 
 local PROFILE_TEMPLATE: ProfileData = {
-    Meta = { version = 5, createdAt = 0, lastSeenAt = 0 },
+    Meta = { version = 6, createdAt = 0, lastSeenAt = 0 },
     Coins = 0,
     Pearls = 0,
     Pads = {},
@@ -142,7 +144,7 @@ local PROFILE_TEMPLATE: ProfileData = {
         scraps = 0,
     },
     Firsts = {},
-    Settings = { music = true },
+    Settings = { musicLevel = AudioLevels.DEFAULT_MUSIC, soundLevel = AudioLevels.DEFAULT_SOUND },
 }
 
 local function deepCopy(value: any): any
@@ -186,19 +188,35 @@ function DataService.Firsts(player: Player): { collect: boolean, sell: boolean, 
     }
 end
 
--- [D51] Muzica pornita sau oprita, tinuta minte intre sesiuni. Implicit pornita.
-function DataService.MusicOn(player: Player): boolean
+-- [D54] Nivelurile sunetului (muzica, efecte), 0..10, tinute minte intre sesiuni. O valoare stricata din
+-- profil cade pe implicit, nu ajunge la client.
+function DataService.AudioLevels(player: Player): (number, number)
     local data = DataService.Get(player)
-    return data == nil or data.Settings == nil or data.Settings.music ~= false
+    local settings: any = if data ~= nil then data.Settings else nil
+    if settings == nil then
+        return AudioLevels.DEFAULT_MUSIC, AudioLevels.DEFAULT_SOUND
+    end
+    local music = if AudioLevels.valid(settings.musicLevel)
+        then settings.musicLevel
+        else AudioLevels.DEFAULT_MUSIC
+    local sound = if AudioLevels.valid(settings.soundLevel)
+        then settings.soundLevel
+        else AudioLevels.DEFAULT_SOUND
+    return music, sound
 end
 
-function DataService.SetMusic(player: Player, on: boolean)
+function DataService.SetAudioLevel(player: Player, kind: string, level: number)
     local data = DataService.Get(player)
-    if data == nil then
+    if data == nil or not AudioLevels.valid(level) then
         return
     end
-    data.Settings = data.Settings or { music = true }
-    data.Settings.music = on
+    data.Settings = data.Settings
+        or { musicLevel = AudioLevels.DEFAULT_MUSIC, soundLevel = AudioLevels.DEFAULT_SOUND }
+    if kind == "music" then
+        data.Settings.musicLevel = level
+    elseif kind == "sound" then
+        data.Settings.soundLevel = level
+    end
 end
 
 -- UNEALTA DE DEZVOLTARE (reset): goleste profilul si il reumple din sablon, pastrand Indexul.
@@ -238,6 +256,7 @@ local function onPlayerAdded(player: Player)
     ProfileMigrate.toV3(profile.Data) -- inainte de Reconcile: goleste orice profil sub v2 [F0 spec 1.3]
     ProfileMigrate.toV4(profile.Data) -- gaterul [D48]: nivelul lui si gramada, aditiv
     ProfileMigrate.toV5(profile.Data) -- oamenii [D49]: gramezi ca numaratori, trepte, Carry rambursat
+    ProfileMigrate.toV6(profile.Data) -- nivelurile sunetului [D54]: muzica oprita ramane la 0
     profile:Reconcile()
     profile.OnSessionEnd:Connect(function()
         profiles[player] = nil

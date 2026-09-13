@@ -23,7 +23,7 @@ local REMOTE_NAMES = {
     -- Noi la pivotul tycoon (D45) [F0 spec 1.4]
     "TycoonState", -- S->C: instantaneul complet; clientul INLOCUIESTE starea, nu o combina
     "SpinWheel", -- C->S: cere rotirea gratuita a zilei
-    "SetMusic", -- C->S {on}: muzica pornita/oprita, tinuta minte in profil [D51]
+    "SetAudio", -- C->S {kind, level}: nivelul muzicii sau al efectelor, 0..10, tinut minte in profil [D54]
     "WheelResult", -- S->C: {prizeId, coins, pearls} sau {reason} daca n-a mers
     "ClaimQuest", -- C->S: {questId} -- ia recompensa unui quest terminat
     "QuestRejected", -- S->C: {reason}

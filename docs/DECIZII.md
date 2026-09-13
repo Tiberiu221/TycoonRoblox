@@ -11,6 +11,42 @@ Convenție: în tot proiectul, „server" înseamnă o instanță Roblox efemer�
 
 ---
 
+## D54 — Nivelul sunetului: muzica de fundal și panoul „Sound"
+**DECIS** (2026-09-13) — owner-ul, după ce a intrat în joc: *„muzica este prea tare, nu prea este de
+fundal. userul ar trebui să poată selecta nivelul audio, dar momentan tot este prea tare când intru
+în-game"*.
+
+1. **Două niveluri, 0–10:** **Music** (implicit 4) și **Sounds** (implicit 10 = amestecul de dinainte);
+   0 = oprit. Curba e pătratică, ca pașii să se audă egal: `volum = max × (nivel/10)²` (`AudioLevels`,
+   testat). Muzica are `max` 0,6: la nivelul 4 volumul e 0,096, cu ~11 dB sub vechiul 0,35 (piesa e
+   masterizată tare, vârfuri la −3 dBFS); la 10, 0,6 pentru cine o vrea tare. Dacă tot e prea tare, se
+   reglează un singur număr: `AudioLevels.MUSIC_MAX`.
+2. **Volumul stă pe grupuri:** `SoundGroup` „Music" — sunetul e fixat la 1, iar estomparea urcă grupul
+   de la 0, deci niciun cadru la volum plin la intrare — și „Effects", pus pe fiecare efect (tabelul
+   `VOLUME` rămâne amestecul dintre ele). Muzica la 0 se stinge și intră în pauză; la revenire continuă
+   de unde era, nu de la capăt.
+3. **Panoul „Sound"** (`AudioPanel`), pe butonul din bară (tasta M) care înainte comuta muzica: două
+   rânduri — numele, **−**, zece segmente aurii care cresc spre dreapta (se pot și apăsa), **+**,
+   „40%" / „Off". Schimbarea se aude pe loc; la Sounds, un click de probă. Butonul care nu mai are unde e
+   gri. Rândul Music apare doar cu muzica urcată (un reglaj care nu schimbă nimic ar minți, D40); butonul
+   din bară e mereu acolo, pentru că efectele există și fără muzică.
+4. **Salvarea** pleacă după 0,6 s de liniște, **separat pe fiecare canal**, iar la închiderea panoului
+   (buton, Esc, Q, M) imediat. Nivelurile din profil se aplică doar la **prima** stare de la server; după
+   aia panoul e adevărul pe client, ca o stare venită între apăsare și salvare să nu mute bara înapoi.
+   Cine iese din joc în cele 0,6 s de după o apăsare, cu panoul deschis, pierde doar acea ultimă apăsare.
+5. **Serverul:** remote `SetAudio(kind, level)` în locul lui `SetMusic` — `kind` ∈ {music, sound}, nivel
+   întreg finit 0..10, bucket `SetAudio` (6, 2/s). Profil **v6** (`ProfileMigrate.toV6`, înainte de
+   `Reconcile`): cine oprise muzica o găsește la 0, nu repornită; restul primesc implicitele;
+   `Settings.music` rămâne în profil, necitit. O valoare stricată cade pe implicit, pe server și pe client.
+6. **Ies:** `SetMusic`, `DataService.MusicOn/SetMusic`, `MusicController.Toggle`,
+   `MenuBarController.SetDimmed`, `Strings.MENU_MUSIC/musicToggled` și toastul „Music on/off" — panoul
+   spune „Off" chiar pe rândul lui.
+
+**Persistența se verifică doar în jocul publicat:** în Studio ProfileStore merge pe mock și nimic nu se
+salvează între sesiuni.
+
+**Se abate** de la D51 pct. 8 (butonul pornit/oprit, `Settings.music`, volumul fix 0,35).
+
 ## D53 — Ruinele malului, bușteni care vin pe râu, atelierul nou
 **DECIS** (2026-09-13) — owner-ul, după D52: *„în locul acestor chestii cu negru care urmează a fi
 deblocate, să fie de fapt niște ruine sau lucruri stricate pe jos (dacă te duci la ele trebuie să scrie că

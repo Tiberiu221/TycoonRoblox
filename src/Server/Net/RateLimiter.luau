@@ -12,8 +12,9 @@ local LIMITS: { [string]: { capacity: number, refillPerSecond: number } } = {
     -- "sunt la gater": la intrarea in raza, la iesire si o data la 2 s cat stai [D49]
     AtSawmill = { capacity = 3, refillPerSecond = 1 },
     SpinWheel = { capacity = 3, refillPerSecond = 1 },
-    -- [D51] butonul de muzica; fara bucket propriu, un nume necunoscut ar fi refuzat in tacere
-    SetMusic = { capacity = 4, refillPerSecond = 1 },
+    -- [D54] panoul "Sound", dupa 0.6 s de liniste pe fiecare canal; fara bucket propriu, un nume
+    -- necunoscut ar fi refuzat in tacere
+    SetAudio = { capacity = 6, refillPerSecond = 2 },
     RequestState = { capacity = 2, refillPerSecond = 0.2 },
 }
 RateLimiter.LIMITS = LIMITS

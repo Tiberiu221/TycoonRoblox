@@ -109,6 +109,26 @@ INTERACT_CARD = dict(
 )
 
 
+# Panoul "Sound" (AudioPanel) [D54]: fereastra 520x240 -> corpul 480x144 (rama lg=20, antetul de 56).
+# Doua randuri, la y 10 si 70: numele, "-", cele zece segmente (zona de apasare, 40 inalta; desenul, cel
+# mult 24, sta in ea), "+", valoarea aliniata la dreapta. Fara muzica urcata ramane doar al doilea rand,
+# mutat sus, intr-o fereastra cu 60 mai scunda -- aceleasi cutii.
+def audio_row(y, tag):
+    return [
+        (f"{tag}.name", 0, y + 10, 96, 28, None),
+        (f"{tag}.minus", 104, y + 4, 44, 40, None),
+        (f"{tag}.segments", 158, y + 4, 10 * 14 + 9 * 4, 40, None),
+        (f"{tag}.plus", 344, y + 4, 44, 40, None),
+        (f"{tag}.value", 396, y + 10, 84, 28, None),
+    ]
+
+
+AUDIO_PANEL = dict(
+    panel="Sound (AudioPanel)", width=520 - 20 * 2, row_h=240 - 20 * 2 - 56,
+    boxes=lambda w: audio_row(10, "music") + audio_row(70, "sounds"),
+)
+
+
 def overlap(a, b):
     if a[5] is not None and b[5] is not None and a[5] != b[5]:
         return None  # nu apar niciodata in acelasi timp
@@ -141,7 +161,7 @@ def check(spec):
 
 
 def main():
-    bad = sum(check(spec) for spec in (STATION_ROW, QUEST_ROW, APPROACH_CARD, STATION_MENU, INTERACT_CARD))
+    bad = sum(check(spec) for spec in (STATION_ROW, QUEST_ROW, APPROACH_CARD, STATION_MENU, INTERACT_CARD, AUDIO_PANEL))
     if bad:
         raise SystemExit(f"{bad} coliziuni de asezare")
 

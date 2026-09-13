@@ -71,6 +71,12 @@ stylua/selene o prind. Rulează-le mereu pe toate, nu înlănțuite după o eroa
 
 ## Stare (2026-09-13)
 
+**Nivelul sunetului [D54]** — scris și trece poarta (299 teste): muzica implicit la nivelul 4 din 10
+(~11 dB sub cât era), efectele la 10; panoul „Sound" pe tasta M (−, zece segmente, +) în locul
+comutatorului de muzică; volumul pe `SoundGroup`-uri („Music", „Effects"), curba în `AudioLevels`;
+remote `SetAudio`, profil **v6** (muzica oprită rămâne la 0). Persistența se vede doar publicat.
+Neverificat încă în Studio.
+
 **Ruinele malului, bușteni care vin pe râu, atelierul nou [D53]** — scris și trece poarta (291 teste):
 ceasul plasei nu se oprește plină (`TycoonMath.netTick`), `CatchFloat` rescris (de la marginea lumii,
 cotul în plasă, trecere pe lângă plasa plină), decorul din larg cu ce nu se poate prinde încă, ruine

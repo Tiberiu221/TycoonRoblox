@@ -4,6 +4,7 @@
 --   v2 -> v3  statiile cu niveluri si gramada de la debarcader (E1.2): NU sterge nimic, doar
 --             adauga campurile noi. Platformele cumparate raman -- un profil de playtest nu are
 --             de ce sa fie aruncat doar pentru ca s-a adaugat un camp.
+local AudioLevels = require(script and script.Parent.AudioLevels or "./AudioLevels")
 local ChainMath = require(script and script.Parent.ChainMath or "./ChainMath")
 local PileMath = require(script and script.Parent.PileMath or "./PileMath")
 local StationConfig =
@@ -150,6 +151,26 @@ function ProfileMigrate.toV5(data: { [string]: any })
         data.Stats.sawn = 0
     end
     data.Meta.version = 5
+end
+
+-- v6 [D54]: nivelurile sunetului. Pana acum muzica era doar pornita sau oprita (Settings.music); acum
+-- muzica si efectele au fiecare un nivel 0..10. Cine oprise muzica o gaseste la 0, nu repornita.
+-- `music` ramane in profil (migrarile nu sterg), necitit. Un profil fara Settings (dinaintea D51, adus
+-- aici inainte de Reconcile) primeste implicitele.
+function ProfileMigrate.toV6(data: { [string]: any })
+    local version = if data.Meta ~= nil and data.Meta.version ~= nil then data.Meta.version else 1
+    if version >= 6 then
+        return
+    end
+    local settings = if typeof(data.Settings) == "table" then data.Settings else {}
+    if not AudioLevels.valid(settings.musicLevel) then
+        settings.musicLevel = if settings.music == false then 0 else AudioLevels.DEFAULT_MUSIC
+    end
+    if not AudioLevels.valid(settings.soundLevel) then
+        settings.soundLevel = AudioLevels.DEFAULT_SOUND
+    end
+    data.Settings = settings
+    data.Meta.version = 6
 end
 
 return ProfileMigrate

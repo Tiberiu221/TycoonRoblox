@@ -25,6 +25,7 @@ require("./QuestMath.test")()
 require("./WheelMath.test")()
 require("./GuideMath.test")()
 require("./RateLimiter.test")()
+require("./AudioLevels.test")()
 
 local frktest = require("@frktest/frktest")
 local console_reporter = require("@frktest/reporters/console_reporter")

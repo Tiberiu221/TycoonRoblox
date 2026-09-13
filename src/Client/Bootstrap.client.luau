@@ -15,6 +15,7 @@ local Net = require(ReplicatedStorage.Net.Net)
 local RiverConfig = require(ReplicatedStorage.Shared.Config.RiverConfig)
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 local Strings = require(ReplicatedStorage.Shared.Config.Strings)
+local AudioLevels = require(ReplicatedStorage.Shared.Modules.AudioLevels)
 local HUDController = require(script.Parent.Controllers.HUDController)
 local IndexController = require(script.Parent.Controllers.IndexController)
 local RiverRenderController = require(script.Parent.Controllers.RiverRenderController)
@@ -25,6 +26,8 @@ local StorageController = require(script.Parent.Controllers.StorageController)
 local PadController = require(script.Parent.Controllers.PadController)
 local InteractController = require(script.Parent.Controllers.InteractController)
 local MusicController = require(script.Parent.Controllers.MusicController)
+local SoundController = require(script.Parent.Controllers.SoundController)
+local AudioPanel = require(script.Parent.Controllers.AudioPanel)
 local HandRenderController = require(script.Parent.Controllers.HandRenderController)
 local ZoneController = require(script.Parent.Controllers.ZoneController)
 local WorkshopController = require(script.Parent.Controllers.WorkshopController)
@@ -331,9 +334,6 @@ local function isMenuUnlocked(name: string): boolean
     if name == "workshop" then
         return workshopUnlocked
     end
-    if name == "music" then
-        return MusicController.Available() -- fara muzica urcata, fara buton [D51]
-    end
     return true
 end
 local menuEntries = {
@@ -361,12 +361,13 @@ local menuEntries = {
         open = IndexController.Toggle,
     },
     {
-        -- [D51] muzica pornita/oprita, tinuta minte in profil
-        name = "music",
+        -- [D54] panoul "Sound": nivelul muzicii si al efectelor, tinut minte in profil. Mereu in bara:
+        -- efectele exista si fara muzica (randul Music se ascunde singur cand ea lipseste).
+        name = "sound",
         icon = "music",
-        label = Strings.MENU_MUSIC,
+        label = Strings.MENU_SOUND,
         key = "M",
-        open = MusicController.Toggle,
+        open = AudioPanel.Toggle,
     },
     {
         name = "workshop",
@@ -385,18 +386,10 @@ safeInit("MenuBarController", function()
     })
 end)
 safeInit("MusicController", function()
-    local announced = false
-    MusicController.Init({
-        SetMusic = Net.Get("SetMusic"),
-        OnChanged = function(on: boolean)
-            MenuBarController.SetDimmed("music", not on)
-            -- prima aplicare (preferinta din profil) nu se anunta; doar apasarea butonului
-            if announced then
-                HUDController.Toast(Strings.musicToggled(on))
-            end
-            announced = true
-        end,
-    })
+    MusicController.Init()
+end)
+safeInit("AudioPanel", function()
+    AudioPanel.Init({ HudGui = hudCanvas, SetAudio = Net.Get("SetAudio") })
 end)
 
 -- TASTELE BARII DE MENIU. Pana acum apareau doar in tooltip ("Quests (J)") si nu erau legate nicaieri
@@ -801,8 +794,15 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
 
     local rawSettings: any = raw.settings or {}
     local snapshot = {
-        -- [D51] preferintele: muzica pornita implicit, oprita doar daca profilul spune explicit
-        settings = { music = rawSettings.music ~= false },
+        -- [D54] nivelurile sunetului, copiate explicit; o valoare lipsa sau stricata cade pe implicit
+        settings = {
+            musicLevel = if AudioLevels.valid(rawSettings.musicLevel)
+                then rawSettings.musicLevel :: number
+                else AudioLevels.DEFAULT_MUSIC,
+            soundLevel = if AudioLevels.valid(rawSettings.soundLevel)
+                then rawSettings.soundLevel :: number
+                else AudioLevels.DEFAULT_SOUND,
+        },
         coins = raw.coins,
         pearls = raw.pearls or 0,
         incomePerSec = raw.incomePerSec,
@@ -839,7 +839,10 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
     HUDController.SetPearls(snapshot.pearls)
     HUDController.SetIncome(snapshot.incomePerSec)
     HUDController.SetIdle(snapshot.stations.idle)
-    MusicController.Apply(snapshot.settings.music)
+    -- [D54] doar prima stare conteaza (vezi Apply); panoul deschis inainte de ea se redeseneaza
+    MusicController.Apply(snapshot.settings.musicLevel)
+    SoundController.Apply(snapshot.settings.soundLevel)
+    AudioPanel.Refresh()
     TutorialController.Apply({
         firstNetBought = snapshot.pads.first_net == "bought",
         firstSale = snapshot.firsts.sell == true,

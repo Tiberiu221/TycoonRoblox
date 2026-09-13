@@ -563,10 +563,13 @@ function Strings.cardUpgradeCost(cost: string): string
     return `Upgrade · {cost}`
 end
 Strings.CARD_SACK_FULL = "Sack full"
--- [D51] butonul de muzica
-Strings.MENU_MUSIC = "Music"
-function Strings.musicToggled(on: boolean): string
-    return if on then "Music on" else "Music off"
+-- [D54] panoul "Sound": nivelul muzicii si al efectelor, 0..10
+Strings.MENU_SOUND = "Sound"
+Strings.AUDIO_TITLE = "Sound"
+Strings.AUDIO_MUSIC = "Music"
+Strings.AUDIO_SOUNDS = "Sounds"
+function Strings.audioLevel(level: number): string
+    return if level <= 0 then "Off" else `{level * 10}%`
 end
 -- Cartonasul de la apropiere e o CONFIRMARE, nu un indemn: nimic nu se mai cumpara calcand pe
 -- obiect. "Step on it to build" a iesit -- ar fi mintit din clipa in care mersul nu mai cumpara.

@@ -353,4 +353,45 @@ return function()
             check.is_true(data.Sack == sack)
         end)
     end)
+
+    test.suite("ProfileMigrate.toV6 - nivelurile sunetului [D54]", function()
+        local function v5(settings: { [string]: any }?): { [string]: any }
+            return { Meta = { version = 5, createdAt = 1, lastSeenAt = 2 }, Settings = settings }
+        end
+
+        test.case("muzica oprita ramane oprita: nivelul 0, nu repornita", function()
+            local data = v5({ music = false })
+            ProfileMigrate.toV6(data)
+            check.equal(data.Settings.musicLevel, 0)
+            check.equal(data.Settings.soundLevel, 10)
+            check.equal(data.Meta.version, 6)
+            check.equal(data.Settings.music, false) -- nimic nu se sterge
+        end)
+
+        test.case("muzica pornita: nivelul implicit, de fundal", function()
+            local data = v5({ music = true })
+            ProfileMigrate.toV6(data)
+            check.equal(data.Settings.musicLevel, 4)
+            check.equal(data.Settings.soundLevel, 10)
+        end)
+
+        test.case("fara Settings (profil dinaintea D51): implicitele", function()
+            local data = v5(nil)
+            ProfileMigrate.toV6(data)
+            check.equal(data.Settings.musicLevel, 4)
+            check.equal(data.Settings.soundLevel, 10)
+        end)
+
+        test.case("idempotenta: a doua trecere si un profil v6 nu schimba nimic", function()
+            local data = v5({ music = false })
+            ProfileMigrate.toV6(data)
+            data.Settings.musicLevel = 7
+            ProfileMigrate.toV6(data)
+            check.equal(data.Settings.musicLevel, 7)
+            local fresh = { Meta = { version = 6 }, Settings = { musicLevel = 2, soundLevel = 3 } }
+            ProfileMigrate.toV6(fresh)
+            check.equal(fresh.Settings.musicLevel, 2)
+            check.equal(fresh.Settings.soundLevel, 3)
+        end)
+    end)
 end
