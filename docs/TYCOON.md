@@ -151,6 +151,10 @@ clopot (animație, sunet, zona nouă se luminează).
 
 **Detaliu:**
 
+> **[D55, 2026-09-13]** Tabelul de mai jos e istoric. Acum ce prinde o plasă ține de felul ei: plasele 1–4
+> prind **lemn** (driftwood 95%, finds 5%), Fifth Net prinde **scrap** (95%, finds 5%), topit la atelier în
+> **fier** (3) și vândut la tavernă. Reeds și shards au ieșit din Era 1 (treceau prin gater ca scrap-ul).
+
 | Bun | Valoare | Pondere | De unde |
 |---|---|---|---|
 | Driftwood | 1 | 70% | orice bandă |
@@ -532,6 +536,8 @@ Fazele din §7, fiecare cu o **poartă de validare** pe oameni reali — eșecul
 > **[D52, 2026-09-13]** Tabelul de mai jos e istoric (dinainte de D46). Cifrele vii le tipărește
 > simulatorul: Era 1 în 33m59s reali, 9 cumpărături în primele 5 minute; poarta verigilor e acum 0,5%
 > din timp (era 5%) — compromisul ordinii „oamenii înaintea plaselor". Vezi D52.
+> **[D55]** Cu lanțul resturilor (Scrap Shed, forja atelierului, fierul): Era 1 în 37m44s reali, 14 deblocări;
+> prețurile noi și regula verigii slabe pe două mărfuri sunt în D55.
 
 Generat de `python3 scripts/economy/sim_tycoon.py --table`. Jucătorul simulat e **lacom** (cumpără
 imediat); coloana *real* folosește factorul 1,8× (IPOTEZĂ).

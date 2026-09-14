@@ -10,19 +10,31 @@
 -- [D50] Pe drumuri: `via` sunt punctele prin care trece omul INAINTE sa ajunga la oprire, iar
 -- `returnVia` cele de pe drumul inapoi. Devin doar picioare de mers -- nimic nu se strange si nu se
 -- lasa pe drum, deci evenimentele raman exact la opriri.
+--
+-- [D55] O oprire poate fi si de LASAT (`drop`): Collector-ul lasa scrap-ul la shed inainte de depozit,
+-- Porter-ul lasa bustenii la gater inainte sa duca scrap-ul la atelier. Evenimentul ei e "drop". `face` e
+-- incotro sta omul in pauza -- spre gramada lui, ca roaba sa se rastoarne peste ea, nu spre rau.
 
 export type Point = { x: number, y: number }
-export type Stop = { x: number, y: number, padId: string, via: { Point }? }
+export type Stop = {
+    x: number,
+    y: number,
+    padId: string, -- plasa, sau locul: "storage" | "shed" | "planks" | "iron" | "sawmill" | "forge"
+    via: { Point }?,
+    drop: boolean?,
+    face: string?,
+}
 export type Leg = {
     t0: number,
     t1: number,
-    kind: string, -- "walk" | "collect" | "sell"
+    kind: string, -- "walk" | "collect" | "drop" | "sell"
     from: Point,
     to: Point,
     padId: string?,
+    face: string?,
 }
 export type Cycle = { legs: { Leg }, duration: number }
-export type Event = { at: number, kind: string, padId: string? } -- "collect" | "sell"
+export type Event = { at: number, kind: string, padId: string? } -- "collect" | "drop" | "sell"
 export type RunnerConfig = { speed: number, pauseNet: number, pauseDock: number }
 
 local HandMath = {}
@@ -51,7 +63,8 @@ function HandMath.cycle(
     stops: { Stop },
     dock: Point,
     cfg: RunnerConfig,
-    returnVia: { Point }?
+    returnVia: { Point }?,
+    dockFace: string?
 ): Cycle
     local legs: { Leg } = {}
     if #stops == 0 then
@@ -74,10 +87,11 @@ function HandMath.cycle(
         table.insert(legs, {
             t0 = t,
             t1 = t + cfg.pauseNet,
-            kind = "collect",
+            kind = if s.drop then "drop" else "collect",
             from = here,
             to = here,
             padId = s.padId,
+            face = s.face,
         })
         t += cfg.pauseNet
     end
@@ -85,14 +99,18 @@ function HandMath.cycle(
         walkTo({ x = p.x, y = p.y })
     end
     walkTo({ x = dock.x, y = dock.y })
-    table.insert(legs, { t0 = t, t1 = t + cfg.pauseDock, kind = "sell", from = here, to = here })
+    table.insert(
+        legs,
+        { t0 = t, t1 = t + cfg.pauseDock, kind = "sell", from = here, to = here, face = dockFace }
+    )
     t += cfg.pauseDock
     return { legs = legs, duration = t }
 end
 
 -- Unde e alergatorul la `t` secunde de la inceputul ciclurilor si ce face:
--- x, y, stare ("walk" | "collect" | "sell" | "idle"), directie ("left" | "right" | "up" |
--- "down") si daca duce marfa (intre prima strangere si vanzare).
+-- x, y, stare ("walk" | "collect" | "drop" | "sell" | "idle"), directie ("left" | "right" | "up" |
+-- "down") si daca duce marfa (intre prima strangere si vanzare). In pauza, directia e `face` al opririi
+-- (spre gramada), altfel "up".
 function HandMath.sampleAt(c: Cycle, t: number): (number, number, string, string, boolean)
     if c.duration <= 0 or #c.legs == 0 then
         return 0, 0, "idle", "down", false
@@ -110,8 +128,7 @@ function HandMath.sampleAt(c: Cycle, t: number): (number, number, string, string
     for _, leg in c.legs do
         if tc < leg.t1 or leg == c.legs[#c.legs] then
             if leg.kind ~= "walk" then
-                -- in pauza sta cu fata spre rau: plasa si debarcaderul sunt amandoua spre nord
-                return leg.to.x, leg.to.y, leg.kind, "up", carrying
+                return leg.to.x, leg.to.y, leg.kind, leg.face or "up", carrying
             end
             local span = leg.t1 - leg.t0
             local k = if span > 0 then math.clamp((tc - leg.t0) / span, 0, 1) else 1
@@ -143,7 +160,7 @@ function HandMath.eventsBetween(c: Cycle, startAt: number, fromT: number, toT: n
     for k = kFirst, kLast do
         local base = startAt + k * c.duration
         for _, leg in c.legs do
-            if leg.kind == "collect" or leg.kind == "sell" then
+            if leg.kind == "collect" or leg.kind == "drop" or leg.kind == "sell" then
                 local at = base + leg.t0
                 if at > from and at <= toT then
                     table.insert(events, { at = at, kind = leg.kind, padId = leg.padId })

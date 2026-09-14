@@ -35,7 +35,15 @@ export type Deps = {
     OpenStation: ((string, string?) -> ())?,
 }
 
-export type Sack = { count: number, capacity: number, raw: number, cut: number, cutValue: number }
+export type Sack = {
+    count: number,
+    capacity: number,
+    raw: number, -- [D55] lemnul brut; scrap-ul are `rawScrap` si drumul lui
+    rawScrap: number,
+    iron: number,
+    cut: number,
+    cutValue: number,
+}
 export type Snapshot = {
     count: number,
     contents: { [string]: number },
@@ -51,7 +59,8 @@ local deps: Deps
 local blade: GuiObject? = nil
 local inPile: PileView.View
 local outPile: PileView.View
-local sack: Sack = { count = 0, capacity = 0, raw = 0, cut = 0, cutValue = 0 }
+local sack: Sack =
+    { count = 0, capacity = 0, raw = 0, rawScrap = 0, iron = 0, cut = 0, cutValue = 0 }
 local state: Snapshot = {
     count = 0,
     contents = {},
@@ -73,8 +82,8 @@ local SM = TycoonConfig.SAWMILL
 local STAND = TycoonConfig.SAWMILL_STAND
 local PLOT_ORIGIN = TycoonConfig.PLOT_ORIGIN
 local TOP_Y = SM.y - SM.h
--- Intrarea la capatul de est al curtii (unde lasa Porter-ul), iesirea la capatul de vest (de unde ia
--- Hauler-ul): drumul marfii prin gater se citeste de la dreapta la stanga, fara niciun text [D50].
+-- [D55] Bustenii in stanga gaterului (unde lasa Porter-ul), scandurile in dreapta (de unde ia Hauler-ul):
+-- drumul marfii prin gater se citeste de la stanga la dreapta, ca in desenul lui -- bustean, panza, scanduri.
 local IN_SPOT = TycoonConfig.PILES.sawmillIn
 local OUT_SPOT = TycoonConfig.PILES.sawmillOut
 -- Cat timp dupa o taietura se mai misca panza. Starea vine de la server cel mult de doua ori pe
@@ -148,6 +157,10 @@ function SawmillController.Focus(px: number, py: number): Focus.Focus?
             then function()
                 deps.Remotes.UseSawmill:FireServer()
             end
+            else nil,
+        -- [D55] cu doar scrap in traista, cardul spune unde merge -- nu tace [D43]
+        status = if text == nil and sack.rawScrap > 0
+            then Strings.useResult("sawmill", false, "scrap_to_workshop", 0, 0, false)
             else nil,
         upgradeKind = "saw",
     }

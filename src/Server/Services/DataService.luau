@@ -63,7 +63,14 @@ export type ProfileData = {
     -- Nivelurile cladirilor (E1.2/E1.3). `nets` e padId -> nivel, ca o plasa sa-si poata urca
     -- nivelul separat de celelalte; `saw` e gaterul [D48], `dock` vanzarea. `carry` e statia din D48,
     -- scoasa in D49: ramane in profilurile vechi, necitita (nivelurile ei s-au rambursat la migrare).
-    Stations: { carry: Station?, saw: Station, dock: Station, nets: { [string]: Station } },
+    -- [D55] `forge` e forja atelierului: topeste scrap-ul in fier.
+    Stations: {
+        carry: Station?,
+        saw: Station,
+        dock: Station,
+        forge: Station,
+        nets: { [string]: Station },
+    },
     -- GRAMEZILE [D49], ca numaratori (PileMath): nu se pierde nimic si n-au plafon -- cand o veriga
     -- e cea slaba, gramada din fata ei creste si se vede [P2, D43].
     -- Ce aduna Collectorii din plase, pana il duce cineva la gater.
@@ -74,6 +81,10 @@ export type ProfileData = {
     PlanksPile: { counts: { [string]: number } },
     -- Marfa taiata de la debarcader care ASTEAPTA sa fie vanduta.
     DockPile: { counts: { [string]: number }, drainedAt: number },
+    -- [D55] RESTURILE: scrap-ul lasat la shed, scrap-ul care asteapta topit la atelier, fierul iesit.
+    ScrapPile: { counts: { [string]: number } },
+    ForgePile: { counts: { [string]: number }, smeltedAt: number },
+    IronPile: { counts: { [string]: number } },
     -- ce recompense de quest au fost deja luate; progresul NU se salveaza, se citeste din stare
     Quests: { claimed: { [string]: boolean } },
     -- roata zilnica: cand a fost ultima rotire, samanta si cate s-au facut [D46]
@@ -89,6 +100,7 @@ export type ProfileData = {
         -- [D51] numaratori de BUCATI, pentru quest-urile buclei: gesturile de mai sus nu spun cat
         collected: number, -- bucati colectate de jucator din plase (nu de Collector)
         sold: number, -- bucati predate la taverna, de jucator sau de Hauler
+        smelted: number, -- [D55] bucati de fier topite la atelier
         coinsEarned: number,
         padsBought: number,
         repairs: number, -- pentru WorkshopService (F1)
@@ -101,7 +113,7 @@ export type ProfileData = {
 }
 
 local PROFILE_TEMPLATE: ProfileData = {
-    Meta = { version = 6, createdAt = 0, lastSeenAt = 0 },
+    Meta = { version = 7, createdAt = 0, lastSeenAt = 0 },
     Coins = 0,
     Pearls = 0,
     Pads = {},
@@ -121,11 +133,15 @@ local PROFILE_TEMPLATE: ProfileData = {
         hauler = { tier = 1 },
         trader = { tier = 1 },
     },
-    Stations = { saw = { level = 1 }, dock = { level = 1 }, nets = {} },
+    -- ACELEASI campuri ca ProfileMigrate.toV7 [D55]: sablonul la v7 nu mai trece prin migrare.
+    Stations = { saw = { level = 1 }, dock = { level = 1 }, forge = { level = 1 }, nets = {} },
     StoragePile = { counts = {} },
     SawmillPile = { counts = {}, sawnAt = 0 },
     PlanksPile = { counts = {} },
     DockPile = { counts = {}, drainedAt = 0 },
+    ScrapPile = { counts = {} },
+    ForgePile = { counts = {}, smeltedAt = 0 },
+    IronPile = { counts = {} },
     Quests = { claimed = {} },
     Wheel = { lastSpinAt = 0, seed = 0, spins = 0 },
     Vault = { stored = 0, updatedAt = 0 },
@@ -138,6 +154,7 @@ local PROFILE_TEMPLATE: ProfileData = {
         sawn = 0,
         collected = 0,
         sold = 0,
+        smelted = 0,
         coinsEarned = 0,
         padsBought = 0,
         repairs = 0,
@@ -257,6 +274,7 @@ local function onPlayerAdded(player: Player)
     ProfileMigrate.toV4(profile.Data) -- gaterul [D48]: nivelul lui si gramada, aditiv
     ProfileMigrate.toV5(profile.Data) -- oamenii [D49]: gramezi ca numaratori, trepte, Carry rambursat
     ProfileMigrate.toV6(profile.Data) -- nivelurile sunetului [D54]: muzica oprita ramane la 0
+    ProfileMigrate.toV7(profile.Data) -- resturile [D55]: shed, forja, fierul -- aditiv, nimic nu se muta
     profile:Reconcile()
     profile.OnSessionEnd:Connect(function()
         profiles[player] = nil

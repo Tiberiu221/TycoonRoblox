@@ -394,4 +394,48 @@ return function()
             check.equal(fresh.Settings.soundLevel, 3)
         end)
     end)
+
+    test.suite("ProfileMigrate.toV7 - resturile [D55]", function()
+        local function v6(): { [string]: any }
+            return {
+                Meta = { version = 6, createdAt = 1, lastSeenAt = 2 },
+                Stations = { saw = { level = 4 }, dock = { level = 3 }, nets = {} },
+                StoragePile = { counts = { scrap = 5, driftwood = 9 } },
+                Stats = { sawn = 12 },
+            }
+        end
+
+        test.case("adauga gramezile, forja si numaratoarea, fara sa mute nimic", function()
+            local data = v6()
+            ProfileMigrate.toV7(data)
+            check.equal(data.Meta.version, 7)
+            check.equal(next(data.ScrapPile.counts), nil)
+            check.equal(next(data.IronPile.counts), nil)
+            check.equal(data.ForgePile.smeltedAt, 0)
+            check.equal(data.Stations.forge.level, 1)
+            check.equal(data.Stats.smelted, 0)
+            -- scrap-ul deja prins ramane in depozit: trece prin gater si se vinde, ca inainte
+            check.equal(data.StoragePile.counts.scrap, 5)
+            check.equal(data.StoragePile.counts.driftwood, 9)
+            check.equal(data.Stations.saw.level, 4)
+        end)
+
+        test.case("nu atinge ce exista si e idempotenta", function()
+            local data = v6()
+            data.ScrapPile = { counts = { scrap = 3 } }
+            data.Stations.forge = { level = 8 }
+            ProfileMigrate.toV7(data)
+            check.equal(data.ScrapPile.counts.scrap, 3)
+            check.equal(data.Stations.forge.level, 8)
+            ProfileMigrate.toV7(data)
+            check.equal(data.Meta.version, 7)
+        end)
+
+        test.case("un profil deja la v7 ramane neatins", function()
+            local fresh = { Meta = { version = 7 }, ScrapPile = { counts = { scrap = 1 } } }
+            ProfileMigrate.toV7(fresh)
+            check.equal(fresh.ScrapPile.counts.scrap, 1)
+            check.equal(fresh.IronPile, nil)
+        end)
+    end)
 end

@@ -177,7 +177,7 @@ local HANDLERS: { [string]: Handler } = {
         local n = tonumber(amount) or 50
         local added = EconomyService.DevFillPile(player, place or "", n)
         if added == 0 then
-            return "usage: pile storage|sawmill|planks|dock [n]"
+            return "usage: pile storage|sawmill|planks|dock|shed|forge|iron [n]"
         end
         return `+{added} in {place}`
     end,

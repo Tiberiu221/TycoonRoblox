@@ -1,6 +1,6 @@
 -- Paritate cu simulatorul. ChainMath e un PORT al lui scripts/economy/sim_tycoon.py: daca cele
 -- doua se despart fie si la ultimul bit, jocul incepe sa afiseze alte cifre decat cele pe care s-a
--- facut balansul. Valorile de mai jos sunt tiparite de simulator (repr) si copiate aici ca atare.
+-- facut balansul. Valorile de mai jos le tipareste scripts/economy/golden_chain.py [D55].
 local frktest = require("@frktest/frktest")
 local test = frktest.test
 local check = frktest.assert.check
@@ -10,12 +10,14 @@ local ChainMath = require("../src/Shared/Modules/ChainMath")
 
 type CrewSpec = { [string]: { number } }
 
+-- `scrap` = {atelier, shed, nivelul forjei} [D55]; fara el, nici atelier, nici shed (lantul de dinainte)
 local function state(
     levels: { number },
     saw: number,
     dock: number,
     sack: boolean,
-    crews: CrewSpec?
+    crews: CrewSpec?,
+    scrap: { any }?
 ): ChainMath.State
     local s = ChainMath.empty()
     for i, lv in levels do
@@ -23,6 +25,7 @@ local function state(
             base = ChainMath.netBase(i),
             baseLane = StationConfig.NET_LANES[i],
             level = lv,
+            kind = StationConfig.NET_KINDS[i],
         })
     end
     s.sawLevel = saw
@@ -31,12 +34,17 @@ local function state(
     for role, spec in crews or {} do
         s.crews[role] = { count = spec[1], tier = spec[2] }
     end
+    if scrap ~= nil then
+        s.workshop = scrap[1] :: boolean
+        s.scrapShed = scrap[2] :: boolean
+        s.forgeLevel = scrap[3] :: number
+    end
     return s
 end
 
--- (nume, plase, gater, debarcader, traista, oameni {rol = {cati, treapta}},
---  debite {prindere, adunat, dus la gater, taiat, dus la debarcader, vandut, livrat},
---  gatuire, valoare medie, venit)
+-- (nume, plase, gater, taverna, traista, oameni {rol = {cati, treapta}}, atelier, shed, nivelul forjei,
+--  debite {lemn prins, scrap prins, adunat, dus, taiat, topit, dus la taverna, vandut, lemn livrat, fier livrat},
+--  gatuire, venit). [D55] Tiparite de scripts/economy/golden_chain.py -- se regenereaza, nu se copiaza de mana.
 local GOLDEN = {
     {
         name = "o plasa nivel 1, totul de mana",
@@ -45,10 +53,12 @@ local GOLDEN = {
         dock = 1,
         sack = false,
         crews = {},
-        rates = { 0.33, 0.9, 0.9, 0.6, 0.9, 1.0499999999999998, 0.33 },
+        workshop = false,
+        shed = false,
+        forge = 1,
+        rates = { 0.33, 0.0, 0.9, 0.9, 0.6, 0.0, 0.9, 1.0499999999999998, 0.33, 0.0 },
         bottleneck = "nets",
-        avg = 1.73,
-        income = 0.5709000000000001,
+        income = 0.5445,
     },
     {
         name = "doua plase nivel 5",
@@ -57,10 +67,12 @@ local GOLDEN = {
         dock = 1,
         sack = false,
         crews = {},
-        rates = { 0.9055200000000001, 0.9, 0.9, 0.6, 0.9, 1.0499999999999998, 0.6 },
+        workshop = false,
+        shed = false,
+        forge = 1,
+        rates = { 0.9055200000000001, 0.0, 0.9, 0.9, 0.6, 0.0, 0.9, 1.0499999999999998, 0.6, 0.0 },
         bottleneck = "saw",
-        avg = 1.73,
-        income = 1.038,
+        income = 0.9899999999999999,
     },
     {
         name = "Collector angajat: restul pasilor primesc mai mult din timpul tau",
@@ -69,18 +81,23 @@ local GOLDEN = {
         dock = 1,
         sack = false,
         crews = { collector = { 1, 1 } },
+        workshop = false,
+        shed = false,
+        forge = 1,
         rates = {
             0.9055200000000001,
+            0.0,
             4.0,
             1.2,
             0.7999999999999999,
+            0.0,
             1.2,
             1.0499999999999998,
             0.7999999999999999,
+            0.0,
         },
         bottleneck = "saw",
-        avg = 1.73,
-        income = 1.384,
+        income = 1.3199999999999998,
     },
     {
         name = "traista mare pe pasii de mana",
@@ -89,13 +106,15 @@ local GOLDEN = {
         dock = 2,
         sack = true,
         crews = { collector = { 1, 1 }, porter = { 1, 1 } },
-        rates = { 1.417185, 4.0, 6.0, 1.344, 2.7, 1.113, 1.113 },
+        workshop = false,
+        shed = false,
+        forge = 1,
+        rates = { 1.417185, 0.0, 4.0, 6.0, 1.344, 0.0, 2.7, 1.113, 1.113, 0.0 },
         bottleneck = "dock",
-        avg = 1.8599999999999999,
-        income = 2.0701799999999997,
+        income = 1.83645,
     },
     {
-        name = "toti oamenii, trepte diferite",
+        name = "toti oamenii, trepte diferite, plasa a cincea fara shed",
         nets = { 14, 11, 9, 6, 3 },
         saw = 8,
         dock = 8,
@@ -107,10 +126,23 @@ local GOLDEN = {
             hauler = { 1, 4 },
             trader = { 1, 2 },
         },
-        rates = { 5.725089273750001, 40.0, 18.0, 6.816, 36.0, 8.52, 5.725089273750001 },
+        workshop = true,
+        shed = false,
+        forge = 1,
+        rates = {
+            4.178796187500001,
+            0.0,
+            40.0,
+            18.0,
+            6.816,
+            1.2,
+            36.0,
+            8.52,
+            4.178796187500001,
+            0.0,
+        },
         bottleneck = "nets",
-        avg = 1.92,
-        income = 10.9921714056,
+        income = 6.895013709375001,
     },
     {
         name = "fara Negustor: debarcaderul merge la o treime",
@@ -119,18 +151,23 @@ local GOLDEN = {
         dock = 5,
         sack = false,
         crews = { collector = { 1, 2 }, porter = { 1, 2 }, sawyer = { 1, 1 }, hauler = { 1, 1 } },
+        workshop = false,
+        shed = false,
+        forge = 1,
         rates = {
             2.05359,
+            0.0,
             8.0,
             12.0,
             10.271999999999998,
+            0.0,
             9.0,
             1.3019999999999998,
             1.3019999999999998,
+            0.0,
         },
         bottleneck = "dock",
-        avg = 1.8599999999999999,
-        income = 2.4217199999999997,
+        income = 2.1482999999999994,
     },
     {
         name = "gaterul de mana e gatuirea",
@@ -139,13 +176,15 @@ local GOLDEN = {
         dock = 10,
         sack = false,
         crews = { collector = { 1, 1 }, porter = { 1, 1 }, hauler = { 1, 1 } },
-        rates = { 2.05359, 4.0, 6.0, 2.4, 9.0, 3.234, 2.05359 },
+        workshop = false,
+        shed = false,
+        forge = 1,
+        rates = { 2.05359, 0.0, 4.0, 6.0, 2.4, 0.0, 9.0, 3.234, 2.05359, 0.0 },
         bottleneck = "nets",
-        avg = 1.8599999999999999,
-        income = 3.8196773999999993,
+        income = 3.3884234999999996,
     },
     {
-        name = "prag 25 pe toate, echipaj la maxim",
+        name = "prag 25 pe toate, echipaj la maxim, fara shed",
         nets = { 25, 25, 25, 25, 25 },
         saw = 25,
         dock = 25,
@@ -157,10 +196,167 @@ local GOLDEN = {
             hauler = { 2, 5 },
             trader = { 2, 5 },
         },
-        rates = { 27.29391159, 40.0, 60.0, 234.24, 90.0, 292.8, 27.29391159 },
+        workshop = true,
+        shed = false,
+        forge = 1,
+        rates = { 17.2575942, 0.0, 40.0, 60.0, 234.24, 1.2, 90.0, 292.8, 17.2575942, 0.0 },
         bottleneck = "nets",
-        avg = 1.92,
-        income = 52.4043102528,
+        income = 28.475030429999997,
+    },
+    {
+        name = "shed si forja nivel 1: forja tine scrap-ul",
+        nets = { 30, 30, 25, 20, 1 },
+        saw = 30,
+        dock = 30,
+        sack = true,
+        crews = {
+            collector = { 2, 5 },
+            porter = { 2, 5 },
+            sawyer = { 2, 5 },
+            hauler = { 2, 5 },
+            trader = { 2, 5 },
+        },
+        workshop = true,
+        shed = true,
+        forge = 1,
+        rates = {
+            13.980081225000001,
+            1.4587670625,
+            40.0,
+            60.0,
+            263.04,
+            1.2,
+            90.0,
+            328.8,
+            13.980081225000001,
+            1.2,
+        },
+        bottleneck = "forge",
+        income = 27.327134021250004,
+    },
+    {
+        name = "forja mare: plasa de scrap e cea care tine",
+        nets = { 30, 30, 25, 20, 1 },
+        saw = 30,
+        dock = 30,
+        sack = true,
+        crews = {
+            collector = { 2, 5 },
+            porter = { 2, 5 },
+            sawyer = { 2, 5 },
+            hauler = { 2, 5 },
+            trader = { 2, 5 },
+        },
+        workshop = true,
+        shed = true,
+        forge = 40,
+        rates = {
+            13.980081225000001,
+            1.4587670625,
+            40.0,
+            60.0,
+            263.04,
+            16.032,
+            90.0,
+            328.8,
+            13.980081225000001,
+            1.4587670625,
+        },
+        bottleneck = "nets",
+        income = 28.245757093125,
+    },
+    {
+        name = "Collector-ul plin: fierul intai, lemnul din ce ramane",
+        nets = { 60, 60, 60, 60, 5 },
+        saw = 60,
+        dock = 60,
+        sack = true,
+        crews = {
+            collector = { 1, 2 },
+            porter = { 2, 5 },
+            sawyer = { 2, 5 },
+            hauler = { 2, 5 },
+            trader = { 2, 5 },
+        },
+        workshop = true,
+        shed = true,
+        forge = 30,
+        rates = {
+            55.5855069,
+            1.6338191100000001,
+            8.0,
+            60.0,
+            871.68,
+            13.152000000000001,
+            90.0,
+            1089.6000000000001,
+            6.36618089,
+            1.6338191100000001,
+        },
+        bottleneck = "nets",
+        income = 16.304256309,
+    },
+    {
+        name = "scrap-ul umple tot Collector-ul: lemnul nu mai ajunge",
+        nets = { 60, 60, 60, 60, 90 },
+        saw = 60,
+        dock = 60,
+        sack = true,
+        crews = {
+            collector = { 1, 1 },
+            porter = { 2, 5 },
+            sawyer = { 2, 5 },
+            hauler = { 2, 5 },
+            trader = { 2, 5 },
+        },
+        workshop = true,
+        shed = true,
+        forge = 90,
+        rates = {
+            55.5855069,
+            42.829400955,
+            4.0,
+            60.0,
+            871.68,
+            60.864,
+            90.0,
+            1089.6000000000001,
+            0.0,
+            4.0,
+        },
+        bottleneck = "collect",
+        income = 14.2,
+    },
+    {
+        name = "fara atelier forja nu exista: plasa de scrap nu aduce nimic",
+        nets = { 10, 10, 10, 10, 10 },
+        saw = 10,
+        dock = 10,
+        sack = true,
+        crews = {
+            collector = { 1, 3 },
+            porter = { 1, 3 },
+            sawyer = { 1, 3 },
+            hauler = { 1, 3 },
+            trader = { 1, 3 },
+        },
+        workshop = false,
+        shed = true,
+        forge = 1,
+        rates = {
+            6.3712629750000005,
+            3.70526833875,
+            12.0,
+            18.0,
+            22.176,
+            0.0,
+            27.0,
+            27.72,
+            6.3712629750000005,
+            0.0,
+        },
+        bottleneck = "forge",
+        income = 10.51258390875,
     },
 }
 
@@ -179,7 +375,23 @@ local function purchases(s: ChainMath.State): { (ChainMath.State) -> () }
         function(st)
             st.sackBig = true
         end,
+        -- [D55] forja, plasa de scrap, atelierul si shed-ul
+        function(st)
+            st.forgeLevel += 1
+        end,
+        function(st)
+            st.workshop = true
+        end,
+        function(st)
+            st.scrapShed = true
+        end,
     }
+    local last = s.nets[#s.nets]
+    if last ~= nil then
+        table.insert(out, function(st)
+            st.nets[#st.nets].level += 1
+        end)
+    end
     -- urmatoarea angajare, in ordinea raului
     for _, role in StationConfig.MANUAL_ROLES do
         if s.crews[role].count == 0 then
@@ -214,17 +426,26 @@ return function()
     test.suite("ChainMath - paritate cu simulatorul", function()
         for _, g in GOLDEN do
             test.case(g.name, function()
-                local s = state(g.nets, g.saw, g.dock, g.sack, g.crews :: any)
+                local s = state(
+                    g.nets,
+                    g.saw,
+                    g.dock,
+                    g.sack,
+                    g.crews :: any,
+                    { g.workshop, g.shed, g.forge }
+                )
                 local r = ChainMath.rates(s)
-                check.equal(r.catch, g.rates[1])
-                check.equal(r.collect, g.rates[2])
-                check.equal(r.port, g.rates[3])
-                check.equal(r.sawing, g.rates[4])
-                check.equal(r.haul, g.rates[5])
-                check.equal(r.sales, g.rates[6])
-                check.equal(r.delivered, g.rates[7])
+                check.equal(r.woodCatch, g.rates[1])
+                check.equal(r.scrapCatch, g.rates[2])
+                check.equal(r.collect, g.rates[3])
+                check.equal(r.port, g.rates[4])
+                check.equal(r.sawing, g.rates[5])
+                check.equal(r.forging, g.rates[6])
+                check.equal(r.haul, g.rates[7])
+                check.equal(r.sales, g.rates[8])
+                check.equal(r.wood, g.rates[9])
+                check.equal(r.scrap, g.rates[10])
                 check.equal(r.bottleneck, g.bottleneck)
-                check.equal(ChainMath.avgValue(s), g.avg)
                 check.equal(ChainMath.income(s), g.income)
             end)
         end
@@ -313,17 +534,28 @@ return function()
                             if trader then
                                 crews.trader = { 1, tier }
                             end
-                            -- cladirile mari: gatuirea sta pe pasii oamenilor, unde e riscul
+                            -- cladirile mari: gatuirea sta pe pasii oamenilor, unde e riscul. [D55] Si cu
+                            -- plasa de scrap, cu forja mica sau mare: fierul nu are voie sa scada lemnul
+                            -- mai mult decat aduce
                             for _, big in { 1, 40 } do
-                                local s =
-                                    state({ 8 * big, 6 * big, 4 * big }, big, big, sack, crews)
-                                local before = ChainMath.income(s)
-                                for _, apply in purchases(s) do
-                                    local probe = ChainMath.clone(s)
-                                    apply(probe)
-                                    checked += 1
-                                    if ChainMath.income(probe) < before - 1e-9 then
-                                        drops += 1
+                                for _, scrap in { false, true } do
+                                    local levels = { 8 * big, 6 * big, 4 * big, 3 * big, 2 * big }
+                                    local s = state(
+                                        levels,
+                                        big,
+                                        big,
+                                        sack,
+                                        crews,
+                                        if scrap then { true, true, big } else nil
+                                    )
+                                    local before = ChainMath.income(s)
+                                    for _, apply in purchases(s) do
+                                        local probe = ChainMath.clone(s)
+                                        apply(probe)
+                                        checked += 1
+                                        if ChainMath.income(probe) < before - 1e-9 then
+                                            drops += 1
+                                        end
                                     end
                                 end
                             end
@@ -331,7 +563,7 @@ return function()
                     end
                 end
             end
-            check.is_true(checked > 200)
+            check.is_true(checked > 800)
             check.equal(drops, 0)
         end)
 
@@ -399,7 +631,7 @@ return function()
             check.equal(ChainMath.rates(s).bottleneck, "haul")
         end)
 
-        test.case("gatuirea chiar se roteste intre toate sase verigile", function()
+        test.case("gatuirea chiar se roteste intre toate verigile, si forja", function()
             -- daca o veriga nu ajunge niciodata gatuire, semnul de avertizare de pe ea e decor --
             -- iar pentru o meserie, un meniu intreg care ar scrie "No gain yet" toata era
             local seen = {}
@@ -413,6 +645,16 @@ return function()
                             end
                             local s = state({ lv, lv }, saw, dock, false, crews)
                             seen[ChainMath.rates(s).bottleneck] = true
+                            -- [D55] cu plasa de scrap si forja mica: forja ajunge si ea gatuire
+                            local withScrap = state(
+                                { lv, lv, lv, lv, lv },
+                                saw,
+                                dock,
+                                false,
+                                crews,
+                                { true, true, 1 }
+                            )
+                            seen[ChainMath.rates(withScrap).bottleneck] = true
                         end
                     end
                 end
@@ -466,10 +708,44 @@ return function()
             check.equal(ChainMath.netLane(3, 25), 3) -- nu trece niciodata de banda 3
         end)
 
-        test.case("benzile mai departate aduc marfuri mai valoroase", function()
-            local near = state({ 1 }, 1, 1, false)
-            local far = state({ 25 }, 1, 1, false)
-            check.is_true(ChainMath.avgValue(far) > ChainMath.avgValue(near))
+        test.case("bucata de scrap valoreaza mai mult decat una de lemn [D55]", function()
+            -- lantul da capacitatea comuna intai scrap-ului: e cea mai buna impartire doar cat asta e adevarat
+            check.is_true(ChainMath.AVG.scrap > ChainMath.AVG.wood)
         end)
+
+        test.case("fara scrap, lantul e exact minimul celor sase debite [D55]", function()
+            for _, levels in { { 1 }, { 5, 5 }, { 30, 20, 10 }, { 40, 40, 40, 40, 40 } } do
+                for _, saw in { 1, 10, 60 } do
+                    local s =
+                        state(levels, saw, 12, true, { collector = { 1, 2 }, trader = { 1, 1 } })
+                    local r = ChainMath.rates(s)
+                    local six = math.min(r.woodCatch, r.collect, r.port, r.sawing, r.haul, r.sales)
+                    check.equal(r.wood, six)
+                    check.equal(r.scrap, 0)
+                end
+            end
+        end)
+
+        test.case(
+            "plasa de scrap fara shed nu aduce nimic, fara atelier nu se topeste [D55]",
+            function()
+                local all: CrewSpec = {}
+                for _, role in StationConfig.ROLES do
+                    all[role] = { 2, 5 }
+                end
+                local levels = { 20, 20, 20, 20, 20 }
+                check.equal(
+                    ChainMath.rates(state(levels, 20, 20, true, all, { true, false, 5 })).scrap,
+                    0
+                )
+                check.equal(
+                    ChainMath.rates(state(levels, 20, 20, true, all, { false, true, 5 })).scrap,
+                    0
+                )
+                check.is_true(
+                    ChainMath.rates(state(levels, 20, 20, true, all, { true, true, 5 })).scrap > 0
+                )
+            end
+        )
     end)
 end

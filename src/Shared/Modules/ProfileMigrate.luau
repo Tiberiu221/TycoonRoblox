@@ -173,4 +173,38 @@ function ProfileMigrate.toV6(data: { [string]: any })
     data.Meta.version = 6
 end
 
+-- v7 [D55]: resturile au drumul lor. Grămezile shed-ului si ale atelierului, nivelul forjei, numaratoarea
+-- fierului topit -- toate ADITIVE. Nimic nu se muta: scrap-ul, reeds si shards deja prinse stau in
+-- depozit / la gater / la taverna si trec mai departe exact ca inainte (gaterul le lasa neschimbate), deci
+-- se vand. Un profil sub v7 fara Stations sau Stats (adus aici inainte de Reconcile) le primeste goale.
+function ProfileMigrate.toV7(data: { [string]: any })
+    local version = if data.Meta ~= nil and data.Meta.version ~= nil then data.Meta.version else 1
+    if version >= 7 then
+        return
+    end
+    local function pile(key: string, extra: { [string]: any }?)
+        if typeof(data[key]) ~= "table" then
+            data[key] = { counts = {} }
+        end
+        if typeof(data[key].counts) ~= "table" then
+            data[key].counts = {}
+        end
+        for field, value in extra or {} do
+            if data[key][field] == nil then
+                data[key][field] = value
+            end
+        end
+    end
+    pile("ScrapPile")
+    pile("ForgePile", { smeltedAt = 0 })
+    pile("IronPile")
+    if typeof(data.Stations) == "table" and typeof(data.Stations.forge) ~= "table" then
+        data.Stations.forge = { level = 1 }
+    end
+    if typeof(data.Stats) == "table" and data.Stats.smelted == nil then
+        data.Stats.smelted = 0
+    end
+    data.Meta.version = 7
+end
+
 return ProfileMigrate

@@ -18,16 +18,18 @@ end
 
 -- Marimea cladirii unei platforme cumparate; PadController o prinde la 8 px sub platforma.
 -- [D53] Ruinele au amprenta cladirii lor, deci aceleasi cutii le acopera si pe ele. Atelierul nou e 64x48
--- (192x144), iar Porter/Sawyer/Hauler au un avizier (24x32 la x2), vizibil de la inceput.
+-- (192x144). [D55] Cea mai LATA amprenta a fiecarui loc: colibele mari (doi oameni), taraba mare, shed-ul.
+-- Avizierul (48x64) si colibele mici incap in ele.
 local BOUGHT = {
     bigger_sack = { 48, 48 },
-    dock_trader = { 96, 80 },
+    dock_trader = { 128, 80 },
     landing_bell = { 120, 168 },
     workshop = { 192, 144 },
-    first_runner = { 120, 108 },
-    hire_porter = { 48, 64 },
-    hire_sawyer = { 48, 64 },
-    hire_hauler = { 48, 64 },
+    first_runner = { 144, 120 },
+    hire_porter = { 120, 102 },
+    hire_sawyer = { 120, 102 },
+    hire_hauler = { 120, 102 },
+    scrap_shed = { 120, 96 },
 }
 
 -- [D50] Tot ce se deseneaza pe teren, in afara platformelor si drumurilor: cladirile (prinse de
@@ -50,11 +52,12 @@ local function placed(): { [string]: Box }
         end
     end
     for name, p in TycoonConfig.PILES do
-        -- pictogramele (x -24..28, y -22..22) si cifra (52x24): deasupra sau in dreapta
+        -- [D55] treapta cea mai mare (40x28 la x2 = 80x56), prinsa de baza, si cifra (52x24) deasupra ei sau,
+        -- cand deasupra e o cladire, in dreapta
         if p.pill == "right" then
-            things[`pile_{name}`] = { x0 = p.x - 24, x1 = p.x + 84, y0 = p.y - 22, y1 = p.y + 22 }
+            things[`pile_{name}`] = { x0 = p.x - 40, x1 = p.x + 40 + 56, y0 = p.y - 56, y1 = p.y }
         else
-            things[`pile_{name}`] = { x0 = p.x - 26, x1 = p.x + 28, y0 = p.y - 50, y1 = p.y + 22 }
+            things[`pile_{name}`] = { x0 = p.x - 40, x1 = p.x + 40, y0 = p.y - 56 - 26, y1 = p.y }
         end
     end
     for id, size in BOUGHT do
@@ -66,17 +69,17 @@ end
 
 return function()
     test.suite("TycoonConfig", function()
-        test.case("48 de platforme, index = pozitia in lista", function()
+        test.case("49 de platforme, index = pozitia in lista", function()
             -- Bugul pe care il apara testul: daca `index` se dezalinieaza de pozitia reala,
             -- padStatuses (care merge prin PADS in ordine) si greedyRun (care citeste PRICES[k])
             -- ar arata/cumpara platforma gresita fara nicio eroare.
-            check.equal(#TycoonConfig.PADS, 48)
+            check.equal(#TycoonConfig.PADS, 49)
             for i, p in TycoonConfig.PADS do
                 check.equal(p.index, i)
             end
         end)
 
-        test.case("Era 1 are 13 deblocari, Era 2 are 11, erele 3-4 cate 12", function()
+        test.case("Era 1 are 14 deblocari, Era 2 are 11, erele 3-4 cate 12", function()
             -- Era 1 a scazut de la 12 la 10 cand Sorting Crate si Dock Stall au devenit niveluri
             -- ale debarcaderului, iar Weighted Nets pragul de nivel 10 al plaselor. Apoi 11 cu
             -- Sawyer-ul [D48], iar Era 2 a pierdut gaterul, mutat in lantul Erei 1. Apoi 13 cu
@@ -86,7 +89,8 @@ return function()
             for _, p in TycoonConfig.PADS do
                 perEra[p.era] = (perEra[p.era] or 0) + 1
             end
-            check.equal(perEra[1], 13)
+            -- [D55] 14 cu shed-ul de scrap
+            check.equal(perEra[1], 14)
             check.equal(perEra[2], 11)
             check.equal(perEra[3], 12)
             check.equal(perEra[4], 12)
@@ -136,20 +140,36 @@ return function()
             end
         end)
 
-        test.case("ponderile GOODS insumeaza 1", function()
-            local sum = 0
-            for _, g in TycoonConfig.GOODS do
-                sum += g.share
+        test.case(
+            "ce prinde fiecare fel de plasa insumeaza 1, din bunuri cu valoare [D55]",
+            function()
+                local valued: { [string]: boolean } = {}
+                for _, g in TycoonConfig.GOODS do
+                    valued[g.id] = true
+                end
+                for _, parts in TycoonConfig.CATCH do
+                    local sum = 0
+                    for _, part in parts do
+                        sum += part.share
+                        check.is_true(valued[part.id] == true)
+                    end
+                    check.is_true(math.abs(sum - 1) < 1e-9)
+                end
             end
-            check.is_true(math.abs(sum - 1) < 1e-9)
-        end)
+        )
 
-        test.case("primul bun (driftwood) nu are minLanes", function()
-            -- income() presupune ca GOODS[1] e bunul pe care cad ponderile celorlalte -- daca
-            -- driftwood ar avea minLanes, portul din TycoonMath s-ar rupe in tacere.
-            check.equal(TycoonConfig.GOODS[1].id, "driftwood")
-            check.equal(TycoonConfig.GOODS[1].minLanes, nil)
-        end)
+        test.case(
+            "fierul valoreaza cat scrap-ul din care iese, scandura cat bustenul [D55]",
+            function()
+                local value: { [string]: number } = {}
+                for _, g in TycoonConfig.GOODS do
+                    value[g.id] = g.value
+                end
+                check.equal(value.iron, value.scrap)
+                check.equal(value.planks, value.driftwood)
+                check.is_true(value.iron > value.planks)
+            end
+        )
 
         test.case("platformele live au pozitie in lume", function()
             -- O platforma jucabila fara pozitie n-ar avea unde sa fie desenata/atinsa.
@@ -162,7 +182,7 @@ return function()
         end)
 
         -- F1: toata Era 1 e live (angajatul, atelierul, clopotul inclusiv); erele 2-4 inca nu.
-        test.case("live = exact cele 13 deblocari ale Erei 1", function()
+        test.case("live = exact cele 14 deblocari ale Erei 1", function()
             local liveCount = 0
             for _, p in TycoonConfig.PADS do
                 check.equal(p.live, p.era == 1)
@@ -170,7 +190,7 @@ return function()
                     liveCount += 1
                 end
             end
-            check.equal(liveCount, 13)
+            check.equal(liveCount, 14)
         end)
 
         -- Latimea de desen a plasei vine acum din config (NET_DRAW), nu din cutia veche de 144:
@@ -343,6 +363,10 @@ return function()
                         TycoonConfig.SAWMILL_IN,
                         TycoonConfig.SAWMILL_OUT,
                         TycoonConfig.DOCK,
+                        TycoonConfig.SCRAP_SHED_STAND,
+                        TycoonConfig.FORGE_IN,
+                        TycoonConfig.FORGE_OUT,
+                        TycoonConfig.WORKSHOP_STAND,
                     }
                 do
                     local nearest = math.huge
@@ -407,20 +431,23 @@ return function()
             -- Luau. Testul ramane ca document al cifrelor. Erele 2-4 se re-deriva cand devin live.
             -- [D52] Re-derivate pe ordinea noua: oamenii iau primele trepte ale scarii, pe venitul
             -- plat al unei singure plase, deci ies ieftini; plasele de dupa ei, scumpe.
+            -- [D55] Re-derivate cu lantul resturilor: lemnul fara reeds/shards valoreaza mai putin, iar shed-ul
+            -- de scrap sta intre atelier si plasa a cincea.
             local era1 = {
                 first_net = 0,
-                first_runner = 13,
+                first_runner = 12,
                 hire_porter = 15,
                 hire_sawyer = 18,
                 hire_hauler = 20,
                 dock_trader = 25,
-                second_net = 30,
-                third_net = 100,
-                bigger_sack = 90,
+                second_net = 28,
+                third_net = 90,
+                bigger_sack = 80,
                 far_lane_net = 900,
-                workshop = 7000,
-                fifth_net = 7500,
-                landing_bell = 10000,
+                workshop = 5500,
+                scrap_shed = 7500,
+                fifth_net = 8000,
+                landing_bell = 9000,
             }
             local seen = 0
             for _, p in TycoonConfig.PADS do
@@ -429,7 +456,7 @@ return function()
                     check.equal(p.price, era1[p.id])
                 end
             end
-            check.equal(seen, 13)
+            check.equal(seen, 14)
         end)
 
         test.case("fiecare deblocare a Erei 1 spune cand devine cumparabila", function()
@@ -478,6 +505,9 @@ return function()
                     -- [D52] Innkeeper-ul inchide cei cinci, iar plasa a doua il asteapta
                     dock_trader = "hire_hauler",
                     second_net = "dock_trader",
+                    -- [D55] scrap-ul: atelierul topeste, shed-ul primeste, abia apoi plasa care il prinde
+                    scrap_shed = "workshop",
+                    fifth_net = "scrap_shed",
                 }
                 for id, before in chain do
                     local p = TycoonConfig.byId[id]

@@ -198,27 +198,41 @@ return function()
     end)
 
     test.suite("TycoonMath - prinderea prezisa (D2)", function()
-        test.case("pickGood respecta ponderile si benzile", function()
-            -- banda 1: scrap si shards cad pe driftwood (0,70 + 0,13 + 0,04 = 0,87)
-            check.equal(TycoonMath.pickGood(0.0, 1), "driftwood")
-            check.equal(TycoonMath.pickGood(0.8699, 1), "driftwood")
-            check.equal(TycoonMath.pickGood(0.871, 1), "reeds")
-            check.equal(TycoonMath.pickGood(0.96, 1), "named")
-            -- banda 2: scrap exista, shards inca nu (0,74 driftwood, apoi 0,13 scrap)
-            check.equal(TycoonMath.pickGood(0.745, 2), "scrap")
-            check.equal(TycoonMath.pickGood(0.9999, 3), "named")
+        test.case("pickGood: plasele de lemn prind lemn, cea din larg scrap [D55]", function()
+            -- lemn: 0,95 driftwood, apoi 0,05 finds; scrap: 0,95 scrap, apoi finds. Niciun alt bun.
+            check.equal(TycoonMath.pickGood(0.0, "wood"), "driftwood")
+            check.equal(TycoonMath.pickGood(0.9499, "wood"), "driftwood")
+            check.equal(TycoonMath.pickGood(0.951, "wood"), "named")
+            check.equal(TycoonMath.pickGood(0.0, "scrap"), "scrap")
+            check.equal(TycoonMath.pickGood(0.9499, "scrap"), "scrap")
+            check.equal(TycoonMath.pickGood(0.9999, "scrap"), "named")
+            -- un fel necunoscut cade pe lemn, nu crapa
+            check.equal(TycoonMath.pickGood(0.2, "nope"), "driftwood")
         end)
 
-        test.case("pickGood: frecventele pe 20.000 de trageri urmeaza GOODS", function()
-            local counts: { [string]: number } = {}
-            local n = 20000
-            for i = 0, n - 1 do
-                local g = TycoonMath.pickGood((i + 0.5) / n, 3)
-                counts[g] = (counts[g] or 0) + 1
+        test.case("pickGood: frecventele pe 20.000 de trageri urmeaza CATCH", function()
+            for kind, parts in TycoonConfig.CATCH do
+                local counts: { [string]: number } = {}
+                local n = 20000
+                for i = 0, n - 1 do
+                    local g = TycoonMath.pickGood((i + 0.5) / n, kind)
+                    counts[g] = (counts[g] or 0) + 1
+                end
+                for _, part in parts do
+                    check.is_true(math.abs((counts[part.id] or 0) / n - part.share) < 0.001)
+                end
             end
-            for _, g in TycoonConfig.GOODS do
-                check.is_true(math.abs((counts[g.id] or 0) / n - g.share) < 0.001)
+        end)
+
+        test.case("doar plasa a cincea e plasa de scrap [D55]", function()
+            local scrapNets = {}
+            for _, p in TycoonConfig.PADS do
+                if p.era == 1 and TycoonMath.netKind(p) == "scrap" then
+                    table.insert(scrapNets, p.id)
+                end
             end
+            check.equal(#scrapNets, 1)
+            check.equal(scrapNets[1], "fifth_net")
         end)
 
         test.case("catchSeed e determinist si diferit pe plasa si pe prindere", function()
@@ -282,7 +296,8 @@ return function()
         test.case("itemValue: bunuri brute dupa GOODS, named dupa tier x namedMult", function()
             local s = TycoonMath.newState()
             check.equal(TycoonMath.itemValue("driftwood", nil, s), 1.0)
-            check.equal(TycoonMath.itemValue("scrap", nil, s), 2.0)
+            check.equal(TycoonMath.itemValue("scrap", nil, s), 3.0)
+            check.equal(TycoonMath.itemValue("iron", nil, s), 3.0)
             check.equal(TycoonMath.itemValue("named", "rare", s), 22)
             check.equal(TycoonMath.itemValue("named", nil, s), 14) -- fallback fara tier
             s.namedMult = 1.5
@@ -412,7 +427,9 @@ return function()
                 bigger_sack = "Cast the Second Net first",
                 far_lane_net = "Cast the Third Net first",
                 workshop = "Cast the Fourth Net first",
-                fifth_net = "Cast the Fourth Net first",
+                -- [D55] intai conditia `after`: shed-ul cere atelierul, plasa a cincea cere shed-ul
+                scrap_shed = "Build the Workshop first",
+                fifth_net = "Build the Scrap Shed first",
                 landing_bell = "Rebuild everything else on The Landing first",
             }
             local seen = 0
@@ -422,7 +439,7 @@ return function()
                     check.equal(needs(p.id, {}, {}), want[p.id])
                 end
             end
-            check.equal(seen, 13)
+            check.equal(seen, 14)
         end)
 
         test.case("doua conditii: intai omul, apoi nivelul plasei", function()

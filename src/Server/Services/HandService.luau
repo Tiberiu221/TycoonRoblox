@@ -28,8 +28,7 @@ type Catch = DataService.Catch
 
 local TICK_SECONDS = 0.1 -- 10 Hz, peste minimul de 5 Hz cerut [F1 spec 3.3]
 
--- Unde lasa fiecare meserie de drum ce duce.
-local DROP_PLACE = { collector = "storage", porter = "sawmill", hauler = "dock" }
+-- [D55] Unde lasa fiecare meserie la capatul drumului: HandRoutes.endPlace (depinde de lantul resturilor).
 
 local HandService = {}
 local deps: { Remotes: { HandDelivered: RemoteEvent }, PushState: ((Player) -> ())? } = {
@@ -69,9 +68,63 @@ local function ownedNetIds(data: DataService.ProfileData): { string }
     return ids
 end
 
-local function routeKey(hand: Hand, index: number, count: number, nets: { string }): string
+-- [D55] Lantul resturilor e intreg: shed, atelier si plasa de scrap cumparate. Doar atunci oamenii trec pe
+-- la shed si la atelier; altfel drumurile raman cele de dinainte.
+local function scrapActive(data: DataService.ProfileData): boolean
+    local net = HandRoutes.SCRAP_NET
+    return data.Pads.scrap_shed == true
+        and data.Pads.workshop == true
+        and net ~= nil
+        and data.Pads[net] == true
+end
+
+local function routeKey(
+    hand: Hand,
+    index: number,
+    count: number,
+    nets: { string },
+    scrap: boolean
+): string
     local netsPart = if hand.role == "collector" then table.concat(nets, ",") else ""
-    return `{hand.role}|{index}|{count}|{netsPart}`
+    return `{hand.role}|{index}|{count}|{netsPart}|{if scrap then "scrap" else ""}`
+end
+
+local function isRawScrap(item: Catch): boolean
+    return item.g == "scrap" and item.p ~= true
+end
+
+local function countScrap(items: { Catch }): number
+    local n = 0
+    for _, item in items do
+        if isRawScrap(item) then
+            n += 1
+        end
+    end
+    return n
+end
+
+-- [D55] Ce se vede in roaba: felul cu cele mai multe bucati, la egalitate cel dinainte in GOODS.
+local GOOD_ORDER: { [string]: number } = {}
+for i, g in TycoonConfig.GOODS do
+    GOOD_ORDER[g.id] = i
+end
+local function carryKind(items: { Catch }): string?
+    local counts: { [string]: number } = {}
+    local best: string? = nil
+    for _, item in items do
+        counts[item.g] = (counts[item.g] or 0) + 1
+    end
+    for good, n in counts do
+        local b = best
+        if
+            b == nil
+            or n > counts[b]
+            or (n == counts[b] and (GOOD_ORDER[good] or 99) < (GOOD_ORDER[b] or 99))
+        then
+            best = good
+        end
+    end
+    return best
 end
 
 -- ANGAJAREA [D49], una singura pentru toate meseriile (apelata de PadService la platforma meseriei si
@@ -116,27 +169,47 @@ function HandService.Hire(player: Player, role: string): boolean
     return true
 end
 
+-- Scrap-ul care asteapta in plasa de scrap: Collector-ul ii tine loc in roaba la plasele de lemn de dinainte.
+local function scrapWaiting(player: Player, data: DataService.ProfileData): number
+    local net = HandRoutes.SCRAP_NET
+    local goods = if net ~= nil and data.Nets[net] ~= nil then data.Nets[net].goods else nil
+    if goods == nil then
+        return 0
+    end
+    if EconomyService.PileCount(player, "shed") >= TycoonConfig.SCRAP_BACKLOG.shed then
+        return 0 -- shed-ul e plin: scrap-ul ramane in plasa, deci nu-i tine loc
+    end
+    return countScrap(goods)
+end
+
 -- "collect" la o plasa: ia cel mult `room` bucati. Gasirile cu nume ocolesc traista omului si duc
 -- direct in gramada Atelierului daca e cumparat -- ca la strangerea de mana. [D53] Ceasul plasei nu se
 -- mai reporneste aici: plina, a mers mai departe in ritm (NetService.tick), deci nu prinde din urma deodata.
+-- [D55] La plasa de scrap: scrap-ul ramane in plasa cat shed-ul are deja SCRAP_BACKLOG.shed. La o plasa de
+-- lemn: `reserve` bucati raman libere pentru scrap-ul care il asteapta mai departe (valoreaza mai mult).
 local function collectNet(
     player: Player,
     data: DataService.ProfileData,
     hand: Hand,
     padId: string,
-    room: number
+    room: number,
+    reserve: number
 )
     local net = data.Nets[padId]
     if net == nil or #net.goods == 0 then
         return
     end
     local workshopOwned = data.Pads.workshop == true
+    local shedFull = padId == HandRoutes.SCRAP_NET
+        and EconomyService.PileCount(player, "shed") >= TycoonConfig.SCRAP_BACKLOG.shed
     local kept: { Catch } = {}
     local taken = 0
+    local limit = math.max(0, room - reserve)
     for _, item: Catch in net.goods do
+        local leftForShed = shedFull and isRawScrap(item)
         if item.g == "named" and workshopOwned then
             WorkshopService.AddCatch(player, item)
-        elseif taken < room then
+        elseif taken < limit and not leftForShed then
             table.insert(hand.carry, item)
             taken += 1
         else
@@ -146,40 +219,67 @@ local function collectNet(
     net.goods = kept
 end
 
--- La o oprire: cat mai incape in drumul asta, din plasa, din depozit sau de la iesirea gaterului.
+local function takeInto(player: Player, hand: Hand, place: string, n: number)
+    if n < 1 then
+        return
+    end
+    local items = EconomyService.TakeFrom(player, place, n)
+    table.move(items, 1, #items, #hand.carry + 1, hand.carry)
+end
+
+-- La o oprire: cat mai incape in drumul asta, din plasa, din depozit, de la shed, de la atelier sau de la
+-- iesirea gaterului.
 local function pick(
     player: Player,
     data: DataService.ProfileData,
     hand: Hand,
     stopId: string,
-    load: number
+    load: number,
+    reserveScrap: boolean
 )
     local room = load - #hand.carry
     if room <= 0 then
         return
     end
     if stopId == HandRoutes.STORAGE_STOP then
-        local items = EconomyService.TakeFrom(player, "storage", room)
-        table.move(items, 1, #items, #hand.carry + 1, hand.carry)
+        takeInto(player, hand, "storage", room)
     elseif stopId == HandRoutes.PLANKS_STOP then
-        local items = EconomyService.TakeFrom(player, "planks", room)
-        table.move(items, 1, #items, #hand.carry + 1, hand.carry)
+        takeInto(player, hand, "planks", room)
+    elseif stopId == HandRoutes.IRON_STOP then
+        takeInto(player, hand, "iron", room)
+    elseif stopId == HandRoutes.SHED_STOP then
+        -- [D55] doar cat poate topi atelierul: altfel ar cara fier vechi in locul bustenilor
+        local space = TycoonConfig.SCRAP_BACKLOG.forge
+            - EconomyService.PileCount(player, "forge")
+            - countScrap(hand.carry)
+        takeInto(player, hand, "shed", math.min(room, space))
     else
-        collectNet(player, data, hand, stopId, room)
+        local reserve = 0
+        if reserveScrap and stopId ~= HandRoutes.SCRAP_NET then
+            reserve = math.min(room, scrapWaiting(player, data))
+        end
+        collectNet(player, data, hand, stopId, room, reserve)
     end
 end
 
--- La capat: lasa tot ce duce, in gramada meseriei lui.
-local function drop(player: Player, hand: Hand)
-    local n = #hand.carry
-    local place = DROP_PLACE[hand.role]
-    if n == 0 or place == nil then
+-- Lasa din ce duce, in gramada `place`: `which` = "scrap" (doar scrap-ul brut), "wood" (tot ce nu e scrap
+-- brut) sau nil (tot ce a ramas, la capatul drumului).
+local function drop(player: Player, hand: Hand, place: string, which: string?)
+    local keep: { Catch } = {}
+    local give: { Catch } = {}
+    for _, item in hand.carry do
+        local scrapItem = isRawScrap(item)
+        local match = which == nil
+            or (which == "scrap" and scrapItem)
+            or (which == "wood" and not scrapItem)
+        table.insert(if match then give else keep, item)
+    end
+    if #give == 0 then
         return
     end
-    local items = hand.carry
-    hand.carry = {}
-    EconomyService.DropAt(player, place, items)
-    deps.Remotes.HandDelivered:FireClient(player, hand.id, n, place)
+    hand.carry = keep
+    EconomyService.DropAt(player, place, give)
+    deps.Remotes.HandDelivered:FireClient(player, hand.id, #give, place)
 end
 
 -- Instantaneul pentru TycoonState.hands [F1 spec 2.1]. Clientul reface ciclul fiecarui om din
@@ -192,6 +292,7 @@ function HandService.Snapshot(player: Player): { any }
     end
     local nets = ownedNetIds(data)
     local crews = CrewMath.fromProfile(data.Hands, data.Crews)
+    local scrap = scrapActive(data)
     for id, hand in data.Hands do
         local crew = crews[hand.role] or { count = 0, tier = 1 }
         local index = CrewMath.indexOf(id)
@@ -199,7 +300,7 @@ function HandService.Snapshot(player: Player): { any }
         local stand = HandRoutes.standFor(hand.role, index)
         local capacity = 0
         if walker then
-            local cycle = HandRoutes.cycleFor(hand.role, index, crew.count, nets)
+            local cycle = HandRoutes.cycleFor(hand.role, index, crew.count, nets, scrap)
             capacity = HandRoutes.loadFor(ChainMath.walkerRate(hand.role, crew), cycle.duration)
         end
         table.insert(result, {
@@ -212,6 +313,8 @@ function HandService.Snapshot(player: Player): { any }
             nets = if walker then nets else {},
             cycleStartAt = hand.cycleStartAt,
             carrying = #hand.carry,
+            carryKind = carryKind(hand.carry), -- [D55] ce se vede in roaba
+            scrap = walker and scrap, -- [D55] drumul prin shed si atelier (HandRoutes, acelasi pe client)
             capacity = capacity,
             appearance = hand.appearance,
             x = if stand ~= nil then stand.x else nil,
@@ -234,6 +337,7 @@ local function tick(at: number)
         end
         local nets = ownedNetIds(data)
         local crews = CrewMath.fromProfile(data.Hands, data.Crews)
+        local scrap = scrapActive(data)
         local changed = false
         for id, hand in data.Hands do
             if not HandRoutes.isWalker(hand.role) then
@@ -241,7 +345,7 @@ local function tick(at: number)
             end
             local crew = crews[hand.role]
             local index = CrewMath.indexOf(id)
-            local key = routeKey(hand, index, crew.count, nets)
+            local key = routeKey(hand, index, crew.count, nets, scrap)
             if keys[id] ~= key then
                 -- drumul s-a schimbat (o plasa noua, un al doilea om): porneste de la capat, ce duce
                 -- ramane cu el [F1 spec 3.3]. Clientul il deseneaza din cycleStartAt, deci trimitem.
@@ -250,17 +354,33 @@ local function tick(at: number)
                 keys[id] = key
                 changed = true
             end
-            local cycle = HandRoutes.cycleFor(hand.role, index, crew.count, nets)
+            local cycle = HandRoutes.cycleFor(hand.role, index, crew.count, nets, scrap)
             if cycle.duration <= 0 then
                 continue
             end
             local load = HandRoutes.loadFor(ChainMath.walkerRate(hand.role, crew), cycle.duration)
+            -- [D55] tine loc pentru scrap doar Collector-ul care chiar trece pe la plasa de scrap: cu doi oameni,
+            -- celalalt ar duce mai putin lemn decat debitul lui, pentru un scrap pe care nu-l ia niciodata
+            local reserveScrap = scrap
+                and hand.role == "collector"
+                and table.find(
+                        HandRoutes.collectorNets(nets, index, crew.count),
+                        HandRoutes.SCRAP_NET
+                    )
+                    ~= nil
             local events = HandMath.eventsBetween(cycle, hand.cycleStartAt, hand.lastEventAt, at)
             for _, ev in events do
                 if ev.kind == "collect" and ev.padId ~= nil then
-                    pick(player, data, hand, ev.padId :: string, load)
+                    pick(player, data, hand, ev.padId :: string, load, reserveScrap)
+                elseif ev.kind == "drop" and ev.padId == HandRoutes.SHED_STOP then
+                    drop(player, hand, "shed", "scrap")
+                elseif ev.kind == "drop" and ev.padId == HandRoutes.SAWMILL_DROP then
+                    drop(player, hand, "sawmill", "wood")
                 elseif ev.kind == "sell" then
-                    drop(player, hand)
+                    local place = HandRoutes.endPlace(hand.role, scrap)
+                    if place ~= nil then
+                        drop(player, hand, place, nil)
+                    end
                 end
             end
             hand.lastEventAt = at

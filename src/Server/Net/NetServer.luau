@@ -49,9 +49,13 @@ export type Deps = {
         StorageSnapshot: (Player) -> { [string]: any },
         DockSnapshot: (Player) -> { [string]: any },
         SawmillSnapshot: (Player) -> { [string]: any },
+        ShedSnapshot: (Player) -> { [string]: any },
+        ForgeSnapshot: (Player) -> { [string]: any },
         UseStorage: (Player) -> (boolean, string, number),
         UseSawmill: (Player) -> (boolean, string, number, number),
         DeliverDock: (Player) -> (boolean, string, number),
+        UseShed: (Player) -> (boolean, string, number),
+        UseForge: (Player) -> (boolean, string, number, number),
         SetPresence: (Player, boolean) -> (),
     },
     Workshop: {
@@ -103,12 +107,15 @@ local function buildTycoonState(player: Player): { [string]: any }
         sawmill = deps.Economy.SawmillSnapshot(player),
         -- gramada de la debarcader: ce asteapta sa fie vandut si cat de repede se scurge
         dock = deps.Economy.DockSnapshot(player),
+        -- [D55] resturile: shed-ul de scrap si forja atelierului (scrap de topit, fier iesit, cat topeste)
+        shed = deps.Economy.ShedSnapshot(player),
+        forge = deps.Economy.ForgeSnapshot(player),
         -- statiile cu niveluri: randurile panoului, veriga slaba si cele trei debite
         stations = deps.Stations.Snapshot(player),
         -- capitolul curent, lista de quest-uri si quest-ul activ (unicul obiectiv de ghidaj)
         quests = deps.Quests.Snapshot(player),
         wheel = deps.Wheel.Snapshot(player),
-        lanes = deps.Pads.Lanes(player), -- pentru TycoonMath.pickGood pe client [D2]
+        lanes = deps.Pads.Lanes(player), -- banda cea mai departata: desenul plaselor [D55: nu mai decide marfa]
         -- cat adauga la venit/s fiecare platforma inca necumparata, pentru cartonasul de la apropiere
         padDeltas = padDeltas,
         hands = deps.Hands.Snapshot(player),
@@ -210,6 +217,21 @@ function NetServer.Init(d: Deps)
         end
         local ok, reason, dropped, taken = deps.Economy.UseSawmill(player)
         Net.Get("UseResult"):FireClient(player, "sawmill", ok, reason, dropped, taken)
+    end)
+    -- [D55] shed-ul de scrap si atelierul: aceleasi gesturi, aceeasi limita ca depozitul si gaterul
+    Net.Get("UseShed").OnServerEvent:Connect(function(player: Player)
+        if not RateLimiter.Allow(player, "UsePlace") then
+            return
+        end
+        local ok, reason, n = deps.Economy.UseShed(player)
+        Net.Get("UseResult"):FireClient(player, "shed", ok, reason, n, 0)
+    end)
+    Net.Get("UseForge").OnServerEvent:Connect(function(player: Player)
+        if not RateLimiter.Allow(player, "UsePlace") then
+            return
+        end
+        local ok, reason, dropped, taken = deps.Economy.UseForge(player)
+        Net.Get("UseResult"):FireClient(player, "forge", ok, reason, dropped, taken)
     end)
     Net.Get("DeliverDock").OnServerEvent:Connect(function(player: Player)
         if not RateLimiter.Allow(player, "UsePlace") then

@@ -52,7 +52,9 @@ export type Pad = {
     needs: Needs?,
 }
 
-export type Good = { id: string, value: number, share: number, minLanes: number? }
+export type Good = { id: string, value: number }
+-- [D55] O parte din ce prinde un fel de plasa: bunul si ponderea lui.
+export type CatchPart = { id: string, share: number }
 
 local TycoonConfig = {}
 
@@ -62,8 +64,9 @@ local TycoonConfig = {}
 TycoonConfig.PREV_NET_LEVEL = 2
 
 -- ---- efecte, in oglinda cu net()/mul()/on()/plus()/build()/upgrade()/refine() din simulator ----
-local function netEffect(rate: number, lane: number): Effect
-    return { kind = "net", rate = rate, lane = lane }
+-- `good`: ce prinde plasa [D55] -- nil = lemn (CATCH.wood), "scrap" = CATCH.scrap
+local function netEffect(rate: number, lane: number, good: string?): Effect
+    return { kind = "net", rate = rate, lane = lane, good = good }
 end
 local function mulEffect(field: string, factor: number): Effect
     return { kind = "mul", field = field, factor = factor }
@@ -93,20 +96,31 @@ local function pad(t: Pad): Pad
     return t
 end
 
--- Bunurile pe care le aduce raul, in ORDINEA simulatorului -- ordinea conteaza pentru paritatea
--- in virgula mobila (suma nu e asociativa). minLanes: sub acel numar de benzi, ponderea bunului
--- cade pe driftwood (exact ca la pop() din Python).
+-- [D55] VALOAREA fiecarui fel de marfa. Ordinea tine desenul gramezilor si al plaselor stabil intre doua
+-- stari. Pana la D55 tabelul avea si ponderea fiecarui bun in prinderi si banda de la care apare: toate
+-- plasele prindeau acelasi amestec, iar dupa plasa a patra si a doua prindea scrap, care trecea prin gater
+-- ca si cand ar fi fost lemn. Acum ce prinde o plasa tine de felul ei (CATCH, mai jos).
 TycoonConfig.GOODS = {
-    { id = "driftwood", value = 1.0, share = 0.70 },
-    { id = "scrap", value = 2.0, share = 0.13, minLanes = 2 },
-    { id = "reeds", value = 2.0, share = 0.08 },
-    { id = "shards", value = 2.5, share = 0.04, minLanes = 3 },
-    { id = "named", value = 14.0, share = 0.05 },
-    -- SCANDURA [D48]: nu se prinde niciodata (pondere 0) -- o face gaterul din driftwood. Valoreaza
-    -- cat bustenul: gaterul e acolo de la inceput, deci un multiplicator ar umfla doar cifrele. La
-    -- coada, ca `avgValue` sa adune `0 * 1.0 = 0.0` DUPA restul si rezultatul sa ramana identic la bit.
-    { id = "planks", value = 1.0, share = 0 },
+    { id = "driftwood", value = 1.0 },
+    -- se vinde doar topit la atelier: fierul valoreaza cat scrap-ul din care iese (trei scanduri)
+    { id = "scrap", value = 3.0 },
+    { id = "named", value = 14.0 },
+    -- SCANDURA [D48]: o face gaterul din driftwood. Valoreaza cat bustenul: gaterul e acolo de la inceput,
+    -- deci un multiplicator ar umfla doar cifrele.
+    { id = "planks", value = 1.0 },
+    { id = "iron", value = 3.0 }, -- [D55] ce iese din forja atelierului
+    -- [D55] nu se mai prind in Era 1 (treceau prin gater, ca scrap-ul); raman pentru ce e deja in profiluri
+    { id = "reeds", value = 2.0 },
+    { id = "shards", value = 2.5 },
 } :: { Good }
+
+-- [D55] CE PRINDE O PLASA, dupa felul ei. In ordinea simulatorului (`CATCH` din sim_tycoon.py): ordinea sumei
+-- valorii medii conteaza pentru paritatea la bit. Plasele 1-4 prind lemn; ultima, cea din larg, scrap
+-- [owner, 2026-09-13: "scraps ar trebui sa poti prinde doar la ultimul net"].
+TycoonConfig.CATCH = {
+    wood = { { id = "driftwood", share = 0.95 }, { id = "named", share = 0.05 } },
+    scrap = { { id = "scrap", share = 0.95 }, { id = "named", share = 0.05 } },
+} :: { [string]: { CatchPart } }
 
 -- Valoarea de vanzare a unui obiect cu nume, pe tier (ipoteza -- media ponderata ~14, cat cere GOODS.named)
 TycoonConfig.NAMED_VALUE = {
@@ -213,6 +227,7 @@ TycoonConfig.GOOD_NAMES = {
     shards = "Shards",
     named = "Find",
     planks = "Planks",
+    iron = "Iron",
 }
 
 -- [B5] Toate pozitiile de platforme, plase, debarcader si zone sunt LOCALE terenului. Lumea =
@@ -251,7 +266,8 @@ TycoonConfig.RUNNER = {
 -- PIXEL_SCALE 3 = 120x96, deci ocupa x 1540..1660 si y 924..1020: la dreapta legaturii (x <= 1520),
 -- deasupra drumului mare (y >= 1100).
 TycoonConfig.STORAGE = { x = 1600, y = 1020, w = 120, h = 96 }
-TycoonConfig.STORAGE_STAND = { x = 1600, y = 1080 } -- in fata usii, spre drumul mare
+-- [D55] pe drumul mare, la stanga gramezii: omul sta cu fata spre ea si rastoarna roaba peste ea
+TycoonConfig.STORAGE_STAND = { x = 1540, y = 1122 }
 
 -- GATERUL [D49]: departe de plase [owner, 2026-09-13: "sawmill-ul este prea aproape de nets"], la
 -- sud-est, cu usa spre curte [D50]. Prins de baza: ocupa x 1360..1480, y 1384..1480, iar curtea
@@ -259,26 +275,39 @@ TycoonConfig.STORAGE_STAND = { x = 1600, y = 1080 } -- in fata usii, spre drumul
 TycoonConfig.SAWMILL = { x = 1420, y = 1480, w = 120, h = 96 }
 -- Unde stai ca sa tai si ca sa predai tu, in curte, in fata usii.
 TycoonConfig.SAWMILL_STAND = { x = 1390, y = 1540 }
--- Oamenii nu calca pe locul tau: Porter-ul lasa bustenii la capatul de est al curtii, unde coboara
--- drumul lui, iar Hauler-ul ia scandurile de la capatul de vest, de unde pleaca drumul de sud.
-TycoonConfig.SAWMILL_IN = { x = 1600, y = 1520 }
-TycoonConfig.SAWMILL_OUT = { x = 1330, y = 1520 }
--- Sawyer-ul, in curte, in dreapta locului tau. Omul (48x72, prins de picioare) incepe la y 1480, exact
--- sub cladire: mai sus ar intra peste fata gaterului si doua lucruri apasabile s-ar calca.
-TycoonConfig.SAWYER_STAND = { x = 1470, y = 1552 }
+-- [D55] Bustenii STANGA, scandurile DREAPTA, lipite de cladire -- exact sensul din desenul gaterului
+-- (bustenul intra din stanga, panza e in dreapta) [owner: "ar trebui sa fie macar langa sawmill in stanga
+-- respectiv in dreapta, nu mai jos de poteca"]. Porter-ul sta la stanga gramezii de busteni (pe drumul de sud),
+-- Hauler-ul la dreapta celei de scanduri (in coltul curtii), fiecare cu fata spre gramada lui.
+TycoonConfig.SAWMILL_IN = { x = 1260, y = 1512 }
+TycoonConfig.SAWMILL_OUT = { x = 1600, y = 1515 }
+-- Sawyer-ul, in curte, in fata panzei. Omul (48x72, prins de picioare) incepe la y 1476, sub cladire:
+-- mai sus ar intra peste fata gaterului si doua lucruri apasabile s-ar calca.
+TycoonConfig.SAWYER_STAND = { x = 1450, y = 1552 }
 
--- [D50] GRAMEZILE, ca locuri fixe. Pana acum erau formule lipite de cladire (depozitul isi punea
--- gramada la vest), iar pe harta noua ar fi cazut pe drum sau peste un om. `pill` = unde sta cifra
--- (PileView): deasupra, implicit, sau in dreapta, cand deasupra e cineva.
+-- [D50] GRAMEZILE, ca locuri fixe. [D55] `x` = mijlocul, `y` = BAZA gramezii (desenul pe trepte, 80x56, se
+-- prinde de baza, ca o cladire); cifra sta deasupra. Verificate de testul de asezare.
 export type PileSpot = { x: number, y: number, pill: string? }
 TycoonConfig.PILES = {
-    -- in dreapta usii depozitului: cifra de deasupra trece pe sub coliba Collector-ului (y > 1031)
-    storage = { x = 1680, y = 1085 },
-    sawmillIn = { x = 1600, y = 1595 }, -- sub capatul de est al curtii, unde lasa Porter-ul
-    -- sub capatul de vest, de unde ia Hauler-ul; cifra in dreapta, deasupra e locul tau
-    sawmillOut = { x = 1330, y = 1600, pill = "right" },
-    tavern = { x = 265, y = 1070 }, -- la stanga tavernei, langa butoaie
+    -- in fata usii depozitului, pe iarba dintre el si drumul mare; cifra in dreapta, deasupra e depozitul
+    storage = { x = 1600, y = 1096, pill = "right" },
+    shed = { x = 1290, y = 1024 }, -- [D55] la stanga shed-ului de scrap
+    sawmillIn = { x = 1318, y = 1482 }, -- bustenii, lipiti de stanga gaterului
+    sawmillOut = { x = 1525, y = 1482 }, -- scandurile, lipite de dreapta lui
+    forgeIn = { x = 680, y = 1440 }, -- [D55] scrap-ul de topit, la stanga atelierului
+    forgeOut = { x = 960, y = 1440 }, -- [D55] fierul, la dreapta lui
+    tavern = { x = 262, y = 1086 }, -- la stanga tavernei, langa butoaie
 } :: { [string]: PileSpot }
+
+-- [D55] RESTURILE. Unde se opresc oamenii la shed si la atelier (pe drum, in fata gramezilor), unde stai tu
+-- la atelier, si cat lasa sa se adune inainte sa se opreasca: Collector-ul lasa scrap-ul in plasa cand
+-- shed-ul are deja `shed`, Porter-ul nu mai ia de la shed cand atelierul are deja `forge` de topit -- altfel
+-- ar cara fier vechi pe care forja nu-l poate topi, in locul lemnului pe care gaterul l-ar taia.
+TycoonConfig.SCRAP_SHED_STAND = { x = 1350, y = 1080 }
+TycoonConfig.FORGE_IN = { x = 620, y = 1515 }
+TycoonConfig.FORGE_OUT = { x = 1020, y = 1515 }
+TycoonConfig.WORKSHOP_STAND = { x = 820, y = 1490 }
+TycoonConfig.SCRAP_BACKLOG = { shed = 60, forge = 40 }
 
 -- MESERIILE [D49], pe pasii lantului. `pad` = platforma de pe care se angajeaza primul om; id-urile
 -- vechi raman (`first_runner` e acum Collector-ul, `dock_trader` Negustorul), fiindca id-ul e si
@@ -292,20 +321,22 @@ TycoonConfig.CREWS = {
         plural = "Collectors",
         secondPrice = 1100,
     },
-    porter = { pad = "hire_porter", name = "Porter", plural = "Porters", secondPrice = 1800 },
-    sawyer = { pad = "hire_sawyer", name = "Sawyer", plural = "Sawyers", secondPrice = 13000 },
-    hauler = { pad = "hire_hauler", name = "Hauler", plural = "Haulers", secondPrice = 2800 },
+    porter = { pad = "hire_porter", name = "Porter", plural = "Porters", secondPrice = 1600 },
+    sawyer = { pad = "hire_sawyer", name = "Sawyer", plural = "Sawyers", secondPrice = 12000 },
+    hauler = { pad = "hire_hauler", name = "Hauler", plural = "Haulers", secondPrice = 2500 },
     trader = {
         pad = "dock_trader",
         name = "Innkeeper",
         plural = "Innkeepers",
-        secondPrice = 4500,
+        secondPrice = 4000,
     },
 }
 -- Unde sta al doilea om al unei meserii statice, fata de primul. Sawyer-ul al doilea: in dreapta
 -- primului si putin mai jos, departe de gramada de busteni. Innkeeper-ul al doilea tot in dreapta: in
 -- stanga ar fi stat chiar in usa tavernei, unde se lasa marfa si unde asteapta clientii.
-TycoonConfig.SECOND_STAND_OFFSET = { sawyer = { x = 60, y = 18 }, trader = { x = 60, y = 0 } }
+-- [D55] Sawyer-ul al doilea, in dreapta primului, sub gramada de scanduri: mai la est ar sta pe locul unde ia
+-- Hauler-ul, iar in stanga in fata gramezii de busteni.
+TycoonConfig.SECOND_STAND_OFFSET = { sawyer = { x = 60, y = 4 }, trader = { x = 60, y = 0 } }
 local crewOfPad: { [string]: string } = {}
 for role, crew in TycoonConfig.CREWS do
     crewOfPad[crew.pad] = role
@@ -345,11 +376,12 @@ TycoonConfig.PADS = {
         name = "Collector",
         era = 1,
         motive = "A",
-        price = 13,
+        price = 12,
         effects = { hireEffect("collector") },
         live = true,
-        -- langa depozit, la capatul de est al puntii: coliba lui (120x108) sta la dreapta usii
-        x = 1760,
+        -- langa depozit, la capatul de est al puntii: coliba lui sta la dreapta usii. [D55] Cu doi oameni
+        -- coliba mare (144x120) ocupa x 1713..1857 -- sub gardul Morii (x 1860).
+        x = 1785,
         y = 975,
         -- o singura plasa: banii vin oricum doar din vanzare, deci tot dupa primul tur [D52]
         needs = { netsOwned = 1 },
@@ -365,9 +397,10 @@ TycoonConfig.PADS = {
         price = 15,
         effects = { hireEffect("porter") },
         live = true,
-        -- Sub depozit, unde ii incepe drumul: la dreapta drumului de est (x >= 1630), sub drumul mare.
-        x = 1720,
-        y = 1220,
+        -- [D55] La capatul de sus al drumului lui, in dreapta drumului de est, sub drumul mare: avizierul, apoi
+        -- coliba (cea mare, 120x102, ocupa x 1645..1765, y 1188..1290 -- deasupra clopotului, y >= 1308).
+        x = 1705,
+        y = 1234,
         needs = { after = "first_runner" },
     }),
     pad({
@@ -381,9 +414,10 @@ TycoonConfig.PADS = {
         price = 18,
         effects = { hireEffect("sawyer") },
         live = true,
-        -- Deasupra gaterului (y <= 1318 < 1384); omul insusi sta in curte (SAWYER_STAND).
+        -- [D55] Lipit de spatele gaterului: coliba mare (120x102) ocupa y 1270..1372, gaterul incepe la 1384.
+        -- Omul insusi sta in curte (SAWYER_STAND).
         x = 1420,
-        y = 1270,
+        y = 1316,
         needs = { after = "hire_porter" },
     }),
     pad({
@@ -397,9 +431,10 @@ TycoonConfig.PADS = {
         price = 20,
         effects = { hireEffect("hauler") },
         live = true,
-        -- La stanga gaterului, deasupra drumului de sud (y <= 1458 < 1500), de unde ii pleaca drumul.
-        x = 1220,
-        y = 1410,
+        -- [D55] La capatul lui de la taverna: in dreapta pintenului de vest (x >= 560), sub drumul mare, unde
+        -- ajunge cu scandurile. Coliba mare (120x102) ocupa x 588..708, y 1188..1290 -- atelierul incepe la 724.
+        x = 648,
+        y = 1234,
         needs = { after = "hire_sawyer" },
     }),
     pad({
@@ -427,7 +462,7 @@ TycoonConfig.PADS = {
         name = "Second Net",
         era = 1,
         motive = "C",
-        price = 30,
+        price = 28,
         effects = { netEffect(0.33, 1) },
         live = true,
         x = 820,
@@ -446,7 +481,7 @@ TycoonConfig.PADS = {
         name = "Third Net",
         era = 1,
         motive = "C",
-        price = 100,
+        price = 90,
         effects = { netEffect(0.33, 2) },
         live = true,
         x = 1020,
@@ -461,7 +496,7 @@ TycoonConfig.PADS = {
         name = "Bigger Sack",
         era = 1,
         motive = "A",
-        price = 90,
+        price = 80,
         effects = { flagEffect("sackBig") },
         live = true,
         -- intre atelier (x <= 916) si platforma Hauler-ului (x >= 1172), sub drumul mare
@@ -472,13 +507,12 @@ TycoonConfig.PADS = {
     pad({
         id = "far_lane_net",
         index = 10,
-        blurb = "Further out, where the scrap floats.",
-        note = "Opens scrap",
+        blurb = "A fourth net, further out where the logs run thick.",
         name = "Fourth Net",
         era = 1,
         motive = "C",
         price = 900,
-        effects = { netEffect(0.40, 2), addEffect("lanes", 1) },
+        effects = { netEffect(0.40, 2) },
         live = true,
         x = 1220,
         y = 812,
@@ -487,12 +521,12 @@ TycoonConfig.PADS = {
     pad({
         id = "workshop",
         index = 11,
-        blurb = "A bench, a vise, and somewhere to put the good finds.",
-        note = "Opens the Workshop",
+        blurb = "A bench, a vise and a forge: finds get restored, scrap becomes iron.",
+        note = "Smelts scrap into iron",
         name = "Workshop",
         era = 1,
         motive = "V",
-        price = 7000,
+        price = 5500,
         effects = { addEffect("indexFound", 6) },
         live = true,
         -- in mijlocul terenului, sub drumul mare; cladirea (192x192) se termina deasupra drumului de sud
@@ -501,29 +535,51 @@ TycoonConfig.PADS = {
         needs = { netsOwned = 4 },
     }),
     pad({
-        id = "fifth_net",
+        -- [D55] al doilea depozit, doar pentru scrap: Collector-ul il lasa aici, Porter-ul il duce la atelier
+        id = "scrap_shed",
         index = 12,
-        blurb = "The deep channel. Glass and better.",
-        note = "Opens shards",
+        blurb = "A shed for scrap, so it never mixes with the logs.",
+        note = "Opens the Fifth Net",
+        name = "Scrap Shed",
+        era = 1,
+        motive = "V",
+        price = 7500,
+        effects = { flagEffect("scrapShed") },
+        live = true,
+        -- la stanga drumului depozitului, sub plasa a cincea: sopronul (120x96) ocupa x 1340..1460, y 924..1020
+        x = 1400,
+        y = 964,
+        needs = { after = "workshop" },
+    }),
+    pad({
+        id = "fifth_net",
+        index = 13,
+        blurb = "The deep channel, where the scrap sinks.",
+        note = "Catches scrap",
         name = "Fifth Net",
         era = 1,
         motive = "C",
-        price = 7500,
-        effects = { netEffect(0.40, 3), addEffect("lanes", 1) },
+        price = 8000,
+        effects = { netEffect(0.40, 3, "scrap") },
         live = true,
         x = 1420,
         y = 812,
-        needs = { netsExactly = 4, prevNetLevel = TycoonConfig.PREV_NET_LEVEL },
+        -- [D55] scrap-ul ei are nevoie de shed: fara el n-ar avea unde sa-l lase nimeni
+        needs = {
+            netsExactly = 4,
+            prevNetLevel = TycoonConfig.PREV_NET_LEVEL,
+            after = "scrap_shed",
+        },
     }),
     pad({
         id = "landing_bell",
-        index = 13,
+        index = 14,
         blurb = "Ring it and The Landing is finished.",
         note = "+10% forever, opens The Mill",
         name = "Landing Bell",
         era = 1,
         motive = "D",
-        price = 10000,
+        price = 9000,
         effects = { mulEffect("bells", 1.10) },
         live = true,
         -- langa gardul Morii, pe care il deschide; cladirea (120x168) sta la 30 px de gard
@@ -534,7 +590,7 @@ TycoonConfig.PADS = {
     -- ---- Era 2 · The Mill ----
     pad({
         id = "water_wheel",
-        index = 14,
+        index = 15,
         blurb = "The river turns the wheel, the wheel runs your stations.",
         note = "+10 power",
         name = "Water Wheel",
@@ -546,7 +602,7 @@ TycoonConfig.PADS = {
     }),
     pad({
         id = "flume",
-        index = 15,
+        index = 16,
         blurb = "A wooden chute carries every catch to the dock on its own.",
         note = "No more walking",
         name = "Flume",
@@ -558,7 +614,7 @@ TycoonConfig.PADS = {
     }),
     pad({
         id = "sixth_net",
-        index = 16,
+        index = 17,
         blurb = "One more net, one more line of income.",
         name = "Sixth Net",
         era = 2,
@@ -569,7 +625,7 @@ TycoonConfig.PADS = {
     }),
     pad({
         id = "smelter",
-        index = 17,
+        index = 18,
         blurb = "Melt scrap into iron. Iron sells for three times the rust.",
         name = "Smelter",
         era = 2,
@@ -580,7 +636,7 @@ TycoonConfig.PADS = {
     }),
     pad({
         id = "miller",
-        index = 18,
+        index = 19,
         blurb = "A miller who knows his trade. Everything processed is worth more.",
         note = "+20% on processed goods",
         name = "Miller",
@@ -592,7 +648,7 @@ TycoonConfig.PADS = {
     }),
     pad({
         id = "loom",
-        index = 19,
+        index = 20,
         blurb = "Reeds go in, cloth comes out.",
         name = "Loom",
         era = 2,
@@ -603,7 +659,7 @@ TycoonConfig.PADS = {
     }),
     pad({
         id = "wide_nets",
-        index = 20,
+        index = 21,
         blurb = "Wider mouths, same river.",
         note = "+40% catch rate",
         name = "Wide Nets",
@@ -615,7 +671,7 @@ TycoonConfig.PADS = {
     }),
     pad({
         id = "seventh_net",
-        index = 21,
+        index = 22,
         blurb = "The bank fills with nets. So does your sack.",
         name = "Seventh Net",
         era = 2,
@@ -626,7 +682,7 @@ TycoonConfig.PADS = {
     }),
     pad({
         id = "second_wheel",
-        index = 22,
+        index = 23,
         blurb = "A second wheel for the stations you just built.",
         note = "+10 power",
         name = "Second Wheel",
@@ -638,7 +694,7 @@ TycoonConfig.PADS = {
     }),
     pad({
         id = "market",
-        index = 23,
+        index = 24,
         blurb = "A proper market at the dock.",
         note = "+25% sale price",
         name = "Market",
@@ -650,7 +706,7 @@ TycoonConfig.PADS = {
     }),
     pad({
         id = "mill_bell",
-        index = 24,
+        index = 25,
         blurb = "The Mill is finished. Ring it.",
         note = "+15% forever, opens The Yard",
         name = "Mill Bell",
@@ -664,7 +720,7 @@ TycoonConfig.PADS = {
     -- ---- Era 3 · The Yard ----
     pad({
         id = "crane",
-        index = 25,
+        index = 26,
         blurb = "Heavy finds stop breaking your back, and start paying better.",
         note = "+50% on named finds",
         name = "Crane",
@@ -676,7 +732,7 @@ TycoonConfig.PADS = {
     }),
     pad({
         id = "eighth_net",
-        index = 26,
+        index = 27,
         blurb = "Another net where the current runs hard.",
         name = "Eighth Net",
         era = 3,
@@ -687,7 +743,7 @@ TycoonConfig.PADS = {
     }),
     pad({
         id = "sorting_shed",
-        index = 27,
+        index = 28,
         blurb = "Six more shapes you can name. The Index grows.",
         name = "Sorting Shed",
         era = 3,
@@ -701,7 +757,7 @@ TycoonConfig.PADS = {
         -- a intrat in lantul Erei 1. Modelul vechi de efecte (buildEffect/upgradeEffect) e oricum
         -- scos din uz (TycoonMath); se re-deriva odata cu Era 2/3.
         id = "sawmill_2",
-        index = 28,
+        index = 29,
         blurb = "Twice the planks from the same saw.",
         note = "Sawmill capacity x2",
         name = "Sawmill II",
@@ -713,7 +769,7 @@ TycoonConfig.PADS = {
     }),
     pad({
         id = "ninth_net",
-        index = 29,
+        index = 30,
         blurb = "Nine nets. The river barely passes you now.",
         name = "Ninth Net",
         era = 3,
@@ -724,7 +780,7 @@ TycoonConfig.PADS = {
     }),
     pad({
         id = "fine_ingots",
-        index = 30,
+        index = 31,
         blurb = "Cleaner iron, higher price.",
         note = "+50% on iron",
         name = "Fine Ingots",
@@ -736,7 +792,7 @@ TycoonConfig.PADS = {
     }),
     pad({
         id = "dockhand",
-        index = 31,
+        index = 32,
         blurb = "A dockhand who haggles so you do not have to.",
         note = "+20% sale price",
         name = "Dockhand",
@@ -748,7 +804,7 @@ TycoonConfig.PADS = {
     }),
     pad({
         id = "deep_channel",
-        index = 32,
+        index = 33,
         blurb = "Dig into the deep channel, where shards and rare finds ride.",
         note = "Opens the third lane",
         name = "Deep Channel",
@@ -760,7 +816,7 @@ TycoonConfig.PADS = {
     }),
     pad({
         id = "kiln",
-        index = 33,
+        index = 34,
         blurb = "Fire the shards into pottery.",
         name = "Kiln",
         era = 3,
@@ -771,7 +827,7 @@ TycoonConfig.PADS = {
     }),
     pad({
         id = "third_wheel",
-        index = 34,
+        index = 35,
         blurb = "Power for the yard, before it slows down.",
         note = "+10 power",
         name = "Third Wheel",
@@ -783,7 +839,7 @@ TycoonConfig.PADS = {
     }),
     pad({
         id = "salvage_hall",
-        index = 35,
+        index = 36,
         blurb = "Named finds get a room of their own, and a better price.",
         note = "+30% on named finds",
         name = "Salvage Hall",
@@ -795,7 +851,7 @@ TycoonConfig.PADS = {
     }),
     pad({
         id = "yard_bell",
-        index = 36,
+        index = 37,
         blurb = "The Yard is finished. Ring it.",
         note = "+20% forever, opens The Harbor",
         name = "Yard Bell",
@@ -809,7 +865,7 @@ TycoonConfig.PADS = {
     -- ---- Era 4 · The Harbor ----
     pad({
         id = "boathouse",
-        index = 37,
+        index = 38,
         blurb = "A boat that goes upstream and comes back loaded.",
         name = "Boathouse",
         era = 4,
@@ -820,7 +876,7 @@ TycoonConfig.PADS = {
     }),
     pad({
         id = "tenth_net",
-        index = 38,
+        index = 39,
         blurb = "Ten nets across the harbour mouth.",
         name = "Tenth Net",
         era = 4,
@@ -831,7 +887,7 @@ TycoonConfig.PADS = {
     }),
     pad({
         id = "fine_cloth",
-        index = 39,
+        index = 40,
         blurb = "Tighter weave, better cloth.",
         note = "+50% on cloth",
         name = "Fine Cloth",
@@ -843,7 +899,7 @@ TycoonConfig.PADS = {
     }),
     pad({
         id = "deep_nets",
-        index = 40,
+        index = 41,
         blurb = "Nets that reach the riverbed.",
         note = "+30% catch rate",
         name = "Deep Nets",
@@ -855,7 +911,7 @@ TycoonConfig.PADS = {
     }),
     pad({
         id = "second_boat",
-        index = 41,
+        index = 42,
         blurb = "A second boat, a second run upstream.",
         name = "Second Boat",
         era = 4,
@@ -866,7 +922,7 @@ TycoonConfig.PADS = {
     }),
     pad({
         id = "glazed_pottery",
-        index = 42,
+        index = 43,
         blurb = "Glaze it and it leaves the kiln worth half again more.",
         note = "+50% on pottery",
         name = "Glazed Pottery",
@@ -878,7 +934,7 @@ TycoonConfig.PADS = {
     }),
     pad({
         id = "eleventh_net",
-        index = 43,
+        index = 44,
         blurb = "Almost every lane is yours.",
         name = "Eleventh Net",
         era = 4,
@@ -889,7 +945,7 @@ TycoonConfig.PADS = {
     }),
     pad({
         id = "lighthouse",
-        index = 44,
+        index = 45,
         blurb = "Ships find your dock at night.",
         note = "+25% sale price",
         name = "Lighthouse",
@@ -901,7 +957,7 @@ TycoonConfig.PADS = {
     }),
     pad({
         id = "third_boat",
-        index = 45,
+        index = 46,
         blurb = "Three boats, three cargoes.",
         name = "Third Boat",
         era = 4,
@@ -912,7 +968,7 @@ TycoonConfig.PADS = {
     }),
     pad({
         id = "grand_market",
-        index = 46,
+        index = 47,
         blurb = "Traders come to you now.",
         note = "+30% sale price",
         name = "Grand Market",
@@ -924,7 +980,7 @@ TycoonConfig.PADS = {
     }),
     pad({
         id = "twelfth_net",
-        index = 47,
+        index = 48,
         blurb = "The last net. Nothing floats past unclaimed.",
         name = "Twelfth Net",
         era = 4,
@@ -935,7 +991,7 @@ TycoonConfig.PADS = {
     }),
     pad({
         id = "the_charter",
-        index = 48,
+        index = 49,
         blurb = "The whole river is yours, on paper and in fact.",
         note = "+25% forever",
         name = "The Charter",

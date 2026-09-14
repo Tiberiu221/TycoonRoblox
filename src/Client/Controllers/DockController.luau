@@ -38,7 +38,15 @@ export type Deps = {
     OpenStation: ((string, string?) -> ())?,
 }
 
-export type Sack = { count: number, capacity: number, raw: number, cut: number, cutValue: number }
+export type Sack = {
+    count: number,
+    capacity: number,
+    raw: number,
+    rawScrap: number, -- [D55]
+    iron: number, -- [D55] fierul din traista: indemnul nu mai spune doar "planks"
+    cut: number,
+    cutValue: number,
+}
 
 type Point = { x: number, y: number }
 type Customer = {
@@ -57,7 +65,8 @@ local deps: Deps
 local pile: PileView.View
 local salePill: Frame
 local saleValueLabel: TextLabel
-local sack: Sack = { count = 0, capacity = 0, raw = 0, cut = 0, cutValue = 0 }
+local sack: Sack =
+    { count = 0, capacity = 0, raw = 0, rawScrap = 0, iron = 0, cut = 0, cutValue = 0 }
 local boat: ImageLabel? = nil
 
 local DOCK = TycoonConfig.DOCK
@@ -268,7 +277,15 @@ function DockController.Focus(px: number, py: number): Focus.Focus?
     local status: string? = nil
     if sack.cut > 0 then
         local keyHint = if UserInputService.KeyboardEnabled then " (E)" else ""
-        text = Strings.promptSellPlanks(keyHint, TycoonMath.formatNumber(sack.cutValue))
+        local value = TycoonMath.formatNumber(sack.cutValue)
+        -- [D55] cu fier in traista, "Sell planks" ar minti pe jumatate
+        text = if sack.iron > 0
+            then Strings.promptSell(keyHint, value)
+            else Strings.promptSellPlanks(keyHint, value)
+    elseif sack.rawScrap > 0 and sack.raw > 0 then
+        status = Strings.PROMPT_DOCK_BOTH -- [D55] busteni si scrap: fiecare are drumul lui
+    elseif sack.rawScrap > 0 then
+        status = Strings.PROMPT_DOCK_SCRAP
     elseif sack.count > 0 then
         status = Strings.PROMPT_DOCK_RAW
     end

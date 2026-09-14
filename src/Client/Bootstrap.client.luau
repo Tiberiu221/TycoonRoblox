@@ -23,6 +23,8 @@ local NetController = require(script.Parent.Controllers.NetController)
 local DockController = require(script.Parent.Controllers.DockController)
 local SawmillController = require(script.Parent.Controllers.SawmillController)
 local StorageController = require(script.Parent.Controllers.StorageController)
+local ShedController = require(script.Parent.Controllers.ShedController)
+local ForgeController = require(script.Parent.Controllers.ForgeController)
 local PadController = require(script.Parent.Controllers.PadController)
 local InteractController = require(script.Parent.Controllers.InteractController)
 local MusicController = require(script.Parent.Controllers.MusicController)
@@ -184,6 +186,19 @@ safeInit("StorageController", function()
         Remotes = { UseStorage = Net.Get("UseStorage") },
         CharacterPos = CharacterController.Position,
         OpenCrew = openCrew,
+    })
+end)
+-- [D55] Shed-ul de scrap si forja atelierului: gramezile lor si gestul tau pe E.
+safeInit("ShedController", function()
+    ShedController.Init({ Plot = layers.Plot, Remotes = { UseShed = Net.Get("UseShed") } })
+end)
+safeInit("ForgeController", function()
+    ForgeController.Init({
+        Plot = layers.Plot,
+        Remotes = { UseForge = Net.Get("UseForge") },
+        OpenWorkshop = function()
+            WorkshopController.Open()
+        end,
     })
 end)
 -- Gaterul [D48, D49]: aici se taie; fara Sawyer, doar cat stai langa el.
@@ -602,6 +617,8 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
             nets = handNets,
             cycleStartAt = h.cycleStartAt,
             carrying = h.carrying,
+            carryKind = h.carryKind, -- [D55] ce se vede in roaba
+            scrap = h.scrap == true, -- [D55] drumul prin shed si atelier
             capacity = h.capacity or 0,
             -- locul fix al rolurilor statice; nil pentru cele care umbla [CLAUDE.md capcana 3:
             -- fiecare camp trimis de server se copiaza EXPLICIT, altfel se pierde tacut]
@@ -626,17 +643,20 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
     }
     local sack = raw.sack
     local sackCount, sackCapacity, sackValue = sack.count, sack.capacity, sack.value
-    -- brut / taiat [D49]: fiecare loc de predare decide din asta ce face un E
+    -- CE duce jucatorul, nu doar cat -- DockController deseneaza gramada de la ponton cu ea
+    -- [research 42 pct.6]. table.clone, acelasi motiv ca la nets.contents de mai sus.
+    local sackContents: { [string]: number } = table.clone(sack.contents)
+    -- brut / taiat [D49]: fiecare loc de predare decide din asta ce face un E. [D55] `raw` = lemnul brut,
+    -- `rawScrap` = scrap-ul brut (shed / atelier), `iron` = fierul, gata de vandut.
     local sackState = {
         count = sackCount,
         capacity = sackCapacity,
         raw = sack.raw or 0,
+        rawScrap = sack.rawScrap or 0,
+        iron = sackContents.iron or 0,
         cut = sack.cut or 0,
         cutValue = sack.cutValue or 0,
     }
-    -- CE duce jucatorul, nu doar cat -- DockController deseneaza gramada de la ponton cu ea
-    -- [research 42 pct.6]. table.clone, acelasi motiv ca la nets.contents de mai sus.
-    local sackContents: { [string]: number } = table.clone(sack.contents)
 
     -- Quest-urile: capitolul, lista si quest-ul activ. Copiate camp cu camp [CLAUDE.md capcana 3].
     local rawWheel: any = raw.wheel or {}
@@ -752,11 +772,17 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
         bottleneck = rawStations.bottleneck or "nets",
         rates = {
             catch = rawRates.catch or 0,
+            -- [D55] cele doua marfuri: ce prind plasele de lemn si cea de scrap, forja, ce se livreaza din fiecare
+            woodCatch = rawRates.woodCatch or 0,
+            scrapCatch = rawRates.scrapCatch or 0,
             collect = rawRates.collect or 0,
             port = rawRates.port or 0,
             sawing = rawRates.sawing or 0,
+            forging = rawRates.forging or 0,
             haul = rawRates.haul or 0,
             sales = rawRates.sales or 0,
+            wood = rawRates.wood or 0,
+            scrap = rawRates.scrap or 0,
             delivered = rawRates.delivered or 0,
             bottleneck = rawRates.bottleneck or "nets",
         },
@@ -791,6 +817,25 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
         count = rawStorage.count or 0,
         contents = table.clone(rawStorage.contents or {}),
     }
+    -- [D55] Shed-ul de scrap si forja atelierului, acelasi tipar: camp cu camp.
+    local rawShed: any = raw.shed or {}
+    local shed = {
+        count = rawShed.count or 0,
+        contents = table.clone(rawShed.contents or {}),
+    }
+    local rawForge: any = raw.forge or {}
+    local forge = {
+        count = rawForge.count or 0,
+        contents = table.clone(rawForge.contents or {}),
+        out = rawForge.out or 0,
+        outContents = table.clone(rawForge.outContents or {}),
+        rate = rawForge.rate or 0,
+    }
+    -- [D55] cati oameni are fiecare meserie: casa lor din lume creste cu ei
+    local crewCounts: { [string]: number } = {}
+    for _, c in crewRows do
+        crewCounts[c.role] = c.count or 0
+    end
 
     local rawSettings: any = raw.settings or {}
     local snapshot = {
@@ -817,6 +862,8 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
         workshop = raw.workshop,
         pile = raw.pile,
         storage = storage,
+        shed = shed,
+        forge = forge,
         sawmill = sawmill,
         dock = dock,
         stations = stations,
@@ -830,6 +877,7 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
             value = sackValue,
             contents = sackContents,
             raw = sackState.raw,
+            rawScrap = sackState.rawScrap,
             cut = sackState.cut,
             cutValue = sackState.cutValue,
         },
@@ -855,6 +903,7 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
         QuestController.Apply(snapshot.quests)
     end
     HUDController.SetSack(sackCount, sackCapacity)
+    PadController.SetCrews(crewCounts) -- [D55] inainte de Apply: prima desenare alege deja casa potrivita
     PadController.Apply(
         snapshot.pads,
         snapshot.coins,
@@ -862,7 +911,7 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
         snapshot.bottleneck,
         snapshot.stations.netLevels
     )
-    RiverRenderController.SetLanes(snapshot.lanes)
+    RiverRenderController.SetScrapNet(snapshot.pads.fifth_net == "bought")
     PadController.SetWorkshop(snapshot.workshop, snapshot.pile)
     NetController.Apply(
         snapshot.nets,
@@ -870,9 +919,17 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
         sackCapacity,
         snapshot.lanes,
         snapshot.stations.netLevels,
-        sackState.raw
+        sackState.raw,
+        sackState.rawScrap
     )
     StorageController.Apply(sackState, snapshot.storage, snapshot.stations.bottleneck)
+    ShedController.Apply(
+        sackState,
+        snapshot.shed,
+        snapshot.pads.scrap_shed == "bought",
+        snapshot.stations.bottleneck
+    )
+    ForgeController.Apply(sackState, snapshot.forge, snapshot.workshop == true)
     SawmillController.Apply(sackState, snapshot.sawmill)
     DockController.Apply(sackState, snapshot.dock)
     StationPanel.Apply(snapshot.stations)

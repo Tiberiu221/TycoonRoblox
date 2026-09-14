@@ -25,6 +25,8 @@ local StorageController = require(script.Parent.StorageController)
 local SawmillController = require(script.Parent.SawmillController)
 local DockController = require(script.Parent.DockController)
 local PadController = require(script.Parent.PadController)
+local ShedController = require(script.Parent.ShedController)
+local ForgeController = require(script.Parent.ForgeController)
 local Panels = require(script.Parent.Panels)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
@@ -65,6 +67,8 @@ local SOURCES: { (number, number) -> Focus.Focus? } = {
     StorageController.Focus,
     SawmillController.Focus,
     DockController.Focus,
+    ShedController.Focus, -- [D55] shed-ul de scrap
+    ForgeController.Focus, -- [D55] forja atelierului (si usa lui)
     PadController.FocusBuilt,
 }
 

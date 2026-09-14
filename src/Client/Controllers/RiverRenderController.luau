@@ -28,7 +28,7 @@ local visibleCount = 0
 local frameByObject: { [number]: Frame } = {}
 local freeFrames: { Frame } = {}
 local styledGoodOf: { [number]: string } = {}
-local lanes = 1 -- benzile atinse de plase: decid ce plutese mai in larg
+local scrapNet = false -- [D55] ai plasa din larg, care prinde scrap: atunci in larg plutesc doar busteni
 
 local hidden: { [number]: boolean } = {}
 local scheduleCache: { [number]: { RiverSim.RiverObject } } = {}
@@ -102,17 +102,14 @@ end
 
 local seenThisFrame: { [number]: boolean } = {}
 
--- [D53] CE PLUTESTE MAI IN LARG: bunurile pe care plasele tale inca nu le pot prinde (resturile cer a doua
--- banda, cioburile a treia -- TycoonConfig.GOODS.minLanes), ca fiecare plasa mai departata sa aiba ceva de
--- promis; cand le prinzi pe toate, busteni si stuf. Pana acum erau lazile coloniei, cu alte viteze, pe
--- aceeasi banda pe care vin acum bustenii spre plase.
+-- [D53] CE PLUTESTE MAI IN LARG: ce plasele tale inca nu pot prinde, ca plasa urmatoare sa aiba ceva de
+-- promis. [D55] Scrap-ul, pana ai plasa din larg care il prinde (Fifth Net); apoi busteni. Pana in D53 erau
+-- lazile coloniei, cu alte viteze, pe aceeasi banda pe care vin acum bustenii spre plase.
 local function farGood(objId: number): string
-    if lanes < 2 then
-        return if objId % 2 == 0 then "scrap" else "shards"
-    elseif lanes < 3 then
-        return "shards"
+    if not scrapNet then
+        return if objId % 3 == 0 then "driftwood" else "scrap"
     end
-    return if objId % 3 == 0 then "reeds" else "driftwood"
+    return "driftwood"
 end
 
 local function styleFar(frame: Frame, good: string)
@@ -185,13 +182,12 @@ function RiverRenderController.VisibleCount(): number
     return visibleCount
 end
 
--- [D53] Benzile atinse de plase, din TycoonState: o plasa noua schimba ce plutese mai in larg.
-function RiverRenderController.SetLanes(newLanes: number?)
-    local value = newLanes or 1
-    if value == lanes then
+-- [D55] Ai plasa care prinde scrap? Din TycoonState: atunci scrap-ul nu mai e o promisiune in larg.
+function RiverRenderController.SetScrapNet(owned: boolean)
+    if owned == scrapNet then
         return
     end
-    lanes = value
+    scrapNet = owned
     table.clear(styledGoodOf)
 end
 

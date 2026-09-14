@@ -175,6 +175,20 @@ end
 function Strings.promptTakePlanks(keyHint: string): string
     return `Take planks{keyHint}`
 end
+-- [D55] resturile: shed-ul de scrap si forja atelierului
+Strings.SHED_LABEL = "Scrap Shed"
+function Strings.promptStoreScrap(keyHint: string): string
+    return `Store scrap{keyHint}`
+end
+function Strings.promptTakeScrap(keyHint: string): string
+    return `Take scrap{keyHint}`
+end
+function Strings.promptSmeltScrap(keyHint: string): string
+    return `Smelt scrap{keyHint}`
+end
+function Strings.promptTakeIron(keyHint: string): string
+    return `Take iron{keyHint}`
+end
 -- Fara Sawyer, gaterul taie doar cat stai langa el. Owner-ul: "nu prea se vede textul ca trebuie sa
 -- stai aici" -- deci nu mai e un indemn care apare abia cand esti deja acolo, ci o placuta pe locul
 -- insusi, cu un inel pe jos, vazuta de oriunde se vede gaterul [D50].
@@ -186,8 +200,11 @@ function Strings.promptSellPlanks(keyHint: string, value: string): string
     return `Sell planks{keyHint} — {value}`
 end
 Strings.PROMPT_DOCK_RAW = "Logs go to the sawmill first"
+Strings.PROMPT_DOCK_SCRAP = "Scrap gets smelted at the Workshop first" -- [D55]
+Strings.PROMPT_DOCK_BOTH = "Logs to the sawmill, scrap to the Workshop first" -- [D55]
 Strings.SACK_FULL_LOGS = "Sack full — take the logs to the sawmill"
 Strings.SACK_FULL_PLANKS = "Sack full — take the planks to the tavern"
+Strings.SACK_FULL_SCRAP = "Sack full — take the scrap to the Scrap Shed" -- [D55]
 -- Ghidajul [GuideMath]: ce scrie sageata deasupra tintei.
 Strings.GUIDE_FIRST_PAD = "Step on the glowing pad"
 function Strings.guideBuy(name: string): string
@@ -232,9 +249,24 @@ function Strings.useResult(
         elseif reason == "nothing_cut" then
             return if staffed then "Nothing cut yet" else "Nothing cut yet — stay by the saw"
         elseif reason == "raw_only" then
-            return "The tavern only buys planks — cut the logs at the sawmill"
+            return "The tavern only buys planks and iron — logs to the sawmill, scrap to the Workshop"
+        -- [D55] scrap-ul are drumul lui: locul care il refuza spune unde merge
+        elseif reason == "scrap_to_shed" then
+            return "Scrap goes to the Scrap Shed"
+        elseif reason == "scrap_to_workshop" then
+            return "Scrap gets smelted at the Workshop, not cut"
+        elseif reason == "shed_empty" then
+            return "The Scrap Shed is empty"
+        elseif reason == "nothing_smelted" then
+            return "No iron yet — the forge is still smelting"
         end
         return nil
+    end
+    local function scrap(n: number): string
+        return `{n} scrap`
+    end
+    local function iron(n: number): string
+        return `{n} iron`
     end
     local function logs(n: number): string
         return if n == 1 then "1 log" else `{n} logs`
@@ -253,6 +285,15 @@ function Strings.useResult(
                 else `Dropped {logs(dropped)} — stay close to cut them`
         end
         return `Took {planks(taken)}`
+    elseif place == "shed" then
+        return if dropped > 0 then `Stored {scrap(dropped)}` else `Took {scrap(taken)}`
+    elseif place == "forge" then
+        if dropped > 0 and taken > 0 then
+            return `Dropped {scrap(dropped)} · took {iron(taken)}`
+        elseif dropped > 0 then
+            return `Dropped {scrap(dropped)} — the forge smelts it into iron`
+        end
+        return `Took {iron(taken)}`
     end
     return nil -- la debarcader se vede singur: gramada creste, apoi pleaca barca
 end
@@ -331,6 +372,8 @@ function Strings.stationsAdvice(bottleneck: string): string
         return "Right now that is hauling to the tavern — hire or upgrade Haulers."
     elseif bottleneck == "saw" then
         return "Right now that is the sawmill — upgrade it to earn more."
+    elseif bottleneck == "forge" then
+        return "Right now that is the forge — upgrade the Workshop to earn more."
     end
     return "Right now that is the tavern — upgrade it to earn more."
 end
@@ -392,6 +435,8 @@ function Strings.stationNoEffect(bottleneck: string): string
         return "No gain yet — hauling to the tavern is slowest"
     elseif bottleneck == "saw" then
         return "No gain yet — the sawmill is slowest"
+    elseif bottleneck == "forge" then
+        return "No gain yet — the forge is slowest"
     end
     return "No gain yet — the tavern is slowest"
 end
@@ -444,19 +489,29 @@ function Strings.menuDoes(kind: string, staffed: boolean): string
         return "Catches"
     elseif kind == "saw" then
         return if staffed then "Cuts" else "Cuts only while you stand here"
+    elseif kind == "forge" then
+        return "Smelts scrap into iron" -- [D55] merge singura
     end
     return if staffed then "Sells" else "Sells at 35% until you hire an Innkeeper"
 end
 -- Ce face omul: aceleasi cuvinte ca pe platforma lui.
-function Strings.crewDoes(role: string): string
+-- [D55] `scrap` = lantul resturilor merge: atunci si drumul lor e treaba omului, si textul o spune -- inainte
+-- de el ar minti [D40].
+function Strings.crewDoes(role: string, scrap: boolean?): string
     if role == "collector" then
-        return "Empties your nets into the storage"
+        return if scrap
+            then "Empties your nets into the storage and the Scrap Shed"
+            else "Empties your nets into the storage"
     elseif role == "porter" then
-        return "Carries logs from the storage to the sawmill"
+        return if scrap
+            then "Carries logs to the sawmill and scrap to the Workshop"
+            else "Carries logs from the storage to the sawmill"
     elseif role == "sawyer" then
         return "Keeps the saw running"
     elseif role == "hauler" then
-        return "Carries planks from the sawmill to the tavern"
+        return if scrap
+            then "Carries planks and iron to the tavern"
+            else "Carries planks from the sawmill to the tavern"
     end
     return "Runs the tavern"
 end
@@ -465,6 +520,8 @@ end
 function Strings.menuUnit(what: string): string
     if what == "net" or what == "collector" or what == "porter" then
         return "logs a minute"
+    elseif what == "forge" then
+        return "iron a minute" -- [D55]
     end
     return "planks a minute"
 end
@@ -474,6 +531,8 @@ function Strings.menuMilestone(kind: string, level: number, mult: number): strin
         return `Level {level}: catches {how} as much`
     elseif kind == "saw" then
         return `Level {level}: cuts {how} as fast`
+    elseif kind == "forge" then
+        return `Level {level}: smelts {how} as fast`
     end
     return `Level {level}: sells {how} as fast`
 end
@@ -505,6 +564,8 @@ function Strings.menuHeldBack(link: string, tie: boolean): string
         subject = "carrying to the sawmill"
     elseif link == "saw" then
         subject = "the sawmill"
+    elseif link == "forge" then
+        subject = "the forge"
     elseif link == "haul" then
         subject = "hauling to the tavern"
     end
@@ -516,6 +577,7 @@ function Strings.menuGoTo(link: string): string
         collect = "Collector",
         port = "Porter",
         saw = "Sawmill",
+        forge = "Workshop",
         haul = "Hauler",
         dock = "Tavern",
     }

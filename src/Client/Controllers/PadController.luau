@@ -9,14 +9,12 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
-local UserInputService = game:GetService("UserInputService")
 
 local RiverConfig = require(ReplicatedStorage.Shared.Config.RiverConfig)
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
 local Assets = require(ReplicatedStorage.Shared.Config.Assets)
 local Strings = require(ReplicatedStorage.Shared.Config.Strings)
-local WorkshopController = require(script.Parent.WorkshopController)
 local HUDController = require(script.Parent.HUDController)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
@@ -85,7 +83,6 @@ end
 
 -- Atelierul: singura platforma "bought" cu propriul indemn de interactiune (badge + "Workshop
 -- (E)"), separat de cumparare -- odata construit, calci pe el ca sa deschizi panoul [F1 spec 4.5].
-local workshopOwned = false
 local workshopPile = 0
 local workshopBadge: TextLabel? = nil
 -- [D51] Cartonasul de cumparare si cardul obiectului (InteractController) nu se arata deodata: se vede
@@ -104,6 +101,21 @@ local LOCKED_TINT = Color3.fromRGB(200, 196, 188) -- usor stinse: ruina cumparab
 local ruinTarget: string? = nil -- ruina de pe cartonas acum
 local ruinCandidate: string? = nil
 local ruinCandidateSince = 0
+-- [D55] COLIBELE. Owner-ul: "cand angajezi npc-ul as vrea sa se transforme intr-o colibie mica, un fel de casa
+-- lui, care cand se angajeaza mai multi npc, sa creasca in dimensiune". Platforma unei meserii cumparate arata
+-- casa omului, mica pentru unul si mare pentru doi; la schimbare rasare de la baza. Cati oameni are fiecare
+-- meserie vine din TycoonState (SetCrews). Fara arta urcata, avizierul curat de dinainte.
+local crewCounts: { [string]: number } = {}
+local HOME_SPRITES: { [string]: { string } } = {
+    first_runner = { "runner_hut", "runner_hut_2" },
+    hire_porter = { "hut_porter_1", "hut_porter_2" },
+    hire_sawyer = { "hut_sawyer_1", "hut_sawyer_2" },
+    hire_hauler = { "hut_hauler_1", "hut_hauler_2" },
+    dock_trader = { "stall", "stall_2" },
+}
+-- taraba ramane recuzita mica (x2); colibele sunt cladiri (x3)
+local HOME_SCALE: { [string]: number } = { dock_trader = TycoonConfig.PROP_SCALE }
+
 -- Avizierele: pe oameni ii angajezi, nu ii reconstruiesti. Pictograma meseriei pe avizierul curat.
 local BOARD_ICON: { [string]: () -> Assets.Sprite } = {
     hire_porter = function()
@@ -195,14 +207,33 @@ local function startPulse(stroke: UIStroke, padId: string)
     end)
 end
 
+-- [D55] Casa omului, dupa cati sunt pe meserie: a doua treapta cand sunt doi. Arta lipsa cade pe prima.
+local function homeSprite(padId: string): (Assets.Sprite?, number)
+    local names = HOME_SPRITES[padId]
+    if names == nil then
+        return nil, Assets.PIXEL_SCALE
+    end
+    local role = TycoonConfig.CREW_OF_PAD[padId]
+    local count = if role ~= nil then crewCounts[role] or 1 else 1
+    local scale = HOME_SCALE[padId] or Assets.PIXEL_SCALE
+    for i = math.clamp(count, 1, #names), 1, -1 do
+        local sprite = (Assets.tycoon :: any)[names[i]]
+        if sprite ~= nil and Assets.has(sprite) then
+            return sprite, scale
+        end
+    end
+    return nil, scale
+end
+
+-- Casele oamenilor (Collector, Porter, Sawyer, Hauler, taraba Innkeeper-ului) vin din homeSprite [D55]; taraba
+-- a ramas a Negustorului cand Sorting Crate si Dock Stall au devenit niveluri ale debarcaderului [E1.3].
 local function boughtSprite(padId: string): (Assets.Sprite?, number)
-    if padId == "bigger_sack" then
+    if HOME_SPRITES[padId] ~= nil then
+        return homeSprite(padId)
+    elseif padId == "scrap_shed" then
+        return Assets.tycoon.scrap_shed, Assets.PIXEL_SCALE -- [D55]
+    elseif padId == "bigger_sack" then
         return Assets.tycoon.sack, TycoonConfig.PROP_SCALE
-    elseif padId == "dock_trader" then
-        -- taraba ramane a lui: Sorting Crate si Dock Stall au devenit niveluri ale debarcaderului,
-        -- iar Negustorul a mostenit locul si sprite-ul [E1.3]. `crate.common` si `weights` raman
-        -- in manifest -- se intorc in Era 2, nu sunt orfane.
-        return Assets.tycoon.stall, TycoonConfig.PROP_SCALE
     elseif padId == "landing_bell" then
         return Assets.tycoon.bell, Assets.PIXEL_SCALE
     elseif padId == "workshop" then
@@ -211,10 +242,6 @@ local function boughtSprite(padId: string): (Assets.Sprite?, number)
             return Assets.tycoon.workshop_e1, Assets.PIXEL_SCALE
         end
         return Assets.buildings.workshop, Assets.PIXEL_SCALE
-    elseif padId == "first_runner" then
-        -- adapostul Collector-ului, odata angajat [F2 spec Agent H]; id-ul vechi al platformei [D49].
-        -- Porter-ul, Sawyer-ul si Hauler-ul n-au coliba: trei colibe ar fi umplut malul de acelasi desen.
-        return Assets.tycoon.runner_hut, Assets.PIXEL_SCALE
     end
     return nil, Assets.PIXEL_SCALE
 end
@@ -356,6 +383,8 @@ local function ruinSprite(padId: string): (Assets.Sprite?, number)
         return Assets.tycoon.ruin_bell, Assets.PIXEL_SCALE
     elseif padId == "workshop" then
         return Assets.tycoon.ruin_workshop, Assets.PIXEL_SCALE
+    elseif padId == "scrap_shed" then
+        return Assets.tycoon.ruin_scrap_shed, Assets.PIXEL_SCALE -- [D55]
     end
     return nil, 1
 end
@@ -674,9 +703,10 @@ local function styleBought(frame: TextButton, pad: TycoonConfig.Pad)
         return
     end
 
-    -- [D53] avizierul curat, cu pictograma meseriei, in locul platformei cu bifa
+    -- [D53] avizierul curat, cu pictograma meseriei, in locul platformei cu bifa. [D55] Doar cat casa omului
+    -- nu e urcata: altfel mai jos, ca orice cladire.
     local iconFor = BOARD_ICON[pad.id]
-    if iconFor ~= nil and Assets.has(Assets.tycoon.board) then
+    if iconFor ~= nil and homeSprite(pad.id) == nil and Assets.has(Assets.tycoon.board) then
         local board = worldImage(
             frame,
             Assets.tycoon.board,
@@ -738,6 +768,47 @@ local function styleBought(frame: TextButton, pad: TycoonConfig.Pad)
     if icon ~= nil then
         icon.AnchorPoint = Vector2.new(0.5, 1)
         icon.Position = UDim2.new(0.5, 0, 1, -22)
+    end
+end
+
+-- [D55] Casa rasare de la baza: imaginea cladirii creste din 20% inaltime la toata, cu un mic salt, iar la
+-- picioare se ridica praf. La prima casa (avizierul devine coliba) si cand creste (al doilea om).
+local function growIn(frame: GuiObject)
+    local building = frame:FindFirstChild("Building")
+    if building == nil or not building:IsA("ImageLabel") then
+        return
+    end
+    local full = building.Size
+    building.Size = UDim2.fromOffset(full.X.Offset * 0.9, full.Y.Offset * 0.2)
+    TweenService:Create(
+        building,
+        TweenInfo.new(0.45, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+        { Size = full }
+    ):Play()
+    for k = 1, 5 do
+        local dust = Instance.new("Frame")
+        dust.Name = "Dust"
+        dust.AnchorPoint = Vector2.new(0.5, 0.5)
+        dust.BackgroundColor3 = Color3.fromRGB(196, 176, 138)
+        dust.BackgroundTransparency = 0.2
+        dust.BorderSizePixel = 0
+        dust.Size = UDim2.fromOffset(12, 12)
+        local x = (k - 3) * full.X.Offset / 5
+        dust.Position = UDim2.new(0.5, x, 1, 4)
+        dust.ZIndex = Z + 4
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(1, 0)
+        corner.Parent = dust
+        dust.Parent = frame
+        local tween = TweenService:Create(dust, TweenInfo.new(0.7), {
+            Position = UDim2.new(0.5, x * 1.4, 1, -14),
+            Size = UDim2.fromOffset(22, 22),
+            BackgroundTransparency = 1,
+        })
+        tween.Completed:Connect(function()
+            dust:Destroy()
+        end)
+        tween:Play()
     end
 end
 
@@ -974,24 +1045,43 @@ function PadController.Apply(
                 styleOutline(frame, pad)
             elseif status == "bought" then
                 styleBought(frame, pad)
+                -- [D55] angajat chiar acum (nu la intrarea in joc): avizierul devine casa, vazut
+                if lastStatus[pad.id] ~= nil and HOME_SPRITES[pad.id] ~= nil then
+                    growIn(frame)
+                end
             end
         end
         lastStatus[pad.id] = status
     end
 end
 
+-- [D55] Cati oameni are fiecare meserie, din TycoonState -- INAINTE de Apply, ca prima desenare sa aleaga
+-- deja casa potrivita. Cand numarul se schimba pe o meserie cumparata, casa ei creste pe loc.
+function PadController.SetCrews(counts: { [string]: number })
+    for role, count in counts do
+        local before = crewCounts[role]
+        crewCounts[role] = count
+        local crew = TycoonConfig.CREWS[role]
+        if before == nil or before == count or crew == nil then
+            continue
+        end
+        local frame = frames[crew.pad]
+        if frame ~= nil and lastStatus[crew.pad] == "bought" then
+            styleBought(frame, TycoonConfig.byId[crew.pad])
+            growIn(frame)
+        end
+    end
+end
+
 -- Impins din Bootstrap la fiecare TycoonState (state.workshop, state.pile) [F1 spec 4.5].
-function PadController.SetWorkshop(owned: boolean, pile: number)
-    workshopOwned = owned
+function PadController.SetWorkshop(_owned: boolean, pile: number)
     workshopPile = pile
     refreshWorkshopBadge()
 end
 
--- Aproape de atelier si e construit? Deschide panoul si intoarce true -- ultima veriga din
--- lantul de interactiune (dupa Collect si Sell) [F1 spec 4.5].
--- [D51] Cardul obiectelor construite pe platforme: atelierul (E il deschide) si platformele de meserie
--- cumparate (Upgrade = meniul meseriei). Plasele au cardul lor (NetController.Focus); traista mare si
--- clopotul n-au nici gest, nici niveluri.
+-- [D51] Cardul obiectelor construite pe platforme: platformele de meserie cumparate (Upgrade = meniul
+-- meseriei). Plasele au cardul lor (NetController.Focus); traista mare si clopotul n-au nici gest, nici
+-- niveluri. [D55] Atelierul are cardul forjei (ForgeController.Focus): E topeste si ia fierul, sau intra.
 function PadController.FocusBuilt(px: number, py: number): Focus.Focus?
     local best: Focus.Focus? = nil
     for _, pad in TycoonConfig.PADS do
@@ -999,8 +1089,7 @@ function PadController.FocusBuilt(px: number, py: number): Focus.Focus?
             continue
         end
         local role = TycoonConfig.CREW_OF_PAD[pad.id]
-        local isWorkshop = pad.id == "workshop" and workshopOwned
-        if role == nil and not isWorkshop then
+        if role == nil then
             continue
         end
         local x, y = pad.x :: number, pad.y :: number
@@ -1011,19 +1100,12 @@ function PadController.FocusBuilt(px: number, py: number): Focus.Focus?
         then
             continue
         end
-        local keyHint = if UserInputService.KeyboardEnabled then " (E)" else ""
         best = {
             key = `pad:{pad.id}`,
             distance = d,
             x = x,
             y = y - 56,
-            action = if isWorkshop then Strings.promptWorkshop(keyHint) else nil,
-            act = if isWorkshop
-                then function()
-                    WorkshopController.Open()
-                end
-                else nil,
-            upgradeKind = if role ~= nil then "crew" else nil,
+            upgradeKind = "crew",
             upgradeId = role,
         }
     end

@@ -19,6 +19,7 @@ export type Facts = {
     sawn: number, -- bucati taiate la gater, de oricine [D49]
     collected: number, -- bucati colectate de jucator din plase [D51]
     sold: number, -- bucati predate la taverna [D51]
+    smelted: number?, -- bucati de fier topite la atelier, de oricine [D55]
     netLevels: { [string]: number },
     dockLevel: number,
     idleRate: number,
@@ -67,6 +68,8 @@ function QuestMath.progress(quest: QuestConfig.Quest, facts: Facts): number
         return facts.collected or 0
     elseif kind == "sold" then
         return facts.sold or 0
+    elseif kind == "smelted" then
+        return facts.smelted or 0
     elseif kind == "idle" then
         return facts.idleRate
     elseif kind == "level" then

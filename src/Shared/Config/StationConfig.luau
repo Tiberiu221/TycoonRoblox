@@ -3,10 +3,11 @@
 -- inventate: testele din `tests/ChainMath.test.luau` verifica debitele la ultimul bit, iar
 -- simulatorul citeste fisierul asta si pica daca o constanta a oamenilor s-a despartit [D49].
 --
--- TREI CLADIRI CU NIVELURI, fiecare de la 1 si fara capat:
+-- PATRU CLADIRI CU NIVELURI, fiecare de la 1 si fara capat:
 --   nets   -- plasele. Cate una pe fiecare deblocare; toate urca separat.
---   saw    -- gaterul. Tot ce aduci trece prin el; driftwood-ul iese scanduri.
---   dock   -- debarcaderul. Cat de repede se transforma gramada in monede.
+--   saw    -- gaterul. Driftwood-ul iese scanduri.
+--   forge  -- forja atelierului [D55]. Scrap-ul plasei a cincea iese fier; merge singura.
+--   dock   -- debarcaderul (taverna). Cat de repede se transforma gramada in monede.
 -- SI CINCI MESERII [D49], cu TREPTE putine si cel mult doi oameni pe meserie in Era 1:
 --   collector (plase -> depozit), porter (depozit -> gater), sawyer (taie la gater),
 --   hauler (gater -> debarcader), trader (vinde la debarcader).
@@ -17,7 +18,7 @@
 -- debarcaderul ramanea gatuire zeci de niveluri la rand si jocul se transforma in macinat.
 local StationConfig = {}
 
-StationConfig.LEVEL_INC = { nets = 0.03, saw = 0.06, dock = 0.06 }
+StationConfig.LEVEL_INC = { nets = 0.03, saw = 0.06, dock = 0.06, forge = 0.06 }
 StationConfig.LEVEL_INC_DEFAULT = 0.03
 StationConfig.LEVEL_GROWTH = 1.09 -- cat se scumpeste fiecare nivel
 
@@ -32,6 +33,8 @@ StationConfig.NET_BASE_RATE = 0.33 -- prima plasa, nivel 1 (aceeasi cifra ca ina
 StationConfig.NET_BASE_GROWTH = 1.45
 StationConfig.NET_UPGRADE_BASE_COST = 1.0
 StationConfig.NET_LANES = { 1, 1, 2, 2, 3 } -- pe ce banda sta fiecare din cele 5 plase ale Erei 1
+-- [D55] ce prinde fiecare: ultima plasa, cea din larg, prinde scrap (TycoonConfig.CATCH)
+StationConfig.NET_KINDS = { "wood", "wood", "wood", "wood", "scrap" }
 
 StationConfig.SACK_BONUS = 1.5 -- traista mare: mai putine drumuri, pe tot ce duci tu
 
@@ -39,6 +42,11 @@ StationConfig.SACK_BONUS = 1.5 -- traista mare: mai putine drumuri, pe tot ce du
 -- multiplicator ar umfla doar cifrele. 2.4, nu 3.6: la 3.6 gaterul iesea gatuire 2-3% din timp.
 StationConfig.SAW_BASE_RATE = 2.4
 StationConfig.SAW_UPGRADE_BASE = 7.0
+
+-- [D55] Forja atelierului: topeste scrap-ul in fier, singura, cu niveluri ca gaterul. Sub plasa a cincea
+-- proaspata (1.46/s), ca la inceput forja sa fie gatuirea scrap-ului.
+StationConfig.FORGE_BASE_RATE = 1.2
+StationConfig.FORGE_UPGRADE_BASE = 60.0
 
 -- Debarcaderul. Baza e mult peste productia de inceput, deci prima vanzare se scurge repede.
 StationConfig.DOCK_BASE_RATE = 3.0
@@ -58,8 +66,9 @@ StationConfig.LINK_OF = {
     hauler = "haul",
     trader = "dock",
 }
--- ORDINEA e contractul cu simulatorul: la egalitate castiga veriga dinainte.
-StationConfig.LINKS = { "nets", "collect", "port", "saw", "haul", "dock" }
+-- ORDINEA e contractul cu simulatorul: la egalitate castiga veriga dinainte. [D55] "forge" intre gater si
+-- dus la taverna, ca in simulator.
+StationConfig.LINKS = { "nets", "collect", "port", "saw", "forge", "haul", "dock" }
 
 -- Timpul tau, impartit la pasii fara om. 3.6, nu 1.2 (caratul tau din D48): cu 1.2 impartit la
 -- patru, tu erai veriga slaba din prima secunda si 24 din 27 de cumparaturi din primele 5 minute

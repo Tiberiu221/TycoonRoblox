@@ -46,6 +46,7 @@ export type State = {
     sackCapacity: number,
     -- cate din traista sunt deja taiate [D49]; restul sunt busteni care merg la gater. nil = 0.
     sackCut: number?,
+    sackRawScrap: number?, -- [D55] scrap brut din traista: nu e bustean, nu merge la gater
     hands: { HandInfo }, -- hands[i].nets: plasele pe care le deserveste alergatorul, nu de mana
     firstsCollect: boolean,
     firstsSell: boolean,
@@ -87,7 +88,8 @@ local GuideMath = {}
 -- din fata usii, nu mijlocul cladirii; la taverna, usa.
 local function carryGoal(s: State, full: boolean): Goal
     local cut = s.sackCut or 0
-    if s.sackCount - cut > 0 then
+    -- [D55] scrap-ul din traista nu merge la gater: nu intra in "busteni"
+    if s.sackCount - cut - (s.sackRawScrap or 0) > 0 then
         local stand = TycoonConfig.SAWMILL_STAND
         return {
             kind = "deliver",
@@ -137,7 +139,7 @@ end
 function GuideMath.loopStep(s: State, quest: QuestGoal?): Goal
     local crews = s.crews or {}
     local cut = s.sackCut or 0
-    local raw = s.sackCount - cut
+    local raw = s.sackCount - cut - (s.sackRawScrap or 0) -- [D55] scrap-ul nu e bustean
     local full = s.sackCapacity > 0 and s.sackCount >= s.sackCapacity
     local room = s.sackCapacity - s.sackCount
     local stand = TycoonConfig.SAWMILL_STAND

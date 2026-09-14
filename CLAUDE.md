@@ -71,6 +71,14 @@ stylua/selene o prind. Rulează-le mereu pe toate, nu înlănțuite după o eroa
 
 ## Stare (2026-09-13)
 
+**Resturile pe drumul lor, roabele, grămezile la gater, colibele care cresc [D55]** — scris noaptea, cu planul
+aprobat de mine la cererea owner-ului; trece poarta (315 teste). Fifth Net prinde doar scrap → Scrap Shed
+(platformă nouă, renumerotare) → forja atelierului (niveluri) → fier (3) → tavernă, cu aceiași oameni;
+`ChainMath` pe două fluxuri (valori de aur din `golden_chain.py`), veriga slabă după câștigul pe bucată,
+profil **v7**, Era 1 la 37m44s reali. Oamenii împing roabe (rânduri noi în foi), grămezile sunt pe trepte
+(bușteni stânga / scânduri dreapta la gater), avizierele stau lângă meserii și devin colibe care cresc la al
+doilea om. 34 de fișiere de artă urcate. **Neverificat încă în Studio.**
+
 **Nivelul sunetului [D54]** — scris și trece poarta (299 teste): muzica implicit la nivelul 4 din 10
 (~11 dB sub cât era), efectele la 10; panoul „Sound" pe tasta M (−, zece segmente, +) în locul
 comutatorului de muzică; volumul pe `SoundGroup`-uri („Music", „Effects"), curba în `AudioLevels`;

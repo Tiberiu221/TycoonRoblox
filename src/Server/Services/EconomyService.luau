@@ -4,6 +4,8 @@
 --
 --   plase -> traista / Collector -> DEPOZIT -> traista / Porter -> GATER (taie) -> iesirea gaterului
 --         -> traista / Hauler -> DEBARCADER (vinde) -> monede
+--   [D55] plasa de scrap -> traista / Collector -> SHED -> traista / Porter -> FORJA ATELIERULUI (topeste)
+--         -> fierul -> traista / Hauler -> DEBARCADER
 --
 -- Serverul nu stie unde sta jucatorul: la cules, la predare si la cumparare decide clientul, iar
 -- serverul verifica doar ca gestul are sens (ce ai in traista, ce e in gramada) [D49].
@@ -59,6 +61,9 @@ local sawCarry: { [Player]: number } = {}
 -- destul de lin pentru ochi si de rar pentru retea.
 local SAW_PUSH_GAP = 0.5
 local lastSawPushAt: { [Player]: number } = {}
+-- [D55] FORJA: acelasi rest fractionar si acelasi ritm de trimitere ca gaterul.
+local smeltCarry: { [Player]: number } = {}
+local lastSmeltPushAt: { [Player]: number } = {}
 local pendingTotal: { [Player]: number } = {}
 local pendingCount: { [Player]: number } = {}
 local lastSoldAt: { [Player]: number } = {}
@@ -188,12 +193,35 @@ local function split(items: { Catch }): ({ Catch }, { Catch })
     return raw, cut
 end
 
+-- [D55] Traista pe trei: lemnul brut (si ce a ramas vechi: finds, reeds, shards), scrap-ul brut, ce e gata de
+-- vandut (scanduri, fier). Scrap-ul are drumul lui: nu intra nici in depozit, nici in gater.
+local function split3(items: { Catch }): ({ Catch }, { Catch }, { Catch })
+    local raw, scrap, cut = {}, {}, {}
+    for _, item in items do
+        if isCut(item) then
+            table.insert(cut, item)
+        elseif item.g == "scrap" then
+            table.insert(scrap, item)
+        else
+            table.insert(raw, item)
+        end
+    end
+    return raw, scrap, cut
+end
+
+local function joined(a: { Catch }, b: { Catch }): { Catch }
+    local out = table.clone(a)
+    table.move(b, 1, #b, #out + 1, out)
+    return out
+end
+
 function EconomyService.SackSnapshot(player: Player): {
     count: number,
     capacity: number,
     value: number,
     contents: { [string]: number },
     raw: number,
+    rawScrap: number,
     cut: number,
     cutValue: number,
 }
@@ -206,13 +234,14 @@ function EconomyService.SackSnapshot(player: Player): {
             value = 0,
             contents = {},
             raw = 0,
+            rawScrap = 0,
             cut = 0,
             cutValue = 0,
         }
     end
     -- CE duce jucatorul, nu doar cat: gramezile se deseneaza pe feluri, deci si traista.
     local contents: { [string]: number } = {}
-    local _raw, cut = split(data.Sack.items)
+    local raw, scrap, cut = split3(data.Sack.items)
     for _, item: Catch in data.Sack.items do
         contents[item.g] = (contents[item.g] or 0) + 1
     end
@@ -221,60 +250,122 @@ function EconomyService.SackSnapshot(player: Player): {
         capacity = TycoonMath.sackCapacity(state),
         value = EconomyService.ValueOf(player, data.Sack.items),
         contents = contents,
-        raw = #data.Sack.items - #cut,
+        -- [D55] `raw` = lemnul brut (merge la depozit / gater), `rawScrap` = scrap-ul brut (shed / atelier)
+        raw = #raw,
+        rawScrap = #scrap,
         cut = #cut,
         -- doar ce se poate vinde acum: pastila de la debarcader nu promite bani pe busteni bruti [D40]
         cutValue = EconomyService.ValueOf(player, cut),
     }
 end
 
--- E LA DEPOZIT: lasi tot brutul din traista; daca n-ai brut, iei brut din depozit cat incape.
--- Intoarce (ok, ce s-a intamplat, cate bucati). Motivele refuzului le traduce clientul in toast.
+-- E LA DEPOZIT: lasi tot lemnul brut din traista; daca n-ai, iei brut din depozit cat incape.
+-- Intoarce (ok, ce s-a intamplat, cate bucati). Motivele refuzului le traduce clientul in toast. [D55]
+-- Scrap-ul ramane in traista: locul lui e shed-ul, si refuzul o spune ("scrap_to_shed").
 function EconomyService.UseStorage(player: Player): (boolean, string, number)
     local data = DataService.Get(player)
     if data == nil then
         return false, "no_profile", 0
     end
-    local raw, cut = split(data.Sack.items)
+    local raw, scrap, cut = split3(data.Sack.items)
     if #raw > 0 then
         PileMath.addItems(data.StoragePile.counts, raw)
-        data.Sack.items = cut
+        data.Sack.items = joined(scrap, cut)
         push(player)
         return true, "dropped", #raw
     end
     local room = TycoonMath.sackCapacity(deps.Pads.StateFor(player)) - #data.Sack.items
     if room <= 0 then
-        return false, "sack_full", 0
+        return false, if #scrap > 0 then "scrap_to_shed" else "sack_full", 0
     end
     local taken = PileMath.take(data.StoragePile.counts, room)
     if #taken == 0 then
-        return false, "storage_empty", 0
+        return false, if #scrap > 0 then "scrap_to_shed" else "storage_empty", 0
     end
     table.move(taken, 1, #taken, #data.Sack.items + 1, data.Sack.items)
     push(player)
     return true, "took", #taken
 end
 
--- E LA GATER, un singur gest: lasi brutul, apoi iei ce e taiat cat incape.
--- Intoarce (ok, motiv, cate ai lasat, cate ai luat).
+-- E LA GATER, un singur gest: lasi lemnul brut, apoi iei ce e taiat cat incape.
+-- Intoarce (ok, motiv, cate ai lasat, cate ai luat). [D55] Scrap-ul nu se taie: ramane in traista.
 function EconomyService.UseSawmill(player: Player): (boolean, string, number, number)
     local data = DataService.Get(player)
     if data == nil then
         return false, "no_profile", 0, 0
     end
-    local raw, cut = split(data.Sack.items)
+    local raw, scrap, cut = split3(data.Sack.items)
     if #raw > 0 then
         PileMath.addItems(data.SawmillPile.counts, raw)
-        data.Sack.items = cut
+        data.Sack.items = joined(scrap, cut)
     end
     local room = TycoonMath.sackCapacity(deps.Pads.StateFor(player)) - #data.Sack.items
     local taken = if room > 0 then PileMath.take(data.PlanksPile.counts, room, true) else {}
     table.move(taken, 1, #taken, #data.Sack.items + 1, data.Sack.items)
     if #raw == 0 and #taken == 0 then
-        return false, if room <= 0 then "sack_full" else "nothing_cut", 0, 0
+        local reason = if room <= 0
+            then "sack_full"
+            elseif #scrap > 0 then "scrap_to_workshop"
+            else "nothing_cut"
+        return false, reason, 0, 0
     end
     push(player)
     return true, "ok", #raw, #taken
+end
+
+-- [D55] E LA SHED-UL DE SCRAP: lasi scrap-ul brut din traista; daca n-ai, iei scrap cat incape.
+-- Intoarce (ok, ce s-a intamplat, cate bucati), ca la depozit.
+function EconomyService.UseShed(player: Player): (boolean, string, number)
+    local data = DataService.Get(player)
+    if data == nil then
+        return false, "no_profile", 0
+    end
+    if data.Pads.scrap_shed ~= true then
+        return false, "no_shed", 0
+    end
+    local raw, scrap, cut = split3(data.Sack.items)
+    if #scrap > 0 then
+        PileMath.addItems(data.ScrapPile.counts, scrap)
+        data.Sack.items = joined(raw, cut)
+        push(player)
+        return true, "dropped", #scrap
+    end
+    local room = TycoonMath.sackCapacity(deps.Pads.StateFor(player)) - #data.Sack.items
+    if room <= 0 then
+        return false, "sack_full", 0
+    end
+    local taken = PileMath.take(data.ScrapPile.counts, room)
+    if #taken == 0 then
+        return false, "shed_empty", 0
+    end
+    table.move(taken, 1, #taken, #data.Sack.items + 1, data.Sack.items)
+    push(player)
+    return true, "took", #taken
+end
+
+-- [D55] E LA ATELIER, un singur gest ca la gater: lasi scrap-ul la forja, apoi iei fierul gata cat incape.
+-- Intoarce (ok, motiv, cate ai lasat, cate ai luat).
+function EconomyService.UseForge(player: Player): (boolean, string, number, number)
+    local data = DataService.Get(player)
+    if data == nil then
+        return false, "no_profile", 0, 0
+    end
+    if data.Pads.workshop ~= true then
+        return false, "no_workshop", 0, 0
+    end
+    local raw, scrap, cut = split3(data.Sack.items)
+    if #scrap > 0 then
+        PileMath.addItems(data.ForgePile.counts, scrap)
+        data.Sack.items = joined(raw, cut)
+    end
+    local room = TycoonMath.sackCapacity(deps.Pads.StateFor(player)) - #data.Sack.items
+    local taken = if room > 0 then PileMath.take(data.IronPile.counts, room, true) else {}
+    table.move(taken, 1, #taken, #data.Sack.items + 1, data.Sack.items)
+    if #scrap == 0 and #taken == 0 then
+        return false, if room <= 0 then "sack_full" else "nothing_smelted", 0, 0
+    end
+    push(player)
+    return true, "ok", #scrap, #taken
 end
 
 -- E LA TAVERNA: lasi ce e taiat. Brutul ramane in traista -- taverna cumpara doar marfa trecuta prin
@@ -298,7 +389,8 @@ end
 
 -- ---- oamenii [D49] --------------------------------------------------------------------------
 
--- Un om lasa ce duce: Collector-ul la depozit, Porter-ul la gater, Hauler-ul la debarcader.
+-- Un om lasa ce duce: Collector-ul la depozit (si scrap-ul la shed), Porter-ul la gater (si scrap-ul la
+-- atelier), Hauler-ul la debarcader.
 function EconomyService.DropAt(player: Player, place: string, items: { Catch }): number
     local data = DataService.Get(player)
     if data == nil or #items == 0 then
@@ -306,8 +398,12 @@ function EconomyService.DropAt(player: Player, place: string, items: { Catch }):
     end
     if place == "storage" then
         PileMath.addItems(data.StoragePile.counts, items)
+    elseif place == "shed" then
+        PileMath.addItems(data.ScrapPile.counts, items)
     elseif place == "sawmill" then
         PileMath.addItems(data.SawmillPile.counts, items)
+    elseif place == "forge" then
+        PileMath.addItems(data.ForgePile.counts, items)
     elseif place == "dock" then
         PileMath.addItems(data.DockPile.counts, items)
         data.Stats.sells += 1
@@ -327,10 +423,31 @@ function EconomyService.TakeFrom(player: Player, place: string, n: number): { Ca
     end
     if place == "storage" then
         return PileMath.take(data.StoragePile.counts, n)
+    elseif place == "shed" then
+        return PileMath.take(data.ScrapPile.counts, n)
     elseif place == "planks" then
         return PileMath.take(data.PlanksPile.counts, n, true)
+    elseif place == "iron" then
+        return PileMath.take(data.IronPile.counts, n, true)
     end
     return {}
+end
+
+-- [D55] Cate bucati asteapta intr-o gramada: HandService se uita aici inainte sa ia scrap (la plasa, la shed),
+-- ca sa nu care fier vechi pe care forja nu-l poate topi, in locul lemnului.
+function EconomyService.PileCount(player: Player, place: string): number
+    local data = DataService.Get(player)
+    if data == nil then
+        return 0
+    end
+    local counts = if place == "storage"
+        then data.StoragePile.counts
+        elseif place == "shed" then data.ScrapPile.counts
+        elseif place == "forge" then data.ForgePile.counts
+        elseif place == "iron" then data.IronPile.counts
+        elseif place == "planks" then data.PlanksPile.counts
+        else nil
+    return if counts ~= nil then PileMath.total(counts) else 0
 end
 
 function EconomyService.SetPresence(player: Player, present: boolean)
@@ -397,6 +514,44 @@ function EconomyService.SawmillSnapshot(player: Player): {
     }
 end
 
+-- [D55] Shed-ul de scrap: cat asteapta acolo.
+function EconomyService.ShedSnapshot(
+    player: Player
+): { count: number, contents: { [string]: number } }
+    local data = DataService.Get(player)
+    if data == nil then
+        return { count = 0, contents = {} }
+    end
+    return {
+        count = PileMath.total(data.ScrapPile.counts),
+        contents = PileMath.contents(data.ScrapPile.counts),
+    }
+end
+
+-- [D55] Forja atelierului: scrap-ul care asteapta (`count`), fierul iesit (`out`) si cat topeste ACUM.
+function EconomyService.ForgeSnapshot(player: Player): {
+    count: number,
+    contents: { [string]: number },
+    out: number,
+    outContents: { [string]: number },
+    rate: number,
+}
+    local data = DataService.Get(player)
+    if data == nil then
+        return { count = 0, contents = {}, out = 0, outContents = {}, rate = 0 }
+    end
+    local waiting = PileMath.total(data.ForgePile.counts)
+    return {
+        count = waiting,
+        contents = PileMath.contents(data.ForgePile.counts),
+        out = PileMath.total(data.IronPile.counts),
+        outContents = PileMath.contents(data.IronPile.counts),
+        rate = if waiting > 0
+            then ChainMath.forgeSpeed(data.Pads.workshop == true, levelOf(data, "forge"))
+            else 0,
+    }
+end
+
 function EconomyService.DockSnapshot(player: Player): {
     count: number,
     value: number,
@@ -457,6 +612,44 @@ local function saw(player: Player, dt: number, at: number)
     local emptied = PileMath.total(pile) == 0
     if emptied or at - (lastSawPushAt[player] or 0) >= SAW_PUSH_GAP then
         lastSawPushAt[player] = at
+        push(player)
+    end
+end
+
+-- [D55] O topitura: cate bucati de scrap apuca forja in `dt` secunde. Scrap-ul iese fier; orice altceva
+-- (n-ar trebui sa ajunga aici) trece neschimbat, ca la gater -- nimic nu se pierde.
+local function smelt(player: Player, dt: number, at: number)
+    local data = DataService.Get(player)
+    if data == nil or data.ForgePile == nil then
+        return
+    end
+    local pile = data.ForgePile.counts
+    local waiting = PileMath.total(pile)
+    local speed = if waiting > 0
+        then ChainMath.forgeSpeed(data.Pads.workshop == true, levelOf(data, "forge"))
+        else 0
+    if speed <= 0 then
+        smeltCarry[player] = 0
+        return
+    end
+    local carried = (smeltCarry[player] or 0) + speed * dt
+    local whole = math.floor(carried)
+    smeltCarry[player] = carried - whole
+    if whole <= 0 then
+        return
+    end
+    local items = PileMath.take(pile, whole)
+    for _, item in items do
+        if item.g == "scrap" then
+            item.g = "iron"
+        end
+        PileMath.add(data.IronPile.counts, item)
+    end
+    data.ForgePile.smeltedAt = at
+    data.Stats.smelted = (data.Stats.smelted or 0) + #items
+    local emptied = PileMath.total(pile) == 0
+    if emptied or at - (lastSmeltPushAt[player] or 0) >= SAW_PUSH_GAP then
+        lastSmeltPushAt[player] = at
         push(player)
     end
 end
@@ -536,6 +729,10 @@ function EconomyService.DevFillPile(player: Player, place: string, n: number): n
         sawmill = { data.SawmillPile.counts, "driftwood" },
         planks = { data.PlanksPile.counts, "planks" },
         dock = { data.DockPile.counts, "planks" },
+        -- [D55] lantul resturilor
+        shed = { data.ScrapPile.counts, "scrap" },
+        forge = { data.ForgePile.counts, "scrap" },
+        iron = { data.IronPile.counts, "iron" },
     }
     local target = piles[place]
     if target == nil then
@@ -559,6 +756,7 @@ function EconomyService.Init(d: typeof(deps))
         local at = now()
         for _, player in Players:GetPlayers() do
             saw(player, step, at) -- intai gaterul
+            smelt(player, step, at) -- [D55] apoi forja
             drain(player, step, at)
             -- prezenta a expirat intre doua semnale: clientul trebuie sa vada ca gaterul s-a oprit
             local until_ = presentUntil[player]
@@ -572,6 +770,8 @@ function EconomyService.Init(d: typeof(deps))
         drainCarry[player] = nil
         sawCarry[player] = nil
         lastSawPushAt[player] = nil
+        smeltCarry[player] = nil
+        lastSmeltPushAt[player] = nil
         pendingTotal[player] = nil
         pendingCount[player] = nil
         lastSoldAt[player] = nil

@@ -19,7 +19,8 @@ export type Quest = {
     id: string,
     text: string,
     -- ce se citeste din stare: "pad" (detii platforma) | "collected" / "sold" (bucati, D51) | "sawn" |
-    -- "level" | "idle" (plus "collects" / "sells", gesturi, ramase doar ca feluri cunoscute)
+    -- "smelted" (fier topit la atelier, D55) | "level" | "idle" (plus "collects" / "sells", gesturi, ramase
+    -- doar ca feluri cunoscute)
     kind: string,
     arg: string?, -- padId pentru "pad"; "net:<padId>" / "dock" pentru "level"
     goal: number,
@@ -267,6 +268,16 @@ QuestConfig.CHAPTERS = {
                 targetPad = "far_lane_net",
             },
             {
+                -- [D55] scrap-ul are drumul lui: intai shed-ul in care il lasa Collector-ul, abia apoi plasa
+                id = "build_shed",
+                text = "Build the Scrap Shed",
+                kind = "pad",
+                arg = "scrap_shed",
+                goal = 1,
+                reward = { pearls = 3 },
+                targetPad = "scrap_shed",
+            },
+            {
                 id = "cast_fifth",
                 text = "Cast a fifth net in the deep channel",
                 kind = "pad",
@@ -274,6 +285,15 @@ QuestConfig.CHAPTERS = {
                 goal = 1,
                 reward = { pearls = 5 },
                 targetPad = "fifth_net",
+            },
+            {
+                -- [D55] ca scrap-ul sa se vada ajuns la capat: topit la atelier, de oricine
+                id = "smelt_iron",
+                text = "Smelt 25 iron at the Workshop",
+                kind = "smelted",
+                goal = 25,
+                reward = { pearls = 3 },
+                targetPad = "workshop",
             },
             {
                 id = "ring_bell",

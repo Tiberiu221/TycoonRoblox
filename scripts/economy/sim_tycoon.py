@@ -16,6 +16,10 @@ MODELUL (2026-09-12 dupa Idle Miner Tycoon; oamenii din 2026-09-13, D49). Pana l
                  -> dusul la debarcader (Hauler) -> vanzarea (debarcaderul, Negustorul)
      Fiecare pas fara om il faci TU, iar timpul tau se imparte intre ei. Veriga cea mai slaba
      decide venitul, si tocmai repararea ei e decizia jucatorului.
+  4. RESTURILE AU DRUMUL LOR [D55]. Plasa a cincea prinde scrap; Collector-ul il lasa la shed, Porter-ul
+     il duce la atelier (forja, cu niveluri), Hauler-ul duce fierul la taverna. Aceiasi oameni duc ambele
+     marfuri: capacitatea lor comuna merge intai la fier (bucata valoreaza mai mult), cat poate forja topi,
+     iar restul la scanduri. Fara scrap, lantul e exact cel cu sase debite de mai sus.
 
 Regulile pe care simulatorul le IMPUNE, nu doar le masoara:
   A. Preturile deblocarilor se DERIVA din tinte de ritm, nu se ghicesc.
@@ -40,13 +44,23 @@ from dataclasses import dataclass, field
 
 REAL = 1.8  # un jucator real ~ de 1.8 ori mai lent decat cel lacom (IPOTEZA, de masurat)
 
-GOODS = {  # valoare de baza in monede, pondere in prinderi, banda minima
-    "driftwood": (1.0, 0.70, 1),
-    "scrap": (2.0, 0.13, 2),
-    "reeds": (2.0, 0.08, 1),
-    "shards": (2.5, 0.04, 3),
-    "named": (14.0, 0.05, 1),
+GOODS = {  # valoarea de baza a unei bucati, in monede
+    "driftwood": 1.0,
+    "scrap": 3.0,  # [D55] se vinde doar topit: fierul valoreaza cat scrap-ul din care iese
+    "named": 14.0,
+    "planks": 1.0,
+    "iron": 3.0,
 }
+# CE PRINDE O PLASA, dupa felul ei [D55]. Pana la D55 toate plasele prindeau acelasi amestec, iar banda cea
+# mai departata decidea ce marfuri exista: dupa plasa a patra, si a doua prindea scrap, care trecea prin
+# gater ca si cand ar fi fost lemn [owner, 2026-09-13: "scraps ar trebui sa poti prinde doar la ultimul
+# net"]. Reeds si shards au iesit din Era 1 din acelasi motiv. (bun, pondere), in ordinea sumei.
+CATCH = {
+    "wood": (("driftwood", 0.95), ("named", 0.05)),
+    "scrap": (("scrap", 0.95), ("named", 0.05)),
+}
+# Valoarea medie a unei bucati prinse, pe fel de plasa. Aceeasi ordine a sumei ca in ChainMath.luau.
+AVG = {kind: sum(share * GOODS[good] for good, share in parts) for kind, parts in CATCH.items()}
 
 # ---- scara nivelurilor -----------------------------------------------------------------------
 # Forma e copiata din Idle Miner si verificata pe capturi: acolo, un nivel adauga "+0.1" la un
@@ -95,6 +109,7 @@ def level_cost(base_cost: float, level: int) -> float:
 NET_BASE_RATE = 0.33  # prima plasa, nivel 1 -- aceeasi cifra ca azi, ca senzatia de start sa nu se schimbe
 NET_BASE_GROWTH = 1.45
 NET_LANES = (1, 1, 2, 2, 3)  # pe ce banda sta fiecare din cele 5 plase ale Erei 1
+NET_KINDS = ("wood", "wood", "wood", "wood", "scrap")  # [D55] ultima plasa, cea din larg, prinde scrap
 
 NET_UPGRADE_BASE_COST = 1.0  # nivelul 2 al primei plase; se scaleaza cu baza plasei
 
@@ -114,6 +129,12 @@ NO_TRADER_FACTOR = 0.35
 # 2.4, nu 3.6 ca in D48: la 3.6 gaterul iesea gatuire 2-3% din timp, adica decor.
 SAW_BASE_RATE = 2.4
 SAW_UPGRADE_BASE = 7.0
+
+# FORJA ATELIERULUI [D55]: topeste scrap-ul in fier, singura (fierarul vine cu atelierul), cu niveluri ca
+# gaterul. Sub plasa a cincea proaspata (1.46/s), ca la inceput forja sa fie gatuirea scrap-ului.
+FORGE_BASE_RATE = 1.2
+FORGE_UPGRADE_BASE = 60.0
+LEVEL_INC_BY_KIND["forge"] = 0.06
 
 # ---- oamenii [D49] ---------------------------------------------------------------------------
 # FIECARE PAS E MUNCA DE OM. La inceput le faci tu pe toate; fiecare angajare iti ia un drum sau o
@@ -144,7 +165,7 @@ LINK_OF = {"collector": "collect", "porter": "port", "sawyer": "saw", "hauler": 
 ROLE_NAMES = {"collector": "Collector", "porter": "Porter", "sawyer": "Sawyer", "hauler": "Hauler", "trader": "Innkeeper"}
 # ORDINEA e contractul cu ChainMath.luau: min() intoarce PRIMUL minim din tuplu, iar Luau-ul compara
 # cu `<` strict in exact aceeasi ordine. Alta ordine = alta veriga la egalitate.
-LINKS = ("nets", "collect", "port", "saw", "haul", "dock")
+LINKS = ("nets", "collect", "port", "saw", "forge", "haul", "dock")
 
 
 def net_lane(base_lane: int, level: int) -> int:
@@ -159,6 +180,7 @@ class Net:
     base: float
     base_lane: int
     level: int = 1
+    kind: str = "wood"
 
     def rate(self) -> float:
         return level_output(self.base, self.level)
@@ -183,6 +205,8 @@ class State:
     saw_level: int = 1
     sack_big: bool = False
     workshop: bool = False
+    scrap_shed: bool = False
+    forge_level: int = 1
     price_mult: float = 1.0
     bells: float = 1.0
     index_found: int = 0
@@ -230,39 +254,95 @@ def dock_rate(s: State) -> float:
     return cap * NO_TRADER_FACTOR
 
 
-def avg_value(s: State) -> float:
-    """Valoarea medie a unei bucati prinse. Marfurile bune cer benzi mai departe de mal: pana
-    ajungi acolo, ponderea lor se varsa in lemn (nu dispare, doar nu apare inca)."""
-    lanes = max((n.lane() for n in s.nets), default=1)
-    shares = {g: v[1] for g, v in GOODS.items()}
-    for g, (_, share, min_lane) in list(GOODS.items()):
-        if min_lane > lanes:
-            shares["driftwood"] += shares.pop(g)
-    return sum(share * GOODS[g][0] for g, share in shares.items())
+def forge_rate(s: State) -> float:
+    """Forja atelierului [D55]: merge singura; fara atelier nu exista."""
+    if not s.workshop:
+        return 0.0
+    return level_output(FORGE_BASE_RATE, s.forge_level, "forge")
 
 
-def chain(s: State):
-    """Cele sase debite si veriga slaba.
-    Intoarce (prindere, adunat, dus la gater, taiat, dus la debarcader, vandut, livrat, gatuire)."""
-    catch = sum(n.rate() for n in s.nets)
+@dataclass
+class Chain:
+    wood_catch: float
+    scrap_catch: float
+    collect: float
+    port: float
+    sawing: float
+    forging: float
+    haul: float
+    sales: float
+    wood: float  # bucati de lemn livrate pe secunda
+    scrap: float  # bucati de scrap livrate (ca fier) pe secunda
+    bottleneck: str
+
+
+def bottleneck_of(wood_catch, scrap_catch, collect, port, sawing, forging, haul, sales) -> str:
+    """Veriga care tine venitul: cea al carei pas in plus ar aduce cei mai multi bani pe bucata, in ordinea
+    LINKS la egalitate. O veriga "tine" un flux cand valoarea ei e chiar marginea lui (min-ul exact):
+      * lemnul e tinut de plasele de lemn, de gater sau de oamenii comuni (ce ramane dupa scrap) -> 1.65;
+      * scrap-ul e tinut de plasa lui, de forja sau de oamenii comuni -> 3.55, dar daca in locul lui ar iesi
+        o bucata de lemn din capacitatea comuna, doar diferenta (3.55 - 1.65).
+    Fara scrap, orice veriga care tine lemnul valoreaza la fel, deci iese PRIMUL minim din cele sase --
+    exact regula de dinainte de D55 [D49]."""
+    shared = min(collect, port, haul, sales)
+    wood_max = min(wood_catch, sawing)
+    scrap_max = min(scrap_catch, forging)
+    scrap = min(scrap_max, shared)
+    wood = min(wood_max, shared - scrap)
+    wood_by_shared = wood == shared - scrap  # o bucata de scrap in plus ar lua locul uneia de lemn
+    scrap_swap = AVG["scrap"] - (AVG["wood"] if wood_by_shared else 0.0)
+    gains = {link: 0.0 for link in LINKS}
+    if wood == wood_catch:
+        gains["nets"] = AVG["wood"]
+    if scrap_catch > 0.0 and scrap == scrap_catch:
+        gains["nets"] = max(gains["nets"], scrap_swap)
+    if wood == sawing:
+        gains["saw"] = AVG["wood"]
+    if scrap_catch > 0.0 and scrap == forging:
+        gains["forge"] = scrap_swap
+    for link, value in (("collect", collect), ("port", port), ("haul", haul), ("dock", sales)):
+        if value == shared:
+            if scrap == shared and scrap < scrap_max:
+                gains[link] = AVG["scrap"]
+            elif wood_by_shared:
+                gains[link] = AVG["wood"]
+    best = "nets"
+    for link in LINKS:
+        if gains[link] > gains[best]:
+            best = link
+    return best
+
+
+def chain(s: State) -> Chain:
+    """Cele doua fluxuri prin aceiasi oameni [D49, D55]. Capacitatea comuna (adunat, dus la gater, dus la
+    taverna, vandut) merge intai la scrap -- cat poate forja topi --, restul la lemn, cat poate gaterul
+    taia. Orice capacitate in plus doar largeste ce se poate, deci nicio cumparatura nu scade venitul."""
+    wood_catch = 0.0
+    scrap_catch = 0.0
+    for n in s.nets:
+        if n.kind == "scrap":
+            if s.scrap_shed:
+                scrap_catch += n.rate()
+        else:
+            wood_catch += n.rate()
     collect = walk_rate(s, "collector")
     port = walk_rate(s, "porter")
     sawing = saw_rate(s)
+    forging = forge_rate(s)
     haul = walk_rate(s, "hauler")
     sales = dock_rate(s)
-    six = (("nets", catch), ("collect", collect), ("port", port), ("saw", sawing), ("haul", haul), ("dock", sales))
-    delivered = min(v for _, v in six)
-    bottleneck = min(six, key=lambda kv: kv[1])[0]
-    return catch, collect, port, sawing, haul, sales, delivered, bottleneck
+    shared = min(collect, port, haul, sales)
+    scrap = min(min(scrap_catch, forging), shared)
+    wood = min(min(wood_catch, sawing), shared - scrap)
+    bn = bottleneck_of(wood_catch, scrap_catch, collect, port, sawing, forging, haul, sales)
+    return Chain(wood_catch, scrap_catch, collect, port, sawing, forging, haul, sales, wood, scrap, bn)
 
 
 def income(s: State) -> float:
-    delivered = chain(s)[6]
-    price = s.price_mult
+    c = chain(s)
     return (
-        delivered
-        * avg_value(s)
-        * price
+        (c.wood * AVG["wood"] + c.scrap * AVG["scrap"])
+        * s.price_mult
         * s.bells
         * (1 + 0.01 * s.index_found)
         * (1 + 0.5 * s.rebirths)
@@ -275,7 +355,7 @@ def income(s: State) -> float:
 
 def unlock_net(k: int):
     def f(s: State):
-        s.nets.append(Net(NET_BASE_RATE * NET_BASE_GROWTH ** (k - 1), NET_LANES[k - 1]))
+        s.nets.append(Net(NET_BASE_RATE * NET_BASE_GROWTH ** (k - 1), NET_LANES[k - 1], kind=NET_KINDS[k - 1]))
 
     return f
 
@@ -298,6 +378,10 @@ def unlock_sack(s: State):
 def unlock_workshop(s: State):
     s.workshop = True
     s.index_found += 6
+
+
+def unlock_shed(s: State):
+    s.scrap_shed = True
 
 
 def unlock_bell(s: State):
@@ -344,7 +428,9 @@ ERA1_UNLOCKS = [
     ("sack", "Bigger Sack", "A", lambda s: len(s.nets) >= 2 and not s.sack_big, unlock_sack),
     ("net4", "Fourth Net", "C", lambda s: len(s.nets) == 3 and prev_net_ready(s), unlock_net(4)),
     ("workshop", "Workshop", "V", lambda s: len(s.nets) >= 4 and not s.workshop, unlock_workshop),
-    ("net5", "Fifth Net", "C", lambda s: len(s.nets) == 4 and prev_net_ready(s), unlock_net(5)),
+    # [D55] shed-ul de scrap vine dupa atelier (acolo se topeste), plasa a cincea dupa shed (acolo se lasa)
+    ("shed", "Scrap Shed", "V", lambda s: s.workshop and not s.scrap_shed, unlock_shed),
+    ("net5", "Fifth Net", "C", lambda s: len(s.nets) == 4 and prev_net_ready(s) and s.scrap_shed, unlock_net(5)),
 ]
 # Al doilea om pe fiecare meserie: se cumpara din meniul omului, nu de pe o platforma.
 for _role in ROLES:
@@ -363,7 +449,11 @@ ERA1_UNLOCKS.append(
         "bell",
         "Landing Bell",
         "D",
-        lambda s: len(s.nets) == 5 and all(people(s, r) >= 1 for r in ROLES) and s.sack_big and s.workshop,
+        lambda s: len(s.nets) == 5
+        and all(people(s, r) >= 1 for r in ROLES)
+        and s.sack_big
+        and s.workshop
+        and s.scrap_shed,
         unlock_bell,
     )
 )
@@ -371,12 +461,20 @@ ERA1_UNLOCKS.append(
 # Oamenii ceruti de capitolul 1, in ordinea quest-urilor [D52]. `run` ii ia inaintea oricarei alte
 # cumparaturi; aceeasi ordine sta in QuestConfig (capitolul 1) si in TycoonConfig.PADS.
 CHAPTER1_HIRES = ("collector", "porter", "sawyer", "hauler", "trader")
+# [D55] Deblocari fara castig propriu pe care le cere un quest, in ordinea quest-urilor, cu pasul dupa care
+# le cere: traista mare dupa a treia plasa ("Get a Bigger Sack"), shed-ul de scrap dupa atelier. Fara ele
+# lacomul le lua doar din intamplare: cu toti oamenii angajati traista nu mai aduce nimic, iar clopotul o
+# cere -- intr-o varianta din --robust Era 1 ajungea la 1h40m pentru o traista de 80 de monede.
+QUEST_UNLOCKS = (
+    ("sack", lambda s: len(s.nets) >= 3),
+    ("shed", lambda s: True),
+)
 
 # uid -> pe ce veriga apasa deblocarea (pentru cazul in care nimic nu da castig imediat)
 UNLOCK_STAGE = {
     "net1": "nets", "net2": "nets", "net3": "nets", "net4": "nets", "net5": "nets",
     "sack": "collect", "collector": "collect", "porter": "port", "sawyer": "saw", "hauler": "haul",
-    "trader": "dock", "workshop": "dock", "bell": "dock",
+    "trader": "dock", "workshop": "dock", "bell": "dock", "shed": "forge",
 }
 for _role in ROLES:
     UNLOCK_STAGE[f"{_role}2"] = LINK_OF[_role]
@@ -387,7 +485,9 @@ for _role in ROLES:
 # care facea sa mearga o veriga existenta. In D49 angajarile SUNT deblocarile erei (cinci din cele
 # treisprezece), deci urca scara: scutite, Era 1 scadea la 21 de minute reale. Al doilea om ramane
 # scutit -- e o marire a unei meserii pe care o ai deja, nu o extindere.
-LADDER_EXEMPT = {f"{r}2" for r in ROLES}
+LADDER_EXEMPT = {f"{r}2" for r in ROLES} | {"shed"}
+# [D55] Shed-ul de scrap e jumatate din pasul plasei a cincea (acolo se lasa ce prinde ea), nu o extindere a
+# lui: scutit, altfel ar fi facut plasa si clopotul cu inca 17% mai departe.
 
 
 def ladder_step(bought: set) -> int:
@@ -457,6 +557,13 @@ def options(s: State, prices: dict):
 
     out.append((f"Dock lvl {s.dock_level + 1}", level_cost(DOCK_UPGRADE_BASE, s.dock_level), up_dock, "dock", None))
 
+    if s.workshop:  # [D55] forja atelierului
+
+        def up_forge(st):
+            st.forge_level += 1
+
+        out.append((f"Forge lvl {s.forge_level + 1}", level_cost(FORGE_UPGRADE_BASE, s.forge_level), up_forge, "forge", None))
+
     for role in ROLES:
         crew = s.crews[role]
         if crew.count == 0 or crew.tier >= TIER_MAX:
@@ -471,7 +578,7 @@ def options(s: State, prices: dict):
 
 def clone(s: State) -> State:
     c = State(**{k: v for k, v in s.__dict__.items() if k not in ("nets", "bought", "crews")})
-    c.nets = [Net(n.base, n.base_lane, n.level) for n in s.nets]
+    c.nets = [Net(n.base, n.base_lane, n.level, n.kind) for n in s.nets]
     c.crews = {r: Crew(v.count, v.tier) for r, v in s.crews.items()}
     c.bought = set(s.bought)
     return c
@@ -513,6 +620,7 @@ def run(rebirths=0, index_found=0, max_seconds=36000):
     last_buy_at = 0.0
     longest_idle = 0.0
     shares = {link: 0 for link in LINKS}
+    scrap_time = 0  # [D55] secundele in care plasa de scrap chiar aduce ceva: forja exista doar atunci
 
     def reprice():
         # pretul unei deblocari se fixeaza cand devine PRIMA DATA accesibila, din venitul de-atunci
@@ -536,7 +644,7 @@ def run(rebirths=0, index_found=0, max_seconds=36000):
             VIOLATIONS.append(f"{label}: venitul SCADE {before:.2f} -> {after:.2f}")
         longest_idle = max(longest_idle, s.t - last_buy_at)
         last_buy_at = s.t
-        rows.append((label, kind, price, s.t, after, chain(s)[7]))
+        rows.append((label, kind, price, s.t, after, chain(s).bottleneck))
 
     while "bell" not in s.bought:
         reprice()
@@ -554,6 +662,18 @@ def run(rebirths=0, index_found=0, max_seconds=36000):
                 if cond(s) and pending in prices:
                     if prices[pending] <= s.coins:
                         buy(f"unlock:{name}", "unlock", prices[pending], effect, pending)
+                        reprice()
+                        continue
+                    break
+
+            # [D55] SHED-UL DE SCRAP, CERUT DE QUEST. Singur nu aduce nimic (deschide plasa a cincea), deci
+            # lacomul nu l-ar lua; un om urmeaza quest-ul "Build the Scrap Shed" si strange pentru el.
+            quested = next((uid for uid, ready in QUEST_UNLOCKS if uid not in s.bought and ready(s)), None)
+            if quested is not None:
+                _uid, name, _why, cond, effect = next(e for e in ERA1_UNLOCKS if e[0] == quested)
+                if cond(s) and quested in prices:
+                    if prices[quested] <= s.coins:
+                        buy(f"unlock:{name}", "unlock", prices[quested], effect, quested)
                         reprice()
                         continue
                     break
@@ -594,7 +714,7 @@ def run(rebirths=0, index_found=0, max_seconds=36000):
                 # DOUA VERIGI LA FEL DE SLABE SE BLOCHEAZA RECIPROC. Cu min() dur, daca doua verigi
                 # stau la aceeasi cifra, a urca doar una dintre ele da exact zero -- deci lacomia
                 # ingheata. Un om nu se blocheaza asa: vede ce e gatuirea si baga acolo.
-                bn = chain(s)[7]
+                bn = chain(s).bottleneck
                 same = [
                     o
                     for o in opts
@@ -620,7 +740,10 @@ def run(rebirths=0, index_found=0, max_seconds=36000):
 
         if "bell" in s.bought:
             break
-        shares[chain(s)[7]] += 1
+        now_chain = chain(s)
+        shares[now_chain.bottleneck] += 1
+        if now_chain.scrap_catch > 0:
+            scrap_time += 1
         inc = income(s)
         if inc <= 0:
             raise SystemExit("EROARE: venit zero, simularea nu poate avansa")
@@ -636,7 +759,16 @@ def run(rebirths=0, index_found=0, max_seconds=36000):
             prices[uid] = nice(income(s) * target_wait(ladder_step(s.bought)), last_price)
             last_price = max(last_price, prices[uid])
 
-    return s, rows, prices, longest_idle, income(s), shares
+    return s, rows, prices, longest_idle, income(s), shares, scrap_time
+
+
+def link_share(link, shares, scrap_time):
+    """Cat din timp a fost `link` gatuirea. Forja [D55] se masoara pe timpul in care exista scrap de topit:
+    ea apare abia la coada erei, iar pe toata era ar parea decor chiar daca tine venitul cand exista."""
+    if link == "forge":
+        return shares[link] / scrap_time if scrap_time else 0.0
+    total = sum(shares.values())
+    return shares[link] / total if total else 0.0
 
 
 def fmt(sec):
@@ -686,7 +818,7 @@ def check_hire_order():
 MIN_BOTTLENECK_SHARE = 0.005
 
 
-def check_run(rows, longest_idle, shares, prices):
+def check_run(rows, longest_idle, shares, prices, scrap_time):
     """Portile care se masoara pe o rulare (si pe fiecare rulare din --robust)."""
     problems = []
     five_min = [r for r in rows if r[3] * REAL <= 300]
@@ -697,9 +829,8 @@ def check_run(rows, longest_idle, shares, prices):
     # O veriga care e rar cea mai slaba e decor: jucatorul n-are de ce s-o urce, iar meniul ei ar
     # scrie "No gain yet" toata era [D48]. "Macar o data" nu ajungea: o veriga gatuire 1% din timp
     # trecea poarta si tot decor era.
-    total = sum(shares.values())
     for link in LINKS:
-        part = shares[link] / total if total else 0.0
+        part = link_share(link, shares, scrap_time)
         if part < MIN_BOTTLENECK_SHARE:
             problems.append(f"veriga `{link}` e gatuirea doar {part * 100:.1f}% din timp (minim {MIN_BOTTLENECK_SHARE * 100:.1f}%) -- e decor")
     if prices.get("collector", 0) <= 0:
@@ -714,7 +845,7 @@ PAD_IDS = {
     "net1": "first_net", "net2": "second_net", "sack": "bigger_sack", "net3": "third_net",
     "collector": "first_runner", "porter": "hire_porter", "sawyer": "hire_sawyer", "hauler": "hire_hauler",
     "net4": "far_lane_net", "trader": "dock_trader", "net5": "fifth_net",
-    "workshop": "workshop", "bell": "landing_bell",
+    "workshop": "workshop", "bell": "landing_bell", "shed": "scrap_shed",
 }
 
 
@@ -773,6 +904,7 @@ def check_config_constants():
         "SAW_BASE_RATE": SAW_BASE_RATE, "SAW_UPGRADE_BASE": SAW_UPGRADE_BASE,
         "DOCK_BASE_RATE": DOCK_BASE_RATE, "DOCK_UPGRADE_BASE": DOCK_UPGRADE_BASE,
         "NO_TRADER_FACTOR": NO_TRADER_FACTOR,
+        "FORGE_BASE_RATE": FORGE_BASE_RATE, "FORGE_UPGRADE_BASE": FORGE_UPGRADE_BASE,
     }
     for name, want in scalars.items():
         m = re.search(r"StationConfig\." + name + r" = ([0-9.]+)", src)
@@ -789,7 +921,10 @@ def check_config_constants():
 
 # --robust: fiecare constanta a oamenilor, cu 15% in jos si in sus. Prima forma a modelului avea o
 # prapastie la -15% (Era 1 de la 23 de minute la 1h44m) care nu se vedea pe cifrele de baza.
-ROBUST_KNOBS = ("PLAYER_LABOR", "SAW_BASE_RATE", "TIER_STEP", "ROLE_BASE.collector", "ROLE_BASE.porter", "ROLE_BASE.hauler")
+ROBUST_KNOBS = (
+    "PLAYER_LABOR", "SAW_BASE_RATE", "TIER_STEP", "ROLE_BASE.collector", "ROLE_BASE.porter", "ROLE_BASE.hauler",
+    "FORGE_BASE_RATE",
+)
 ROBUST_FACTORS = (0.85, 1.15)
 ROBUST_MAX_REAL = 3600  # peste o ora reala = prapastia, nu o era mai lunga
 
@@ -810,13 +945,12 @@ def robust():
             VIOLATIONS.clear()
             tag = f"{knob} x{factor}"
             try:
-                _s, rows, prices, idle, _final, shares = run()
-                problems = list(VIOLATIONS) + check_hire_order() + check_run(rows, idle, shares, prices)
+                _s, rows, prices, idle, _final, shares, scrap_time = run()
+                problems = list(VIOLATIONS) + check_hire_order() + check_run(rows, idle, shares, prices, scrap_time)
                 real = rows[-1][3] * REAL
                 if real > ROBUST_MAX_REAL:
                     problems.append(f"Era 1 dureaza {fmt(real)} reali (maxim {fmt(ROBUST_MAX_REAL)})")
-                total = sum(shares.values())
-                low = min(shares[link] / total for link in LINKS)
+                low = min(link_share(link, shares, scrap_time) for link in LINKS)
                 print(f"  {tag:<24} {fmt(real):>7} real, cea mai slaba veriga {low * 100:4.1f}% din timp, pauza {fmt(idle)}")
             except SystemExit as e:
                 problems = [str(e)]
@@ -832,7 +966,7 @@ def robust():
 
 
 if __name__ == "__main__":
-    s1, rows, prices, longest_idle, final_income, shares = run()
+    s1, rows, prices, longest_idle, final_income, shares, scrap_time = run()
 
     problems = (
         list(VIOLATIONS)
@@ -840,8 +974,12 @@ if __name__ == "__main__":
         + check_hire_order()
         + check_config_prices(prices)
         + check_config_constants()
-        + check_run(rows, longest_idle, shares, prices)
+        + check_run(rows, longest_idle, shares, prices, scrap_time)
     )
+    if AVG["scrap"] < AVG["wood"]:
+        # lantul da capacitatea comuna intai scrap-ului; asta e cea mai buna impartire doar cat bucata lui
+        # valoreaza macar cat una de lemn [D55]
+        problems.append(f"bucata de scrap ({AVG['scrap']:.2f}) valoreaza sub una de lemn ({AVG['wood']:.2f})")
     if "--robust" in sys.argv:
         problems += robust()
 
@@ -861,12 +999,13 @@ if __name__ == "__main__":
             )
 
     if "--chain" in sys.argv:
-        c, co, po, sw, ha, sa, de, bn = chain(s1)
+        c = chain(s1)
         print(
-            f"\nlantul la finalul Erei 1:  prindere {c:.2f}/s | adunat {co:.2f}/s | dus la gater {po:.2f}/s"
-            f" | taiat {sw:.2f}/s | dus la debarcader {ha:.2f}/s | vandut {sa:.2f}/s"
+            f"\nlantul la finalul Erei 1:  lemn prins {c.wood_catch:.2f}/s | scrap prins {c.scrap_catch:.2f}/s"
+            f" | adunat {c.collect:.2f}/s | dus {c.port:.2f}/s | taiat {c.sawing:.2f}/s | topit {c.forging:.2f}/s"
+            f" | dus la taverna {c.haul:.2f}/s | vandut {c.sales:.2f}/s"
         )
-        print(f"  livrat efectiv {de:.2f}/s, veriga slaba: {bn}")
+        print(f"  livrat: lemn {c.wood:.2f}/s, fier {c.scrap:.2f}/s, veriga slaba: {c.bottleneck}")
 
     unlocks = [r for r in rows if r[1] == "unlock"]
     levels = [r for r in rows if r[1] != "unlock"]
@@ -875,7 +1014,11 @@ if __name__ == "__main__":
     print(f"  terminata in {fmt(rows[-1][3])} lacom  ->  {fmt(rows[-1][3] * REAL)} real")
     print(f"  primele 5 minute reale: {len(five_min)} cumparaturi (minim 6)")
     print(f"  cea mai lunga pauza fara nimic de apasat: {fmt(longest_idle)}")
-    print("  gatuirea, ca parte din timp: " + " | ".join(f"{link} {shares[link] * 100 / total:.0f}%" for link in LINKS))
+    print(
+        "  gatuirea, ca parte din timp: "
+        + " | ".join(f"{link} {link_share(link, shares, scrap_time) * 100:.1f}%" for link in LINKS)
+        + f"  (forja: din {fmt(scrap_time)} cu scrap)"
+    )
     print("  oamenii la final: " + ", ".join(f"{ROLE_NAMES[r]} {c.count}x treapta {c.tier}" for r, c in s1.crews.items()))
     print(f"  venit final: {final_income:.2f}/s")
     print("\npreturile deblocarilor, in ordinea cumpararii:")

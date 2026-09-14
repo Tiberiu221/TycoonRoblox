@@ -40,11 +40,13 @@ local MAX_BULK = 500 -- cate niveluri poate lua o singura apasare; "Max" se opre
 -- a doua plasa e mai buna si mai scumpa decat prima, altfel n-ar avea rost sa o deblochezi.
 local netPadIds: { string } = {}
 local netPadLane: { [string]: number } = {}
+local netPadKind: { [string]: string } = {} -- [D55] "wood" | "scrap"
 for _, p in TycoonConfig.PADS do
     for _, e in p.effects do
         if e.kind == "net" then
             table.insert(netPadIds, p.id)
             netPadLane[p.id] = e.lane or 1
+            netPadKind[p.id] = TycoonMath.netKind(p)
             break
         end
     end
@@ -65,6 +67,8 @@ function StationService.LevelOf(player: Player, kind: string, id: string?): numb
         return if st.saw ~= nil then st.saw.level else 1
     elseif kind == "dock" then
         return st.dock.level
+    elseif kind == "forge" then
+        return if st.forge ~= nil then st.forge.level else 1
     elseif kind == "net" and id ~= nil then
         local entry = st.nets[id]
         return if entry ~= nil then entry.level else 1
@@ -79,6 +83,8 @@ function StationService.UpgradeBase(kind: string, id: string?): number
         return StationConfig.SAW_UPGRADE_BASE
     elseif kind == "dock" then
         return StationConfig.DOCK_UPGRADE_BASE
+    elseif kind == "forge" then
+        return StationConfig.FORGE_UPGRADE_BASE
     elseif kind == "net" and id ~= nil then
         local index = table.find(netPadIds, id)
         return ChainMath.netUpgradeBase(index or 1)
@@ -104,11 +110,16 @@ function StationService.StateFrom(data: any, bought: { [string]: boolean }): Cha
             base = ChainMath.netBase(i),
             baseLane = netPadLane[padId] or 1,
             level = if entry ~= nil then entry.level else 1,
+            kind = netPadKind[padId] or "wood",
         })
     end
     -- `or 1`: o stare construita dintr-un profil necompletat nu are voie sa crape pe aritmetica cu nil.
     s.sawLevel = if st.saw ~= nil then st.saw.level else 1
     s.dockLevel = if st.dock ~= nil then st.dock.level else 1
+    -- [D55] lantul resturilor: forja atelierului si shed-ul, din aceleasi platforme ca intrebarea "daca"
+    s.forgeLevel = if st.forge ~= nil then st.forge.level else 1
+    s.workshop = bought.workshop == true
+    s.scrapShed = bought.scrap_shed == true
     -- OAMENII [D49]: cati sunt se numara din `data.Hands` (dupa rol), treapta vine din `data.Crews`.
     -- O platforma de meserie din `bought` fara om inca (intrebarea "daca as cumpara-o") numara un om:
     -- altfel cartonasul de la apropiere ar arata castig zero pe fiecare angajare.
@@ -256,7 +267,7 @@ function StationService.NetCapacity(player: Player, padId: string): number
     return TycoonMath.netCapacity(StationService.NetRate(player, padId))
 end
 
--- Cea mai departata banda atinsa: decide ce marfuri exista (scrap cere 2, shards cere 3).
+-- Cea mai departata banda atinsa. [D55] Nu mai decide ce se prinde (asta tine de felul plasei).
 function StationService.Lanes(player: Player): number
     return ChainMath.lanesReached(StationService.StateFor(player))
 end
@@ -313,8 +324,12 @@ local function buildingOutput(s: ChainMath.State, kind: string, id: string?, lev
     elseif kind == "saw" then
         local crew = s.crews.sawyer
         return ChainMath.sawSpeed(level, crew, true)
+    elseif kind == "forge" then
+        return ChainMath.forgeSpeed(s.workshop, level) -- [D55] merge singura, cat e atelierul
+    elseif kind == "dock" then
+        return ChainMath.dockSpeed(level, s.crews.trader)
     end
-    return ChainMath.dockSpeed(level, s.crews.trader)
+    return 0 -- un fel necunoscut nu imprumuta cifrele altei cladiri [D40]
 end
 
 -- Cat adauga venitului UN nivel pe cladirea asta. Meniul nu se poate sprijini pe `bottleneck`: la
@@ -331,8 +346,12 @@ local function levelGain(s: ChainMath.State, kind: string, netSlot: number?): nu
         net.level += 1
     elseif kind == "saw" then
         probe.sawLevel += 1
-    else
+    elseif kind == "forge" then
+        probe.forgeLevel += 1
+    elseif kind == "dock" then
         probe.dockLevel += 1
+    else
+        return 0
     end
     local gain = ChainMath.income(probe) - ChainMath.income(s)
     -- zgomotul de virgula mobila de la egalitate nu e castig
@@ -366,7 +385,7 @@ local function rowFor(
         costs = costs,
         maxCount = maxCount,
         maxCost = ChainMath.bulkCost(base, level, maxCount),
-        -- felul cladirii (net/saw/dock) nu e acelasi cuvant cu veriga lantului (nets/saw/dock)
+        -- felul cladirii (net/saw/forge/dock) nu e acelasi cuvant cu veriga lantului (nets/saw/forge/dock)
         bottleneck = bn == (if kind == "net" then "nets" else kind),
         gain = levelGain(s, kind, netSlot),
     }
@@ -453,8 +472,14 @@ function StationService.Snapshot(player: Player): {
             )
         end
     end
-    -- in ordinea lantului: gaterul, apoi debarcaderul
+    -- in ordinea lantului: gaterul, forja atelierului (cat e cumparat) [D55], apoi taverna
     table.insert(rows, rowFor(s, "saw", nil, "Sawmill", s.sawLevel, coins, rates.bottleneck))
+    if s.workshop then
+        table.insert(
+            rows,
+            rowFor(s, "forge", nil, "Workshop", s.forgeLevel, coins, rates.bottleneck)
+        )
+    end
     table.insert(rows, rowFor(s, "dock", nil, "Tavern", s.dockLevel, coins, rates.bottleneck))
     local crews: { CrewRow } = {}
     for _, role in StationConfig.ROLES do
@@ -484,8 +509,11 @@ function StationService.Upgrade(
     if data == nil then
         return false, "no_profile"
     end
-    if kind ~= "saw" and kind ~= "dock" and kind ~= "net" then
+    if kind ~= "saw" and kind ~= "dock" and kind ~= "net" and kind ~= "forge" then
         return false, "unknown"
+    end
+    if kind == "forge" and data.Pads.workshop ~= true then
+        return false, "locked" -- [D55] forja e a atelierului: fara el n-ai ce urca
     end
     if kind == "net" then
         if id == nil or table.find(netPadIds, id) == nil then
@@ -510,6 +538,11 @@ function StationService.Upgrade(
         st.saw.level += n
     elseif kind == "dock" then
         st.dock.level += n
+    elseif kind == "forge" then
+        if st.forge == nil then
+            st.forge = { level = 1 }
+        end
+        st.forge.level += n
     else
         local entry = st.nets[id :: string]
         if entry == nil then

@@ -22,6 +22,18 @@ OVERRIDE = {
     # tinutele stau in Assets.people.outfit cu numele meseriei; clientii tavernei [D50]
     "outfit_townsfolk": "Townsfolk",
     "outfit_traveler": "Traveler",
+    # [D55] foile in straturi stau in Assets.people cu cheia scurta (body.a, hair.short, outfit.Fisher)
+    "body_a": "a",
+    "body_b": "b",
+    "hair_short": "short",
+    "hair_long": "long",
+    "hair_bun": "bun",
+    "outfit_fisher": "Fisher",
+    "outfit_crafter": "Crafter",
+    "outfit_builder": "Builder",
+    "outfit_gardener": "Gardener",
+    "outfit_innkeeper": "Innkeeper",
+    "outfit_keeper": "keeper",
 }
 
 

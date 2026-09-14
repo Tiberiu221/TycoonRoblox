@@ -105,7 +105,7 @@ local freeFloaters: { Floater } = {}
 local sackCount = 0
 local sackCapacity = 0
 local sackRaw = 0 -- cati busteni bruti duci: decide unde te trimite mesajul de traista plina [D49]
-local currentLanes = 1
+local sackRawScrap = 0 -- [D55] cat scrap brut duci: el merge la shed, nu la gater
 local LocalPlayer = Players.LocalPlayer
 
 local TIER_COLORS: { [string]: Color3 } = {}
@@ -457,7 +457,12 @@ end
 local function collect(padId: string)
     if sackCapacity > 0 and sackCount >= sackCapacity then
         -- unde sa te duci depinde de ce duci: bustenii la gater, scandurile la taverna [D49]
-        deps.OnToast(if sackRaw > 0 then Strings.SACK_FULL_LOGS else Strings.SACK_FULL_PLANKS)
+        deps.OnToast(
+            if sackRaw > 0
+                then Strings.SACK_FULL_LOGS
+                elseif sackRawScrap > 0 then Strings.SACK_FULL_SCRAP
+                else Strings.SACK_FULL_PLANKS
+        )
         return
     end
     deps.Remotes.CollectNet:FireServer(padId)
@@ -519,13 +524,14 @@ function NetController.Apply(
     list: { NetSnap },
     newSackCount: number,
     newSackCapacity: number,
-    lanes: number,
+    _lanes: number,
     levels: { [string]: number }?,
-    newSackRaw: number?
+    newSackRaw: number?,
+    newSackRawScrap: number?
 )
     sackCount, sackCapacity = newSackCount, newSackCapacity
     sackRaw = newSackRaw or sackCount
-    currentLanes = lanes
+    sackRawScrap = newSackRawScrap or 0
     netLevels = levels or netLevels
     updatePlayerSack()
     local seen: { [string]: boolean } = {}
@@ -714,7 +720,10 @@ local function updateFloaters()
                 local index = snap.caught + math.round((t - snap.nextCatchAt) / snap.interval)
                 local seed =
                     TycoonMath.catchSeed(LocalPlayer.UserId, snap.padIndex, math.max(0, index))
-                applyGoodVisual(rec, TycoonMath.pickGood(Prng.new(seed):nextNumber(), currentLanes))
+                -- [D55] bunul tine de felul plasei: lemn, sau scrap la plasa din larg
+                local pad = TycoonConfig.byId[padId]
+                local kind = if pad ~= nil then TycoonMath.netKind(pad) else "wood"
+                applyGoodVisual(rec, TycoonMath.pickGood(Prng.new(seed):nextNumber(), kind))
                 recs[key] = rec
             end
             if rec.mode == nil and CatchFloat.inTurn(snap.x, snap.y, t, now) then

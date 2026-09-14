@@ -26,13 +26,22 @@ export type Deps = {
 }
 
 -- Ce stie un loc de predare despre traista ta: cat duci, cat incape, cat e brut si cat e taiat.
-export type Sack = { count: number, capacity: number, raw: number, cut: number, cutValue: number }
+export type Sack = {
+    count: number,
+    capacity: number,
+    raw: number, -- [D55] lemnul brut; scrap-ul are `rawScrap` si drumul lui
+    rawScrap: number,
+    iron: number,
+    cut: number,
+    cutValue: number,
+}
 export type Snapshot = { count: number, contents: { [string]: number } }
 
 local StorageController = {}
 local deps: Deps
 local pile: PileView.View
-local sack: Sack = { count = 0, capacity = 0, raw = 0, cut = 0, cutValue = 0 }
+local sack: Sack =
+    { count = 0, capacity = 0, raw = 0, rawScrap = 0, iron = 0, cut = 0, cutValue = 0 }
 local stored = 0
 local bottleneck = "nets"
 
@@ -89,6 +98,10 @@ function StorageController.Focus(px: number, py: number): Focus.Focus?
             then function()
                 deps.Remotes.UseStorage:FireServer()
             end
+            else nil,
+        -- [D55] cu doar scrap in traista, cardul spune unde merge -- nu tace [D43]
+        status = if text == nil and sack.rawScrap > 0
+            then Strings.useResult("storage", false, "scrap_to_shed", 0, 0, false)
             else nil,
         upgradeKind = "crew",
         upgradeId = StorageController.CrewRole(),

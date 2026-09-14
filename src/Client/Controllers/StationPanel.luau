@@ -66,10 +66,12 @@ local CHAIN_ROWS = {
     { key = "collect", icon = "capacity", label = "Collect", what = "collect" },
     { key = "port", icon = "carry", label = "Carry", what = "port" },
     { key = "saw", icon = "saw", label = "Sawmill", what = "sawing" },
+    -- [D55] forja atelierului: fara ea, "the forge is slowest" din rândul de sfat n-ar avea rand
+    { key = "forge", icon = "hammer", label = "Forge", what = "forging" },
     { key = "haul", icon = "speed", label = "Haul", what = "haul" },
     { key = "dock", icon = "crate", label = "Tavern", what = "sales" },
 }
-local CHAIN_STEP = 20 -- sase verigi in aceeasi inaltime in care stateau patru la 30
+local CHAIN_STEP = 20 -- sapte verigi [D55], cate 20
 
 local advice: TextLabel
 local chainValue: { [string]: TextLabel } = {}
@@ -424,7 +426,7 @@ function StationPanel.Init(d: Deps)
     local head = Instance.new("Frame")
     head.Name = "Chain"
     head.BackgroundTransparency = 1
-    head.Size = UDim2.new(1, 0, 0, 122) -- sase verigi x 20 [D49]
+    head.Size = UDim2.new(1, 0, 0, #CHAIN_ROWS * CHAIN_STEP + 2) -- sapte verigi x 20 [D49, D55]
     head.ZIndex = Z + 1
     head.Parent = body
     for i, entry in CHAIN_ROWS do
@@ -463,12 +465,12 @@ function StationPanel.Init(d: Deps)
     -- e trei numere si patru butoane, si nimeni nu stie ce a deschis.
     local explain =
         Widgets.Label(body, Strings.STATIONS_EXPLAIN, Theme.TEXT.small, Theme.COLOR.inkSoft, "body")
-    explain.Position = UDim2.fromOffset(0, 126)
+    explain.Position = UDim2.fromOffset(0, 146)
     explain.Size = UDim2.new(1, 0, 0, 20)
     explain.ZIndex = Z + 1
 
     advice = Widgets.Label(body, "", Theme.TEXT.small, Theme.COLOR.ink, "strong")
-    advice.Position = UDim2.fromOffset(0, 148)
+    advice.Position = UDim2.fromOffset(0, 168)
     advice.Size = UDim2.new(1, 0, 0, 20)
     advice.ZIndex = Z + 1
 
@@ -476,7 +478,7 @@ function StationPanel.Init(d: Deps)
     local bulkRow = Instance.new("Frame")
     bulkRow.Name = "Bulk"
     bulkRow.BackgroundTransparency = 1
-    bulkRow.Position = UDim2.fromOffset(0, 178)
+    bulkRow.Position = UDim2.fromOffset(0, 198)
     bulkRow.Size = UDim2.new(1, 0, 0, 44)
 
     local bulkLabel =
@@ -509,8 +511,8 @@ function StationPanel.Init(d: Deps)
 
     rowHolder = Widgets.List(body, Z + 1, Theme.SPACE.sm)
     local rowsHolder = rowHolder.Parent :: Frame
-    rowsHolder.Position = UDim2.fromOffset(0, 230)
-    rowsHolder.Size = UDim2.new(1, 0, 1, -230)
+    rowsHolder.Position = UDim2.fromOffset(0, 250)
+    rowsHolder.Size = UDim2.new(1, 0, 1, -250)
 
     -- Refuzurile de nivel le anunta StationMenu: lista asta a ramas ascunsa (tasta U), iar doua
     -- ascultari ar fi dublat fiecare mesaj.

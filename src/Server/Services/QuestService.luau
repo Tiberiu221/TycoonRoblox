@@ -33,6 +33,7 @@ local function factsFor(player: Player): QuestMath.Facts?
         sawn = data.Stats.sawn or 0,
         collected = data.Stats.collected or 0,
         sold = data.Stats.sold or 0,
+        smelted = data.Stats.smelted or 0,
         netLevels = if stations ~= nil then stations.NetLevels(player) else {},
         dockLevel = data.Stations.dock.level,
         idleRate = if stations ~= nil then stations.Idle(player) else 0,

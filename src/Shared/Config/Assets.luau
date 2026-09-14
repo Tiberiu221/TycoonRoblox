@@ -25,25 +25,25 @@ local Assets = {
     -- porneste singur -- nu e nevoie de nicio alta schimbare in cod.
     people = {
         body = {
-            a = sprite(112586528099567, 64, 360),
-            b = sprite(78466711368987, 64, 360),
+            a = sprite(136581586177910, 64, 480),
+            b = sprite(82444020423106, 64, 480),
         },
         hair = {
-            short = sprite(118861972684779, 64, 360),
-            long = sprite(85022617295536, 64, 360),
-            bun = sprite(94025470529885, 64, 360),
-            bald = sprite(0, 64, 360),
+            short = sprite(107610601158067, 64, 480),
+            long = sprite(77115225601547, 64, 480),
+            bun = sprite(110084281856232, 64, 480),
+            bald = sprite(0, 64, 480),
         },
         outfit = {
-            Fisher = sprite(74418128514894, 64, 360),
-            Crafter = sprite(119194228310035, 64, 360),
-            Builder = sprite(81470649204888, 64, 360),
-            Gardener = sprite(121440047199288, 64, 360),
-            Innkeeper = sprite(75711456309293, 64, 360),
-            keeper = sprite(128266013737841, 64, 360), -- doar jucatorul
+            Fisher = sprite(93764231120710, 64, 480),
+            Crafter = sprite(99685239994067, 64, 480),
+            Builder = sprite(139784841525496, 64, 480),
+            Gardener = sprite(83753596594055, 64, 480),
+            Innkeeper = sprite(108041503019278, 64, 480),
+            keeper = sprite(85129822481063, 64, 480), -- doar jucatorul
             -- [D50] clientii tavernei: fara palarie, in culori pe care nu le poarta nicio meserie
-            Townsfolk = sprite(86564395088297, 64, 360),
-            Traveler = sprite(86791118967609, 64, 360),
+            Townsfolk = sprite(133031375498480, 64, 480),
+            Traveler = sprite(93487186567636, 64, 480),
         },
     },
     path_tile = sprite(124285357370417, 64, 64),
@@ -163,6 +163,7 @@ local Assets = {
         scrap = sprite(132122869387253, 24, 18),
         shards = sprite(131249894514183, 24, 18),
         planks = sprite(90552416808787, 24, 18), -- D48: ce iese din gater (fara id, gramada cade pe driftwood)
+        iron = sprite(138679012726799, 24, 18), -- [D55] ce iese din atelier, din scrap
     },
     -- F1: constructiile Erei 1 (N1, N2): debarcaderul, clopotul, sacul mare, taraba (prop_*.png).
     tycoon = {
@@ -211,6 +212,29 @@ local Assets = {
         storage = sprite(100160905448383, 40, 32),
         -- D50: taverna, locul de vanzare (fara id -> casa desenata in cod)
         tavern = sprite(137193105345520, 64, 48),
+        -- [D55] scripts/art/d55.py. Roaba oamenilor: fasie cu trei vederi de 24x20 (lateral spre dreapta, spre
+        -- tine, de la tine) si incarcatura ei, fasii cu 3 trepte de 16x9. Gramezile: fasii cu 4 trepte de 40x28.
+        -- Shed-ul de scrap si ruina lui; colibele oamenilor, mica (un om) si mare (doi). Id 0 = inca neurcat.
+        barrow = sprite(119585275650745, 72, 20),
+        load_logs = sprite(122278810809813, 48, 9),
+        load_planks = sprite(95764052869278, 48, 9),
+        load_scrap = sprite(110795275724218, 48, 9),
+        load_iron = sprite(133283748095694, 48, 9),
+        load_crate = sprite(72106465333366, 48, 9),
+        pile_logs = sprite(102342481494046, 160, 28),
+        pile_planks = sprite(83740208739860, 160, 28),
+        pile_scrap = sprite(77672455779936, 160, 28),
+        pile_iron = sprite(71911464957856, 160, 28),
+        scrap_shed = sprite(89758445685801, 40, 32),
+        ruin_scrap_shed = sprite(97144771907218, 40, 32),
+        hut_porter_1 = sprite(106380641625046, 32, 28),
+        hut_porter_2 = sprite(101783739413060, 40, 34),
+        hut_sawyer_1 = sprite(116481816615732, 32, 28),
+        hut_sawyer_2 = sprite(139412865739552, 40, 34),
+        hut_hauler_1 = sprite(124383037580253, 32, 28),
+        hut_hauler_2 = sprite(128353694504179, 40, 34),
+        runner_hut_2 = sprite(111300382776252, 48, 40),
+        stall_2 = sprite(121127549847093, 64, 40),
     },
     -- F1 (O1): sunete sintetizate de noi (scripts/audio), urcate ca Audio. 0 = inca neincarcat ->
     -- SoundController tace, fara eroare.

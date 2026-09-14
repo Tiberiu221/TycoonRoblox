@@ -118,6 +118,8 @@ local CHAIN: { Link } = {
     { key = "collect", kind = "crew", role = "collector", icon = "capacity", rate = "collect" },
     { key = "port", kind = "crew", role = "porter", icon = "carry", rate = "port" },
     { key = "saw", kind = "saw", icon = "saw", rate = "sawing" },
+    -- [D55] forja atelierului: merge singura, "Go to" duce la nivelul ei
+    { key = "forge", kind = "forge", icon = "hammer", rate = "forging" },
     { key = "haul", kind = "crew", role = "hauler", icon = "speed", rate = "haul" },
     { key = "dock", kind = "dock", icon = "crate", rate = "sales" },
 }
@@ -236,12 +238,20 @@ local function perMinuteGain(gain: number): string?
 end
 
 -- Veriga care tine venitul in loc, alta decat `mine`, si daca e doar la egalitate cu ea. Se cheama
--- doar cand castigul e zero: atunci exista sigur una la fel de lenta sau mai lenta.
+-- doar cand castigul e zero: atunci exista sigur una la fel de lenta sau mai lenta. [D55] Cu doua marfuri,
+-- debitele nu se mai compara intre ele (scrap-ul si lemnul trec prin verigi diferite): veriga slaba o spune
+-- serverul (`snap.bottleneck`, dupa castigul pe bucata); comparatia de debite ramane doar pentru egalitati.
 local function heldBackBy(snap: Snapshot, mine: string): (Link, boolean)
+    if snap.bottleneck ~= mine and snap.bottleneck ~= "" then
+        return linkByKey(snap.bottleneck), false
+    end
     local mineRate = snap.rates[linkByKey(mine).rate] or 0
     local best, bestRate = CHAIN[1], math.huge
+    local scrapFlows = (snap.rates.scrapCatch or 0) > 0
     for _, c in CHAIN do
-        if c.key ~= mine then
+        -- forja conteaza doar cat exista scrap de topit: altfel debitul ei (0 sau cel al atelierului gol) ar
+        -- iesi "cea mai lenta" si meniul ar trimite la o veriga care nu tine nimic [D40]
+        if c.key ~= mine and (c.key ~= "forge" or scrapFlows) then
             local rate = snap.rates[c.rate] or 0
             if rate < bestRate then
                 best, bestRate = c, rate
@@ -344,7 +354,7 @@ local function renderCrew(crew: CrewRow, snap: Snapshot)
     setGroup(crewGroup, true)
 
     levelLabel.Text = Strings.menuTierLine(crew.tier, crew.maxTier, crew.count, crew.maxPeople)
-    captionLabel.Text = Strings.crewDoes(crew.role)
+    captionLabel.Text = Strings.crewDoes(crew.role, (snap.rates.scrapCatch or 0) > 0)
     local now = TycoonMath.formatPerMinute(crew.output)
     local after = crew.nextOutput
     rateLabel.Text = if crew.count > 0 and after ~= nil

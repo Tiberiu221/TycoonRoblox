@@ -2,8 +2,10 @@
 -- Oamenii: pozitia si animatia celor care merg vin DOAR din HandMath.sampleAt(ciclu, serverNow -
 -- cycleStartAt), cu ciclul refacut din HandRoutes cu exact aceleasi argumente ca pe server -- nimic
 -- interpolat local, nimic asteptat de la retea [F1 spec 4.4, D49]. Atins, un om deschide meniul
--- meseriei lui. Desenul (straturile, animatia, sacul) e in PersonView [D50]; aici ramane unde e omul,
+-- meseriei lui. Desenul (straturile, animatia, roaba) e in PersonView [D50]; aici ramane unde e omul,
 -- ce face, ce spune si ce se intampla cand il atingi.
+-- [D55] Cine cara impinge o roaba: merge cu ea, incarca la opriri ("collect"), rastoarna unde lasa ("drop",
+-- "sell") -- nu mai bate cu ciocanul. In roaba se vede felul pe care il duce (`carryKind`, de la server).
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
@@ -25,6 +27,8 @@ export type HandSnap = {
     nets: { string },
     cycleStartAt: number,
     carrying: number,
+    carryKind: string?, -- [D55] ce se vede in roaba: felul cu cele mai multe bucati
+    scrap: boolean?, -- [D55] drumul prin shed si atelier (acelasi argument ca pe server)
     capacity: number, -- cat duce pe un drum: debit x durata ciclului [D40, D49]
     appearance: Appearance,
     -- doar pentru rolurile STATICE (Sawyer, Innkeeper): locul in care stau. Fara ciclu n-ar avea de
@@ -48,16 +52,14 @@ local HandRenderController = {}
 local deps: Deps
 local tracked: { [string]: Hand } = {}
 
--- Sacul unui om creste in TREPTE, raportat la cat duce el pe un drum (`capacity`, trimisa de
--- server), nu la o cifra ghicita [research 42 pct.3].
-local function sackStep(carrying: number, capacity: number): number
+-- Incarcatura din roaba creste in TREPTE (1..3), raportat la cat duce omul pe un drum (`capacity`,
+-- trimisa de server), nu la o cifra ghicita [research 42 pct.3].
+local function loadStep(carrying: number, capacity: number): number
     if carrying <= 0 then
         return 0
     end
     local frac = carrying / math.max(1, capacity)
-    if frac >= 1 then
-        return 4
-    elseif frac >= 0.66 then
+    if frac >= 0.66 then
         return 3
     elseif frac >= 0.33 then
         return 2
@@ -104,7 +106,7 @@ local function ensureHand(snap: HandSnap): Hand
         return existing
     end
     local view =
-        PersonView.new(deps.Plot, snap.id, if HandRoutes.isWalker(snap.role) then "sack" else nil)
+        PersonView.new(deps.Plot, snap.id, if HandRoutes.isWalker(snap.role) then "barrow" else nil)
 
     -- Atins, omul deschide meniul meseriei lui: acolo se urca treapta si se angajeaza al doilea.
     local tap = Instance.new("TextButton")
@@ -149,9 +151,14 @@ local function render(dt: number)
         else
             x, y, state, facing = HandMath.sampleAt(rec.cycle, now - snap.cycleStartAt)
         end
-        local task = if state == "collect" or state == "sell" then "working" else "idle"
+        -- [D55] cu roaba: merge, incarca la opriri de luat, rastoarna la cele de lasat si la capat
+        local task = if state == "walk"
+            then "push"
+            elseif state == "collect" then "load"
+            elseif state == "drop" or state == "sell" then "tip"
+            else "idle"
+        rec.view.SetCarry(snap.carryKind, loadStep(snap.carrying, snap.capacity))
         rec.view.Pose(x, y, task, facing, state == "walk", dt)
-        rec.view.SetHeld(sackStep(snap.carrying, snap.capacity))
 
         if rec.bubble ~= nil then
             rec.bubble.Position =
@@ -176,7 +183,13 @@ function HandRenderController.Apply(hands: { HandSnap })
         rec.snap = snap
         rec.view.SetAppearance(snap.appearance)
         if snap.x == nil then
-            rec.cycle = HandRoutes.cycleFor(snap.role, snap.index, snap.count, snap.nets)
+            rec.cycle = HandRoutes.cycleFor(
+                snap.role,
+                snap.index,
+                snap.count,
+                snap.nets,
+                snap.scrap == true
+            )
         end
         if not rec.frame.Visible then
             rec.frame.Visible = true

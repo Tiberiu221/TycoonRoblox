@@ -1,6 +1,7 @@
 --!strict
 -- Randurile din foaia de animatie a colonistilor si regula care alege randul potrivit [RIVERKEEP 9].
--- Foaia (Assets.character_anim) are 12 randuri x 4 cadre de 16x24, in ordinea din ROWS.
+-- Foile in straturi (Assets.people) au 20 de randuri x 4 cadre de 16x24, in ordinea din ROWS; foaia veche
+-- dintr-o bucata (Assets.character_anim) are doar primele 15.
 -- `side = true` inseamna ca desenul e orientat spre DREAPTA si se oglindeste pentru stanga.
 export type Row = { id: string, index: number, fps: number, side: boolean }
 
@@ -32,6 +33,12 @@ AnimConfig.ROWS = {
     run_down = row("run_down", 12, 11, false),
     run_up = row("run_up", 13, 11, false),
     run_side = row("run_side", 14, 11, true),
+    -- [D55] Roaba: mersul cu ea in trei directii, incarcatul si rasturnatul (scripts/art/settlers.py).
+    push_side = row("push_side", 15, 8, true),
+    push_down = row("push_down", 16, 8, false),
+    push_up = row("push_up", 17, 8, false),
+    load = row("load", 18, 5, true),
+    tip = row("tip", 19, 5, true),
 }
 
 local WALK_BY_FACING = {
@@ -64,6 +71,23 @@ local RUN_BY_FACING = {
 
 function AnimConfig.runRow(facing: string): Row
     return RUN_BY_FACING[facing] or AnimConfig.ROWS.run_down
+end
+
+-- [D55] Omul cu roaba: mersul dupa directie; pe loc, incarcatul sau rasturnatul (laterale).
+local PUSH_BY_FACING = {
+    down = AnimConfig.ROWS.push_down,
+    up = AnimConfig.ROWS.push_up,
+    left = AnimConfig.ROWS.push_side,
+    right = AnimConfig.ROWS.push_side,
+}
+
+function AnimConfig.barrowRow(task: string, facing: string): Row
+    if task == "load" then
+        return AnimConfig.ROWS.load
+    elseif task == "tip" then
+        return AnimConfig.ROWS.tip
+    end
+    return PUSH_BY_FACING[facing] or AnimConfig.ROWS.push_side
 end
 
 function AnimConfig.rowFor(

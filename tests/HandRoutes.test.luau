@@ -147,18 +147,149 @@ return function()
 
         test.case("ciclul oricarui Collector e sub cat tine o plasa", function()
             -- Daca ar trece mai rar, plasele lui s-ar umple si ar sta pline: ar prinde sub cifra din
-            -- meniu, iar Collector-ul ar duce mai putin decat promite [D49].
+            -- meniu, iar Collector-ul ar duce mai putin decat promite [D49]. [D55] Si cu oprirea la shed.
             local all = era1Nets()
             for owned = 1, #all do
                 local nets = table.move(all, 1, owned, 1, {})
                 for count = 1, StationConfig.MAX_PEOPLE do
                     for index = 1, count do
-                        local cycle = HandRoutes.cycleFor("collector", index, count, nets)
-                        check.is_true(cycle.duration <= TycoonConfig.NET_HOLD_SECONDS)
+                        for _, scrap in { false, true } do
+                            local cycle =
+                                HandRoutes.cycleFor("collector", index, count, nets, scrap)
+                            check.is_true(cycle.duration <= TycoonConfig.NET_HOLD_SECONDS)
+                        end
                     end
                 end
             end
         end)
+    end)
+
+    test.suite("HandRoutes - resturile [D55]", function()
+        test.case("plasa de scrap e ultima plasa a Erei 1", function()
+            local nets = era1Nets()
+            check.equal(HandRoutes.SCRAP_NET, nets[#nets])
+        end)
+
+        test.case(
+            "Collector-ul cu plasa de scrap lasa scrap-ul la shed, apoi lemnul la depozit",
+            function()
+                local nets = era1Nets()
+                local route = HandRoutes.routeFor("collector", 1, 1, nets, true) :: HandRoutes.Route
+                check.equal(#route.stops, #nets + 1)
+                local last = route.stops[#route.stops]
+                check.equal(last.padId, HandRoutes.SHED_STOP)
+                check.is_true(last.drop == true)
+                check.equal(last.x, TycoonConfig.SCRAP_SHED_STAND.x)
+                check.equal(route.endpoint.x, TycoonConfig.STORAGE_STAND.x)
+                check.equal(HandRoutes.endPlace("collector", true), "storage")
+                -- doi oameni: doar cel care are plasa de scrap trece pe la shed
+                local a = HandRoutes.routeFor("collector", 1, 2, nets, true) :: HandRoutes.Route
+                local b = HandRoutes.routeFor("collector", 2, 2, nets, true) :: HandRoutes.Route
+                local function hasShed(r: HandRoutes.Route): boolean
+                    for _, s in r.stops do
+                        if s.padId == HandRoutes.SHED_STOP then
+                            return true
+                        end
+                    end
+                    return false
+                end
+                check.is_true(not hasShed(a))
+                check.is_true(hasShed(b))
+                -- fara lantul resturilor, drumul de dinainte
+                local plain =
+                    HandRoutes.routeFor("collector", 1, 1, nets, false) :: HandRoutes.Route
+                check.equal(#plain.stops, #nets)
+            end
+        )
+
+        test.case(
+            "Porter-ul: shed, depozit, gater (lasa), atelier; Hauler-ul: fier, scanduri, taverna",
+            function()
+                local porter = HandRoutes.routeFor("porter", 1, 1, {}, true) :: HandRoutes.Route
+                check.equal(#porter.stops, 3)
+                check.equal(porter.stops[1].padId, HandRoutes.SHED_STOP)
+                check.is_true(porter.stops[1].drop ~= true)
+                check.equal(porter.stops[2].padId, HandRoutes.STORAGE_STOP)
+                check.equal(porter.stops[3].padId, HandRoutes.SAWMILL_DROP)
+                check.is_true(porter.stops[3].drop == true)
+                check.equal(porter.endpoint.x, TycoonConfig.FORGE_IN.x)
+                check.equal(HandRoutes.endPlace("porter", true), "forge")
+                check.equal(HandRoutes.endPlace("porter", false), "sawmill")
+                local hauler = HandRoutes.routeFor("hauler", 1, 1, {}, true) :: HandRoutes.Route
+                check.equal(#hauler.stops, 2)
+                check.equal(hauler.stops[1].padId, HandRoutes.IRON_STOP)
+                check.equal(hauler.stops[2].padId, HandRoutes.PLANKS_STOP)
+                check.equal(hauler.endpoint.x, TycoonConfig.DOCK.x)
+            end
+        )
+
+        test.case(
+            "cu resturi, drumurile raman pe drum si ce duce un om ramane debitul lui",
+            function()
+                local ChainMath = require("../src/Shared/Modules/ChainMath")
+                local rects = { TycoonConfig.DECK }
+                for _, r in TycoonConfig.ROADS do
+                    table.insert(rects, r)
+                end
+                local function onRoad(p): boolean
+                    for _, r in rects do
+                        if
+                            p.x >= r.x0 - 0.5
+                            and p.x <= r.x1 + 0.5
+                            and p.y >= r.y0 - 0.5
+                            and p.y <= r.y1 + 0.5
+                        then
+                            return true
+                        end
+                    end
+                    return false
+                end
+                for _, role in { "collector", "porter", "hauler" } do
+                    local route =
+                        HandRoutes.routeFor(role, 1, 1, era1Nets(), true) :: HandRoutes.Route
+                    for _, s in route.stops do
+                        for _, p in s.via or {} do
+                            check.is_true(onRoad(p))
+                        end
+                    end
+                    for _, p in route.returnVia or {} do
+                        check.is_true(onRoad(p))
+                    end
+                    local cycle = HandRoutes.cycleFor(role, 1, 1, era1Nets(), true)
+                    print(
+                        `  {role} cu resturi: {math.floor(cycle.duration * 10 + 0.5) / 10} s pe ciclu`
+                    )
+                    local rate = ChainMath.walkerRate(role, { count = 1, tier = 3 })
+                    local load = HandRoutes.loadFor(rate, cycle.duration)
+                    check.is_true(
+                        math.abs(load / cycle.duration - rate) <= 0.5 / cycle.duration + 1e-9
+                    )
+                end
+            end
+        )
+
+        test.case(
+            "opririle de lasat dau evenimentul lor, iar in pauza omul sta spre gramada",
+            function()
+                local HandMath = require("../src/Shared/Modules/HandMath")
+                local cycle = HandRoutes.cycleFor("porter", 1, 1, {}, true)
+                local kinds = {}
+                for _, ev in HandMath.eventsBetween(cycle, 0, 0, cycle.duration) do
+                    table.insert(kinds, `{ev.kind}:{ev.padId or "-"}`)
+                end
+                check.equal(
+                    table.concat(kinds, " "),
+                    "collect:shed collect:storage drop:sawmill sell:-"
+                )
+                for _, leg in cycle.legs do
+                    if leg.kind ~= "walk" then
+                        local _, _, state, facing = HandMath.sampleAt(cycle, (leg.t0 + leg.t1) / 2)
+                        check.equal(state, leg.kind)
+                        check.equal(facing, leg.face or "up")
+                    end
+                end
+            end
+        )
     end)
 
     test.suite("CrewMath", function()

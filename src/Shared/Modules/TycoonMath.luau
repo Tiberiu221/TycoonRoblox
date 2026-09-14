@@ -12,6 +12,7 @@ export type State = {
     nets: { number },
     lanes: number,
     sackBig: boolean,
+    scrapShed: boolean, -- [D55] shed-ul de scrap (steagul platformei lui)
     flume: boolean,
     rateMult: number,
     priceMult: number,
@@ -43,6 +44,7 @@ function TycoonMath.newState(rebirths: number?, indexFound: number?): State
         nets = {},
         lanes = 1,
         sackBig = false,
+        scrapShed = false,
         flume = false,
         rateMult = 1.0,
         priceMult = 1.0,
@@ -142,27 +144,30 @@ function TycoonMath.catchSeed(userId: number, padIndex: number, caught: number):
     return userId * 7919 + padIndex * 104729 + caught
 end
 
--- Bunul unei prinderi, din PRIMA tragere a generatorului (roll in [0, 1)). Bunurile sub minLanes
--- cad pe driftwood, ca in income(). Serverul continua cu acelasi generator pentru tier-ul unui
--- obiect cu nume; clientul se opreste aici -- tier-ul ramane secret pana la prindere.
-function TycoonMath.pickGood(roll: number, lanes: number): string
-    local driftwoodShare = TycoonConfig.GOODS[1].share
-    for _, g in TycoonConfig.GOODS do
-        if g.minLanes and g.minLanes > lanes then
-            driftwoodShare += g.share
+-- [D55] Ce prinde plasa unei platforme: "scrap" pentru plasa din larg (efectul ei poarta `good = "scrap"`),
+-- "wood" pentru restul. Un singur loc, citit si de server (NetService), si de client (NetController).
+function TycoonMath.netKind(pad: TycoonConfig.Pad): string
+    for _, e in pad.effects do
+        if e.kind == "net" and e.good == "scrap" then
+            return "scrap"
         end
     end
+    return "wood"
+end
+
+-- Bunul unei prinderi, din PRIMA tragere a generatorului (roll in [0, 1)), dupa felul plasei [D55]:
+-- ponderile din TycoonConfig.CATCH, in ordinea lor. Serverul continua cu acelasi generator pentru tier-ul
+-- unui obiect cu nume; clientul se opreste aici -- tier-ul ramane secret pana la prindere.
+function TycoonMath.pickGood(roll: number, kind: string): string
+    local parts = TycoonConfig.CATCH[kind] or TycoonConfig.CATCH.wood
     local acc = 0
-    for i, g in TycoonConfig.GOODS do
-        if g.minLanes and g.minLanes > lanes then
-            continue
-        end
-        acc += if i == 1 then driftwoodShare else g.share
+    for _, part in parts do
+        acc += part.share
         if roll < acc then
-            return g.id
+            return part.id
         end
     end
-    return TycoonConfig.GOODS[1].id -- plasa de siguranta pentru erori de rotunjire
+    return parts[1].id -- plasa de siguranta pentru erori de rotunjire
 end
 
 function TycoonMath.sackCapacity(s: State): number

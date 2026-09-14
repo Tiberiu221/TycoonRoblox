@@ -11,7 +11,7 @@ export type Focus = {
     action: string?, -- textul butonului de actiune, cu tasta pe tastatura; nil = nimic de facut
     act: (() -> ())?, -- ce fac E si butonul
     status: string?, -- in locul actiunii, cand nu se poate face nimic ("Sack full")
-    upgradeKind: string?, -- meniul pe care il deschide Upgrade: "net" | "saw" | "dock" | "crew"
+    upgradeKind: string?, -- meniul pe care il deschide Upgrade: "net" | "saw" | "forge" | "dock" | "crew"
     upgradeId: string?,
 }
 

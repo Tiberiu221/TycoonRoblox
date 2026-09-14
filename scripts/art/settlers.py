@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Foaie de animatie pentru colonisti: 15 randuri x 4 cadre, 16x24 per cadru (12 de baza + 3 de alergare)."""
+"""Foaie de animatie pentru colonisti: 20 randuri x 4 cadre, 16x24 per cadru (12 de baza + 3 de alergare
++ 5 cu roaba [D55]). Randurile noi stau la COADA: primele 15 raman bit cu bit cele urcate deja."""
 import sys, os, colorsys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from buildings import C, png, hexc, T
@@ -10,6 +11,8 @@ ROWS = [
     "idle_down", "idle_up", "idle_side",
     "work", "carry", "eat", "sleep", "cheer", "fish",
     "run_down", "run_up", "run_side",
+    # [D55] oamenii care cara imping o roaba: mersul in trei directii, incarcatul si rasturnatul
+    "push_side", "push_down", "push_up", "load", "tip",
 ]
 
 # Piele si par: gri-neutru-cald (NU tonuri finale) - la rulare se inmultesc cu un tint
@@ -545,6 +548,107 @@ def fish(c, ox, oy, f, layer="all"):
 
 
 
+# --- [D55] ROABA ----------------------------------------------------------------------------
+# Owner-ul: "npc-urile cara driftwood-ul intr-un sac, nu intr-o roaba... si cand le pune apare un ciocan".
+# Roaba insasi e un sprite separat (scripts/art/d55.py), pus de cod in fata omului; aici sunt doar
+# bratele si corpul care o impinge. MAINILE stau la inaltimea manerelor (randul oy+15) indiferent de
+# cadru: roaba ruleaza lin, deci mainile nu salta cu pasul -- doar corpul coboara putin la fiecare calcat.
+# BOB DOAR IN JOS (0 sau 1): un bob negativ ar scurge palaria in ultimul rand al celulei dinainte (vezi
+# nota de la RUN_SIDE) si ar schimba randul run_side, care e deja urcat.
+
+# (picior_stang_x, lungime, picior_drept_x, lungime, bob). Soldul e la oy+15+bob; cu lungimea 5-bob
+# talpa (cizma, doua randuri) se termina pe randul 21, ca la mers.
+PUSH_SIDE = [
+    (4, 4, 9, 4, 1),   # calcat: picioare departate, corpul apasa in jos
+    (6, 5, 8, 5, 0),   # trecere
+    (9, 4, 4, 4, 1),   # calcat opus
+    (6, 5, 8, 5, 0),
+]
+# din fata/spate pasul se vede prin talpi care coboara pe rand (22 / 20), exact ca la WALK_FRONT
+PUSH_FRONT = [
+    (5, 5, 9, 3, 1),
+    (5, 4, 9, 4, 0),
+    (5, 3, 9, 5, 1),
+    (5, 4, 9, 4, 0),
+]
+# Talpile in picioare, pe loc (incarcat, rasturnat): randul 21, ca la mers.
+STAND_LEGS = (4, 5, 9, 5)
+
+
+def reach(c, ox, sx, sy, hx, hy, layer, hand=True):
+    """Brat intins in diagonala, de la umar (ox+sx, sy) la mana (ox+hx, hy). Maneca se opreste inaintea
+    mainii; pielea se deseneaza dupa punch(), ca pe straturi separate tinuta sa n-o acopere."""
+    steps = max(abs(hx - sx), abs(hy - sy), 1)
+    if L(layer, "outfit"):
+        for i in range(steps):
+            t = i / steps
+            c.rect(ox + round(sx + (hx - sx) * t), round(sy + (hy - sy) * t), 2, 2, _CUR["shirt"])
+    if hand:
+        punch(c, ox + hx, hy, 2, 2)
+        if L(layer, "body"):
+            c.rect(ox + hx, hy, 2, 2, SKIN)
+            if _BODY["hand_notch"]:
+                punch(c, ox + hx, hy, 1, 1)
+
+
+def push(c, ox, oy, facing, f, layer="all"):
+    """Mersul cu roaba. Lateral (spre dreapta, oglindit la stanga in joc): aplecat inainte cu un pixel,
+    ambele brate intinse spre manere. Din fata: mainile in fata soldurilor, roaba vine peste picioare.
+    Din spate: umerii si bratele trase spre inainte, mainile ascunse de corp."""
+    if facing == "side":
+        lx, ll, rx, rl, bob = PUSH_SIDE[f]
+        lean = 1
+        leg(c, ox, lx, oy + 15 + bob, ll, layer=layer)
+        leg(c, ox, rx, oy + 15 + bob, rl, layer=layer)
+        reach(c, ox, 7 + lean, oy + 11 + bob, 12, oy + 14, layer, hand=False)  # bratul din spate, in umbra
+        torso(c, ox + lean, oy + 10 + bob, "side", layer=layer)
+        head(c, ox + lean, oy + bob, "side", layer=layer)
+        reach(c, ox, 8 + lean, oy + 11 + bob, 13, oy + 15, layer)
+        return
+    lx, ll, rx, rl, bob = PUSH_FRONT[f]
+    leg(c, ox, lx, oy + 15 + bob, ll, layer=layer)
+    leg(c, ox, rx, oy + 15 + bob, rl, layer=layer)
+    torso(c, ox, oy + 10 + bob, facing, layer=layer)
+    if facing == "up":
+        head(c, ox, oy + bob, "up", layer=layer)
+        reach(c, ox, 3, oy + 11 + bob, 4, oy + 13 + bob, layer, hand=False)
+        reach(c, ox, 11, oy + 11 + bob, 10, oy + 13 + bob, layer, hand=False)
+        return
+    head(c, ox, oy + bob, "down", layer=layer)
+    reach(c, ox, 3, oy + 11 + bob, 4, oy + 15, layer)
+    reach(c, ox, 11, oy + 11 + bob, 10, oy + 15, layer)
+
+
+def load_pose(c, ox, oy, f, layer="all"):
+    """Incarcatul, lateral: se apleaca, prinde de jos, ridica, pune in roaba (care sta in dreapta)."""
+    bob = [1, 2, 1, 0][f]
+    lean = [1, 2, 1, 1][f]
+    hand = [(12, oy + 19), (12, oy + 20), (12, oy + 15), (13, oy + 14)][f]
+    lx, ll, rx, rl = STAND_LEGS
+    leg(c, ox, lx, oy + 15 + bob, ll - bob, layer=layer)
+    leg(c, ox, rx, oy + 15 + bob, rl - bob, layer=layer)
+    torso(c, ox + lean, oy + 10 + bob, "side", layer=layer)
+    head(c, ox + lean, oy + bob, "side", layer=layer)
+    reach(c, ox, 8 + lean, oy + 11 + bob, hand[0], hand[1], layer)
+
+
+def tip_pose(c, ox, oy, f, layer="all"):
+    """Rasturnatul, lateral: mainile pe manere, le ridica tot mai sus (roaba se inclina in cod), apoi
+    le coboara. Corpul se lasa in fata cand ridica."""
+    bob = [0, 0, 1, 0][f]
+    lean = [1, 1, 2, 1][f]
+    hy = [oy + 15, oy + 12, oy + 10, oy + 13][f]
+    lx, ll, rx, rl = STAND_LEGS
+    leg(c, ox, lx, oy + 15 + bob, ll - bob, layer=layer)
+    leg(c, ox, rx, oy + 15 + bob, rl - bob, layer=layer)
+    # bratul din spate tinteste putin SUB mana din fata: mai sus ar trece prin barbie, iar pe straturi
+    # separate maneca ar acoperi fata (verify_layers)
+    reach(c, ox, 7 + lean, oy + 11 + bob, 12, hy + 1, layer, hand=False)
+    torso(c, ox + lean, oy + 10 + bob, "side", layer=layer)
+    head(c, ox + lean, oy + bob, "side", layer=layer)
+    reach(c, ox, 8 + lean, oy + 11 + bob, 13, hy, layer)
+
+
 def _draw_cell(c, ox, oy, row, f, layer):
     """Deseneaza o singura celula (rand, cadru) - dispecerul comun folosit de build_sheet
     si de verify_layers, ca ambele sa deseneze in EXACT aceeasi ordine (vezi nota despre
@@ -568,6 +672,12 @@ def _draw_cell(c, ox, oy, row, f, layer):
         fish(c, ox, oy, f, layer)
     elif row.startswith("run"):
         run(c, ox, oy, row.split("_")[1], f, layer)
+    elif row.startswith("push"):
+        push(c, ox, oy, row.split("_")[1], f, layer)
+    elif row == "load":
+        load_pose(c, ox, oy, f, layer)
+    elif row == "tip":
+        tip_pose(c, ox, oy, f, layer)
 
 
 def build_sheet(layer="all", body="a", outfit="fisher", hair="short"):

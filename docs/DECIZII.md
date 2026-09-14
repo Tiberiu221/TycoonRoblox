@@ -11,6 +11,75 @@ Convenție: în tot proiectul, „server" înseamnă o instanță Roblox efemer�
 
 ---
 
+## D55 — Resturile pe drumul lor, roabele, grămezile la gater, colibele care cresc
+**DECIS** (2026-09-13, noaptea) — owner-ul, înainte de culcare, a cerut ca planul să fie scris și aprobat de
+mine: *„este o confuzie la ce prinde al doilea net: scraps. scraps ar trebui să poți prinde doar la ultimul
+net, să se ducă în altă parte la procesare, nu la sawmill, și apoi la final duse la tavernă la vânzare"*,
+*„primii oameni ar trebui să poată căra scraps nu la storage de wood ci alt storage separat, deblocabil"*,
+*„npc-urile cară driftwood-ul într-un sac, nu într-o roabă… și când le pune apare un ciocan"*, *„texturile
+pentru când npc-ul pune jos lemnul respectiv plank-urile sunt patetice… ar trebui să fie măcar lângă sawmill
+în stânga respectiv în dreapta"*, *„pancardele npc-urilor ar trebui puse în apropierea job-urilor"*, *„când
+angajezi npc-ul aș vrea să se transforme într-o colibă mică… care când se angajează mai mulți npc, să crească
+în dimensiune"*. Planul, cu cele două revizii: `~/.claude/plans/d55-resturi-roabe-colibe.md`.
+
+1. **Ce prinde fiecare plasă.** Plasele 1–4 prind lemn (driftwood 95%, finds 5%); **Fifth Net**, cea din
+   larg, prinde **scrap** (95%, finds 5%) — felul stă în efectul plasei (`TycoonMath.netKind`,
+   `pickGood(roll, kind)`), nu mai decide banda. **Reeds și shards ies din Era 1**: treceau prin gater
+   exact ca scrap-ul; ce e deja în profiluri se vinde în continuare.
+2. **Scrap Shed** (platformă nouă, indexul 12 — toate platformele de după s-au renumerotat): al doilea
+   depozit, la stânga drumului depozitului, sub Fifth Net. Cere Workshop; Fifth Net cere Scrap Shed.
+3. **Forja atelierului** topește scrap-ul în **Iron** (valoarea 3 = trei scânduri), cu niveluri ca gaterul
+   (`FORGE_BASE_RATE` 1,2, `FORGE_UPGRADE_BASE` 60), singură — fierarul vine cu atelierul. Grămada de topit la
+   stânga atelierului, fierul la dreapta; E la ușă topește și ia fierul, fără nimic de făcut intră în atelier.
+4. **Aceiași oameni, drumuri mai lungi** (`HandRoutes`, opriri de „ia" și „lasă" cu direcție): Collector-ul
+   lasă scrap-ul la shed și lemnul la depozit, ținând loc în roabă pentru scrap-ul care îl așteaptă; Porter-ul
+   face bucla shed → depozit → gater (lasă buștenii) → atelier (lasă scrap-ul), dar ia scrap doar cât
+   atelierul are sub 40 de topit; Hauler-ul ia întâi fierul, apoi scândurile. Collector-ul lasă scrap-ul în
+   plasă cât shed-ul are deja 60. Fără scrap, drumurile sunt cele de dinainte.
+5. **Matematica** (simulator → `ChainMath`, paritate la bit, valori de aur tipărite de
+   `scripts/economy/golden_chain.py`): `shared = min(adunat, dus, dus la tavernă, vândut)`;
+   `scrap = min(min(S, forja), shared)`, `lemn = min(min(W, gater), shared − scrap)`; venit =
+   `lemn·1,65 + scrap·3,55` × multiplicatorii. Orice capacitate în plus doar lărgește ce se poate, deci nicio
+   cumpărare nu scade venitul; fără scrap e exact minimul celor șase debite. **Veriga slabă** e cea al cărei
+   pas în plus aduce cei mai mulți bani pe bucată (fără scrap iese primul minim, ca înainte); `forge` e a
+   șaptea verigă. Simulatorul cumpără traista și shed-ul când le cer quest-urile (`QUEST_UNLOCKS` — fără asta,
+   o variantă din `--robust` ajungea la 1h40m pentru o traistă de 80), shed-ul nu urcă scara prețurilor, iar
+   poarta de 0,5% a forjei se măsoară pe timpul în care există scrap.
+6. **Prețurile re-derivate:** Collector 12, Porter 15, Sawyer 18, Hauler 20, Innkeeper 25, Second Net 28,
+   Third Net 90, Bigger Sack 80, Fourth Net 900, Workshop 5,5K, Scrap Shed 7,5K, Fifth Net 8K, Landing Bell 9K;
+   al doilea om: Collector 1,1K, Porter 1,6K, Sawyer 12K, Hauler 2,5K, Innkeeper 4K. Era 1 la **37m44s** reali
+   (de la 33m59s); `--robust` între 37m19s și 39m50s.
+7. **Quest-uri:** „Build the Scrap Shed" înaintea plasei a cincea, „Smelt 25 iron at the Workshop" (fel nou
+   `smelted`) înaintea clopotului. **Profil v7**: `ScrapPile`, `ForgePile`, `IronPile`, `Stations.forge`,
+   `Stats.smelted`, aditiv, și în șablon. Remote-uri `UseShed`, `UseForge`.
+8. **Roabele.** Collector, Porter și Hauler împing o roabă în care se vede ce duc (bușteni, scânduri, scrap,
+   fier, ladă; trei trepte); rânduri noi în foile în straturi (`push_side/down/up`, `load`, `tip` — primele
+   15 rânduri identice bit cu bit); la opriri omul stă spre grămadă, încarcă sau răstoarnă roaba (rotită în
+   jurul roții). Ciocanul a ieșit din drumul oamenilor.
+9. **Grămezile** sunt obiecte pe trepte (1–4, 5–14, 15–39, 40+): stivă de bușteni, teanc de scânduri, morman
+   de scrap, lingouri; al doilea fel alături, mai mic; cifra rămâne. **La gater: bușteni în stânga, scânduri în
+   dreapta**, lipite de clădire (sensul din desenul gaterului).
+10. **Avizierele lângă meserii și colibele care cresc:** Porter — sus pe drumul lui, lângă depozit; Sawyer —
+    lipit de spatele gaterului; Hauler — la capătul lui de la tavernă. La angajare avizierul devine coliba
+    omului (răsare de la bază, cu praf); al doilea om o face mai mare. Colibe Porter/Sawyer/Hauler în două
+    mărimi, coliba mare a Collector-ului, taraba mare a Innkeeper-ului.
+11. **Arta** (`scripts/art/d55.py`, rânduri noi în `settlers.py`, previzualizare `scripts/art/preview_d55.py`):
+    34 de fișiere urcate după ce le-am verificat pe previzualizări — 13 foi de oameni și 21 de sprite-uri —, cu
+    moderarea în „Reviewing" la urcare.
+
+**Revizia codului** (agent independent, după implementare) a găsit trei lucruri, reparate: panoul vechi de pe
+tasta U nu avea rândul forjei (sfatul spunea „the forge is slowest" fără rând pe care să-l arate), taverna
+spunea doar „Logs go to the sawmill" cu bușteni și scrap în traistă, și o ramură moartă în `PadController`.
+Tot eu: Collector-ul ținea loc pentru scrap și când plasa de scrap era a celuilalt Collector (ar fi dus mai
+puțin lemn decât debitul lui), iar încărcătura din roabă se desena peste peretele din față (copil al imaginii).
+Toate cele 34 de fișiere de artă au trecut moderarea („Approved").
+
+**Alese de mine, de revăzut cu owner-ul:** reeds și shards ies din Era 1; forja merge singură (nu o meserie
+nouă); fierul = 3; coliba crește la al doilea om; atelierul e locul unde se topește.
+
+**Se abate** de la D49 (lanțul unic cu șase debite), D50 (grămezile gaterului sub curte, Hauler-ul pleacă din
+vest), D51 (plasa a patra deschidea scrap-ul pentru toate) și D53 (avizierul curat după angajare).
+
 ## D54 — Nivelul sunetului: muzica de fundal și panoul „Sound"
 **DECIS** (2026-09-13) — owner-ul, după ce a intrat în joc: *„muzica este prea tare, nu prea este de
 fundal. userul ar trebui să poată selecta nivelul audio, dar momentan tot este prea tare când intru

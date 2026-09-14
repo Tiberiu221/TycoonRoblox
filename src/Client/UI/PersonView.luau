@@ -1,8 +1,13 @@
 --!strict
--- Un om desenat din straturi [D44]: umbra, corp, par, tinuta, plus un obiect tinut (sacul unui om care
+-- Un om desenat din straturi [D44]: umbra, corp, par, tinuta, plus un obiect tinut (roaba unui om care
 -- cara, scandura unui client). Doar desenul si animatia: unde sta, ce face si daca se poate atinge
 -- decide cine il foloseste -- oamenii tai (HandRenderController) si clientii tavernei
 -- (DockController) [D50]. Scos din HandRenderController, ca un client sa nu fie o copie a lui.
+--
+-- [D55] ROABA. Owner-ul: "npc-urile cara driftwood-ul intr-un sac, nu intr-o roaba... si cand le pune apare un
+-- ciocan". Oamenii care cara imping o roaba (fasie cu trei vederi) in care se vede CE duc (fasii cu trei
+-- trepte); mersul, incarcatul si rasturnatul au randurile lor in foaie. Roaba se lipeste de mainile omului
+-- dupa ancorele din scripts/art/preview_d55.py -- aceleasi cifre, ca desenul din joc sa fie cel verificat.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local AnimConfig = require(ReplicatedStorage.Shared.Config.AnimConfig)
@@ -18,11 +23,14 @@ export type Appearance = {
 
 export type View = {
     frame: Frame,
-    -- x, y = picioarele; task = "working" | "idle"; facing = "left" | "right" | "up" | "down"
+    -- x, y = picioarele; facing = "left" | "right" | "up" | "down"; task = "idle" | "working", iar cu roaba
+    -- [D55] "push" (merge), "load" (incarca) sau "tip" (rastoarna)
     Pose: (x: number, y: number, task: string, facing: string, moving: boolean, dt: number) -> (),
     SetAppearance: (appearance: Appearance) -> (),
-    -- 0 = nu tine nimic; 1..4 = treapta sacului (creste cu ce duce), la scandura doar 0/1
+    -- 0 = nu tine nimic; la scandura doar 0/1. [D55] Cu roaba: treapta incarcaturii (0..3).
     SetHeld: (step: number) -> (),
+    -- [D55] ce e in roaba: "driftwood" | "planks" | "scrap" | "iron" | "named" | nil
+    SetCarry: (kind: string?, step: number) -> (),
     Destroy: () -> (),
 }
 
@@ -33,6 +41,31 @@ local W, H = AnimConfig.FRAME_WIDTH, AnimConfig.FRAME_HEIGHT
 
 -- Sacul creste in TREPTE, ca cel al jucatorului (NetController) [research 42 pct.3].
 local SACK_STEP_SCALE = { 0.6, 0.85, 1.05, 1.3 }
+
+-- [D55] ROABA. Un pixel de om = 2.5 px de lume (16x24 -> 40x60); roaba se deseneaza la aceeasi scara, ca
+-- pixelii ei sa fie cat ai omului. Ancore (pixeli de celula a omului -> coltul cadrului de roaba 24x20):
+-- lateral spre dreapta (13, 2), spre tine (-5, 15), de la tine (-5, -10). `front` = peste om.
+local PX = PersonView.WIDTH / W
+local BARROW_W, BARROW_H = 24, 20
+local LOAD_W, LOAD_H = 16, 9
+local BARROW_AT = {
+    side = { x = 13, y = 2, front = true, frame = 0, load = { x = 6, y = 2, over = false } },
+    down = { x = -5, y = 15, front = true, frame = 1, load = { x = 4, y = 3, over = false } },
+    up = { x = -5, y = -10, front = false, frame = 2, load = { x = 4, y = 0, over = true } },
+}
+-- Roata, in pixeli de cadru lateral: rasturnatul se roteste in jurul ei.
+local WHEEL = { x = 19, y = 16 }
+-- Inclinarea roabei pe cele patru cadre ale randului `tip`: ridica manerele, varsa, coboara.
+local TIP_ANGLE = { 0, 14, 30, 10 }
+local LOAD_SPRITE: { [string]: string } = {
+    driftwood = "load_logs",
+    reeds = "load_logs",
+    planks = "load_planks",
+    scrap = "load_scrap",
+    shards = "load_scrap",
+    iron = "load_iron",
+    named = "load_crate",
+}
 
 local function rgbOf(triple: { number }): Color3
     return Color3.fromRGB(triple[1] or 255, triple[2] or 255, triple[3] or 255)
@@ -102,6 +135,44 @@ function PersonView.new(parent: Instance, name: string, held: string?): View
     local hair = if layered then layer(holder, "Hair", 7) else nil
     local outfit = if layered then layer(holder, "Outfit", 8) else nil
 
+    -- [D55] Roaba: un cadru gol (se roteste la rasturnat, cu tot ce e in el) cu desenul roabei si incarcatura.
+    -- Incarcatura e SORA desenului, nu copilul lui: un copil se deseneaza mereu peste parinte, iar lateral si
+    -- spre tine incarcatura trebuie sa stea IN cutie, in spatele peretelui din fata.
+    local barrow: Frame? = nil
+    local barrowImg: ImageLabel? = nil
+    local cargo: ImageLabel? = nil
+    local cargoKind: string? = nil
+    local cargoStep = 0
+    if held == "barrow" and Assets.has(Assets.tycoon.barrow) then
+        local rig = Instance.new("Frame")
+        rig.Name = "Barrow"
+        rig.BackgroundTransparency = 1
+        rig.Size = UDim2.fromOffset(BARROW_W * PX, BARROW_H * PX)
+        rig.ZIndex = 9
+        rig.Parent = holder
+        barrow = rig
+        local b = Instance.new("ImageLabel")
+        b.Name = "Art"
+        b.BackgroundTransparency = 1
+        b.Image = Assets.url(Assets.tycoon.barrow)
+        b.ImageRectSize = Vector2.new(BARROW_W, BARROW_H)
+        b.ResampleMode = Enum.ResamplerMode.Pixelated
+        b.Size = UDim2.fromScale(1, 1)
+        b.ZIndex = 2
+        b.Parent = rig
+        barrowImg = b
+        local c = Instance.new("ImageLabel")
+        c.Name = "Cargo"
+        c.BackgroundTransparency = 1
+        c.ImageRectSize = Vector2.new(LOAD_W, LOAD_H)
+        c.ResampleMode = Enum.ResamplerMode.Pixelated
+        c.Size = UDim2.fromOffset(LOAD_W * PX, LOAD_H * PX)
+        c.Visible = false
+        c.ZIndex = 1
+        c.Parent = rig
+        cargo = c
+    end
+
     -- Obiectul tinut: sacul pe spate (creste in trepte), scandura in brate.
     local item: ImageLabel? = nil
     local itemScale: UIScale? = nil
@@ -141,12 +212,89 @@ function PersonView.new(parent: Instance, name: string, held: string?): View
     local animTime = 0
     local rowId = ""
 
+    -- [D55] Roaba lipita de mainile omului, pentru directia si cadrul de acum.
+    local function placeBarrow(task: string, facing: string, frameIndex: number)
+        local rig, b, c = barrow, barrowImg, cargo
+        if rig == nil or b == nil or c == nil then
+            return
+        end
+        local view = if task == "load" or task == "tip"
+            then "side"
+            elseif facing == "up" or facing == "down" then facing
+            else "side"
+        local at = BARROW_AT[view]
+        local mirror = view == "side" and facing == "left"
+        -- rasturnatul: roaba se roteste in jurul rotii, iar incarcatura aluneca in fata si se stinge
+        local angle = if task == "tip" then TIP_ANGLE[frameIndex + 1] or 0 else 0
+        local cellX = if mirror then W - at.x - BARROW_W else at.x
+        -- pozitia coltului cadrului in pixeli ai lui `holder` (40x60, colt sus-stanga)
+        local left, top = cellX * PX, at.y * PX
+        -- Rotation se invarte in jurul MIJLOCULUI; ca roata sa ramana pe loc, mijlocul se muta cu cat s-ar
+        -- fi mutat roata: centru = centru0 + d - R(unghi) * d, cu d = roata fata de mijloc.
+        local pivotX = if mirror then BARROW_W - WHEEL.x else WHEEL.x
+        local rot = if mirror then -angle else angle
+        local dx, dy = (pivotX - BARROW_W / 2) * PX, (WHEEL.y - BARROW_H / 2) * PX
+        local rad = math.rad(rot)
+        local rx = dx * math.cos(rad) - dy * math.sin(rad)
+        local ry = dx * math.sin(rad) + dy * math.cos(rad)
+        local cx0, cy0 = left + BARROW_W * PX / 2, top + BARROW_H * PX / 2
+        setIfChanged(rig, "AnchorPoint", Vector2.new(0.5, 0.5))
+        setIfChanged(rig, "Position", UDim2.fromOffset(cx0 + dx - rx, cy0 + dy - ry))
+        setIfChanged(rig, "Rotation", rot)
+        setIfChanged(rig, "ZIndex", if at.front then 9 else 4)
+        setIfChanged(
+            b,
+            "ImageRectOffset",
+            Vector2.new((at.frame + (if mirror then 1 else 0)) * BARROW_W, 0)
+        )
+        setIfChanged(
+            b,
+            "ImageRectSize",
+            Vector2.new(if mirror then -BARROW_W else BARROW_W, BARROW_H)
+        )
+        local loadX = if mirror then BARROW_W - at.load.x - LOAD_W else at.load.x
+        local slide = if task == "tip" and frameIndex >= 2 then 4 else 0
+        setIfChanged(
+            c,
+            "Position",
+            UDim2.fromOffset((loadX + (if mirror then -slide else slide)) * PX, at.load.y * PX)
+        )
+        setIfChanged(c, "ZIndex", if at.load.over then 3 else 1)
+        setIfChanged(c, "ImageTransparency", if task == "tip" and frameIndex == 3 then 0.6 else 0)
+        local loadSprite = if cargoKind ~= nil
+            then (Assets.tycoon :: any)[LOAD_SPRITE[cargoKind :: string] or "load_logs"]
+            else nil
+        local show = cargoStep > 0 and loadSprite ~= nil and Assets.has(loadSprite)
+        setIfChanged(c, "Visible", show)
+        if show then
+            setIfChanged(c, "Image", Assets.url(loadSprite))
+            local offset = Vector2.new(
+                (math.clamp(cargoStep, 1, 3) - 1 + (if mirror then 1 else 0)) * LOAD_W,
+                0
+            )
+            setIfChanged(c, "ImageRectOffset", offset)
+            setIfChanged(
+                c,
+                "ImageRectSize",
+                Vector2.new(if mirror then -LOAD_W else LOAD_W, LOAD_H)
+            )
+        end
+    end
+
     local view: View = {
         frame = holder,
         SetAppearance = function(a: Appearance)
             appearance = a
         end,
+        SetCarry = function(kind: string?, step: number)
+            cargoKind = kind
+            cargoStep = step
+        end,
         SetHeld = function(step: number)
+            if barrow ~= nil then
+                cargoStep = step
+                return
+            end
             local img = item
             if img == nil then
                 return
@@ -168,15 +316,26 @@ function PersonView.new(parent: Instance, name: string, held: string?): View
             holder.Position = UDim2.fromOffset(math.round(x), math.round(y))
             setIfChanged(holder, "ZIndex", 6 + math.clamp(math.floor(y / 64), 0, 40))
 
-            local row = AnimConfig.rowFor(task, facing, moving, nil, nil)
+            local withBarrow = barrow ~= nil
+            local row = if withBarrow
+                then AnimConfig.barrowRow(task, facing)
+                else AnimConfig.rowFor(task, facing, moving, nil, nil)
             if row.id ~= rowId then
                 rowId = row.id
                 animTime = 0
+            elseif withBarrow and not moving and task ~= "load" and task ~= "tip" then
+                animTime = 1 -- sta pe loc cu mainile pe manere: un singur cadru, fara pas
             else
                 animTime += dt * row.fps
             end
             local frameIndex = math.floor(animTime) % AnimConfig.FRAMES_PER_ROW
+            -- incarcatul si rasturnatul se joaca O DATA pe pauza (0.6 s la 5 cadre/s = 3 cadre), apoi raman
+            -- pe ultimul cadru: o bucla ar incarca de doua ori aceeasi plasa
+            if withBarrow and (task == "load" or task == "tip") then
+                frameIndex = math.min(math.floor(animTime), AnimConfig.FRAMES_PER_ROW - 1)
+            end
             setFrame(body, row, frameIndex, facing)
+            placeBarrow(task, facing, frameIndex)
 
             local a = appearance
             if a == nil then

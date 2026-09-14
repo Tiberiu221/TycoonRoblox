@@ -212,6 +212,7 @@ local function toGuideState(s: Snapshot): GuideMath.State
         sackCount = s.sack.count,
         sackCapacity = s.sack.capacity,
         sackCut = s.sack.cut or 0,
+        sackRawScrap = s.sack.rawScrap or 0, -- [D55]
         hands = hands,
         firstsCollect = s.firsts.collect,
         firstsSell = s.firsts.sell,
@@ -478,6 +479,9 @@ function Overlay.Init(d: Deps)
         storage = TycoonConfig.STORAGE_STAND,
         sawmill = TycoonConfig.SAWMILL_IN,
         dock = TycoonConfig.DOCK,
+        -- [D55] scrap-ul la shed, apoi la atelier
+        shed = TycoonConfig.SCRAP_SHED_STAND,
+        forge = TycoonConfig.FORGE_IN,
     }
     deps.Remotes.HandDelivered.OnClientEvent:Connect(
         function(_handId: string, itemCount: number, place: string)

@@ -66,16 +66,18 @@ end
 -- foloseste clientul (CatchFloat/D2) ca sa arate dinainte ce pluteste spre plasa; tier-ul vine
 -- din acelasi rng, imediat dupa [F1 spec 3.1: prinderile trebuie sa ramana identice cu F0].
 -- `forced`: unealta de dezvoltare (named) -- sare peste tragerea normala, tot restul e la fel.
+-- [D55] Bunul tine de felul plasei (TycoonMath.netKind): plasele de lemn prind lemn, cea din larg scrap.
 local function rollCatch(
     player: Player,
     pad: TycoonConfig.Pad,
     caughtIndex: number,
-    lanes: number,
     forced: boolean
 ): Catch
     local seed = TycoonMath.catchSeed(player.UserId, pad.index, caughtIndex)
     local rng = Prng.new(seed)
-    local goodId = if forced then "named" else TycoonMath.pickGood(rng:nextNumber(), lanes)
+    local goodId = if forced
+        then "named"
+        else TycoonMath.pickGood(rng:nextNumber(), TycoonMath.netKind(pad))
     if goodId == "named" then
         local tier = rollTier(rng)
         local picked = ItemConfig.pickFor(tier, seed)
@@ -264,8 +266,7 @@ local function tick(now: number)
                 -- "prinde din urma" la "live" chiar in aceeasi bucla, pe masura ce se apropie de now
                 local catchingUp = (now - net.nextCatchAt) > CATCHUP_SECONDS
                 local forced = forcedSet ~= nil and forcedSet[padId] == true
-                local catch =
-                    rollCatch(player, pad, net.caught, StationService.Lanes(player), forced)
+                local catch = rollCatch(player, pad, net.caught, forced)
                 if forced then
                     forcedSet[padId] = nil
                 end

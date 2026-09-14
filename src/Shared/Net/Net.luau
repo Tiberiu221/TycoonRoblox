@@ -43,6 +43,8 @@ local REMOTE_NAMES = {
     "UseStorage", -- C->S: E la depozit -- lasi brutul, sau iei brut
     "UseSawmill", -- C->S: E la gater -- lasi brutul, apoi iei ce e taiat
     "DeliverDock", -- C->S: E la debarcader -- lasi ce e taiat
+    "UseShed", -- C->S: E la shed-ul de scrap -- lasi scrap-ul, sau iei scrap [D55]
+    "UseForge", -- C->S: E la atelier -- lasi scrap-ul la forja, apoi iei fierul gata [D55]
     "UseResult", -- S->C {place, ok, reason, dropped, taken}: ce a facut gestul, pentru toast
     "AtSawmill", -- C->S {present}: stai langa gater (fara Sawyer, doar atunci taie)
     "UpgradeCrew", -- C->S {role, what}: "tier" sau "hire" (al doilea om)
