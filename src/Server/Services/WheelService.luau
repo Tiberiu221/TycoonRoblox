@@ -4,13 +4,19 @@
 --
 -- Samanta se salveaza in profil si avanseaza la fiecare rotire, deci sirul de premii al unui
 -- jucator e reproductibil daca vreodata trebuie verificat -- fara sa fie previzibil pentru el.
+--
+-- [D59] Darurile raului, fara monede: perle, un lucru care vine la ponton (daca pontonul e plin, valoarea lui in perle,
+-- pe loc -- iar textul spune asta) sau momeala aurie pentru undita.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Prng = require(ReplicatedStorage.Shared.Modules.Prng)
+local TreasureConfig = require(ReplicatedStorage.Shared.Config.TreasureConfig)
 local WheelConfig = require(ReplicatedStorage.Shared.Config.WheelConfig)
 local WheelMath = require(ReplicatedStorage.Shared.Modules.WheelMath)
 
 local DataService = require(script.Parent.DataService)
 local EconomyService = require(script.Parent.EconomyService)
+local FishService = require(script.Parent.FishService)
+local TreasureService = require(script.Parent.TreasureService)
 
 local WheelService = {}
 local deps: { PushState: ((Player) -> ())? } = { PushState = nil }
@@ -38,8 +44,9 @@ function WheelService.Snapshot(player: Player): Snapshot
     }
 end
 
--- Intoarce (reusit, motiv, idPremiu, monede, perle).
-function WheelService.Spin(player: Player): (boolean, string, string?, number?, number?)
+-- Intoarce (reusit, motiv, idPremiu, perle date pe loc, convertit). `convertit` = un lucru de pe rau care n-a mai avut
+-- loc la ponton si a venit direct ca perle.
+function WheelService.Spin(player: Player): (boolean, string, string?, number?, boolean?)
     local data = DataService.Get(player)
     if data == nil then
         return false, "no_profile"
@@ -62,18 +69,36 @@ function WheelService.Spin(player: Player): (boolean, string, string?, number?, 
     w.seed = Prng.nextU32(rng)
 
     local prize = WheelMath.pick(roll)
-    local coins = WheelMath.coinsOf(prize, EconomyService.IncomePerSec(player))
-    local pearls = prize.pearls or 0
-    if coins > 0 then
-        EconomyService.AddCoins(player, coins, "wheel")
+    local pearls, converted = 0, false
+    local kind = WheelMath.kindOf(prize)
+    if kind == "pearls" then
+        pearls = prize.pearls :: number
+    elseif kind == "treasure" then
+        local treasure = prize.treasure :: string
+        if not TreasureService.Grant(player, treasure) then
+            pearls = TreasureConfig.byId[treasure].pearls
+            converted = true
+        end
+    elseif kind == "bait" then
+        FishService.AddBait(player, prize.bait :: number)
     end
     if pearls > 0 then
-        data.Pearls += pearls
+        EconomyService.AddPearls(player, pearls, "wheel")
     end
     if deps.PushState ~= nil then
         (deps.PushState :: (Player) -> ())(player)
     end
-    return true, "ok", prize.id, coins, pearls
+    return true, "ok", prize.id, pearls, converted
+end
+
+-- [dev] rotirea devine gata acum
+function WheelService.DevReady(player: Player): boolean
+    local data = DataService.Get(player)
+    if data == nil then
+        return false
+    end
+    wheelOf(data).lastSpinAt = 0
+    return true
 end
 
 function WheelService.Init(d: typeof(deps))

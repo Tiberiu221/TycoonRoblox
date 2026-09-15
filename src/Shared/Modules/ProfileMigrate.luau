@@ -207,4 +207,80 @@ function ProfileMigrate.toV7(data: { [string]: any })
     data.Meta.version = 7
 end
 
+-- v8 [D56]: linia fierului cu oamenii ei. ADITIV: treapta celor patru meserii noi (toV5 e inghetat, nu le mai
+-- adauga) si numaratoarea fierului predat. Si un singur lucru mutat, ca sa nu se piarda: ce duceau oamenii de lemn
+-- pe drumurile D55 ajunge in gramada lui -- scrap-ul brut la shed, fierul la gramada de fier a forjei, de unde il
+-- iau oamenii fierului; lemnul, scandurile si gasirile raman in roaba.
+function ProfileMigrate.toV8(data: { [string]: any })
+    local version = if data.Meta ~= nil and data.Meta.version ~= nil then data.Meta.version else 1
+    if version >= 8 then
+        return
+    end
+    if typeof(data.Crews) == "table" then
+        for _, role in StationConfig.LINE_STEPS.iron do
+            if typeof(data.Crews[role]) ~= "table" then
+                data.Crews[role] = { tier = 1 }
+            end
+        end
+    end
+    if typeof(data.Stats) == "table" and data.Stats.ironSold == nil then
+        data.Stats.ironSold = 0
+    end
+    local function counts(key: string): { [string]: number }
+        if typeof(data[key]) ~= "table" then
+            data[key] = { counts = {} }
+        end
+        if typeof(data[key].counts) ~= "table" then
+            data[key].counts = {}
+        end
+        return data[key].counts
+    end
+    if typeof(data.Hands) == "table" then
+        for _, hand in data.Hands do
+            if typeof(hand) ~= "table" or typeof(hand.carry) ~= "table" then
+                continue
+            end
+            if hand.role ~= "collector" and hand.role ~= "porter" and hand.role ~= "hauler" then
+                continue
+            end
+            local keep = {}
+            for _, item in hand.carry do
+                if typeof(item) == "table" and item.g == "scrap" and item.p ~= true then
+                    PileMath.add(counts("ScrapPile"), item)
+                elseif typeof(item) == "table" and item.g == "iron" then
+                    PileMath.add(counts("IronPile"), item)
+                else
+                    table.insert(keep, item)
+                end
+            end
+            hand.carry = keep
+        end
+    end
+    data.Meta.version = 8
+end
+
+-- [D59] PONTONUL: undita (jurnalul, momeala, samanta), ce aduce raul si satul (decor, tinute). Totul aditiv: un profil
+-- vechi n-a pescuit, n-a primit nimic de pe rau si poarta tinuta de la inceput. ACELEASI campuri ca sablonul din
+-- DataService (un profil nou nu trece pe aici).
+function ProfileMigrate.toV9(data: { [string]: any })
+    local version = if data.Meta ~= nil and data.Meta.version ~= nil then data.Meta.version else 1
+    if version >= 9 then
+        return
+    end
+    if typeof(data.Stats) == "table" then
+        data.Stats.fished = data.Stats.fished or 0
+        data.Stats.treasures = data.Stats.treasures or 0
+    end
+    if typeof(data.Fishing) ~= "table" then
+        data.Fishing = { seed = 0, casts = 0, bait = 0, species = {} }
+    end
+    if typeof(data.River) ~= "table" then
+        data.River = { started = false, waiting = {}, nextAt = 0, seed = 0, total = 0, notes = 0 }
+    end
+    if typeof(data.Village) ~= "table" then
+        data.Village = { decor = {}, outfits = { keeper = true }, outfit = "keeper" }
+    end
+    data.Meta.version = 9
+end
+
 return ProfileMigrate

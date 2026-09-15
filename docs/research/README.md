@@ -41,5 +41,6 @@ Generat 2026-09-09. Fiecare notă are: Rezumat executiv, Fapte verificate (URL +
 | 35 | [35-discovery-marketing.md](35-discovery-marketing.md) | Discovery, algoritm, Ads Manager și lansare | 6620 | ✓ |
 | 36 | [36-platform-2025-2026-features.md](36-platform-2025-2026-features.md) | Ce s-a schimbat pe platforma Roblox in 2025-2026 | 7110 | ✓ |
 | 37 | [37-solo-dev-production.md](37-solo-dev-production.md) | Productie pentru dev solo: timeline, milestone-uri, buget (Driftwood) | 5632 |  |
+| 44 | [44-harta-vie.md](44-harta-vie.md) | Harta vie: ancorarea obiectelor și plasament cu logică (2026-09-14; citatele Slynyrd și Level Design Book reverificate de mine) | 2590 |  |
 
 Total: 192199 cuvinte în 37 note; 14 verificate independent. Duplicatele din prima rulare sunt în `_dup/`.

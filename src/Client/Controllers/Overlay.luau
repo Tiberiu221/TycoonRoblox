@@ -17,10 +17,11 @@ local RunService = game:GetService("RunService")
 local Net = require(ReplicatedStorage.Net.Net)
 local ItemConfig = require(ReplicatedStorage.Shared.Config.ItemConfig)
 local RiverConfig = require(ReplicatedStorage.Shared.Config.RiverConfig)
-local StationConfig = require(ReplicatedStorage.Shared.Config.StationConfig)
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 local Strings = require(ReplicatedStorage.Shared.Config.Strings)
 local GuideMath = require(ReplicatedStorage.Shared.Modules.GuideMath)
+local HandRoutes = require(ReplicatedStorage.Shared.Modules.HandRoutes)
+local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
 local CeremonyController = require(script.Parent.CeremonyController)
 local GuideController = require(script.Parent.GuideController)
 local HUDController = require(script.Parent.HUDController)
@@ -47,6 +48,8 @@ export type HandSnap = {
     id: string,
     role: string,
     name: string,
+    index: number?,
+    count: number?,
     nets: { string },
     cycleStartAt: number,
     carrying: number,
@@ -76,17 +79,26 @@ export type Snapshot = {
             padId: string?,
             dock: boolean?,
             sawmill: boolean?,
+            forge: boolean?, -- [D56] sageata spre inelul forjei
+            fish: boolean?, -- [D59] sageata spre capatul pontonului
             kind: string?,
             stationKind: string?,
             stationId: string?,
         }?,
     }?,
-    sack: { count: number, capacity: number, value: number },
+    sack: {
+        count: number,
+        capacity: number,
+        value: number,
+        contents: { [string]: number }?,
+        cut: number?,
+        rawScrap: number?,
+        finds: number?,
+    },
     lanes: number,
     hands: { HandSnap },
     zones: { [string]: string },
     workshop: boolean,
-    pile: number,
     firsts: Firsts,
     -- cati oameni are fiecare meserie (ghidajul tace cand toate au cel putin unul [D50]; pasii buclei
     -- sar peste ce face un om [D51]) si costul urmatorului nivel al fiecarei statii
@@ -94,9 +106,14 @@ export type Snapshot = {
         crews: { { role: string, count: number } },
         rows: { { kind: string, id: string?, costs: { number } } },
     }?,
-    -- [D51] gramezile de la gater si depozit: pasii buclei le citesc
+    -- [D51] gramezile de la gater si depozit: pasii buclei le citesc; [D56] si ale liniei fierului
     sawmill: { count: number, out: number }?,
     storage: { count: number }?,
+    forge: { count: number, out: number }?,
+    shed: { count: number }?,
+    -- [D59] cati pesti ai scos si ce te asteapta la ponton: indiciul de pe linia NEXT
+    fishing: { fished: number }?,
+    river: { waiting: { string } }?,
 }
 export type Deps = {
     HudGui: Frame,
@@ -134,14 +151,26 @@ local function toGuideState(s: Snapshot): GuideMath.State
         -- unde dara de ghidaj ar fi intrat in rau [D50]
         local pad = TycoonConfig.byId[n.padId]
         local y = if pad ~= nil and pad.y ~= nil then pad.y :: number else n.y
-        nets[i] = { padId = n.padId, x = n.x, y = y, count = n.count, capacity = n.capacity }
+        nets[i] = {
+            padId = n.padId,
+            x = n.x,
+            y = y,
+            count = n.count,
+            capacity = n.capacity,
+            scrap = pad ~= nil and TycoonMath.netKind(pad) == "scrap", -- [D56] o goleste Scrap Collector-ul
+        }
     end
-    -- Doar Collectorii golesc plasele [D49]: Porter-ul si Hauler-ul primesc si ei lista plaselor (ca
-    -- sa-si refaca drumul), dar o plasa nu e "automatizata" pentru ca exista un Porter.
+    -- Doar culegatorii golesc plasele [D49]: Porter-ul si Hauler-ul primesc si ei lista plaselor (ca
+    -- sa-si refaca drumul), dar o plasa nu e "automatizata" pentru ca exista un Porter. [D56] Fiecare culegator
+    -- doar plasele felului lui -- aceeasi functie ca drumul lui, altfel ghidajul ar crede ca plasa de scrap e
+    -- golita de Collector-ul de lemn.
     local hands: { GuideMath.HandInfo } = {}
     for _, h in s.hands do
-        if h.role == "collector" then
-            table.insert(hands, { nets = h.nets })
+        if HandRoutes.netKindOf(h.role) ~= nil then
+            table.insert(
+                hands,
+                { nets = HandRoutes.collectorNets(h.nets, h.index or 1, h.count or 1, h.role) }
+            )
         end
     end
     -- Quest-ul activ devine obiectiv de ghidaj: aici i se afla locul in lume, o singura data, din
@@ -160,6 +189,10 @@ local function toGuideState(s: Snapshot): GuideMath.State
         elseif active.sawmill then
             -- locul unde stai ca sa tai, cu inelul lui: acolo trebuie sa ajungi, nu in cladire
             x, y = TycoonConfig.SAWMILL_STAND.x, TycoonConfig.SAWMILL_STAND.y
+        elseif active.forge then
+            x, y = TycoonConfig.WORKSHOP_STAND.x, TycoonConfig.WORKSHOP_STAND.y -- [D56] inelul forjei
+        elseif active.fish then
+            x, y = TycoonConfig.FISH_STAND.x, TycoonConfig.FISH_STAND.y -- [D59] capatul pontonului
         end
         if x ~= nil and y ~= nil then
             local pad = if active.padId ~= nil then TycoonConfig.byId[active.padId] else nil
@@ -198,12 +231,17 @@ local function toGuideState(s: Snapshot): GuideMath.State
             counts[c.role] = c.count
         end
     end
+    local contents = s.sack.contents or {}
     return {
-        allCrewsHired = GuideMath.allCrewsHired(counts, StationConfig.ROLES),
+        -- [D56] ale fierului conteaza doar din clipa in care ai Forge (GuideMath.guidedRoles)
+        allCrewsHired = GuideMath.allCrewsHired(counts, GuideMath.guidedRoles(s.workshop == true)),
         crews = counts,
         sawIn = if s.sawmill ~= nil then s.sawmill.count else 0,
         sawOut = if s.sawmill ~= nil then s.sawmill.out else 0,
         storage = if s.storage ~= nil then s.storage.count else 0,
+        forgeIn = if s.forge ~= nil then s.forge.count else 0,
+        forgeOut = if s.forge ~= nil then s.forge.out else 0,
+        shed = if s.shed ~= nil then s.shed.count else 0,
         dockPileValue = s.dock.value,
         quest = quest,
         coins = s.coins,
@@ -213,9 +251,14 @@ local function toGuideState(s: Snapshot): GuideMath.State
         sackCapacity = s.sack.capacity,
         sackCut = s.sack.cut or 0,
         sackRawScrap = s.sack.rawScrap or 0, -- [D55]
+        sackIron = contents.iron or 0, -- [D56]
+        sackFinds = s.sack.finds or 0,
         hands = hands,
         firstsCollect = s.firsts.collect,
         firstsSell = s.firsts.sell,
+        -- [D59] indiciul pontonului de pe linia NEXT: dupa primul peste; un lucru care asteapta la ponton il bate
+        hasFished = s.fishing ~= nil and s.fishing.fished > 0,
+        treasureWaiting = if s.river ~= nil then s.river.waiting[1] else nil,
     }
 end
 
@@ -272,7 +315,7 @@ end
 -- un efect "de anuntat" (netele simple, banda noua) -- rata zburatoare le acopera deja pe alea.
 local function effectAnnouncement(pad: TycoonConfig.Pad): string?
     if pad.id == "workshop" then
-        return Strings.WORKSHOP_OPEN
+        return Strings.FORGE_LIT -- [D56] platforma `workshop` e acum Forge
     end
     for _, e in pad.effects do
         if e.kind == "flag" and e.field == "sackBig" then
@@ -424,7 +467,8 @@ function Overlay.Init(d: Deps)
 
     RunService.PreRender:Connect(checkProximityRefusals)
 
-    -- [L4] Prima gasire cu nume: un toast care explica Atelierul, o singura data pe profil.
+    -- [L4] Prima gasire cu nume: un toast, o singura data pe profil. [D56] Colectia e pusa deoparte: toastul spune
+    -- doar adevarul de azi -- gasirea merge cu marfa si se vinde bine la taverna.
     deps.Remotes.NetCaught.OnClientEvent:Connect(
         function(
             padId: string,
@@ -450,16 +494,12 @@ function Overlay.Init(d: Deps)
                 return
             end
             if snap.firsts.named then
-                return -- nu e prima -- restul (Index/Atelier) il arata deja IndexController/WorkshopController
+                return -- nu e prima
             end
             local item = ItemConfig.get(catalog)
             local name = if item ~= nil then item.name else "something new"
             local color = if item ~= nil then tierColor[item.tier] else nil
-            if snap.workshop then
-                HUDController.Toast(Strings.WORKSHOP_PILE_ADD, color)
-            else
-                HUDController.Toast(Strings.namedFindHint(name), color)
-            end
+            HUDController.Toast(Strings.namedFindHint(name), color)
         end
     )
 
@@ -479,7 +519,7 @@ function Overlay.Init(d: Deps)
         storage = TycoonConfig.STORAGE_STAND,
         sawmill = TycoonConfig.SAWMILL_IN,
         dock = TycoonConfig.DOCK,
-        -- [D55] scrap-ul la shed, apoi la atelier
+        -- [D55, D56] scrap-ul la shed, apoi la forja
         shed = TycoonConfig.SCRAP_SHED_STAND,
         forge = TycoonConfig.FORGE_IN,
     }

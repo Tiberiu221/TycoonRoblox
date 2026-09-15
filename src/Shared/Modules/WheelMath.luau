@@ -30,14 +30,16 @@ function WheelMath.pick(roll: number): WheelConfig.Prize
     return WheelConfig.PRIZES[#WheelConfig.PRIZES]
 end
 
--- Cate monede valoreaza premiul, la venitul de acum. Podeaua exista pentru inceputul de tot: la
--- 0.5 monede pe secunda, "30s de venit" ar fi 15 monede, adica nimic care sa merite o rotire.
-function WheelMath.coinsOf(prize: WheelConfig.Prize, incomePerSec: number): number
-    local seconds = prize.incomeSeconds
-    if seconds == nil then
-        return 0
+-- [D59] Ce fel de dar e: "pearls" | "treasure" | "bait". Un premiu fara niciunul e o greseala de config (testul o prinde).
+function WheelMath.kindOf(prize: WheelConfig.Prize): string?
+    if prize.pearls ~= nil then
+        return "pearls"
+    elseif prize.treasure ~= nil then
+        return "treasure"
+    elseif prize.bait ~= nil then
+        return "bait"
     end
-    return math.max(WheelConfig.MIN_COINS, math.floor(seconds * incomePerSec))
+    return nil
 end
 
 function WheelMath.ready(now: number, lastSpinAt: number): boolean
@@ -55,6 +57,12 @@ end
 -- tragerea, nu dintr-un tabel scris de mana [D40: textul nu minte].
 function WheelMath.percentOf(prize: WheelConfig.Prize): number
     return prize.weight / WheelMath.totalWeight() * 100
+end
+
+-- [D59] Unghiul (grade, 0 = sus, in sensul acelor de ceasornic) al mijlocului feliei `index` pe fata roatii. Spitele
+-- timonierului stau la multipli de 360/n, iar premiile intre ele -- de aici il citesc si iconitele, si oprirea sub ac.
+function WheelMath.sliceAngle(index: number): number
+    return (index - 0.5) * 360 / #WheelConfig.PRIZES
 end
 
 return WheelMath

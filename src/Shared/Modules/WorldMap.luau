@@ -9,14 +9,27 @@ export type Config = {
     RIVER_TOP: number,
     RIVER_BOTTOM: number,
 }
+-- [D59] O trecere prin rau: pontonul lung. De la malul raului in sus pana la `y0`, intre `x0` si `x1` (marginile nu).
+export type Passage = { x0: number, x1: number, y0: number }
 
 -- Doar raul blocheaza acum [F0 spec 4.6]: platformele, plasele si debarcaderul NU blocheaza --
 -- jucatorul trebuie sa poata calca pe o platforma ca sa o cumpere. `extra` ramane un parametru
 -- optional (nu mai vine din RiverConfig.BUILDINGS, care a disparut o data cu coliziunea de colonie)
 -- pentru orice obstacol viitor care chiar trebuie sa opreasca mersul.
-function WorldMap.blockedRects(cfg: Config, extra: { Rect }?): { Rect }
-    local rects: { Rect } =
-        { { x = 0, y = cfg.RIVER_TOP, w = cfg.WORLD_WIDTH, h = cfg.RIVER_BOTTOM - cfg.RIVER_TOP } }
+-- [D59] `passage`: pontonul intra in rau, iar jucatorul merge pe el pana la capat, unde pescuieste. Banda raului se
+-- sparge atunci in trei: stanga pontonului, dreapta lui si apa de dincolo de capatul lui.
+function WorldMap.blockedRects(cfg: Config, extra: { Rect }?, passage: Passage?): { Rect }
+    local top, height = cfg.RIVER_TOP, cfg.RIVER_BOTTOM - cfg.RIVER_TOP
+    local rects: { Rect }
+    if passage == nil then
+        rects = { { x = 0, y = top, w = cfg.WORLD_WIDTH, h = height } }
+    else
+        rects = {
+            { x = 0, y = top, w = passage.x0, h = height },
+            { x = passage.x1, y = top, w = cfg.WORLD_WIDTH - passage.x1, h = height },
+            { x = passage.x0, y = top, w = passage.x1 - passage.x0, h = passage.y0 - top },
+        }
+    end
     for _, b in extra or {} do
         table.insert(rects, { x = b.x, y = b.y, w = b.w, h = b.h })
     end

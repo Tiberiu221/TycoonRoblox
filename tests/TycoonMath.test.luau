@@ -12,7 +12,8 @@ local TycoonConfig = require("../src/Shared/Config/TycoonConfig")
 return function()
     test.suite("TycoonMath.stateFor", function()
         test.case("live=true ignora efectele indexFound (Index-ul real le inlocuieste)", function()
-            local bought = { workshop = true } -- Workshop: plus(index_found, 6)
+            -- Sorting Shed (Era 3): plus(index_found, 6). [D56] Forge nu mai adauga la colectie.
+            local bought = { sorting_shed = true }
             local sLive = TycoonMath.stateFor(bought, 0, 100, true)
             check.equal(sLive.indexFound, 100)
 
@@ -427,9 +428,14 @@ return function()
                 bigger_sack = "Cast the Second Net first",
                 far_lane_net = "Cast the Third Net first",
                 workshop = "Cast the Fourth Net first",
-                -- [D55] intai conditia `after`: shed-ul cere atelierul, plasa a cincea cere shed-ul
-                scrap_shed = "Build the Workshop first",
-                fifth_net = "Build the Scrap Shed first",
+                -- [D56] intai conditia `after`: plasa a cincea cere Forge; shed-ul cere plasa a cincea (prin
+                -- `netsOwned`, deci "Cast"), oamenii fierului pe cel dinainte
+                fifth_net = "Build the Forge first",
+                scrap_shed = "Cast the Fifth Net first",
+                hire_scrap_collector = "Build the Scrap Shed first",
+                hire_scrap_porter = "Hire a Scrap Collector first",
+                hire_smelter = "Hire a Scrap Porter first",
+                hire_iron_hauler = "Hire a Smelter first",
                 landing_bell = "Rebuild everything else on The Landing first",
             }
             local seen = 0
@@ -439,7 +445,7 @@ return function()
                     check.equal(needs(p.id, {}, {}), want[p.id])
                 end
             end
-            check.equal(seen, 14)
+            check.equal(seen, 18)
         end)
 
         test.case("doua conditii: intai omul, apoi nivelul plasei", function()

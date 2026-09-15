@@ -438,4 +438,124 @@ return function()
             check.equal(fresh.IronPile, nil)
         end)
     end)
+
+    test.suite("ProfileMigrate.toV8 - linia fierului [D56]", function()
+        local function v7(): { [string]: any }
+            return {
+                Meta = { version = 7, createdAt = 1, lastSeenAt = 2 },
+                Crews = { collector = { tier = 3 }, porter = { tier = 2 } },
+                ScrapPile = { counts = { scrap = 4 } },
+                IronPile = { counts = {} },
+                Stats = { smelted = 6 },
+                Hands = {
+                    first_runner = {
+                        role = "collector",
+                        carry = {
+                            { g = "driftwood" },
+                            { g = "scrap" },
+                            { g = "named", c = "x", t = "rare" },
+                        },
+                    },
+                    hire_hauler = {
+                        role = "hauler",
+                        carry = { { g = "iron", p = true }, { g = "planks", p = true } },
+                    },
+                    hire_sawyer = { role = "sawyer", carry = {} },
+                },
+            }
+        end
+
+        test.case(
+            "meseriile noi, numaratoarea fierului, iar scrap-ul si fierul din roabe in gramezi",
+            function()
+                local data = v7()
+                ProfileMigrate.toV8(data)
+                check.equal(data.Meta.version, 8)
+                for _, role in StationConfig.LINE_STEPS.iron do
+                    check.equal(data.Crews[role].tier, 1)
+                end
+                check.equal(data.Crews.collector.tier, 3)
+                check.equal(data.Stats.ironSold, 0)
+                check.equal(data.Stats.smelted, 6)
+                -- nimic nu se pierde: scrap-ul brut la shed (4 + 1), fierul la gramada de fier a forjei
+                check.equal(data.ScrapPile.counts.scrap, 5)
+                check.equal(data.IronPile.counts.iron, 1)
+                check.equal(#data.Hands.first_runner.carry, 2)
+                check.equal(data.Hands.first_runner.carry[1].g, "driftwood")
+                check.equal(data.Hands.first_runner.carry[2].g, "named")
+                check.equal(#data.Hands.hire_hauler.carry, 1)
+                check.equal(data.Hands.hire_hauler.carry[1].g, "planks")
+            end
+        )
+
+        test.case("idempotenta si nu atinge un profil deja la v8", function()
+            local data = v7()
+            ProfileMigrate.toV8(data)
+            ProfileMigrate.toV8(data)
+            check.equal(data.ScrapPile.counts.scrap, 5)
+            local fresh = { Meta = { version = 8 }, Crews = {} }
+            ProfileMigrate.toV8(fresh)
+            check.equal(fresh.Crews.smelter, nil)
+        end)
+    end)
+
+    test.suite("ProfileMigrate.toV9 - pontonul [D59]", function()
+        local function v8(): { [string]: any }
+            return {
+                Meta = { version = 8, createdAt = 1, lastSeenAt = 2 },
+                Pearls = 12,
+                Stats = { sold = 40, ironSold = 3 },
+                Wheel = { lastSpinAt = 99, seed = 7, spins = 2 },
+            }
+        end
+
+        test.case("undita, raul si satul se adauga; nimic din ce era nu se atinge", function()
+            local data = v8()
+            ProfileMigrate.toV9(data)
+            check.equal(data.Meta.version, 9)
+            check.equal(data.Stats.fished, 0)
+            check.equal(data.Stats.treasures, 0)
+            check.equal(data.Stats.sold, 40)
+            check.equal(data.Pearls, 12)
+            check.equal(data.Wheel.spins, 2)
+            check.equal(data.Fishing.bait, 0)
+            check.not_nil(data.Fishing.species)
+            check.is_false(data.River.started)
+            check.equal(#data.River.waiting, 0)
+            check.equal(data.Village.outfit, "keeper")
+            check.is_true(data.Village.outfits.keeper)
+        end)
+
+        test.case("idempotenta, si un profil deja la v9 ramane neatins", function()
+            local data = v8()
+            ProfileMigrate.toV9(data)
+            data.Fishing.bait = 4
+            data.Meta.version = 8 -- chiar si chemata iar pe un profil care are deja campurile
+            ProfileMigrate.toV9(data)
+            check.equal(data.Fishing.bait, 4)
+            local fresh = { Meta = { version = 9 }, Stats = {} }
+            ProfileMigrate.toV9(fresh)
+            check.equal(fresh.Fishing, nil)
+            check.equal(fresh.Stats.fished, nil)
+        end)
+
+        test.case("sablonul si migrarea adauga aceleasi campuri", function()
+            -- Sablonul din DataService nu se poate incarca in Lune (cere ServerStorage); il citim ca text si
+            -- verificam ca fiecare camp adaugat de toV9 apare si acolo, cu aceeasi valoare de pornire.
+            local fs = require("@lune/fs")
+            local src = fs.readFile("src/Server/Services/DataService.luau")
+            for _, needle in
+                {
+                    "fished = 0",
+                    "treasures = 0",
+                    "Fishing = { seed = 0, casts = 0, bait = 0, species = {} }",
+                    "River = { started = false, waiting = {}, nextAt = 0, seed = 0, total = 0, notes = 0 }",
+                    'Village = { decor = {}, outfits = { keeper = true }, outfit = "keeper" }',
+                    "version = 9",
+                }
+            do
+                check.is_true(string.find(src, needle, 1, true) ~= nil)
+            end
+        end)
+    end)
 end

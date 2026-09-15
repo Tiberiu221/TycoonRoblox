@@ -55,7 +55,7 @@ OUTFITS = {
                        hat_kind="band", coat=False),
     "keeper":    dict(shirt=hexc("1f6b5c"), shirt_l=hexc("328a77"), shirt_d=hexc("134a3f"),
                        hat=hexc("2c4a70"), hat_d=hexc("1c3450"), hat_l=hexc("4a6d96"),
-                       hat_kind="tricorn", coat=True),
+                       hat_kind="tricorn", coat=True, player=True),
     # [D50] clientii tavernei: FARA acoperamant de cap, in culori pe care nu le poarta nicio
     # meserie (prun si ardezie). Tinuta spune meseria [D44]: in hainele unui om al tau, un client
     # ar parea inca un Collector care sta degeaba.
@@ -65,6 +65,35 @@ OUTFITS = {
     "traveler":  dict(shirt=hexc("5f6b7a"), shirt_l=hexc("7a8696"), shirt_d=hexc("434c58"),
                        hat=hexc("5f6b7a"), hat_d=hexc("434c58"), hat_l=hexc("7a8696"),
                        hat_kind="none", coat=False),
+    # [D56] LINIA FIERULUI: patru meserii noi. Silueta palariei e a meseriei-pereche de la lemn (culegatorul
+    # bor lat, caratorul caciula, cel de la cladire pe frunte, cel care duce la taverna basma), culoarea e
+    # a lor -- din nuantele pe care nu le poarta nimeni altcineva; Smelter-ul are in plus sortul de piele.
+    "scrapper":  dict(shirt=hexc("7a7636"), shirt_l=hexc("948f4c"), shirt_d=hexc("5a5724"),
+                       hat=hexc("b0643a"), hat_d=hexc("84472a"), hat_l=hexc("cc8458"),
+                       hat_kind="brim", coat=False),
+    "carter":    dict(shirt=hexc("a8506e"), shirt_l=hexc("c26a88"), shirt_d=hexc("7c3a52"),
+                       hat=hexc("5c6068"), hat_d=hexc("41454c"), hat_l=hexc("7a7f88"),
+                       hat_kind="dome", coat=False),
+    "smith":     dict(shirt=hexc("4c4a4e"), shirt_l=hexc("646268"), shirt_d=hexc("343236"),
+                       hat=hexc("d0782c"), hat_d=hexc("a05a1c"), hat_l=hexc("e8984c"),
+                       hat_kind="band", coat=False,
+                       apron=(hexc("7a4a26"), hexc("93603a"), hexc("5a3418"))),
+    "ironmonger": dict(shirt=hexc("3c4290"), shirt_l=hexc("5258ae"), shirt_d=hexc("2a2e68"),
+                       hat=hexc("8a929c"), hat_d=hexc("666d76"), hat_l=hexc("aab2bb"),
+                       hat_kind="kerchief", coat=False),
+    # [D59] TINUTELE JUCATORULUI, cumparate cu perle la avizierul satului (sau, River Legend, din jurnalul
+    # complet). Doar ale jucatorului: siluete de palarie pe care nu le poarta nicio meserie (bucket, cap) sau
+    # tricornul lui, ca un om cu tinuta de meserie sa nu para jucatorul [D44]. `player` = randul `fish` tine
+    # undita fara fir: firul si plutitorul se deseneaza in lume, pe apa (PierController).
+    "angler":    dict(shirt=hexc("b8975c"), shirt_l=hexc("d2b37a"), shirt_d=hexc("8a6e40"),
+                       hat=hexc("5d7046"), hat_d=hexc("435232"), hat_l=hexc("7c9160"),
+                       hat_kind="bucket", coat=False, player=True),
+    "captain":   dict(shirt=hexc("22305e"), shirt_l=hexc("34488a"), shirt_d=hexc("161f40"),
+                       hat=hexc("1f2a50"), hat_d=hexc("1b1611"), hat_l=hexc("ebe6da"),
+                       hat_kind="cap", coat=True, player=True),
+    "legend":    dict(shirt=hexc("2d7f98"), shirt_l=hexc("46a2bd"), shirt_d=hexc("1d596c"),
+                       hat=hexc("d6a53a"), hat_d=hexc("a2791f"), hat_l=hexc("f1cd6a"),
+                       hat_kind="tricorn", coat=True, player=True),
 }
 _CUR = dict(OUTFITS["fisher"])
 
@@ -169,6 +198,31 @@ def draw_hat(c, ox, y, facing, layer):
         else:
             c.rect(ox + 4, y + 1, 8, 4, hat); c.rect(ox + 5, y + 1, 4, 1, hat_l)
             c.rect(ox + 4, y + 4, 8, 1, hat_d)
+    elif k == "bucket":                                  # [D59] palaria moale de pescar (angler)
+        # calota rotunda + bor moale, lasat pe toate laturile; fluturele rosu de pe panglica e pescarul
+        c.rect(ox + 5, y + 1, 6, 3, hat); c.rect(ox + 6, y, 4, 1, hat)
+        c.rect(ox + 6, y + 1, 3, 1, hat_l)
+        c.rect(ox + 5, y + 3, 6, 1, hat_d)               # panglica
+        if facing == "side":
+            c.rect(ox + 3, y + 4, 11, 1, hat_d)
+            c.put(ox + 9, y + 3, hexc("c8463c"))
+        elif facing == "down":
+            c.rect(ox + 3, y + 4, 10, 1, hat_d)
+            c.put(ox + 9, y + 3, hexc("c8463c"))
+        else:
+            c.rect(ox + 3, y + 4, 10, 1, hat_d)
+    elif k == "cap":                                     # [D59] sapca de capitan: calota alba, cozoroc
+        c.rect(ox + 4, y + 1, 8, 2, hat_l)               # calota alba
+        c.rect(ox + 5, y, 6, 1, hat_l)
+        c.rect(ox + 4, y + 3, 8, 1, hat)                 # banda bleumarin
+        if facing == "side":
+            c.rect(ox + 10, y + 4, 4, 1, hat_d)          # cozorocul, spre fata
+            c.put(ox + 11, y + 3, hexc("e2b64a"))        # insigna aurie
+        elif facing == "down":
+            c.rect(ox + 4, y + 4, 8, 1, hat_d)
+            c.rect(ox + 7, y + 2, 2, 1, hexc("e2b64a"))
+        else:
+            c.rect(ox + 4, y + 4, 8, 1, hat)
     elif k == "tricorn":                                 # bor lat + pana - doar jucatorul
         if facing == "side":
             c.rect(ox + 2, y + 1, 12, 3, hat); c.rect(ox + 5, y, 6, 2, hat)
@@ -271,6 +325,16 @@ def torso(c, ox, y, facing, layer="all"):
         w, x0 = (7, ox + 5) if facing == "side" else (8, ox + 4)
         c.rect(x0, y + 6, w, 3, shirt_d)
         c.rect(x0, y + 8, w, 1, hexc("120c08", 140))    # tiv, usor umbrit
+    apron = _CUR.get("apron")
+    if apron is not None and facing != "up":            # [D56] sortul de piele al Smelter-ului, doar din fata/lateral
+        ap, ap_l, ap_d = apron
+        if facing == "side":
+            c.rect(ox + 9, y + 1, 3, 5, ap); c.rect(ox + 11, y + 1, 1, 5, ap_d)
+            c.rect(ox + 9, y + 6, 3, 2, ap_d)            # poala, peste coapsa
+        else:
+            c.rect(ox + 5, y + 1, 6, 5, ap); c.rect(ox + 5, y + 1, 6, 1, ap_l)
+            c.rect(ox + 5, y + 6, 6, 2, ap_d)            # poala, peste coapse
+            c.put(ox + 5, y, ap_d); c.put(ox + 10, y, ap_d)  # bretelele
 
 
 def arm(c, ox, x, y, length, hand=True, layer="all"):
@@ -532,6 +596,14 @@ def fish(c, ox, oy, f, layer="all"):
     punch(c, ox + 10, hy, 2, 2)   # mana cade peste torso (desenat deja)
     if L(layer, "body"):
         c.rect(ox + 10, hy, 2, 2, SKIN)
+    if L(layer, "outfit") and _CUR.get("player"):
+        # [D59] jucatorul pescuieste de pe ponton: firul si plutitorul stau in lume, pe apa (PierController),
+        # deci aici doar batul, intins inainte spre apa; varful cade un pixel cand trage pestele (cadrul 2).
+        # Varful e la (15, hy-8): cu picioarele la baza celulei, (+22, -58) px de lume la PIXEL_SCALE 3.
+        for i in range(9):
+            dip = 1 if f == 2 and i >= 7 else 0
+            c.put(ox + 11 + (i + 1) // 2, hy - i + dip, ROD)
+        return
     if L(layer, "outfit"):
         tilt = [0, 0, 1, 0][f]
         for i in range(11):                                    # batul, aproape vertical
@@ -891,7 +963,8 @@ if __name__ == "__main__":
         s_hair = build_sheet("hair", hair=hair)
         png(f"hair_{hair}.png", s_hair.w, s_hair.h, s_hair.px)
 
-    for outfit in ("fisher", "crafter", "builder", "gardener", "innkeeper", "keeper", "townsfolk", "traveler"):
+    for outfit in ("fisher", "crafter", "builder", "gardener", "innkeeper", "keeper", "townsfolk", "traveler",
+                   "scrapper", "carter", "smith", "ironmonger", "angler", "captain", "legend"):
         s_outfit = build_sheet("outfit", outfit=outfit)
         png(f"outfit_{outfit}.png", s_outfit.w, s_outfit.h, s_outfit.px)
 

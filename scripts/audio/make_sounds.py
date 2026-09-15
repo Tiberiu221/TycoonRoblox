@@ -219,7 +219,53 @@ def make_saw():
     return fade_edges(normalize(mix(body * teeth * 0.75, hum * 0.35) * env))
 
 
+def make_cast():
+    # [D59] Cast -> cast: fluieratul firului prin aer (zgomot care urca si coboara in banda) si, la capat, plutitorul
+    # care cade in apa -- un "plip" mic, mai moale decat splash-ul plaselor
+    dur = 0.46
+    tt = t_axis(dur)
+    swish = band_noise(dur, 1800, 7000, seed=21) * np.sin(np.pi * np.minimum(1.0, tt / 0.30)) ** 2
+    swish[int(SR * 0.30) :] = 0
+    plip_dur = 0.13
+    pt = t_axis(plip_dur)
+    plip = np.sin(2 * np.pi * np.cumsum(900 - 500 * (pt / plip_dur)) / SR) * exp_decay(plip_dur, 0.03)
+    out = np.zeros(len(tt))
+    out += swish * 0.45
+    start = int(SR * 0.31)
+    out[start : start + len(plip)] += plip[: len(out) - start] * 0.6
+    return fade_edges(normalize(out))
+
+
+def make_bite():
+    # [D59] pestele trage -> bite: "ploc" jos si scurt, dublat (plutitorul se scufunda de doua ori) -- trebuie auzit si
+    # cu ochii in alta parte, dar sa nu sperie
+    part_dur = 0.16
+    pt = t_axis(part_dur)
+    blub = np.sin(2 * np.pi * np.cumsum(260 + 520 * (pt / part_dur)) / SR) * exp_decay(part_dur, 0.05)
+    water = band_noise(part_dur, 500, 2600, seed=22) * exp_decay(part_dur, 0.03)
+    one = mix(blub * 0.7, water * 0.35)
+    gap = np.zeros(int(SR * 0.07))
+    return fade_edges(normalize(np.concatenate([one, gap, one * 0.75])))
+
+
+def make_reel():
+    # [D59] mulinetul, cat se strange firul -> reel: patru clicuri rapide de clichet. Scurt (0.24 s), repetat de joc
+    # doar cat firul chiar se strange -- tacerea spune ca pestele e in afara zonei
+    dur = 0.24
+    out = np.zeros(int(SR * dur))
+    for i in range(4):
+        tick_dur = 0.03
+        tick = band_noise(tick_dur, 2000, 8000, seed=30 + i) * exp_decay(tick_dur, 0.005)
+        tick = tick + sine(1320, tick_dur) * exp_decay(tick_dur, 0.006) * 0.3
+        start = int(SR * i * 0.055)
+        out[start : start + len(tick)] += tick * (1.0 - 0.12 * i)
+    return fade_edges(normalize(out, -6.0), ms=3)
+
+
 SOUNDS = {
+    "cast": make_cast,
+    "bite": make_bite,
+    "reel": make_reel,
     "splash": make_splash,
     "saw": make_saw,
     "wheel": make_wheel,

@@ -26,6 +26,8 @@ local Theme = require(script.Parent.Parent.UI.Theme)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
 local PileView = require(script.Parent.Parent.UI.PileView)
 local Focus = require(script.Parent.Parent.UI.Focus)
+local StandRing = require(script.Parent.Parent.UI.StandRing)
+local GroundShadow = require(script.Parent.Parent.UI.GroundShadow)
 
 export type Deps = {
     Plot: Frame,
@@ -40,6 +42,7 @@ export type Sack = {
     capacity: number,
     raw: number, -- [D55] lemnul brut; scrap-ul are `rawScrap` si drumul lui
     rawScrap: number,
+    finds: number, -- [D56] gasirile neprelucrate (se vand si asa; incluse in `cut`)
     iron: number,
     cut: number,
     cutValue: number,
@@ -60,7 +63,7 @@ local blade: GuiObject? = nil
 local inPile: PileView.View
 local outPile: PileView.View
 local sack: Sack =
-    { count = 0, capacity = 0, raw = 0, rawScrap = 0, iron = 0, cut = 0, cutValue = 0 }
+    { count = 0, capacity = 0, raw = 0, rawScrap = 0, finds = 0, iron = 0, cut = 0, cutValue = 0 }
 local state: Snapshot = {
     count = 0,
     contents = {},
@@ -72,11 +75,6 @@ local state: Snapshot = {
 }
 local sawingUntil = 0
 local lastSawSoundAt = -math.huge
-local ring: GuiObject
-local ringScale: UIScale
-local standSign: TextLabel
-local toldPresent = false
-local lastPresenceAt = 0
 
 local SM = TycoonConfig.SAWMILL
 local STAND = TycoonConfig.SAWMILL_STAND
@@ -93,15 +91,6 @@ local SAWING_HOLD = 0.8
 -- La 1.2 s, oriunde ai fi, acoperea stropii plaselor -- sunetul care trebuie sa domine [owner, D50].
 local SAW_SOUND_GAP = 4
 local SAW_SOUND_RANGE = 300
--- Inelul de pe jos: sprite de 32x16 la x3.
-local RING_W, RING_H = 96, 48
--- Cat de des se reaminteste serverului ca stai langa gater. Sub PRESENCE_SECONDS (3) de pe server,
--- ca prezenta sa nu expire cat timp chiar esti acolo.
-local PRESENCE_EVERY = 2
--- Pragul de iesire e mai larg decat cel de intrare: pe marginea razei, un pas mic in fata si inapoi
--- ar trimite "sunt aici / am plecat" la fiecare cadru, iar limita de pe server (3 mesaje, 1 pe secunda)
--- le-ar arunca tocmai pe cele care conteaza.
-local PRESENCE_LEAVE_EXTRA = 20
 
 local function distance(): number
     local cx, cy = deps.CharacterPos()
@@ -160,7 +149,7 @@ function SawmillController.Focus(px: number, py: number): Focus.Focus?
             else nil,
         -- [D55] cu doar scrap in traista, cardul spune unde merge -- nu tace [D43]
         status = if text == nil and sack.rawScrap > 0
-            then Strings.useResult("sawmill", false, "scrap_to_workshop", 0, 0, false)
+            then Strings.useResult("sawmill", false, "scrap_to_forge", 0, 0, false)
             else nil,
         upgradeKind = "saw",
     }
@@ -170,6 +159,7 @@ function SawmillController.Init(d: Deps)
     deps = d
 
     -- ---- cladirea ----
+    GroundShadow.add(deps.Plot, UDim2.fromOffset(SM.x, SM.y), SM.w, 2) -- [D57]
     local marker = Instance.new("Frame")
     marker.Name = "Sawmill"
     marker.AnchorPoint = Vector2.new(0.5, 1)
@@ -246,105 +236,25 @@ function SawmillController.Init(d: Deps)
     inPile = PileView.new(deps.Plot, IN_SPOT.x, IN_SPOT.y, { warnAt = 40, pill = IN_SPOT.pill })
     outPile = PileView.new(deps.Plot, OUT_SPOT.x, OUT_SPOT.y, { warnAt = 40, pill = OUT_SPOT.pill })
 
-    -- ---- locul tau: inelul de pe jos si placuta de deasupra lui [D50] ----
-    if Assets.has(Assets.ui.groundring) then
-        local img = Instance.new("ImageLabel")
-        img.Name = "StandRing"
-        img.BackgroundTransparency = 1
-        img.Image = Assets.url(Assets.ui.groundring)
-        img.ResampleMode = Enum.ResamplerMode.Pixelated
-        ring = img
-    else
-        -- arta inca neurcata: acelasi inel, dintr-un chenar rotunjit
-        local frame = Instance.new("Frame")
-        frame.Name = "StandRing"
-        frame.BackgroundTransparency = 1
-        local corner = Instance.new("UICorner")
-        corner.CornerRadius = UDim.new(1, 0)
-        corner.Parent = frame
-        local stroke = Instance.new("UIStroke")
-        stroke.Thickness = 4
-        stroke.Parent = frame
-        ring = frame
-    end
-    ring.AnchorPoint = Vector2.new(0.5, 0.5)
-    ring.Position = UDim2.fromOffset(STAND.x, STAND.y - 4)
-    ring.Size = UDim2.fromOffset(RING_W, RING_H)
-    ring.ZIndex = 2 -- pe jos: sub oameni, sub gramezi
-    ring.Visible = false
-    ring.Parent = deps.Plot
-    ringScale = Instance.new("UIScale")
-    ringScale.Parent = ring
-
-    standSign = Widgets.PlateLabel(deps.Plot, Strings.SAWMILL_STAND_HERE, Theme.TEXT.body, "strong")
-    standSign.AnchorPoint = Vector2.new(0.5, 1)
-    standSign.Position = UDim2.fromOffset(STAND.x, STAND.y - RING_H / 2 - 4)
-    standSign.Size = UDim2.fromOffset(200, 30)
-    standSign.TextXAlignment = Enum.TextXAlignment.Center
-    standSign.ZIndex = 7
-    standSign.Visible = false
-    Theme.punch(standSign, 2)
+    -- ---- locul tau: inelul de pe jos si placuta de deasupra lui [D50], comune cu forja [D56] ----
+    StandRing.new({
+        plot = deps.Plot,
+        name = "Sawmill",
+        stand = STAND,
+        remote = deps.Remotes.AtSawmill,
+        characterPos = deps.CharacterPos,
+        standHere = Strings.SAWMILL_STAND_HERE,
+        working = Strings.sawmillCutting,
+        state = function(): (number, boolean)
+            return state.count, state.staffed
+        end,
+    })
 
     RunService.PreRender:Connect(function()
-        local away = distance()
-        local here = away <= RiverConfig.INTERACT_DISTANCE
-        local now = os.clock()
-
-        -- PREZENTA. Doar fara Sawyer: cu el, gaterul merge oricum si nu mai conteaza unde stai.
-        local inRange = if toldPresent
-            then away <= RiverConfig.INTERACT_DISTANCE + PRESENCE_LEAVE_EXTRA
-            else here
-        local wantPresent = inRange and not state.staffed
-        if wantPresent ~= toldPresent then
-            toldPresent = wantPresent
-            lastPresenceAt = now
-            deps.Remotes.AtSawmill:FireServer(wantPresent)
-        elseif wantPresent and now - lastPresenceAt >= PRESENCE_EVERY then
-            lastPresenceAt = now
-            deps.Remotes.AtSawmill:FireServer(true)
-        end
-
-        -- Inelul si placuta: doar fara Sawyer. Cu el, locul tau nu mai conteaza [D49].
-        local showRing = not state.staffed
-        if ring.Visible ~= showRing then
-            ring.Visible = showRing
-        end
-        local signText: string? = nil
-        local color, alpha, scale = Theme.COLOR.onDarkSoft, 0.55, 1
-        if showRing and state.count > 0 then
-            if toldPresent then
-                signText = Strings.sawmillCutting(state.count)
-                color, alpha = Theme.COLOR.good, 0.05
-            else
-                -- busteni care asteapta si nimeni la gater: inelul pulseaza, ca sa te cheme
-                local pulse = (math.sin(now * 3.2) + 1) / 2
-                signText = Strings.SAWMILL_STAND_HERE
-                color, alpha, scale = Theme.COLOR.gold, 0.35 - 0.3 * pulse, 0.94 + 0.1 * pulse
-            end
-        end
-        if ring:IsA("ImageLabel") then
-            ring.ImageColor3 = color
-            ring.ImageTransparency = alpha
-        else
-            local stroke = ring:FindFirstChildOfClass("UIStroke")
-            if stroke ~= nil then
-                stroke.Color = color
-                stroke.Transparency = alpha
-            end
-        end
-        ringScale.Scale = scale
-        local showSign = signText ~= nil
-        if showSign then
-            standSign.Text = signText :: string
-            standSign.TextColor3 = if toldPresent then Theme.COLOR.good else Theme.COLOR.gold
-        end
-        if standSign.Visible ~= showSign then
-            standSign.Visible = showSign
-        end
-
         local b = blade
         if b ~= nil then
             -- se leagana doar cat taie: o panza care se misca si fara marfa ar minti [D40]
+            local now = os.clock()
             b.Rotation = if now < sawingUntil then math.sin(now * 22) * 18 else 0
         end
     end)

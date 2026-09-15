@@ -16,7 +16,6 @@ local DataService = require(script.Parent.DataService)
 local PadService = require(script.Parent.PadService)
 local StationService = require(script.Parent.StationService)
 local RiverService = require(script.Parent.RiverService)
-local WorkshopService = require(script.Parent.WorkshopService)
 local Analytics = require(script.Parent.Analytics)
 
 type Catch = DataService.Catch
@@ -86,11 +85,9 @@ local function rollCatch(
     return { g = goodId }
 end
 
--- Muta din plasa in sac pana cand sacul se umple sau plasa se goleste -- CU O EXCEPTIE [F1 spec
--- 3.1]: daca Atelierul e cumparat, gasirile cu nume ocolesc sacul si intra direct in gramada
--- (WorkshopService.AddCatch), fara sa fie limitate de capacitatea lui. Inainte de Atelier, merg
--- in sac ca orice alt bun, la valoarea lor de tier (ca in F0). Ce nu incape in sac ramane in
--- plasa -- nimic nu se pierde. Daca plasa era PLINA inainte de colectare, cronometrul reporneste
+-- Muta din plasa in sac pana cand sacul se umple sau plasa se goleste. Gasirile cu nume merg in sac ca orice
+-- alt bun, la valoarea lor de tier, si se vand la taverna [D56: colectia e pusa deoparte -- pana atunci, dupa
+-- Atelier, ocoleau sacul spre gramada lui, F1 spec 3.1]. Ce nu incape in sac ramane in plasa -- nimic nu se pierde. Daca plasa era PLINA inainte de colectare, cronometrul reporneste
 -- de acum -- o plasa plina nu banca prinderile ratate cat a stat plina [F0 spec 3.4].
 function NetService.Collect(player: Player, padId: string): (boolean, string?)
     local data = DataService.Get(player)
@@ -108,16 +105,11 @@ function NetService.Collect(player: Player, padId: string): (boolean, string?)
     if TycoonMath.collectLocked(padId, data.Stats.collected or 0, #net.goods, netCapacity) then
         return false, "filling"
     end
-    local workshopOwned = data.Pads.workshop == true
-
     local remaining: { Catch } = {}
     local sackRoom = capacity - #data.Sack.items
     local moved = 0
     for _, item in net.goods do
-        if item.g == "named" and workshopOwned then
-            WorkshopService.AddCatch(player, item)
-            moved += 1
-        elseif sackRoom > 0 then
+        if sackRoom > 0 then
             table.insert(data.Sack.items, item)
             sackRoom -= 1
             moved += 1
@@ -160,6 +152,12 @@ function NetService.Snapshot(player: Player): { { [string]: any } }
         if rate == nil or lane == nil then
             continue
         end
+        -- [D58] O plasa fara loc pe harta (erele 2-4) nu se trimite: `x = pad.x or 0` o desena lipita de marginea din
+        -- stanga a raului, ca "un al 6-lea net buguit" [owner, 2026-09-14]. Plasa ramane in profil, neatinsa.
+        local x = pad.x
+        if x == nil then
+            continue
+        end
         -- CE e in plasa, nu doar cat: clientul deseneaza marfa stivuita, deci are nevoie de
         -- feluri, nu de un numar [F3, marfa capata corp]. Cel mult 12 obiecte, deci rezumatul e
         -- mic; ordinea GOODS tine desenul stabil intre doua stari.
@@ -172,7 +170,7 @@ function NetService.Snapshot(player: Player): { { [string]: any } }
             contents = contents,
             padIndex = pad.index, -- pentru TycoonMath.catchSeed pe client [F1 spec 2.1, D2]
             lane = lane,
-            x = pad.x or 0,
+            x = x,
             y = TycoonConfig.LANE_Y[lane] or 0,
             count = #net.goods,
             capacity = StationService.NetCapacity(player, padId),

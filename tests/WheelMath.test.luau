@@ -49,17 +49,27 @@ return function()
     end)
 
     test.suite("WheelMath - regulile care nu se negociaza", function()
-        test.case("NICIUN premiu nu ia nimic [P2]", function()
-            local takes = 0
+        test.case("NICIUN premiu nu ia nimic si fiecare da exact un lucru [P2]", function()
+            local TreasureConfig = require("../src/Shared/Config/TreasureConfig")
+            local bad = 0
             for _, p in WheelConfig.PRIZES do
-                if (p.incomeSeconds or 0) < 0 or (p.pearls or 0) < 0 then
-                    takes += 1
+                local things = 0
+                if p.pearls ~= nil then
+                    things += 1
+                    bad += if p.pearls > 0 then 0 else 1
                 end
-                if (p.incomeSeconds or 0) <= 0 and (p.pearls or 0) <= 0 then
-                    takes += 1 -- nici macar "nimic" nu e premiu: fiecare felie da ceva
+                if p.treasure ~= nil then
+                    things += 1
+                    bad += if TreasureConfig.byId[p.treasure] ~= nil then 0 else 1
                 end
+                if p.bait ~= nil then
+                    things += 1
+                    bad += if p.bait > 0 then 0 else 1
+                end
+                -- nici macar "nimic" nu e premiu: fiecare felie da ceva, si doar un lucru
+                bad += if things == 1 and WheelMath.kindOf(p) ~= nil then 0 else 1
             end
-            check.equal(takes, 0)
+            check.equal(bad, 0)
         end)
 
         test.case("procentele afisate se aduna la 100", function()
@@ -70,16 +80,26 @@ return function()
             check.is_true(math.abs(sum - 100) < 1e-9)
         end)
 
-        test.case("premiile in monede au o podea, ca sa nu fie o gluma la inceput", function()
-            local prize = WheelConfig.byId.coins_s
-            check.equal(WheelMath.coinsOf(prize, 0.1), WheelConfig.MIN_COINS)
-            check.is_true(WheelMath.coinsOf(prize, 100) > WheelConfig.MIN_COINS)
-        end)
+        test.case(
+            "[D59] niciun premiu nu da monede: ritmul tutorialului ramane al simulatorului",
+            function()
+                -- o rotire in primul minut dadea 324 sau 972 de monede, cand tot capitolul 1 costa ~120 [D51]
+                for _, p in WheelConfig.PRIZES do
+                    check.is_true((p :: any).incomeSeconds == nil and (p :: any).coins == nil)
+                end
+                check.is_true((WheelMath :: any).coinsOf == nil)
+            end
+        )
 
-        test.case("un premiu in perle nu da monede, si invers", function()
-            check.equal(WheelMath.coinsOf(WheelConfig.byId.pearl_3, 1000), 0)
-            check.is_true(WheelConfig.byId.coins_s.pearls == nil)
-        end)
+        test.case(
+            "[D59] feliile stau intre spitele timonierului: mijlocul fiecareia la (i - 0.5) * 360 / n",
+            function()
+                local n = #WheelConfig.PRIZES
+                check.equal(n, 8) -- desenul (ui_helm) are 8 spite; alt numar de premii cere alt desen
+                check.equal(WheelMath.sliceAngle(1), 180 / n)
+                check.equal(WheelMath.sliceAngle(n), 360 - 180 / n)
+            end
+        )
     end)
 
     test.suite("WheelMath - ceasul de 24h", function()

@@ -190,6 +190,8 @@ export type ButtonOptions = {
     -- [D52] loc pentru moneda si pret DUPA eticheta ("Upgrade (moneda) 75"), completat cu
     -- SetButtonPrice. Fara el, butonul ramane exact cum era.
     price: boolean?,
+    -- [owner, 2026-09-14] loc pentru recompensa DUPA eticheta ("Claim 1 (perla)"), completat cu SetButtonReward
+    reward: boolean?,
 }
 
 -- Buton cu trei stari desenate. Un buton fara raspuns la hover si la apasare e semnul cel mai
@@ -262,6 +264,25 @@ function Widgets.Button(parent: Instance, o: ButtonOptions): TextButton
         price.ZIndex = o.z + 2
         price.Visible = false
     end
+    if o.reward then
+        local amount = Widgets.Label(row, "", Theme.TEXT.body, Theme.COLOR.ink, "strong")
+        amount.Name = "RewardAmount" -- cautat de SetButtonReward
+        amount.TextXAlignment = Enum.TextXAlignment.Center
+        amount.AutomaticSize = Enum.AutomaticSize.X
+        amount.Size = UDim2.fromOffset(0, o.height - 8)
+        amount.LayoutOrder = 5
+        amount.ZIndex = o.z + 2
+        amount.Visible = false
+        local px = math.min(22, o.height - 14)
+        local pearl = Widgets.PearlIcon(row, px, o.z + 2)
+        pearl.Name = "RewardPearl"
+        pearl.LayoutOrder = 6
+        pearl.Visible = false
+        local coin = Widgets.CoinIcon(row, px, o.z + 2)
+        coin.Name = "RewardCoin"
+        coin.LayoutOrder = 6
+        coin.Visible = false
+    end
 
     local function setState(state: string)
         if skin == nil then
@@ -313,7 +334,12 @@ function Widgets.SetButtonIcon(button: TextButton, visible: boolean)
         return
     end
     for _, child in row:GetChildren() do
-        if child:IsA("ImageLabel") and child.Name ~= "PriceCoin" then
+        if
+            child:IsA("ImageLabel")
+            and child.Name ~= "PriceCoin"
+            and child.Name ~= "RewardPearl"
+            and child.Name ~= "RewardCoin"
+        then
             child.Visible = visible
         end
     end
@@ -335,6 +361,27 @@ function Widgets.SetButtonPrice(button: TextButton, text: string?, color: Color3
         price.Text = text or ""
         price.Visible = text ~= nil
         price.TextColor3 = color or Theme.COLOR.ink
+    end
+end
+
+-- Recompensa dintr-un Widgets.Button nascut cu `reward = true`: cifra, apoi moneda ei -- perla ("pearls") sau moneda
+-- de aur ("coins"). `nil` le ascunde: "Go!" nu promite nimic, doar "Claim" arata ce iei.
+function Widgets.SetButtonReward(button: TextButton, amount: string?, currency: string?)
+    local row = button:FindFirstChild("Row")
+    if row == nil then
+        return
+    end
+    local label = row:FindFirstChild("RewardAmount")
+    if label ~= nil and label:IsA("TextLabel") then
+        label.Text = amount or ""
+        label.Visible = amount ~= nil
+    end
+    local wanted = if currency == "coins" then "RewardCoin" else "RewardPearl"
+    for _, name in { "RewardPearl", "RewardCoin" } do
+        local icon = row:FindFirstChild(name)
+        if icon ~= nil and icon:IsA("GuiObject") then
+            icon.Visible = amount ~= nil and name == wanted
+        end
     end
 end
 
@@ -517,28 +564,68 @@ end
 -- Butonul de inchidere din coltul unui panou. Fiecare panou trebuie sa aiba unul VIZIBIL:
 -- Escape apartine meniului platformei si nu ajunge niciodata la joc, iar pe telefon nici nu
 -- exista tastatura.
+-- [D58] X-ul e DESENAT (Assets.ui.close, in trei stari, x2 ca ramele). Inainte scria U+2715 cu fontul de pixeli, care
+-- n-are glifa -- nici fonturile de rezerva -- iar pe ecran aparea patratelul caracterului lipsa. Fara arta, rezerva
+-- scrie U+00D7, pe care fontul o are.
 function Widgets.CloseButton(parent: GuiObject, z: number, onClick: () -> ()): TextButton
     local b = Instance.new("TextButton")
     b.Name = "Close"
     b.AnchorPoint = Vector2.new(1, 0)
     b.Position = UDim2.new(1, -10, 0, 10)
-    b.Size = UDim2.fromOffset(38, 38)
-    b.BackgroundColor3 = Color3.fromRGB(150, 62, 52)
     b.AutoButtonColor = false
-    b.Text = "✕"
-    b.TextColor3 = Color3.fromRGB(250, 238, 232)
-    b.TextSize = 22
+    b.Text = ""
     b.ZIndex = z
-    Theme.applyFont(b, "strong")
-    local c = Instance.new("UICorner")
-    c.CornerRadius = UDim.new(0, 8)
-    c.Parent = b
-    b.MouseEnter:Connect(function()
-        b.BackgroundColor3 = Color3.fromRGB(184, 78, 66)
-    end)
-    b.MouseLeave:Connect(function()
+    local normal = Assets.ui.close
+    if Assets.has(normal) then
+        b.Size = UDim2.fromOffset(normal.width * 2, normal.height * 2)
+        b.BackgroundTransparency = 1
+        local skin = Instance.new("ImageLabel")
+        skin.Name = "Skin"
+        skin.BackgroundTransparency = 1
+        skin.Image = Assets.url(normal)
+        skin.ResampleMode = Enum.ResamplerMode.Pixelated
+        skin.Size = UDim2.fromScale(1, 1)
+        skin.ZIndex = z
+        skin.Parent = b
+        local function show(sprite: Assets.Sprite)
+            skin.Image = Assets.url(if Assets.has(sprite) then sprite else normal)
+        end
+        b.MouseEnter:Connect(function()
+            show(Assets.ui.close_hover)
+        end)
+        b.MouseLeave:Connect(function()
+            show(normal)
+        end)
+        b.MouseButton1Down:Connect(function()
+            show(Assets.ui.close_down)
+        end)
+        b.MouseButton1Up:Connect(function()
+            show(Assets.ui.close_hover)
+        end)
+        -- pe telefon nu vine MouseLeave dupa atingere: fara asta, panoul redeschis ar pastra butonul luminat
+        b.Activated:Connect(function()
+            show(normal)
+        end)
+    else
+        b.Size = UDim2.fromOffset(38, 38)
         b.BackgroundColor3 = Color3.fromRGB(150, 62, 52)
-    end)
+        b.Text = "×"
+        b.TextColor3 = Color3.fromRGB(250, 238, 232)
+        b.TextSize = 30
+        Theme.applyFont(b, "strong")
+        local c = Instance.new("UICorner")
+        c.CornerRadius = UDim.new(0, 8)
+        c.Parent = b
+        b.MouseEnter:Connect(function()
+            b.BackgroundColor3 = Color3.fromRGB(184, 78, 66)
+        end)
+        b.MouseLeave:Connect(function()
+            b.BackgroundColor3 = Color3.fromRGB(150, 62, 52)
+        end)
+        b.Activated:Connect(function()
+            b.BackgroundColor3 = Color3.fromRGB(150, 62, 52) -- ca mai sus: fara MouseLeave pe telefon
+        end)
+    end
     b.Activated:Connect(onClick)
     b.Parent = parent
     return b

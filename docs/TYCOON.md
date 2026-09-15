@@ -154,6 +154,8 @@ clopot (animație, sunet, zona nouă se luminează).
 > **[D55, 2026-09-13]** Tabelul de mai jos e istoric. Acum ce prinde o plasă ține de felul ei: plasele 1–4
 > prind **lemn** (driftwood 95%, finds 5%), Fifth Net prinde **scrap** (95%, finds 5%), topit la atelier în
 > **fier** (3) și vândut la tavernă. Reeds și shards au ieșit din Era 1 (treceau prin gater ca scrap-ul).
+> **[D56, 2026-09-14]** Scrap-ul are acum linia lui, cu patru oameni (Scrap Collector, Scrap Porter, Smelter, Iron
+> Hauler), topit la **Forge** (fostul atelier); găsirile merg cu marfa și se vând la tavernă. Vezi D56.
 
 | Bun | Valoare | Pondere | De unde |
 |---|---|---|---|
@@ -205,6 +207,11 @@ W3 multiplicatorii de preț · W4 „+N" care zboară de la debarcader la contor
 
 ### G. Procesarea și energia
 
+> **[D57, 2026-09-14] Satul pe flux** (înlocuiește bucla din D50): curtea lemnului lângă tavernă, curtea fierului
+> spre Moară, fiecare cu clădirea de strâns sus și cea de prelucrat la stradă; marfa gata merge pe strada satului
+> spre piața tavernei; casele oamenilor pe un rând peste stradă; nimic construit pe iarbă goală (pământ bătătorit,
+> umbre, decor așezat de mână). Sudul străzii rămâne deschis pentru drumul spre o hartă cu clasamente. Vezi D57.
+>
 > **[D50, 2026-09-13] Harta în buclă.** Depozitul la capătul de est al punții, gaterul la sud-est,
 > taverna (fostul debarcader) la vest; oamenii merg pe drumuri, iar clienții tavernei vin după cât
 > vinzi. Vezi D50.
@@ -218,6 +225,9 @@ W3 multiplicatorii de preț · W4 „+N" care zboară de la debarcader la contor
 > cât buștenul acolo. Ce rămâne aici pentru Era 2 — roata de apă, Smelter, Loom, Kiln, Sawmill II și
 > orice multiplicator de valoare — se re-derivă pe modelul cu verigi când Era 2 devine live. Pad-ul
 > `sawmill` din Era 2 a fost scos din `TycoonConfig`.
+>
+> **[D56, 2026-09-14] Topitul s-a mutat și el în Era 1** (Forge, cu Smelter-ul ca meserie). Platforma `smelter` a
+> Erei 2 (neconstruită) rămâne deocamdată în config; clădirea ei se regândește când Era 2 devine live.
 
 **Dezbatere 1 — fabrică liberă sau stații fixe?** Aceeași ca la B. **Stații fixe**, cu ce e mai bun
 din [dir04]: roata de apă care produce energie din curent și stații care se îmbunătățesc pe loc.
@@ -257,6 +267,11 @@ G3 manivela · G4 afișajul de energie și „Low power" · G5 upgrade-urile de 
 Fine Cloth, Glazed Pottery) · G6 Sawmill II (capacitate) · G7 jgheabul ca traseu fix, nu plasat.
 
 ### H. Atelierul și colecția
+
+> **[D56, 2026-09-14] Parcat.** Owner-ul a ales ca atelierul să devină **Forge** și colecția să aștepte: butoanele
+> „Workshop" și „Collection" au ieșit din bară, panourile nu mai au nicio intrare (intenționat), iar codul și
+> datele din profil (`Pile`, `Index`, `Workshop`) rămân neatinse. Găsirile cu nume merg cu marfa și se vând la
+> tavernă. Colecția revine cu locul și cele 36 de pictograme ale ei (H4). Textul de mai jos e istoric. Vezi D56.
 
 **Dezbatere — cum se leagă colecția de numărul central?**
 Acum reparatul dă o intrare în Index și atât. Frumos, dar paralel cu tycoon-ul.
@@ -368,7 +383,7 @@ care trebuie să se distreze [24]: *„get to the fun quickly"*.
 | ~0:41 | *Second Net — 9* se aprinde | cumpără |
 | ~3:18 | a 5-a cumpărare (Sorting Crate) | — |
 | ~4:19 | *First Runner* — primul angajat vine și vorbește | automatizarea începe |
-| ~8:24 | primul obiect cu nume → apare *Workshop* | decizia vinde-sau-păstrează |
+| ~8:24 | primul obiect cu nume → apare *Workshop* | decizia vinde-sau-păstrează — **[D56] parcat**: un singur toast („A rare find… The tavern pays well for it."), găsirea merge cu marfa |
 
 - **Indiciu după 11 secunde de blocaj** — pentru o acțiune care durează normal ~10 s [onboard].
 - Vizual > text, mereu [24][onboard].
@@ -379,6 +394,10 @@ analytics (arie T).
 
 ### M. Interfața
 
+> **[D58, 2026-09-14] Pe hartă se vede al cui e fiecare lucru.** Numele meseriei sub casa ei și „Forge" pe acoperișul
+> forjei; meseria scrisă sub oameni cât treci pe lângă ei; „Upgrade (U)" pe cardul obiectului (U exista, dar nu scria
+> nicăieri; a doua apăsare închide meniul); X-ul panourilor desenat. Vezi D58.
+>
 > **[D52, 2026-09-13] Meniul obiectului, simplu.** Nivelul, cât face pe minut (acum → după), pragul, un
 > rând colorat din câștigul real („Next level earns +1.2 coins a minute" / „Won't earn more yet: your
 > nets are slower" + „Go to"), x1/x10/Max și butonul cu prețul pe el. Fără pastilele lanțului. Vezi D52.
@@ -387,7 +406,9 @@ analytics (arie T).
 - **HUD:** monedele, mari; sub ele venitul pe secundă (*+12/s*); sacul (*8/30*); energia din Era 2.
 - **Dispar:** cele cinci cifre de colonie (Food, Materials, Salvage, People, Beds), cartonașul de
   obiective, panourile Build / People / Colony.
-- **Bara din dreapta:** Workshop, Collection, Shop, Rebirth (când e disponibilă), Settings.
+- **Bara din dreapta:** Workshop, Collection, Shop, Rebirth (când e disponibilă), Settings. **[D56]** Azi: roata,
+  quest-urile, Sound; Workshop și Collection au ieșit odată cu colecția parcată. **[D59]** Plus jurnalul (K) și
+  avizierul satului (B); roata are pictograma timonierului și un punct cât rotirea e gata.
 - **Atingi o stație** → cartonașul ei (nivel, ce produce) — `BuildingCardController` reconvertit.
 - Tot ce cere bucla centrală: **cel mult un tap** [ui]. Ținte de atingere de 44 pt [ui].
 
@@ -396,6 +417,10 @@ M4 panoul Shop · M5 panoul Rebirth.
 
 ### N. Arta
 
+> **[D57, 2026-09-14] Așezat pe pământ.** Umbre sub clădiri și ruine, pământ bătătorit sub fiecare curte și casă,
+> piața tavernei din piatră, iarbă peste marginile pământului (`tile_plaza`, `grass_edge_h/v`), decor așezat de mână.
+> Viața hărții (fum, păsări, spumă, frunze) urmează. Vezi D57 și `docs/research/44-harta-vie.md`.
+>
 > **[D53, 2026-09-13] Ruinele malului.** Orice platformă a Erei 1 necumpărată stă pe mal ca ruină (Porter,
 > Sawyer, Hauler: avizier „Help wanted"); lângă ea scrie ce trebuie făcut întâi. Atelierul nou,
 > `prop_workshop_e1`, în familia tavernei. 10 sprite-uri, urcate după aprobarea owner-ului. Vezi D53.
@@ -434,6 +459,11 @@ alt material decât gaterul (șindrilă) și depozitul (scânduri). `ui_chevron`
 `ui_groundring` (32×16, alb, colorat în cod). Clienții: `outfit_townsfolk` și `outfit_traveler`, fără
 pălărie, în culori pe care nu le poartă nicio meserie. Toate generate (`tycoon_e1.py`, `settlers.py`)
 și urcate.
+
+**N12 — pontonul [D59] (2026-09-15, gata).** `scripts/art/d59.py`: pontonul lung, plutitorul, 12 pești, ce aduce râul
+(sticla, cufărul, Golden Driftwood — întregi și pe apă), timonierul roții și fața lui, avizierul satului, momeala, biletul,
+pictograma roții din bară, zece obiecte de decor; în `settlers.py`, ținutele jucătorului Angler, Captain, River Legend și
+rândul `fish` fără fir pentru ținutele lui; `sfx_cast`, `sfx_bite`, `sfx_reel`. 40 de imagini și 3 sunete, urcate.
 
 **N11 — muzica și butonul ei [D51] (2026-09-13, gata).** `music_river.ogg` (2:17, buclă fără cusătură),
 compusă și sintetizată de `scripts/audio/make_music.py` (lăută, fluier de lemn, pad, contrabas, kalimba,
@@ -476,10 +506,21 @@ comerț. **Decizie: da la viteză, nu la noroc.**
 **Niciodată de vânzare:** noroc, obiecte de colecție, conținut exclusiv, nimic aleator [19][money].
 Tot ce se plătește **nu se resetează la renaștere** [wipes]. Prețurile rămân provizorii (D20).
 
+> **[D59, 2026-09-15] Perlele cumpără doar aspect.** Vin de la undiță, din ce aduce râul, de la roată și din quest-uri, și
+> se cheltuie la avizierul satului: decor cu loc fix și ținutele jucătorului. Nu cumpără viteză sau spațiu: le faci cât
+> vrei pescuind, deci ar ocoli simulatorul. Nici undița, nici ce aduce râul, nici roata nu dau monede. Ce se va vinde pe
+> Robux rămâne viteză, spațiu și aspect; **perlele nu se vând** (monedele intermediare le ascund copiilor cât cheltuie).
+> Cosmeticele de pe Robux pot fi aceleași lucruri pe care le iei, mai încet, cu perle. Vezi D59.
+
 **Sarcini:** P1 `MarketplaceService` + `ProcessReceipt` · P2 cele 4 pass-uri · P3 cele 3 produse ·
 P4 panoul Shop.
 
 ### Q. Retenția pe termen lung
+
+> **[D59, 2026-09-15] Ce faci cât aștepți.** La ponton: undița (fără eșec, oricât), ce aduce râul (cel mult trei te
+> așteaptă, nimic nu expiră), roata zilnică și avizierul satului. Jurnalul (12 pești, biletele) și catalogul de decor
+> sunt țintele pe termen lung de azi; conținutul nou la 2–4 săptămâni se poate turna în ele (pești, bilete, decor).
+> Rămân pe mai târziu: comenzile tavernei (C) și ajutorul dat oamenilor (D). Vezi D59.
 
 Seiful (2–3 reveniri pe zi [16]) · scara renașterii (zile) · colecția (luni [21]) · **conținut nou la
 2–4 săptămâni** — colecțiile rețin doar cu cadență [20], iar un solo ține un update la 2 săptămâni –
@@ -538,6 +579,9 @@ Fazele din §7, fiecare cu o **poartă de validare** pe oameni reali — eșecul
 > din timp (era 5%) — compromisul ordinii „oamenii înaintea plaselor". Vezi D52.
 > **[D55]** Cu lanțul resturilor (Scrap Shed, forja atelierului, fierul): Era 1 în 37m44s reali, 14 deblocări;
 > prețurile noi și regula verigii slabe pe două mărfuri sunt în D55.
+> **[D56]** Cu linia fierului și oamenii ei: Era 1 în **41m52s** reali, 20 de deblocări (18 platforme), fierul 35%
+> din bani la final; **capitolul 3 „The Iron Line"** învață linia ca pe cea a lemnului (turul de mână, apoi câte un
+> om pe fiecare pas). Prețurile, rafala oamenilor fierului și compromisul porții de 0,5% sunt în D56.
 
 Generat de `python3 scripts/economy/sim_tycoon.py --table`. Jucătorul simulat e **lacom** (cumpără
 imediat); coloana *real* folosește factorul 1,8× (IPOTEZĂ).
@@ -641,7 +685,7 @@ rămân în repo, neconectate, până atunci.
 | Fază | Ce | Poarta de trecere |
 |---|---|---|
 | **F0** | Curățenie + schelet: schema v2, `PadService`, monede, debarcader, sacul, prima plasă | jocul se joacă: plasa 1 → strâng → vând → cumpăr plasa 2 |
-| **F1** | **Era 1 completă** (12 platforme), primul angajat, atelierul la prima prindere cu nume, bonusul de Index, onboarding-ul, juice-ul de bază, pâlnia în analytics | **playtest cu ≥5 oameni din afara echipei**: ≥70% ajung la platforma 5; sesiunea mediană ≥10 min; nimeni nu se blochează la „ce fac acum" |
+| **F1** | **Era 1 completă** (12 platforme; **[D56]** 18, cu linia fierului), primul angajat, atelierul la prima prindere cu nume (**[D56]** parcat), bonusul de Index, onboarding-ul, juice-ul de bază, pâlnia în analytics | **playtest cu ≥5 oameni din afara echipei**: ≥70% ajung la platforma 5; sesiunea mediană ≥10 min; nimeni nu se blochează la „ce fac acum" |
 | **F2** | Seiful offline + ecranul de bun venit | testerii revin a doua zi și înțeleg ce au primit |
 | **F3** | **Era 2** — gater, roți, jgheab, stații, rețeaua de energie | pâlnia nu cade la trecerea în Moară |
 | **F4** | Renașterea | cine ajunge la Mill Bell și renaște, joacă și tura 2 |
@@ -649,7 +693,7 @@ rămân în repo, neconectate, până atunci.
 | **F6** | Era 3 | — |
 | **F7** | Era 4 + Charter | — |
 | **F8** | Conținut și finisaj: siluete, catalog spre 200, sunet, artă | — |
-| **F9** | Pregătirea lansării: F0-ul owner-ului (Grup, universuri, W-8BEN), dashboard-uri, soft launch | D1 ≥ 15% în soft launch (D25) |
+| **F9** | Pregătirea lansării: F0-ul owner-ului (universuri, W-8BEN; fără grup, D01), dashboard-uri, soft launch | D1 ≥ 15% în soft launch (D25) |
 
 **Regula de fază, din [anti]:** nu se adaugă un sistem de progresie nou înainte ca bucla de 3–5
 minute să fie testată pe oameni din afara echipei. Deci **Era 2 începe abia după poarta F1.**

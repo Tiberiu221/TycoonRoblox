@@ -11,11 +11,17 @@ local LIMITS: { [string]: { capacity: number, refillPerSecond: number } } = {
     UsePlace = { capacity = 5, refillPerSecond = 2 },
     -- "sunt la gater": la intrarea in raza, la iesire si o data la 2 s cat stai [D49]
     AtSawmill = { capacity = 3, refillPerSecond = 1 },
+    AtForge = { capacity = 3, refillPerSecond = 1 }, -- [D56] la fel ca la gater
     SpinWheel = { capacity = 3, refillPerSecond = 1 },
     -- [D54] panoul "Sound", dupa 0.6 s de liniste pe fiecare canal; fara bucket propriu, un nume
     -- necunoscut ar fi refuzat in tacere
     SetAudio = { capacity = 6, refillPerSecond = 2 },
     RequestState = { capacity = 2, refillPerSecond = 0.2 },
+    -- [D59] undita: aruncarea si scoaterea (cu reincercarea cand scoaterea vine prea devreme) -- cel mai des la o
+    -- secunda si ceva, deci 4 in rafala ajung si cu reincercari
+    Fishing = { capacity = 4, refillPerSecond = 1 },
+    -- [D59] avizierul satului: cumparat, imbracat
+    Shop = { capacity = 4, refillPerSecond = 2 },
 }
 RateLimiter.LIMITS = LIMITS
 

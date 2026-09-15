@@ -132,7 +132,7 @@ function DevPanelController.Init(deps: {
     panel = Instance.new("Frame")
     panel.Name = "DevPanel"
     panel.Position = UDim2.fromOffset(-520, 70)
-    panel.Size = UDim2.fromOffset(500, 480)
+    panel.Size = UDim2.fromOffset(500, 540) -- [D59] +60: randul pontonului
     panel.BackgroundColor3 = BG
     panel.BackgroundTransparency = 0.06
     panel.Visible = false
@@ -221,7 +221,8 @@ function DevPanelController.Init(deps: {
         },
     })
 
-    groupLabel("pads (era 1 has 12)", 166)
+    -- [D58] Era 1 are 18 platforme de la D56; "buy to 24" trecea in Era 2 (Sixth Net fara loc pe harta)
+    groupLabel("pads (era 1 has 18)", 166)
     row(186, {
         {
             label = "buy to 2",
@@ -242,15 +243,51 @@ function DevPanelController.Init(deps: {
             end,
         },
         {
-            label = "buy to 24",
+            label = "all of Era 1",
             run = function()
-                send("buyto", 24)
+                send("bell", nil)
             end,
         },
     })
 
-    groupLabel("profile", 226)
+    -- [D59] pontonul: perle pentru avizier, un cufar la ponton acum, roata gata, un peste legendar la urmatoarea aruncare,
+    -- satul de la zero. Grupurile de dedesubt coboara cu 60 (eticheta + rand + spatiu).
+    groupLabel("pier", 226)
     row(246, {
+        {
+            label = "+100 pearls",
+            run = function()
+                send("pearls", 100)
+            end,
+        },
+        {
+            label = "chest now",
+            run = function()
+                send("treasure", "chest")
+            end,
+        },
+        {
+            label = "wheel ready",
+            run = function()
+                send("wheel", nil)
+            end,
+        },
+        {
+            label = "next: gold carp",
+            run = function()
+                send("fish", "goldcarp")
+            end,
+        },
+        {
+            label = "village reset",
+            run = function()
+                send("village", nil)
+            end,
+        },
+    })
+
+    groupLabel("profile", 286)
+    row(306, {
         {
             label = "reset (keeps Index)",
             run = function()
@@ -265,9 +302,9 @@ function DevPanelController.Init(deps: {
         },
     })
 
-    groupLabel("replies", 286)
+    groupLabel("replies", 346)
     local logBox = Instance.new("Frame")
-    logBox.Position = UDim2.fromOffset(16, 306)
+    logBox.Position = UDim2.fromOffset(16, 366)
     logBox.Size = UDim2.fromOffset(468, 140)
     logBox.BackgroundColor3 = Color3.fromRGB(12, 16, 20) -- paleta consolei, fara corespondent in Theme
     logBox.ZIndex = 41

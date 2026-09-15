@@ -6,12 +6,15 @@
 -- PATRU CLADIRI CU NIVELURI, fiecare de la 1 si fara capat:
 --   nets   -- plasele. Cate una pe fiecare deblocare; toate urca separat.
 --   saw    -- gaterul. Driftwood-ul iese scanduri.
---   forge  -- forja atelierului [D55]. Scrap-ul plasei a cincea iese fier; merge singura.
+--   forge  -- forja [D55, D56]. Scrap-ul plasei a cincea iese fier; merge cu Smelter, altfel cat stai langa ea.
 --   dock   -- debarcaderul (taverna). Cat de repede se transforma gramada in monede.
--- SI CINCI MESERII [D49], cu TREPTE putine si cel mult doi oameni pe meserie in Era 1:
---   collector (plase -> depozit), porter (depozit -> gater), sawyer (taie la gater),
---   hauler (gater -> debarcader), trader (vinde la debarcader).
--- Ce pas n-are om il faci tu, iar timpul tau se imparte intre pasii ramasi.
+-- SI NOUA MESERII [D49, D56], cu TREPTE putine si cel mult doi oameni pe meserie in Era 1, pe DOUA LINII:
+--   lemnul: collector (plase -> depozit), porter (depozit -> gater), sawyer (taie la gater),
+--           hauler (gater -> taverna);
+--   fierul: scrapCollector (plasa de scrap -> shed), scrapPorter (shed -> forja), smelter (topeste la forja),
+--           ironHauler (forja -> taverna);
+--   trader (vinde la taverna, pentru amandoua).
+-- Ce pas n-are om il faci tu, iar timpul tau se imparte intre pasii ramasi ai liniei lui.
 --
 -- De ce incrementele difera: plasele sunt cinci si cresc impreuna, dar gaterul si debarcaderul
 -- sunt cate UNUL si trebuie sa tina pasul cu toate cinci. Cu acelasi increment peste tot,
@@ -43,8 +46,8 @@ StationConfig.SACK_BONUS = 1.5 -- traista mare: mai putine drumuri, pe tot ce du
 StationConfig.SAW_BASE_RATE = 2.4
 StationConfig.SAW_UPGRADE_BASE = 7.0
 
--- [D55] Forja atelierului: topeste scrap-ul in fier, singura, cu niveluri ca gaterul. Sub plasa a cincea
--- proaspata (1.46/s), ca la inceput forja sa fie gatuirea scrap-ului.
+-- [D55, D56] Forja: topeste scrap-ul in fier, cu niveluri ca gaterul; Smelter-ii o tin pornita, fara ei topeste
+-- doar cat stai langa ea. Sub plasa a cincea proaspata (1.46/s), ca la inceput forja sa fie gatuirea fierului.
 StationConfig.FORGE_BASE_RATE = 1.2
 StationConfig.FORGE_UPGRADE_BASE = 60.0
 
@@ -56,19 +59,71 @@ StationConfig.DOCK_UPGRADE_BASE = 9.0
 StationConfig.NO_TRADER_FACTOR = 0.35
 
 -- ---- oamenii [D49] ---------------------------------------------------------------------------
--- Ordinea lui MANUAL_ROLES e si ordinea angajarilor (conditiile platformelor o impun).
-StationConfig.ROLES = { "collector", "porter", "sawyer", "hauler", "trader" }
-StationConfig.MANUAL_ROLES = { "collector", "porter", "sawyer", "hauler" }
+-- Ordinea din LINE_STEPS e si ordinea angajarilor (conditiile platformelor o impun). [D56] Fiecare linie are
+-- timpul tau intreg: in joc nu ai niciodata pasi de mana pe amandoua odata (oamenii lemnului vin toti inaintea
+-- Forge), iar asa deschiderea fierului nu poate scadea lemnul in nicio stare.
+StationConfig.ROLES = {
+    "collector",
+    "porter",
+    "sawyer",
+    "hauler",
+    "trader",
+    "scrapCollector",
+    "scrapPorter",
+    "smelter",
+    "ironHauler",
+}
+StationConfig.LINE_STEPS = {
+    wood = { "collector", "porter", "sawyer", "hauler" },
+    iron = { "scrapCollector", "scrapPorter", "smelter", "ironHauler" },
+}
+StationConfig.MANUAL_ROLES = {
+    "collector",
+    "porter",
+    "sawyer",
+    "hauler",
+    "scrapCollector",
+    "scrapPorter",
+    "smelter",
+    "ironHauler",
+}
 StationConfig.LINK_OF = {
     collector = "collect",
     porter = "port",
     sawyer = "saw",
     hauler = "haul",
     trader = "dock",
+    scrapCollector = "scrapCollect",
+    scrapPorter = "scrapPort",
+    smelter = "forge",
+    ironHauler = "ironHaul",
 }
--- ORDINEA e contractul cu simulatorul: la egalitate castiga veriga dinainte. [D55] "forge" intre gater si
--- dus la taverna, ca in simulator.
-StationConfig.LINKS = { "nets", "collect", "port", "saw", "forge", "haul", "dock" }
+-- ORDINEA e contractul cu simulatorul: la egalitate castiga veriga dinainte. [D56] Plasele, linia lemnului, linia
+-- fierului, taverna (a amandurora).
+StationConfig.LINKS = {
+    "nets",
+    "collect",
+    "port",
+    "saw",
+    "haul",
+    "scrapCollect",
+    "scrapPort",
+    "forge",
+    "ironHaul",
+    "dock",
+}
+-- [D56] Linia fiecarei verigi de oameni si cladiri. `nets` tine de felul plasei (TycoonMath.netKind), `dock` e a
+-- amandurora: ele nu stau aici.
+StationConfig.LINE_OF = {
+    collect = "wood",
+    port = "wood",
+    saw = "wood",
+    haul = "wood",
+    scrapCollect = "iron",
+    scrapPort = "iron",
+    forge = "iron",
+    ironHaul = "iron",
+}
 
 -- Timpul tau, impartit la pasii fara om. 3.6, nu 1.2 (caratul tau din D48): cu 1.2 impartit la
 -- patru, tu erai veriga slaba din prima secunda si 24 din 27 de cumparaturi din primele 5 minute
@@ -76,7 +131,16 @@ StationConfig.LINKS = { "nets", "collect", "port", "saw", "forge", "haul", "dock
 StationConfig.PLAYER_LABOR = 3.6
 -- Baze DIFERITE pe meseriile de drum: cu toate egale, o treapta pe una singura dadea zero pana le
 -- cumparai pe toate trei. Sawyer-ul si Negustorul n-au baza: inmultesc capacitatea cladirii.
-StationConfig.ROLE_BASE = { collector = 4.0, porter = 6.0, hauler = 9.0 }
+-- [D56] Oamenii de drum ai fierului au baze mai mici (plasa de scrap e una singura); Iron Hauler-ul, ultimul, duce
+-- macar cat tot timpul tau cu traista mare, altfel angajarea lui ar putea scadea venitul.
+StationConfig.ROLE_BASE = {
+    collector = 4.0,
+    porter = 6.0,
+    hauler = 9.0,
+    scrapCollector = 2.0,
+    scrapPorter = 2.5,
+    ironHauler = 6.5,
+}
 StationConfig.TIER_STEP = 1.0 -- fiecare treapta adauga inca o data baza: treapta 5 = de 5 ori
 StationConfig.TIER_MAX = 5
 StationConfig.TIER_COST_BASE = 25.0 -- 25 / 75 / 225 / 675

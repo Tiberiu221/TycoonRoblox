@@ -2,20 +2,19 @@
 -- Unde merge fiecare om care cara [D49]. Modul PUR, acelasi pe server (care muta marfa la sosire) si
 -- pe client (care il deseneaza mergand): ce vezi pe mal e exact ce se intampla in cifre.
 --
---   Collector: plasele lui -> depozit
---   Porter:    depozit -> intrarea gaterului
---   Hauler:    iesirea gaterului -> taverna
---
--- [D55] CU RESTURILE (shed-ul, atelierul si plasa de scrap cumparate, `scrap = true`):
---   Collector: plasele lui -> shed (lasa scrap-ul, daca plasa de scrap e a lui) -> depozit (lasa lemnul)
---   Porter:    shed (ia scrap) -> depozit (ia busteni) -> gater (lasa bustenii) -> atelier (lasa scrap-ul)
---   Hauler:    atelier (ia fier) -> iesirea gaterului (ia scanduri) -> taverna
--- Ordinea opririlor e si prioritatea marfii: fierul si scrap-ul se iau intai (valoreaza mai mult), ca in
--- ChainMath. Drumul nu depinde de gramezi -- CAT se ia la fiecare oprire decide serverul (HandService).
+--   Collector:       plasele de lemn -> depozit
+--   Porter:          depozit -> intrarea gaterului
+--   Hauler:          iesirea gaterului -> taverna
+-- [D56] LINIA FIERULUI, cu oamenii ei, pe aceiasi pasi:
+--   Scrap Collector: plasa de scrap -> shed
+--   Scrap Porter:    shed -> gramada de topit a forjei
+--   Iron Hauler:     gramada de fier a forjei -> taverna
+-- In D55 aceiasi trei oameni duceau si scrap-ul, pe drumuri mai lungi; owner-ul n-a vazut pe nimeni ocupandu-se
+-- de el. Drumul nu depinde de gramezi -- CAT se ia la fiecare oprire decide serverul (HandService).
 --
 -- HandMath.cycle porneste de la capat, trece pe la opriri (evenimentul "collect" = ia) si se intoarce
 -- la capat ("sell" = lasa). Un ciclu fara nicio oprire e gol, deci o naveta are exact O oprire.
--- Sawyer-ul si Negustorul nu merg nicaieri: au doar un loc (`standFor`).
+-- Sawyer-ul, Smelter-ul si Negustorul nu merg nicaieri: au doar un loc (`standFor`).
 --
 -- [D50] Oamenii merg pe drumuri, nu in linie dreapta peste cladiri: intre doua opriri trec prin
 -- punctele din RoadGraph. Cat duce un om pe drum ramane debit x durata (`loadFor`), deci un drum mai
@@ -35,12 +34,11 @@ export type Route = {
     face: string?,
 }
 
--- `padId` pe opririle care nu sunt plase: serverul stie din el de unde ia sau unde lasa.
+-- `padId` pe opririle care nu sunt plase: serverul stie din el de unde ia.
 HandRoutes.STORAGE_STOP = "storage"
 HandRoutes.PLANKS_STOP = "planks"
-HandRoutes.SHED_STOP = "shed" -- [D55] Collector-ul lasa aici, Porter-ul ia de aici
-HandRoutes.IRON_STOP = "iron" -- [D55] fierul de la atelier, pentru Hauler
-HandRoutes.SAWMILL_DROP = "sawmill" -- [D55] Porter-ul lasa bustenii inainte de atelier
+HandRoutes.SHED_STOP = "shed" -- [D55] Scrap Porter-ul ia de aici
+HandRoutes.IRON_STOP = "iron" -- [D55] fierul de la forja, pentru Iron Hauler
 
 -- [D55] Plasa de scrap a Erei 1 (singura). Din config, ca serverul si clientul sa stie aceeasi.
 local scrapNet: string? = nil
@@ -52,29 +50,56 @@ for _, p in TycoonConfig.PADS do
 end
 HandRoutes.SCRAP_NET = scrapNet
 
--- Unde lasa fiecare meserie ce i-a ramas la CAPATUL drumului.
-function HandRoutes.endPlace(role: string, scrap: boolean?): string?
-    if role == "collector" then
-        return "storage"
-    elseif role == "porter" then
-        return if scrap then "forge" else "sawmill"
-    elseif role == "hauler" then
-        return "dock"
-    end
-    return nil
+-- Unde lasa fiecare meserie ce duce, la CAPATUL drumului.
+local END_PLACE: { [string]: string } = {
+    collector = "storage",
+    porter = "sawmill",
+    hauler = "dock",
+    scrapCollector = "shed", -- [D56]
+    scrapPorter = "forge",
+    ironHauler = "dock",
+}
+function HandRoutes.endPlace(role: string): string?
+    return END_PLACE[role]
 end
 
 function HandRoutes.isWalker(role: string): boolean
-    return role == "collector" or role == "porter" or role == "hauler"
+    return END_PLACE[role] ~= nil
 end
 
--- Plasele Collector-ului cu numarul `index` din `count`: plasele detinute, in grupuri consecutive cat
--- mai egale, ca fiecare sa mearga pe bucata lui de mal. Unul singur le ia pe TOATE -- in D46 un
--- alergator avea doar primele trei, dar debitul unei meserii nu depinde de cate plase are [D49].
-function HandRoutes.collectorNets(ownedNetIds: { string }, index: number, count: number): { string }
+-- [D56] Ce fel de plase goleste o meserie de culegator: Collector-ul pe cele de lemn, Scrap Collector-ul pe cea de
+-- scrap. nil = meseria nu goleste plase.
+local NET_KIND_OF: { [string]: string } = { collector = "wood", scrapCollector = "scrap" }
+function HandRoutes.netKindOf(role: string): string?
+    return NET_KIND_OF[role]
+end
+
+-- Plasele culegatorului cu numarul `index` din `count`: plasele detinute de felul lui, in grupuri consecutive cat
+-- mai egale, ca fiecare sa mearga pe bucata lui de mal. Unul singur le ia pe TOATE -- in D46 un alergator avea doar
+-- primele trei, dar debitul unei meserii nu depinde de cate plase are [D49]. Fara `role`, Collector-ul (lemnul).
+function HandRoutes.collectorNets(
+    ownedNetIds: { string },
+    index: number,
+    count: number,
+    role: string?
+): { string }
+    local kind = NET_KIND_OF[role or "collector"] or "wood"
+    local mine: { string } = {}
+    for _, id in ownedNetIds do
+        local pad = TycoonConfig.byId[id]
+        if pad ~= nil and TycoonMath.netKind(pad) == kind then
+            table.insert(mine, id)
+        end
+    end
     local people = math.max(1, count)
-    local per = math.max(1, math.ceil(#ownedNetIds / people))
-    return HandMath.runnerNets(ownedNetIds, index, per)
+    local per = math.max(1, math.ceil(#mine / people))
+    local group = HandMath.runnerNets(mine, index, per)
+    -- [D56] mai multi oameni decat plase (doi Scrap Collectori pe singura plasa de scrap): trec toti pe la toate,
+    -- altfel al doilea ar sta pe loc
+    if #group == 0 then
+        return mine
+    end
+    return group
 end
 
 local function point(p: { x: number, y: number }): HandMath.Point
@@ -121,56 +146,50 @@ local function onRoads(stops: { HandMath.Stop }, endpoint: HandMath.Point, face:
     return { stops = stops, endpoint = endpoint, returnVia = back, face = face }
 end
 
--- `scrap` [D55]: lantul resturilor e intreg (shed, atelier si plasa de scrap cumparate). Fara el drumurile
--- sunt exact cele de dinainte.
+-- Drumul unei meserii de drum [D49, D56]: opririle (de luat) si capatul (unde lasa).
 function HandRoutes.routeFor(
     role: string,
     index: number,
     count: number,
-    ownedNetIds: { string },
-    scrap: boolean?
+    ownedNetIds: { string }
 ): Route?
     local S = TycoonConfig
-    if role == "collector" then
+    if role == "collector" or role == "scrapCollector" then
         local stops: { HandMath.Stop } = {}
-        local hasScrapNet = false
-        for _, id in HandRoutes.collectorNets(ownedNetIds, index, count) do
+        for _, id in HandRoutes.collectorNets(ownedNetIds, index, count, role) do
             local pad = TycoonConfig.byId[id]
             if pad ~= nil and pad.x ~= nil and pad.y ~= nil then
                 -- la plasa sta cu roaba spre dreapta, pe punte
                 table.insert(stops, stop({ x = pad.x :: number, y = pad.y :: number }, id, "right"))
-                hasScrapNet = hasScrapNet or id == HandRoutes.SCRAP_NET
             end
         end
-        if scrap and hasScrapNet then
-            table.insert(stops, stop(S.SCRAP_SHED_STAND, HandRoutes.SHED_STOP, "left", true))
+        if role == "scrapCollector" then
+            -- la shed rastoarna spre dreapta, unde e gramada lui [D57: shed-ul e in dreapta aleii]
+            return onRoads(stops, point(S.SCRAP_SHED_STAND), "right")
         end
         return onRoads(stops, point(S.STORAGE_STAND), "right")
     elseif role == "porter" then
-        if scrap then
-            return onRoads({
-                stop(S.SCRAP_SHED_STAND, HandRoutes.SHED_STOP, "left"),
-                stop(S.STORAGE_STAND, HandRoutes.STORAGE_STOP, "right"),
-                stop(S.SAWMILL_IN, HandRoutes.SAWMILL_DROP, "right", true),
-            }, point(S.FORGE_IN), "right")
-        end
         return onRoads(
             { stop(S.STORAGE_STAND, HandRoutes.STORAGE_STOP, "right") },
             point(S.SAWMILL_IN),
             "right"
         )
     elseif role == "hauler" then
-        if scrap then
-            return onRoads({
-                stop(S.FORGE_OUT, HandRoutes.IRON_STOP, "left"),
-                stop(S.SAWMILL_OUT, HandRoutes.PLANKS_STOP, "left"),
-            }, point(S.DOCK), "left")
-        end
         return onRoads(
             { stop(S.SAWMILL_OUT, HandRoutes.PLANKS_STOP, "left") },
             point(S.DOCK),
             "left"
         )
+    elseif role == "scrapPorter" then
+        -- [D56, D57] ia de la shed (gramada in dreapta), lasa la gramada de topit a forjei (in dreapta capatului)
+        return onRoads(
+            { stop(S.SCRAP_SHED_STAND, HandRoutes.SHED_STOP, "right") },
+            point(S.FORGE_IN),
+            "right"
+        )
+    elseif role == "ironHauler" then
+        -- [D56] ia fierul din dreapta forjei (gramada in stanga opririi), il lasa la usa tavernei
+        return onRoads({ stop(S.FORGE_OUT, HandRoutes.IRON_STOP, "left") }, point(S.DOCK), "left")
     end
     return nil
 end
@@ -180,10 +199,9 @@ function HandRoutes.cycleFor(
     role: string,
     index: number,
     count: number,
-    ownedNetIds: { string },
-    scrap: boolean?
+    ownedNetIds: { string }
 ): HandMath.Cycle
-    local route = HandRoutes.routeFor(role, index, count, ownedNetIds, scrap)
+    local route = HandRoutes.routeFor(role, index, count, ownedNetIds)
     if route == nil then
         return { legs = {}, duration = 0 }
     end
@@ -205,11 +223,12 @@ function HandRoutes.loadFor(rate: number, duration: number): number
     return math.max(1, math.floor(rate * duration + 0.5))
 end
 
--- Locul unui om static: Sawyer-ul in curtea gaterului, Innkeeper-ul la tejgheaua tavernei. Al doilea
--- sta alaturi.
+-- Locul unui om static: Sawyer-ul in curtea gaterului, Smelter-ul langa forja [D56], Innkeeper-ul la tejgheaua
+-- tavernei. Al doilea sta alaturi.
 function HandRoutes.standFor(role: string, index: number): HandMath.Point?
     local stand = if role == "sawyer"
         then TycoonConfig.SAWYER_STAND
+        elseif role == "smelter" then TycoonConfig.SMELTER_STAND
         elseif role == "trader" then TycoonConfig.TRADER_STAND
         else nil
     if stand == nil then

@@ -39,16 +39,17 @@ STATION_ROW = dict(
     ],
 )
 
+# [owner, 2026-09-14] fara randul "Reward: 1 pearl": recompensa sta pe butonul Claim ("Claim 1 (perla)"), deci
+# butonul e mai lat (130) si randul mai scund (60)
 QUEST_ROW = dict(
-    panel="Quests (QuestController)", panel_w=560, row_h=74,
+    panel="Quests (QuestController)", panel_w=560, row_h=60,
     boxes=lambda w: [
-        ("text", md, 10, 282, 20, "open"),
-        ("counter", md + 290, 12, 60, 18, "open"),
+        ("text", md, 10, 270, 20, "open"),
+        ("counter", md + 334 - 60, 12, 60, 18, "open"),
         ("bar", md, 38, 290, 6, "open"),
-        ("reward", md, 50, 180, 18, "open"),
-        ("lockIcon", md, 28, 18, 18, "locked"),
-        ("lock", md + 24, 26, 282, 22, "locked"),
-        ("button", w - md - 120, 74 // 2 - 22, 120, 44, "open"),
+        ("lockIcon", md, 21, 18, 18, "locked"),
+        ("lock", md + 24, 19, 282, 22, "locked"),
+        ("button", w - md - 130, 60 // 2 - 22, 130, 44, "open"),
     ],
 )
 
@@ -98,13 +99,16 @@ STATION_MENU = dict(
 )
 
 
-# Cardul obiectului (InteractController) [D51]: actiunea SAU starea (niciodata amandoua) si Upgrade.
+# Cardul obiectului (InteractController) [D51]: actiunea SAU starea (niciodata amandoua) si Upgrade. [D58] Butonul
+# Upgrade creste dupa eticheta (cel putin 180): cel mai lat text e "Upgrade (U) · 123.45K" (21 de caractere de 0.5586 em
+# la 18 px = 211 px) -> 28 pictograma + 8 + 211 + 2 x 18 margine = 284.
+UPGRADE_MAX_W = 284
 INTERACT_CARD = dict(
-    panel="Object card (InteractController)", width=240 + 8 + 180, row_h=44,
+    panel="Object card (InteractController)", width=240 + 8 + UPGRADE_MAX_W, row_h=44,
     boxes=lambda w: [
         ("action", 0, 2, 240, 40, "action"),
         ("status", 0, 2, 240, 40, "status"),
-        ("upgrade", 248, 2, 180, 40, None),
+        ("upgrade", 248, 2, UPGRADE_MAX_W, 40, None),
     ],
 )
 
@@ -126,6 +130,57 @@ def audio_row(y, tag):
 AUDIO_PANEL = dict(
     panel="Sound (AudioPanel)", width=520 - 20 * 2, row_h=240 - 20 * 2 - 56,
     boxes=lambda w: audio_row(10, "music") + audio_row(70, "sounds"),
+)
+
+
+# [D59] Roata (WheelController): fereastra 640x420 -> corpul 600x324 (rama lg=20, antetul de 56). Fata timonierului in
+# stanga (220, sub ac), rezultatul sub ea; lista premiilor in dreapta (Widgets.List la x 260, 256 inalta), iar butonul
+# Spin sau ceasul sub lista (butonul si ceasul nu apar niciodata deodata).
+WHEEL_PANEL = dict(
+    panel="Lucky Wheel (WheelController)", width=640 - 20 * 2, row_h=420 - 20 * 2 - 56,
+    boxes=lambda w: [
+        ("needle", 10 + 110 - 20, 0, 40, 30, None),
+        ("face", 10, 30, 220, 220, None),
+        ("result", 0, 262, 240, 44, None),
+        ("list", 260, 0, w - 260, 256, None),
+        ("spin", 260 + (w - 260) // 2 - 110, 324 - 52, 220, 52, "ready"),
+        ("timer", 260 + (w - 260) // 2 - 160, 324 - 28, 320, 28, "wait"),
+    ],
+)
+
+# [D59] Un rand din lista premiilor (WheelController): rand de 26 in lista de 340 (lista -16, bara, Row -10).
+WHEEL_ROW = dict(
+    panel="Lucky Wheel rows (WheelController)", width=340 - 16 - SCROLLBAR - 10, row_h=26,
+    boxes=lambda w: [
+        ("icon", SPACE["sm"], 3, 20, 20, None),
+        ("label", SPACE["sm"] + 26, 2, 200, 22, None),
+        ("odds", w - SPACE["sm"] - 52, 2, 52, 22, None),
+    ],
+)
+
+# [D59] Avizierul satului (VillageController): randul de 64. Starea ("Built"/"Wearing") si butonul stau in acelasi loc,
+# dar nu apar deodata.
+BOARD_ROW = dict(
+    panel="Village Board (VillageController)", panel_w=600, row_h=64,
+    boxes=lambda w: [
+        ("art", md, 6, 56, 52, None),
+        ("name", 80, 10, 250, 22, None),
+        ("sub", 80, 36, 250, 18, None),
+        ("state", w - md - 150, 64 // 2 - 12, 150, 24, "owned"),
+        ("button", w - md - 150, 64 // 2 - 22, 150, 44, "buy"),
+    ],
+)
+
+# [D59] Jurnalul (JournalController): randul de 56. Un bilet ia tot randul in locul numelui, raritatii si cifrelor.
+JOURNAL_ROW = dict(
+    panel="Journal (JournalController)", panel_w=600, row_h=56,
+    boxes=lambda w: [
+        ("icon", md, 8, 50, 40, None),
+        ("name", 74, 8, 200, 22, "fish"),
+        ("sub", 74, 32, 200, 18, "fish"),
+        ("right", w - md - 220, 56 // 2 - 20, 220, 40, "fish"),
+        ("note", 74, 56 // 2 - 24, w - 86, 48, "note"),
+    ],
 )
 
 
@@ -161,7 +216,8 @@ def check(spec):
 
 
 def main():
-    bad = sum(check(spec) for spec in (STATION_ROW, QUEST_ROW, APPROACH_CARD, STATION_MENU, INTERACT_CARD, AUDIO_PANEL))
+    bad = sum(check(spec) for spec in (STATION_ROW, QUEST_ROW, APPROACH_CARD, STATION_MENU, INTERACT_CARD, AUDIO_PANEL,
+                                      WHEEL_PANEL, WHEEL_ROW, BOARD_ROW, JOURNAL_ROW))
     if bad:
         raise SystemExit(f"{bad} coliziuni de asezare")
 

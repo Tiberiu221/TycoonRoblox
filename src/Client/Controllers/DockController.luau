@@ -29,6 +29,7 @@ local Widgets = require(script.Parent.Parent.UI.Widgets)
 local PileView = require(script.Parent.Parent.UI.PileView)
 local PersonView = require(script.Parent.Parent.UI.PersonView)
 local Focus = require(script.Parent.Parent.UI.Focus)
+local GroundShadow = require(script.Parent.Parent.UI.GroundShadow)
 
 export type Deps = {
     Plot: Frame,
@@ -43,6 +44,7 @@ export type Sack = {
     capacity: number,
     raw: number,
     rawScrap: number, -- [D55]
+    finds: number, -- [D56] gasirile neprelucrate (se vand si asa; incluse in `cut`)
     iron: number, -- [D55] fierul din traista: indemnul nu mai spune doar "planks"
     cut: number,
     cutValue: number,
@@ -66,7 +68,7 @@ local pile: PileView.View
 local salePill: Frame
 local saleValueLabel: TextLabel
 local sack: Sack =
-    { count = 0, capacity = 0, raw = 0, rawScrap = 0, iron = 0, cut = 0, cutValue = 0 }
+    { count = 0, capacity = 0, raw = 0, rawScrap = 0, finds = 0, iron = 0, cut = 0, cutValue = 0 }
 local boat: ImageLabel? = nil
 
 local DOCK = TycoonConfig.DOCK
@@ -78,8 +80,10 @@ local TAVERN_TOP = TAVERN.y - TAVERN.h
 local SALE_PILL_W, SALE_PILL_H = 110, 30
 local BOAT_W = Assets.props.boat.width * TycoonConfig.PROP_SCALE
 local BOAT_H = Assets.props.boat.height * TycoonConfig.PROP_SCALE
-local BOAT_START = UDim2.fromOffset(PIER.x - 10, PIER.y - 6)
-local BOAT_END = UDim2.fromOffset(PIER.x - 130, PIER.y - 160)
+-- [D59] Barca pleaca din dreapta pontonului, in aval: in stanga lui asteapta ce aduce raul (TREASURE_SLOTS), iar in
+-- stanga-sus pleca pana acum chiar peste ele.
+local BOAT_START = UDim2.fromOffset(PIER.x + 100, 738)
+local BOAT_END = UDim2.fromOffset(PIER.x + 260, 650)
 local BOAT_TWEEN_SECONDS = 1.1
 local BOAT_TWEEN = TweenInfo.new(BOAT_TWEEN_SECONDS, Enum.EasingStyle.Sine, Enum.EasingDirection.In)
 
@@ -278,8 +282,8 @@ function DockController.Focus(px: number, py: number): Focus.Focus?
     if sack.cut > 0 then
         local keyHint = if UserInputService.KeyboardEnabled then " (E)" else ""
         local value = TycoonMath.formatNumber(sack.cutValue)
-        -- [D55] cu fier in traista, "Sell planks" ar minti pe jumatate
-        text = if sack.iron > 0
+        -- [D55, D56] cu fier sau o gasire in traista, "Sell planks" ar minti pe jumatate
+        text = if sack.iron > 0 or sack.finds > 0
             then Strings.promptSell(keyHint, value)
             else Strings.promptSellPlanks(keyHint, value)
     elseif sack.rawScrap > 0 and sack.raw > 0 then
@@ -306,18 +310,22 @@ function DockController.Focus(px: number, py: number): Focus.Focus?
 end
 
 local function buildPier()
-    -- pier3 e pontonul inalt desenat pentru F3; `pier` (vechiul) ramane doar ca plasa de siguranta
-    local pierSprite = if Assets.has(Assets.tycoon.pier3)
-        then Assets.tycoon.pier3
+    -- [D59] pontonul lung, pe care mergi pana la capat ca sa pescuiesti; pier3 (scurt, cu baza in acelasi loc) ramane
+    -- plasa de siguranta cat desenul nou nu e inca pe platforma, iar `pier` (vechiul) dupa el
+    local long = Assets.has(Assets.tycoon.pier_long)
+    local pierSprite = if long
+        then Assets.tycoon.pier_long
+        elseif Assets.has(Assets.tycoon.pier3) then Assets.tycoon.pier3
         else Assets.tycoon.pier
     if Assets.has(pierSprite) then
+        local base = PIER.y + Assets.tycoon.pier_long.height * Assets.PIXEL_SCALE / 2
         local img = Instance.new("ImageLabel")
         img.Name = "Pier"
         img.BackgroundTransparency = 1
         img.Image = Assets.url(pierSprite)
         img.ResampleMode = Enum.ResamplerMode.Pixelated
-        img.AnchorPoint = Vector2.new(0.5, 0.5)
-        img.Position = UDim2.fromOffset(PIER.x, PIER.y)
+        img.AnchorPoint = Vector2.new(0.5, 1)
+        img.Position = UDim2.fromOffset(PIER.x, base)
         img.Size = UDim2.fromOffset(
             pierSprite.width * Assets.PIXEL_SCALE,
             pierSprite.height * Assets.PIXEL_SCALE
@@ -344,6 +352,7 @@ local function buildPier()
 end
 
 local function buildTavern()
+    GroundShadow.add(deps.Plot, UDim2.fromOffset(TAVERN.x, TAVERN.y), TAVERN.w, 2) -- [D57]
     local marker = Instance.new("Frame")
     marker.Name = "Tavern"
     marker.AnchorPoint = Vector2.new(0.5, 1)

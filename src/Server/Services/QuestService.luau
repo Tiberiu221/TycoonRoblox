@@ -34,6 +34,8 @@ local function factsFor(player: Player): QuestMath.Facts?
         collected = data.Stats.collected or 0,
         sold = data.Stats.sold or 0,
         smelted = data.Stats.smelted or 0,
+        ironSold = data.Stats.ironSold or 0, -- [D56]
+        fished = data.Stats.fished or 0, -- [D59]
         netLevels = if stations ~= nil then stations.NetLevels(player) else {},
         dockLevel = data.Stations.dock.level,
         idleRate = if stations ~= nil then stations.Idle(player) else 0,
@@ -59,6 +61,8 @@ export type Snapshot = {
         padId: string?,
         dock: boolean?,
         sawmill: boolean?,
+        forge: boolean?, -- [D56] inelul forjei
+        fish: boolean?, -- [D59] capatul pontonului, unde pescuiesti
         -- [D51] felul quest-ului si, la unul de nivel, statia: ghidajul alege pasul din ele
         kind: string,
         stationKind: string?,
@@ -94,6 +98,8 @@ function QuestService.Snapshot(player: Player): Snapshot?
                 padId = active.targetPad,
                 dock = active.targetDock,
                 sawmill = active.targetSawmill,
+                forge = active.targetForge, -- [D56] sageata spre inelul forjei
+                fish = active.targetFish, -- [D59] sageata spre capatul pontonului
                 kind = active.kind,
                 stationKind = stationKind,
                 stationId = stationId,
@@ -126,7 +132,7 @@ function QuestService.Claim(player: Player, questId: string): (boolean, string)
         EconomyService.AddCoins(player, quest.reward.coins, "quest")
     end
     if quest.reward.pearls ~= nil then
-        data.Pearls += quest.reward.pearls
+        EconomyService.AddPearls(player, quest.reward.pearls, "quest")
     end
     -- Canalul quest-urilor: fara el, la playtest vom sti CATI au renuntat, dar nu si UNDE. Un pas per
     -- quest revendicat, pe capitolul lui -- exact granularitatea la care se vede blocajul [D51].

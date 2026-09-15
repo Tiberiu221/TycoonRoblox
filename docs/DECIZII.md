@@ -11,6 +11,277 @@ Convenție: în tot proiectul, „server" înseamnă o instanță Roblox efemer�
 
 ---
 
+## D59 — Pontonul: undița, ce aduce râul, perlele pe sat, roata la locul ei
+**DECIS** (2026-09-15) — owner-ul, după recomandarea pentru „ce face jucătorul cât așteaptă": *„A și B cum recomanzi,
+apucă-te. și să șlefuim lucky wheel, nu prea se integrează «cu cap» în acest moment."* Recomandarea acceptată: **A
+(undița ta) și B (ce aduce râul) împreună, iar perlele cumpără decor pentru sat și ținute**; C (comenzile tavernei)
+după primul playtest, D (ajutorul dat oamenilor) la final. Plan aprobat înainte de cod.
+
+**Ce era de rezolvat (verificat în cod și în simulator):** cea mai lungă pauză fără nimic de apăsat e 2m01s pentru
+jucătorul lacom (~3,6 min real), iar după Era 1 nu mai e nimic de făcut; perlele veneau din quest-uri (48 în Era 1) și de
+la roată, dar niciun cod nu le cheltuia. Roata nu se lega de nimic: o roată de cazino cu felii curcubeu, în colțul de jos
+al satului, pe unde nu trece nicio buclă, singurul obiect deschis cu click, nu cu cardul E (D51), cu jumătate din premii în
+perle fără rost, iar premiile în monede săreau peste tutorial: o rotire în primul minut dădea 324 de monede (10 min de
+venit, 10%) sau 972 (30 min, 3%), când capitolul 1 costă ~120 (cu Third Net și Bigger Sack, ~290).
+
+1. **Pontonul lung.** Pontonul intră ~150 px în râu (`prop_pier_long`, 32×104 la ×3, cu baza unde era `pier3`) și se
+   merge pe el până la capăt: `WorldMap.blockedRects` primește o trecere (`TycoonConfig.PIER_WALK`) și sparge banda
+   râului în trei, doar pentru jucător (oamenii merg pe `RoadGraph`). La capăt e locul de pescuit (`FISH_STAND`),
+   plutitorul cade în aval (`BOBBER_AT`), ce aduce râul așteaptă în amonte (`TREASURE_SLOTS`), iar roata și avizierul
+   stau pe punte, la vest de aleea tavernei, unde nu umblă nimeni. Barca vânzării pleacă acum spre dreapta pontonului,
+   ca să nu treacă peste ce așteaptă în stânga. Locurile sunt verificate pe harta randată și în `TycoonConfig.test`.
+2. **Undița (A).** La capăt, `Cast (E)`; după 3–8 s (clipa o alege serverul) plutitorul se scufundă, cu stropi, „!" și
+   un sunet; apoi bara: ții apăsat E (pe telefon, butonul de acțiune) cât peștele e în zona luminoasă și firul se strânge;
+   ținut cât e afară, se desface puțin, niciodată sub zero; fără buton, nu se mișcă nimic. **Nu există eșec**: doar ținând
+   apăsat tot timpul scoți orice pește, sub 22 s pe 2.500 de semințe (testul cere sub 30 s), iar jocul perfect termină în
+   medie în 2,6 / 3,6 / 4,9 / 6,5 / 8,1 s pe cele cinci rarități (`ReelMath`, poziția peștelui e o funcție de timp și
+   sămânță, aceeași pe client și pe server). Serverul trage specia și mărimea la aruncare și nu le spune până la scoatere;
+   scoaterea se crede doar după timpul jocului perfect pe exact acea bară (toleranță 0,3 s). Pleci de unde ai aruncat și
+   aruncarea se anulează în liniște. 12 specii pe 5 rarități (culorile din `RiverConfig.TIERS`, fără mythic); un pește dă
+   1/1/2/5/12 perle, prima prindere a fiecărei specii +5. **Jurnalul** (tasta K) arată siluete până la prima prindere,
+   apoi câte ai prins și cea mai mare mărime; jurnalul complet dă ținuta **River Legend**, care nu se vinde.
+3. **Ce aduce râul (B).** Cam la 4–8 minute vine pe râu ceva ce plasele nu prind și se oprește la ponton; te așteaptă,
+   nu pleacă. Cât lipsești se adună cel mult trei, iar cât sunt trei, ceasul stă și pornește iar când scoți unul — nimic
+   nu expiră, plafonul e spus pe față. Primul vine la 45 s după primul tău pește și e o sticlă al cărei bilet spune cum
+   merge. Sticla dă 5 perle și un bilet (10 texte, fiecare adevărat în jocul de azi — o regulă schimbată își schimbă și
+   biletul), cufărul 15, Golden Driftwood 40, valori fixe. Sosirea se vede (plutește din stânga până la locul ei, apoi
+   toast și sunet), iar cele venite cât ai lipsit sunt spuse pe ecranul de bun venit, care apare acum și când monedele
+   sunt zero. Le scoți cu undița: la capăt cardul scrie `Hook the chest (E)`, cu aceeași bară.
+4. **Perlele se cheltuie doar pe aspect — amendează D46 pct. 4.** De acum le faci cât vrei la undiță; dacă ar cumpăra și
+   viteză sau spațiu, pescuitul ar scurta Era 1 exact pentru cine pescuiește, fără ca simulatorul să știe, deci prețurile
+   n-ar mai fi adevărate. Robux-ul rămâne pentru viteză, spațiu și aspect (D20). Tot ce aduce D59 plătește **doar în
+   perle**: simulatorul rămâne neatins (Era 1 tot la 41m52s reali).
+5. **Avizierul satului.** Pe punte, cu card E și buton în bară (tasta B). Pagina *Village*: 10 îmbunătățiri cu locul lor
+   fix pe hartă — Flower Beds 20 · Pier Lamps 30 · Bench 40 · Bunting 60 · Well 90 · Vegetable Garden 120 · Rowboat 150 ·
+   Beehives 200 · Fountain 300 · River Statue 450; cumpărată, apare pe loc cu un salt, stropi, sunetul de construcție și
+   numele ei. Pagina *Outfits*: Keeper (de la început), Angler 150, Captain 400 și River Legend (din jurnal); cumperi o
+   dată, apoi schimbi gratuit. Ținutele sunt doar ale jucătorului, cu siluete de pălărie pe care nu le poartă nicio
+   meserie (D44). Azi numai tu îți vezi satul și ținuta: alți jucători nu se desenează.
+6. **Roata la ponton — amendează lista de premii din D46 pct. 5.** Stă pe punte ca un timonier de lemn; când rotirea e
+   gata, sub el pulsează inelul auriu al locurilor care te cheamă, butonul ei din bara de meniu primește un punct, iar dacă
+   devine gata în timpul sesiunii apare un toast. Se deschide cu **cardul E**, ca orice obiect (tasta L, de oriunde).
+   Premiile sunt darurile râului, **fără monede**: 5/10/25/60 de perle, o sticlă / un cufăr / Golden Driftwood care vin
+   la ponton (dacă pontonul e plin, valoarea lor în perle, pe loc, iar textul spune asta) și Golden bait ×5 (următorii 5
+   pești dau perle ×2). Media: ~11,8 perle pe rotire. Șansele rămân afișate, din ponderi. Fața din panou e timonierul
+   desenat, iar iconițele premiilor le așază codul între spițe, din `WheelConfig`, recalculate la fiecare cadru cât se
+   învârte — desenul nu poate rămâne în urma listei (testul cere 8 premii pentru cele 8 spițe). Restul din D46 pct. 5
+   rămâne: gratuită, o dată la 24h, fără rotiri cumpărate, niciun premiu nu ia nimic.
+7. **Ghidajul și quest-ul.** Capitolul 2 are, după `big_sack`, `Catch a fish at the pier` (3 perle, felul nou `fished`):
+   e momentul în care încep strângerile lungi de bani, iar ghidajul tace deja după cei cinci oameni (D50) — deci quest-ul
+   își are săgeata spre capătul pontonului ca **excepție numită și testată**. După primul pește, cât quest-ul activ e o
+   cumpărare pe care n-o poți plăti și mâinile n-au nimic de făcut, al doilea rând al liniei NEXT spune `While you save:
+   fish at the pier` (sau `A chest is waiting at your pier`), fără săgeată: pescuitul e o alegere, nu un pas.
+8. **Profil v9, aditiv** (`Fishing`, `River`, `Village`, `Stats.fished`, `Stats.treasures`; șablonul și
+   `ProfileMigrate.toV9` adaugă exact aceleași câmpuri, verificat de test). Remote-uri noi: `Cast`, `CastResult`, `Land`,
+   `LandResult`, `TreasureArrived`, `BuyDecor`, `BuyOutfit`, `WearOutfit`, `ShopResult`; bucket-uri `Fishing` și `Shop`.
+   Perlele se schimbă doar prin `EconomyService.AddPearls` / `TrySpendPearls` (roata și quest-urile trec și ele pe acolo).
+   Pâlnie de analytics separată, „Pier" (FirstCast, FirstFish, FirstTreasure, FirstDecor, FirstOutfit). Consola de
+   dezvoltare: `pearls`, `fish <id>`, `treasure <kind>`, `wheel`, `village`.
+
+| Sursă de perle | Cât (țintele din `PearlBudget.test`) |
+|---|---|
+| Pescuit continuu | ~7–8 perle/min + 60 din primele prinderi |
+| Ce aduce râul | în medie 11 perle, cam o dată la 6 min |
+| Roata | ~11,8 perle/rotire |
+| Quest-uri, Era 1 | 48 + 3 |
+| Cel mai ieftin decor / tot ce se vinde | 20 / 1.460 decor + 550 ținute ≈ 4–5 h de pescuit continuu |
+
+**Arta** (`scripts/art/d59.py`, ținutele în `settlers.py`, sunetele în `make_sounds.py`): pontonul lung, plutitorul, 12
+pești, cele trei lucruri aduse de râu (întregi și pe apă), timonierul și fața lui, avizierul, trei iconițe, zece obiecte de
+decor, trei ținute — 40 de imagini — plus trei sunete (aruncarea, mușcătura, mulinetul). Rândul `fish` al ținutelor
+jucătorului ține acum undița fără fir (firul și plutitorul se desenează în lume); foile ținutelor oamenilor au rămas
+identice bit cu bit, verificat pe sumele de control. Previzualizate pe harta randată înainte de urcare.
+`character_anim.png` (foaia veche, dintr-o bucată) rămâne cea urcată: generatorul o rescrie, deci a fost readusă din git.
+
+---
+
+## D58 — Al cui e fiecare lucru: numele pe case, meseria sub oameni, tasta U la vedere, X-ul desenat
+**DECIS** (2026-09-14) — owner-ul, pe două capturi din Studio (rândul de case cu cardul „Upgrade" și meniul Sawyer-ului):
+*„aș vrea să apară numele a cui căsuță este (pentru upgrade). de asemenea, când mă apropii de npc-uri să le văd job-ul
+sub ei. aș vrea și o tastă care să deschidă meniul de upgrade la orice apare pe ecran cu upgrade. și hai să rezolvăm
+acel buton de X"*.
+
+1. **Numele pe case.** Sub casa fiecărei meserii (și sub taraba Innkeeper-ului), numele ei, exact cum îl scrie meniul
+   care se deschide de acolo („Scrap Porter"); ca „Lucky Wheel" sub roată — scris pe casă ar fi acoperit ușa. Mereu
+   vizibil: rândul de case se citește dintr-o privire. **Forja**, singura clădire cu Upgrade fără nume, primește
+   „Forge" pe acoperiș, ca firma tavernei (`PadController.worldName`).
+2. **Meseria sub oameni, doar când treci pe lângă ei.** În raza de 170 px a personajului tău (puțin peste raza
+   cardului, 130), numele meseriei apare sub picioare și se stinge lin când pleci; când omul împinge roaba spre tine,
+   eticheta coboară sub roabă. Aprinse pe toți deodată, strada ar fi fost plină de etichete. Clienții tavernei nu au
+   etichetă (nu sunt oamenii tăi).
+3. **Tasta U exista de la D51 și nu scria nicăieri.** Butonul de pe cardul obiectului spune acum „Upgrade (U)" (și
+   „Upgrade (U) · 1.25K"), cum spune „Collect (E)" acțiunea — doar cu tastatură; butonul crește după text
+   (`Theme.textWidth`: fontul de pixeli are 0,56 em pe literă, iar cel mai lung cost, „123.45K", nu mai încăpea în 180 px).
+   U deschide exact ce deschide butonul, doar cât butonul se vede; **a doua apăsare închide meniul**, ca J și M. Înainte,
+   cu meniul deschis cardul era ascuns, iar U deschidea peste el lista veche a stațiilor.
+4. **X-ul.** Butonul scria „✕" (U+2715) cu fontul de pixeli (`Arcade` = Press Start 2P); fontul n-are glifa, nici
+   fonturile de rezervă din Studio (verificat în tabelele `cmap` ale fișierelor), deci pe ecran apărea pătrățelul
+   caracterului lipsă. Acum X-ul e desenat ca restul trusei de interfață (`scripts/art/d58.py`: rama de lemn a
+   butoanelor, fața roșie, X-ul crem cu umbră; normal, sub maus, apăsat), 40×40. Celelalte caractere speciale scrise cu
+   fontul de pixeli (— · → … ← ▼ ×) există în el. Cele trei imagini sunt urcate și aprobate.
+5. **„Un al 6-lea net buguit în stânga de tot"** (owner-ul, pe altă captură). E **Sixth Net-ul Erei 2**: platformele
+   erelor 2–4 n-au încă loc pe hartă (`live = false`, fără `x`), deci în joc nu se pot cumpăra. În profilul din Studio
+   intra din consola de dezvoltare: butonul „buy to 24" dădea platformele cu indexul sub 24, iar de la D56 Era 1 are
+   18, deci trecea în Era 2 (roata de apă, jgheabul, Sixth Net, topitoria, morarul). Serverul trimitea plasa cu
+   `x = pad.x or 0`, iar clientul o desena lipită de marginea din stânga a râului, peste plasele celorlalte benzi.
+   Acum: nici unealta de dezvoltare nu mai dă o platformă care nu e în joc (`PadService.DevGrant`; `buyto` spune câte
+   a sărit), butonul devine „all of Era 1", iar o plasă fără loc pe hartă nu mai ajunge la client (rămâne în profil,
+   neatinsă).
+
+Verificat înainte de Studio pe hărțile randate din config, cu textul rasterizat din fontul adevărat: numele caselor nu
+se ating între ele (cel mai lat, „Scrap Collector", 109 px la case așezate la 150–190 px), firma forjei stă pe acoperiș
+fără să atingă hornul, iar eticheta omului stă sub picioare.
+
+---
+
+## D57 — Satul pe flux: harta Erei 1 cu cap, clădirile așezate pe pământ
+**DECIS** (2026-09-14) — owner-ul, pe o captură din joc: *„vreau să aibă mai multă viață această hartă, arată cam
+urât și simplă, texturile obiectelor (taverna sawmill forge etc) parcă plutesc mereu, nu fac parte din realul
+absolut al jocului, trebuie să dezbatem puțin"*, apoi *„consideră și un plasament al lucrurilor/obiectelor diferit
+(par foarte random plasate și fără «cap»)"*.
+
+**Dezbaterea.** Diagnosticul, arătat pe machete: clădirile n-aveau umbră (oamenii și copacii aveau), drumurile de
+pământ aveau umbră ca niște scânduri puse pe iarbă, decorul era împrăștiat doar în afara terenului, iar pozițiile
+veniseră pe rând, „unde mai era loc" — lemnul ocolea toată harta, fierul o traversa de două ori. Principiile, cu
+surse (`docs/research/44-harta-vie.md`; citatele Slynyrd și The Level Design Book reverificate): umbra leagă
+obiectul de sol, fiecare clădire stă pe ceva al ei, fiecare linie are curtea ei, un centru și margini. Trei variante
+arătate ca imagini (așezat pe pământ în aceleași locuri · satul pe flux · lume nouă pe dale); owner-ul a ales
+**satul pe flux**, apoi: *„doar că distanțele puțin mai mari, ca totuși npc-urile să facă un drum. și harta ține-o
+în jos la fel de mare"*, casele *„pe pământ"*, iar la tavernă *„poți păstra piatra, doar niște pământ în plus"*.
+
+1. **Așezarea.** Râul și puntea sus, neschimbate. **Curtea lemnului** sub plasele de lemn, lângă tavernă: depozitul
+   sus, lângă aleea tavernei; gaterul jos, cu fața la stradă. **Curtea fierului** spre Moară: shed-ul sus, sub plasa
+   de scrap; forja jos, cu fața la stradă. Marfa brută coboară de pe punte pe câte o **alee**, cea gata iese pe
+   **strada satului** și merge pe ea spre **piața tavernei**. **Casele oamenilor** stau pe un rând, peste stradă de
+   curtea liniei lor; clopotul, în colțul de sus de lângă poarta Morii; roata și traista mare, peste stradă de piață.
+   **Patru drumuri** în loc de șapte (`street`, `tavern_link`, `plaza`, `iron_lane`), fiecare într-o singură direcție.
+   Sudul străzii rămâne deschis: acolo va duce drumul spre harta cu clasamente (de discutat altă dată).
+2. **Drumurile oamenilor**, dus, pe graful din joc (secunde la viteza lor): Porter 5,5 (azi 5,5) · Hauler 7,4 (10,5) ·
+   Scrap Porter 4,5 (9,2) · Iron Hauler 11,8 (6,8) · turul Collector-ului 12,2 (16,6); ciclul oricărui culegător sub
+   30 s. Față de machetă, de două-trei ori mai lungi; turul tău de mână, cu ~30% mai scurt.
+3. **Nimic construit pe iarbă goală.** `TycoonConfig.YARDS`: pământ bătătorit sub fiecare curte de lucru, sub fiecare
+   casă, sub tarabă, clopot, roată și traistă, și în jurul pieței tavernei (piatra rămâne, cu pământ în plus). Dala
+   drumului, mai deschisă, cu colțuri rotunjite și iarbă peste margini. În Era 1 dala-platformă de sub clădiri iese
+   (ar fi arătat lipită peste pământ).
+4. **Umbre** (`UI/GroundShadow`: elipsa de sub oameni, lată cât obiectul, împinsă spre dreapta-jos — lumina din
+   stânga-sus) sub tavernă, depozit, gater, roată, clădirile platformelor și ruinele lor. **Drumurile de pământ nu mai
+   au umbră**; puntea, care chiar stă peste mal, o păstrează.
+5. **Decor așezat de mână** (`TycoonConfig.DECOR`, 36 de obiecte din recuzita existentă): felinarele și butoiul
+   pieței, stiva de bușteni și butucii curții lemnului, pietrele și butoaiele de lângă forjă, gardurile curților spre
+   stradă, indicatoarele de la capetele aleilor, felinarele străzii, flori între case, copaci. Sub clădiri și oameni.
+6. **Artă nouă** (`scripts/art/d57.py`): `tile_plaza` (piatra pieței) și `grass_edge_h/v` (smocuri peste marginile
+   pământului), din culorile dalelor existente. Owner-ul a aprobat piața și marginile desenate procedural pe
+   previzualizare; arta finală, urcată odată cu mutarea, i-a fost arătată pe harta randată din config.
+7. **Verificarea înainte de joc.** Harta a fost proiectată ca date, cu un port Python al `RoadGraph` și al testelor de
+   așezare (a dat exact ciclurile de azi: Collector 20 s, Scrap Collector 5,3 s), randată din acele date și aprobată
+   de owner; config-ul portat e identic cu ea (0 diferențe). În cod: la shed omul stă acum cu fața spre dreapta, unde e
+   grămada (test nou pentru orice așezare: fiecare om stă cu fața spre grămada lui); exemplul testului „scurtătura
+   peste iarbă" s-a mutat (spawn-ul stă lângă alee); id-urile curților caselor nu sunt ale platformelor —
+   simulatorul caută prețul unei platforme după primul `id = "…"` din fișier.
+8. **Tot din sesiunea asta, reparate înainte:** pe telefon, reflectorul „Claim your rewards here!" cădea lângă
+   butonul cu cartea — `AbsolutePosition` folosește sistemul zonei sigure (CoreUISafeInsets), iar noi adunam doar bara
+   de sus; acum conversia între straturi se citește din straturile însele (aceeași corectură pentru textele „+N" și
+   eticheta ghidajului). Lista de quest-uri: cele de revendicat sus, apoi cele nefăcute, cele revendicate la coadă
+   (`QuestMath.displayOrder`); recompensa stă pe buton, „Claim 1 (perlă)", fără rândul „Reward".
+
+**Se abate** de la D50 (harta în buclă, șapte drumuri), D55 (colibele lipite de meseria lor — acum pe rândul liniei
+lor, lângă curte) și D53 (dala sub clădirile cumpărate). Viața hărții (fum din hornuri, păsări, spumă la stâlpi,
+frunze care se mișcă) e pasul următor, nefăcut încă.
+
+## D56 — Linia fierului cu oamenii ei; atelierul devine Forge, colecția așteaptă
+**DECIS** (2026-09-14) — owner-ul, după D55: *„revizuiește cum este făcut workshop-ul (este varianta veche?); am
+impresia că player-ul se pierde când ajunge la scraps și nu știe ce să facă… scraps nu are om npc care se ocupă de
+transport la storage, după transport la workshop, după cineva care prelucrează, după cineva care le duce la
+tavern… nu știu care e treaba cu acele collectables, nu au texturi"*. Din variantele arătate ca pași ai
+jucătorului a ales **A** (linia fierului cu patru oameni ai ei) și **1** (clădirea devine Forge, colecția
+așteaptă). Planul, cu cele două revizii: `~/.claude/plans/d56-linia-fierului.md`.
+
+**Ce a găsit revizia (înainte de schimbare):** atelierul era pe jumătate vechi — E la ușă și butonul „Workshop"
+deschideau panoul de reparații din colonie, cu forja D55 lipită peste; ghidajul tăcea după cei cinci oameni ai
+lemnului; Workshop → Scrap Shed → Fifth Net erau trei cumpărări la rând, primele două fără efect vizibil; aceiași
+oameni cărau și scrap-ul; scrap-ul curgea ~4 minute înainte de clopot și aducea ~8% din bani. **Collection** era
+sistemul de găsiri din colonie (TYCOON §H), cu 36 de obiecte fără pictograme și butonul în bară din primul minut.
+
+1. **Linia fierului, în ordine** (Era 1 are 18 platforme, erele 2–4 se renumerotează cu +4; profilurile țin
+   platformele pe id): Fourth Net → **Forge** 5,5K (id-ul rămâne `workshop`) → **Fifth Net** 7K (cere Forge; prinde
+   scrap, nu îl ia nimeni) → **turul de mână** (culegi, duci la forjă, stai în inel, iei fierul, îl vinzi) →
+   **Scrap Shed** 2,5K (cere 5 plase) → **Scrap Collector** 2,5K → **Scrap Porter** 2,8K → **Smelter** 3,5K →
+   **Iron Hauler** 3,5K → **Landing Bell** 8K. Al doilea om: Scrap Collector 10K, Scrap Porter 11K, Smelter 9K,
+   Iron Hauler 18K (Sawyer 16K, de la 12K). Oamenii lemnului se întorc la drumurile lor, fără opririle de scrap
+   din D55; Innkeeper-ul vinde amândouă.
+2. **Forja ca gaterul:** fără Smelter topește doar cât stai în inelul ei („Stand here to smelt", „Smelting — N
+   left"); cu Smelter, tot timpul, iar el bate cu ciocanul cât forja chiar topește. **Prezența e pe loc**
+   (`presentUntil[player][place]`, remote nou `AtForge` cu bucket propriu), ca inelul forjei să nu pornească
+   gaterul; toastul unui E citește „are om" pe locul lui. Inelul, plăcuța și bucla de prezență au ieșit din
+   `SawmillController` într-un modul comun (`UI/StandRing`), folosit de amândouă. E la forjă: „Smelt scrap" / „Take
+   iron"; Upgrade = nivelul forjei. Fumul din horn e desen (fâșie de trei nori), nu cercuri din cod.
+3. **Atelierul vechi și colecția, puse deoparte — intenționat fără nicio intrare:** butoanele „Workshop" (R) și
+   „Collection" (C) au ieșit din bară, forja nu mai deschide panoul, insigna cu găsirile de pe clădire a ieșit.
+   Codul și profilul (`Pile`, `Index`, `Workshop`) rămân neatinse; controller-ele rămân inițializate, ascunse, ca
+   remote-urile lor să fie folosite pe ambele părți. Găsirile deja strânse în atelier (doar în profilurile din
+   Studio) rămân în `data.Pile`, nearătate. Efectul `indexFound +6` al platformei a ieșit (intra în venitul
+   lanțului doar pentru că deții clădirea); bonusul colecției reparate rămâne în formule.
+4. **Găsirile merg cu marfa și se vând la tavernă.** Nu mai ocolesc spre atelier (nici la tine, nici la oameni):
+   ocupă loc în traistă sau în roabă, iar cu traista plină rămân în plasă. **Ales de mine în implementare:** o
+   găsire neprelucrată din traistă se vinde direct la tavernă, iar locul unde lași lemnul (depozit, gater) sau
+   scrap-ul (shed, forjă) o ia și pe ea, neschimbată. Până acum era „lemn brut": taverna o refuza — deci toastul
+   primei găsiri, *„A rare find: {name}! The tavern pays well for it."*, ar fi mințit — iar una prinsă în plasa
+   de scrap ar fi trimis ghidajul cu ea la gater („Take the logs to the sawmill" fără niciun buștean). Capitolul 1
+   rămâne identic: găsirea trece prin gater odată cu buștenii și e numărată la „Cut the logs into planks".
+5. **Economia** (simulatorul întâi, `ChainMath` port la bit, valori de aur din `golden_chain.py`, 14 cazuri):
+   două linii care împart doar taverna — `lemn_max = min(plasele de lemn, Collector, Porter, gater, Hauler)`,
+   `fier_max = min(Fifth Net, Scrap Collector, Scrap Porter, forja, Iron Hauler)`; taverna vinde întâi fierul,
+   lemnul din ce rămâne; venit = `lemn·1,65 + fier·3,55` × multiplicatorii. **Timpul tău se împarte pe linii**
+   (fiecare linie are timpul tău întreg), așa că deschiderea fierului nu poate scădea lemnul în nicio stare, iar
+   capitolele 1–2 sunt bit cu bit cele de dinainte. Linia fierului e deschisă = Forge + Fifth Net. **Veriga slabă**
+   rămâne cea cu cei mai mulți bani pe bucată, plus veriga slabă a fiecărei linii (`woodBottleneck`,
+   `ironBottleneck`, `""` cât fierul e închis), ca meniul unui obiect cu câștig zero să spună ce îl ține **în
+   linia lui**. Oamenii fierului vin în rafală, ca cei ai capitolului 1: prețul lor e 45–60 s din venitul din
+   clipa în care se deschid (`BURST_WAIT`), fără scara deblocărilor. `ROLE_BASE`: Scrap Collector 2,0, Scrap Porter
+   2,5, Iron Hauler 6,5. **Era 1 la 41m52s** reali (de la 37m44s), `--robust` între 41m29s și 43m10s; fierul face
+   **35% din bani** la final (de la 8%).
+6. **Compromisul porții de 0,5%, decis de mine după intenția owner-ului.** Scrap Porter-ul (1,3%) și Iron
+   Hauler-ul (0,3%) rar sunt cea mai lentă verigă: ultimul om de drum trebuie să care cel puțin cât tot timpul
+   tău (altfel angajarea lui ar scădea venitul), iar la baza asta rar mai e el gâtuirea; nicio ordine a angajărilor,
+   bază sau cost de treaptă încercat nu l-a urcat peste 0,5%. Întrebat, owner-ul n-a înțeles problema și a spus
+   intenția: *„eu mă gândeam că fierul este într-adevăr ceva care se face mai greu la început dar care aduce mai
+   mulți bani pentru a te ajuta să deblochezi era 2"*. Ca atare, cele două verigi sunt scutite de poartă
+   (`BOTTLENECK_EXEMPT`); efectul pentru jucător: urcarea lor rar merită în Era 1 — gâtuirea fierului e forja
+   (70% din timpul cu scrap) și Scrap Collector-ul (27%).
+7. **Ghidajul se trezește la Forge** și merge până ai cei patru oameni ai fierului (`GuideMath.guidedRoles`);
+   până la Forge tace după cei cinci oameni ai lemnului, ca în D50. `GuideMath.loopStep` e un singur lanț de 11
+   pași, cu pașii fierului lângă perechea lor de lemn (bușteni → gater; scrap → forjă; inelul gaterului; inelul
+   forjei; ia scândurile; ia fierul; vinde; ia din depozit; ia din shed; plasele fără omul liniei lor; plasele
+   prind), testat în ordine. **Textele spun ce duci**: „Sell the planks / the iron / the planks and iron / the
+   find at the tavern", la fel mesajul de traistă plină. **Capitolul 2** se oprește înaintea Forge; **capitolul 3
+   „The Iron Line"** (8 perle): Build the Forge · Cast the Fifth Net · Smelt 10 iron at the Forge · Sell the iron at
+   the tavern (10, doar fierul, `Stats.ironSold`) · Build the Scrap Shed · Hire a Scrap Collector · Hire a Scrap
+   Porter · Hire a Smelter · Hire an Iron Hauler · Ring the Landing Bell. Id-urile salvate rămân unde sensul e
+   același.
+8. **Profil v8** (`toV8`, aditiv, idempotent): `Crews` pentru cele patru meserii, `Stats.ironSold`; ce duceau
+   oamenii de lemn pe drumurile D55 se mută după marfă — scrap brut în shed, fier în grămada forjei.
+9. **Meniurile:** meniul unei plase de scrap spune „scrap a minute", forja „Smelts only while you stand here" fără
+   Smelter, iar forja fără plasa de scrap *„Won't earn more yet: no scrap comes in until the Fifth Net"*; panoul
+   ascuns de pe U arată lemnul, taverna, apoi verigile fierului (ascunse cât linia e închisă).
+10. **Arta** (`scripts/art/d56.py`, ținute noi în `settlers.py`, previzualizare `scripts/art/preview_d56.py`):
+    4 ținute (Scrap Collector, Scrap Porter, Smelter cu șorț de piele, Iron Hauler), 8 colibe (două mărimi) și
+    fumul forjei — 13 fișiere urcate, **toate aprobate la moderare**. Avizierele poartă pictograma meseriei
+    (plasa, scrap-ul, ciocanul, fierul). **Pozițiile** ies din harta randată acum direct din `TycoonConfig.luau`
+    (`preview_d56.py map`, nu copiate de mână): Scrap Collector lângă shed, Scrap Porter la capătul de sus al
+    drumului lui, Smelter în spatele forjei, Iron Hauler la capătul lui de la tavernă. **Ales de mine:** al doilea
+    Smelter stă în dreapta primului — în stânga ar fi stat exact unde răstoarnă Scrap Porter-ul roaba.
+
+**Revizia codului** (doi agenți independenți, pe server și pe client, după implementare): pe server nimic de
+reparat (o funcție rămasă fără cititori, `EconomyService.PileCount`, a ieșit); pe client un text care mințea —
+traista plină doar de găsiri spunea „take the planks to the tavern" — reparat cu „Sack full — take the finds to the
+tavern", și în ghidaj, cu test. Poarta întreagă trece: 326 de teste, `check_requires` fără nicio problemă (remote-ul
+`AtForge` e folosit pe ambele părți), `--robust`, panourile.
+
+**Se abate** de la D55 (forja singură, aceiași oameni pentru scrap, „Smelt 25 iron at the Workshop", Workshop →
+Shed → Fifth Net), D50 (ghidajul tace definitiv după cinci meserii) și F1 spec 4.5 (Workshop și Collection în
+bară). **Platforma `smelter` a Erei 2** (neconstruită, „Melt scrap into iron") rămâne cum e: topitul s-a mutat în
+Era 1, clădirea Erei 2 se regândește când ajungem acolo.
+
 ## D55 — Resturile pe drumul lor, roabele, grămezile la gater, colibele care cresc
 **DECIS** (2026-09-13, noaptea) — owner-ul, înainte de culcare, a cerut ca planul să fie scris și aprobat de
 mine: *„este o confuzie la ce prinde al doilea net: scraps. scraps ar trebui să poți prinde doar la ultimul
@@ -455,10 +726,28 @@ D43 (nimic în tăcere), D44, D20 (fără pay-to-win, fără obiecte aleatorii p
 ## A. Platformă, cont, mediu
 
 ### D01 — Proprietate și conturi · DECIS
+- **[2026-09-15] Fără grup, deocamdată** — owner-ul, după reverificarea de mai jos: *„da, renunțăm"*. Pentru un proiect
+  solo contul personal publică ambele universuri, încasează și face DevEx, iar formularul fiscal e oricum pe persoană
+  fizică; un grup ar fi adus acum doar 100 Robux, împărțirea celor ~180 de asset-uri și o cheie API nouă. Jocurile se mută
+  gratuit pe un grup (Community) când apare un colaborator plătit sau o pagină pentru jucători. Punctul de mai jos e istoric.
 - Experiențele sunt deținute de un **Grup Roblox** „Driftwood" (100 Robux, o singură dată), nu de contul personal. Motiv: transfer ulterior al unei experiențe către grup cere re-upload manual al ModuleScript-urilor private și al asset-urilor; grupul e și condiția pentru colaboratori plătiți și DevEx din fonduri de grup. [sprites-assets, legal-ip-tax]
 - **2FA + verificare de identitate** pe contul owner din prima săptămână. Din 19 mai 2026 publicarea pentru toate vârstele (tier 3, care include conturile Roblox Kids/Select) cere ID + 2FA + abonament Roblox Plus activ sau taxă unică rambursabilă de 1.000 Robux/joc. Verificarea de ID mai deblochează: 2.000 vs 100 upload-uri audio/30 zile, Team Create Collaborate, DevEx. [studio-mac, audio]
 - **Două universuri** separate: `Driftwood-Staging` și `Driftwood` (producție), fiecare cu DataStore-uri izolate. Pattern-ul oficial din `Roblox/place-ci-cd-demo`. [open-cloud-cicd]
 - Formular fiscal **W-8BEN** depus în Creator Hub înainte de **31 octombrie 2026**: de la 1 noiembrie 2026 DevEx e reclasificat ca royalty, cu reținere la sursă 24% dacă lipsește formularul. [legal-ip-tax]
+- **[Reverificat 2026-09-15, pe sursele oficiale]** Motivul de mai sus pentru grup nu mai stă în picioare: din decembrie 2024
+  un joc se mută gratuit de pe cont pe grup (Creator Hub → Configure → Settings → *Initiate ownership transfer*), cu același
+  ID de joc și de place; nu se poate întoarce pe cont, iar după primire trebuie 30 de zile până la o nouă mutare. Rămâne
+  motivul colaboratorilor și al plăților. Apare însă altceva: din 5 mai 2026, conturile și grupurile noi au imaginile
+  „Restricted" implicit, deci un joc al grupului folosește imaginile și sunetele urcate de pe cont doar după ce le sunt
+  împărțite (Asset Manager în Studio, sau API-ul Open Cloud de permisiuni, în beta). Grupurile se numesc acum
+  „Communities" (100 Robux). Publicarea pentru copiii sub 16 cere, pentru jocurile grupului, ca **owner-ul** să aibă ID,
+  2FA, chestionarul de maturitate și fie taxa de 1.000 Robux per joc (returnată după 90 de zile), fie Roblox Plus sau
+  Premium activ de cel puțin 2 luni; jocul pornește la 16+ și trece la copii după 250 de jucători implicați în 60 de zile.
+  Taxele se depun din Creator Hub → Finances → Taxes; în tabelul IRS (Table 1), România are 10% la redevențele de
+  copyright și 15% la cele industriale, doar pe partea din jucătorii din SUA. **Pe contul owner-ului pagina Taxes nu apare**
+  (verificat de el pe 2026-09-15, cu 0 Robux câștigați; „Account information" din Finances e doar pentru facturi la
+  servicii de business, nu pentru reținerea DevEx). Formularul se depune când apare pagina, înainte de primul cash-out
+  (minimum 30.000 Robux) — până atunci nu există nicio plată DevEx căreia să i se aplice reținerea.
 
 ### D02 — Roblox Studio pe Mac · DECIS
 - Se instalează build-ul **nativ Apple Silicon** (installer-ul public livrează build Intel sub Rosetta); se verifică în Activity Monitor coloana Kind = Apple. [studio-mac]
@@ -912,7 +1201,7 @@ Trei locuri unde interfața promitea un lucru și jocul făcea altul. Regula pe 
 ### D27 — Producție · DE DECIS (ore/săptămână)
 - Ordinea din brief rămâne obligatorie (7 pași, fiecare cu test pe oameni reali). Planul de producție din masterplan dă două coloane: 15–20 h/săptămână și 40 h/săptămână. Owner-ul alege.
 - Reper de durată din postmortem-uri: niciun succes rapid nu a avut scopul celor 7 sisteme interconectate; cel mai apropiat ca profunzime (DOORS, 2 oameni) a durat 1,5–2 ani. Planificare realistă: **9–14 luni part-time** până la lansarea publică, cu învățarea Roblox de la zero inclusă. [solo-dev-production]
-- Roblox Group + staging/prod + toolchain se fac **înainte** de pasul 1, nu după. Update-uri post-lansare la 2–4 săptămâni (recomandarea oficială), nu săptămânal. [solo-dev-production]
+- Roblox Group + staging/prod + toolchain se fac **înainte** de pasul 1, nu după. **[2026-09-15]** Fără grup (vezi D01). Update-uri post-lansare la 2–4 săptămâni (recomandarea oficială), nu săptămânal. [solo-dev-production]
 
 ---
 

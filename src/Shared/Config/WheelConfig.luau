@@ -8,32 +8,37 @@
 --   * rotirea e GRATUITA, o data la 24h. Rotiri cumparate nu intra: D20 spune "zero paid random
 --     items", si obiectele aleatorii platite au reguli proprii de dezvaluire pe Roblox.
 --
--- Premiile in monede se dau ca SECUNDE DE VENIT, nu ca sume fixe: o suma fixa e regeasca in
--- minutul 3 si o gluma in ora 3. Asa roata ramane relevanta toata Era 1 fara sa fie recalibrata.
+-- [D59] DARURILE RAULUI, FARA MONEDE. Owner-ul: "sa slefuim lucky wheel, nu prea se integreaza cu cap". Roata sta acum
+-- pe punte, ca un timonier, iar premiile ei sunt ale pontonului: perle (care cumpara aspect), ce aduce raul (vine la
+-- ponton si il scoti cu undita) si momeala aurie (perlele pestilor x2). Monedele au iesit: o rotire in primul minut dadea
+-- 10 min de venit (10%) sau 30 min (3%) -- 324 sau 972 de monede cand tot capitolul 1 costa ~120 --, deci sarea peste
+-- ritmul tutorialului, exact motivul pentru care D51 a mutat recompensele quest-urilor in perle.
 local WheelConfig = {}
 
 WheelConfig.COOLDOWN = 24 * 3600 -- o rotire gratuita pe zi
-WheelConfig.MIN_COINS = 25 -- plasa de siguranta pentru inceputul de tot, cand venitul e minuscul
 
+-- Fiecare premiu da exact un lucru: `pearls`, `treasure` (un fel din TreasureConfig) sau `bait` (cate momeli).
 export type Prize = {
     id: string,
     label: string,
     weight: number,
-    incomeSeconds: number?, -- monede = atatea secunde din venitul tau de acum
     pearls: number?,
+    treasure: string?,
+    bait: number?,
 }
 
 -- Ponderile se aduna la 100, ca procentul afisat in fereastra sa fie chiar ponderea -- fara
 -- inmultiri ascunse intre ce calculeaza serverul si ce citeste jucatorul [D40].
+-- Ordinea e si ordinea feliilor de pe fata roatii, in sensul acelor de ceasornic de sus: tipurile alterneaza.
 WheelConfig.PRIZES = {
-    { id = "coins_s", label = "30s of income", weight = 22, incomeSeconds = 30 },
-    { id = "coins_m", label = "2min of income", weight = 20, incomeSeconds = 120 },
-    { id = "coins_l", label = "10min of income", weight = 10, incomeSeconds = 600 },
-    { id = "coins_xl", label = "30min of income", weight = 3, incomeSeconds = 1800 },
-    { id = "pearl_1", label = "1 pearl", weight = 22, pearls = 1 },
-    { id = "pearl_3", label = "3 pearls", weight = 14, pearls = 3 },
-    { id = "pearl_10", label = "10 pearls", weight = 6, pearls = 10 },
-    { id = "pearl_25", label = "25 pearls", weight = 3, pearls = 25 },
+    { id = "pearls_5", label = "5 pearls", weight = 26, pearls = 5 },
+    { id = "bottle", label = "A bottle drifts to your pier", weight = 18, treasure = "bottle" },
+    { id = "pearls_10", label = "10 pearls", weight = 18, pearls = 10 },
+    { id = "bait", label = "Golden bait ×5", weight = 16, bait = 5 },
+    { id = "chest", label = "A chest drifts to your pier", weight = 10, treasure = "chest" },
+    { id = "pearls_25", label = "25 pearls", weight = 6, pearls = 25 },
+    { id = "golden", label = "Golden Driftwood drifts in", weight = 4, treasure = "golden" },
+    { id = "pearls_60", label = "60 pearls", weight = 2, pearls = 60 },
 } :: { Prize }
 
 WheelConfig.byId = {} :: { [string]: Prize }

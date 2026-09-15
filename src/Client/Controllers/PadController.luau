@@ -19,6 +19,7 @@ local HUDController = require(script.Parent.HUDController)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
 local Focus = require(script.Parent.Parent.UI.Focus)
+local GroundShadow = require(script.Parent.Parent.UI.GroundShadow)
 
 export type Deps = {
     Plot: Frame,
@@ -81,10 +82,6 @@ local function toPlotLocal(worldX: number, worldY: number): (number, number)
     return worldX - PLOT_ORIGIN.x, worldY - PLOT_ORIGIN.y
 end
 
--- Atelierul: singura platforma "bought" cu propriul indemn de interactiune (badge + "Workshop
--- (E)"), separat de cumparare -- odata construit, calci pe el ca sa deschizi panoul [F1 spec 4.5].
-local workshopPile = 0
-local workshopBadge: TextLabel? = nil
 -- [D51] Cartonasul de cumparare si cardul obiectului (InteractController) nu se arata deodata: se vede
 -- doar cel mai apropiat. `candidate` e platforma pe care ar arata-o cartonasul acum, cu distanta ei.
 local approachSuppressed = false
@@ -112,9 +109,20 @@ local HOME_SPRITES: { [string]: { string } } = {
     hire_sawyer = { "hut_sawyer_1", "hut_sawyer_2" },
     hire_hauler = { "hut_hauler_1", "hut_hauler_2" },
     dock_trader = { "stall", "stall_2" },
+    -- [D56] oamenii fierului, fiecare langa locul lui
+    hire_scrap_collector = { "hut_scrap_collector_1", "hut_scrap_collector_2" },
+    hire_scrap_porter = { "hut_scrap_porter_1", "hut_scrap_porter_2" },
+    hire_smelter = { "hut_smelter_1", "hut_smelter_2" },
+    hire_iron_hauler = { "hut_iron_hauler_1", "hut_iron_hauler_2" },
 }
 -- taraba ramane recuzita mica (x2); colibele sunt cladiri (x3)
 local HOME_SCALE: { [string]: number } = { dock_trader = TycoonConfig.PROP_SCALE }
+
+-- [D58] NUMELE PE CASE. Owner-ul, pe randul de colibe: "as vrea sa apara numele a cui casuta este (pentru upgrade)".
+-- Sub casa fiecarei meserii, numele ei, cum il scrie meniul care se deschide de acolo; ca "Lucky Wheel" sub roata:
+-- pe casa ar fi acoperit usa. Forja, singura cladire cu Upgrade fara nume, il primeste pe acoperis, ca taverna.
+local HOME_NAME_GAP = 2 -- px sub baza cladirii
+local FORGE_SIGN_Y = 30 -- px de la varful cladirii: pe acoperis, ca firma tavernei (DockController)
 
 -- Avizierele: pe oameni ii angajezi, nu ii reconstruiesti. Pictograma meseriei pe avizierul curat.
 local BOARD_ICON: { [string]: () -> Assets.Sprite } = {
@@ -126,6 +134,19 @@ local BOARD_ICON: { [string]: () -> Assets.Sprite } = {
     end,
     hire_hauler = function()
         return Assets.goods.planks
+    end,
+    -- [D56] linia fierului: plasa, scrap-ul, ciocanul, fierul
+    hire_scrap_collector = function()
+        return Assets.icons.net
+    end,
+    hire_scrap_porter = function()
+        return Assets.goods.scrap
+    end,
+    hire_smelter = function()
+        return Assets.icons.hammer
+    end,
+    hire_iron_hauler = function()
+        return Assets.goods.iron
     end,
 }
 
@@ -455,6 +476,8 @@ local function buildRuin(
     local sprite, scale = ruinSprite(pad.id)
     local s = sprite :: Assets.Sprite
     local h = s.height * scale
+    -- [D57] si ruina sta pe pamant: o umbra mai slaba decat a cladirii intregi
+    GroundShadow.add(frame, UDim2.new(0.5, 0, 1, 8), s.width * scale, Z - 1, 0.35)
     local img = worldImage(frame, s, s.width * scale, h, tint)
     img.Name = "Ruin"
     img.AnchorPoint = Vector2.new(0.5, 1)
@@ -673,13 +696,24 @@ local function drawPlatform(frame: Frame)
     plat.Parent = frame
 end
 
-local function refreshWorkshopBadge()
-    local badge = workshopBadge
-    if badge == nil then
-        return
-    end
-    badge.Text = tostring(workshopPile)
-    badge.Visible = workshopPile > 0
+-- Eticheta de nume peste lume (fontul de pixeli, conturat), ca la gater, depozit si roata. `y` = varful etichetei, fata
+-- de baza cadrului platformei (valori negative = mai sus).
+local function worldName(frame: GuiObject, text: string, y: number)
+    local l = Widgets.Label(frame, text, Theme.TEXT.tiny, Theme.COLOR.onDark, "strong")
+    l.Name = "Name"
+    l.AnchorPoint = Vector2.new(0.5, 0)
+    l.Position = UDim2.new(0.5, 0, 1, y)
+    l.Size = UDim2.fromOffset(160, 18)
+    l.TextXAlignment = Enum.TextXAlignment.Center
+    l.ZIndex = Z + 2
+    Theme.punch(l, 2)
+end
+
+-- [D58] Numele de sub casa unei meserii, sau nil daca platforma nu e a unei meserii.
+local function homeName(padId: string): string?
+    local role = TycoonConfig.CREW_OF_PAD[padId]
+    local crew = if role ~= nil then TycoonConfig.CREWS[role] else nil
+    return if crew ~= nil then crew.name else nil
 end
 
 -- "bought": stalp pe mal pentru platformele de plasa (plasa insasi o deseneaza NetController in
@@ -692,9 +726,6 @@ local function styleBought(frame: TextButton, pad: TycoonConfig.Pad)
     ringSetters[pad.id] = nil
     needLabels[pad.id] = nil
     plaques[pad.id] = nil
-    if pad.id == "workshop" then
-        workshopBadge = nil
-    end
     frame.BackgroundTransparency = 1
     -- Plasele NU se mai deseneaza aici: stalpul, franghia, plasa din apa, marfa dinauntru si
     -- cifra sunt un singur ansamblu, desenat de NetController [F3]. Cat le desena si acesta,
@@ -728,14 +759,22 @@ local function styleBought(frame: TextButton, pad: TycoonConfig.Pad)
             mark.Position = UDim2.new(0.5, 0, 1, 8 - 34)
             mark.ZIndex = Z + 1
         end
+        local name = homeName(pad.id)
+        if name ~= nil then
+            worldName(frame, name, 8 + HOME_NAME_GAP) -- [D58]
+        end
         return
     end
 
-    -- orice statie non-plasa sta pe-o platforma, ca nimic sa nu ramana pe iarba goala [item 2]
-    drawPlatform(frame)
+    -- orice statie non-plasa sta pe-o platforma, ca nimic sa nu ramana pe iarba goala [item 2]. [D57] In Era 1 sta pe
+    -- pamantul ei (TycoonConfig.YARDS, desenat de SceneArt): o dala in plus peste pamant ar fi arata lipita.
+    if pad.era ~= 1 then
+        drawPlatform(frame)
+    end
 
     local sprite, scale = boughtSprite(pad.id)
     if sprite ~= nil and Assets.has(sprite) then
+        GroundShadow.add(frame, UDim2.new(0.5, 0, 1, 8), sprite.width * scale, Z - 1) -- [D57]
         local img = Instance.new("ImageLabel")
         img.Name = "Building"
         img.BackgroundTransparency = 1
@@ -746,19 +785,13 @@ local function styleBought(frame: TextButton, pad: TycoonConfig.Pad)
         img.Size = UDim2.fromOffset(sprite.width * scale, sprite.height * scale)
         img.ZIndex = Z
         img.Parent = frame
-
-        if pad.id == "workshop" then
-            -- insigna cu numarul de obiecte care asteapta in gramada [F1 spec 4.5]
-            local badge = Widgets.PlateLabel(frame, "0", Theme.TEXT.tiny, "strong")
-            badge.AnchorPoint = Vector2.new(1, 0)
-            badge.Position = UDim2.new(1, 6, 0, -10)
-            badge.Size = UDim2.fromOffset(32, 24)
-            badge.TextXAlignment = Enum.TextXAlignment.Center
-            badge.TextColor3 = Theme.COLOR.gold
-            badge.ZIndex = Z + 3
-            badge.Visible = false
-            workshopBadge = badge
-            refreshWorkshopBadge()
+        -- [D56] insigna atelierului (gasirile care asteptau reparatia) a iesit: colectia e pusa deoparte
+        -- [D58] numele: sub casa unei meserii; pe acoperisul forjei
+        local name = homeName(pad.id)
+        if name ~= nil then
+            worldName(frame, name, 8 + HOME_NAME_GAP)
+        elseif pad.id == "workshop" then
+            worldName(frame, Strings.FORGE_LABEL, 8 - sprite.height * scale + FORGE_SIGN_Y)
         end
         return
     end
@@ -1073,15 +1106,9 @@ function PadController.SetCrews(counts: { [string]: number })
     end
 end
 
--- Impins din Bootstrap la fiecare TycoonState (state.workshop, state.pile) [F1 spec 4.5].
-function PadController.SetWorkshop(_owned: boolean, pile: number)
-    workshopPile = pile
-    refreshWorkshopBadge()
-end
-
 -- [D51] Cardul obiectelor construite pe platforme: platformele de meserie cumparate (Upgrade = meniul
 -- meseriei). Plasele au cardul lor (NetController.Focus); traista mare si clopotul n-au nici gest, nici
--- niveluri. [D55] Atelierul are cardul forjei (ForgeController.Focus): E topeste si ia fierul, sau intra.
+-- niveluri. [D55, D56] Forja are cardul ei (ForgeController.Focus): E lasa scrap-ul si ia fierul.
 function PadController.FocusBuilt(px: number, py: number): Focus.Focus?
     local best: Focus.Focus? = nil
     for _, pad in TycoonConfig.PADS do

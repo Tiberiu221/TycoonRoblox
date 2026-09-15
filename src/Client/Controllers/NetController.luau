@@ -105,7 +105,9 @@ local freeFloaters: { Floater } = {}
 local sackCount = 0
 local sackCapacity = 0
 local sackRaw = 0 -- cati busteni bruti duci: decide unde te trimite mesajul de traista plina [D49]
-local sackRawScrap = 0 -- [D55] cat scrap brut duci: el merge la shed, nu la gater
+local sackRawScrap = 0 -- [D55] cat scrap brut duci: el merge la forja, nu la gater
+local sackIron = 0 -- [D56] cat fier duci: mesajul spune "planks", "iron" sau amandoua [D40]
+local sackFinds = 0 -- [D56] gasirile neprelucrate: nu sunt scanduri
 local LocalPlayer = Players.LocalPlayer
 
 local TIER_COLORS: { [string]: Color3 } = {}
@@ -457,12 +459,13 @@ end
 local function collect(padId: string)
     if sackCapacity > 0 and sackCount >= sackCapacity then
         -- unde sa te duci depinde de ce duci: bustenii la gater, scandurile la taverna [D49]
-        deps.OnToast(
-            if sackRaw > 0
-                then Strings.SACK_FULL_LOGS
-                elseif sackRawScrap > 0 then Strings.SACK_FULL_SCRAP
-                else Strings.SACK_FULL_PLANKS
-        )
+        deps.OnToast(if sackRaw > 0
+            then Strings.SACK_FULL_LOGS
+            elseif sackRawScrap > 0 then Strings.SACK_FULL_SCRAP
+            elseif sackIron > 0 and sackCount - sackIron - sackFinds > 0 then Strings.SACK_FULL_BOTH
+            elseif sackIron > 0 then Strings.SACK_FULL_IRON
+            elseif sackFinds >= sackCount then Strings.SACK_FULL_FINDS -- [D56] fara nicio scandura
+            else Strings.SACK_FULL_PLANKS)
         return
     end
     deps.Remotes.CollectNet:FireServer(padId)
@@ -527,11 +530,15 @@ function NetController.Apply(
     _lanes: number,
     levels: { [string]: number }?,
     newSackRaw: number?,
-    newSackRawScrap: number?
+    newSackRawScrap: number?,
+    newSackIron: number?,
+    newSackFinds: number?
 )
     sackCount, sackCapacity = newSackCount, newSackCapacity
     sackRaw = newSackRaw or sackCount
     sackRawScrap = newSackRawScrap or 0
+    sackIron = newSackIron or 0
+    sackFinds = newSackFinds or 0
     netLevels = levels or netLevels
     updatePlayerSack()
     local seen: { [string]: boolean } = {}

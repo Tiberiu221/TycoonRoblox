@@ -23,6 +23,11 @@ HandConfig.ROLE_OUTFIT = {
     sawyer = "Builder", -- omul de la gater [D48]: haine de lucru, ca sa se citeasca meseria
     hauler = "Gardener",
     trader = "Innkeeper", -- cine tine taverna poarta sort, nu cizme de rau
+    -- [D56] linia fierului: silueta palariei e a meseriei-pereche de la lemn, culoarea a lor
+    scrapCollector = "Scrapper",
+    scrapPorter = "Carter",
+    smelter = "Smith", -- sortul de piele: el e cel care lucreaza la foc
+    ironHauler = "Ironmonger",
 }
 
 -- [D50] Clientii tavernei: tinute pe care nu le poarta nicio meserie (fara palarie, prun si ardezie),

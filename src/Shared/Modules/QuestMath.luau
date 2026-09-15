@@ -19,7 +19,9 @@ export type Facts = {
     sawn: number, -- bucati taiate la gater, de oricine [D49]
     collected: number, -- bucati colectate de jucator din plase [D51]
     sold: number, -- bucati predate la taverna [D51]
-    smelted: number?, -- bucati de fier topite la atelier, de oricine [D55]
+    smelted: number?, -- bucati de fier topite la forja, de oricine [D55]
+    ironSold: number?, -- bucati de fier predate la taverna, de oricine [D56]
+    fished: number?, -- pesti scosi la undita [D59]
     netLevels: { [string]: number },
     dockLevel: number,
     idleRate: number,
@@ -70,6 +72,10 @@ function QuestMath.progress(quest: QuestConfig.Quest, facts: Facts): number
         return facts.sold or 0
     elseif kind == "smelted" then
         return facts.smelted or 0
+    elseif kind == "ironSold" then
+        return facts.ironSold or 0
+    elseif kind == "fished" then
+        return facts.fished or 0
     elseif kind == "idle" then
         return facts.idleRate
     elseif kind == "level" then
@@ -116,6 +122,28 @@ function QuestMath.chapterStates(chapter: QuestConfig.Chapter, facts: Facts): { 
             reward = quest.reward,
         })
     end
+    return out
+end
+
+-- Ordinea din lista de quest-uri [owner, 2026-09-14]: "quest-urile deja colectate pot trece jos in coada si sus pot
+-- aparea doar cele la care trebuie sa dai claim si sub ele cele care nu sunt facute inca". Intai de revendicat, apoi
+-- activul si cele incuiate, la urma cele revendicate; in fiecare grup, ordinea capitolului. Intoarce o lista noua;
+-- `stateOf` citeste starea unui rand (clientul are tipul lui de rand, copiat din instantaneu).
+local DISPLAY_RANK: { [string]: number } = { done = 1, active = 2, locked = 3, claimed = 4 }
+
+function QuestMath.displayOrder<T>(rows: { T }, stateOf: (T) -> string): { T }
+    local out = table.clone(rows)
+    local position: { [any]: number } = {}
+    for i, row in rows do
+        position[row] = i
+    end
+    table.sort(out, function(a: T, b: T): boolean
+        local ra, rb = DISPLAY_RANK[stateOf(a)] or 2, DISPLAY_RANK[stateOf(b)] or 2
+        if ra ~= rb then
+            return ra < rb
+        end
+        return position[a] < position[b]
+    end)
     return out
 end
 

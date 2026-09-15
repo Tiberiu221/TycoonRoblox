@@ -21,6 +21,9 @@ local DataService = require(Services:WaitForChild("DataService"))
 local StationService = require(Services:WaitForChild("StationService"))
 local QuestService = require(Services:WaitForChild("QuestService"))
 local WheelService = require(Services:WaitForChild("WheelService"))
+local FishService = require(Services:WaitForChild("FishService"))
+local TreasureService = require(Services:WaitForChild("TreasureService"))
+local VillageService = require(Services:WaitForChild("VillageService"))
 local NetServer = require(NetFolder:WaitForChild("NetServer"))
 
 RiverService.Init({
@@ -46,13 +49,32 @@ EconomyService.Init({
 StationService.Init({
     PushState = NetServer.PushState,
     Hands = HandService, -- al doilea om al unei meserii se angajeaza prin HandService [D49]
-    -- "Raul tau a castigat N cat ai lipsit": banii sunt deja dati, asta e doar vestea
-    OnWelcome = function(player: Player, coins: number, seconds: number, capped: boolean)
-        Net.Get("WelcomeBack"):FireClient(player, coins, seconds, capped)
+    -- "Raul tau a castigat N cat ai lipsit": banii sunt deja dati, asta e doar vestea. [D59] Si cate lucruri au venit pe rau.
+    OnWelcome = function(
+        player: Player,
+        coins: number,
+        seconds: number,
+        capped: boolean,
+        arrived: number
+    )
+        Net.Get("WelcomeBack"):FireClient(player, coins, seconds, capped, arrived)
     end,
+    Treasures = TreasureService,
 })
 QuestService.Init({ PushState = NetServer.PushState, Stations = StationService })
 WheelService.Init({ PushState = NetServer.PushState })
+-- [D59] pontonul: ce aduce raul (vestea ca ceva a venit, cat esti in joc), undita (pe ora serverului), satul.
+-- ORDINEA CONTEAZA: StationService.Init (mai sus) se leaga primul la ProfileLoaded, iar handler-ul lui cere
+-- TreasureService.SettleOffline si pune numarul pe ecranul de bun venit; handler-ul lui TreasureService, legat aici, vine
+-- dupa si primeste 0 (socoteala se face o singura data pe sesiune).
+TreasureService.Init({
+    PushState = NetServer.PushState,
+    OnArrived = function(player: Player, kind: string, slot: number)
+        Net.Get("TreasureArrived"):FireClient(player, kind, slot)
+    end,
+})
+FishService.Init({ PushState = NetServer.PushState, Now = RiverService.Now })
+VillageService.Init({ PushState = NetServer.PushState })
 PadService.Init({ PushState = NetServer.PushState, Hands = HandService, Stations = StationService })
 NetService.Init({
     Remotes = { NetCaught = Net.Get("NetCaught") },
@@ -85,6 +107,9 @@ NetServer.Init({
     Stations = StationService,
     Quests = QuestService,
     Wheel = WheelService,
+    Fish = FishService,
+    Treasures = TreasureService,
+    Village = VillageService,
     Nets = NetService,
     Economy = EconomyService,
     Workshop = WorkshopService,

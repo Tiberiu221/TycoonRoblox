@@ -74,6 +74,10 @@ local VOLUME: { [string]: number } = {
     register = 0.3,
     coin = 0.3,
     saw = 0.12,
+    -- [D59] undita: aruncarea si pestele care trage se aud, mulinetul abia (se repeta cat se strange firul)
+    cast = 0.45,
+    bite = 0.6,
+    reel = 0.25,
 }
 
 -- [D54] Nivelul efectelor (0..10), ales in panoul "Sound", sta pe grupul "Effects": tabelul VOLUME ramane

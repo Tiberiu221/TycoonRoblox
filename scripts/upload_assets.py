@@ -34,6 +34,16 @@ OVERRIDE = {
     "outfit_gardener": "Gardener",
     "outfit_innkeeper": "Innkeeper",
     "outfit_keeper": "keeper",
+    # [D56] linia fierului
+    "outfit_scrapper": "Scrapper",
+    "outfit_carter": "Carter",
+    "outfit_smith": "Smith",
+    "outfit_ironmonger": "Ironmonger",
+    # [D59] tinutele jucatorului (cheile cu litera mica, ca keeper) si fata roatii din panou (prop_helm -> helm)
+    "outfit_angler": "angler",
+    "outfit_captain": "captain",
+    "outfit_legend": "legend",
+    "ui_helm": "helm_face",
 }
 
 
@@ -60,6 +70,10 @@ def manifest_key(name):
     if m:
         return m.group(1), True
     m = re.match(r"chapter_(\w+)$", name)
+    if m:
+        return m.group(1), True
+    # [D59] pestii jurnalului, ce aduce raul, decorul satului: fiecare in tabelul lui din Assets, cheia fara prefix
+    m = re.match(r"(?:fish|treasure|decor)_(\w+)$", name)
     if m:
         return m.group(1), True
     return name, False

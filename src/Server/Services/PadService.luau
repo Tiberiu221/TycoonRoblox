@@ -198,7 +198,10 @@ function PadService.DevGrant(player: Player, padId: string): boolean
         return false
     end
     local pad = TycoonConfig.byId[padId]
-    if pad == nil or data.Pads[padId] then
+    -- [D58] Nici unealta de dezvoltare nu da o platforma care nu e inca in joc (`live = false`: erele 2-4, fara loc
+    -- pe harta). "buy to 24" dadea Sixth Net-ul Erei 2, iar plasa lui fara pozitie se desena lipita de marginea
+    -- din stanga a raului [owner, 2026-09-14]. O stare la care jucatorul nu poate ajunge nu e o stare de testat.
+    if pad == nil or not pad.live or data.Pads[padId] then
         return false
     end
     grant(player, data, pad)

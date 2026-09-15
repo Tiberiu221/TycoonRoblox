@@ -13,6 +13,7 @@ export type State = {
     lanes: number,
     sackBig: boolean,
     scrapShed: boolean, -- [D55] shed-ul de scrap (steagul platformei lui)
+    forge: boolean, -- [D56] Forge (platforma `workshop`): fara ea nu se topeste nimic
     flume: boolean,
     rateMult: number,
     priceMult: number,
@@ -45,6 +46,7 @@ function TycoonMath.newState(rebirths: number?, indexFound: number?): State
         lanes = 1,
         sackBig = false,
         scrapShed = false,
+        forge = false,
         flume = false,
         rateMult = 1.0,
         priceMult = 1.0,

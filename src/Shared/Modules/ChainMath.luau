@@ -12,12 +12,12 @@
 -- venitul -- si tocmai repararea ei e decizia jucatorului. Un upgrade pe o veriga care nu e
 -- gatuirea da EXACT ZERO, si asta se si scrie pe ecran, nu se ascunde dupa o cifra frumoasa [D40].
 --
--- [D55] RESTURILE AU DRUMUL LOR. Plasa a cincea prinde scrap: Collector-ul il lasa la shed, Porter-ul il
--- duce la atelier (forja, cu niveluri, merge singura), Hauler-ul duce fierul la taverna. Aceiasi oameni duc
--- ambele marfuri: capacitatea lor COMUNA (adunat, dus, dus la taverna, vandut) merge intai la scrap -- cat
--- poate forja topi, bucata lui valoreaza mai mult --, iar restul la lemn, cat poate gaterul taia. Orice
--- capacitate in plus doar largeste ce se poate, deci nicio cumparatura nu scade venitul. Fara scrap (S = 0)
--- totul iese exact ca minimul celor sase debite de mai sus.
+-- [D56] LINIA FIERULUI, CU OAMENII EI. Plasa a cincea prinde scrap, iar fierul merge pe aceiasi pasi ca lemnul:
+--     plasa de scrap -> Scrap Collector (shed) -> Scrap Porter (forja) -> forja (Smelter) -> Iron Hauler
+-- Cele doua linii impart doar taverna, care vinde intai fierul (bucata valoreaza mai mult) cat aduce linia lui;
+-- lemnul ia restul. Orice capacitate in plus doar largeste ce se poate, deci nicio cumparatura nu scade venitul.
+-- Fara Forge si Fifth Net totul iese exact ca minimul celor sase debite de mai sus. In D55 aceiasi trei oameni
+-- duceau ambele marfuri, iar forja mergea singura.
 local StationConfig =
     require(script and script.Parent.Parent.Config.StationConfig or "../Config/StationConfig")
 local TycoonConfig =
@@ -33,11 +33,10 @@ export type State = {
     nets: { Net },
     sawLevel: number,
     dockLevel: number,
-    forgeLevel: number, -- [D55] forja atelierului
-    workshop: boolean, -- atelierul e cumparat: fara el forja nu exista
-    scrapShed: boolean, -- shed-ul de scrap: fara el plasa de scrap n-are unde lasa
+    forgeLevel: number, -- [D55] forja
+    workshop: boolean, -- Forge (platforma `workshop`) e cumparata: fara ea forja nu exista
     sackBig: boolean,
-    -- cheile: collector, porter, sawyer, hauler, trader (StationConfig.ROLES), mereu toate cinci
+    -- cheile: toate meseriile din StationConfig.ROLES, mereu toate
     crews: { [string]: Crew },
     priceMult: number,
     bells: number,
@@ -48,17 +47,22 @@ export type State = {
 export type Rates = {
     catch: number, -- tot ce prind plasele, lemn si scrap (pentru afisaj)
     woodCatch: number,
-    scrapCatch: number, -- 0 fara shed
+    scrapCatch: number, -- 0 cat linia fierului e inchisa (fara Forge sau fara plasa de scrap)
     collect: number,
     port: number,
     sawing: number,
-    forging: number, -- 0 fara atelier
     haul: number,
+    scrapCollect: number, -- [D56] linia fierului; 0 cat e inchisa
+    scrapPort: number,
+    forging: number,
+    ironHaul: number,
     sales: number,
     wood: number, -- bucati de lemn livrate pe secunda
-    scrap: number, -- bucati de scrap livrate (ca fier) pe secunda
+    scrap: number, -- bucati de fier livrate pe secunda (scrap-ul topit)
     delivered: number, -- wood + scrap
-    bottleneck: string, -- "nets" | "collect" | "port" | "saw" | "forge" | "haul" | "dock"
+    bottleneck: string, -- veriga care tine venitul: una din StationConfig.LINKS
+    woodBottleneck: string, -- [D56] veriga slaba a lemnului: nets | collect | port | saw | haul | dock
+    ironBottleneck: string, -- [D56] a fierului: nets | scrapCollect | scrapPort | forge | ironHaul | dock; "" inchisa
 }
 
 -- ---- scara nivelurilor -----------------------------------------------------------------------
@@ -154,16 +158,32 @@ function ChainMath.dockCap(level: number): number
     return ChainMath.levelOutput(StationConfig.DOCK_BASE_RATE, level, "dock")
 end
 
--- [D55] Cat topeste forja atelierului: merge singura (fierarul vine cu atelierul); fara atelier, nimic.
+-- [D55] Cat topeste forja cand cineva sta la ea (Smelter sau tu), la treapta 1.
 function ChainMath.forgeCap(level: number): number
     return ChainMath.levelOutput(StationConfig.FORGE_BASE_RATE, level, "forge")
 end
 
-function ChainMath.forgeSpeed(workshop: boolean, level: number): number
-    if not workshop then
-        return 0
+-- [D56] Cat topeste forja ACUM, in lume -- ca `sawSpeed`: cu Smelter-i, tot timpul; fara, doar cat esti langa ea.
+function ChainMath.forgeSpeed(level: number, crew: Crew, present: boolean): number
+    local cap = ChainMath.forgeCap(level)
+    if crew.count > 0 then
+        return cap * ChainMath.tierMult(crew.tier) * crew.count
     end
-    return ChainMath.forgeCap(level)
+    return if present then cap else 0
+end
+
+-- [D56] Linia fierului e deschisa: ai Forge si plasa de scrap. Pana la shed, culesul si dusul scrap-ului sunt
+-- pasii tai de mana, ca turul de lemn din capitolul 1.
+function ChainMath.ironOpen(s: State): boolean
+    if not s.workshop then
+        return false
+    end
+    for _, n in s.nets do
+        if n.kind == "scrap" then
+            return true
+        end
+    end
+    return false
 end
 
 -- ---- oamenii [D49] ---------------------------------------------------------------------------
@@ -177,10 +197,23 @@ function ChainMath.tierCost(tier: number): number
     return StationConfig.TIER_COST_BASE * StationConfig.TIER_COST_GROWTH ^ (tier - 1)
 end
 
--- Cati din pasii jucatorului n-au inca om.
-function ChainMath.manualSteps(s: State): number
+-- Linia fiecarei meserii cu pasi de mana [D56]: "wood" sau "iron" (StationConfig.LINE_STEPS).
+local lineOfRole: { [string]: string } = {}
+for line, steps in StationConfig.LINE_STEPS do
+    for _, role in steps do
+        lineOfRole[role] = line
+    end
+end
+ChainMath.LINE_OF_ROLE = lineOfRole
+
+-- Cati din pasii unei linii n-au inca om [D56]; 0 cat linia fierului e inchisa. Fara `line`, lemnul.
+function ChainMath.manualSteps(s: State, line: string?): number
+    local which = line or "wood"
+    if which == "iron" and not ChainMath.ironOpen(s) then
+        return 0
+    end
     local n = 0
-    for _, role in StationConfig.MANUAL_ROLES do
+    for _, role in StationConfig.LINE_STEPS[which] do
         if s.crews[role].count == 0 then
             n += 1
         end
@@ -188,10 +221,10 @@ function ChainMath.manualSteps(s: State): number
     return n
 end
 
--- Cat face jucatorul pe fiecare pas fara om: timpul lui, impartit la cati pasi a lasat nepreluati.
--- Cu toti oamenii angajati nu mai face nimic, deci 0.
-function ChainMath.playerShare(s: State): number
-    local n = ChainMath.manualSteps(s)
+-- Cat face jucatorul pe fiecare pas fara om al unei linii: timpul lui, impartit la cati pasi a lasat nepreluati
+-- in linia aia [D56 -- fiecare linie are timpul tau intreg]. Fara pasi de mana, 0. Fara `line`, lemnul.
+function ChainMath.playerShare(s: State, line: string?): number
+    local n = ChainMath.manualSteps(s, line)
     if n == 0 then
         return 0
     end
@@ -199,14 +232,13 @@ function ChainMath.playerShare(s: State): number
     return labor / n
 end
 
--- Debitul unui pas de drum (collector, porter, hauler): oamenii lui, sau partea ta din timp.
+-- Debitul unui pas de drum: oamenii lui, sau partea ta din timp pe linia lui.
 local function walkRate(s: State, role: string): number
     local crew = s.crews[role]
     if crew.count > 0 then
         return StationConfig.ROLE_BASE[role] * ChainMath.tierMult(crew.tier) * crew.count
     end
-    local labor = StationConfig.PLAYER_LABOR * (if s.sackBig then StationConfig.SACK_BONUS else 1.0)
-    return labor / ChainMath.manualSteps(s)
+    return ChainMath.playerShare(s, lineOfRole[role])
 end
 
 -- Veriga gaterului: Sawyerii il tin pornit tot timpul; fara ei taie doar cat stai tu langa el,
@@ -217,7 +249,21 @@ local function sawLink(s: State): number
     if crew.count > 0 then
         return cap * ChainMath.tierMult(crew.tier) * crew.count
     end
-    return cap / ChainMath.manualSteps(s)
+    return cap / ChainMath.manualSteps(s, "wood")
+end
+
+-- [D56] Veriga forjei, ca a gaterului: Smelter-ii o tin pornita tot timpul; fara ei topeste doar cat stai tu langa
+-- ea. Cat linia fierului e inchisa, nimic.
+local function forgeLink(s: State): number
+    if not ChainMath.ironOpen(s) then
+        return 0
+    end
+    local cap = ChainMath.forgeCap(s.forgeLevel)
+    local crew = s.crews.smelter
+    if crew.count > 0 then
+        return cap * ChainMath.tierMult(crew.tier) * crew.count
+    end
+    return cap / ChainMath.manualSteps(s, "iron")
 end
 
 -- Cat taie gaterul ACUM, in lume: cu oameni, tot timpul; fara, doar cat esti langa el. Nu e
@@ -252,6 +298,8 @@ end
 function ChainMath.roleLink(s: State, role: string): number
     if role == "sawyer" then
         return sawLink(s)
+    elseif role == "smelter" then
+        return forgeLink(s)
     elseif role == "trader" then
         return ChainMath.dockSpeed(s.dockLevel, s.crews.trader)
     end
@@ -293,45 +341,74 @@ end
 
 local LINKS = StationConfig.LINKS
 
--- Veriga care tine venitul: cea al carei pas in plus ar aduce cei mai multi bani pe bucata, la egalitate
--- cea dinainte in LINKS. Port litera cu litera al lui `bottleneck_of` din simulator. Fara scrap, orice
--- veriga care tine lemnul valoreaza la fel, deci iese PRIMUL minim din cele sase -- regula de dinainte.
-local function pickBottleneck(r: Rates): string
-    local shared = math.min(r.collect, r.port, r.haul, r.sales)
-    local scrapMax = math.min(r.scrapCatch, r.forging)
-    local woodByShared = r.wood == shared - r.scrap
-    local scrapSwap = AVG.scrap - (if woodByShared then AVG.wood else 0)
+-- Verigile unei linii, in ordinea LINKS: (veriga, debit). `nets` = plasele liniei.
+local function woodLinks(r: Rates): { { string | number } }
+    return {
+        { "nets", r.woodCatch },
+        { "collect", r.collect },
+        { "port", r.port },
+        { "saw", r.sawing },
+        { "haul", r.haul },
+    }
+end
+local function ironLinks(r: Rates): { { string | number } }
+    return {
+        { "nets", r.scrapCatch },
+        { "scrapCollect", r.scrapCollect },
+        { "scrapPort", r.scrapPort },
+        { "forge", r.forging },
+        { "ironHaul", r.ironHaul },
+    }
+end
+
+-- Primul minim dintr-o linie (la egalitate, cel dinainte).
+local function firstAt(links: { { string | number } }, value: number): string
+    for _, entry in links do
+        if entry[2] :: number == value then
+            return entry[1] :: string
+        end
+    end
+    return links[1][1] :: string
+end
+
+-- [D56] (veriga care tine venitul, veriga slaba a lemnului, a fierului). Port litera cu litera al lui
+-- `bottlenecks` din simulator. Veriga care tine venitul: cea al carei pas in plus ar aduce cei mai multi bani pe
+-- bucata, la egalitate cea dinainte in LINKS; lemnul tinut de o veriga a lui valoreaza o bucata de lemn, fierul o
+-- bucata de fier -- sau doar diferenta, cand taverna e plina si fierul ia locul lemnului; taverna, cand ea e
+-- marginea, ce ar mai vinde. Veriga slaba a unei linii: primul minim din linie, sau taverna cand ea e marginea.
+-- Fara linia fierului iese PRIMUL minim din cele sase -- regula de dinainte [D49].
+local function pickBottlenecks(r: Rates): (string, string, string)
+    local wl, il = woodLinks(r), ironLinks(r)
+    local ironIsOpen = r.scrapCatch > 0
+    local woodMax = math.min(r.woodCatch, r.collect, r.port, r.sawing, r.haul)
+    local ironMax = math.min(r.scrapCatch, r.scrapCollect, r.scrapPort, r.forging, r.ironHaul)
+    local woodByDock = r.wood == r.sales - r.scrap and r.wood < woodMax
+    local ironByDock = ironIsOpen and r.scrap == r.sales and r.scrap < ironMax
+    local swap = AVG.scrap - (if woodByDock then AVG.wood else 0)
     local gains: { [string]: number } = {}
     for _, link in LINKS do
         gains[link] = 0
     end
-    if r.wood == r.woodCatch then
-        gains.nets = AVG.wood
-    end
-    if r.scrapCatch > 0 and r.scrap == r.scrapCatch then
-        gains.nets = math.max(gains.nets, scrapSwap)
-    end
-    if r.wood == r.sawing then
-        gains.saw = AVG.wood
-    end
-    if r.scrapCatch > 0 and r.scrap == r.forging then
-        gains.forge = scrapSwap
-    end
-    local sharedLinks: { { string | number } } = {
-        { "collect", r.collect },
-        { "port", r.port },
-        { "haul", r.haul },
-        { "dock", r.sales },
-    }
-    for _, entry in sharedLinks do
-        local link, value = entry[1] :: string, entry[2] :: number
-        if value == shared then
-            if r.scrap == shared and r.scrap < scrapMax then
-                gains[link] = AVG.scrap
-            elseif woodByShared then
-                gains[link] = AVG.wood
+    if ironIsOpen and not ironByDock then
+        for _, entry in il do
+            local link, value = entry[1] :: string, entry[2] :: number
+            if value == r.scrap then
+                gains[link] = math.max(gains[link], swap)
             end
         end
+    end
+    if not woodByDock then
+        for _, entry in wl do
+            local link, value = entry[1] :: string, entry[2] :: number
+            if value == r.wood then
+                gains[link] = math.max(gains[link], AVG.wood)
+            end
+        end
+    end
+    if ironByDock then
+        gains.dock = AVG.scrap
+    elseif woodByDock then
+        gains.dock = AVG.wood
     end
     local best = "nets"
     for _, link in LINKS do
@@ -339,25 +416,32 @@ local function pickBottleneck(r: Rates): string
             best = link
         end
     end
-    return best
+    local woodBn = if woodByDock then "dock" else firstAt(wl, woodMax)
+    local ironBn = ""
+    if ironIsOpen then
+        ironBn = if ironByDock then "dock" else firstAt(il, ironMax)
+    end
+    return best, woodBn, ironBn
 end
 
--- Cele doua fluxuri prin aceiasi oameni, din debitele verigilor [D55]. `scrap` intai, cat poate forja topi;
--- `wood` din ce ramane. `math.min` alege, nu calculeaza: da exact bitul pe care il da `min()` din Python.
+-- Cele doua linii, din debitele verigilor [D56]. Fierul intai la taverna, cat aduce linia lui; lemnul din ce
+-- ramane. `math.min` alege, nu calculeaza: da exact bitul pe care il da `min()` din Python.
 local function allocate(r: Rates): Rates
-    local shared = math.min(r.collect, r.port, r.haul, r.sales)
-    r.scrap = math.min(math.min(r.scrapCatch, r.forging), shared)
-    r.wood = math.min(math.min(r.woodCatch, r.sawing), shared - r.scrap)
+    local ironMax = math.min(r.scrapCatch, r.scrapCollect, r.scrapPort, r.forging, r.ironHaul)
+    local woodMax = math.min(r.woodCatch, r.collect, r.port, r.sawing, r.haul)
+    r.scrap = math.min(ironMax, r.sales)
+    r.wood = math.min(woodMax, r.sales - r.scrap)
     r.delivered = r.wood + r.scrap
-    r.bottleneck = pickBottleneck(r)
+    r.bottleneck, r.woodBottleneck, r.ironBottleneck = pickBottlenecks(r)
     return r
 end
 
 local function catches(s: State): (number, number)
     local wood, scrap = 0.0, 0.0
+    local open = ChainMath.ironOpen(s)
     for _, n in s.nets do
         if n.kind == "scrap" then
-            if s.scrapShed then
+            if open then
                 scrap += ChainMath.netRate(n)
             end
         else
@@ -367,49 +451,62 @@ local function catches(s: State): (number, number)
     return wood, scrap
 end
 
-function ChainMath.rates(s: State): Rates
-    local woodCatch, scrapCatch = catches(s)
-    return allocate({
+local function emptyRates(woodCatch: number, scrapCatch: number): Rates
+    return {
         catch = woodCatch + scrapCatch,
         woodCatch = woodCatch,
         scrapCatch = scrapCatch,
-        collect = walkRate(s, "collector"),
-        port = walkRate(s, "porter"),
-        sawing = sawLink(s),
-        forging = ChainMath.forgeSpeed(s.workshop, s.forgeLevel),
-        haul = walkRate(s, "hauler"),
-        sales = ChainMath.dockSpeed(s.dockLevel, s.crews.trader),
+        collect = 0,
+        port = 0,
+        sawing = 0,
+        haul = 0,
+        scrapCollect = 0,
+        scrapPort = 0,
+        forging = 0,
+        ironHaul = 0,
+        sales = 0,
         wood = 0,
         scrap = 0,
         delivered = 0,
         bottleneck = "nets",
-    })
+        woodBottleneck = "nets",
+        ironBottleneck = "",
+    }
+end
+
+function ChainMath.rates(s: State): Rates
+    local r = emptyRates(catches(s))
+    r.collect = walkRate(s, "collector")
+    r.port = walkRate(s, "porter")
+    r.sawing = sawLink(s)
+    r.haul = walkRate(s, "hauler")
+    r.scrapCollect = walkRate(s, "scrapCollector")
+    r.scrapPort = walkRate(s, "scrapPorter")
+    r.forging = forgeLink(s)
+    r.ironHaul = walkRate(s, "ironHauler")
+    r.sales = ChainMath.dockSpeed(s.dockLevel, s.crews.trader)
+    return allocate(r)
 end
 
 -- CE MERGE FARA TINE. Plasele se umplu singure, dar fiecare pas de dupa ele are nevoie de cineva:
 -- fara tine, un pas fara om sta, iar debarcaderul fara Negustor nu vinde. Deci venitul pasiv cere
--- TOATE CINCI meseriile [D49] -- si de aceea pastila "IDLE" apare abia atunci: se CASTIGA. Forja
--- merge singura [D55].
+-- TOATE meseriile unei linii [D49] -- si de aceea pastila "IDLE" apare abia atunci: se CASTIGA. [D56] Forja
+-- are si ea omul ei: fara Smelter, fara tine, sta.
 function ChainMath.idleRates(s: State): Rates
-    local woodCatch, scrapCatch = catches(s)
     local function staffed(role: string, value: number): number
         return if s.crews[role].count > 0 then value else 0
     end
-    return allocate({
-        catch = woodCatch + scrapCatch,
-        woodCatch = woodCatch,
-        scrapCatch = scrapCatch,
-        collect = staffed("collector", walkRate(s, "collector")),
-        port = staffed("porter", walkRate(s, "porter")),
-        sawing = staffed("sawyer", sawLink(s)),
-        forging = ChainMath.forgeSpeed(s.workshop, s.forgeLevel),
-        haul = staffed("hauler", walkRate(s, "hauler")),
-        sales = staffed("trader", ChainMath.dockSpeed(s.dockLevel, s.crews.trader)),
-        wood = 0,
-        scrap = 0,
-        delivered = 0,
-        bottleneck = "nets",
-    })
+    local r = emptyRates(catches(s))
+    r.collect = staffed("collector", walkRate(s, "collector"))
+    r.port = staffed("porter", walkRate(s, "porter"))
+    r.sawing = staffed("sawyer", sawLink(s))
+    r.haul = staffed("hauler", walkRate(s, "hauler"))
+    r.scrapCollect = staffed("scrapCollector", walkRate(s, "scrapCollector"))
+    r.scrapPort = staffed("scrapPorter", walkRate(s, "scrapPorter"))
+    r.forging = staffed("smelter", forgeLink(s))
+    r.ironHaul = staffed("ironHauler", walkRate(s, "ironHauler"))
+    r.sales = staffed("trader", ChainMath.dockSpeed(s.dockLevel, s.crews.trader))
+    return allocate(r)
 end
 
 local function valueOf(s: State, r: Rates): number
@@ -452,7 +549,6 @@ function ChainMath.clone(s: State): State
         dockLevel = s.dockLevel,
         forgeLevel = s.forgeLevel,
         workshop = s.workshop,
-        scrapShed = s.scrapShed,
         sackBig = s.sackBig,
         crews = crews,
         priceMult = s.priceMult,
@@ -477,7 +573,6 @@ function ChainMath.empty(): State
         dockLevel = 1,
         forgeLevel = 1,
         workshop = false,
-        scrapShed = false,
         sackBig = false,
         crews = ChainMath.emptyCrews(),
         priceMult = 1.0,

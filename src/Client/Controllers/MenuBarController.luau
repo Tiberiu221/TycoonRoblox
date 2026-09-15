@@ -24,6 +24,9 @@ local isUnlocked: (string) -> boolean = function(_name: string): boolean
 end
 
 local BUTTON = 62
+-- [D59] punctul de pe o intrare (roata: rotirea gratuita e gata). Tinut minte si inainte de Init.
+local badgeWanted: { [string]: boolean } = {}
+local badgeDots: { [string]: Frame } = {}
 
 -- Arata PE CE BUTON trebuie apasat acum. Cartonasul de obiectiv scria "Open Build" si nimic
 -- nu spunea unde e Build: jucatorul trebuia sa ghiceasca din patru pictograme fara text.
@@ -45,7 +48,7 @@ local function clearHalo()
     end
 end
 
--- Unde e butonul unei intrari, in coordonatele HUD-ului (AbsolutePosition, masurat de sub bara de sus).
+-- Unde e butonul unei intrari, in AbsolutePosition (sistemul zonei sigure, CoreUISafeInsets -- vezi Bootstrap).
 -- 0,0,0,0 cat timp nu se vede: tutorialul asteapta, nu aprinde un loc gol.
 function MenuBarController.EntryRect(name: string): (number, number, number, number)
     local holder = buttons[name]
@@ -54,6 +57,51 @@ function MenuBarController.EntryRect(name: string): (number, number, number, num
     end
     local p, s = holder.AbsolutePosition, holder.AbsoluteSize
     return p.X, p.Y, s.X, s.Y
+end
+
+local function applyBadge(name: string)
+    local holder = buttons[name]
+    if holder == nil then
+        return
+    end
+    local dot = badgeDots[name]
+    if dot == nil then
+        local d = Instance.new("Frame")
+        d.Name = "Badge"
+        d.AnchorPoint = Vector2.new(0.5, 0.5)
+        d.Position = UDim2.new(1, -8, 0, 8)
+        d.Size = UDim2.fromOffset(18, 18)
+        d.BackgroundTransparency = 1
+        d.ZIndex = 24
+        if Assets.has(Assets.ui.badge) then
+            local img = Instance.new("ImageLabel")
+            img.BackgroundTransparency = 1
+            img.Image = Assets.url(Assets.ui.badge)
+            img.ResampleMode = Enum.ResamplerMode.Pixelated
+            img.Size = UDim2.fromScale(1, 1)
+            img.ZIndex = 24
+            img.Parent = d
+        else
+            d.BackgroundTransparency = 0
+            d.BackgroundColor3 = Theme.COLOR.bad
+            local c = Instance.new("UICorner")
+            c.CornerRadius = UDim.new(1, 0)
+            c.Parent = d
+        end
+        d.Parent = holder
+        badgeDots[name] = d
+        dot = d
+    end
+    dot.Visible = badgeWanted[name] == true
+end
+
+-- [D59] Un punct pe butonul unei intrari: e ceva de luat acolo (rotirea zilnica). Fara cifra.
+function MenuBarController.SetBadge(name: string, on: boolean)
+    if badgeWanted[name] == on then
+        return
+    end
+    badgeWanted[name] = on
+    applyBadge(name)
 end
 
 function MenuBarController.Highlight(name: string?)
@@ -213,6 +261,9 @@ function MenuBarController.Init(deps: {
         end
     end
 
+    for name in badgeWanted do
+        applyBadge(name)
+    end
     MenuBarController.Refresh()
 end
 

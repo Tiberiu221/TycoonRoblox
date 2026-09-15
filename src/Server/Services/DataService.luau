@@ -47,8 +47,9 @@ export type Hand = {
 export type ProfileData = {
     Meta: { version: number, createdAt: number, lastSeenAt: number },
     Coins: number,
-    -- A doua moneda [owner, 2026-09-12]. Pica din quest-uri si din roata; cu Robux mai tarziu.
-    -- Se cheltuie pe viteza, spatiu si aspect -- niciodata pe putere.
+    -- A doua moneda [owner, 2026-09-12]. Pica din quest-uri, din roata, [D59] de la undita si din ce aduce raul.
+    -- [D59] Se cheltuie DOAR pe aspect (decorul satului, tinutele): o faci cat vrei la undita, deci viteza sau spatiul
+    -- cumparate cu ea ar ocoli simulatorul. Se schimba doar prin EconomyService.AddPearls / TrySpendPearls.
     Pearls: number, -- float; interfata arata floor
     Pads: { [string]: boolean },
     Nets: { [string]: NetState },
@@ -100,7 +101,10 @@ export type ProfileData = {
         -- [D51] numaratori de BUCATI, pentru quest-urile buclei: gesturile de mai sus nu spun cat
         collected: number, -- bucati colectate de jucator din plase (nu de Collector)
         sold: number, -- bucati predate la taverna, de jucator sau de Hauler
-        smelted: number, -- [D55] bucati de fier topite la atelier
+        smelted: number, -- [D55] bucati de fier topite la forja
+        ironSold: number, -- [D56] bucati de fier predate la taverna
+        fished: number, -- [D59] pesti scosi la undita (quest-ul "Catch a fish at the pier")
+        treasures: number, -- [D59] lucruri scoase din rau la ponton
         coinsEarned: number,
         padsBought: number,
         repairs: number, -- pentru WorkshopService (F1)
@@ -110,10 +114,28 @@ export type ProfileData = {
     -- [D51] preferintele jucatorului. [D54] nivelul muzicii si al efectelor, 0..10 (`music`, bool-ul vechi,
     -- ramane in profilurile migrate, necitit).
     Settings: { musicLevel: number, soundLevel: number, music: boolean? },
+    -- [D59] UNDITA: samanta tragerilor, cate aruncari, momeli aurii ramase, jurnalul (specie -> cati si cea mai mare)
+    Fishing: {
+        seed: number,
+        casts: number,
+        bait: number,
+        species: { [string]: { count: number, best: number } },
+    },
+    -- [D59] CE ADUCE RAUL (TreasureMath.State): ce asteapta la ponton, ceasul (os.time), samanta, cate au venit, bilete
+    River: {
+        started: boolean,
+        waiting: { string },
+        nextAt: number,
+        seed: number,
+        total: number,
+        notes: number,
+    },
+    -- [D59] SATUL: decorul cumparat (id -> true), tinutele avute si cea purtata
+    Village: { decor: { [string]: boolean }, outfits: { [string]: boolean }, outfit: string },
 }
 
 local PROFILE_TEMPLATE: ProfileData = {
-    Meta = { version = 7, createdAt = 0, lastSeenAt = 0 },
+    Meta = { version = 9, createdAt = 0, lastSeenAt = 0 },
     Coins = 0,
     Pearls = 0,
     Pads = {},
@@ -132,6 +154,11 @@ local PROFILE_TEMPLATE: ProfileData = {
         sawyer = { tier = 1 },
         hauler = { tier = 1 },
         trader = { tier = 1 },
+        -- [D56] linia fierului -- ACELEASI campuri ca ProfileMigrate.toV8
+        scrapCollector = { tier = 1 },
+        scrapPorter = { tier = 1 },
+        smelter = { tier = 1 },
+        ironHauler = { tier = 1 },
     },
     -- ACELEASI campuri ca ProfileMigrate.toV7 [D55]: sablonul la v7 nu mai trece prin migrare.
     Stations = { saw = { level = 1 }, dock = { level = 1 }, forge = { level = 1 }, nets = {} },
@@ -155,6 +182,9 @@ local PROFILE_TEMPLATE: ProfileData = {
         collected = 0,
         sold = 0,
         smelted = 0,
+        ironSold = 0, -- [D56] fier predat la taverna (quest-ul "Sell the iron at the tavern")
+        fished = 0, -- [D59] ACELEASI campuri ca ProfileMigrate.toV9
+        treasures = 0,
         coinsEarned = 0,
         padsBought = 0,
         repairs = 0,
@@ -162,6 +192,10 @@ local PROFILE_TEMPLATE: ProfileData = {
     },
     Firsts = {},
     Settings = { musicLevel = AudioLevels.DEFAULT_MUSIC, soundLevel = AudioLevels.DEFAULT_SOUND },
+    -- [D59] ACELEASI campuri ca ProfileMigrate.toV9: un profil nou nu trece prin migrare
+    Fishing = { seed = 0, casts = 0, bait = 0, species = {} },
+    River = { started = false, waiting = {}, nextAt = 0, seed = 0, total = 0, notes = 0 },
+    Village = { decor = {}, outfits = { keeper = true }, outfit = "keeper" },
 }
 
 local function deepCopy(value: any): any
@@ -275,6 +309,8 @@ local function onPlayerAdded(player: Player)
     ProfileMigrate.toV5(profile.Data) -- oamenii [D49]: gramezi ca numaratori, trepte, Carry rambursat
     ProfileMigrate.toV6(profile.Data) -- nivelurile sunetului [D54]: muzica oprita ramane la 0
     ProfileMigrate.toV7(profile.Data) -- resturile [D55]: shed, forja, fierul -- aditiv, nimic nu se muta
+    ProfileMigrate.toV8(profile.Data) -- linia fierului [D56]: meseriile noi; scrap-ul/fierul din roabe in gramezi
+    ProfileMigrate.toV9(profile.Data) -- pontonul [D59]: undita, ce aduce raul, satul -- aditiv
     profile:Reconcile()
     profile.OnSessionEnd:Connect(function()
         profiles[player] = nil

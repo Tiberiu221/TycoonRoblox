@@ -82,8 +82,9 @@ function Strings.eraZoneOpen(zoneName: string): string -- [D]
     return `{zoneName} is open`
 end
 
--- ---- [19-24] Atelier -------------------------------------------------------------------------
-Strings.WORKSHOP_OPEN = "The Workshop is open." -- [F]
+-- ---- [19-24] Atelier / Forge -----------------------------------------------------------------
+-- [D56] Cladirea e acum Forge; colectia (reparatiile) e pusa deoparte -- textele ei raman, nefolosite.
+Strings.FORGE_LIT = "The Forge is lit." -- [F]
 function Strings.workshopRepaired(pct: number): string -- [B]
     return `Repaired. +{pct}% income. Forever.`
 end
@@ -142,11 +143,9 @@ Strings.TOOLTIP_REBIRTH = "A bonus that never touches what you've paid for" -- [
 -- ---- In afara celor 42: textul propriu al agentului J, tot vazut de jucator -------------------
 Strings.OPENING_LINE_1 = "This stretch of river is yours."
 Strings.OPENING_LINE_2 = "Everything that floats past is money."
-Strings.WORKSHOP_PILE_ADD = "Sent to the Workshop pile." -- gasire cu nume, dupa ce Atelierul exista deja
-function Strings.namedFindHint(
-    name: string
-): string -- prima gasire cu nume, inainte sa existe Atelierul
-    return `A named find: {name}! Build the Workshop to keep finds for your Collection.`
+-- Prima gasire cu nume. [D56] Colectia e pusa deoparte: gasirile se vand la taverna, cu pretul lor.
+function Strings.namedFindHint(name: string): string
+    return `A rare find: {name}! The tavern pays well for it.`
 end
 
 -- ---- Indemnuri de interactiune, etichete de lume ---------------------------------------------
@@ -175,8 +174,9 @@ end
 function Strings.promptTakePlanks(keyHint: string): string
     return `Take planks{keyHint}`
 end
--- [D55] resturile: shed-ul de scrap si forja atelierului
+-- [D55, D56] linia fierului: shed-ul de scrap si forja
 Strings.SHED_LABEL = "Scrap Shed"
+Strings.FORGE_LABEL = "Forge" -- [D58] pe acoperis, ca la taverna: era singura cladire cu Upgrade fara nume
 function Strings.promptStoreScrap(keyHint: string): string
     return `Store scrap{keyHint}`
 end
@@ -189,6 +189,11 @@ end
 function Strings.promptTakeIron(keyHint: string): string
     return `Take iron{keyHint}`
 end
+-- [D56] Ca la gater: fara Smelter, forja topeste doar cat stai in inelul ei.
+Strings.FORGE_STAND_HERE = "Stand here to smelt"
+function Strings.forgeSmelting(left: number): string
+    return `Smelting — {left} left`
+end
 -- Fara Sawyer, gaterul taie doar cat stai langa el. Owner-ul: "nu prea se vede textul ca trebuie sa
 -- stai aici" -- deci nu mai e un indemn care apare abia cand esti deja acolo, ci o placuta pe locul
 -- insusi, cu un inel pe jos, vazuta de oriunde se vede gaterul [D50].
@@ -200,11 +205,14 @@ function Strings.promptSellPlanks(keyHint: string, value: string): string
     return `Sell planks{keyHint} — {value}`
 end
 Strings.PROMPT_DOCK_RAW = "Logs go to the sawmill first"
-Strings.PROMPT_DOCK_SCRAP = "Scrap gets smelted at the Workshop first" -- [D55]
-Strings.PROMPT_DOCK_BOTH = "Logs to the sawmill, scrap to the Workshop first" -- [D55]
+Strings.PROMPT_DOCK_SCRAP = "Scrap gets smelted at the Forge first" -- [D55, D56]
+Strings.PROMPT_DOCK_BOTH = "Logs to the sawmill, scrap to the Forge first" -- [D55, D56]
 Strings.SACK_FULL_LOGS = "Sack full — take the logs to the sawmill"
 Strings.SACK_FULL_PLANKS = "Sack full — take the planks to the tavern"
-Strings.SACK_FULL_SCRAP = "Sack full — take the scrap to the Scrap Shed" -- [D55]
+Strings.SACK_FULL_SCRAP = "Sack full — take the scrap to the Forge" -- [D55, D56]
+Strings.SACK_FULL_IRON = "Sack full — take the iron to the tavern" -- [D56]
+Strings.SACK_FULL_BOTH = "Sack full — take the planks and iron to the tavern" -- [D56]
+Strings.SACK_FULL_FINDS = "Sack full — take the finds to the tavern" -- [D56] doar gasiri: se vand si asa
 -- Ghidajul [GuideMath]: ce scrie sageata deasupra tintei.
 Strings.GUIDE_FIRST_PAD = "Step on the glowing pad"
 function Strings.guideBuy(name: string): string
@@ -223,11 +231,31 @@ function Strings.stepWaitNet(count: number, need: number): string
 end
 Strings.STEP_NETS_CATCHING = "Your nets are catching"
 Strings.STEP_COINS_COMING = "Coins are coming in from the tavern"
+-- [D59] Indiciul pontonului pe linia NEXT: doar dupa primul peste, doar cat strangi bani pentru quest si n-ai nimic de facut
+-- cu mana. Fara sageata: pescuitul e o alegere, nu un pas.
+Strings.HINT_FISH_WHILE_SAVING = "While you save: fish at the pier"
+function Strings.hintTreasureWaiting(phrase: string): string
+    return `{string.upper(string.sub(phrase, 1, 1))}{string.sub(phrase, 2)} is waiting at your pier`
+end
 Strings.STEP_BUY = "Walk up to it and buy it"
 Strings.STEP_UPGRADE = "Walk up to it and press Upgrade"
 Strings.GUIDE_LOGS_TO_SAWMILL = "Take the logs to the sawmill"
 -- acelasi text ca quest-ul `sell_once`: pe linia NEXT, al doilea rand se ascunde cand repeta primul
 Strings.GUIDE_SELL_PLANKS = "Sell the planks at the tavern"
+-- [D56] turul de mana al fierului; "Sell the iron at the tavern" = textul quest-ului `sell_iron`
+Strings.GUIDE_SCRAP_TO_FORGE = "Take the scrap to the Forge"
+Strings.GUIDE_SELL_IRON = "Sell the iron at the tavern"
+Strings.GUIDE_SELL_BOTH = "Sell the planks and iron at the tavern"
+Strings.STEP_TAKE_IRON = "Take the iron at the Forge"
+Strings.STEP_TAKE_FROM_SHED = "Take the scrap from the Scrap Shed"
+Strings.GUIDE_COLLECT_SCRAP = "Collect the scrap from the Fifth Net"
+-- [D56] doar gasiri in traista: se vand si neprelucrate
+function Strings.guideSellFinds(count: number): string
+    return if count == 1 then "Sell the find at the tavern" else "Sell the finds at the tavern"
+end
+function Strings.stepStaySmelt(left: number): string
+    return `Stay in the ring: {left} left to smelt`
+end
 function Strings.guideSaving(name: string): string
     return `Saving for {name}`
 end
@@ -249,16 +277,17 @@ function Strings.useResult(
         elseif reason == "nothing_cut" then
             return if staffed then "Nothing cut yet" else "Nothing cut yet — stay by the saw"
         elseif reason == "raw_only" then
-            return "The tavern only buys planks and iron — logs to the sawmill, scrap to the Workshop"
-        -- [D55] scrap-ul are drumul lui: locul care il refuza spune unde merge
-        elseif reason == "scrap_to_shed" then
-            return "Scrap goes to the Scrap Shed"
-        elseif reason == "scrap_to_workshop" then
-            return "Scrap gets smelted at the Workshop, not cut"
+            return "The tavern only buys planks and iron — logs to the sawmill, scrap to the Forge"
+        -- [D55, D56] scrap-ul are drumul lui: locul care il refuza spune unde merge. Forja, nu shed-ul: shed-ul
+        -- e doar magazia Scrap Collector-ului, iar in turul de mana scrap-ul merge direct la forja.
+        elseif reason == "scrap_to_forge" then
+            return if place == "sawmill"
+                then "Scrap gets smelted at the Forge, not cut"
+                else "Scrap goes to the Forge"
         elseif reason == "shed_empty" then
             return "The Scrap Shed is empty"
         elseif reason == "nothing_smelted" then
-            return "No iron yet — the forge is still smelting"
+            return if staffed then "No iron yet" else "No iron yet — stay by the forge"
         end
         return nil
     end
@@ -291,23 +320,19 @@ function Strings.useResult(
         if dropped > 0 and taken > 0 then
             return `Dropped {scrap(dropped)} · took {iron(taken)}`
         elseif dropped > 0 then
-            return `Dropped {scrap(dropped)} — the forge smelts it into iron`
+            return if staffed
+                then `Dropped {scrap(dropped)}`
+                else `Dropped {scrap(dropped)} — stay close to smelt it`
         end
         return `Took {iron(taken)}`
     end
     return nil -- la debarcader se vede singur: gramada creste, apoi pleaca barca
-end
-function Strings.promptWorkshop(keyHint: string): string
-    return `Workshop{keyHint}`
 end
 -- [Roata] O rotire gratuita pe zi [D46]. Sansele se afiseaza, nu se ascund.
 Strings.WHEEL_TITLE = "Lucky Wheel"
 Strings.WHEEL_SPIN = "Spin — free"
 function Strings.wheelNextSpin(duration: string): string
     return `Next free spin in {duration}`
-end
-function Strings.wheelWonCoins(amount: string): string
-    return `+{amount} coins!`
 end
 function Strings.wheelWonPearls(n: number): string
     return `+{n} pearl` .. (if n == 1 then "!" else "s!")
@@ -319,10 +344,152 @@ function Strings.wheelRejected(reason: string): string
     return "Can't spin right now"
 end
 
+-- Prima litera mare, pentru frazele care incep cu un nume din config ("a chest" -> "A chest").
+local function capital(text: string): string
+    return `{string.upper(string.sub(text, 1, 1))}{string.sub(text, 2)}`
+end
+
+-- [D59] ROATA LA PONTON: darurile raului, fara monede. Cardul E, ca la orice obiect.
+function Strings.wheelCard(keyHint: string): string
+    return `Spin the wheel{keyHint}`
+end
+Strings.WHEEL_READY_TOAST = "A free spin is waiting at the pier"
+-- pe cardul timonierului (240 lat): mai scurt decat ceasul din fereastra
+function Strings.wheelCardWait(duration: string): string
+    return `Next spin in {duration}`
+end
+function Strings.wheelWonTreasure(phrase: string): string
+    return `{capital(phrase)} is drifting to your pier!`
+end
+function Strings.wheelWonConverted(n: number): string
+    return `Your pier is full: +{n} pearls instead`
+end
+function Strings.wheelWonBait(n: number): string
+    return `+{n} golden bait!`
+end
+
+-- [D59] UNDITA. Cardul spune ce face E; bara spune ce tii apasat. Fara esec, deci fara "missed"/"lost".
+function Strings.fishCast(keyHint: string): string
+    return `Cast{keyHint}`
+end
+-- pe cardul de 240: numele scurt al lucrului ("Hook the Golden Driftwood (E)" nu incape)
+local HOOK_NAMES: { [string]: string } =
+    { bottle = "bottle", chest = "chest", golden = "driftwood" }
+function Strings.fishHook(kindId: string, keyHint: string): string
+    return `Hook the {HOOK_NAMES[kindId] or "catch"}{keyHint}`
+end
+function Strings.fishBait(n: number): string
+    return `Golden bait ×{n}`
+end
+Strings.FISH_HOLD_KEY = "Hold E to reel"
+Strings.FISH_HOLD_TOUCH = "Hold to reel"
+Strings.FISH_BITE = "!"
+function Strings.fishCaught(name: string, cm: number): string
+    return `{name} · {cm} cm`
+end
+function Strings.pearlsGained(n: number): string
+    return `+{n} pearl{if n == 1 then "" else "s"}`
+end
+Strings.FISH_NEW = "New!"
+Strings.FISH_RECORD = "Record!"
+Strings.FISH_BAIT_USED = "Bait ×2"
+function Strings.fishRejected(reason: string): string
+    if reason == "expired" then
+        return "Your line was out too long. Cast again"
+    end
+    return "Cast again"
+end
+
+-- [D59] CE ADUCE RAUL
+function Strings.treasureArrived(phrase: string): string
+    return `{capital(phrase)} drifted to your pier`
+end
+function Strings.treasureOpened(name: string, n: number): string
+    return `{name} · +{n} pearls`
+end
+Strings.NOTE_TITLE = "A note in a bottle"
+Strings.JOURNAL_COMPLETE_TITLE = "Journal complete!"
+function Strings.outfitUnlocked(name: string): string
+    return `New outfit: {name}`
+end
+
+-- [D59] JURNALUL: pestii (siluete pana la prima prindere) si ce ai scos din rau, cu biletele citite
+Strings.JOURNAL_TITLE = "Journal"
+Strings.JOURNAL_TAB_FISH = "Fish"
+Strings.JOURNAL_TAB_RIVER = "River"
+function Strings.journalFishCount(n: number, total: number): string
+    return `Fish caught {n}/{total}`
+end
+Strings.JOURNAL_REWARD = "Catch every fish to earn the River Legend outfit"
+Strings.JOURNAL_UNKNOWN = "???"
+Strings.JOURNAL_NOT_CAUGHT = "Not caught yet"
+function Strings.journalCaught(count: number, best: number): string
+    return `Caught {count} · best {best} cm`
+end
+Strings.TIER_NAMES = {
+    common = "Common",
+    uncommon = "Uncommon",
+    rare = "Rare",
+    epic = "Epic",
+    legendary = "Legendary",
+} :: { [string]: string }
+function Strings.journalTreasure(pearls: number): string
+    return `+{pearls} pearls each`
+end
+function Strings.journalFound(n: number): string
+    return `Things hooked from the river: {n}`
+end
+function Strings.journalNotes(n: number, total: number): string
+    return `Notes found {math.min(n, total)}/{total}`
+end
+Strings.JOURNAL_NO_NOTES = "Bottles carry notes. Hook one at the pier."
+
+-- [D59] AVIZIERUL SATULUI: perlele cumpara aspect, pentru sat si pentru tine
+Strings.BOARD_TITLE = "Village Board"
+Strings.BOARD_TAB_VILLAGE = "Village"
+Strings.BOARD_TAB_OUTFITS = "Outfits"
+function Strings.boardCard(keyHint: string): string
+    return `Village Board{keyHint}`
+end
+Strings.BOARD_BUILD = "Build"
+Strings.BOARD_BUILT = "Built"
+Strings.BOARD_BUY = "Buy"
+Strings.BOARD_WEAR = "Wear"
+Strings.BOARD_WEARING = "Wearing"
+function Strings.boardJournal(n: number, total: number): string
+    return `Complete the Journal ({n}/{total})`
+end
+Strings.BOARD_BLURB = "Pearls buy looks for your village and for you."
+function Strings.shopResult(what: string, name: string, ok: boolean, reason: string): string
+    if ok then
+        if what == "decor" then
+            return `Built: {name}`
+        elseif what == "outfit" then
+            return `New outfit: {name}`
+        end
+        return `Wearing {name}`
+    end
+    if reason == "pearls" then
+        return "Not enough pearls"
+    elseif reason == "already" then
+        return "You already have it"
+    elseif reason == "journal" then
+        return "Complete the Journal to earn it"
+    elseif reason == "not_owned" then
+        return "Buy it first"
+    end
+    return "Can't do that right now"
+end
+
 -- [Offline] Fereastra de revenire. Un singur lucru spus, nu o lista.
 Strings.WELCOME_TITLE = "Welcome back"
 Strings.WELCOME_CONTINUE = "Back to the river"
 Strings.WELCOME_CAPPED = "Your river keeps working for a day while you're away."
+-- [D59] ce a venit pe rau cat ai lipsit (cel mult trei asteapta la ponton)
+Strings.WELCOME_RIVER_TITLE = "The river brought you something"
+function Strings.welcomeArrived(n: number): string
+    return if n == 1 then "Something drifted to your pier" else `{n} things drifted to your pier`
+end
 function Strings.welcomeAway(duration: string): string
     return `You were away for {duration}`
 end
@@ -339,12 +506,6 @@ Strings.QUEST_LOCKED = "Quest locked"
 Strings.QUEST_GO = "Go!"
 Strings.QUEST_CLAIM = "Claim"
 Strings.QUEST_DONE = "done"
-function Strings.questRewardCoins(amount: string): string
-    return `Reward: {amount} coins`
-end
-function Strings.questRewardPearls(n: number): string
-    return `Reward: {n} pearl` .. (if n == 1 then "" else "s")
-end
 function Strings.questRejected(reason: string): string
     if reason == "not_done" then
         return "Not finished yet"
@@ -372,8 +533,14 @@ function Strings.stationsAdvice(bottleneck: string): string
         return "Right now that is hauling to the tavern — hire or upgrade Haulers."
     elseif bottleneck == "saw" then
         return "Right now that is the sawmill — upgrade it to earn more."
+    elseif bottleneck == "scrapCollect" then
+        return "Right now that is collecting scrap — hire or upgrade Scrap Collectors."
+    elseif bottleneck == "scrapPort" then
+        return "Right now that is carrying scrap to the Forge — hire or upgrade Scrap Porters."
     elseif bottleneck == "forge" then
-        return "Right now that is the forge — upgrade the Workshop to earn more."
+        return "Right now that is the Forge — upgrade it or its Smelters to earn more."
+    elseif bottleneck == "ironHaul" then
+        return "Right now that is hauling iron to the tavern — hire or upgrade Iron Haulers."
     end
     return "Right now that is the tavern — upgrade it to earn more."
 end
@@ -435,11 +602,20 @@ function Strings.stationNoEffect(bottleneck: string): string
         return "No gain yet — hauling to the tavern is slowest"
     elseif bottleneck == "saw" then
         return "No gain yet — the sawmill is slowest"
+    elseif bottleneck == "scrapCollect" then
+        return "No gain yet — collecting scrap is slowest"
+    elseif bottleneck == "scrapPort" then
+        return "No gain yet — carrying scrap is slowest"
     elseif bottleneck == "forge" then
-        return "No gain yet — the forge is slowest"
+        return "No gain yet — the Forge is slowest"
+    elseif bottleneck == "ironHaul" then
+        return "No gain yet — hauling iron is slowest"
     end
     return "No gain yet — the tavern is slowest"
 end
+-- [D56] Forja cumparata, dar inca fara plasa de scrap: linia fierului n-are ce duce.
+Strings.STATION_NO_SCRAP = "No gain yet — no scrap until the Fifth Net"
+Strings.MENU_NO_SCRAP = "Won't earn more yet: no scrap comes in until the Fifth Net"
 -- ---- ruinele [D53] ----------------------------------------------------------------------------
 -- Eticheta cartonasului langa o platforma incuiata: ruina, sau avizierul unde se angajeaza un om.
 Strings.PAD_EYEBROW_RUINS = "RUINS"
@@ -490,38 +666,41 @@ function Strings.menuDoes(kind: string, staffed: boolean): string
     elseif kind == "saw" then
         return if staffed then "Cuts" else "Cuts only while you stand here"
     elseif kind == "forge" then
-        return "Smelts scrap into iron" -- [D55] merge singura
+        -- [D56] ca gaterul: fara Smelter doar cat stai langa ea
+        return if staffed then "Smelts scrap into iron" else "Smelts only while you stand here"
     end
     return if staffed then "Sells" else "Sells at 35% until you hire an Innkeeper"
 end
--- Ce face omul: aceleasi cuvinte ca pe platforma lui.
--- [D55] `scrap` = lantul resturilor merge: atunci si drumul lor e treaba omului, si textul o spune -- inainte
--- de el ar minti [D40].
-function Strings.crewDoes(role: string, scrap: boolean?): string
+-- Ce face omul: aceleasi cuvinte ca pe platforma lui. [D56] Fiecare linie cu oamenii ei.
+function Strings.crewDoes(role: string): string
     if role == "collector" then
-        return if scrap
-            then "Empties your nets into the storage and the Scrap Shed"
-            else "Empties your nets into the storage"
+        return "Empties your nets into the storage"
     elseif role == "porter" then
-        return if scrap
-            then "Carries logs to the sawmill and scrap to the Workshop"
-            else "Carries logs from the storage to the sawmill"
+        return "Carries logs from the storage to the sawmill"
     elseif role == "sawyer" then
         return "Keeps the saw running"
     elseif role == "hauler" then
-        return if scrap
-            then "Carries planks and iron to the tavern"
-            else "Carries planks from the sawmill to the tavern"
+        return "Carries planks from the sawmill to the tavern"
+    elseif role == "scrapCollector" then
+        return "Empties the Fifth Net into the Scrap Shed"
+    elseif role == "scrapPorter" then
+        return "Carries scrap from the Scrap Shed to the Forge"
+    elseif role == "smelter" then
+        return "Keeps the Forge smelting"
+    elseif role == "ironHauler" then
+        return "Carries iron from the Forge to the tavern"
     end
     return "Runs the tavern"
 end
 -- Unitatea de sub cifra mare. Bustenii pana la gater, scandurile de acolo incolo -- cuvintele pe care
--- jocul le foloseste deja ("Store logs", "Sell planks").
+-- jocul le foloseste deja ("Store logs", "Sell planks"). [D56] Pe linia fierului: scrap pana la forja, fier de acolo.
 function Strings.menuUnit(what: string): string
     if what == "net" or what == "collector" or what == "porter" then
         return "logs a minute"
-    elseif what == "forge" then
-        return "iron a minute" -- [D55]
+    elseif what == "scrapNet" or what == "scrapCollector" or what == "scrapPorter" then
+        return "scrap a minute"
+    elseif what == "forge" or what == "smelter" or what == "ironHauler" then
+        return "iron a minute"
     end
     return "planks a minute"
 end
@@ -553,10 +732,12 @@ function Strings.menuEarnsSecond(name: string, amount: string?): string
     return earns(`A second {name}`, amount)
 end
 -- Cand cumparatura de aici nu aduce nimic: CINE tine venitul in loc. `tie` = veriga aia e doar la fel
--- de lenta (egalitate): "slower" ar fi mintit tocmai atunci [D40].
-function Strings.menuHeldBack(link: string, tie: boolean): string
+-- de lenta (egalitate): "slower" ar fi mintit tocmai atunci [D40]. [D56] `line` = pe linia fierului plasa e una.
+function Strings.menuHeldBack(link: string, tie: boolean, line: string?): string
     local subject, verb = "the tavern", "is"
-    if link == "nets" then
+    if link == "nets" and line == "iron" then
+        subject = "the scrap net"
+    elseif link == "nets" then
         subject, verb = "your nets", "are"
     elseif link == "collect" then
         subject = "collecting"
@@ -564,10 +745,16 @@ function Strings.menuHeldBack(link: string, tie: boolean): string
         subject = "carrying to the sawmill"
     elseif link == "saw" then
         subject = "the sawmill"
-    elseif link == "forge" then
-        subject = "the forge"
     elseif link == "haul" then
         subject = "hauling to the tavern"
+    elseif link == "scrapCollect" then
+        subject = "collecting scrap"
+    elseif link == "scrapPort" then
+        subject = "carrying scrap to the Forge"
+    elseif link == "forge" then
+        subject = "the Forge"
+    elseif link == "ironHaul" then
+        subject = "hauling iron to the tavern"
     end
     return `Won't earn more yet: {subject} {verb} ` .. (if tie then "just as slow" else "slower")
 end
@@ -577,8 +764,11 @@ function Strings.menuGoTo(link: string): string
         collect = "Collector",
         port = "Porter",
         saw = "Sawmill",
-        forge = "Workshop",
         haul = "Hauler",
+        scrapCollect = "Scrap Collector",
+        scrapPort = "Scrap Porter",
+        forge = "Forge",
+        ironHaul = "Iron Hauler",
         dock = "Tavern",
     }
     return `Go to {names[link] or "Nets"}`
@@ -619,10 +809,10 @@ Strings.NET_FAST_FIRST = "Fast first catch" -- [D51] prima plasa, in tutorial
 function Strings.netFilling(count: number, capacity: number): string
     return `Filling up: {count}/{capacity}`
 end
--- [D51] cardul obiectului
-Strings.CARD_UPGRADE = "Upgrade"
-function Strings.cardUpgradeCost(cost: string): string
-    return `Upgrade · {cost}`
+-- [D51] cardul obiectului. [D58] Tasta sta langa verb, ca la E ("Sell (E) — 40"): owner-ul a cerut o tasta pentru
+-- Upgrade fara sa stie ca U exista deja -- nu scria nicaieri.
+function Strings.cardUpgrade(cost: string?, keyHint: string): string
+    return if cost ~= nil then `Upgrade{keyHint} · {cost}` else `Upgrade{keyHint}`
 end
 Strings.CARD_SACK_FULL = "Sack full"
 -- [D54] panoul "Sound": nivelul muzicii si al efectelor, 0..10

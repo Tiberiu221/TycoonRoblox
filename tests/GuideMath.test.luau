@@ -35,19 +35,37 @@ local function state(over: { [string]: any }): GuideMath.State
         sackCount = get("sackCount", 0),
         sackCapacity = get("sackCapacity", 30),
         sackCut = get("sackCut", 0),
+        sackRawScrap = get("sackRawScrap", 0),
+        sackIron = get("sackIron", 0),
+        sackFinds = get("sackFinds", 0),
         hands = get("hands", {}),
         firstsCollect = get("firstsCollect", false),
         firstsSell = get("firstsSell", false),
         sawIn = get("sawIn", 0),
         sawOut = get("sawOut", 0),
         storage = get("storage", 0),
+        forgeIn = get("forgeIn", 0),
+        forgeOut = get("forgeOut", 0),
+        shed = get("shed", 0),
         crews = get("crews", {}),
         dockPileValue = get("dockPileValue", 0),
     } :: any
 end
 
 local TycoonConfig = require("../src/Shared/Config/TycoonConfig")
+local StationConfig = require("../src/Shared/Config/StationConfig")
+local Strings = require("../src/Shared/Config/Strings")
 local STAND = TycoonConfig.SAWMILL_STAND
+local FORGE = TycoonConfig.WORKSHOP_STAND
+-- in turul fierului, oamenii lemnului sunt toti angajati [D56]
+local WOOD_CREWS = { collector = 1, porter = 1, sawyer = 1, hauler = 1, trader = 1 }
+local function withCrews(extra: { [string]: number }): { [string]: number }
+    local out = table.clone(WOOD_CREWS)
+    for role, n in extra do
+        out[role] = n
+    end
+    return out
+end
 
 return function()
     test.suite("GuideMath - regula 0: quest-ul activ bate tot", function()
@@ -219,6 +237,164 @@ return function()
         end)
     end)
 
+    test.suite("GuideMath.loopStep -- linia fierului [D56]", function()
+        local function step(over: { [string]: any }, kind: string?): GuideMath.Goal
+            local st = state(over)
+            st.quest = {
+                key = "q",
+                text = "q",
+                x = 0,
+                y = 0,
+                kind = kind or "smelted",
+                goal = 10,
+                progress = 0,
+            }
+            return GuideMath.pickGoal(st) :: GuideMath.Goal
+        end
+
+        test.case("cele unsprezece ramuri, in ordine: fiecare bate urmatoarea", function()
+            local woodNet = { padId = "first_net", x = 620, y = 812, count = 4, capacity = 12 }
+            -- fiecare stare are si ce ar declansa ramura urmatoare; pasul ales trebuie sa fie tot primul
+            local cases: { { over: { [string]: any }, kind: string, key: string } } = {
+                {
+                    over = { sackCount = 6, sackRawScrap = 3, sawIn = 2 },
+                    kind = "deliver",
+                    key = "sawmill",
+                },
+                {
+                    over = { sackCount = 3, sackRawScrap = 3, sawIn = 2 },
+                    kind = "deliver",
+                    key = "forge",
+                },
+                { over = { sawIn = 2, forgeIn = 5 }, kind = "cut", key = "cut" },
+                { over = { forgeIn = 5, sawOut = 4 }, kind = "smelt", key = "smelt" },
+                { over = { sawOut = 4, forgeOut = 3 }, kind = "take", key = "planks" },
+                {
+                    over = { forgeOut = 3, sackCount = 2, sackCut = 2 },
+                    kind = "take",
+                    key = "iron",
+                },
+                { over = { sackCount = 2, sackCut = 2, storage = 9 }, kind = "sell", key = "dock" },
+                { over = { storage = 9, shed = 7 }, kind = "take", key = "storage" },
+                { over = { shed = 7, nets = { woodNet } }, kind = "take", key = "shed" },
+                { over = { nets = { woodNet } }, kind = "collect", key = "net:first_net" },
+                { over = {}, kind = "wait", key = "catching" },
+            }
+            for i, c in cases do
+                local g = step(c.over, "sold")
+                check.equal(g.kind, c.kind)
+                check.equal(g.key, c.key)
+                if g.key ~= c.key then
+                    print(`ramura {i}: asteptat {c.key}, iesit {g.key}`)
+                end
+            end
+        end)
+
+        test.case("turul de mana al fierului: forja, inelul, fierul, taverna", function()
+            local crews = withCrews({})
+            local toForge = step({ sackCount = 12, sackRawScrap = 12, crews = crews })
+            check.equal(toForge.key, "forge")
+            check.equal(toForge.x, FORGE.x)
+            check.equal(toForge.text, Strings.GUIDE_SCRAP_TO_FORGE)
+            local ring = step({ forgeIn = 12, crews = crews })
+            check.equal(ring.kind, "smelt")
+            check.equal(ring.x, FORGE.x)
+            check.equal(ring.text, Strings.stepStaySmelt(12))
+            local take = step({ forgeOut = 12, crews = crews })
+            check.equal(take.key, "iron")
+            check.equal(take.text, Strings.STEP_TAKE_IRON)
+            local sell =
+                step({ sackCount = 12, sackCut = 12, sackIron = 12, crews = crews }, "ironSold")
+            check.equal(sell.key, "dock")
+            check.equal(sell.text, Strings.GUIDE_SELL_IRON)
+        end)
+
+        test.case("un pas facut de un om al fierului nu mai e al tau", function()
+            check.is_true(step({ forgeIn = 5, crews = withCrews({ smelter = 1 }) }).kind ~= "smelt")
+            check.is_true(
+                step({ forgeOut = 5, crews = withCrews({ ironHauler = 1 }) }).key ~= "iron"
+            )
+            check.equal(step({ shed = 5, crews = withCrews({}) }).key, "shed")
+            check.is_true(step({ shed = 5, crews = withCrews({ scrapPorter = 1 }) }).key ~= "shed")
+        end)
+
+        test.case("plasele pe linii: fiecare culegator doar plasele felului lui", function()
+            local woodNet = { padId = "first_net", x = 620, y = 812, count = 9, capacity = 12 }
+            local scrapNet =
+                { padId = "fifth_net", x = 1100, y = 812, count = 3, capacity = 12, scrap = true }
+            local nets = { woodNet, scrapNet }
+            -- Collector-ul lemnului angajat: plasa de scrap ramane a ta, chiar daca e mai goala
+            local scrap = step({ nets = nets, crews = { collector = 1 } })
+            check.equal(scrap.key, "net:fifth_net")
+            check.equal(scrap.text, Strings.GUIDE_COLLECT_SCRAP)
+            -- doar Scrap Collector: plasa de lemn e a ta
+            local wood = step({ nets = nets, crews = { scrapCollector = 1 } })
+            check.equal(wood.key, "net:first_net")
+            check.equal(wood.text, Strings.GUIDE_COLLECT)
+            -- amandoi: nimic de cules cu mana
+            check.equal(
+                step({ nets = nets, crews = { collector = 1, scrapCollector = 1 } }).key,
+                "catching"
+            )
+        end)
+
+        test.case("textul tavernei spune ce duci [D40]", function()
+            local function sellText(over: { [string]: any }): string
+                return step(over, "sold").text
+            end
+            check.equal(sellText({ sackCount = 8, sackCut = 8 }), Strings.GUIDE_SELL_PLANKS)
+            check.equal(
+                sellText({ sackCount = 8, sackCut = 8, sackIron = 8 }),
+                Strings.GUIDE_SELL_IRON
+            )
+            check.equal(
+                sellText({ sackCount = 8, sackCut = 8, sackIron = 3 }),
+                Strings.GUIDE_SELL_BOTH
+            )
+            -- o gasire langa scanduri nu schimba textul; singura in traista are textul ei
+            check.equal(
+                sellText({ sackCount = 8, sackCut = 8, sackFinds = 1 }),
+                Strings.GUIDE_SELL_PLANKS
+            )
+            check.equal(
+                sellText({ sackCount = 1, sackCut = 1, sackFinds = 1 }),
+                Strings.guideSellFinds(1)
+            )
+            local full =
+                step({ sackCount = 30, sackCapacity = 30, sackCut = 30, sackIron = 30 }, "sold")
+            check.equal(full.text, Strings.SACK_FULL_IRON)
+            -- traista plina doar de gasiri: nu "planks" [revizia D56]
+            local finds =
+                step({ sackCount = 30, sackCapacity = 30, sackCut = 30, sackFinds = 30 }, "sold")
+            check.equal(finds.text, Strings.SACK_FULL_FINDS)
+        end)
+
+        test.case("fara quest: traista plina de scrap trimite la forja, nu la gater", function()
+            local g = GuideMath.pickGoal(state({
+                pads = pads({ "first_net" }),
+                sackCount = 30,
+                sackCapacity = 30,
+                sackRawScrap = 30,
+            })) :: GuideMath.Goal
+            check.equal(g.key, "forge")
+            check.equal(g.text, Strings.SACK_FULL_SCRAP)
+        end)
+
+        test.case("ghidajul tace dupa oamenii lemnului, se trezeste cu Forge", function()
+            local before = GuideMath.guidedRoles(false)
+            local after = GuideMath.guidedRoles(true)
+            check.equal(#after, #StationConfig.ROLES)
+            check.equal(#before, #StationConfig.ROLES - #StationConfig.LINE_STEPS.iron)
+            local counts = withCrews({})
+            check.is_true(GuideMath.allCrewsHired(counts, before))
+            check.is_false(GuideMath.allCrewsHired(counts, after))
+            for _, role in StationConfig.LINE_STEPS.iron do
+                counts[role] = 1
+            end
+            check.is_true(GuideMath.allCrewsHired(counts, after))
+        end)
+    end)
+
     test.suite("GuideMath.pickGoal -- prioritate a..f", function()
         test.case("a) nimic cumparat -> First Net, imediat", function()
             local g = GuideMath.pickGoal(state({ pads = pads({}) })) :: GuideMath.Goal
@@ -275,6 +451,102 @@ return function()
             st.quest = { key = "idle_one", text = "Earn 1 a second", x = 300, y = 830 }
             st.allCrewsHired = true
             check.is_true(GuideMath.pickGoal(st) == nil)
+        end)
+
+        test.case(
+            "[D59] quest-ul care invata undita isi are sageata chiar daca ghidajul tace",
+            function()
+                local stand = TycoonConfig.FISH_STAND
+                local st = state({ pads = pads({ "first_net" }), crews = WOOD_CREWS })
+                st.allCrewsHired = true
+                st.quest = {
+                    key = "catch_fish",
+                    text = "Catch a fish at the pier",
+                    x = stand.x,
+                    y = stand.y,
+                    kind = "fished",
+                    progress = 0,
+                    goal = 1,
+                }
+                local g = GuideMath.pickGoal(st) :: GuideMath.Goal
+                check.equal(g.kind, "goto")
+                check.equal(g.x, stand.x)
+                check.equal(g.y, stand.y)
+                -- orice alt quest (chiar si o cumparare pe care n-o poti plati, fara pescuit) ramane in tacere
+                st.quest =
+                    { key = "idle_one", text = "Earn 1 a second", x = 300, y = 830, kind = "idle" }
+                check.is_true(GuideMath.pickGoal(st) == nil)
+            end
+        )
+
+        test.case(
+            "[D59] indiciul pontonului: dupa primul peste, cat strangi bani, fara tinta",
+            function()
+                local function questFourth(): GuideMath.QuestGoal
+                    return {
+                        key = "cast_fourth",
+                        text = "Cast a fourth net, further out",
+                        x = 1220,
+                        y = 812,
+                        padId = "far_lane_net",
+                        price = 900,
+                        kind = "pad",
+                    }
+                end
+                -- ghidajul tace: oamenii lemnului sunt toti angajati
+                local st = state({ pads = pads({ "first_net" }), coins = 100, crews = WOOD_CREWS })
+                st.allCrewsHired = true
+                st.quest = questFourth()
+                check.is_true(GuideMath.pickGoal(st) == nil) -- n-ai pescuit inca: tacerea din D50 ramane
+                st.hasFished = true
+                local g = GuideMath.pickGoal(st) :: GuideMath.Goal
+                check.equal(g.kind, "wait")
+                check.equal(g.text, Strings.HINT_FISH_WHILE_SAVING)
+                check.is_true(g.x == nil) -- linia NEXT, fara sageata
+                check.equal(g.price, 900) -- bara masoara monedele
+                st.coins = 1000 -- ai banii: fara indiciu
+                check.is_true(GuideMath.pickGoal(st) == nil)
+
+                -- ghidajul vorbeste: indiciul doar cand mainile n-au nimic de facut
+                local busy = state({ pads = pads({ "first_net" }), coins = 100, sackCount = 12 })
+                busy.quest = questFourth()
+                busy.hasFished = true
+                check.equal((GuideMath.pickGoal(busy) :: GuideMath.Goal).kind, "deliver")
+                local idle = state({
+                    pads = pads({ "first_net" }),
+                    coins = 100,
+                    nets = { { padId = "first_net", x = 620, y = 812, count = 0, capacity = 12 } },
+                    crews = { collector = 1 },
+                })
+                idle.quest = questFourth()
+                idle.hasFished = true
+                local hint = GuideMath.pickGoal(idle) :: GuideMath.Goal
+                check.equal(hint.text, Strings.HINT_FISH_WHILE_SAVING)
+                check.equal(hint.price, 900)
+            end
+        )
+
+        test.case("[D59] un lucru care te asteapta la ponton bate indiciul de pescuit", function()
+            local st = state({ pads = pads({ "first_net" }), coins = 100, crews = WOOD_CREWS })
+            st.allCrewsHired = true
+            st.hasFished = true
+            st.treasureWaiting = "chest"
+            st.quest = {
+                key = "q",
+                text = "q",
+                x = 1220,
+                y = 812,
+                padId = "far_lane_net",
+                price = 900,
+                kind = "pad",
+            }
+            local g = GuideMath.pickGoal(st) :: GuideMath.Goal
+            check.equal(g.text, "A chest is waiting at your pier")
+            st.treasureWaiting = "golden"
+            check.equal(
+                (GuideMath.pickGoal(st) :: GuideMath.Goal).text,
+                "Golden Driftwood is waiting at your pier"
+            )
         end)
 
         test.case("b/d) bustenii duc la gater, scandurile la debarcader [D49]", function()

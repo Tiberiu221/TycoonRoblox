@@ -431,14 +431,18 @@ function SceneArt.BuildBackground(layers: Layers)
         sprite: Assets.Sprite,
         r: { x0: number, x1: number, y0: number, y1: number },
         z: number,
-        ragged: boolean
+        ragged: boolean,
+        shadow: boolean?
     )
         local w, h = r.x1 - r.x0, r.y1 - r.y0
-        -- umbra dedesubt: fara ea scandurile par lipite pe iarba, nu asezate peste ea
-        local sh =
-            frame(builtLayer, r.x0 - 2, r.y0 + 7, w + 6, h + 2, Color3.fromRGB(26, 32, 24), z)
-        sh.BackgroundTransparency = 0.7
-        rounded(sh, 6)
+        -- Umbra dedesubt doar pentru scandurile puntii: ele chiar stau PESTE mal. [D57] Un drum de pamant e calcat IN
+        -- iarba; cu umbra, drumurile pareau fasii de carton puse pe harta (owner: "parca plutesc mereu").
+        if shadow == true then
+            local sh =
+                frame(builtLayer, r.x0 - 2, r.y0 + 7, w + 6, h + 2, Color3.fromRGB(26, 32, 24), z)
+            sh.BackgroundTransparency = 0.7
+            rounded(sh, 6)
+        end
         local function tile(x: number, y: number, tw: number, th: number, zz: number)
             if Assets.has(sprite) then
                 local img = tiled(builtLayer, sprite, x, y, tw, th, zz)
@@ -460,23 +464,93 @@ function SceneArt.BuildBackground(layers: Layers)
             return
         end
         -- Poteca nu e un dreptunghi trasat cu rigla: e batatorita, deci latimea ei variaza si
-        -- marginile se rup. Bucati de 64px, fiecare putin altfel -- tot un tile, alta silueta.
+        -- marginile se rup. Bucati de 64px, fiecare putin altfel -- tot un tile, alta silueta. [D57] Pe aleile
+        -- verticale bucatile merg de sus in jos, ca marginile rupte sa fie cele lungi.
         local seg = 64
-        local x = r.x0
         local i = 0
-        while x < r.x1 do
-            local segW = math.min(seg, r.x1 - x)
-            local wobble = math.floor(math.sin(i * 1.7) * 5 + math.sin(i * 0.6) * 4)
-            tile(x, r.y0 - wobble, segW + 1, h + wobble * 2, z + 1)
-            x += seg
-            i += 1
+        if w >= h then
+            local x = r.x0
+            while x < r.x1 do
+                local segW = math.min(seg, r.x1 - x)
+                local wobble = math.floor(math.sin(i * 1.7) * 5 + math.sin(i * 0.6) * 4)
+                tile(x, r.y0 - wobble, segW + 1, h + wobble * 2, z + 1)
+                x += seg
+                i += 1
+            end
+        else
+            local y = r.y0
+            while y < r.y1 do
+                local segH = math.min(seg, r.y1 - y)
+                local wobble = math.floor(math.sin(i * 1.7) * 4 + math.sin(i * 0.6) * 3)
+                tile(r.x0 - wobble, y, w + wobble * 2, segH + 1, z + 1)
+                y += seg
+                i += 1
+            end
         end
     end
-    groundStrip(Assets.tycoon.deck_tile, TycoonConfig.DECK, 1, false)
-    -- bucla [D50]: aceleasi dreptunghiuri din care RoadGraph face drumurile oamenilor si dara de
-    -- ghidaj, deci ce e desenat ca drum e exact pe unde merge lumea
+
+    -- [D57] Iarba peste marginile pamantului (drumuri si curti): smocuri pe muchii, jumatate pe iarba, jumatate pe
+    -- pamant, ca linia dintre ele sa nu mai fie trasa cu rigla. Fara arta urcata, marginile raman drepte.
+    local EDGE = 12 -- jumatate din inaltimea fasiei (8 px de arta x3)
+    local function grassEdges(r: { x0: number, x1: number, y0: number, y1: number }, z: number)
+        if r.x1 - r.x0 >= r.y1 - r.y0 then
+            if Assets.has(Assets.grass_edge_h) then
+                for _, y in { r.y0, r.y1 } do
+                    tiled(builtLayer, Assets.grass_edge_h, r.x0, y - EDGE, r.x1 - r.x0, EDGE * 2, z)
+                end
+            end
+        elseif Assets.has(Assets.grass_edge_v) then
+            for _, x in { r.x0, r.x1 } do
+                tiled(builtLayer, Assets.grass_edge_v, x - EDGE, r.y0, EDGE * 2, r.y1 - r.y0, z)
+            end
+        end
+    end
+
+    groundStrip(Assets.tycoon.deck_tile, TycoonConfig.DECK, 1, false, true)
+
+    -- [D57] PAMANTUL BATATORIT de sub cladiri si din jurul pietei (TycoonConfig.YARDS): aceeasi dala ca drumul, mai
+    -- deschisa, cu colturi rotunjite si iarba peste margini. Sub drumuri, ca aleile sa treaca peste curtile lor.
+    for _, yard in TycoonConfig.YARDS do
+        local w, h = yard.x1 - yard.x0, yard.y1 - yard.y0
+        if Assets.has(Assets.path_tile) then
+            local img = tiled(builtLayer, Assets.path_tile, yard.x0, yard.y0, w, h, 2)
+            img.Name = `Yard_{yard.id}`
+            img.ImageColor3 = Color3.fromRGB(228, 216, 192)
+            rounded(img, 14)
+        end
+        grassEdges({ x0 = yard.x0 + 8, x1 = yard.x1 - 8, y0 = yard.y0, y1 = yard.y1 }, 3)
+    end
+
+    -- bucla [D50], satul [D57]: aceleasi dreptunghiuri din care RoadGraph face drumurile oamenilor si dara de
+    -- ghidaj, deci ce e desenat ca drum e exact pe unde merge lumea. Piata tavernei e de piatra, peste aleea ei.
     for _, road in TycoonConfig.ROADS do
-        groundStrip(Assets.path_tile, road, 3, true)
+        if road.id == "plaza" and Assets.has(Assets.tile_plaza) then
+            groundStrip(Assets.tile_plaza, road, 5, false)
+        else
+            groundStrip(Assets.path_tile, road, 3, true)
+            grassEdges(road, 5)
+        end
+    end
+
+    -- [D57] DECORUL ASEZAT DE MANA pe teren: fiecare lucru spune ceva despre locul lui (TycoonConfig.DECOR). Sub
+    -- cladiri si oameni (stratul lor e deasupra), ordonat pe adancime intre el.
+    for _, item in TycoonConfig.DECOR do
+        local sprite = decorSprite(item.sprite)
+        if sprite ~= nil then
+            local img = image(
+                builtLayer,
+                sprite,
+                0,
+                0,
+                sprite.width * item.scale,
+                sprite.height * item.scale,
+                7
+            )
+            img.Name = `Decor_{item.sprite}`
+            img.AnchorPoint = Vector2.new(0.5, 1)
+            img.Position = UDim2.fromOffset(item.x, item.y)
+            img.ZIndex = 7 + math.clamp(math.floor(item.y / 64), 0, 40)
+        end
     end
 
     buildDecor(scroll)
@@ -484,9 +558,18 @@ end
 
 -- Personajul jucatorului foloseste aceeasi foaie ca si colonistii; setter-ul isi tine singur
 -- ceasul de animatie, ca sa nu duplicam logica in CharacterController.
-export type Pose = (moving: boolean, facing: string, dt: number, running: boolean) -> ()
+-- [D59] `activity`: ce face personajul pe loc ("fishing" = randul cu undita); nil = mers/stat, ca pana acum.
+export type Pose = (
+    moving: boolean,
+    facing: string,
+    dt: number,
+    running: boolean,
+    activity: string?
+) -> ()
+-- [D59] Tinuta jucatorului (cheia din Assets.people.outfit), schimbata de la avizierul satului.
+export type SetOutfit = (outfit: string) -> ()
 
-function SceneArt.MakeCharacter(parent: Instance): (GuiObject, Pose)
+function SceneArt.MakeCharacter(parent: Instance): (GuiObject, Pose, SetOutfit)
     local c = RiverConfig.CHARACTER
     if Assets.has(Assets.character_anim) then
         local img = image(parent, Assets.character_anim, 0, 0, c.WIDTH, c.HEIGHT, 6)
@@ -499,6 +582,7 @@ function SceneArt.MakeCharacter(parent: Instance): (GuiObject, Pose)
         local playerLayered = Assets.has(Assets.people.body.a)
             and Assets.has(Assets.people.outfit.keeper)
         local extra: { ImageLabel } = {}
+        local outfitLayer: ImageLabel? = nil
         if playerLayered then
             img.Image = Assets.url(Assets.people.body.b)
             img.ImageColor3 = Color3.fromRGB(231, 188, 150)
@@ -515,6 +599,20 @@ function SceneArt.MakeCharacter(parent: Instance): (GuiObject, Pose)
                 end
                 l.Parent = img
                 table.insert(extra, l)
+                if i == 2 then
+                    outfitLayer = l
+                end
+            end
+        end
+        local function setOutfit(outfit: string)
+            local layer = outfitLayer
+            local sheet = (Assets.people.outfit :: any)[outfit]
+            if layer == nil or sheet == nil or not Assets.has(sheet) then
+                return -- tinuta inca neurcata: ramane cea de acum
+            end
+            local url = Assets.url(sheet)
+            if layer.Image ~= url then
+                layer.Image = url
             end
         end
         -- Fara inel sub picioare: l-a scos owner-ul (2026-09-11). Pe mal nu mai sunt colonisti
@@ -531,11 +629,25 @@ function SceneArt.MakeCharacter(parent: Instance): (GuiObject, Pose)
         local currentRow = ""
         local dustClock = 0
         return img,
-            function(moving: boolean, facing: string, dt: number, running: boolean)
+            function(
+                moving: boolean,
+                facing: string,
+                dt: number,
+                running: boolean,
+                activity: string?
+            )
                 -- Alergarea are acum randuri DESENATE (pas lung, ambele picioare in aer, brate
                 -- care leagana). Inainte era doar ciclul de mers invartit mai repede.
+                -- [D59] Pe loc, cu o treaba (undita): randul ei, spre partea in care se uita.
                 local row = if moving and running
                     then AnimConfig.runRow(facing)
+                    elseif not moving and activity ~= nil then AnimConfig.rowFor(
+                        activity,
+                        facing,
+                        false,
+                        nil,
+                        nil
+                    )
                     else AnimConfig.rowFor("idle", facing, moving, nil, nil)
                 if row.id ~= currentRow then
                     currentRow = row.id
@@ -569,7 +681,8 @@ function SceneArt.MakeCharacter(parent: Instance): (GuiObject, Pose)
                     l.ImageRectOffset = offset
                     l.ImageRectSize = size
                 end
-            end
+            end,
+            setOutfit
     end
     local body = frame(parent, 0, 0, c.WIDTH, c.HEIGHT, Color3.fromRGB(63, 127, 191), 6)
     body.AnchorPoint = Vector2.new(0.5, 1)
@@ -581,7 +694,8 @@ function SceneArt.MakeCharacter(parent: Instance): (GuiObject, Pose)
         function(moving: boolean, _facing: string, dt: number)
             bobT = if moving then bobT + dt * 8 else 0
             head.Position = UDim2.fromOffset(8, if math.floor(bobT) % 2 == 1 then 6 else 4)
-        end
+        end,
+        function(_outfit: string) end
 end
 
 -- Particule (fum de cos, flacara, praf de santier). Toate sunt actualizate de o singura bucla:

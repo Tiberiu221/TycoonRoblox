@@ -86,6 +86,56 @@ function JuiceController.CoinFly(fromX: number, fromY: number, amount: number)
     end)
 end
 
+-- [D59] Acelasi zbor, pentru perle: "+N (perla)" pana la pastila perlelor, care sare la sosire.
+function JuiceController.PearlFly(fromX: number, fromY: number, amount: number)
+    if hudGui == nil or amount <= 0 then
+        return
+    end
+    local gui = hudGui :: Frame
+    local toX, toY = HUDController.PearlAnchor()
+    local row = Instance.new("Frame")
+    row.Name = "PearlFly"
+    row.AnchorPoint = Vector2.new(0.5, 0.5)
+    row.Position = UDim2.fromOffset(fromX, fromY)
+    row.Size = UDim2.fromOffset(0, 30)
+    row.AutomaticSize = Enum.AutomaticSize.X
+    row.BackgroundColor3 = Theme.COLOR.plate
+    row.BackgroundTransparency = Theme.PLATE_TRANSPARENCY
+    row.ZIndex = 18
+    row.Parent = gui
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = row
+    local padding = Instance.new("UIPadding")
+    padding.PaddingLeft = UDim.new(0, 6)
+    padding.PaddingRight = UDim.new(0, 8)
+    padding.Parent = row
+    local layout = Instance.new("UIListLayout")
+    layout.FillDirection = Enum.FillDirection.Horizontal
+    layout.VerticalAlignment = Enum.VerticalAlignment.Center
+    layout.Padding = UDim.new(0, 5)
+    layout.Parent = row
+    local pearl = Widgets.PearlIcon(row, 18, 19)
+    pearl.LayoutOrder = 1
+    local label = Widgets.Label(row, `+{amount}`, Theme.TEXT.body, Theme.COLOR.cool, "display")
+    label.LayoutOrder = 2
+    label.AutomaticSize = Enum.AutomaticSize.X
+    label.Size = UDim2.fromOffset(0, Theme.TEXT.body + 4)
+    label.ZIndex = 19
+    Theme.punch(label, 2)
+    local duration = 0.7
+    TweenService:Create(
+        row,
+        TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+        { Position = UDim2.fromOffset(toX, toY) }
+    ):Play()
+    task.delay(duration, function()
+        row:Destroy()
+        HUDController.PulsePearls()
+        SoundController.Play("pop")
+    end)
+end
+
 -- Cadru fara desen, doar ancora: pentru functiile de mai jos, care primesc o pozitie HUD (offset)
 -- in loc de un parinte gata pozitionat -- se distruge singur dupa `life` secunde.
 local function anchorAt(hudX: number, hudY: number, z: number, life: number): Frame

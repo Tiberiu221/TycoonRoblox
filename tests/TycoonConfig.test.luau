@@ -5,6 +5,8 @@ local check = frktest.assert.check
 local TycoonConfig = require("../src/Shared/Config/TycoonConfig")
 local RiverConfig = require("../src/Shared/Config/RiverConfig")
 local HandRoutes = require("../src/Shared/Modules/HandRoutes")
+local VillageConfig = require("../src/Shared/Config/VillageConfig")
+local Assets = require("../src/Shared/Config/Assets")
 
 type Box = { x0: number, x1: number, y0: number, y1: number }
 
@@ -30,6 +32,11 @@ local BOUGHT = {
     hire_sawyer = { 120, 102 },
     hire_hauler = { 120, 102 },
     scrap_shed = { 120, 96 },
+    -- [D56] colibele mari ale oamenilor fierului
+    hire_scrap_collector = { 120, 102 },
+    hire_scrap_porter = { 120, 102 },
+    hire_smelter = { 120, 102 },
+    hire_iron_hauler = { 120, 102 },
 }
 
 -- [D50] Tot ce se deseneaza pe teren, in afara platformelor si drumurilor: cladirile (prinse de
@@ -41,11 +48,23 @@ local function placed(): { [string]: Box }
     things.storage = box(ST.x, ST.y, ST.w, ST.h)
     things.sawmill = box(SM.x, SM.y, SM.w, SM.h)
     things.tavern = box(TV.x, TV.y, TV.w, TV.h)
-    things.wheel = box(TycoonConfig.WHEEL_STAND.x, TycoonConfig.WHEEL_STAND.y, 120, 120)
-    local PIER = TycoonConfig.PIER -- pontonul inalt, 32x56 la x3, centrat
-    things.pier = { x0 = PIER.x - 48, x1 = PIER.x + 48, y0 = PIER.y - 84, y1 = PIER.y + 84 }
+    -- [D59] roata e un timonier pe punte (40x48 la x2) si are langa ea avizierul satului (40x44 la x2)
+    things.wheel = box(TycoonConfig.WHEEL_STAND.x, TycoonConfig.WHEEL_STAND.y, 80, 96)
+    things.board = box(TycoonConfig.VILLAGE_BOARD.x, TycoonConfig.VILLAGE_BOARD.y, 80, 88)
+    local PIER = TycoonConfig.PIER -- [D59] pontonul lung, 32x104 la x3, centrat
+    things.pier = { x0 = PIER.x - 48, x1 = PIER.x + 48, y0 = PIER.y - 156, y1 = PIER.y + 156 }
+    -- [D59] decorul cumparat cu perle care sta pe teren: acelasi test ca orice cladire (pontonul si apa au testul lor)
+    for _, d in VillageConfig.DECOR do
+        if d.ground == "land" then
+            local art = (Assets.decor :: any)[d.sprite]
+            for i, spot in d.spots do
+                things[`decor_{d.id}_{i}`] =
+                    box(spot.x, spot.y, art.width * d.scale, art.height * d.scale)
+            end
+        end
+    end
     things.spawn = box(TycoonConfig.SPAWN.x, TycoonConfig.SPAWN.y, 48, 72)
-    for _, role in { "sawyer", "trader" } do
+    for _, role in { "sawyer", "trader", "smelter" } do
         for index = 1, 2 do
             local s = HandRoutes.standFor(role, index) :: { x: number, y: number }
             things[`{role}_{index}`] = box(s.x, s.y, 48, 72)
@@ -69,17 +88,17 @@ end
 
 return function()
     test.suite("TycoonConfig", function()
-        test.case("49 de platforme, index = pozitia in lista", function()
+        test.case("53 de platforme, index = pozitia in lista", function()
             -- Bugul pe care il apara testul: daca `index` se dezalinieaza de pozitia reala,
             -- padStatuses (care merge prin PADS in ordine) si greedyRun (care citeste PRICES[k])
             -- ar arata/cumpara platforma gresita fara nicio eroare.
-            check.equal(#TycoonConfig.PADS, 49)
+            check.equal(#TycoonConfig.PADS, 53) -- [D56] +4: oamenii fierului
             for i, p in TycoonConfig.PADS do
                 check.equal(p.index, i)
             end
         end)
 
-        test.case("Era 1 are 14 deblocari, Era 2 are 11, erele 3-4 cate 12", function()
+        test.case("Era 1 are 18 deblocari, Era 2 are 11, erele 3-4 cate 12", function()
             -- Era 1 a scazut de la 12 la 10 cand Sorting Crate si Dock Stall au devenit niveluri
             -- ale debarcaderului, iar Weighted Nets pragul de nivel 10 al plaselor. Apoi 11 cu
             -- Sawyer-ul [D48], iar Era 2 a pierdut gaterul, mutat in lantul Erei 1. Apoi 13 cu
@@ -89,8 +108,8 @@ return function()
             for _, p in TycoonConfig.PADS do
                 perEra[p.era] = (perEra[p.era] or 0) + 1
             end
-            -- [D55] 14 cu shed-ul de scrap
-            check.equal(perEra[1], 14)
+            -- [D55] 14 cu shed-ul de scrap; [D56] 18 cu cei patru oameni ai fierului
+            check.equal(perEra[1], 18)
             check.equal(perEra[2], 11)
             check.equal(perEra[3], 12)
             check.equal(perEra[4], 12)
@@ -182,7 +201,7 @@ return function()
         end)
 
         -- F1: toata Era 1 e live (angajatul, atelierul, clopotul inclusiv); erele 2-4 inca nu.
-        test.case("live = exact cele 14 deblocari ale Erei 1", function()
+        test.case("live = exact cele 18 deblocari ale Erei 1", function()
             local liveCount = 0
             for _, p in TycoonConfig.PADS do
                 check.equal(p.live, p.era == 1)
@@ -190,7 +209,7 @@ return function()
                     liveCount += 1
                 end
             end
-            check.equal(liveCount, 14)
+            check.equal(liveCount, 18)
         end)
 
         -- Latimea de desen a plasei vine acum din config (NET_DRAW), nu din cutia veche de 144:
@@ -316,7 +335,16 @@ return function()
                     table.insert(roads, { x0 = r.x0, x1 = r.x1, y0 = r.y0, y1 = r.y1 })
                 end
                 local onRoad = {}
-                for _, name in { "storage", "sawmill", "tavern", "wheel", "spawn" } do
+                local check_names = { "storage", "sawmill", "tavern", "wheel", "board", "spawn" }
+                -- [D59] decorul de pe teren nu sta pe drum, in afara de ce atarna peste el (ghirlanda)
+                for _, d in VillageConfig.DECOR do
+                    if d.ground == "land" and not d.overRoad then
+                        for i in d.spots do
+                            table.insert(check_names, `decor_{d.id}_{i}`)
+                        end
+                    end
+                end
+                for _, name in check_names do
                     for _, r in roads do
                         if hit(things[name], r) then
                             table.insert(onRoad, name)
@@ -392,36 +420,116 @@ return function()
             end
         )
 
-        test.case("roata zilnica sta in zona si nu atinge nimic", function()
-            -- Roata e un BUTON in lume, ca si platformele, deci poate fura clicuri exact la fel.
-            -- Prinsa de baza (AnchorPoint 0.5,1), la 40 de pixeli de sprite si PIXEL_SCALE 3.
-            local w = 40 * 3
-            local x0, x1 = TycoonConfig.WHEEL_STAND.x - w / 2, TycoonConfig.WHEEL_STAND.x + w / 2
-            local y0, y1 = TycoonConfig.WHEEL_STAND.y - w, TycoonConfig.WHEEL_STAND.y
+        test.case(
+            "roata zilnica (timonierul de pe punte) sta in zona si nu atinge nimic",
+            function()
+                -- Roata are un card E ca orice obiect, deci o platforma de langa ea i-ar fura cardul.
+                -- [D59] Prinsa de baza (AnchorPoint 0.5,1), timonierul de 40x48 la x2, pe punte.
+                local art = Assets.tycoon.helm
+                local w, h = art.width * 2, art.height * 2
+                local x0, x1 =
+                    TycoonConfig.WHEEL_STAND.x - w / 2, TycoonConfig.WHEEL_STAND.x + w / 2
+                local y0, y1 = TycoonConfig.WHEEL_STAND.y - h, TycoonConfig.WHEEL_STAND.y
+                local deck = TycoonConfig.DECK
+                check.is_true(
+                    TycoonConfig.WHEEL_STAND.y >= deck.y0 and TycoonConfig.WHEEL_STAND.y <= deck.y1
+                )
+                check.is_true(
+                    TycoonConfig.VILLAGE_BOARD.y >= deck.y0
+                        and TycoonConfig.VILLAGE_BOARD.y <= deck.y1
+                )
 
-            local landing = nil
-            for _, z in TycoonConfig.ZONES do
-                if z.id == "landing" then
-                    landing = z
+                local landing = nil
+                for _, z in TycoonConfig.ZONES do
+                    if z.id == "landing" then
+                        landing = z
+                    end
                 end
-            end
-            check.not_nil(landing)
-            check.is_true(x0 >= (landing :: any).x0)
-            check.is_true(x1 <= (landing :: any).x1)
+                check.not_nil(landing)
+                check.is_true(x0 >= (landing :: any).x0)
+                check.is_true(x1 <= (landing :: any).x1)
 
-            local half = TycoonConfig.PAD_SIZE / 2
-            local clashes = 0
-            for _, p in TycoonConfig.PADS do
-                if p.live and p.x ~= nil and p.y ~= nil then
-                    local px, py = p.x :: number, p.y :: number
-                    if px + half > x0 and px - half < x1 and py + half > y0 and py - half < y1 then
-                        clashes += 1
+                local half = TycoonConfig.PAD_SIZE / 2
+                local clashes = 0
+                for _, p in TycoonConfig.PADS do
+                    if p.live and p.x ~= nil and p.y ~= nil then
+                        local px, py = p.x :: number, p.y :: number
+                        if
+                            px + half > x0
+                            and px - half < x1
+                            and py + half > y0
+                            and py - half < y1
+                        then
+                            clashes += 1
+                        end
+                    end
+                end
+                check.equal(clashes, 0)
+                -- taverna, Innkeeper-ul si restul le verifica testul de mai sus (`placed`)
+            end
+        )
+
+        test.case(
+            "[D59] pontonul lung: locul de pescuit, plutitorul, ce aduce raul, decorul de pe el si de pe apa",
+            function()
+                local things = placed()
+                local pier = things.pier
+                local walk = TycoonConfig.PIER_WALK
+                local top, bottom = RiverConfig.RIVER_TOP, RiverConfig.RIVER_BOTTOM
+                -- trecerea e pe scandurile pontonului si ajunge pana la mal
+                check.is_true(walk.x0 >= pier.x0 and walk.x1 <= pier.x1 and walk.y0 >= pier.y0)
+                check.is_true(pier.y1 > bottom)
+                -- picioarele tale la capat, pe trecere
+                local stand = TycoonConfig.FISH_STAND
+                check.is_true(
+                    stand.x > walk.x0
+                        and stand.x < walk.x1
+                        and stand.y > walk.y0
+                        and stand.y < bottom
+                )
+                -- plutitorul: in apa, in aval (dreapta) de ponton, departe de prima plasa
+                local bob = TycoonConfig.BOBBER_AT
+                check.is_true(bob.y > top and bob.y < bottom and bob.x > pier.x1)
+                local firstNet = TycoonConfig.byId.first_net
+                check.is_true(bob.x < (firstNet.x :: number) - TycoonConfig.PAD_SIZE)
+                -- ce aduce raul: in apa, in amonte (stanga), fara sa atinga pontonul sau vecinul (cutia cea mai mare: 60x48)
+                local slots: { Box } = {}
+                for _, slot in TycoonConfig.TREASURE_SLOTS do
+                    local b =
+                        { x0 = slot.x - 30, x1 = slot.x + 30, y0 = slot.y - 24, y1 = slot.y + 24 }
+                    check.is_true(b.y0 > top and b.y1 < bottom)
+                    check.is_true(b.x1 <= pier.x0)
+                    for _, other in slots do
+                        check.is_false(hit(b, other))
+                    end
+                    table.insert(slots, b)
+                end
+                check.equal(#slots, 3)
+                -- decorul de pe ponton sta pe ponton; cel de pe apa, in apa, fara sa atinga pontonul sau ce aduce raul
+                for _, d in VillageConfig.DECOR do
+                    local art = (Assets.decor :: any)[d.sprite]
+                    for _, spot in d.spots do
+                        local b = box(spot.x, spot.y, art.width * d.scale, art.height * d.scale)
+                        if d.ground == "pier" then
+                            check.is_true(
+                                b.x0 >= pier.x0
+                                    and b.x1 <= pier.x1
+                                    and b.y0 >= pier.y0
+                                    and b.y1 <= pier.y1
+                            )
+                        elseif d.ground == "water" then
+                            check.is_true(b.y0 > top and b.y1 <= bottom)
+                            check.is_false(hit(b, pier))
+                            for _, slot in slots do
+                                check.is_false(hit(b, slot))
+                            end
+                        else
+                            check.equal(d.ground, "land")
+                        end
                     end
                 end
             end
-            check.equal(clashes, 0)
-            -- taverna, Innkeeper-ul si restul le verifica testul de mai sus (`placed`)
-        end)
+        )
 
         test.case("preturile Erei 1 sunt exact cele din simulator", function()
             -- Tiparite de `python3 scripts/economy/sim_tycoon.py` pe modelul cu niveluri si
@@ -433,6 +541,8 @@ return function()
             -- plat al unei singure plase, deci ies ieftini; plasele de dupa ei, scumpe.
             -- [D55] Re-derivate cu lantul resturilor: lemnul fara reeds/shards valoreaza mai putin, iar shed-ul
             -- de scrap sta intre atelier si plasa a cincea.
+            -- [D56] Linia fierului: Forge, plasa a cincea, apoi shed-ul si cei patru oameni in rafala (secunde de
+            -- venit, nu scara), deci clopotul vine mai ieftin decat in D55.
             local era1 = {
                 first_net = 0,
                 first_runner = 12,
@@ -445,9 +555,13 @@ return function()
                 bigger_sack = 80,
                 far_lane_net = 900,
                 workshop = 5500,
-                scrap_shed = 7500,
-                fifth_net = 8000,
-                landing_bell = 9000,
+                fifth_net = 7000,
+                scrap_shed = 2500,
+                hire_scrap_collector = 2500,
+                hire_scrap_porter = 2800,
+                hire_smelter = 3500,
+                hire_iron_hauler = 3500,
+                landing_bell = 8000,
             }
             local seen = 0
             for _, p in TycoonConfig.PADS do
@@ -456,7 +570,7 @@ return function()
                     check.equal(p.price, era1[p.id])
                 end
             end
-            check.equal(seen, 14)
+            check.equal(seen, 18)
         end)
 
         test.case("fiecare deblocare a Erei 1 spune cand devine cumparabila", function()
@@ -505,9 +619,13 @@ return function()
                     -- [D52] Innkeeper-ul inchide cei cinci, iar plasa a doua il asteapta
                     dock_trader = "hire_hauler",
                     second_net = "dock_trader",
-                    -- [D55] scrap-ul: atelierul topeste, shed-ul primeste, abia apoi plasa care il prinde
-                    scrap_shed = "workshop",
-                    fifth_net = "scrap_shed",
+                    -- [D56] fierul: forja intai, apoi plasa care aduce scrap; shed-ul cere plasa a cincea prin
+                    -- `netsOwned`, apoi oamenii fierului, in ordinea raului
+                    fifth_net = "workshop",
+                    hire_scrap_collector = "scrap_shed",
+                    hire_scrap_porter = "hire_scrap_collector",
+                    hire_smelter = "hire_scrap_porter",
+                    hire_iron_hauler = "hire_smelter",
                 }
                 for id, before in chain do
                     local p = TycoonConfig.byId[id]

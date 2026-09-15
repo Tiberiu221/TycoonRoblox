@@ -90,11 +90,13 @@ return function()
         end)
 
         test.case("cand drumul ar ocoli de doua ori, scurtatura peste iarba", function()
-            -- de la spawn la prima plasa: pe drum ar fi 826 px pentru o tinta aflata la 311
-            local net = TycoonConfig.byId["first_net"]
+            -- [D57] din mijlocul curtii lemnului la a treia plasa: pe drum (aleea fierului si puntea) ar fi ~780 px
+            -- pentru o tinta aflata la 347. Pana in D57 exemplul era spawn -> prima plasa; in satul nou spawn-ul sta
+            -- langa aleea tavernei, iar drumul pe alee e chiar cel bun (linia dreapta ar trece prin gramada depozitului).
+            local net = TycoonConfig.byId["third_net"]
             local path = RoadGraph.route(
                 RoadGraph.fromConfig(),
-                TycoonConfig.SPAWN,
+                { x = 1100, y = 1150 },
                 { x = net.x :: number, y = net.y :: number }
             )
             check.equal(#path, 2)

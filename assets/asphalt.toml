@@ -1,5 +1,5 @@
 # Pipeline de asset-uri (cap. 3.9). DE VERIFICAT: schema completa in README-ul jackTabsCode/asphalt;
 # tipul "group" pentru Grupul Driftwood (DECIZII D01) nu e confirmat in research.
 [creator]
-type = "user"   # contul personal la prototip; se muta pe Grup inainte de pasul 4 (DECIZII D01)
+type = "user"   # contul personal; fara grup (DECIZII D01, 2026-09-15) -- un joc se muta gratuit pe grup mai tarziu
 id = 11640386677

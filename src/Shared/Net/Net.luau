@@ -24,7 +24,7 @@ local REMOTE_NAMES = {
     "TycoonState", -- S->C: instantaneul complet; clientul INLOCUIESTE starea, nu o combina
     "SpinWheel", -- C->S: cere rotirea gratuita a zilei
     "SetAudio", -- C->S {kind, level}: nivelul muzicii sau al efectelor, 0..10, tinut minte in profil [D54]
-    "WheelResult", -- S->C: {prizeId, coins, pearls} sau {reason} daca n-a mers
+    "WheelResult", -- S->C: {prizeId, pearls, converted} sau {nil, 0, false, reason} daca n-a mers [D59]
     "ClaimQuest", -- C->S: {questId} -- ia recompensa unui quest terminat
     "QuestRejected", -- S->C: {reason}
     "UpgradeStation", -- C->S: {kind, id, count} -- urca nivelul unei statii
@@ -47,7 +47,19 @@ local REMOTE_NAMES = {
     "UseForge", -- C->S: E la atelier -- lasi scrap-ul la forja, apoi iei fierul gata [D55]
     "UseResult", -- S->C {place, ok, reason, dropped, taken}: ce a facut gestul, pentru toast
     "AtSawmill", -- C->S {present}: stai langa gater (fara Sawyer, doar atunci taie)
+    "AtForge", -- C->S {present}: stai langa forja (fara Smelter, doar atunci topeste) [D56]
     "UpgradeCrew", -- C->S {role, what}: "tier" sau "hire" (al doilea om)
+
+    -- Noi la D59 (pontonul: undita, ce aduce raul, satul)
+    "Cast", -- C->S: arunci undita la capatul pontonului
+    "CastResult", -- S->C {castId, biteAt, kind, difficulty, reelSeed, treasure?} sau {nil, reason}
+    "Land", -- C->S {castId}: bara s-a umplut, scoti ce e pe fir
+    "LandResult", -- S->C {castId, ok, reason, result?, wait?}: pestele/lucrul scos, sau cat mai ai de asteptat
+    "TreasureArrived", -- S->C {kind, slot}: ceva a venit pe rau si s-a oprit la ponton
+    "BuyDecor", -- C->S {decorId}: o imbunatatire a satului, pe perle
+    "BuyOutfit", -- C->S {outfitId}: o tinuta, pe perle (o si imbraci)
+    "WearOutfit", -- C->S {outfitId}: schimbi intre tinutele pe care le ai
+    "ShopResult", -- S->C {what, id, ok, reason}: raspunsul avizierului
 }
 
 local Net = {}

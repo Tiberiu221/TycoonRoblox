@@ -34,11 +34,14 @@ export type Row = {
     maxCount: number,
     maxCost: number,
     bottleneck: boolean,
+    line: string?, -- [D56] "wood" | "iron"; nil = taverna
 }
 
 export type Snapshot = {
     rows: { Row },
     bottleneck: string,
+    woodBottleneck: string?, -- [D56] veriga slaba a fiecarei linii; "" = linia fierului inca inchisa
+    ironBottleneck: string?,
     rates: { [string]: any }, -- catch, collect, port, sawing, haul, sales, delivered, bottleneck [D49]
 }
 
@@ -54,28 +57,43 @@ local window: Frame
 local body: Frame
 local open = false
 
-local PANEL_W, PANEL_H = 600, 640
+local PANEL_W, PANEL_H = 600, 720 -- [D56] +80: patru verigi ale fierului in capul panoului
 local ROW_H = 96
 local Z = 60
 
--- Capul panoului: cele sase debite [D49]. Acelasi lucru pe care Idle Miner il pune in "Mine
+-- Capul panoului: debitele lantului [D49]. Acelasi lucru pe care Idle Miner il pune in "Mine
 -- Overview" -- si tot acolo pune semnul de avertizare, pe veriga cea mai slaba. Panoul e ascuns (U)
 -- [owner, 2026-09-12]; randurile de mai jos sunt doar cladirile -- meseriile au meniul lor.
-local CHAIN_ROWS = {
-    { key = "nets", icon = "net", label = "Nets", what = "catch" },
-    { key = "collect", icon = "capacity", label = "Collect", what = "collect" },
-    { key = "port", icon = "carry", label = "Carry", what = "port" },
-    { key = "saw", icon = "saw", label = "Sawmill", what = "sawing" },
-    -- [D55] forja atelierului: fara ea, "the forge is slowest" din rândul de sfat n-ar avea rand
-    { key = "forge", icon = "hammer", label = "Forge", what = "forging" },
-    { key = "haul", icon = "speed", label = "Haul", what = "haul" },
+-- [D56] Pe linii: lemnul, taverna (a amandurora), apoi fierul, ascuns cat linia lui e inchisa (ultimul, ca sa nu
+-- lase o gaura la mijloc). Semnul sta pe veriga slaba a fiecarei linii; la taverna, pe cea care tine venitul.
+type ChainRow = { key: string, line: string?, icon: string, label: string, what: string }
+local CHAIN_ROWS: { ChainRow } = {
+    { key = "nets", line = "wood", icon = "net", label = "Nets", what = "woodCatch" },
+    { key = "collect", line = "wood", icon = "capacity", label = "Collect", what = "collect" },
+    { key = "port", line = "wood", icon = "carry", label = "Carry", what = "port" },
+    { key = "saw", line = "wood", icon = "saw", label = "Sawmill", what = "sawing" },
+    { key = "haul", line = "wood", icon = "speed", label = "Haul", what = "haul" },
     { key = "dock", icon = "crate", label = "Tavern", what = "sales" },
+    { key = "nets", line = "iron", icon = "net", label = "Scrap net", what = "scrapCatch" },
+    {
+        key = "scrapCollect",
+        line = "iron",
+        icon = "capacity",
+        label = "Collect scrap",
+        what = "scrapCollect",
+    },
+    { key = "scrapPort", line = "iron", icon = "carry", label = "Carry scrap", what = "scrapPort" },
+    { key = "forge", line = "iron", icon = "hammer", label = "Forge", what = "forging" },
+    { key = "ironHaul", line = "iron", icon = "speed", label = "Haul iron", what = "ironHaul" },
 }
-local CHAIN_STEP = 20 -- sapte verigi [D55], cate 20
+local CHAIN_STEP = 20 -- unsprezece verigi [D56], cate 20
+local HEAD_SHIFT = (#CHAIN_ROWS - 7) * CHAIN_STEP -- tot ce sta sub cap coboara cu verigile adaugate dupa D55
 
 local advice: TextLabel
-local chainValue: { [string]: TextLabel } = {}
-local chainWarn: { [string]: TextLabel } = {}
+-- pe index: "nets" apare de doua ori (plasele de lemn si plasa de scrap)
+local chainParts: { { GuiObject } } = {}
+local chainValue: { TextLabel } = {}
+local chainWarn: { TextLabel } = {}
 local rowHolder: ScrollingFrame
 local bulkIndex = 1 -- 1..#BULK_STEPS, apoi "Max"
 local bulkButtons: { TextButton } = {}
@@ -268,8 +286,16 @@ local function refreshRows(snap: Snapshot)
             view.milestone.Text = ""
         end
 
-        -- PANOUL NU MINTE: daca statia nu e veriga slaba, nivelul nu aduce nimic ACUM, si scrie asta
-        view.warn.Text = if row.bottleneck then "" else Strings.stationNoEffect(snap.bottleneck)
+        -- PANOUL NU MINTE: daca statia nu e veriga slaba, nivelul nu aduce nimic ACUM, si scrie asta. [D56] Veriga
+        -- slaba a liniei randului; forja fara plasa de scrap n-are nicio veriga care s-o tina, doar nu vine nimic.
+        local lineBottleneck = if row.line == "iron"
+            then snap.ironBottleneck or ""
+            elseif row.line == "wood" then snap.woodBottleneck or snap.bottleneck
+            else snap.bottleneck
+        view.warn.Text = if row.bottleneck
+            then ""
+            elseif lineBottleneck == "" then Strings.STATION_NO_SCRAP
+            else Strings.stationNoEffect(lineBottleneck)
         view.gain.TextColor3 = if row.bottleneck then Theme.COLOR.good else Theme.COLOR.onDarkSoft
 
         local cost = costFor(row)
@@ -289,17 +315,25 @@ end
 
 local function refreshChain(snap: Snapshot)
     advice.Text = Strings.stationsAdvice(snap.bottleneck)
-    for _, entry in CHAIN_ROWS do
-        local label = chainValue[entry.key]
+    local ironOpen = (snap.ironBottleneck or "") ~= ""
+    for i, entry in CHAIN_ROWS do
+        local shown = entry.line ~= "iron" or ironOpen
+        for _, part in chainParts[i] or {} do
+            part.Visible = shown
+        end
+        local bottleneck = if entry.line == "iron"
+            then snap.ironBottleneck or ""
+            elseif entry.line == "wood" then snap.woodBottleneck or snap.bottleneck
+            else snap.bottleneck
+        local slowest = shown and bottleneck == entry.key
+        local label = chainValue[i]
         if label ~= nil then
             label.Text = `{TycoonMath.formatRate(snap.rates[entry.what] or 0)}/s`
-            label.TextColor3 = if snap.bottleneck == entry.key
-                then Theme.COLOR.bad
-                else Theme.COLOR.ink
+            label.TextColor3 = if slowest then Theme.COLOR.bad else Theme.COLOR.ink
         end
-        local warn = chainWarn[entry.key]
+        local warn = chainWarn[i]
         if warn ~= nil then
-            warn.Visible = snap.bottleneck == entry.key
+            warn.Visible = slowest
         end
     end
 end
@@ -426,27 +460,32 @@ function StationPanel.Init(d: Deps)
     local head = Instance.new("Frame")
     head.Name = "Chain"
     head.BackgroundTransparency = 1
-    head.Size = UDim2.new(1, 0, 0, #CHAIN_ROWS * CHAIN_STEP + 2) -- sapte verigi x 20 [D49, D55]
+    head.Size = UDim2.new(1, 0, 0, #CHAIN_ROWS * CHAIN_STEP + 2) -- unsprezece verigi x 20 [D49, D56]
     head.ZIndex = Z + 1
     head.Parent = body
     for i, entry in CHAIN_ROWS do
         local y = (i - 1) * CHAIN_STEP
+        local parts: { GuiObject } = {}
+        chainParts[i] = parts
         local icon = Widgets.Icon(head, entry.icon, 16)
         if icon ~= nil then
             icon.Position = UDim2.fromOffset(0, y + 2)
             icon.ZIndex = Z + 2
+            table.insert(parts, icon)
         end
         local name =
             Widgets.Label(head, entry.label, Theme.TEXT.tiny, Theme.COLOR.onDarkSoft, "body")
         name.Position = UDim2.fromOffset(28, y)
         name.Size = UDim2.fromOffset(120, CHAIN_STEP)
         name.ZIndex = Z + 2
+        table.insert(parts, name)
         local value = Widgets.Label(head, "0/s", Theme.TEXT.small, Theme.COLOR.ink, "display")
         value.Position = UDim2.fromOffset(150, y)
         value.Size = UDim2.fromOffset(120, CHAIN_STEP)
         value.TextXAlignment = Enum.TextXAlignment.Right
         value.ZIndex = Z + 2
-        chainValue[entry.key] = value
+        table.insert(parts, value)
+        chainValue[i] = value
         local warn = Widgets.Label(
             head,
             Strings.STATION_BOTTLENECK,
@@ -458,19 +497,19 @@ function StationPanel.Init(d: Deps)
         warn.Size = UDim2.fromOffset(200, CHAIN_STEP)
         warn.Visible = false
         warn.ZIndex = Z + 2
-        chainWarn[entry.key] = warn
+        chainWarn[i] = warn
     end
 
     -- DE CE conteaza cifrele de mai sus, si ce sa faci cu ele. Fara randurile astea doua, panoul
     -- e trei numere si patru butoane, si nimeni nu stie ce a deschis.
     local explain =
         Widgets.Label(body, Strings.STATIONS_EXPLAIN, Theme.TEXT.small, Theme.COLOR.inkSoft, "body")
-    explain.Position = UDim2.fromOffset(0, 146)
+    explain.Position = UDim2.fromOffset(0, 146 + HEAD_SHIFT)
     explain.Size = UDim2.new(1, 0, 0, 20)
     explain.ZIndex = Z + 1
 
     advice = Widgets.Label(body, "", Theme.TEXT.small, Theme.COLOR.ink, "strong")
-    advice.Position = UDim2.fromOffset(0, 168)
+    advice.Position = UDim2.fromOffset(0, 168 + HEAD_SHIFT)
     advice.Size = UDim2.new(1, 0, 0, 20)
     advice.ZIndex = Z + 1
 
@@ -478,7 +517,7 @@ function StationPanel.Init(d: Deps)
     local bulkRow = Instance.new("Frame")
     bulkRow.Name = "Bulk"
     bulkRow.BackgroundTransparency = 1
-    bulkRow.Position = UDim2.fromOffset(0, 198)
+    bulkRow.Position = UDim2.fromOffset(0, 198 + HEAD_SHIFT)
     bulkRow.Size = UDim2.new(1, 0, 0, 44)
 
     local bulkLabel =
@@ -511,8 +550,8 @@ function StationPanel.Init(d: Deps)
 
     rowHolder = Widgets.List(body, Z + 1, Theme.SPACE.sm)
     local rowsHolder = rowHolder.Parent :: Frame
-    rowsHolder.Position = UDim2.fromOffset(0, 250)
-    rowsHolder.Size = UDim2.new(1, 0, 1, -250)
+    rowsHolder.Position = UDim2.fromOffset(0, 250 + HEAD_SHIFT)
+    rowsHolder.Size = UDim2.new(1, 0, 1, -(250 + HEAD_SHIFT))
 
     -- Refuzurile de nivel le anunta StationMenu: lista asta a ramas ascunsa (tasta U), iar doua
     -- ascultari ar fi dublat fiecare mesaj.

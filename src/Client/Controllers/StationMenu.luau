@@ -2,7 +2,8 @@
 -- Meniul UNUI obiect [owner, 2026-09-12: "cand dau click pe ceva sa am meniu special al obiectului
 -- pentru upgrade, nu sa am toate upgrade-urile intr-un singur meniu"]. Doua feluri, aceeasi fereastra:
 --   * o CLADIRE (plasa, gater, taverna): nivel fara capat, x1/x10/Max;
---   * o MESERIE (Collector, Porter, Sawyer, Hauler, Innkeeper) [D49]: treapta 1-5 si al doilea om.
+--   * o MESERIE (Collector, Porter, Sawyer, Hauler, Innkeeper [D49]; Scrap Collector, Scrap Porter, Smelter,
+--     Iron Hauler [D56]): treapta 1-5 si al doilea om.
 -- Il deschide obiectul atins, un om atins, cardul de la apropiere, `Go!` sau butonul "Go to" de aici.
 --
 -- SIMPLU, CITIT DINTR-O PRIVIRE [D52]. Owner-ul, pe varianta cu sase pastile de lant si debite pe
@@ -38,6 +39,7 @@ export type Row = {
     maxCost: number,
     bottleneck: boolean,
     gain: number, -- [D52] cat creste venitul cu un nivel aici; 0 = nu aduce nimic pe loc
+    line: string?, -- [D56] "wood" | "iron"; nil = taverna
 }
 
 export type CrewRow = {
@@ -62,12 +64,15 @@ export type CrewRow = {
     secondAffordable: boolean,
     maxed: boolean,
     bottleneck: boolean,
+    line: string?, -- [D56]
 }
 
 export type Snapshot = {
     rows: { Row },
     crews: { CrewRow },
     bottleneck: string,
+    woodBottleneck: string?, -- [D56] veriga slaba a fiecarei linii; "" = linia fierului inca inchisa
+    ironBottleneck: string?,
     rates: { [string]: any },
     playerShare: number,
 }
@@ -110,17 +115,27 @@ local BULK: { Bulk } = {
     { label = "Max", step = nil },
 }
 
--- Cele sase verigi, in ordinea lantului: ce meniu o repara ("Go to") si care debit e al ei. Sawyer-ul si
--- Innkeeper-ul impart veriga cu cladirea lor: "Go to" duce la cladire, al carei nivel e reparatia.
+-- Verigile, in ordinea StationConfig.LINKS: ce meniu o repara ("Go to") si care debit e al ei. Sawyer-ul, Smelter-ul
+-- si Innkeeper-ul impart veriga cu cladirea lor: "Go to" duce la cladire, al carei nivel e reparatia. [D56] Plasele
+-- sunt ale amandurora liniilor (debitul lor se ia pe linie, vezi rateOf), taverna la fel.
 type Link = { key: string, kind: string, role: string?, icon: string, rate: string }
 local CHAIN: { Link } = {
     { key = "nets", kind = "net", icon = "net", rate = "catch" },
     { key = "collect", kind = "crew", role = "collector", icon = "capacity", rate = "collect" },
     { key = "port", kind = "crew", role = "porter", icon = "carry", rate = "port" },
     { key = "saw", kind = "saw", icon = "saw", rate = "sawing" },
-    -- [D55] forja atelierului: merge singura, "Go to" duce la nivelul ei
-    { key = "forge", kind = "forge", icon = "hammer", rate = "forging" },
     { key = "haul", kind = "crew", role = "hauler", icon = "speed", rate = "haul" },
+    -- [D56] linia fierului
+    {
+        key = "scrapCollect",
+        kind = "crew",
+        role = "scrapCollector",
+        icon = "capacity",
+        rate = "scrapCollect",
+    },
+    { key = "scrapPort", kind = "crew", role = "scrapPorter", icon = "carry", rate = "scrapPort" },
+    { key = "forge", kind = "forge", icon = "hammer", rate = "forging" },
+    { key = "ironHaul", kind = "crew", role = "ironHauler", icon = "speed", rate = "ironHaul" },
     { key = "dock", kind = "dock", icon = "crate", rate = "sales" },
 }
 local LINK_OF_ROLE: { [string]: string } = StationConfig.LINK_OF
@@ -133,6 +148,7 @@ local subLabel: TextLabel
 local statusLabel: TextLabel
 local goButton: TextButton
 local goLink: Link? = nil
+local goLine: string? = nil -- [D56] "Go to Nets": plasele carei linii
 -- cladire
 local buildingGroup: { GuiObject } = {}
 local bulkButtons: { TextButton } = {}
@@ -237,22 +253,50 @@ local function perMinuteGain(gain: number): string?
     return if text == "0" then nil else text
 end
 
+-- [D56] Debitul unei verigi, pe linia intrebata: plasele de lemn si plasa de scrap sunt debite diferite.
+local function rateOf(snap: Snapshot, c: Link, line: string?): number
+    if c.key == "nets" then
+        local key = if line == "iron"
+            then "scrapCatch"
+            elseif line == "wood" then "woodCatch"
+            else "catch"
+        return snap.rates[key] or 0
+    end
+    return snap.rates[c.rate] or 0
+end
+
+-- [D56] O veriga intra in comparatie doar pe linia obiectului (plasele si taverna sunt ale amandurora); ale fierului
+-- deloc cat linia lui e inchisa -- altfel debitul lor (0) ar iesi "cel mai lent" si meniul ar trimite la o veriga care
+-- nu tine nimic [D40].
+local function inLine(snap: Snapshot, key: string, line: string?): boolean
+    local of = StationConfig.LINE_OF[key]
+    if of == "iron" and (snap.ironBottleneck or "") == "" then
+        return false
+    end
+    return line == nil or of == nil or of == line
+end
+
 -- Veriga care tine venitul in loc, alta decat `mine`, si daca e doar la egalitate cu ea. Se cheama
 -- doar cand castigul e zero: atunci exista sigur una la fel de lenta sau mai lenta. [D55] Cu doua marfuri,
--- debitele nu se mai compara intre ele (scrap-ul si lemnul trec prin verigi diferite): veriga slaba o spune
--- serverul (`snap.bottleneck`, dupa castigul pe bucata); comparatia de debite ramane doar pentru egalitati.
-local function heldBackBy(snap: Snapshot, mine: string): (Link, boolean)
-    if snap.bottleneck ~= mine and snap.bottleneck ~= "" then
-        return linkByKey(snap.bottleneck), false
+-- debitele nu se mai compara intre ele: veriga slaba o spune serverul (dupa castigul pe bucata); comparatia de
+-- debite ramane doar pentru egalitati. [D56] Veriga slaba a LINIEI obiectului -- o plasa de lemn nu e tinuta de
+-- forja; taverna (fara linie) se uita la cea care tine venitul. nil = linia fierului e inca inchisa.
+local function heldBackBy(snap: Snapshot, mine: string, line: string?): (Link?, boolean)
+    local bottleneck = if line == "iron"
+        then snap.ironBottleneck or ""
+        elseif line == "wood" then snap.woodBottleneck or snap.bottleneck
+        else snap.bottleneck
+    if line == "iron" and bottleneck == "" then
+        return nil, false
     end
-    local mineRate = snap.rates[linkByKey(mine).rate] or 0
-    local best, bestRate = CHAIN[1], math.huge
-    local scrapFlows = (snap.rates.scrapCatch or 0) > 0
+    if bottleneck ~= mine and bottleneck ~= "" then
+        return linkByKey(bottleneck), false
+    end
+    local mineRate = rateOf(snap, linkByKey(mine), line)
+    local best, bestRate = linkByKey("dock"), math.huge
     for _, c in CHAIN do
-        -- forja conteaza doar cat exista scrap de topit: altfel debitul ei (0 sau cel al atelierului gol) ar
-        -- iesi "cea mai lenta" si meniul ar trimite la o veriga care nu tine nimic [D40]
-        if c.key ~= mine and (c.key ~= "forge" or scrapFlows) then
-            local rate = snap.rates[c.rate] or 0
+        if c.key ~= mine and inLine(snap, c.key, line) then
+            local rate = rateOf(snap, c, line)
             if rate < bestRate then
                 best, bestRate = c, rate
             end
@@ -265,14 +309,28 @@ local function showStatus(text: string, color: Color3)
     statusLabel.Text = text
     statusLabel.TextColor3 = color
     goLink = nil
+    goLine = nil
     goButton.Visible = false
 end
 
-local function showHeldBack(snap: Snapshot, mine: string)
-    local link, tie = heldBackBy(snap, mine)
-    statusLabel.Text = Strings.menuHeldBack(link.key, tie)
+local function showHeldBack(snap: Snapshot, mine: string, line: string?)
+    local link, tie = heldBackBy(snap, mine, line)
+    if link == nil then
+        -- [D56] Forge fara plasa de scrap: nu e o veriga de reparat, doar nu vine inca nimic
+        showStatus(Strings.MENU_NO_SCRAP, Theme.COLOR.warnInk)
+        return
+    end
+    -- plasele carei linii: a obiectului; de la taverna, a liniei in care plasele tin
+    local netsLine = line
+    if netsLine == nil then
+        netsLine = if snap.ironBottleneck == "nets" and snap.woodBottleneck ~= "nets"
+            then "iron"
+            else "wood"
+    end
+    statusLabel.Text = Strings.menuHeldBack(link.key, tie, netsLine)
     statusLabel.TextColor3 = Theme.COLOR.warnInk
     goLink = link
+    goLine = netsLine
     Widgets.SetButtonText(goButton, Strings.menuGoTo(link.key))
     goButton.Visible = true
 end
@@ -292,6 +350,9 @@ local function renderBuilding(row: Row, snap: Snapshot)
     if row.kind == "saw" then
         local sawyer = findCrew("sawyer")
         staffed = sawyer ~= nil and sawyer.count > 0
+    elseif row.kind == "forge" then
+        local smelter = findCrew("smelter") -- [D56] ca gaterul
+        staffed = smelter ~= nil and smelter.count > 0
     elseif row.kind == "dock" then
         local trader = findCrew("trader")
         staffed = trader ~= nil and trader.count > 0
@@ -299,7 +360,9 @@ local function renderBuilding(row: Row, snap: Snapshot)
     captionLabel.Text = Strings.menuDoes(row.kind, staffed)
     local now = TycoonMath.formatPerMinute(row.output)
     rateLabel.Text = `{now} → {TycoonMath.formatPerMinute(outputAfter(row, shown))}`
-    unitLabel.Text = Strings.menuUnit(row.kind)
+    -- [D56] plasa de scrap prinde scrap, nu busteni
+    unitLabel.Text =
+        Strings.menuUnit(if row.kind == "net" and row.line == "iron" then "scrapNet" else row.kind)
 
     local milestone = row.nextMilestone
     subLabel.Text = if milestone ~= nil
@@ -310,7 +373,7 @@ local function renderBuilding(row: Row, snap: Snapshot)
     if row.gain > 0 then
         showStatus(Strings.menuEarnsLevel(perMinuteGain(row.gain)), Theme.COLOR.goodInk)
     else
-        showHeldBack(snap, mineKey)
+        showHeldBack(snap, mineKey, row.line)
     end
 
     for i, b in bulkButtons do
@@ -354,7 +417,7 @@ local function renderCrew(crew: CrewRow, snap: Snapshot)
     setGroup(crewGroup, true)
 
     levelLabel.Text = Strings.menuTierLine(crew.tier, crew.maxTier, crew.count, crew.maxPeople)
-    captionLabel.Text = Strings.crewDoes(crew.role, (snap.rates.scrapCatch or 0) > 0)
+    captionLabel.Text = Strings.crewDoes(crew.role)
     local now = TycoonMath.formatPerMinute(crew.output)
     local after = crew.nextOutput
     rateLabel.Text = if crew.count > 0 and after ~= nil
@@ -385,7 +448,7 @@ local function renderCrew(crew: CrewRow, snap: Snapshot)
             Theme.COLOR.goodInk
         )
     else
-        showHeldBack(snap, mineKey)
+        showHeldBack(snap, mineKey, crew.line)
     end
 
     renderCrewButton(tierButton, "tier", crew.tierCost, crew.tierAffordable, crew.tierBlock)
@@ -484,8 +547,9 @@ local function label(
 end
 
 -- "Go to": duce meniul pe veriga care tine venitul in loc -- cladirea, sau meseria care o tine. Pe o
--- meserie fara om, meniul ei spune "Hire one at its pad", nu arata un buton mort [D52].
-local function openLink(c: Link)
+-- meserie fara om, meniul ei spune "Hire one at its pad", nu arata un buton mort [D52]. [D56] La plase: prima
+-- plasa a liniei (`line`), nu prima plasa oarecare.
+local function openLink(c: Link, line: string?)
     local snap = lastSnapshot
     if snap == nil then
         return
@@ -495,7 +559,7 @@ local function openLink(c: Link)
         ok = retarget("crew", c.role)
     elseif c.kind == "net" then
         for _, row in snap.rows do
-            if row.kind == "net" then
+            if row.kind == "net" and (line == nil or row.line == line) then
                 ok = retarget("net", row.id)
                 break
             end
@@ -563,7 +627,7 @@ function StationMenu.Init(d: Deps)
         onClick = function()
             local link = goLink
             if link ~= nil then
-                openLink(link)
+                openLink(link, goLine)
             end
         end,
     })

@@ -21,12 +21,14 @@ local StationService = {}
 local deps: {
     PushState: ((Player) -> ())?,
     Now: (() -> number)?,
-    -- fereastra "cat ai lipsit"; nil = nu se arata nimic (tot se plateste)
-    OnWelcome: ((Player, number, number, boolean) -> ())?,
+    -- fereastra "cat ai lipsit"; nil = nu se arata nimic (tot se plateste). [D59] Ultimul: cate lucruri au venit pe rau.
+    OnWelcome: ((Player, number, number, boolean, number) -> ())?,
     -- al doilea om al unei meserii se angajeaza tot prin HandService [D49]; primit, nu cerut (cerc)
     Hands: { Hire: (Player, string) -> boolean }?,
+    -- [D59] ce a adus raul cat ai lipsit (TreasureService); se numara o singura data pe sesiune
+    Treasures: { SettleOffline: (Player) -> number }?,
 } =
-    { PushState = nil, Now = nil, OnWelcome = nil, Hands = nil }
+    { PushState = nil, Now = nil, OnWelcome = nil, Hands = nil, Treasures = nil }
 
 local SEEN_EVERY = 15 -- cat de des se noteaza ca jucatorul e inca aici
 
@@ -116,10 +118,10 @@ function StationService.StateFrom(data: any, bought: { [string]: boolean }): Cha
     -- `or 1`: o stare construita dintr-un profil necompletat nu are voie sa crape pe aritmetica cu nil.
     s.sawLevel = if st.saw ~= nil then st.saw.level else 1
     s.dockLevel = if st.dock ~= nil then st.dock.level else 1
-    -- [D55] lantul resturilor: forja atelierului si shed-ul, din aceleasi platforme ca intrebarea "daca"
+    -- [D55, D56] linia fierului: nivelul forjei si Forge (platforma `workshop`), din aceleasi platforme ca
+    -- intrebarea "daca"; plasa de scrap intra cu plasele de mai sus
     s.forgeLevel = if st.forge ~= nil then st.forge.level else 1
     s.workshop = bought.workshop == true
-    s.scrapShed = bought.scrap_shed == true
     -- OAMENII [D49]: cati sunt se numara din `data.Hands` (dupa rol), treapta vine din `data.Crews`.
     -- O platforma de meserie din `bought` fara om inca (intrebarea "daca as cumpara-o") numara un om:
     -- altfel cartonasul de la apropiere ar arata castig zero pe fiecare angajare.
@@ -286,6 +288,8 @@ export type Row = {
     bottleneck: boolean,
     -- [D52] cat creste venitul cu UN nivel aici, cu tot lantul de acum; 0 = nu aduce nimic pe loc
     gain: number,
+    -- [D56] linia obiectului: "wood" | "iron"; nil = taverna, a amandurora. Meniul cauta veriga slaba in ea.
+    line: string?,
 }
 
 -- O meserie in meniul ei [D49]. `output` = debitul verigii ACUM (cu partea ta din timp, daca n-are om),
@@ -313,10 +317,11 @@ export type CrewRow = {
     secondAffordable: boolean,
     maxed: boolean,
     bottleneck: boolean,
+    line: string?, -- [D56] ca la Row; Innkeeper-ul (taverna) nu are
 }
 
--- Cat taie/vinde cladirea la un nivel, cu oamenii pe care ii are acum. Gaterul fara Sawyer: cat taie
--- cand stai tu langa el -- meniul spune asta in cuvinte, cifra ramane cea adevarata [D40].
+-- Cat taie/topeste/vinde cladirea la un nivel, cu oamenii pe care ii are acum. Gaterul fara Sawyer si forja fara
+-- Smelter: cat merg cand stai tu langa ele -- meniul spune asta in cuvinte, cifra ramane cea adevarata [D40].
 local function buildingOutput(s: ChainMath.State, kind: string, id: string?, level: number): number
     if kind == "net" then
         local index = table.find(netPadIds, id or "") or 1
@@ -325,7 +330,7 @@ local function buildingOutput(s: ChainMath.State, kind: string, id: string?, lev
         local crew = s.crews.sawyer
         return ChainMath.sawSpeed(level, crew, true)
     elseif kind == "forge" then
-        return ChainMath.forgeSpeed(s.workshop, level) -- [D55] merge singura, cat e atelierul
+        return ChainMath.forgeSpeed(level, s.crews.smelter, true) -- [D56] ca gaterul
     elseif kind == "dock" then
         return ChainMath.dockSpeed(level, s.crews.trader)
     end
@@ -358,6 +363,17 @@ local function levelGain(s: ChainMath.State, kind: string, netSlot: number?): nu
     return if gain > 1e-9 then gain else 0
 end
 
+-- [D56] Veriga slaba care conteaza pentru un rand: a liniei lui (o plasa de lemn nu e tinuta de forja), iar pentru
+-- taverna, a amandurora -- cea care tine venitul.
+local function lineBottleneck(rates: ChainMath.Rates, line: string?): string
+    if line == "wood" then
+        return rates.woodBottleneck
+    elseif line == "iron" then
+        return rates.ironBottleneck
+    end
+    return rates.bottleneck
+end
+
 local function rowFor(
     s: ChainMath.State,
     kind: string,
@@ -365,7 +381,7 @@ local function rowFor(
     name: string,
     level: number,
     coins: number,
-    bn: string,
+    rates: ChainMath.Rates,
     netSlot: number?
 ): Row
     local base = StationService.UpgradeBase(kind, id)
@@ -374,6 +390,12 @@ local function rowFor(
         table.insert(costs, ChainMath.bulkCost(base, level, step))
     end
     local maxCount = ChainMath.affordableLevels(base, level, coins, MAX_BULK)
+    local link = if kind == "net" then "nets" else kind
+    local line: string? = StationConfig.LINE_OF[link]
+    if kind == "net" then
+        local pad = TycoonConfig.byId[id or ""]
+        line = if pad ~= nil and TycoonMath.netKind(pad) == "scrap" then "iron" else "wood"
+    end
     return {
         kind = kind,
         id = id,
@@ -386,12 +408,18 @@ local function rowFor(
         maxCount = maxCount,
         maxCost = ChainMath.bulkCost(base, level, maxCount),
         -- felul cladirii (net/saw/forge/dock) nu e acelasi cuvant cu veriga lantului (nets/saw/forge/dock)
-        bottleneck = bn == (if kind == "net" then "nets" else kind),
+        bottleneck = lineBottleneck(rates, line) == link,
         gain = levelGain(s, kind, netSlot),
+        line = line,
     }
 end
 
-local function crewRow(s: ChainMath.State, role: string, bn: string, coins: number): CrewRow
+local function crewRow(
+    s: ChainMath.State,
+    role: string,
+    rates: ChainMath.Rates,
+    coins: number
+): CrewRow
     local def = TycoonConfig.CREWS[role]
     local crew = s.crews[role]
     local canTier, tierBlock = CrewMath.canUpgradeTier(crew)
@@ -412,6 +440,8 @@ local function crewRow(s: ChainMath.State, role: string, bn: string, coins: numb
     end
     local tierCost = if canTier then CrewMath.tierPrice(crew) else nil
     local secondPrice = if canHire then CrewMath.secondPrice(role) else nil
+    local link = StationConfig.LINK_OF[role]
+    local line: string? = StationConfig.LINE_OF[link]
     return {
         role = role,
         name = def.name,
@@ -433,7 +463,8 @@ local function crewRow(s: ChainMath.State, role: string, bn: string, coins: numb
         tierAffordable = tierCost ~= nil and coins >= tierCost,
         secondAffordable = secondPrice ~= nil and coins >= (secondPrice :: number),
         maxed = CrewMath.maxed(crew),
-        bottleneck = bn == StationConfig.LINK_OF[role],
+        bottleneck = lineBottleneck(rates, line) == link,
+        line = line,
     }
 end
 
@@ -443,9 +474,12 @@ function StationService.Snapshot(player: Player): {
     rows: { Row },
     crews: { CrewRow },
     bottleneck: string,
+    woodBottleneck: string,
+    ironBottleneck: string,
     rates: ChainMath.Rates,
     idle: number,
     playerShare: number,
+    ironPlayerShare: number,
 }
     local s = StationService.StateFor(player)
     local rates = ChainMath.rates(s)
@@ -466,34 +500,34 @@ function StationService.Snapshot(player: Player): {
                     padName,
                     StationService.LevelOf(player, "net", padId),
                     coins,
-                    rates.bottleneck,
+                    rates,
                     netSlot
                 )
             )
         end
     end
-    -- in ordinea lantului: gaterul, forja atelierului (cat e cumparat) [D55], apoi taverna
-    table.insert(rows, rowFor(s, "saw", nil, "Sawmill", s.sawLevel, coins, rates.bottleneck))
+    -- in ordinea lantului: gaterul, Forge (cat e cumparata) [D55, D56], apoi taverna
+    table.insert(rows, rowFor(s, "saw", nil, "Sawmill", s.sawLevel, coins, rates))
     if s.workshop then
-        table.insert(
-            rows,
-            rowFor(s, "forge", nil, "Workshop", s.forgeLevel, coins, rates.bottleneck)
-        )
+        table.insert(rows, rowFor(s, "forge", nil, "Forge", s.forgeLevel, coins, rates))
     end
-    table.insert(rows, rowFor(s, "dock", nil, "Tavern", s.dockLevel, coins, rates.bottleneck))
+    table.insert(rows, rowFor(s, "dock", nil, "Tavern", s.dockLevel, coins, rates))
     local crews: { CrewRow } = {}
     for _, role in StationConfig.ROLES do
-        table.insert(crews, crewRow(s, role, rates.bottleneck, coins))
+        table.insert(crews, crewRow(s, role, rates, coins))
     end
     return {
         rows = rows,
         crews = crews,
         bottleneck = rates.bottleneck,
+        woodBottleneck = rates.woodBottleneck,
+        ironBottleneck = rates.ironBottleneck,
         rates = rates,
-        -- ce ar merge fara tine: apare in HUD abia cand toate cinci meseriile au om [D49]
+        -- ce ar merge fara tine: apare in HUD abia cand toti oamenii unei linii au om [D49]
         idle = ChainMath.idleIncome(s),
-        -- cat faci tu pe fiecare pas fara om ("No Collector — you do this yourself")
-        playerShare = ChainMath.playerShare(s),
+        -- cat faci tu pe fiecare pas fara om ("No Collector — you do this yourself"), pe fiecare linie [D56]
+        playerShare = ChainMath.playerShare(s, "wood"),
+        ironPlayerShare = ChainMath.playerShare(s, "iron"),
     }
 end
 
@@ -513,7 +547,7 @@ function StationService.Upgrade(
         return false, "unknown"
     end
     if kind == "forge" and data.Pads.workshop ~= true then
-        return false, "locked" -- [D55] forja e a atelierului: fara el n-ai ce urca
+        return false, "locked" -- [D55] fara Forge n-ai ce urca
     end
     if kind == "net" then
         if id == nil or table.find(netPadIds, id) == nil then
@@ -632,13 +666,18 @@ local function settleOffline(player: Player)
     local now = os.time()
     local result = OfflineCalc.computeIdle(now, data.Meta.lastSeenAt, StationService.Idle(player))
     data.Meta.lastSeenAt = now
-    if result.coins <= 0 then
+    -- [D59] si ce a venit pe rau cat ai lipsit: fereastra se arata si cand monedele sunt zero, daca te asteapta ceva
+    local treasures = deps.Treasures
+    local arrived = if treasures ~= nil then treasures.SettleOffline(player) else 0
+    if result.coins <= 0 and arrived <= 0 then
         return
     end
-    EconomyService.AddCoins(player, result.coins, "offline")
+    if result.coins > 0 then
+        EconomyService.AddCoins(player, result.coins, "offline")
+    end
     local onWelcome = deps.OnWelcome
     if onWelcome ~= nil then
-        onWelcome(player, result.coins, result.seconds, result.cappedByTime)
+        onWelcome(player, result.coins, result.seconds, result.cappedByTime, arrived)
     end
 end
 

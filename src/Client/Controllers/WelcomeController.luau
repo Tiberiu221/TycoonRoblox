@@ -33,7 +33,7 @@ function WelcomeController.Init(deps: { HudGui: Frame, WelcomeBack: RemoteEvent 
         title = Strings.WELCOME_TITLE,
         icon = "clock",
         width = 460,
-        height = 260,
+        height = 290,
         z = Z,
         onClose = function() end,
     })
@@ -54,8 +54,15 @@ function WelcomeController.Init(deps: { HudGui: Frame, WelcomeBack: RemoteEvent 
     away.TextWrapped = true
     away.ZIndex = Z + 1
 
+    -- [D59] ce a venit pe rau cat ai lipsit
+    local river = Widgets.Label(body, "", Theme.TEXT.body, Theme.COLOR.wood, "strong")
+    river.Position = UDim2.fromOffset(0, 88)
+    river.Size = UDim2.new(1, 0, 0, 26)
+    river.TextXAlignment = Enum.TextXAlignment.Center
+    river.ZIndex = Z + 1
+
     local note = Widgets.Label(body, "", Theme.TEXT.small, Theme.COLOR.bad, "body")
-    note.Position = UDim2.fromOffset(0, 90)
+    note.Position = UDim2.fromOffset(0, 118)
     note.Size = UDim2.new(1, 0, 0, 40)
     note.TextXAlignment = Enum.TextXAlignment.Center
     note.TextWrapped = true
@@ -73,28 +80,35 @@ function WelcomeController.Init(deps: { HudGui: Frame, WelcomeBack: RemoteEvent 
     button.AnchorPoint = Vector2.new(0.5, 1)
     button.Position = UDim2.fromScale(0.5, 1)
 
-    deps.WelcomeBack.OnClientEvent:Connect(function(coins: number, seconds: number, capped: boolean)
-        if coins <= 0 then
-            return
+    deps.WelcomeBack.OnClientEvent:Connect(
+        function(coins: number, seconds: number, capped: boolean, arrived: number?)
+            local things = if typeof(arrived) == "number" then arrived else 0
+            if coins <= 0 and things <= 0 then
+                return
+            end
+            -- [D59] fara monede, dar cu ceva la ponton: titlul e raul, nu "ai castigat 0"
+            amount.Text = if coins > 0
+                then Strings.offlineReturn(TycoonMath.formatNumber(coins))
+                else Strings.WELCOME_RIVER_TITLE
+            away.Text = Strings.welcomeAway(fmtDuration(seconds))
+            river.Text = if things > 0 then Strings.welcomeArrived(things) else ""
+            note.Text = if capped and coins > 0 then Strings.WELCOME_CAPPED else ""
+            root.Visible = true
+            SoundController.Play("chime")
+            -- o mica intrare: fereastra care apare dintr-o data se citeste ca o eroare
+            local scale = Instance.new("UIScale")
+            scale.Scale = 0.9
+            scale.Parent = root
+            TweenService:Create(
+                scale,
+                TweenInfo.new(0.22, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+                { Scale = 1 }
+            ):Play()
+            task.delay(0.5, function()
+                scale:Destroy()
+            end)
         end
-        amount.Text = Strings.offlineReturn(TycoonMath.formatNumber(coins))
-        away.Text = Strings.welcomeAway(fmtDuration(seconds))
-        note.Text = if capped then Strings.WELCOME_CAPPED else ""
-        root.Visible = true
-        SoundController.Play("chime")
-        -- o mica intrare: fereastra care apare dintr-o data se citeste ca o eroare
-        local scale = Instance.new("UIScale")
-        scale.Scale = 0.9
-        scale.Parent = root
-        TweenService:Create(
-            scale,
-            TweenInfo.new(0.22, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
-            { Scale = 1 }
-        ):Play()
-        task.delay(0.5, function()
-            scale:Destroy()
-        end)
-    end)
+    )
 end
 
 return WelcomeController

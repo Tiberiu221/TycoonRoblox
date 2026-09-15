@@ -37,7 +37,20 @@ export type Deps = {
     },
     Wheel: {
         Snapshot: (Player) -> { [string]: any },
-        Spin: (Player) -> (boolean, string, string?, number?, number?),
+        Spin: (Player) -> (boolean, string, string?, number?, boolean?),
+    },
+    -- [D59] pontonul
+    Fish: {
+        Snapshot: (Player) -> { [string]: any },
+        Cast: (Player) -> (boolean, string, { [string]: any }?),
+        Land: (Player, number) -> (boolean, string, { [string]: any }?, number?),
+    },
+    Treasures: { Snapshot: (Player) -> { [string]: any } },
+    Village: {
+        Snapshot: (Player) -> { [string]: any },
+        BuyDecor: (Player, string) -> (boolean, string),
+        BuyOutfit: (Player, string) -> (boolean, string),
+        WearOutfit: (Player, string) -> (boolean, string),
     },
     Nets: { Collect: (Player, string) -> (boolean, string?), Snapshot: (Player) -> { any } },
     Economy: {
@@ -56,7 +69,7 @@ export type Deps = {
         DeliverDock: (Player) -> (boolean, string, number),
         UseShed: (Player) -> (boolean, string, number),
         UseForge: (Player) -> (boolean, string, number, number),
-        SetPresence: (Player, boolean) -> (),
+        SetPresence: (Player, string, boolean) -> (),
     },
     Workshop: {
         Snapshot: (Player) -> { [string]: any },
@@ -115,6 +128,10 @@ local function buildTycoonState(player: Player): { [string]: any }
         -- capitolul curent, lista de quest-uri si quest-ul activ (unicul obiectiv de ghidaj)
         quests = deps.Quests.Snapshot(player),
         wheel = deps.Wheel.Snapshot(player),
+        -- [D59] undita (momeala, jurnalul, cati pesti), ce asteapta la ponton, satul (decor, tinute)
+        fishing = deps.Fish.Snapshot(player),
+        river = deps.Treasures.Snapshot(player),
+        village = deps.Village.Snapshot(player),
         lanes = deps.Pads.Lanes(player), -- banda cea mai departata: desenul plaselor [D55: nu mai decide marfa]
         -- cat adauga la venit/s fiecare platforma inca necumparata, pentru cartonasul de la apropiere
         padDeltas = padDeltas,
@@ -125,6 +142,7 @@ local function buildTycoonState(player: Player): { [string]: any }
             mill = if pads.landing_bell == "bought" then "open" else "locked",
         },
         workshop = pads.workshop == "bought",
+        -- [D56] parcat odata cu colectia: clientul nu-l mai citeste (insigna atelierului a iesit)
         pile = deps.Workshop.PileCount(player),
         bottleneck = bottleneck,
         -- runner (= Collector-ul, id-ul vechi al platformei [D49]) / bell: doar "platforma asta e
@@ -245,7 +263,14 @@ function NetServer.Init(d: Deps)
         if not RateLimiter.Allow(player, "AtSawmill") or typeof(present) ~= "boolean" then
             return
         end
-        deps.Economy.SetPresence(player, present :: boolean)
+        deps.Economy.SetPresence(player, "sawmill", present :: boolean)
+    end)
+    -- [D56] forja, ca gaterul: fara Smelter topeste doar cat stai langa ea
+    Net.Get("AtForge").OnServerEvent:Connect(function(player: Player, present: unknown)
+        if not RateLimiter.Allow(player, "AtForge") or typeof(present) ~= "boolean" then
+            return
+        end
+        deps.Economy.SetPresence(player, "forge", present :: boolean)
     end)
 
     -- Revendicarea unei recompense de quest. Serverul verifica el ca e chiar terminata si ca n-a
@@ -280,13 +305,59 @@ function NetServer.Init(d: Deps)
         if not RateLimiter.Allow(player, "SpinWheel") then
             return
         end
-        local ok, reason, prizeId, coins, pearls = deps.Wheel.Spin(player)
+        local ok, reason, prizeId, pearls, converted = deps.Wheel.Spin(player)
         if ok then
-            Net.Get("WheelResult"):FireClient(player, prizeId, coins, pearls)
+            Net.Get("WheelResult"):FireClient(player, prizeId, pearls or 0, converted == true)
         else
-            Net.Get("WheelResult"):FireClient(player, nil, 0, 0, reason)
+            Net.Get("WheelResult"):FireClient(player, nil, 0, false, reason)
         end
     end)
+
+    -- [D59] UNDITA. Aruncarea nu are argumente: ce e in apa hotaraste serverul. Raspunsul spune doar clipa muscaturii si
+    -- bara (dificultatea, samanta) -- nu si pestele.
+    Net.Get("Cast").OnServerEvent:Connect(function(player: Player)
+        if not RateLimiter.Allow(player, "Fishing") then
+            return
+        end
+        local ok, reason, cast = deps.Fish.Cast(player)
+        if ok and cast ~= nil then
+            Net.Get("CastResult"):FireClient(
+                player,
+                cast.castId,
+                cast.biteAt,
+                cast.kind,
+                cast.difficulty,
+                cast.reelSeed,
+                cast.treasure
+            )
+        else
+            Net.Get("CastResult"):FireClient(player, nil, reason)
+        end
+    end)
+    Net.Get("Land").OnServerEvent:Connect(function(player: Player, castId: unknown)
+        if not RateLimiter.Allow(player, "Fishing") or not isInteger(castId) then
+            return
+        end
+        local ok, reason, result, wait = deps.Fish.Land(player, castId :: number)
+        Net.Get("LandResult"):FireClient(player, castId, ok, reason, result, wait)
+    end)
+
+    -- [D59] AVIZIERUL SATULUI: id-uri scurte, verificate apoi de VillageService fata de VillageConfig.
+    local function shopHandler(what: string, act: (Player, string) -> (boolean, string))
+        return function(player: Player, id: unknown)
+            if not RateLimiter.Allow(player, "Shop") then
+                return
+            end
+            if typeof(id) ~= "string" or #(id :: string) > 24 then
+                return
+            end
+            local ok, reason = act(player, id :: string)
+            Net.Get("ShopResult"):FireClient(player, what, id, ok, reason)
+        end
+    end
+    Net.Get("BuyDecor").OnServerEvent:Connect(shopHandler("decor", deps.Village.BuyDecor))
+    Net.Get("BuyOutfit").OnServerEvent:Connect(shopHandler("outfit", deps.Village.BuyOutfit))
+    Net.Get("WearOutfit").OnServerEvent:Connect(shopHandler("wear", deps.Village.WearOutfit))
 
     Net.Get("UpgradeStation").OnServerEvent
         :Connect(function(player: Player, kind: unknown, id: unknown, count: unknown)

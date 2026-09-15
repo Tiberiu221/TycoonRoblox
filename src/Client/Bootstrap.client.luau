@@ -8,7 +8,6 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterGui = game:GetService("StarterGui")
-local GuiService = game:GetService("GuiService")
 local Workspace = game:GetService("Workspace")
 
 local Net = require(ReplicatedStorage.Net.Net)
@@ -123,6 +122,11 @@ local QuestController = require(script.Parent.Controllers.QuestController)
 local TutorialController = require(script.Parent.Controllers.TutorialController)
 local WelcomeController = require(script.Parent.Controllers.WelcomeController)
 local WheelController = require(script.Parent.Controllers.WheelController)
+-- [D59] pontonul: undita, ce aduce raul, avizierul satului, jurnalul
+local PierController = require(script.Parent.Controllers.PierController)
+local TreasureController = require(script.Parent.Controllers.TreasureController)
+local VillageController = require(script.Parent.Controllers.VillageController)
+local JournalController = require(script.Parent.Controllers.JournalController)
 local Panels = require(script.Parent.Controllers.Panels)
 local layers = CameraController.Init({ WorldGui = worldGui })
 
@@ -188,17 +192,16 @@ safeInit("StorageController", function()
         OpenCrew = openCrew,
     })
 end)
--- [D55] Shed-ul de scrap si forja atelierului: gramezile lor si gestul tau pe E.
+-- [D55, D56] Shed-ul de scrap si forja: gramezile lor si gestul tau pe E. Fara Smelter, forja topeste doar cat stai
+-- in inelul ei, ca gaterul.
 safeInit("ShedController", function()
     ShedController.Init({ Plot = layers.Plot, Remotes = { UseShed = Net.Get("UseShed") } })
 end)
 safeInit("ForgeController", function()
     ForgeController.Init({
         Plot = layers.Plot,
-        Remotes = { UseForge = Net.Get("UseForge") },
-        OpenWorkshop = function()
-            WorkshopController.Open()
-        end,
+        Remotes = { UseForge = Net.Get("UseForge"), AtForge = Net.Get("AtForge") },
+        CharacterPos = CharacterController.Position,
     })
 end)
 -- Gaterul [D48, D49]: aici se taie; fara Sawyer, doar cat stai langa el.
@@ -237,7 +240,15 @@ safeInit("NetController", function()
     })
 end)
 safeInit("HandRenderController", function()
-    HandRenderController.Init({ Plot = layers.Plot, OpenCrew = openCrew })
+    HandRenderController.Init({
+        Plot = layers.Plot,
+        OpenCrew = openCrew,
+        CharacterPos = CharacterController.Position, -- [D58] meseria scrisa sub om, cand treci pe langa el
+        -- [D56] Smelter-ul bate cu ciocanul doar cat forja chiar topeste
+        IsWorking = function(role: string): boolean
+            return role == "smelter" and ForgeController.Working()
+        end,
+    })
 end)
 -- [D51] cardul obiectului de langa tine: E, U si butoanele lui
 safeInit("InteractController", function()
@@ -257,6 +268,9 @@ HUDController.Init({
         InteractController.Interact()
     end,
 })
+-- [D56] INTENTIONAT FARA INTRARE: atelierul de reparat si colectia sunt puse deoparte (butoanele din bara au iesit,
+-- forja nu mai deschide panoul). Raman initializate, ascunse, ca remote-urile lor sa ramana folosite pe ambele parti
+-- (check_requires) si codul sa fie gata cand colectia revine cu locul si pictogramele ei. Nu e o scapare.
 safeInit("WorkshopController", function()
     WorkshopController.Init({
         HudGui = hudCanvas,
@@ -341,23 +355,34 @@ UserInputService.InputBegan:Connect(function(input: InputObject, processed: bool
     end
 end)
 
--- Workshop-ul apare in bara doar dupa ce platforma e cumparata [F1 spec 4.5]; Collection ramane
--- mereu deschisa, ca in F0.
-local workshopUnlocked = false
--- Intrarile barii de meniu, intr-un loc: bara le deseneaza, iar tastele de mai jos le deschid.
-local function isMenuUnlocked(name: string): boolean
-    if name == "workshop" then
-        return workshopUnlocked
-    end
+-- Intrarile barii de meniu, intr-un loc: bara le deseneaza, iar tastele de mai jos le deschid. [D56] "Workshop" (R)
+-- si "Collection" (C) au iesit: colectia e pusa deoparte (vezi WorkshopController mai sus).
+local function isMenuUnlocked(_name: string): boolean
     return true
 end
 local menuEntries = {
     {
         name = "wheel",
-        icon = "clock",
+        icon = "spin", -- [D59] timonierul, nu ceasul
         label = Strings.WHEEL_TITLE,
         key = "L",
         open = WheelController.Toggle,
+    },
+    {
+        -- [D59] jurnalul pestilor si al raului
+        name = "journal",
+        icon = "fish",
+        label = Strings.JOURNAL_TITLE,
+        key = "K",
+        open = JournalController.Toggle,
+    },
+    {
+        -- [D59] avizierul satului: perlele cumpara aspect (sta si in lume, pe punte)
+        name = "board",
+        icon = "pearl",
+        label = Strings.BOARD_TITLE,
+        key = "B",
+        open = VillageController.Toggle,
     },
     {
         name = "quests",
@@ -369,13 +394,6 @@ local menuEntries = {
     -- "Upgrades" NU mai e in bara [owner, 2026-09-12]: nivelul se urca atingand obiectul. Lista
     -- veche ramane pe tasta U, nepromovata, pana se decide ce face.
     {
-        name = "index",
-        icon = "crate",
-        label = Strings.MENU_COLLECTION,
-        key = "C",
-        open = IndexController.Toggle,
-    },
-    {
         -- [D54] panoul "Sound": nivelul muzicii si al efectelor, tinut minte in profil. Mereu in bara:
         -- efectele exista si fara muzica (randul Music se ascunde singur cand ea lipseste).
         name = "sound",
@@ -383,14 +401,6 @@ local menuEntries = {
         label = Strings.MENU_SOUND,
         key = "M",
         open = AudioPanel.Toggle,
-    },
-    {
-        name = "workshop",
-        icon = "hammer",
-        label = Strings.MENU_WORKSHOP,
-        -- R (Repair), nu W: W e mersul inainte -- legata, tasta ar fi deschis atelierul la fiecare pas
-        key = "R",
-        open = WorkshopController.Toggle,
     },
 }
 safeInit("MenuBarController", function()
@@ -424,9 +434,13 @@ do
             end
         end
     end
-    -- U: meniul obiectului de langa tine [D51]; departe de orice obiect, lista veche, ascunsa
+    -- U: meniul obiectului de langa tine [D51]; departe de orice obiect, lista veche, ascunsa. [D58] U scrie acum pe
+    -- butonul Upgrade, deci se poarta ca J si M: a doua apasare inchide meniul. Inainte, cu meniul deschis, cardul era
+    -- ascuns, iar U deschidea lista veche peste el.
     keys[Enum.KeyCode.U] = function()
-        if not InteractController.OpenUpgrade() then
+        if StationMenu.IsOpen() then
+            StationMenu.Close()
+        elseif not InteractController.OpenUpgrade() then
             StationPanel.Toggle()
         end
     end
@@ -467,37 +481,46 @@ end)
 
 -- CE A FACUT UN E la depozit, la gater sau la debarcader [D49]. Refuzurile se spun mereu -- un E care
 -- nu face nimic in tacere e exact ce D43 interzice; reusitele doar cand nu se vad singure.
-local sawmillStaffed = false
+-- [D56] "Are om" pe locul lui: gaterul are Sawyer, forja Smelter. Pana acum gaterul raspundea pentru orice loc.
+local staffedAt: { [string]: boolean } = { sawmill = false, forge = false }
 Net.Get("UseResult").OnClientEvent
     :Connect(function(place: string, ok: boolean, reason: string, dropped: number, taken: number)
-        local text = Strings.useResult(place, ok, reason, dropped, taken, sawmillStaffed)
+        local text = Strings.useResult(place, ok, reason, dropped, taken, staffedAt[place] == true)
         if text ~= nil then
             HUDController.Toast(text)
         end
     end)
 
--- CAT DE JOS INCEPE HUD-UL. HUD-ul sta sub bara de sus a Roblox-ului (CoreUISafeInsets); lumea si
--- stratul tutorialului acopera tot ecranul. Un AbsolutePosition din HUD e masurat de SUB bara, unul din
--- lume sau din tutorial de la marginea ecranului -- deci trecerea dintre ele adauga sau scade bara.
--- Fara ea, reflectorul tutorialului incadra monedele in loc de tinta lui, cu exact inaltimea barii mai
--- sus [vazut in Studio, 2026-09-13].
-local function hudInset(): Vector2
-    local topLeft = GuiService:GetGuiInset()
-    return topLeft
-end
+-- UNDE INCEPE FIECARE STRAT. HUD-ul sta in zona sigura a interfetei (CoreUISafeInsets); lumea si stratul
+-- tutorialului acopera tot ecranul. AbsolutePosition are UN SINGUR sistem, al zonei sigure, oricare ar fi
+-- ScreenInsets-ul stratului (raspunsul Roblox pe DevForum: "The AbsolutePosition property uses the
+-- CoreUISafeInsets viewport coordinate system") -- deci un element dintr-un strat pe tot ecranul are
+-- AbsolutePosition negativ cu cat e zona nesigura din stanga si de sus.
+-- In D51 adunam doar bara de sus (`GuiService:GetGuiInset`), ceea ce pe desktop ajunge. Pe un telefon cu notch,
+-- tinut orizontal, zona sigura incepe si cu ~48 px mai la dreapta: reflectorul tutorialului cadea langa butonul
+-- cu cartea, nu peste el [owner, iPhone XR in Studio, 2026-09-14]. Acum decalajul se citeste din straturile
+-- insesi: coltul unui strat = AbsolutePosition-ul lui, iar diferenta dintre doua colturi e drumul dintre
+-- straturi, oricare ar fi zona nesigura (bara, notch, marginea de jos).
+local tutorialScreen: Frame? = nil
 
 -- Plot-local (world pixels, inainte de + PLOT_ORIGIN) -> pixeli pe panza HUD, pentru Overlay
--- [F1 spec 4.9]: trece prin originea/scara camerei (lumea, pixeli de ecran), scade bara de sus si
--- abia apoi imparte la scara HUD-ului.
+-- [F1 spec 4.9]: trece prin originea/scara camerei (pixeli din stratul lumii), scade coltul panzei HUD
+-- masurat din coltul lumii si abia apoi imparte la scara HUD-ului.
 local function worldToHud(x: number, y: number): (number, number)
     local worldX = TycoonConfig.PLOT_ORIGIN.x + x
     local worldY = TycoonConfig.PLOT_ORIGIN.y + y
     local camX, camY = CameraController.WorldOrigin()
     local scale = CameraController.Scale()
-    local inset = hudInset()
-    local vx = (worldX - camX) * scale - inset.X
-    local vy = (worldY - camY) * scale - inset.Y
+    local hud = hudCanvas.AbsolutePosition - backdrop.AbsolutePosition
+    local vx = (worldX - camX) * scale - hud.X
+    local vy = (worldY - camY) * scale - hud.Y
     return vx / hudScale, vy / hudScale
+end
+
+-- Coltul stratului tutorialului (inainte sa existe, al lumii: amandoua acopera tot ecranul).
+local function tutorialOrigin(): Vector2
+    local s = tutorialScreen
+    return if s ~= nil then s.AbsolutePosition else backdrop.AbsolutePosition
 end
 
 -- SPATIUL TUTORIALULUI E ALTUL. `worldToHud` intoarce coordonate in PANZA HUD-ului, care are si
@@ -505,16 +528,17 @@ end
 -- intuneca ecranul pana in colturi -- deci o coordonata de panza pusa acolo cade in alta parte.
 -- Sageata arata spre prima plasa, deci are nevoie de coordonate de ECRAN, nu de panza.
 local function worldToScreen(x: number, y: number): (number, number)
-    local hx, hy = worldToHud(x, y)
-    local origin = hudCanvas.AbsolutePosition
-    local inset = hudInset()
-    return origin.X + hx * hudScale + inset.X, origin.Y + hy * hudScale + inset.Y
+    local camX, camY = CameraController.WorldOrigin()
+    local scale = CameraController.Scale()
+    local shift = backdrop.AbsolutePosition - tutorialOrigin()
+    return (TycoonConfig.PLOT_ORIGIN.x + x - camX) * scale + shift.X,
+        (TycoonConfig.PLOT_ORIGIN.y + y - camY) * scale + shift.Y
 end
 
--- Un dreptunghi citit din HUD (AbsolutePosition) -> ecran, pentru stratul tutorialului.
-local function hudRectToScreen(x: number, y: number, w: number, h: number)
-    local inset = hudInset()
-    return x + inset.X, y + inset.Y, w, h
+-- Un dreptunghi citit din AbsolutePosition (un buton din HUD) -> coordonate in stratul tutorialului.
+local function absRectToScreen(x: number, y: number, w: number, h: number)
+    local origin = tutorialOrigin()
+    return x - origin.X, y - origin.Y, w, h
 end
 
 -- Tutorialul se porneste DUPA `worldToHud`: are nevoie de el ca sa arate spre prima plasa, care e
@@ -536,6 +560,7 @@ safeInit("TutorialController", function()
     screen.BackgroundTransparency = 1
     screen.Size = UDim2.fromScale(1, 1)
     screen.Parent = tutorialGui
+    tutorialScreen = screen
 
     TutorialController.Init({
         Screen = screen,
@@ -543,11 +568,50 @@ safeInit("TutorialController", function()
         -- lista de quest-uri se deschide din butonul cu cartea, din bara din dreapta [owner, 2026-09-13]
         QuestButtonRect = function()
             local x, y, w, h = MenuBarController.EntryRect("quests")
-            return hudRectToScreen(x, y, w, h)
+            return absRectToScreen(x, y, w, h)
         end,
         QuestsOpen = QuestController.IsOpen,
         OpenQuests = QuestController.Open,
     })
+end)
+
+-- [D59] Pontonul, dupa `worldToHud` (perlele zboara din lume in HUD): ce aduce raul, undita, avizierul, jurnalul.
+safeInit("TreasureController", function()
+    TreasureController.Init({
+        Plot = layers.Plot,
+        Remotes = { TreasureArrived = Net.Get("TreasureArrived") },
+        OnToast = HUDController.Toast,
+    })
+end)
+safeInit("PierController", function()
+    PierController.Init({
+        Plot = layers.Plot,
+        CharacterPos = CharacterController.Position,
+        WorldToHud = worldToHud,
+        Remotes = {
+            Cast = Net.Get("Cast"),
+            CastResult = Net.Get("CastResult"),
+            Land = Net.Get("Land"),
+            LandResult = Net.Get("LandResult"),
+        },
+        OnToast = HUDController.Toast,
+    })
+end)
+safeInit("VillageController", function()
+    VillageController.Init({
+        HudGui = hudCanvas,
+        Plot = layers.Plot,
+        Remotes = {
+            BuyDecor = Net.Get("BuyDecor"),
+            BuyOutfit = Net.Get("BuyOutfit"),
+            WearOutfit = Net.Get("WearOutfit"),
+            ShopResult = Net.Get("ShopResult"),
+        },
+        OnToast = HUDController.Toast,
+    })
+end)
+safeInit("JournalController", function()
+    JournalController.Init({ HudGui = hudCanvas })
 end)
 
 if Overlay ~= nil then
@@ -618,7 +682,6 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
             cycleStartAt = h.cycleStartAt,
             carrying = h.carrying,
             carryKind = h.carryKind, -- [D55] ce se vede in roaba
-            scrap = h.scrap == true, -- [D55] drumul prin shed si atelier
             capacity = h.capacity or 0,
             -- locul fix al rolurilor statice; nil pentru cele care umbla [CLAUDE.md capcana 3:
             -- fiecare camp trimis de server se copiaza EXPLICIT, altfel se pierde tacut]
@@ -647,12 +710,14 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
     -- [research 42 pct.6]. table.clone, acelasi motiv ca la nets.contents de mai sus.
     local sackContents: { [string]: number } = table.clone(sack.contents)
     -- brut / taiat [D49]: fiecare loc de predare decide din asta ce face un E. [D55] `raw` = lemnul brut,
-    -- `rawScrap` = scrap-ul brut (shed / atelier), `iron` = fierul, gata de vandut.
+    -- `rawScrap` = scrap-ul brut (forja), `iron` = fierul, gata de vandut; [D56] `finds` = gasirile neprelucrate,
+    -- care se vand si asa (sunt numarate si in `cut`).
     local sackState = {
         count = sackCount,
         capacity = sackCapacity,
         raw = sack.raw or 0,
         rawScrap = sack.rawScrap or 0,
+        finds = sack.finds or 0,
         iron = sackContents.iron or 0,
         cut = sack.cut or 0,
         cutValue = sack.cutValue or 0,
@@ -702,6 +767,8 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
                     padId = a.padId,
                     dock = a.dock,
                     sawmill = a.sawmill,
+                    forge = a.forge, -- [D56] sageata spre inelul forjei
+                    fish = a.fish, -- [D59] sageata spre capatul pontonului
                     kind = a.kind, -- [D51] ghidajul alege pasul dupa felul quest-ului
                     stationKind = a.stationKind,
                     stationId = a.stationId,
@@ -728,6 +795,7 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
             maxCost = r.maxCost,
             bottleneck = r.bottleneck,
             gain = r.gain or 0, -- [D52] castigul real al unui nivel, pentru randul colorat din meniu
+            line = r.line, -- [D56] "wood" | "iron" | nil (taverna)
         }
     end
     local rawRates: any = rawStations.rates or {}
@@ -756,6 +824,7 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
             secondAffordable = c.secondAffordable == true,
             maxed = c.maxed == true,
             bottleneck = c.bottleneck == true,
+            line = c.line, -- [D56]
         }
     end
     -- nivelurile, pe padId, pentru insignele din lume
@@ -770,6 +839,10 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
         netLevels = netLevels,
         idle = rawStations.idle or 0,
         bottleneck = rawStations.bottleneck or "nets",
+        -- [D56] veriga slaba a fiecarei linii ("" cat linia fierului e inchisa): meniul unui obiect cu castig zero
+        -- spune ce il tine IN LINIA LUI
+        woodBottleneck = rawStations.woodBottleneck or "nets",
+        ironBottleneck = rawStations.ironBottleneck or "",
         rates = {
             catch = rawRates.catch or 0,
             -- [D55] cele doua marfuri: ce prind plasele de lemn si cea de scrap, forja, ce se livreaza din fiecare
@@ -778,17 +851,24 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
             collect = rawRates.collect or 0,
             port = rawRates.port or 0,
             sawing = rawRates.sawing or 0,
-            forging = rawRates.forging or 0,
             haul = rawRates.haul or 0,
+            -- [D56] verigile liniei fierului, fiecare cu oamenii ei
+            scrapCollect = rawRates.scrapCollect or 0,
+            scrapPort = rawRates.scrapPort or 0,
+            forging = rawRates.forging or 0,
+            ironHaul = rawRates.ironHaul or 0,
             sales = rawRates.sales or 0,
             wood = rawRates.wood or 0,
             scrap = rawRates.scrap or 0,
             delivered = rawRates.delivered or 0,
             bottleneck = rawRates.bottleneck or "nets",
+            woodBottleneck = rawRates.woodBottleneck or "nets",
+            ironBottleneck = rawRates.ironBottleneck or "",
         },
         crews = crewRows,
-        -- cat faci tu pe fiecare pas fara om; meniul meseriei o spune ("you do this yourself") [D49]
+        -- cat faci tu pe fiecare pas fara om; meniul meseriei o spune ("you do this yourself") [D49], pe linii [D56]
         playerShare = rawStations.playerShare or 0,
+        ironPlayerShare = rawStations.ironPlayerShare or 0,
     }
 
     local rawDock: any = raw.dock or {}
@@ -810,14 +890,14 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
         present = rawSawmill.present == true,
         staffed = rawSawmill.staffed == true,
     }
-    sawmillStaffed = sawmill.staffed
+    staffedAt.sawmill = sawmill.staffed
     -- Depozitul [D49], acelasi tipar.
     local rawStorage: any = raw.storage or {}
     local storage = {
         count = rawStorage.count or 0,
         contents = table.clone(rawStorage.contents or {}),
     }
-    -- [D55] Shed-ul de scrap si forja atelierului, acelasi tipar: camp cu camp.
+    -- [D55, D56] Shed-ul de scrap si forja, acelasi tipar: camp cu camp.
     local rawShed: any = raw.shed or {}
     local shed = {
         count = rawShed.count or 0,
@@ -830,12 +910,38 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
         out = rawForge.out or 0,
         outContents = table.clone(rawForge.outContents or {}),
         rate = rawForge.rate or 0,
+        present = rawForge.present == true, -- [D56] ca la gater
+        staffed = rawForge.staffed == true,
     }
+    staffedAt.forge = forge.staffed
     -- [D55] cati oameni are fiecare meserie: casa lor din lume creste cu ei
     local crewCounts: { [string]: number } = {}
     for _, c in crewRows do
         crewCounts[c.role] = c.count or 0
     end
+
+    -- [D59] Pontonul, camp cu camp [CLAUDE.md capcana 3]: undita (momeala, cati pesti, jurnalul), ce asteapta la ponton,
+    -- satul (decor, tinute).
+    local rawFishing: any = raw.fishing or {}
+    local fishSpecies: { [string]: { count: number, best: number } } = {}
+    for id, e in (rawFishing.species or {}) do
+        fishSpecies[id] = { count = e.count or 0, best = e.best or 0 }
+    end
+    local fishing =
+        { bait = rawFishing.bait or 0, fished = rawFishing.fished or 0, species = fishSpecies }
+    local rawRiver: any = raw.river or {}
+    local river = {
+        waiting = table.clone(rawRiver.waiting or {}),
+        started = rawRiver.started == true,
+        notes = rawRiver.notes or 0,
+        found = rawRiver.found or 0,
+    }
+    local rawVillage: any = raw.village or {}
+    local village = {
+        decor = table.clone(rawVillage.decor or {}),
+        outfits = table.clone(rawVillage.outfits or {}),
+        outfit = rawVillage.outfit or "keeper",
+    }
 
     local rawSettings: any = raw.settings or {}
     local snapshot = {
@@ -860,7 +966,6 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
         hands = hands,
         zones = zones,
         workshop = raw.workshop,
-        pile = raw.pile,
         storage = storage,
         shed = shed,
         forge = forge,
@@ -869,6 +974,9 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
         stations = stations,
         quests = quests,
         wheel = wheel,
+        fishing = fishing,
+        river = river,
+        village = village,
         bottleneck = raw.bottleneck or "nets",
         firsts = firsts,
         sack = {
@@ -878,6 +986,7 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
             contents = sackContents,
             raw = sackState.raw,
             rawScrap = sackState.rawScrap,
+            finds = sackState.finds,
             cut = sackState.cut,
             cutValue = sackState.cutValue,
         },
@@ -898,6 +1007,15 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
         claimable = if snapshot.quests ~= nil then snapshot.quests.claimable else 0,
     })
     WheelController.Apply(snapshot.wheel)
+    -- [D59] pontonul
+    PierController.Apply(snapshot.river.waiting)
+    TreasureController.Apply(snapshot.river.waiting)
+    JournalController.Apply(snapshot.fishing, snapshot.river)
+    VillageController.Apply(
+        snapshot.village,
+        snapshot.pearls,
+        JournalController.SpeciesCaught(snapshot.fishing)
+    )
     if snapshot.quests ~= nil then
         HUDController.SetQuest(snapshot.quests.active, snapshot.quests.claimable)
         QuestController.Apply(snapshot.quests)
@@ -912,7 +1030,6 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
         snapshot.stations.netLevels
     )
     RiverRenderController.SetScrapNet(snapshot.pads.fifth_net == "bought")
-    PadController.SetWorkshop(snapshot.workshop, snapshot.pile)
     NetController.Apply(
         snapshot.nets,
         sackCount,
@@ -920,14 +1037,16 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
         snapshot.lanes,
         snapshot.stations.netLevels,
         sackState.raw,
-        sackState.rawScrap
+        sackState.rawScrap,
+        sackState.iron,
+        sackState.finds
     )
-    StorageController.Apply(sackState, snapshot.storage, snapshot.stations.bottleneck)
+    StorageController.Apply(sackState, snapshot.storage, snapshot.stations.woodBottleneck)
     ShedController.Apply(
         sackState,
         snapshot.shed,
         snapshot.pads.scrap_shed == "bought",
-        snapshot.stations.bottleneck
+        snapshot.stations.ironBottleneck
     )
     ForgeController.Apply(sackState, snapshot.forge, snapshot.workshop == true)
     SawmillController.Apply(sackState, snapshot.sawmill)
@@ -937,11 +1056,6 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
     HandRenderController.Apply(snapshot.hands)
     ZoneController.Apply(snapshot.zones.mill)
 
-    if workshopUnlocked ~= snapshot.workshop then
-        workshopUnlocked = snapshot.workshop
-        MenuBarController.Refresh()
-    end
-
     if Overlay ~= nil then
         local ok, err = pcall(Overlay.Apply, snapshot)
         if not ok then
@@ -950,12 +1064,11 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
     end
 end)
 
--- cerem starea de cateva ori: primul mesaj se poate pierde daca serverul nu e gata
+-- cerem starea de cateva ori: primul mesaj se poate pierde daca serverul nu e gata. [D56] Starea atelierului nu se
+-- mai cere: panourile lui nu au intrare.
 Net.Get("RequestState"):FireServer()
-Net.Get("RequestWorkshop"):FireServer()
 task.delay(1, function()
     Net.Get("RequestState"):FireServer()
-    Net.Get("RequestWorkshop"):FireServer()
 end)
 task.delay(3, function()
     Net.Get("RequestState"):FireServer()

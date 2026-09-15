@@ -1,7 +1,8 @@
 --!strict
 -- Lista de quest-uri. Copiaza panoul din Idle Miner [poza 4 si 12]: titlul capitolului cu bara lui,
--- apoi quest-urile IN ORDINE -- terminate sus cu butonul auriu `Claim`, activul cu `Go!`, iar
--- restul `Quest locked` cu lacat.
+-- apoi quest-urile -- terminate sus cu butonul auriu `Claim`, activul cu `Go!`, restul `Quest locked` cu
+-- lacat. [owner, 2026-09-14] Cele revendicate coboara la coada (QuestMath.displayOrder), iar recompensa nu mai
+-- e un rand de text: sta pe buton, "Claim 1 (perla)".
 --
 -- `Go!` NU teleporteaza: inchide panoul si lasa quest-ul sa fie obiectivul sagetii (GuideMath
 -- regula 0). La noi mergi pe mal -- asta e diferenta fata de ei, si e a noastra.
@@ -51,7 +52,10 @@ local open = false
 local lastSnapshot: Snapshot? = nil
 
 local PANEL_W, PANEL_H = 560, 520
-local ROW_H = 74
+-- [owner, 2026-09-14] 60, nu 74: randul "Reward: 1 pearl" a iesit, recompensa sta pe butonul Claim.
+-- Cutiile: scripts/art/check_panel_rows.py (QUEST_ROW).
+local ROW_H = 60
+local BUTTON_W = 130
 local Z = 65
 
 local chapterTitle: TextLabel
@@ -65,13 +69,14 @@ type RowView = {
     counter: TextLabel,
     fill: Frame,
     track: Frame,
-    reward: TextLabel,
     button: TextButton,
     lock: TextLabel,
     lockIcon: ImageLabel?,
 }
 
 local views: { RowView } = {}
+-- Randurile in ordinea din panou: butonul unui rand citeste de aici, nu din ordinea capitolului.
+local shown: { QuestState } = {}
 
 local function buildRow(index: number): RowView
     local frame = Instance.new("Frame")
@@ -85,13 +90,14 @@ local function buildRow(index: number): RowView
 
     local text = Widgets.Label(frame, "", Theme.TEXT.small, Theme.COLOR.onDark, "strong")
     text.Position = UDim2.fromOffset(Theme.SPACE.md, 10)
-    text.Size = UDim2.fromOffset(282, 20)
+    text.Size = UDim2.fromOffset(270, 20)
     text.TextTruncate = Enum.TextTruncate.AtEnd
     text.ZIndex = Z + 3
 
+    -- contorul se termina la 8 px inaintea butonului (mai lat cu recompensa pe el)
     local counter = Widgets.Label(frame, "", Theme.TEXT.tiny, Theme.COLOR.onDarkSoft, "display")
     counter.AnchorPoint = Vector2.new(1, 0)
-    counter.Position = UDim2.fromOffset(Theme.SPACE.md + 350, 12)
+    counter.Position = UDim2.fromOffset(Theme.SPACE.md + 334, 12)
     counter.Size = UDim2.fromOffset(60, 18)
     counter.TextXAlignment = Enum.TextXAlignment.Right
     counter.ZIndex = Z + 3
@@ -99,17 +105,12 @@ local function buildRow(index: number): RowView
     local track, fill = Widgets.Bar(frame, 290, 6, Theme.COLOR.good, Z + 3)
     track.Position = UDim2.fromOffset(Theme.SPACE.md, 38)
 
-    local reward = Widgets.Label(frame, "", Theme.TEXT.tiny, Theme.COLOR.gold, "display")
-    reward.Position = UDim2.fromOffset(Theme.SPACE.md, 50)
-    reward.Size = UDim2.fromOffset(180, 18)
-    reward.ZIndex = Z + 3
-
     -- Lacatul si textul se aprind/sting impreuna: un lacat singur peste un rand gol ar arata a
     -- eroare de desen, nu a quest inchis.
     local lockIcon = Widgets.Icon(frame, "lock", 18)
     local lockX = Theme.SPACE.md
     if lockIcon ~= nil then
-        lockIcon.Position = UDim2.fromOffset(Theme.SPACE.md, 28)
+        lockIcon.Position = UDim2.fromOffset(Theme.SPACE.md, 21)
         lockIcon.Visible = false
         lockIcon.ZIndex = Z + 4
         lockX = Theme.SPACE.md + 24
@@ -117,19 +118,19 @@ local function buildRow(index: number): RowView
 
     local lock =
         Widgets.Label(frame, Strings.QUEST_LOCKED, Theme.TEXT.small, Theme.COLOR.onDarkSoft, "body")
-    lock.Position = UDim2.fromOffset(lockX, 26)
+    lock.Position = UDim2.fromOffset(lockX, 19)
     lock.Size = UDim2.fromOffset(282, 22)
     lock.Visible = false
     lock.ZIndex = Z + 4
 
     local button = Widgets.Button(frame, {
         text = Strings.QUEST_GO,
-        width = 120,
+        width = BUTTON_W,
         height = 44,
         z = Z + 3,
+        reward = true,
         onClick = function()
-            local snap = lastSnapshot
-            local row = if snap ~= nil then snap.quests[index] else nil
+            local row = shown[index]
             if row == nil then
                 return
             end
@@ -165,18 +166,21 @@ local function buildRow(index: number): RowView
         counter = counter,
         fill = fill,
         track = track,
-        reward = reward,
         button = button,
         lock = lock,
         lockIcon = lockIcon,
     }
 end
 
-local function rewardText(r: { coins: number?, pearls: number? }): string
-    if r.pearls ~= nil then
-        return Strings.questRewardPearls(r.pearls)
+-- Cifra si moneda de pe butonul Claim. Perlele intai (toate recompensele de quest sunt perle, D51); monedele doar
+-- daca un quest ar da numai monede.
+local function rewardOf(r: { coins: number?, pearls: number? }): (string?, string)
+    if r.pearls ~= nil and r.pearls > 0 then
+        return tostring(r.pearls), "pearls"
+    elseif r.coins ~= nil and r.coins > 0 then
+        return TycoonMath.formatNumber(r.coins), "coins"
     end
-    return Strings.questRewardCoins(TycoonMath.formatNumber(r.coins or 0))
+    return nil, "pearls"
 end
 
 local function refresh(snap: Snapshot)
@@ -185,7 +189,10 @@ local function refresh(snap: Snapshot)
     chapterFill.Size =
         UDim2.fromScale(math.clamp(snap.completed / math.max(1, snap.total), 0, 1), 1)
 
-    for i, row in snap.quests do
+    shown = QuestMath.displayOrder(snap.quests, function(q: QuestState): string
+        return q.state
+    end)
+    for i, row in shown do
         local view = views[i]
         if view == nil then
             view = buildRow(i)
@@ -201,7 +208,6 @@ local function refresh(snap: Snapshot)
         view.text.Visible = not locked
         view.counter.Visible = not locked
         view.track.Visible = not locked
-        view.reward.Visible = not locked
         view.button.Visible = not locked
 
         if locked then
@@ -210,12 +216,12 @@ local function refresh(snap: Snapshot)
         view.text.Text = row.text
         view.counter.Text = `({math.floor(row.progress)}/{row.goal})`
         view.fill.Size = UDim2.fromScale(math.clamp(row.progress / math.max(1, row.goal), 0, 1), 1)
-        view.reward.Text = rewardText(row.reward)
 
         -- Prin Widgets, nu pe `button.Text`: acolo s-ar fi scris `Claim` PESTE eticheta `Go!` a
         -- butonului, iar auriul pe BackgroundColor3 nu se vedea deloc sub sprite.
         if row.state == "done" then
             Widgets.SetButtonText(view.button, Strings.QUEST_CLAIM)
+            Widgets.SetButtonReward(view.button, rewardOf(row.reward))
             Widgets.SetButtonTone(view.button, Theme.COLOR.gold)
             view.text.TextColor3 = Theme.COLOR.onDark
         elseif row.state == "claimed" then
@@ -224,14 +230,15 @@ local function refresh(snap: Snapshot)
             view.counter.Text = Strings.QUEST_DONE
         else
             Widgets.SetButtonText(view.button, Strings.QUEST_GO)
+            Widgets.SetButtonReward(view.button, nil)
             Widgets.SetButtonTone(view.button, Theme.COLOR.cool)
             view.text.TextColor3 = Theme.COLOR.onDark
         end
     end
-    for i = #snap.quests + 1, #views do
+    for i = #shown + 1, #views do
         views[i].frame.Visible = false
     end
-    list.CanvasSize = UDim2.fromOffset(0, #snap.quests * (ROW_H + Theme.SPACE.sm))
+    list.CanvasSize = UDim2.fromOffset(0, #shown * (ROW_H + Theme.SPACE.sm))
 end
 
 function QuestController.Apply(snap: Snapshot?)

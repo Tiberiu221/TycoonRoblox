@@ -16,6 +16,8 @@
 --    butoane, ExtraBold doar pentru titlul principal al unui ecran.
 --  * CULOAREA e semnal, nu decor: verde = merge, rosu = nu ai destul, auriu = atentia ta acum.
 --    Restul interfetei e lemn si pergament, ca sa apartina aceleiasi lumi ca si cladirile.
+local TextService = game:GetService("TextService")
+
 local Theme = {}
 
 local function rgb(r: number, g: number, b: number): Color3
@@ -121,6 +123,19 @@ function Theme.applyFont(label: TextLabel | TextButton, kind: string)
     else
         target.Font = if kind == "mono" then MONO elseif kind == "body" then BODY else DISPLAY
     end
+end
+
+-- [D58] Latimea unui text pe un singur rand, cu familia pe care o pune applyFont. Pentru butoanele care cresc dupa
+-- eticheta ("Upgrade (U) · 1.2K"): fontul de pixeli are litere late (0.56 em fiecare), iar o latime fixa taia textul.
+function Theme.textWidth(text: string, size: number, kind: string): number
+    local family = if kind == "display" or kind == "strong"
+        then DISPLAY
+        elseif kind == "mono" then MONO
+        else BODY
+    local ok, bounds = pcall(function()
+        return TextService:GetTextSize(text, size, family, Vector2.new(4096, size * 2))
+    end)
+    return if ok then (bounds :: Vector2).X else (utf8.len(text) or #text) * size * 0.6
 end
 
 -- Contur inchis pentru textul care sta PESTE LUME (nu peste un panou deschis). Asta e jumatate

@@ -16,6 +16,10 @@ local HandService = require(script.Parent.HandService)
 local NetService = require(script.Parent.NetService)
 local PadService = require(script.Parent.PadService)
 local StationService = require(script.Parent.StationService)
+local FishService = require(script.Parent.FishService)
+local TreasureService = require(script.Parent.TreasureService)
+local VillageService = require(script.Parent.VillageService)
+local WheelService = require(script.Parent.WheelService)
 
 local DevService = {}
 local deps: { Remotes: { [string]: RemoteEvent }, PushState: ((Player) -> ())? }
@@ -74,16 +78,20 @@ local HANDLERS: { [string]: Handler } = {
 
     buyto = function(player: Player, arg: unknown): string
         local k = math.clamp(math.floor(number(arg, 2)), 1, #TycoonConfig.PADS + 1)
-        local granted = 0
+        local granted, notInGame = 0, 0
         for _, pad in TycoonConfig.PADS do
             if pad.index >= k then
                 break
             end
-            if PadService.DevGrant(player, pad.id) then
+            -- [D58] erele fara loc pe harta nu se dau (PadService.DevGrant le refuza); raspunsul spune cate au ramas
+            if not pad.live then
+                notInGame += 1
+            elseif PadService.DevGrant(player, pad.id) then
                 granted += 1
             end
         end
-        return `granted {granted} pads (up to index {k - 1})`
+        local skipped = if notInGame > 0 then `; {notInGame} not in the game yet (Era 2+)` else ""
+        return `granted {granted} pads (up to index {k - 1}){skipped}`
     end,
 
     -- UNEALTA F1: acorda platformele pana la Collector INCLUSIV (id-ul vechi `first_runner` [D49]), ca
@@ -190,7 +198,7 @@ local HANDLERS: { [string]: Handler } = {
         local role, tierText, peopleText = string.match(text, "^(%a+)%s*(%d*)%s*(%d*)$")
         local def = if role ~= nil then TycoonConfig.CREWS[role] else nil
         if data == nil or def == nil then
-            return "usage: crew collector|porter|sawyer|hauler|trader [tier] [people]"
+            return "usage: crew collector|porter|sawyer|hauler|trader|scrapCollector|scrapPorter|smelter|ironHauler [tier] [people]"
         end
         local tier = math.clamp(tonumber(tierText) or 1, 1, StationConfig.TIER_MAX)
         local want = math.clamp(tonumber(peopleText) or 1, 1, StationConfig.MAX_PEOPLE)
@@ -233,6 +241,35 @@ local HANDLERS: { [string]: Handler } = {
         local sawmill = EconomyService.SawmillSnapshot(player)
         local storage = EconomyService.StorageSnapshot(player)
         return `coins {TycoonMath.formatNumber(data.Coins)} · income {income}/s · {padsOwned} pads · sack {sack.count}/{sack.capacity} ({sack.cut} cut) · storage {storage.count} · sawmill {sawmill.count} in / {sawmill.out} out · dock pile {dock.count}`
+    end,
+
+    -- [D59] pontonul: perle, pestele urmator, un lucru adus acum, roata gata, satul de la zero
+    pearls = function(player: Player, arg: unknown): string
+        local n = number(arg, 100)
+        EconomyService.AddPearls(player, n, "dev")
+        return `pearls +{n} → {math.floor(EconomyService.GetPearls(player))}`
+    end,
+
+    fish = function(player: Player, arg: unknown): string
+        local id = if typeof(arg) == "string" then arg :: string else "goldcarp"
+        return if FishService.DevForce(player, id) then `next fish: {id}` else `unknown fish: {id}`
+    end,
+
+    treasure = function(player: Player, arg: unknown): string
+        local kind = if typeof(arg) == "string" then arg :: string else "chest"
+        return if TreasureService.DevArrive(player, kind)
+            then `{kind} is drifting to the pier`
+            else `no room at the pier (or unknown kind: {kind})`
+    end,
+
+    wheel = function(player: Player, _arg: unknown): string
+        return if WheelService.DevReady(player) then "wheel ready" else "no profile"
+    end,
+
+    village = function(player: Player, _arg: unknown): string
+        return if VillageService.DevReset(player)
+            then "village decor and outfits reset"
+            else "no profile"
     end,
 }
 

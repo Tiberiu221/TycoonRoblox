@@ -101,6 +101,8 @@ local ACTION_SIZE = 108
 local toastToken = 0
 local fps = 60
 local touchButtons: { TextButton } = {}
+-- [D59] atingerea care tine apasat butonul de actiune (undita se mulineaza tinand apasat); nil = nimeni
+local actionHeldBy: InputObject? = nil
 local lastSackFull = false
 
 local function touchButton(
@@ -611,6 +613,21 @@ function HUDController.Init(deps: {
 
     local action = touchButton(deps.HudGui, "", deps.Interact, function() end)
     action.Name = "ActionButton"
+    -- [D59] Butonul se si TINE apasat (bara undiței). Degetul care a apasat e urmarit pana se ridica oriunde pe ecran:
+    -- InputEnded-ul butonului nu vine daca degetul aluneca de pe el, iar undita ar ramane "tinuta" singura.
+    action.InputBegan:Connect(function(input: InputObject)
+        if
+            input.UserInputType == Enum.UserInputType.Touch
+            or input.UserInputType == Enum.UserInputType.MouseButton1
+        then
+            actionHeldBy = input
+        end
+    end)
+    UserInputService.InputEnded:Connect(function(input: InputObject)
+        if input == actionHeldBy then
+            actionHeldBy = nil
+        end
+    end)
     action.AnchorPoint = Vector2.new(1, 1)
     action.Position = UDim2.new(1, -STICK_MARGIN, 1, -STICK_MARGIN)
     action.Size = UDim2.fromOffset(ACTION_SIZE, ACTION_SIZE)
@@ -699,6 +716,34 @@ function HUDController.PulseCoins()
     local scale = coinValue:FindFirstChildOfClass("UIScale") or Instance.new("UIScale")
     scale.Parent = coinValue
     scale.Scale = 1.25
+    TweenService:Create(
+        scale,
+        TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+        { Scale = 1 }
+    ):Play()
+end
+
+-- [D59] Butonul de actiune de pe ecran e tinut apasat acum (undita).
+function HUDController.IsActionHeld(): boolean
+    return actionHeldBy ~= nil
+end
+
+-- [D59] Unde aterizeaza perlele care zboara (de la undita, din rau, de la roata): pictograma perlei din pastila ei.
+function HUDController.PearlAnchor(): (number, number)
+    if pearlPill == nil then
+        return 0, 0
+    end
+    return pearlPill.Position.X.Offset + Theme.SPACE.md + 11,
+        pearlPill.Position.Y.Offset + COIN_PILL_H / 2
+end
+
+function HUDController.PulsePearls()
+    if pearlValue == nil then
+        return
+    end
+    local scale = pearlValue:FindFirstChildOfClass("UIScale") or Instance.new("UIScale")
+    scale.Parent = pearlValue
+    scale.Scale = 1.3
     TweenService:Create(
         scale,
         TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out),

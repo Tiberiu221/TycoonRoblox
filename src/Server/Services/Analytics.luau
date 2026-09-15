@@ -25,9 +25,15 @@ Analytics.STEPS = {
     BoughtPad8 = 13, -- third_net
     BoughtPad9 = 14, -- bigger_sack
     BoughtPad10 = 15, -- far_lane_net
-    BoughtPad11 = 16, -- workshop
+    BoughtPad11 = 16, -- workshop (Forge)
+    -- [D56] linia fierului: plasa, shed-ul si cei patru oameni, apoi clopotul
     BoughtPad12 = 17, -- fifth_net
-    BoughtPad13 = 18, -- landing_bell
+    BoughtPad13 = 18, -- scrap_shed
+    BoughtPad14 = 19, -- hire_scrap_collector
+    BoughtPad15 = 20, -- hire_scrap_porter
+    BoughtPad16 = 21, -- hire_smelter
+    BoughtPad17 = 22, -- hire_iron_hauler
+    BoughtPad18 = 23, -- landing_bell
 }
 
 -- [D51] Quest-urile, pe un canal propriu, capitol cu capitol, in ordinea din QuestConfig. Pana acum
@@ -40,6 +46,27 @@ function Analytics.QuestStep(player: Player, chapterId: string, step: number, qu
         end)
         if not ok then
             print(`[Analytics] quest {chapterId}/{step} {questId} (nelivrat in Studio): {err}`)
+        end
+    end)
+end
+
+-- [D59] Pontonul, pe un canal propriu: cati arunca undita, cati scot un peste, cati deschid ce aduce raul, cati cumpara
+-- ceva cu perle. Fiecare pas o singura data pe jucator (Firsts), in ordinea asta.
+Analytics.PIER_STEPS =
+    { FirstCast = 1, FirstFish = 2, FirstTreasure = 3, FirstDecor = 4, FirstOutfit = 5 }
+
+function Analytics.PierStep(player: Player, stepName: string)
+    local step = Analytics.PIER_STEPS[stepName]
+    if step == nil then
+        warn(`[Analytics] pas de ponton necunoscut: {stepName}`)
+        return
+    end
+    task.spawn(function()
+        local ok, err = pcall(function()
+            AnalyticsService:LogFunnelStepEvent(player, "Pier", nil, step, stepName)
+        end)
+        if not ok then
+            print(`[Analytics] ponton {step} {stepName} (nelivrat in Studio): {err}`)
         end
     end)
 end

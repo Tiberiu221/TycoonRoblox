@@ -4,7 +4,8 @@
 --
 -- Cladirea (si ruina ei, cat nu e cumparat) o deseneaza PadController, ca pe orice platforma. Aici: gramada
 -- de langa el, eticheta si gestul tau pe E -- lasi scrap-ul din traista, sau iei scrap cand n-ai. Ca la
--- depozit, Upgrade deschide meniul meseriei care conteaza acum: cine aduce (Collector) sau cine ia (Porter).
+-- depozit, Upgrade deschide meniul meseriei care conteaza acum: cine aduce (Scrap Collector) sau cine ia (Scrap
+-- Porter) [D56: meseriile fierului; pana atunci aceiasi Collector si Porter ai lemnului].
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 
@@ -26,6 +27,7 @@ export type Sack = {
     capacity: number,
     raw: number,
     rawScrap: number,
+    finds: number, -- [D56] gasirile neprelucrate (se vand si asa; incluse in `cut`)
     iron: number,
     cut: number,
     cutValue: number,
@@ -37,10 +39,10 @@ local deps: Deps
 local pile: PileView.View
 local label: TextLabel
 local sack: Sack =
-    { count = 0, capacity = 0, raw = 0, rawScrap = 0, iron = 0, cut = 0, cutValue = 0 }
+    { count = 0, capacity = 0, raw = 0, rawScrap = 0, finds = 0, iron = 0, cut = 0, cutValue = 0 }
 local stored = 0
 local owned = false
-local bottleneck = "nets"
+local bottleneck = "" -- [D56] veriga slaba a liniei fierului
 
 local STAND = TycoonConfig.SCRAP_SHED_STAND
 local PAD = TycoonConfig.byId.scrap_shed
@@ -73,9 +75,10 @@ function ShedController.Apply(newSack: Sack, shed: Snapshot?, isOwned: boolean, 
     end
 end
 
--- Meseria care conteaza acum la shed, ca la depozit: cine aduce, daca adunatul e veriga slaba; altfel cine ia.
+-- Meseria care conteaza acum la shed, ca la depozit: cine aduce, daca adunatul scrap-ului e veriga slaba a liniei
+-- fierului; altfel cine ia.
 function ShedController.CrewRole(): string
-    return if bottleneck == "collect" then "collector" else "porter"
+    return if bottleneck == "scrapCollect" then "scrapCollector" else "scrapPorter"
 end
 
 function ShedController.Focus(px: number, py: number): Focus.Focus?

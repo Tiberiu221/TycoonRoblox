@@ -4,10 +4,11 @@ Citit automat la fiecare sesiune. Ține-l scurt: fiecare cuvânt de aici se plă
 
 ## Ce construim
 
-Tycoon 2D pe Roblox, pe malul unui râu. **Râul aduce → Collector-ul adună în depozit → Porter-ul duce
+Tycoon 2D pe Roblox, pe malul unui râu, așezat ca un sat pe flux [D57]. **Râul aduce → Collector-ul adună în depozit → Porter-ul duce
 la gater → gaterul taie → Hauler-ul duce la tavernă → taverna vinde.** Venitul e **minimul
-celor șase debite**; ce pas n-are om îl faci tu [D49]. Veriga cea mai slabă decide, iar repararea ei e
-decizia jucătorului [D46]. Clădirile au **niveluri fără capăt** (salt la 10/25/50), oamenii **trepte
+debitelor**; ce pas n-are om îl faci tu [D49]. Din Forge, a doua linie cu oamenii ei: **Fifth Net → Scrap
+Collector → Scrap Shed → Scrap Porter → forja (Smelter) → Iron Hauler → tavernă**; liniile împart doar taverna
+[D56]. Veriga cea mai slabă decide, iar repararea ei e decizia jucătorului [D46]. Clădirile au **niveluri fără capăt** (salt la 10/25/50), oamenii **trepte
 1–5** și un al doilea om.
 Fraza pentru jucător: *This stretch of river is yours. Everything that floats past is money.*
 
@@ -69,15 +70,42 @@ stylua/selene o prind. Rulează-le mereu pe toate, nu înlănțuite după o eroa
   CI-ul rulează poarta (fără Studio) la fiecare push.
 - Cheia API în `~/.driftwood_api_key` — niciodată în chat, în repo sau ca argument de comandă.
 
-## Stare (2026-09-13)
+## Stare (2026-09-15)
 
-**Resturile pe drumul lor, roabele, grămezile la gater, colibele care cresc [D55]** — scris noaptea, cu planul
-aprobat de mine la cererea owner-ului; trece poarta (315 teste). Fifth Net prinde doar scrap → Scrap Shed
-(platformă nouă, renumerotare) → forja atelierului (niveluri) → fier (3) → tavernă, cu aceiași oameni;
-`ChainMath` pe două fluxuri (valori de aur din `golden_chain.py`), veriga slabă după câștigul pe bucată,
-profil **v7**, Era 1 la 37m44s reali. Oamenii împing roabe (rânduri noi în foi), grămezile sunt pe trepte
-(bușteni stânga / scânduri dreapta la gater), avizierele stau lângă meserii și devin colibe care cresc la al
-doilea om. 34 de fișiere de artă urcate. **Neverificat încă în Studio.**
+**Pontonul: undița, ce aduce râul, perlele pe sat, roata la locul ei [D59]** — plan aprobat de owner. Pontonul intră în
+râu și se merge pe el (`WorldMap` cu trecere); la capăt, undița fără eșec (`ReelMath`: doar ținut apăsat scoți orice
+pește; serverul crede scoaterea abia după jocul perfect pe aceeași bară), 12 pești, jurnalul (K); ce aduce râul la 4–8
+min, cel mult trei te așteaptă (`TreasureMath`, și offline); avizierul satului (B): 10 decoruri cu loc fix și 3 ținute pe
+perle; roata e un timonier pe punte, cu card E, fără monede (darurile râului, iconițele puse de cod). **Perlele cumpără
+doar aspect** (amendează D46 pct. 4); totul plătește în perle, simulatorul neatins (41m52s). Quest-ul `Catch a fish at the
+pier` în capitolul 2, cu săgeată deși ghidajul tace; indiciul pe linia NEXT. Profil **v9**; 40 de imagini și 3 sunete
+urcate și aprobate. Trece poarta (367 de teste). **Comis pe 2026-09-15, neverificat încă în Studio.**
+
+**Al cui e fiecare lucru [D58]** — numele meseriei sub fiecare casă și „Forge" pe acoperișul forjei; meseria sub oameni
+cât treci pe lângă ei (`HandRenderController`); „Upgrade (U)" pe cardul obiectului, butonul crește după text
+(`Theme.textWidth`), a doua apăsare pe U închide meniul; X-ul panourilor desenat (fontul de pixeli n-are „✕"; 3 imagini
+urcate și aprobate). Plasa din stânga hărții era Sixth Net-ul Erei 2, dat de butonul de dev „buy to 24": uneltele de dev
+nu mai dau platforme care nu sunt în joc, iar plasele fără loc pe hartă nu se mai desenează. Trece poarta (328 de
+teste). **Comis pe 2026-09-15, neverificat încă în Studio.**
+
+**Satul pe flux [D57]** — după dezbaterea cu machete, harta Erei 1 e reașezată: curtea lemnului lângă tavernă, curtea
+fierului spre Moară, patru drumuri (strada satului, două alei, piața), casele pe un rând peste stradă; nimic pe iarbă
+goală (`TycoonConfig.YARDS`, `UI/GroundShadow`, `TycoonConfig.DECOR`, drumuri fără umbră, piața de piatră, iarbă peste
+margini — 3 fișiere de artă noi). Tot aici: reflectorul tutorialului pe telefonul cu notch și lista de quest-uri
+(de revendicat sus, „Claim 1 (perlă)"). Trece poarta (328 de teste). **Comis pe 2026-09-15, neverificat încă în Studio.**
+
+**Linia fierului cu oamenii ei; atelierul devine Forge, colecția așteaptă [D56]** — plan aprobat de owner,
+comis pe 2026-09-15; trecea poarta cu 326 de teste. Patru meserii noi (Scrap Collector, Scrap
+Porter, Smelter, Iron Hauler), fiecare cu avizier → colibă lângă locul ei; forja topește fără Smelter doar cât
+stai în inelul ei (`UI/StandRing`, comun cu gaterul; prezența pe loc, remote `AtForge`); Workshop și Collection
+**parcate intenționat** (fără intrare, cod și profil neatinse); găsirile merg cu marfa și se vând la tavernă.
+Economia pe două linii (timpul tău pe linii, veriga slabă pe linie), capitolul 3 „The Iron Line", ghidajul se
+trezește la Forge, profil **v8**, Era 1 la 41m52s reali, fierul 35% din bani. 13 fișiere de artă urcate și
+aprobate. **Neverificat încă în Studio.**
+
+**Resturile pe drumul lor, roabele, grămezile la gater, colibele care cresc [D55]** — comis (ab45455). Fifth Net
+prinde doar scrap; oamenii împing roabe, grămezile sunt pe trepte (bușteni stânga / scânduri dreapta la gater),
+avizierele stau lângă meserii și devin colibe care cresc la al doilea om. Neverificat încă în Studio.
 
 **Nivelul sunetului [D54]** — scris și trece poarta (299 teste): muzica implicit la nivelul 4 din 10
 (~11 dB sub cât era), efectele la 10; panoul „Sound" pe tasta M (−, zece segmente, +) în locul
@@ -150,6 +178,9 @@ Planul tycoon e scris (`docs/TYCOON.md`). **F0 e scris** (2026-09-11): schema v2
 cronometru, sacul, debarcaderul, HUD-ul nou; codul de colonie e scos. **Poarta F0 trecută în Studio**
 de owner. **F1 e scris** (Era 1 completă: alergătorul, atelierul, clopotul, prinderea vizibilă,
 ghidajul, sunetele); poarta lui e playtest-ul cu ≥5 oameni din afară.
-În Studio, accesul la API e oprit: ProfileStore merge pe mock și nimic nu se salvează între sesiuni.
-Rămas la owner: numele, terenuri multiple, lobby/DevEx, D19. Și F0-ul de cont: Grup Roblox,
-**W-8BEN până la 31 oct 2026**, universuri Staging/Prod (2FA + ID făcute pe 2026-09-11).
+**[2026-09-15]** Staging = universul 10765888327 (place 132381101591529), „Driftycoon (Staging)", privat, cu acces la
+API din Studio: profilul se păstrează între sesiuni („reset" din consola de dev pornește de la zero). Producția =
+universul 10766553412 (place 101083147721008), „Driftycoon", gol și privat, fără acces la API din Studio. Ambele pe
+contul personal (userId 11640386677). Rămas la owner: numele, terenuri multiple, lobby/DevEx, D19 (2FA + ID făcute pe
+2026-09-11; grupul Roblox abandonat pe 2026-09-15, vezi D01). **Fiscalul (W-8BEN):** pagina Finances → Taxes nu apare pe
+cont (0 Robux câștigați, 2026-09-15); se depune când apare, **înainte de primul cash-out** — de verificat la primele vânzări.

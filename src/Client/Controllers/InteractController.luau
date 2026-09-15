@@ -12,6 +12,8 @@
 -- Upgrade apare dupa prima vanzare: in primul minut n-ai ce urca si ar trage atentia din bucla. Pulseaza
 -- cand pasul ghidajului cere chiar upgrade-ul obiectului asta. Atingerea cladirilor ramane -- cardul e
 -- al doilea drum spre acelasi meniu, nu un inlocuitor.
+-- [D58] Owner-ul: "as vrea si o tasta care sa deschida meniul de upgrade la orice apare pe ecran cu upgrade". U facea
+-- asta de la D51, dar nu scria nicaieri; acum butonul spune "Upgrade (U)", ca "Collect (E)", si creste dupa text.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -27,6 +29,9 @@ local DockController = require(script.Parent.DockController)
 local PadController = require(script.Parent.PadController)
 local ShedController = require(script.Parent.ShedController)
 local ForgeController = require(script.Parent.ForgeController)
+local PierController = require(script.Parent.PierController)
+local VillageController = require(script.Parent.VillageController)
+local WheelController = require(script.Parent.WheelController)
 local Panels = require(script.Parent.Panels)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
@@ -61,6 +66,8 @@ local coins = 0
 local rows: { StationRow } = {}
 
 local ACTION_W, UPGRADE_W, CARD_H = 240, 180, 44
+-- pictograma de nivel (Widgets.Button: min(28, inaltime - 10)), distanta pana la text si marginea ramei, pe o parte
+local UPGRADE_ICON, UPGRADE_GAP, UPGRADE_SIDE = 28, Theme.SPACE.sm, 18
 
 local SOURCES: { (number, number) -> Focus.Focus? } = {
     NetController.Focus,
@@ -68,8 +75,12 @@ local SOURCES: { (number, number) -> Focus.Focus? } = {
     SawmillController.Focus,
     DockController.Focus,
     ShedController.Focus, -- [D55] shed-ul de scrap
-    ForgeController.Focus, -- [D55] forja atelierului (si usa lui)
+    ForgeController.Focus, -- [D55, D56] forja: lasi scrap-ul, iei fierul
     PadController.FocusBuilt,
+    -- [D59] pontonul: locul de pescuit, roata (timonierul) si avizierul satului -- toate cu cardul E, ca restul
+    PierController.Focus,
+    WheelController.Focus,
+    VillageController.Focus,
 }
 
 local function nextLevelCost(kind: string?, id: string?): number?
@@ -88,6 +99,12 @@ local function hide()
     if card.Visible then
         card.Visible = false
     end
+end
+
+-- Cat de lat trebuie sa fie butonul ca eticheta sa incapa intre marginile ramei (niciodata sub latimea de baza).
+local function upgradeWidth(text: string): number
+    local label = Theme.textWidth(text, Theme.TEXT.body, "strong")
+    return math.max(UPGRADE_W, math.ceil(UPGRADE_ICON + UPGRADE_GAP + label + UPGRADE_SIDE * 2))
 end
 
 local function openUpgrade(): boolean
@@ -147,12 +164,15 @@ local function update()
     upgradeButton.Visible = hasUpgrade
     if hasUpgrade then
         local cost = nextLevelCost(f.upgradeKind, f.upgradeId)
-        local text = if cost ~= nil
-            then Strings.cardUpgradeCost(TycoonMath.formatNumber(cost))
-            else Strings.CARD_UPGRADE
+        local keyHint = if UserInputService.KeyboardEnabled then " (U)" else ""
+        local text =
+            Strings.cardUpgrade(if cost ~= nil then TycoonMath.formatNumber(cost) else nil, keyHint)
         if text ~= shownUpgrade then
             shownUpgrade = text
             Widgets.SetButtonText(upgradeButton, text)
+            local width = upgradeWidth(text)
+            upgradeButton.Size = UDim2.fromOffset(width, CARD_H - 4)
+            card.Size = UDim2.fromOffset(ACTION_W + Theme.SPACE.sm + width, CARD_H)
         end
         Widgets.SetButtonTone(
             upgradeButton,
@@ -199,8 +219,8 @@ function InteractController.Interact()
     end
 end
 
--- U: meniul obiectului de langa tine. Intoarce false cand nu e niciunul, ca U sa-si pastreze rostul
--- vechi (lista statiilor).
+-- U: meniul obiectului de langa tine -- acelasi ca butonul Upgrade de pe card, si doar cand butonul se vede. Intoarce
+-- false cand nu e niciunul, ca U sa-si pastreze rostul vechi (lista statiilor).
 function InteractController.OpenUpgrade(): boolean
     return openUpgrade()
 end
@@ -242,7 +262,7 @@ function InteractController.Init(d: Deps)
     statusLabel.Visible = false
 
     upgradeButton = Widgets.Button(card, {
-        text = Strings.CARD_UPGRADE,
+        text = Strings.cardUpgrade(nil, ""),
         icon = "levelup",
         width = UPGRADE_W,
         height = CARD_H - 4,

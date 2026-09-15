@@ -12,6 +12,12 @@ local CharacterController = {}
 -- SPAWN, nu RiverConfig.CHARACTER.START_X/Y: locul de start e acum al tycoon-ului [F0 spec 1.1].
 local x, y = TycoonConfig.SPAWN.x, TycoonConfig.SPAWN.y
 local facing = "down"
+-- [D59] ce face personajul pe loc (undita) si spre ce parte; nil = nimic, ca pana acum. Nu `task`: ar ascunde
+-- biblioteca task.* in tot fisierul.
+local activity: string? = nil
+local activityFacing: string? = nil
+local setOutfitFn: ((string) -> ())? = nil
+local wantedOutfit: string? = nil
 local keys: { [string]: boolean } = {}
 -- directia de la joystick, ca vector: -1..1 pe fiecare axa. Patru butoane dadeau doar 8
 -- directii si mancau o treime din ecranul de telefon.
@@ -20,7 +26,8 @@ local locked = false
 local onPlayerInput: (() -> ())? = nil
 -- Static: nu mai exista cladiri de colonie care sa blocheze mersul, iar platformele tycoon-ului
 -- NU blocheaza (trebuie sa poti calca pe ele ca sa le cumperi) -- doar raul opreste personajul.
-local rects = WorldMap.blockedRects(RiverConfig)
+-- [D59] ...in afara pontonului lung: pe el mergi pana la capat, unde pescuiesti.
+local rects = WorldMap.blockedRects(RiverConfig, nil, TycoonConfig.PIER_WALK)
 
 local KEYMAP: { [Enum.KeyCode]: string } = {
     [Enum.KeyCode.A] = "left",
@@ -54,6 +61,24 @@ function CharacterController.IsLocked(): boolean
     return locked
 end
 
+-- [D59] O treaba pe loc (undita), cu fata spre `facing`. Cat stai, randul ei; cand pornesti, mersul. nil = gata.
+function CharacterController.SetTask(newTask: string?, newFacing: string?)
+    activity = newTask
+    activityFacing = newFacing
+    if newFacing ~= nil then
+        facing = newFacing
+    end
+end
+
+-- [D59] Tinuta de la avizierul satului. Inainte de Init se tine minte si se aplica la desenare.
+function CharacterController.SetOutfit(outfit: string)
+    wantedOutfit = outfit
+    local fn = setOutfitFn
+    if fn ~= nil then
+        fn(outfit)
+    end
+end
+
 -- Joystick-ul de pe telefon. Magnitudinea conteaza: o impingere usoara merge incet.
 function CharacterController.SetStick(vx: number, vy: number)
     stickX, stickY = vx, vy
@@ -68,7 +93,11 @@ function CharacterController.Init(deps: {
     OnPlayerInput: (() -> ())?,
 })
     onPlayerInput = deps.OnPlayerInput
-    local sprite, setPose = SceneArt.MakeCharacter(deps.Scroll)
+    local sprite, setPose, setOutfit = SceneArt.MakeCharacter(deps.Scroll)
+    setOutfitFn = setOutfit
+    if wantedOutfit ~= nil then
+        setOutfit(wantedOutfit :: string)
+    end
     local c = RiverConfig.CHARACTER
     sprite.Position = UDim2.fromOffset(x, y)
 
@@ -129,9 +158,9 @@ function CharacterController.Init(deps: {
             facing = if dx ~= 0
                 then (if dx > 0 then "right" else "left")
                 else (if dy > 0 then "down" else "up")
-            setPose(true, facing, dt, running)
+            setPose(true, facing, dt, running, nil)
         else
-            setPose(false, facing, dt, false)
+            setPose(false, activityFacing or facing, dt, false, activity)
         end
         sprite.Position = UDim2.fromOffset(x, y)
         sprite.ZIndex = 6

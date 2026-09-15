@@ -40,13 +40,28 @@ local Assets = {
             Builder = sprite(139784841525496, 64, 480),
             Gardener = sprite(83753596594055, 64, 480),
             Innkeeper = sprite(108041503019278, 64, 480),
-            keeper = sprite(85129822481063, 64, 480), -- doar jucatorul
+            keeper = sprite(88326631180357, 64, 480), -- doar jucatorul
             -- [D50] clientii tavernei: fara palarie, in culori pe care nu le poarta nicio meserie
             Townsfolk = sprite(133031375498480, 64, 480),
             Traveler = sprite(93487186567636, 64, 480),
+            -- [D56] linia fierului: Scrap Collector, Scrap Porter, Smelter (cu sortul), Iron Hauler
+            Scrapper = sprite(91090647599495, 64, 480),
+            Carter = sprite(99251069118914, 64, 480),
+            Smith = sprite(98115009114611, 64, 480),
+            Ironmonger = sprite(88848133317835, 64, 480),
+            -- [D59] tinutele jucatorului, cumparate cu perle (angler, captain) sau din jurnalul complet (legend). Cheile
+            -- cu litera mica, ca `keeper`: nu sunt meserii. Id 0 = inca neurcat -> personajul ramane in `keeper`.
+            angler = sprite(77086694802414, 64, 480),
+            captain = sprite(96665945822082, 64, 480),
+            legend = sprite(117264524949067, 64, 480),
         },
     },
     path_tile = sprite(124285357370417, 64, 64),
+    -- [D57] satul pe flux: piatra pietei tavernei si smocurile de iarba de pe marginile drumurilor si ale curtilor
+    -- (scripts/art/d57.py). Id 0 = inca neurcat: SceneArt deseneaza pamant simplu si margini drepte.
+    tile_plaza = sprite(121389456528640, 64, 64),
+    grass_edge_h = sprite(100759578645951, 64, 8),
+    grass_edge_v = sprite(87052770891815, 8, 64),
     house = sprite(90840210687331, 64, 80), -- generic, folosit doar daca lipseste sprite-ul dedicat
     -- Cate un sprite per tip de cladire; cheia = BuildingConfig id. scaffold = santier in lucru.
     buildings = {
@@ -100,6 +115,11 @@ local Assets = {
         -- in cod): tinta ghidajului si locul unde stai la gater
         chevron = sprite(120621813543879, 16, 16),
         groundring = sprite(138319155945387, 32, 16),
+        -- [D58] butonul de inchidere al panourilor, in trei stari (x2): X-ul desenat, nu glifa U+2715, pe care fontul
+        -- de pixeli n-o are
+        close = sprite(132144173252476, 20, 20),
+        close_hover = sprite(76160501164057, 20, 20),
+        close_down = sprite(132296781809933, 20, 20),
     },
     -- Ilustratiile cardurilor de capitol. Cheia = id-ul capitolului din QuestConfig.
     chapters = {
@@ -143,6 +163,10 @@ local Assets = {
         carry = sprite(112168472116671, 16, 16),
         levelup = sprite(128109634867858, 16, 16),
         saw = sprite(114993179316384, 16, 16), -- D48: panza gaterului, in lume si in meniul lui
+        -- [D59] momeala aurie (premiu al roatii), biletul din sticla (jurnalul), roata din bara de meniu (timonierul mic)
+        bait = sprite(86430714701088, 16, 16),
+        note = sprite(76288229611949, 16, 16),
+        spin = sprite(86359189309483, 16, 16),
         -- `catch` nu are sprite propriu: randul "total catch" e o plasa, iar plasa exista deja
         -- (icons.net). Un al doilea desen de plasa ar fi fost doar inca un fisier de intretinut.
     },
@@ -235,6 +259,63 @@ local Assets = {
         hut_hauler_2 = sprite(128353694504179, 40, 34),
         runner_hut_2 = sprite(111300382776252, 48, 40),
         stall_2 = sprite(121127549847093, 64, 40),
+        -- [D56] scripts/art/d56.py: colibele oamenilor fierului (mica / mare) si fumul hornului forjei (fasie cu
+        -- trei nori de 10x10). Id 0 = inca neurcat.
+        hut_scrap_collector_1 = sprite(117732330111184, 32, 28),
+        hut_scrap_collector_2 = sprite(117656831487886, 40, 34),
+        hut_scrap_porter_1 = sprite(79197078173844, 32, 28),
+        hut_scrap_porter_2 = sprite(88413706948685, 40, 34),
+        hut_smelter_1 = sprite(71153210974685, 32, 28),
+        hut_smelter_2 = sprite(121231899171956, 40, 34),
+        hut_iron_hauler_1 = sprite(100681471520359, 32, 28),
+        hut_iron_hauler_2 = sprite(90038858826137, 40, 34),
+        forge_smoke = sprite(82327509756017, 30, 10),
+        -- [D59] scripts/art/d59.py: pontonul lung (locul de pescuit), plutitorul, roata zilnica ca timonier pe punte si
+        -- fata ei din panou (spitele la multipli de 45 de grade, iconitele premiilor le pune codul), avizierul satului.
+        -- Id 0 = inca neurcat.
+        pier_long = sprite(89476195993441, 32, 104),
+        bobber = sprite(113053469115992, 8, 10),
+        helm = sprite(129602449291697, 40, 48),
+        helm_face = sprite(118436325407447, 64, 64),
+        village_board = sprite(90611103033542, 40, 44),
+    },
+    -- [D59] cele 12 specii ale jurnalului (FishConfig), pe profil, capul la stanga (fish_<id>.png)
+    fish = {
+        minnow = sprite(104838629254248, 20, 16),
+        roach = sprite(136030784477082, 20, 16),
+        perch = sprite(91290989316355, 20, 16),
+        bream = sprite(79713811649073, 20, 16),
+        trout = sprite(91786419075325, 20, 16),
+        chub = sprite(98486590792746, 20, 16),
+        carp = sprite(88174610925388, 20, 16),
+        eel = sprite(91948749812624, 20, 16),
+        pike = sprite(102903563080606, 20, 16),
+        catfish = sprite(73425419100723, 20, 16),
+        sturgeon = sprite(99006995822777, 20, 16),
+        goldcarp = sprite(114384138876222, 20, 16),
+    },
+    -- [D59] ce aduce raul (TreasureConfig): intregi (jurnalul, rezultatul) si pe jumatate in apa (cand plutesc si cand
+    -- asteapta la ponton), treasure_<fel>[_water].png
+    treasure = {
+        bottle = sprite(101800607258354, 16, 16),
+        chest = sprite(83773242496262, 20, 16),
+        golden = sprite(109714973274162, 24, 12),
+        bottle_water = sprite(72648872332248, 16, 16),
+        chest_water = sprite(97270437241778, 20, 16),
+        golden_water = sprite(114933237701252, 24, 12),
+    },
+    -- [D59] imbunatatirile satului cumparate cu perle (VillageConfig.DECOR), decor_<id>.png
+    decor = {
+        flowerbed = sprite(98215678779896, 32, 14),
+        pier_lamp = sprite(105853641815036, 12, 32),
+        bench = sprite(85722203903431, 32, 20),
+        bunting = sprite(115700354377254, 64, 24),
+        well = sprite(78354675256953, 32, 40),
+        veggie_patch = sprite(109495687268052, 48, 40),
+        rowboat = sprite(71688014218371, 40, 20),
+        beehives = sprite(76028188795736, 40, 28),
+        fountain = sprite(78184223252965, 48, 40),
+        statue = sprite(81288800690481, 32, 56),
     },
     -- F1 (O1): sunete sintetizate de noi (scripts/audio), urcate ca Audio. 0 = inca neincarcat ->
     -- SoundController tace, fara eroare.
@@ -254,6 +335,10 @@ local Assets = {
         pop = 126278560484276,
         wheel = 90681910341082, -- E1.9: clichetul rotii zilnice
         saw = 78733154399219, -- D48: panza gaterului, cand taie
+        -- [D59] undita: aruncarea, pestele care trage, mulinetul cat se strange firul
+        cast = 125225061548722,
+        bite = 112435773204646,
+        reel = 127909885590038,
     },
 }
 

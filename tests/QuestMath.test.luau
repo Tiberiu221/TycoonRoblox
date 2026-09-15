@@ -72,6 +72,9 @@ return function()
                 QuestMath.progress(QuestConfig.byId.idle_one, facts({ idleRate = 3.5 })),
                 3.5
             )
+            -- [D59] pesti scosi la undita
+            check.equal(QuestMath.progress(QuestConfig.byId.catch_fish, facts({ fished = 2 })), 2)
+            check.equal(QuestMath.progress(QuestConfig.byId.catch_fish, facts()), 0)
         end)
 
         test.case("Go! si bara de progres inteleg aceeasi statie din `arg`", function()
@@ -125,6 +128,46 @@ return function()
             check.equal(stateOf(list, "collect_once"), "active")
             check.equal(QuestMath.claimable(CHAPTER, f), 1)
         end)
+
+        test.case(
+            "lista: de revendicat sus, apoi nefacute, revendicatele la coada [owner]",
+            function()
+                local rows = {
+                    { id = "a", state = "claimed" },
+                    { id = "b", state = "claimed" },
+                    { id = "c", state = "done" },
+                    { id = "d", state = "active" },
+                    { id = "e", state = "locked" },
+                    { id = "f", state = "locked" },
+                    { id = "g", state = "done" },
+                }
+                local order = QuestMath.displayOrder(rows, function(r)
+                    return r.state
+                end)
+                local ids = {}
+                for i, r in order do
+                    ids[i] = r.id
+                end
+                check.equal(table.concat(ids, ","), "c,g,d,e,f,a,b")
+                -- lista primita ramane neatinsa: butonul Claim citeste randul afisat, nu indexul din capitol
+                check.equal(rows[1].id, "a")
+                -- pe capitolul adevarat: dupa primele doua revendicate si al treilea terminat
+                local f = facts({
+                    pads = { first_net = true },
+                    collected = 12,
+                    sawn = 12,
+                    claimed = { cast_first = true, collect_once = true },
+                })
+                local real = QuestMath.displayOrder(QuestMath.chapterStates(CHAPTER, f), function(q)
+                    return q.state
+                end)
+                check.equal(real[1].id, "saw_once")
+                check.equal(real[1].state, "done")
+                check.equal(real[2].state, "active")
+                check.equal(real[#real].id, "collect_once")
+                check.equal(real[#real - 1].id, "cast_first")
+            end
+        )
 
         test.case("dupa revendicare nu se mai poate revendica", function()
             local f = facts({ pads = { first_net = true }, claimed = { cast_first = true } })
@@ -297,18 +340,24 @@ return function()
             -- Daca quest-ul ar cere 5 si poarta ar fi 2, plasa urmatoare s-ar deschide la 2 in timp
             -- ce banda de obiectiv inca cere 5 -- lumea si ghidajul s-ar contrazice iar.
             local TycoonConfig = require("../src/Shared/Config/TycoonConfig")
-            local seen = 0
+            -- [D56] quest-urile in sir, peste capitole: nivelul plasei a patra incheie capitolul 2, iar plasa a
+            -- cincea vine in capitolul 3
+            local all = {}
             for _, ch in QuestConfig.CHAPTERS do
-                for i, q in ch.quests do
-                    local nextQ = ch.quests[i + 1]
-                    local station = QuestMath.stationTarget(q)
-                    if station == "net" and nextQ ~= nil and nextQ.kind == "pad" then
-                        seen += 1
-                        check.equal(q.goal, TycoonConfig.PREV_NET_LEVEL)
-                    end
+                for _, q in ch.quests do
+                    table.insert(all, q)
                 end
             end
-            check.equal(seen, 4) -- inaintea plasei 2, 3, 4 si 5
+            local seen = 0
+            for i, q in all do
+                local nextQ = all[i + 1]
+                local station = QuestMath.stationTarget(q)
+                if station == "net" and nextQ ~= nil and nextQ.kind == "pad" then
+                    seen += 1
+                    check.equal(q.goal, TycoonConfig.PREV_NET_LEVEL)
+                end
+            end
+            check.equal(seen, 4) -- inaintea plasei 2, 3, 4 si a Forge (dupa ea, plasa 5)
         end)
 
         test.case("textul unui quest de nivel spune nivelul pe care il si cere", function()

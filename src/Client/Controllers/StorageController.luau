@@ -16,6 +16,7 @@ local Theme = require(script.Parent.Parent.UI.Theme)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
 local PileView = require(script.Parent.Parent.UI.PileView)
 local Focus = require(script.Parent.Parent.UI.Focus)
+local GroundShadow = require(script.Parent.Parent.UI.GroundShadow)
 
 export type Deps = {
     Plot: Frame,
@@ -31,6 +32,7 @@ export type Sack = {
     capacity: number,
     raw: number, -- [D55] lemnul brut; scrap-ul are `rawScrap` si drumul lui
     rawScrap: number,
+    finds: number, -- [D56] gasirile neprelucrate (se vand si asa; incluse in `cut`)
     iron: number,
     cut: number,
     cutValue: number,
@@ -41,7 +43,7 @@ local StorageController = {}
 local deps: Deps
 local pile: PileView.View
 local sack: Sack =
-    { count = 0, capacity = 0, raw = 0, rawScrap = 0, iron = 0, cut = 0, cutValue = 0 }
+    { count = 0, capacity = 0, raw = 0, rawScrap = 0, finds = 0, iron = 0, cut = 0, cutValue = 0 }
 local stored = 0
 local bottleneck = "nets"
 
@@ -70,7 +72,7 @@ function StorageController.Apply(newSack: Sack, storage: Snapshot?, bn: string)
     end
 end
 
--- Meseria care conteaza acum la depozit: cine aduce, daca adunatul e veriga slaba; altfel cine ia.
+-- Meseria care conteaza acum la depozit: cine aduce, daca adunatul e veriga slaba (a lemnului [D56]); altfel cine ia.
 -- Aceeasi alegere pentru atingerea cladirii si pentru Upgrade de pe card [D51].
 function StorageController.CrewRole(): string
     return if bottleneck == "collect" then "collector" else "porter"
@@ -101,7 +103,7 @@ function StorageController.Focus(px: number, py: number): Focus.Focus?
             else nil,
         -- [D55] cu doar scrap in traista, cardul spune unde merge -- nu tace [D43]
         status = if text == nil and sack.rawScrap > 0
-            then Strings.useResult("storage", false, "scrap_to_shed", 0, 0, false)
+            then Strings.useResult("storage", false, "scrap_to_forge", 0, 0, false)
             else nil,
         upgradeKind = "crew",
         upgradeId = StorageController.CrewRole(),
@@ -111,6 +113,8 @@ end
 function StorageController.Init(d: Deps)
     deps = d
 
+    -- [D57] umbra sub depozit: sta pe pamantul curtii, nu deasupra lui
+    GroundShadow.add(deps.Plot, UDim2.fromOffset(ST.x, ST.y), ST.w, 2)
     local marker = Instance.new("Frame")
     marker.Name = "Storage"
     marker.AnchorPoint = Vector2.new(0.5, 1)
