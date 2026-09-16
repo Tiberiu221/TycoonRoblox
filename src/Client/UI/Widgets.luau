@@ -194,6 +194,39 @@ export type ButtonOptions = {
     reward: boolean?,
 }
 
+-- Cat din fiecare margine a butonului ramane rama desenata: textul nu intra peste ea.
+local BUTTON_INSET = 12
+
+-- Eticheta nu iese de pe desenul butonului. Cand randul (pictograma, eticheta, pretul, recompensa) e mai lat decat
+-- butonul, eticheta se strange; altfel ramane la marimea ei. Fontul de pixeli are 0.56 em pe litera: "Go to Scrap
+-- Collector" avea 211 pe un buton de 200 [2026-09-15]. Butoanele intinse pe scara parintelui nu se ating.
+local function fitButtonRow(button: TextButton)
+    local row = button:FindFirstChild("Row")
+    local found = if row ~= nil then row:FindFirstChild("Label") else nil
+    if row == nil or found == nil or not found:IsA("TextLabel") or button.Size.X.Scale ~= 0 then
+        return
+    end
+    local label = found :: TextLabel
+    local others, count = 0, if label.Visible then 1 else 0
+    for _, child in row:GetChildren() do
+        if child == label or not child:IsA("GuiObject") or not (child :: GuiObject).Visible then
+            continue
+        end
+        count += 1
+        if child:IsA("TextLabel") then
+            local text = child :: TextLabel
+            others += Theme.textWidth(text.Text, text.TextSize, "strong")
+        else
+            others += (child :: GuiObject).Size.X.Offset
+        end
+    end
+    local room = button.Size.X.Offset
+        - BUTTON_INSET * 2
+        - others
+        - math.max(0, count - 1) * Theme.SPACE.sm
+    label.TextSize = Theme.fitSize(label.Text, Theme.TEXT.body, "strong", room)
+end
+
 -- Buton cu trei stari desenate. Un buton fara raspuns la hover si la apasare e semnul cel mai
 -- sigur de interfata neterminata.
 function Widgets.Button(parent: Instance, o: ButtonOptions): TextButton
@@ -311,6 +344,11 @@ function Widgets.Button(parent: Instance, o: ButtonOptions): TextButton
         row.Position = UDim2.fromOffset(0, 0)
     end)
     b.Activated:Connect(o.onClick)
+    -- butoanele care cresc dupa text (cardul obiectului) isi schimba latimea dupa ce primesc eticheta
+    b:GetPropertyChangedSignal("Size"):Connect(function()
+        fitButtonRow(b)
+    end)
+    fitButtonRow(b)
     return b
 end
 
@@ -324,6 +362,7 @@ function Widgets.SetButtonText(button: TextButton, text: string)
         label.Text = text
         label.Visible = text ~= ""
     end
+    fitButtonRow(button)
 end
 
 -- [D53] Pictograma dinaintea etichetei unui Widgets.Button: ascunsa cand butonul nu mai inseamna ce arata
@@ -343,6 +382,7 @@ function Widgets.SetButtonIcon(button: TextButton, visible: boolean)
             child.Visible = visible
         end
     end
+    fitButtonRow(button)
 end
 
 -- [D52] Pretul din interiorul unui Widgets.Button nascut cu `price = true`: moneda si cifra, in
@@ -362,6 +402,7 @@ function Widgets.SetButtonPrice(button: TextButton, text: string?, color: Color3
         price.Visible = text ~= nil
         price.TextColor3 = color or Theme.COLOR.ink
     end
+    fitButtonRow(button)
 end
 
 -- Recompensa dintr-un Widgets.Button nascut cu `reward = true`: cifra, apoi moneda ei -- perla ("pearls") sau moneda
@@ -383,6 +424,7 @@ function Widgets.SetButtonReward(button: TextButton, amount: string?, currency: 
             icon.Visible = amount ~= nil and name == wanted
         end
     end
+    fitButtonRow(button)
 end
 
 -- Culoarea unui Widgets.Button. Cand exista arta, fundalul e TRANSPARENT si skin-ul e un sprite --

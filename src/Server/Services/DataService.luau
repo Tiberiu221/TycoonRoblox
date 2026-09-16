@@ -1,10 +1,15 @@
 --!strict
 -- Profilul jucatorului prin ProfileStore: session locking, autosave, Reconcile [DECIZII D11, D14]
 -- In Studio fara acces la API, ProfileStore foloseste automat un store Mock (datele se pierd la Stop).
+-- [2026-09-15] Si CU acces la API, Play-ul din Studio porneste implicit de la zero (store-ul Mock); "keep save" din consola
+-- de dev pastreaza salvarea reala pentru Play-urile urmatoare. Alegerea owner-ului: accesul la API ramane pornit (ca sa se
+-- poata vedea revenirea: Welcome back, ce aduce raul cat lipsesti), dar testele de zi cu zi incep de la capat, ca inainte.
 -- Schema v2 (pivotul D45 la tycoon) [F0 spec 1.3]: cheia de store ramane PlayerData_v1, doar
 -- continutul se schimba; ProfileMigrate.toV2 goleste orice profil vechi inainte de Reconcile.
+local DataStoreService = game:GetService("DataStoreService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local ServerStorage = game:GetService("ServerStorage")
 local ProfileStore = require(ServerStorage.ServerPackages.ProfileStore)
 local ProfileMigrate = require(ReplicatedStorage.Shared.Modules.ProfileMigrate)
@@ -212,6 +217,22 @@ end
 local DataService = {}
 local store = ProfileStore.New("PlayerData_v1", PROFILE_TEMPLATE)
 local profiles: { [Player]: any } = {}
+local IS_STUDIO = RunService:IsStudio()
+-- Comutatorul "keep save" din Studio sta intr-un store al lui, pe utilizator: trebuie citit INAINTE de profil, la
+-- Play-ul urmator, iar in joc nu exista si nici nu se citeste.
+local STUDIO_STORE = "StudioDevSettings_v1"
+local studioFresh: { [Player]: boolean } = {}
+
+local function keepSaveKey(player: Player): string
+    return `keepSave_{player.UserId}`
+end
+
+local function readKeepSave(player: Player): boolean
+    local ok, value = pcall(function()
+        return DataStoreService:GetDataStore(STUDIO_STORE):GetAsync(keepSaveKey(player))
+    end)
+    return ok and value == true -- fara acces la API citirea cade, deci Play-ul porneste de la zero, ca ProfileStore
+end
 local loadedSignal = Instance.new("BindableEvent")
 -- Semnatura: (player: Player). Fara tabel, din motivul explicat la Fire.
 DataService.ProfileLoaded = loadedSignal.Event
@@ -292,8 +313,32 @@ function DataService.Reset(player: Player): boolean
     return true
 end
 
+-- [2026-09-15] "fresh" = Play-ul din Studio a pornit de la zero (store Mock), "kept" = pe salvarea reala, nil = in joc.
+function DataService.StudioSave(player: Player): string?
+    if not IS_STUDIO then
+        return nil
+    end
+    return if studioFresh[player] == false then "kept" else "fresh"
+end
+
+-- Comuta "keep save" pentru Play-urile urmatoare; Play-ul de acum ramane cum a pornit. Intoarce (ok, keep).
+function DataService.ToggleKeepSave(player: Player): (boolean, boolean)
+    if not IS_STUDIO then
+        return false, false
+    end
+    local keep = not readKeepSave(player)
+    local ok = pcall(function()
+        DataStoreService:GetDataStore(STUDIO_STORE):SetAsync(keepSaveKey(player), keep)
+    end)
+    return ok, keep
+end
+
 local function onPlayerAdded(player: Player)
-    local profile = store:StartSessionAsync(`Player_{player.UserId}`, {
+    local fresh = IS_STUDIO and not readKeepSave(player)
+    studioFresh[player] = fresh
+    -- Mock.StartSessionAsync nu primeste `Cancel`: se incarca pe loc, iar iesirea din joc o prinde verificarea de dupa
+    local source: any = if fresh then store.Mock else store
+    local profile = source:StartSessionAsync(`Player_{player.UserId}`, {
         Cancel = function()
             return player.Parent ~= Players
         end,
@@ -346,6 +391,7 @@ function DataService.Init(_deps: {})
         task.spawn(onPlayerAdded, player)
     end
     Players.PlayerRemoving:Connect(function(player: Player)
+        studioFresh[player] = nil
         local profile = profiles[player]
         if profile ~= nil then
             profile.Data.Meta.lastSeenAt = os.time()

@@ -48,6 +48,9 @@ restructurează cu un `local`. `BindableEvent` copiază tabelele — trimite ide
 server trebuie **copiate explicit** pe client (am pierdut de două ori nume/meserie/înfățișare așa).
 Și invers: când serverul scoate sau redenumește un câmp, caută **toți** cititorii din client — în F0,
 panoul atelierului a crăpat pe `s.materials` și nicio verificare statică nu l-a prins.
+Fontul de pixeli (`display`/`strong`) are **0,56 em pe literă**: o frază de 41 de litere la mărimea titlului are 687 de
+unități și iese din fereastră. Textul care se schimbă (sume, nume, bilete) trece prin `Theme.fitSize` sau se rupe pe
+rânduri cu înălțimea din `Theme.textHeight`.
 
 ## Poarta, înainte de orice livrare
 
@@ -55,6 +58,8 @@ panoul atelierului a crăpat pe `s.materials` și nicio verificare statică nu l
 stylua --check src/ tests/ && selene src/ && lune run tests/_run.luau
 rojo build default.project.json --output /tmp/check.rbxl
 lune run scripts/check_requires /tmp/check.rbxl
+rojo build fair.project.json --output /tmp/fair.rbxl        # [D60] balciul, place-ul al doilea
+lune run scripts/check_requires /tmp/fair.rbxl
 python3 scripts/economy/sim_tycoon.py --robust
 python3 scripts/art/check_panel_rows.py
 ```
@@ -67,10 +72,26 @@ stylua/selene o prind. Rulează-le mereu pe toate, nu înlănțuite după o eroa
   **verifici tu** în cod ce raportează — au greșit de mai multe ori.
 - Dus la capăt singur, apoi o listă scurtă cu ce poate verifica doar owner-ul în Studio.
 - **Fără commit fără cerere.** Repo privat `github.com/Tiberiu221/TycoonRoblox`, ramura `main`;
-  CI-ul rulează poarta (fără Studio) la fiecare push.
+  CI-ul rulează poarta (fără Studio) la fiecare push. **Push-ul nu ajunge în joc:** jobul `publish-staging` n-a
+  publicat la push-ul din 2026-09-15 (`updateTime` al place-ului neschimbat; probabil lipsesc variabilele de staging
+  din GitHub, iar Actions nu se vede de aici). Owner-ul vede codul prin `rojo serve` + Connect în Studio.
 - Cheia API în `~/.driftwood_api_key` — niciodată în chat, în repo sau ca argument de comandă.
 
-## Stare (2026-09-15)
+## Stare (2026-09-16)
+
+**Bâlciul de seară [D60]** — în lucru, după planul aprobat (`~/.claude/plans/d60-balciul-de-seara.md`):
+- **Ce e:** hub rotund de ~1620, pe un **place separat** din același univers (`fair.project.json`, `src/Fair/`,
+  `PlaceConfig`); ajungi cu barca în amonte.
+- **Ce e gata:**
+  - arta: 23 de desene aprobate (`scripts/art/d60.py`, `Assets.fair`);
+  - modulele pure, cu testele lor: `FairLayout` (testul de așezare: nimic nu intră în altceva), `TitleMath`,
+    `BoardMath`, `RideMath`;
+  - scheletul bâlciului: desenează locul, iar `Row home` te trimite acasă;
+  - CI-ul publică ambele place-uri.
+- **Owner-ul a hotărât:** 24 de jucători pe server; roata zilnică se mută în bâlci; titlurile cumpărate costă
+  600/1000/1600 de perle; „×2 la mers" se vinde pe Robux (simulatorul arată că nu schimbă Era 1).
+- **Rămas:** barca cu predarea profilului, prezența, cardul, titlurile, scena cu clasamente, roata, negustorul.
+- **Amânat pe D61:** iazul, ghereta, poarta satelor, colțul cu Robux.
 
 **Pontonul: undița, ce aduce râul, perlele pe sat, roata la locul ei [D59]** — plan aprobat de owner. Pontonul intră în
 râu și se merge pe el (`WorldMap` cu trecere); la capăt, undița fără eșec (`ReelMath`: doar ținut apăsat scoți orice
@@ -80,6 +101,19 @@ perle; roata e un timonier pe punte, cu card E, fără monede (darurile râului,
 doar aspect** (amendează D46 pct. 4); totul plătește în perle, simulatorul neatins (41m52s). Quest-ul `Catch a fish at the
 pier` în capitolul 2, cu săgeată deși ghidajul tace; indiciul pe linia NEXT. Profil **v9**; 40 de imagini și 3 sunete
 urcate și aprobate. Trece poarta (367 de teste). **Comis pe 2026-09-15, neverificat încă în Studio.**
+Prima trecere a owner-ului prin Studio (aceeași zi) a găsit texte care ies din cutie și florile peste numele caselor.
+Reparate, **necomis**:
+- **„Welcome back":** suma stă pe rândul ei.
+- **Bannerul biletului:** trece pe mai multe rânduri.
+- **Butoanele:** eticheta se strânge până încape (`fitButtonRow`).
+- **Placa de pe cardul E:** crește după text.
+- **Frazele Stations:** scurtate.
+- **Etichetele de pe punte:** pe două rânduri.
+- **Florile:** mutate sub nume.
+- **Test nou:** decorul cumpărat nu acoperă etichetele.
+- **Play-ul din Studio:** pornește iar de la zero, cu butonul „keep save" (vezi nota de staging de la arhivă).
+
+Trece poarta (368 de teste).
 
 **Al cui e fiecare lucru [D58]** — numele meseriei sub fiecare casă și „Forge" pe acoperișul forjei; meseria sub oameni
 cât treci pe lângă ei (`HandRenderController`); „Upgrade (U)" pe cardul obiectului, butonul crește după text
@@ -179,7 +213,10 @@ cronometru, sacul, debarcaderul, HUD-ul nou; codul de colonie e scos. **Poarta F
 de owner. **F1 e scris** (Era 1 completă: alergătorul, atelierul, clopotul, prinderea vizibilă,
 ghidajul, sunetele); poarta lui e playtest-ul cu ≥5 oameni din afară.
 **[2026-09-15]** Staging = universul 10765888327 (place 132381101591529), „Driftycoon (Staging)", privat, cu acces la
-API din Studio: profilul se păstrează între sesiuni („reset" din consola de dev pornește de la zero). Producția =
+API din Studio. Totuși Play-ul din Studio pornește **de la zero** (ProfileStore.Mock, ales de owner pe 2026-09-15);
+butonul „keep save" din consola de dev păstrează salvarea reală pentru Play-urile următoare (revenirea, offline).
+Bâlciul [D60] = place-ul **114983498774894** din același univers (creat pe 2026-09-16; numele din Creator Hub e încă
+cel automat, cheia locală n-are `universe.place:write` ca să-l schimbe). Producția =
 universul 10766553412 (place 101083147721008), „Driftycoon", gol și privat, fără acces la API din Studio. Ambele pe
 contul personal (userId 11640386677). Rămas la owner: numele, terenuri multiple, lobby/DevEx, D19 (2FA + ID făcute pe
 2026-09-11; grupul Roblox abandonat pe 2026-09-15, vezi D01). **Fiscalul (W-8BEN):** pagina Finances → Taxes nu apare pe

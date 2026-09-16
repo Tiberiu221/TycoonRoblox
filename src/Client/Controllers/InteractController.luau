@@ -101,6 +101,24 @@ local function hide()
     end
 end
 
+-- Placa cu motivul ("Logs to the sawmill, scrap to the Forge first") creste dupa text pana la STATUS_MAX_W, apoi se rupe
+-- pe randuri si creste in jos. Cu latimea fixa de 240, o fraza de 452 iesea de pe placa [2026-09-15].
+local STATUS_MAX_W = 320
+local function fitStatus(text: string)
+    local pad = Theme.SPACE.sm * 2 -- UIPadding-ul placii, stanga + dreapta
+    local line = Theme.textWidth(text, Theme.TEXT.body, "strong")
+    local width = math.clamp(math.ceil(line + pad + 8), ACTION_W, STATUS_MAX_W)
+    local wraps = line + pad > STATUS_MAX_W
+    local height = if wraps
+        then math.max(
+            CARD_H - 4,
+            math.ceil(Theme.textHeight(text, Theme.TEXT.body, "strong", width - pad) + 12)
+        )
+        else CARD_H - 4
+    statusLabel.TextWrapped = wraps
+    statusLabel.Size = UDim2.fromOffset(width, height)
+end
+
 -- Cat de lat trebuie sa fie butonul ca eticheta sa incapa intre marginile ramei (niciodata sub latimea de baza).
 local function upgradeWidth(text: string): number
     local label = Theme.textWidth(text, Theme.TEXT.body, "strong")
@@ -157,8 +175,9 @@ local function update()
     end
     actionButton.Visible = action ~= nil
     statusLabel.Visible = action == nil and f.status ~= nil
-    if statusLabel.Visible then
+    if statusLabel.Visible and statusLabel.Text ~= f.status then
         statusLabel.Text = f.status :: string
+        fitStatus(statusLabel.Text)
     end
 
     upgradeButton.Visible = hasUpgrade

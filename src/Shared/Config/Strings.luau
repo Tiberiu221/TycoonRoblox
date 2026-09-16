@@ -105,11 +105,7 @@ function Strings.handHired(name: string): string -- [C]
 end
 
 -- ---- [27-29] Offline -------------------------------------------------------------------------
-function Strings.offlineReturn(
-    amount: string
-): string -- [F] -- WelcomeBack nu se trage inca pe server, nefolosit
-    return `Your river earned {amount} while you were away.`
-end
+-- (fereastra de revenire e mai jos, la [Offline])
 Strings.OFFLINE_VAULT_FULL = "The Vault filled up — a bigger one holds more" -- [F] -- fara Vault, nefolosit
 Strings.OFFLINE_VAULT_UPGRADED = "Vault holds more now" -- [C] -- fara platforma de vault, nefolosit
 
@@ -330,6 +326,9 @@ function Strings.useResult(
 end
 -- [Roata] O rotire gratuita pe zi [D46]. Sansele se afiseaza, nu se ascund.
 Strings.WHEEL_TITLE = "Lucky Wheel"
+-- [D59] Eticheta din lume, pe doua randuri: roata si avizierul stau la 86 unul de altul pe punte, iar
+-- "Lucky Wheel" (80) si "Village Board" (94) pe cate un rand se lipeau intr-unul [vazut in Studio, 2026-09-15].
+Strings.WHEEL_TAG = "Lucky\nWheel"
 Strings.WHEEL_SPIN = "Spin — free"
 function Strings.wheelNextSpin(duration: string): string
     return `Next free spin in {duration}`
@@ -446,6 +445,7 @@ Strings.JOURNAL_NO_NOTES = "Bottles carry notes. Hook one at the pier."
 
 -- [D59] AVIZIERUL SATULUI: perlele cumpara aspect, pentru sat si pentru tine
 Strings.BOARD_TITLE = "Village Board"
+Strings.BOARD_TAG = "Village\nBoard" -- vezi WHEEL_TAG
 Strings.BOARD_TAB_VILLAGE = "Village"
 Strings.BOARD_TAB_OUTFITS = "Outfits"
 function Strings.boardCard(keyHint: string): string
@@ -483,6 +483,8 @@ end
 
 -- [Offline] Fereastra de revenire. Un singur lucru spus, nu o lista.
 Strings.WELCOME_TITLE = "Welcome back"
+-- deasupra sumei, care sta pe randul ei cu moneda: fraza intreaga nu incapea in fereastra [2026-09-15]
+Strings.WELCOME_EARNED = "Your river earned"
 Strings.WELCOME_CONTINUE = "Back to the river"
 Strings.WELCOME_CAPPED = "Your river keeps working for a day while you're away."
 -- [D59] ce a venit pe rau cat ai lipsit (cel mult trei asteapta la ponton)
@@ -493,6 +495,9 @@ end
 function Strings.welcomeAway(duration: string): string
     return `You were away for {duration}`
 end
+
+-- [D60] Balciul de seara (place-ul al doilea)
+Strings.FAIR_ROW_HOME = "Row home"
 
 -- [Tutorial] Deschiderea. O propozitie pe pas, niciodata doua.
 Strings.TUTORIAL_CHAPTER_TITLE = "Chapter 1 — The Landing"
@@ -522,25 +527,27 @@ end
 Strings.STATIONS_TITLE = "Upgrades"
 Strings.STATIONS_EXPLAIN = "Your river only moves as fast as its slowest link."
 Strings.STATION_BULK = "Buy levels"
+-- Randul intreg din panoul Stations are 560 la marimea mica (15), adica 66 de litere de pixeli: frazele mai lungi
+-- ieseau din panou [2026-09-15]. Numele meseriei ramane intreg, locul se spune scurt.
 function Strings.stationsAdvice(bottleneck: string): string
     if bottleneck == "nets" then
         return "Right now that is the nets — upgrade one to earn more."
     elseif bottleneck == "collect" then
         return "Right now that is collecting — hire or upgrade Collectors."
     elseif bottleneck == "port" then
-        return "Right now that is carrying to the sawmill — hire or upgrade Porters."
+        return "Right now that is carrying logs — hire or upgrade Porters."
     elseif bottleneck == "haul" then
-        return "Right now that is hauling to the tavern — hire or upgrade Haulers."
+        return "Right now that is hauling planks — hire or upgrade Haulers."
     elseif bottleneck == "saw" then
         return "Right now that is the sawmill — upgrade it to earn more."
     elseif bottleneck == "scrapCollect" then
-        return "Right now that is collecting scrap — hire or upgrade Scrap Collectors."
+        return "Right now that is scrap pickup — hire or upgrade Scrap Collectors."
     elseif bottleneck == "scrapPort" then
-        return "Right now that is carrying scrap to the Forge — hire or upgrade Scrap Porters."
+        return "Right now that is carrying scrap — hire or upgrade Scrap Porters."
     elseif bottleneck == "forge" then
-        return "Right now that is the Forge — upgrade it or its Smelters to earn more."
+        return "Right now that is the Forge — upgrade it or its Smelters."
     elseif bottleneck == "ironHaul" then
-        return "Right now that is hauling iron to the tavern — hire or upgrade Iron Haulers."
+        return "Right now that is hauling iron — hire or upgrade Iron Haulers."
     end
     return "Right now that is the tavern — upgrade it to earn more."
 end
@@ -597,9 +604,9 @@ function Strings.stationNoEffect(bottleneck: string): string
     elseif bottleneck == "collect" then
         return "No gain yet — collecting is slowest"
     elseif bottleneck == "port" then
-        return "No gain yet — carrying to the sawmill is slowest"
+        return "No gain yet — carrying logs is slowest"
     elseif bottleneck == "haul" then
-        return "No gain yet — hauling to the tavern is slowest"
+        return "No gain yet — hauling planks is slowest"
     elseif bottleneck == "saw" then
         return "No gain yet — the sawmill is slowest"
     elseif bottleneck == "scrapCollect" then

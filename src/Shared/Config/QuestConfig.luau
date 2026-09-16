@@ -296,7 +296,8 @@ QuestConfig.CHAPTERS = {
             },
             {
                 id = "cast_fifth",
-                text = "Cast a fifth net in the deep channel",
+                -- randul din lista are 270 la marimea 15: "...in the deep channel" (36 de litere) se taia in "..."
+                text = "Cast a fifth net for scrap",
                 kind = "pad",
                 arg = "fifth_net",
                 goal = 1,

@@ -7,6 +7,7 @@ local RiverConfig = require("../src/Shared/Config/RiverConfig")
 local HandRoutes = require("../src/Shared/Modules/HandRoutes")
 local VillageConfig = require("../src/Shared/Config/VillageConfig")
 local Assets = require("../src/Shared/Config/Assets")
+local Strings = require("../src/Shared/Config/Strings")
 
 type Box = { x0: number, x1: number, y0: number, y1: number }
 
@@ -311,10 +312,15 @@ return function()
 
             local landing = TycoonConfig.ZONES[1]
             local bottom = RiverConfig.PLOT.y + RiverConfig.PLOT.h
+            -- [D59] Decorul cumparat poate iesi putin pe sub marginea terenului: florile stau in fata caselor,
+            -- pe iarba de sub randul cu nume (in curti acopereau numele, vazut in Studio pe 2026-09-15). Acolo
+            -- nu construieste nimeni, nu umbla nimeni, iar copacii din seed raman la 90 de teren.
+            local GARDEN = 32
             local outside = {}
             for _, name in names do
                 local b = things[name]
-                if b.x0 < landing.x0 or b.x1 > landing.x1 or b.y1 > bottom then
+                local limit = if string.sub(name, 1, 6) == "decor_" then bottom + GARDEN else bottom
+                if b.x0 < landing.x0 or b.x1 > landing.x1 or b.y1 > limit then
                     table.insert(outside, name)
                 end
             end
@@ -528,6 +534,71 @@ return function()
                         end
                     end
                 end
+            end
+        )
+
+        test.case(
+            "[D59] decorul cumparat nu acopera numele caselor, iar etichetele roții si avizierului nu se ating",
+            function()
+                -- Textul din lume e in fontul de pixeli: 572/1024 em pe litera, randul ~1.03 em, contur de 2.
+                -- Vazut in Studio, 2026-09-15: florile cumparate stateau peste numele a patru case, iar "Lucky Wheel"
+                -- si "Village Board" se citeau "Lucky WheelVillage Board".
+                local EM = 572 / 1024
+                local TINY = 13
+                local function textBox(cx: number, top: number, text: string): Box
+                    local lines, widest = 0, 0
+                    for _, part in string.split(text, "\n") do
+                        lines += 1
+                        widest = math.max(widest, #part)
+                    end
+                    local half = widest * EM * TINY / 2 + 2
+                    return {
+                        x0 = cx - half,
+                        x1 = cx + half,
+                        y0 = top - 2,
+                        y1 = top + lines * TINY * 1.03 + 2,
+                    }
+                end
+
+                -- numele de sub casa unei meserii: PadController.worldName, varful la baza cadrului + 10 (pad.y + 58)
+                local names: { [string]: Box } = {}
+                for _, p in TycoonConfig.PADS do
+                    local role = TycoonConfig.CREW_OF_PAD[p.id]
+                    local crew = if role ~= nil then TycoonConfig.CREWS[role] else nil
+                    if p.live and crew ~= nil and p.x ~= nil and p.y ~= nil then
+                        names[p.id] = textBox(p.x :: number, (p.y :: number) + 58, crew.name)
+                    end
+                end
+                check.is_true(next(names) ~= nil)
+
+                local covered = {}
+                for _, d in VillageConfig.DECOR do
+                    if d.ground == "land" then
+                        local art = (Assets.decor :: any)[d.sprite]
+                        for i, spot in d.spots do
+                            local b = box(spot.x, spot.y, art.width * d.scale, art.height * d.scale)
+                            for padId, label in names do
+                                if hit(b, label) then
+                                    table.insert(covered, `decor_{d.id}_{i} peste numele {padId}`)
+                                end
+                            end
+                        end
+                    end
+                end
+                check.equal(table.concat(covered, ", "), "")
+
+                -- sub roata si sub avizier (baza + 2): cele doua etichete de pe punte
+                local wheel = textBox(
+                    TycoonConfig.WHEEL_STAND.x,
+                    TycoonConfig.WHEEL_STAND.y + 2,
+                    Strings.WHEEL_TAG
+                )
+                local board = textBox(
+                    TycoonConfig.VILLAGE_BOARD.x,
+                    TycoonConfig.VILLAGE_BOARD.y + 2,
+                    Strings.BOARD_TAG
+                )
+                check.is_false(hit(wheel, board))
             end
         )
 

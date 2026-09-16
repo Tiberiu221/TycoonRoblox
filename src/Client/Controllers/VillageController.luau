@@ -161,10 +161,10 @@ local function buildWorldBoard(d: Deps)
     end
     img.Parent = d.Plot
     local name =
-        Widgets.Label(img, Strings.BOARD_TITLE, Theme.TEXT.tiny, Theme.COLOR.onDark, "strong")
+        Widgets.Label(img, Strings.BOARD_TAG, Theme.TEXT.tiny, Theme.COLOR.onDark, "strong")
     name.AnchorPoint = Vector2.new(0.5, 0)
     name.Position = UDim2.new(0.5, 0, 1, 2)
-    name.Size = UDim2.fromOffset(w + 60, 18)
+    name.Size = UDim2.fromOffset(w + 60, 30) -- doua randuri
     name.TextXAlignment = Enum.TextXAlignment.Center
     name.ZIndex = 5
     Theme.punch(name, 2)

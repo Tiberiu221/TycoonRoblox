@@ -45,14 +45,23 @@ jobs:
       - name: Build place
         run: rojo build default.project.json -o Driftwood.rbxl
 
+      # [D60] al doilea place: balciul de seara, cu reteaua lui
+      - name: Build fair place
+        run: rojo build fair.project.json -o DriftwoodFair.rbxl
+
       # Caile de require gresite trec de stylua, selene si rojo; se vad abia la rulare
       - name: Check require paths resolve
         run: lune run scripts/check_requires Driftwood.rbxl
 
+      - name: Check require paths resolve (fair)
+        run: lune run scripts/check_requires DriftwoodFair.rbxl
+
       - uses: actions/upload-artifact@v4
         with:
           name: driftwood-build-${{ github.sha }}
-          path: Driftwood.rbxl
+          path: |
+            Driftwood.rbxl
+            DriftwoodFair.rbxl
           retention-days: 90
 
   publish-staging:
@@ -72,6 +81,9 @@ jobs:
       - name: Build place
         run: rojo build default.project.json -o Driftwood.rbxl
 
+      - name: Build fair place
+        run: rojo build fair.project.json -o DriftwoodFair.rbxl
+
       - name: Publish to Driftwood-Staging (Open Cloud)
         id: publish
         env:
@@ -86,11 +98,26 @@ jobs:
           echo "$RESPONSE"
           echo "version=$(echo "$RESPONSE" | jq -r '.versionNumber')" >> "$GITHUB_OUTPUT"
 
+      # [D60] balciul de seara, al doilea place din acelasi univers
+      - name: Publish fair place to Driftwood-Staging (Open Cloud)
+        if: vars.FAIR_PLACE_ID != ''
+        env:
+          ROBLOX_API_KEY: ${{ secrets.ROBLOX_STAGING_API_KEY }}
+        run: |
+          curl -sSL --fail \
+            --header "x-api-key: $ROBLOX_API_KEY" \
+            --header "Content-Type: application/octet-stream" \
+            --data-binary "@DriftwoodFair.rbxl" \
+            --request POST \
+            "https://apis.roblox.com/universes/v1/${{ vars.STAGING_UNIVERSE_ID }}/places/${{ vars.FAIR_PLACE_ID }}/versions?versionType=Published"
+
       - name: Upload artifact tagged with versionNumber
         uses: actions/upload-artifact@v4
         with:
           name: driftwood-staging-v${{ steps.publish.outputs.version }}
-          path: Driftwood.rbxl
+          path: |
+            Driftwood.rbxl
+            DriftwoodFair.rbxl
           retention-days: 90
 
   smoke-test-staging:

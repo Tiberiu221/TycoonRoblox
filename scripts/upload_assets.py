@@ -79,6 +79,13 @@ def manifest_key(name):
     return name, False
 
 
+# [D60] Cheie cu tabel ("fair.bench"): balciul are chei care exista si in alte tabele (bench, barrel, crate, table),
+# iar write_manifest scrie PRIMA potrivire din fisier -- fara tabel, ID-ul balciului ar fi ajuns peste decorul satului.
+def table_key(name):
+    m = re.match(r"prop_fair_(\w+)$", name)
+    return f"fair.{m.group(1)}" if m else None
+
+
 def api_key():
     try:
         key = open(KEY_FILE).read().strip()
@@ -160,9 +167,32 @@ def png_size(path):
     return int.from_bytes(head[16:20], "big"), int.from_bytes(head[20:24], "big")
 
 
+def replace_in_table(src, table, field, asset_id, size):
+    """Scrie ID-ul doar in tabelul cerut din manifest, nu la prima potrivire din fisier."""
+    m = re.search(rf"(?ms)^    {re.escape(table)} = \{{.*?^    \}},", src)
+    if m is None:
+        return src, 0
+    block = m.group(0)
+    if size:
+        w, h = size
+        pattern = rf"(?<![A-Za-z_])({re.escape(field)}) = sprite\(\d+, \d+, \d+\)"
+        new, n = re.subn(pattern, rf"\1 = sprite({asset_id}, {w}, {h})", block, count=1)
+    else:
+        pattern = rf"(?<![A-Za-z_])({re.escape(field)}) = sprite\(\d+, "
+        new, n = re.subn(pattern, rf"\1 = sprite({asset_id}, ", block, count=1)
+    return src[: m.start()] + new + src[m.end() :], n
+
+
 def write_manifest(results, sizes=None):
     src = open(MANIFEST, encoding="utf-8").read()
     for name, asset_id in results.items():
+        scoped = table_key(name)
+        if scoped is not None:
+            table, field = scoped.split(".", 1)
+            src, n = replace_in_table(src, table, field, asset_id, sizes.get(name) if sizes else None)
+            if n != 1:
+                print(f"  ! {name}: nu am gasit `{field}` in tabelul `{table}`, ID-ul {asset_id} trebuie pus manual")
+            continue
         key, is_crate = manifest_key(name)
         if sizes and name in sizes:
             w, h = sizes[name]

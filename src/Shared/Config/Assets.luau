@@ -11,6 +11,7 @@ local Assets = {
     PIXEL_SCALE = 3, -- un pixel de sprite = 3 pixeli logici la referinta 1920x1080
     water_tile = sprite(121064767001882, 128, 64),
     grass_tile = sprite(138783135458217, 128, 128),
+    tile_fair = sprite(120008148968406, 64, 64), -- [D60] pamantul batatorit al balciului
     shore_north = sprite(98223548793010, 64, 32), -- iarba -> nisip -> apa (malul de nord)
     shore_south = sprite(86170303421420, 64, 32), -- apa -> nisip -> iarba (malul de sud)
     shadow = sprite(84696637273522, 16, 6),
@@ -316,6 +317,32 @@ local Assets = {
         beehives = sprite(76028188795736, 40, 28),
         fountain = sprite(78184223252965, 48, 40),
         statue = sprite(81288800690481, 32, 56),
+    },
+    -- [D60] Balciul de seara: hub-ul rotund din place-ul al doilea, la care ajungi cu barca in amonte.
+    -- Fisierele sunt prop_fair_<cheie>.png / tile_fair.png (scripts/art/d60.py). 0 = inca neurcat.
+    fair = {
+        stage = sprite(114372308501503, 200, 112), -- scena care e si tabela: trei panouri de clasament
+        wheel = sprite(105012617626073, 70, 86), -- roata zilnica, mutata din sat
+        stall_1 = sprite(98566174055056, 52, 44),
+        stall_2 = sprite(128622133404661, 52, 44),
+        stall_3 = sprite(94824509060723, 52, 44),
+        tent = sprite(103727982758295, 60, 54),
+        booth = sprite(90436942055073, 46, 40),
+        arch = sprite(125405145209167, 76, 58),
+        dock = sprite(71587394039128, 40, 64),
+        ferry = sprite(77116352932467, 62, 30),
+        bonfire = sprite(77625323861703, 40, 34),
+        brazier = sprite(116599557369227, 22, 32),
+        table = sprite(89717753669884, 40, 22),
+        bench = sprite(74360052312127, 26, 14),
+        lamppost = sprite(119592313749241, 16, 48),
+        plinth = sprite(86875850174714, 28, 42),
+        flag = sprite(139477137240825, 18, 54),
+        trophy = sprite(134739125649476, 24, 34),
+        crate = sprite(78506727653514, 20, 18),
+        barrel = sprite(84865005444327, 18, 24),
+        reeds = sprite(83701820915406, 18, 26),
+        miniature = sprite(90688181765981, 32, 26), -- satul altcuiva, pe panoul de la poarta
     },
     -- F1 (O1): sunete sintetizate de noi (scripts/audio), urcate ca Audio. 0 = inca neincarcat ->
     -- SoundController tace, fara eroare.

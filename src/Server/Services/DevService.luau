@@ -50,6 +50,20 @@ local HANDLERS: { [string]: Handler } = {
         return `coins set to {n}`
     end,
 
+    -- [2026-09-15] Play-ul din Studio porneste de la zero; "keep save" pastreaza salvarea reala pentru Play-urile urmatoare
+    keepsave = function(player: Player, _arg: unknown): string
+        local ok, keep = DataService.ToggleKeepSave(player)
+        if not ok then
+            return "could not store the switch (is Studio API access on?)"
+        end
+        local now = if DataService.StudioSave(player) == "kept"
+            then "this Play is on your saved game"
+            else "this Play started fresh"
+        return if keep
+            then `keep save ON: next Play continues your saved game ({now})`
+            else `keep save OFF: next Play starts fresh ({now})`
+    end,
+
     reset = function(player: Player, _arg: unknown): string
         local ok = DataService.Reset(player)
         if not ok then
@@ -304,6 +318,19 @@ function DevService.Init(d: typeof(deps))
         end
         local reply = DevService.Run(player, command :: string, arg)
         remote:FireClient(player, command, reply)
+    end)
+    -- Ce fel de salvare are Play-ul asta, spus o data in jurnalul consolei si in Output: altfel progresul care dispare la
+    -- Stop (sau care ramane) ar parea o eroare [D43].
+    DataService.ProfileLoaded:Connect(function(player: Player)
+        local mode = DataService.StudioSave(player)
+        if mode == nil then
+            return
+        end
+        local line = if mode == "kept"
+            then "save: your saved game (keep save ON)"
+            else "save: fresh, erased at Stop (keep save OFF)"
+        print(`[Driftwood] {line}`)
+        remote:FireClient(player, "savemode", line)
     end)
     print("[Driftwood] consola de dezvoltare activa in Studio")
 end

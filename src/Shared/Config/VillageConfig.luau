@@ -38,11 +38,13 @@ VillageConfig.DECOR = {
         sprite = "flowerbed",
         scale = 2,
         ground = "land",
+        -- In fata caselor, pe iarba de sub randul cu nume: in curti stateau peste "Collector", "Sawyer",
+        -- "Scrap Collector" si "Smelter" [vazut in Studio, 2026-09-15]. x ales intre coroanele copacilor din seed.
         spots = {
-            { x = 666, y = 1648 },
-            { x = 986, y = 1648 },
-            { x = 1336, y = 1648 },
-            { x = 1636, y = 1648 },
+            { x = 666, y = 1676 },
+            { x = 1150, y = 1676 },
+            { x = 1450, y = 1676 },
+            { x = 1750, y = 1676 },
         },
     },
     {

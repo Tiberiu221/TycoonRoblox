@@ -28,6 +28,15 @@ local hideToken = 0
 local DURATION = 3.0 -- clopotele
 local MOMENT_DURATION = 3.5 -- alte momente D/F, ceva mai lung: textul e de obicei mai lung
 local FADE = 0.6
+local WIDTH = 600
+local MIN_HEIGHT = 130
+local SIDE = 32 -- cat lasa textul din latimea bannerului (16 de fiecare parte)
+
+-- Un subtitlu lung se citeste mai greu decat unul de patru cuvinte: biletele din sticla [D59] au pana la 74 de litere,
+-- iar 3.5 s ajung doar pentru ultimul rand pana sa se stinga.
+local function readingExtra(subtitle: string): number
+    return math.clamp(((utf8.len(subtitle) or #subtitle) - 40) * 0.06, 0, 2.5)
+end
 
 -- "Landing Bell" -> "The Landing is complete!"; pentru un nume care nu se termina in " Bell"
 -- (ex. viitorul "The Charter") ramane doar numele -- nu invizibil, doar mai putin elegant. Folosit
@@ -78,7 +87,7 @@ function CeremonyController.Init(deps: Deps)
     root.Position = UDim2.fromScale(0.5, 0.15)
     root.BackgroundColor3 = Theme.COLOR.plate
     root.BackgroundTransparency = 1
-    root.Size = UDim2.fromOffset(600, 130)
+    root.Size = UDim2.fromOffset(WIDTH, MIN_HEIGHT)
     root.ZIndex = 25
     root.Visible = false
     local corner = Instance.new("UICorner")
@@ -91,7 +100,7 @@ function CeremonyController.Init(deps: Deps)
     -- din stanga si jumatate din el iesea din cutie [vazut in Studio la "First sale", 2026-09-13].
     titleLabel.AnchorPoint = Vector2.new(0.5, 0)
     titleLabel.Position = UDim2.new(0.5, 0, 0, 22)
-    titleLabel.Size = UDim2.new(1, -32, 0, 46)
+    titleLabel.Size = UDim2.new(1, -SIDE, 0, 46)
     titleLabel.TextXAlignment = Enum.TextXAlignment.Center
     titleLabel.TextWrapped = true
     titleLabel.ZIndex = 26
@@ -100,10 +109,27 @@ function CeremonyController.Init(deps: Deps)
     subtitleLabel = Widgets.Label(root, "", Theme.TEXT.heading, Theme.COLOR.good, "strong")
     subtitleLabel.AnchorPoint = Vector2.new(0.5, 0)
     subtitleLabel.Position = UDim2.new(0.5, 0, 0, 78)
-    subtitleLabel.Size = UDim2.new(1, -32, 0, 34)
+    subtitleLabel.Size = UDim2.new(1, -SIDE, 0, 34)
     subtitleLabel.TextXAlignment = Enum.TextXAlignment.Center
+    subtitleLabel.TextWrapped = true
     subtitleLabel.ZIndex = 26
     Theme.punch(subtitleLabel, 2)
+end
+
+-- Inaltimile se socotesc din text la fiecare banner. Biletul din sticla [D59] are pana la 74 de litere: pe un singur
+-- rand de 568, la 0.56 em pe litera, avea 762 de unitati si iesea din placa; acum se rupe pe randuri, iar placa creste
+-- cat ele. Cu titlu si subtitlu pe cate un rand, marimile ies exact cele de dinainte (46, 34, 130).
+local function layoutBanner(title: string, subtitle: string)
+    local width = WIDTH - SIDE
+    local titleH = math.max(46, Theme.textHeight(title, titleLabel.TextSize, "display", width) + 10)
+    titleLabel.Size = UDim2.new(1, -SIDE, 0, titleH)
+    local subY = 22 + titleH + 10
+    local subH = if subtitle ~= ""
+        then math.max(34, Theme.textHeight(subtitle, subtitleLabel.TextSize, "strong", width) + 12)
+        else 34
+    subtitleLabel.Position = UDim2.new(0.5, 0, 0, subY)
+    subtitleLabel.Size = UDim2.new(1, -SIDE, 0, subH)
+    root.Size = UDim2.fromOffset(WIDTH, math.max(MIN_HEIGHT, subY + subH + 18))
 end
 
 -- Motorul comun al bannerului: clopotele (Play) si celelalte momente D/F de-o data (PlayMoment)
@@ -120,6 +146,7 @@ local function showBanner(title: string, subtitle: string, burstCount: number, d
     titleLabel.Text = title
     subtitleLabel.Text = subtitle
     subtitleLabel.Visible = subtitle ~= ""
+    layoutBanner(title, subtitle)
     root.Visible = true
     root.BackgroundTransparency = 1
     titleLabel.TextTransparency = 0
@@ -186,7 +213,8 @@ end
 -- Banner scurt pentru un moment D/F de-o data care NU e un clopot (prima vanzare, Atelierul
 -- deschis etc.) [F2, tabelul din nota 39]. Fara rafala -- vezi comentariul de la showBanner.
 function CeremonyController.PlayMoment(title: string, subtitle: string?)
-    showBanner(title, subtitle or "", 0, MOMENT_DURATION)
+    local sub = subtitle or ""
+    showBanner(title, sub, 0, MOMENT_DURATION + readingExtra(sub))
 end
 
 -- Stinge bannerul curent ACUM, fara sa astepte durata lui. Folosit de "Loading your river...":

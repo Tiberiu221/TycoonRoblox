@@ -315,6 +315,9 @@ end
 
 local function refreshChain(snap: Snapshot)
     advice.Text = Strings.stationsAdvice(snap.bottleneck)
+    -- plasa de sub frazele scurtate in Strings: pe un panou strans (telefon), randul se micsoreaza, nu iese din rama
+    local width = window.Size.X.Offset - Theme.SPACE.lg * 2
+    advice.TextSize = Theme.fitSize(advice.Text, Theme.TEXT.small, "strong", width)
     local ironOpen = (snap.ironBottleneck or "") ~= ""
     for i, entry in CHAIN_ROWS do
         local shown = entry.line ~= "iron" or ironOpen

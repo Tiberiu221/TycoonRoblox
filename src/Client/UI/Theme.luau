@@ -104,14 +104,18 @@ local function makeFont(family: Enum.Font, weight: Enum.FontWeight): Font?
     return if ok then font else nil
 end
 
-function Theme.applyFont(label: TextLabel | TextButton, kind: string)
-    -- "strong" (cifre, etichete scurte, indemnuri) merge tot pe fontul de pixeli: sunt texte
-    -- scurte, peste lume, unde consistenta cu arta conteaza mai mult decat lizibilitatea unei
-    -- fraze lungi. "body" (frazele intregi, ex. descrierea de pe cartonas) ramane pe Nunito.
-    local family = if kind == "display" or kind == "strong"
+-- "strong" (cifre, etichete scurte, indemnuri) merge tot pe fontul de pixeli: sunt texte
+-- scurte, peste lume, unde consistenta cu arta conteaza mai mult decat lizibilitatea unei
+-- fraze lungi. "body" (frazele intregi, ex. descrierea de pe cartonas) ramane pe Nunito.
+local function familyOf(kind: string): Enum.Font
+    return if kind == "display" or kind == "strong"
         then DISPLAY
         elseif kind == "mono" then MONO
         else BODY
+end
+
+function Theme.applyFont(label: TextLabel | TextButton, kind: string)
+    local family = familyOf(kind)
     local weight = if kind == "display"
         then Theme.WEIGHT.display
         elseif kind == "strong" then Theme.WEIGHT.strong
@@ -128,14 +132,33 @@ end
 -- [D58] Latimea unui text pe un singur rand, cu familia pe care o pune applyFont. Pentru butoanele care cresc dupa
 -- eticheta ("Upgrade (U) · 1.2K"): fontul de pixeli are litere late (0.56 em fiecare), iar o latime fixa taia textul.
 function Theme.textWidth(text: string, size: number, kind: string): number
-    local family = if kind == "display" or kind == "strong"
-        then DISPLAY
-        elseif kind == "mono" then MONO
-        else BODY
     local ok, bounds = pcall(function()
-        return TextService:GetTextSize(text, size, family, Vector2.new(4096, size * 2))
+        return TextService:GetTextSize(text, size, familyOf(kind), Vector2.new(4096, size * 2))
     end)
     return if ok then (bounds :: Vector2).X else (utf8.len(text) or #text) * size * 0.6
+end
+
+-- Inaltimea unui text rupt pe randuri la latimea data, pentru cutiile care cresc dupa text: cu o inaltime fixa,
+-- al doilea rand cade peste ce e dedesubt sau pe langa placa.
+function Theme.textHeight(text: string, size: number, kind: string, width: number): number
+    local ok, bounds = pcall(function()
+        return TextService:GetTextSize(text, size, familyOf(kind), Vector2.new(width, 4096))
+    end)
+    if ok then
+        return (bounds :: Vector2).Y
+    end
+    return math.ceil(Theme.textWidth(text, size, kind) / math.max(1, width)) * size * 1.1
+end
+
+-- Cea mai mare marime, cel mult `size`, la care textul incape pe un rand in `width`. Plasa de sub textele care se
+-- schimba (sume, nume): pe un ecran ingust fereastra se strange, iar textul trebuie sa se stranga cu ea, nu sa iasa
+-- din rama [vazut in Studio, 2026-09-15: o fraza de 687 de unitati intr-un corp de 420].
+function Theme.fitSize(text: string, size: number, kind: string, width: number): number
+    local s = size
+    while s > Theme.TEXT.tiny and Theme.textWidth(text, s, kind) > width do
+        s -= 1
+    end
+    return s
 end
 
 -- Contur inchis pentru textul care sta PESTE LUME (nu peste un panou deschis). Asta e jumatate

@@ -305,8 +305,23 @@ local function heldBackBy(snap: Snapshot, mine: string, line: string?): (Link?, 
     return best, bestRate >= mineRate - 1e-9
 end
 
+-- Randul colorat se rupe pe doua randuri; la marimea 18, doua randuri de Nunito au 49 si randul are 44, deci textul
+-- lung trecea de marginile lui [2026-09-15]. Se alege cea mai mare marime la care incape.
+local function fitStatusText()
+    local width = BODY_W - GO_W - 12
+    local size = Theme.TEXT.body
+    while
+        size > Theme.TEXT.small
+        and Theme.textHeight(statusLabel.Text, size, "body", width) > STATUS_H
+    do
+        size -= 1
+    end
+    statusLabel.TextSize = size
+end
+
 local function showStatus(text: string, color: Color3)
     statusLabel.Text = text
+    fitStatusText()
     statusLabel.TextColor3 = color
     goLink = nil
     goLine = nil
@@ -328,6 +343,7 @@ local function showHeldBack(snap: Snapshot, mine: string, line: string?)
             else "wood"
     end
     statusLabel.Text = Strings.menuHeldBack(link.key, tie, netsLine)
+    fitStatusText()
     statusLabel.TextColor3 = Theme.COLOR.warnInk
     goLink = link
     goLine = netsLine

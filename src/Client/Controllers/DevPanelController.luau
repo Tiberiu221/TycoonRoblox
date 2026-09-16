@@ -57,7 +57,12 @@ local function button(text: string, x: number, y: number, w: number, onClick: ()
     b.BackgroundColor3 = Color3.fromRGB(44, 58, 74) -- paleta consolei, fara corespondent in Theme
     b.AutoButtonColor = false
     b.TextColor3 = Color3.fromRGB(226, 236, 245) -- paleta consolei, fara corespondent in Theme
-    b.TextSize = Theme.TEXT.small
+    -- cinci butoane pe rand au ~88 de latime: textul se strange pana incape, abia apoi se taie in "..."
+    local size = Theme.TEXT.small
+    while size > 10 and Theme.textWidth(text, size, "strong") > w - 8 do
+        size -= 1
+    end
+    b.TextSize = size
     b.TextScaled = false
     b.TextTruncate = Enum.TextTruncate.AtEnd
     b.Text = text
@@ -273,7 +278,7 @@ function DevPanelController.Init(deps: {
             end,
         },
         {
-            label = "next: gold carp",
+            label = "gold carp next",
             run = function()
                 send("fish", "goldcarp")
             end,
@@ -298,6 +303,13 @@ function DevPanelController.Init(deps: {
             label = "print state",
             run = function()
                 send("state", nil)
+            end,
+        },
+        {
+            -- [2026-09-15] Play-ul din Studio porneste de la zero; asta pastreaza salvarea pentru Play-urile urmatoare
+            label = "keep save",
+            run = function()
+                send("keepsave", nil)
             end,
         },
     })
