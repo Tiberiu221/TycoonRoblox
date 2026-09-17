@@ -11,6 +11,101 @@ Convenție: în tot proiectul, „server" înseamnă o instanță Roblox efemer�
 
 ---
 
+## D60 — Bâlciul de seară: locul unde te vezi cu ceilalți și te etalezi
+**DECIS** (2026-09-16) — owner-ul, după machete: *„un hub circular în care ai în fiecare margine câte ceva de văzut/făcut,
+hartă mult mai mare"*, *„mai bine place separat și ajungi cu barca contrar river flow"*, *„bâlci de seară cu lumini și
+scenă"*, *„scena mai mare să încapă cât mai multe stats pentru etalare"*, *„hai să punem roata zilnică aici"*, *„la
+titluri poate ca aceste cumpărabile să fie mai scumpe"*, *„ar fi ok dacă am dubla numărul de oameni pe server"*. Macheta
+aprobată în trei runde (41 de obiecte, zero suprapuneri), planul aprobat înainte de cod.
+
+**Ce era de rezolvat:** nimeni nu vedea pe nimeni — clientul nu desena niciun alt jucător, deci ținutele și decorul din
+D59 n-aveau privitori, iar perlele rămâneau fără cheltuială după 8–10 ore (catalog fix).
+
+1. **Place separat, același univers** (`fair.project.json`, `src/Fair/`, `PlaceConfig`). Staging: satul
+   132381101591529, bâlciul 114983498774894; producția n-are încă bâlci (barca spune `The fair isn't open in this game
+   yet`). CI construiește, verifică și publică ambele place-uri.
+2. **Barca.** În sat, legată în aval de ponton, între plutitor și mal (`TycoonConfig.FERRY`, 62×30 la ×2, prova în
+   amonte), cu eticheta `Ferry to the Fair`; de pe marginea pontonului (`FERRY_BOARD`), cardul `Row up to the fair (E)`.
+   Drumul pictat (`UI/RideScene`, comun celor două place-uri) durează 6 s (`RideMath`): barca merge **în amonte** (spre
+   stânga: râul curge spre dreapta — `RideMath` mergea greșit spre dreapta și a fost reparat), malurile rămân în urmă,
+   seara se lasă, felinarele cresc odată cu ea, iar la capăt apar stâlpii, steagurile și becurile bâlciului. `Skip` apare
+   de la al doilea drum, după 1,2 s. Cererea pleacă la server abia la capăt, pe negru; același negru se vede în timpul
+   teleportului (`SetTeleportGui`) și la sosire (`ReplicatedFirst/Loading`, care acum așteaptă și profilul). Înapoi,
+   `Row home (E)` la debarcaderul bâlciului, cu drumul în aval și casele satului la capăt. În Studio teleportul nu există:
+   drumul se vede întreg, apoi toastul spune `The ferry only sails in the published game`.
+3. **Predarea profilului.** Sesiunea **nu** se închide înainte de teleport: dacă teleportul pică, rămâi unde erai, cu
+   profilul în mână, iar toastul spune de ce (`FerryService`: studio / closed / no_profile / busy / failed / timeout, 20 s).
+   Place-ul în care ajungi ia sesiunea (ProfileStore cere prin MessagingService celei vechi să se închidă);
+   `DataService.MarkTeleporting` oprește Kick-ul „another server took over" pentru cine e în drum și notează, la urcare,
+   ora plecării și timpul jucat. **Bâlciul nu simulează satul și nu scrie `lastSeenAt`**: la întoarcere satul plătește,
+   exact ca offline, tot timpul cât ai lipsit (plafonul de 24 h rămâne). O vizită în bâlci nu numără o sesiune nouă; se
+   numără în `Fair.visits`.
+4. **Roata s-a mutat în bâlci — amendează D59 pct. 6.** Stă pe stâlpul ei, cu baldachin și focuri; aceleași premii,
+   aceleași șanse afișate, aceeași regulă de 24 h. În sat, unde era timonierul, un indicator (`WheelSignpostController`)
+   scrie `Wheel moved to the fair`; când rotirea e gata are inelul auriu, cardul spune `A free spin is waiting at the fair`
+   și un toast o spune o dată. **Abatere de la plan, a mea:** `TycoonState` păstrează ceasul roții (fără rotire), ca
+   indicatorul să poată spune când te așteaptă — altfel rotirea zilnică ar fi fost invizibilă din sat. Consecința, spusă
+   pe față: rotirea zilnică cere drumul cu barca.
+5. **Oamenii.** Până la **24** pe server. Fiecare client își trimite poziția de 10 ori pe secundă pe un
+   `UnreliableRemoteEvent` (`Where`); serverul o verifică (`FairPresence`: numere adevărate, loc pe care se merge, pas cât
+   se poate alerga) și le trimite pe toate într-un singur pachet (`Crowd`, `CrowdCodec`: 6 octeți de om, 144 la 24 —
+   un tabel ar fi trecut de limita de ~1.000 de octeți). Cine e fiecare (numele, ținuta, titlul) pleacă separat
+   (`People`), doar când se schimbă, și îl pune serverul din profil. Ceilalți se mișcă lin, cu o zecime de secundă în
+   urmă, desenați ca tine; deasupra fiecăruia, numele și titlul (și deasupra ta). **Poziția e doar aspect:** nicio cifră
+   din economie nu trece prin ea.
+6. **Cardul altui jucător.** Lângă cineva, `Look at Mara (E)`: Era, venitul pe secundă (ultimul măsurat în sat, la minut
+   și la plecare), cel mai mare pește, câte lucruri a scos din râu, câte decoruri are satul, jurnalul (x/12), plus
+   `Add friend`. Doar pentru cineva de pe același server, cu limită.
+7. **Titlurile.** Unul purtat, sub nume. Câștigate, gratuite: Era (`Of the Landing / Mill / Yard / Harbor`), `River
+   Legend`, recordul tău (`Sturgeon 187 cm`), `Fountain Patron` / `Statue Patron` / `Beekeeper` / `Gardener` din decor,
+   `Champion of the Week` (#1 la pește săptămâna trecută; concursul de la iaz îi ia locul în D61). **Cumpărate, scumpe
+   intenționat:** `Old Salt` 600, `River Baron` 1.000, `Lord of the River` 1.600 de perle — peste tot catalogul de decor.
+   Panoul (tasta T) arată și ce se mai poate câștiga (jurnalul cu progresul lui, decorul lipsă). Un titlu care nu mai e al
+   tău cade pe cel al Erei.
+8. **Scena, adică tabela.** Trei clasamente **săptămânale** (încep din nou lunea UTC): cel mai mare pește, cel mai mare
+   venit pe secundă, cel mai scurt drum până la clopotul Erei 1 (timp de joc efectiv, `Stats.playSeconds`, fără zilele
+   offline). **Satul scrie** (`LeaderboardService`: doar la un record nou al tău pe săptămână, venitul cel mult o dată pe
+   minut; unealta de dezvoltare nu intră pe tabelă, iar Play-ul din Studio pornit de la zero nu scrie nimic), **bâlciul
+   citește** (`BoardService`: la minut, campionul la oră, trofeele la 5 min). Pe panourile pictate, câte 6 rânduri, al tău
+   auriu, iar când nu ești printre primii 6 ultimul rând spune unde ești; tabela goală spune `No one yet`. Sub trofee,
+   cele mai mari 4 exemplare prinse vreodată; deasupra soclului, campionul. `Leaderboards (E)` deschide panoul mare, cu
+   specia peștelui și toate cele 12 trofee.
+9. **Negustorul.** Trei tarabe cu **vitrina zilei**: 4 lucruri din tot catalogul de aspect (decor, ținute cu preț, titluri
+   de vânzare), aceleași pentru toată lumea, alese din zi (`MarketMath`). Vitrina **nu e o poartă**: cumpărarea trece prin
+   aceiași validatori ca în sat, iar tot catalogul rămâne de cumpărat și acolo (D46).
+10. **Ce rămâne închis până la D61**, cu plăcuța lor (`Opens soon`, D43): iazul de concurs, gheretele de joc, poarta
+    satelor (vizitele), croitoreasa; colțul cu Robux (×2 venit, spațiu, viteza de mers ×2, Supporter) vine tot atunci.
+11. **Profil v10, aditiv** (`Titles`, `Fair`, `Records`, `Stats.playSeconds`; șablonul și `ProfileMigrate.toV10` adaugă
+    exact aceleași câmpuri, verificat de test). Remote-uri noi în sat: `RowUp`, `FerryFailed`; ies `SpinWheel`,
+    `WheelResult` (se mută în bâlci). Remote-urile bâlciului au lista lor (`src/Fair/Net`), inclusiv cele nesigure, iar
+    `check_requires` le verifică pe amândouă listele. Bucket-uri noi: `Ferry`, `LookAt`. Pâlnie de analytics „Fair"
+    (FirstRide, FirstFairVisit, FirstTitleWorn, FirstBoardSeen, FirstFairPurchase). Module pure noi și testate:
+    `FairLayout.isWalkable`, `FairPresence`, `CrowdCodec`, `MarketMath`, `TitleMath` (etichetele erelor), `BoardMath.compact`,
+    `TycoonMath.era`; plus testele de așezare: barca din sat, indicatorul roții, etichetele din bâlci.
+
+12. **Aspectul, refăcut după prima vedere în Studio (2026-09-17).** Owner-ul: *„arată super super cheap atm texturile,
+    efectele acelea de lumină, obiectele, pământul ăla circular, basically everything"*. Prima versiune desena poiana din
+    forme plate. Acum jocul face ce făcea macheta aprobată: **fundalul e o singură imagine coaptă**
+    (`scripts/art/d60_ground.py` → `Assets.fair.ground`, 740×720 la ×3, cu pădure pe margini): iarbă de noapte, pământ
+    bătătorit cu marginea ruptă și cărări, iazul, râul, umbrele și bălțile de lumină caldă. Peste el, obiectele colorate de
+    lumina din jur (`FairScene.LitTint`, aceeași socoteală ca la coacere), pădurea, lumina moale care pâlpâie
+    (`Assets.fair.glow`), scânteile, ghirlandele cu becuri și etichete doar din text cu contur. Datele comune (lumini,
+    focuri, copaci, ghirlande) le scrie același script în `FairScenery.luau`, verificat de test.
+    **A doua privire (aceeași zi), pe captura din Studio:**
+    - **Pietrele din jurul vetrei:** cele 26 de pe cerc se vedeau ca puncte gri presărate pe poiană și au fost scoase.
+    - **Trofeele:** cele patru etichete de sub ele se călcau. Acum cutia are 84, iar testul măsoară textul, nu doar
+      cutia. Când niciun trofeu n-are record, apare o singură frază sub tot rândul.
+    - **Tabelele de pe scenă:** hârtia lor strălucea ca un ecran. Acum trece prin lumina scenei și acoperă doar liniile
+      pictate. Pătrățelele pictate devin insigna cu locul, între rânduri sunt linii de caiet, iar tabela goală scrie la
+      mijloc *No one yet / this week*.
+    - **Cifra de venit:** urcă la unitatea următoare înainte să ajungă la „1000.0K".
+
+**Se verifică doar publicat** (teleportul nu există în Studio): drumul sat → bâlci → sat fără Kick și cu venitul cât ai
+lipsit, doi jucători care se văd, tabela după un pește mare, vitrina de a doua zi, un teleport eșuat care nu lasă
+profilul agățat. În Studio se văd lumea bâlciului, mersul, cardurile, roata, titlurile, negustorul și drumul pictat.
+
+---
+
 ## D59 — Pontonul: undița, ce aduce râul, perlele pe sat, roata la locul ei
 **DECIS** (2026-09-15) — owner-ul, după recomandarea pentru „ce face jucătorul cât așteaptă": *„A și B cum recomanzi,
 apucă-te. și să șlefuim lucky wheel, nu prea se integrează «cu cap» în acest moment."* Recomandarea acceptată: **A

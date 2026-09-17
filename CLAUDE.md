@@ -71,27 +71,40 @@ stylua/selene o prind. Rulează-le mereu pe toate, nu înlănțuite după o eroa
 - Agenții pe **Sonnet**, niciodată moștenind modelul principal. Le dai instrucțiuni clare, apoi
   **verifici tu** în cod ce raportează — au greșit de mai multe ori.
 - Dus la capăt singur, apoi o listă scurtă cu ce poate verifica doar owner-ul în Studio.
-- **Fără commit fără cerere.** Repo privat `github.com/Tiberiu221/TycoonRoblox`, ramura `main`;
-  CI-ul rulează poarta (fără Studio) la fiecare push. **Push-ul nu ajunge în joc:** jobul `publish-staging` n-a
-  publicat la push-ul din 2026-09-15 (`updateTime` al place-ului neschimbat; probabil lipsesc variabilele de staging
-  din GitHub, iar Actions nu se vede de aici). Owner-ul vede codul prin `rojo serve` + Connect în Studio.
+- **Commit și push după fiecare lucru terminat**, cu poarta verde înainte (owner, 2026-09-17: „fă commit și push
+  mereu"; înainte era „fără commit fără cerere"). Repo privat `github.com/Tiberiu221/TycoonRoblox`, ramura `main`;
+  CI-ul rulează poarta (fără Studio) la fiecare push și publică pe staging (`publish-staging`): la push-ul f82e404
+  (2026-09-16) satul s-a publicat, **bâlciul nu**; de atunci pasul bâlciului are id-ul scris în `ci.yaml` (nu mai cere
+  variabila `FAIR_PLACE_ID`). **Nu trimite owner-ul în GitHub** (nu găsește Actions): după push, verifică tu publicarea
+  în `updateTime` al fiecărui place (Open Cloud v2). Owner-ul vede satul prin `rojo serve` + Connect în Studio; bâlciul,
+  ca fișier local (`rojo build fair.project.json -o Balci.rbxl`, deschis în Studio, fără teleport și fără DataStore).
 - Cheia API în `~/.driftwood_api_key` — niciodată în chat, în repo sau ca argument de comandă.
+- **Rojo toarnă proiectul în orice fereastră Studio conectată** (așa a ajuns satul peste `Balci.rbxl` și în jocul
+  accidental „The Fair", universul 10766663878). De aceea fiecare proiect are `servePlaceIds` (satul doar în 132381101591529,
+  bâlciul doar în 114983498774894); serverul Rojo al satului rulează detașat pe 34872 și trebuie repornit ca să citească
+  o schimbare de proiect. Ce a rulat în Studio se vede în `~/Library/Logs/Roblox/*_last.log` (`CreatorOutput`, `open place`).
 
 ## Stare (2026-09-16)
 
-**Bâlciul de seară [D60]** — în lucru, după planul aprobat (`~/.claude/plans/d60-balciul-de-seara.md`):
-- **Ce e:** hub rotund de ~1620, pe un **place separat** din același univers (`fair.project.json`, `src/Fair/`,
-  `PlaceConfig`); ajungi cu barca în amonte.
-- **Ce e gata:**
-  - arta: 23 de desene aprobate (`scripts/art/d60.py`, `Assets.fair`);
-  - modulele pure, cu testele lor: `FairLayout` (testul de așezare: nimic nu intră în altceva), `TitleMath`,
-    `BoardMath`, `RideMath`;
-  - scheletul bâlciului: desenează locul, iar `Row home` te trimite acasă;
-  - CI-ul publică ambele place-uri.
-- **Owner-ul a hotărât:** 24 de jucători pe server; roata zilnică se mută în bâlci; titlurile cumpărate costă
-  600/1000/1600 de perle; „×2 la mers" se vinde pe Robux (simulatorul arată că nu schimbă Era 1).
-- **Rămas:** barca cu predarea profilului, prezența, cardul, titlurile, scena cu clasamente, roata, negustorul.
-- **Amânat pe D61:** iazul, ghereta, poarta satelor, colțul cu Robux.
+**Bâlciul de seară [D60]** — scris după planul aprobat, trece poarta (420 de teste), **necomis** (începutul e în
+f82e404). Bâlciul s-a văzut în Studio ca fișier local; barca și doi jucători se pot verifica doar pe staging. Detaliile
+în DECIZII D60.
+- **Barca:** legată în aval de ponton (`TycoonConfig.FERRY`); drumul pictat comun (`UI/RideScene`, în amonte = spre
+  stânga), cererea pleacă pe negru (`RowUp`/`RowHome` → `FerryService`). Sesiunea profilului nu se închide înainte de
+  teleport: `DataService.MarkTeleporting` oprește Kick-ul, iar bâlciul nu scrie `lastSeenAt` (satul plătește ca offline).
+- **Bâlciul** (`src/Fair/`, serviciile satului montate fișier cu fișier în `fair.project.json`): cameră care te
+  urmărește (`FairScene`, adâncime după bază), roata mutată aici (`WheelController`; în sat, `WheelSignpostController`),
+  oamenii (`PresenceService`/`PresenceController`, `CrowdCodec` pe `UnreliableRemoteEvent`), cardul altuia
+  (`PlayerCardController`), titlurile (T), scena cu clasamentele săptămânii (satul scrie în `LeaderboardService`,
+  bâlciul citește în `BoardService`), negustorul cu vitrina zilei (`MarketService`).
+- **Profil v10.** `check_requires` verifică și remote-urile nesigure. Ecranul de încărcare așteaptă profilul
+  (`SaveLoaded`).
+- **Aspectul (2026-09-17):** owner-ul a văzut bâlciul în Studio și l-a găsit „super cheap". Fundalul e acum copt ca
+  macheta (`scripts/art/d60_ground.py` scrie `prop_fair_ground/glow.png` și `FairScenery.luau`; rulează-l din nou după
+  orice mutare în `FairLayout`), cu pădure, lumină moale, scântei și ghirlande. Imaginile sunt urcate. La a doua
+  privire au plecat punctele gri de pe poiană. Etichetele trofeelor au testul lor de text, iar tabelele stau în lumina
+  scenei.
+- **Amânat pe D61:** iazul, gheretele, poarta satelor, croitoreasa, colțul cu Robux.
 
 **Pontonul: undița, ce aduce râul, perlele pe sat, roata la locul ei [D59]** — plan aprobat de owner. Pontonul intră în
 râu și se merge pe el (`WorldMap` cu trecere); la capăt, undița fără eșec (`ReelMath`: doar ținut apăsat scoți orice
@@ -102,7 +115,7 @@ doar aspect** (amendează D46 pct. 4); totul plătește în perle, simulatorul n
 pier` în capitolul 2, cu săgeată deși ghidajul tace; indiciul pe linia NEXT. Profil **v9**; 40 de imagini și 3 sunete
 urcate și aprobate. Trece poarta (367 de teste). **Comis pe 2026-09-15, neverificat încă în Studio.**
 Prima trecere a owner-ului prin Studio (aceeași zi) a găsit texte care ies din cutie și florile peste numele caselor.
-Reparate, **necomis**:
+Reparate și comise în f82e404:
 - **„Welcome back":** suma stă pe rândul ei.
 - **Bannerul biletului:** trece pe mai multe rânduri.
 - **Butoanele:** eticheta se strânge până încape (`fitButtonRow`).

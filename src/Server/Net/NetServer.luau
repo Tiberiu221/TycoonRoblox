@@ -19,6 +19,7 @@ export type Deps = {
         Firsts: (Player) -> { collect: boolean, sell: boolean, named: boolean },
         AudioLevels: (Player) -> (number, number),
         SetAudioLevel: (Player, string, number) -> (),
+        FairVisits: (Player) -> number, -- [D60] barca arata Skip de la al doilea drum
     },
     Pads: {
         Buy: (Player, string) -> (boolean, string?),
@@ -35,10 +36,8 @@ export type Deps = {
         Snapshot: (Player) -> { [string]: any }?,
         Claim: (Player, string) -> (boolean, string),
     },
-    Wheel: {
-        Snapshot: (Player) -> { [string]: any },
-        Spin: (Player) -> (boolean, string, string?, number?, boolean?),
-    },
+    -- [D60] roata se invarte in balci; aici doar ceasul ei, pentru indicatorul de pe punte
+    Wheel: { Snapshot: (Player) -> { [string]: any } },
     -- [D59] pontonul
     Fish: {
         Snapshot: (Player) -> { [string]: any },
@@ -79,6 +78,8 @@ export type Deps = {
         PileCount: (Player) -> number,
     },
     Hands: { Snapshot: (Player) -> { any } },
+    -- [D60] barca spre balci
+    Ferry: { Depart: (Player) -> () },
 }
 
 local NetServer = {}
@@ -157,6 +158,8 @@ local function buildTycoonState(player: Player): { [string]: any }
         },
         -- [D54] preferintele: nivelul muzicii si al efectelor, 0..10
         settings = { musicLevel = musicLevel, soundLevel = soundLevel },
+        -- [D60] de cate ori ai ajuns in balci
+        fair = { visits = deps.Data.FairVisits(player) },
     }
 end
 
@@ -300,19 +303,6 @@ function NetServer.Init(d: Deps)
         deps.Data.SetAudioLevel(player, kind, level)
     end)
 
-    -- Rotirea zilnica. Tragerea e pe server; clientul primeste premiul si abia apoi il animeaza.
-    Net.Get("SpinWheel").OnServerEvent:Connect(function(player: Player)
-        if not RateLimiter.Allow(player, "SpinWheel") then
-            return
-        end
-        local ok, reason, prizeId, pearls, converted = deps.Wheel.Spin(player)
-        if ok then
-            Net.Get("WheelResult"):FireClient(player, prizeId, pearls or 0, converted == true)
-        else
-            Net.Get("WheelResult"):FireClient(player, nil, 0, false, reason)
-        end
-    end)
-
     -- [D59] UNDITA. Aruncarea nu are argumente: ce e in apa hotaraste serverul. Raspunsul spune doar clipa muscaturii si
     -- bara (dificultatea, samanta) -- nu si pestele.
     Net.Get("Cast").OnServerEvent:Connect(function(player: Player)
@@ -358,6 +348,16 @@ function NetServer.Init(d: Deps)
     Net.Get("BuyDecor").OnServerEvent:Connect(shopHandler("decor", deps.Village.BuyDecor))
     Net.Get("BuyOutfit").OnServerEvent:Connect(shopHandler("outfit", deps.Village.BuyOutfit))
     Net.Get("WearOutfit").OnServerEvent:Connect(shopHandler("wear", deps.Village.WearOutfit))
+
+    -- [D60] BARCA SPRE BALCI. Clientul o cere la capatul drumului pictat; raspunsul e teleportul sau FerryFailed. Si o
+    -- cerere refuzata de limita primeste raspuns: clientul sta pe negru si asteapta unul.
+    Net.Get("RowUp").OnServerEvent:Connect(function(player: Player)
+        if not RateLimiter.Allow(player, "Ferry") then
+            Net.Get("FerryFailed"):FireClient(player, "busy")
+            return
+        end
+        deps.Ferry.Depart(player)
+    end)
 
     Net.Get("UpgradeStation").OnServerEvent
         :Connect(function(player: Player, kind: unknown, id: unknown, count: unknown)

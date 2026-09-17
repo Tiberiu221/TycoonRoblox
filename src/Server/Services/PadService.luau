@@ -30,8 +30,10 @@ local deps: {
         -- TycoonConfig.PREV_NET_LEVEL, deci statusurile au nevoie de el
         NetLevels: (Player) -> { [string]: number },
     }?,
+    -- [D60] o platforma cumparata cu adevarat (nu cu unealta de dezvoltare): clopotul Erei 1 intra pe tabela balciului
+    OnBought: ((Player, string) -> ())?,
 } =
-    { PushState = nil, Hands = nil, Stations = nil }
+    { PushState = nil, Hands = nil, Stations = nil, OnBought = nil }
 local cache: { [Player]: TycoonMath.State } = {}
 
 -- Rata/banda plasei acestei platforme, daca are una. Aceeasi oglinda mica exista si in
@@ -186,6 +188,10 @@ function PadService.Buy(player: Player, padId: string): (boolean, string?)
         -- indexul 2 e Collector-ul, iar un "BoughtSecondNet" ar fi mintit in rapoarte.
         local stepName = if pad.index == 1 then "BoughtFirstNet" else `BoughtPad{pad.index}`
         Analytics.Funnel(player, stepName)
+    end
+    local onBought = deps.OnBought
+    if onBought ~= nil then
+        onBought(player, padId)
     end
     pushState(player)
     return true, nil

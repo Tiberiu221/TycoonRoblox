@@ -551,7 +551,68 @@ return function()
                     "Fishing = { seed = 0, casts = 0, bait = 0, species = {} }",
                     "River = { started = false, waiting = {}, nextAt = 0, seed = 0, total = 0, notes = 0 }",
                     'Village = { decor = {}, outfits = { keeper = true }, outfit = "keeper" }',
-                    "version = 9",
+                }
+            do
+                check.is_true(string.find(src, needle, 1, true) ~= nil)
+            end
+        end)
+    end)
+
+    test.suite("ProfileMigrate.toV10 - balciul [D60]", function()
+        local function v9(): { [string]: any }
+            return {
+                Meta = { version = 9, createdAt = 1, lastSeenAt = 2 },
+                Pearls = 30,
+                Stats = { fished = 5, treasures = 1 },
+                Village = {
+                    decor = { fountain = true },
+                    outfits = { keeper = true },
+                    outfit = "keeper",
+                },
+            }
+        end
+
+        test.case(
+            "titlurile, vizitele, recordurile si timpul jucat se adauga; restul ramane",
+            function()
+                local data = v9()
+                ProfileMigrate.toV10(data)
+                check.equal(data.Meta.version, 10)
+                check.equal(data.Stats.playSeconds, 0)
+                check.equal(data.Stats.fished, 5)
+                check.equal(data.Pearls, 30)
+                check.is_true(data.Village.decor.fountain)
+                check.equal(data.Titles.worn, "era")
+                check.not_nil(data.Titles.bought)
+                check.equal(data.Fair.visits, 0)
+                check.equal(data.Records.era1Seconds, 0)
+                check.equal(data.Records.weeklyFishWeek, "")
+            end
+        )
+
+        test.case("idempotenta, si un profil deja la v10 ramane neatins", function()
+            local data = v9()
+            ProfileMigrate.toV10(data)
+            data.Titles.worn = "legend"
+            data.Meta.version = 9
+            ProfileMigrate.toV10(data)
+            check.equal(data.Titles.worn, "legend")
+            local fresh = { Meta = { version = 10 }, Stats = {} }
+            ProfileMigrate.toV10(fresh)
+            check.equal(fresh.Titles, nil)
+            check.equal(fresh.Stats.playSeconds, nil)
+        end)
+
+        test.case("sablonul si migrarea adauga aceleasi campuri", function()
+            local fs = require("@lune/fs")
+            local src = fs.readFile("src/Server/Services/DataService.luau")
+            for _, needle in
+                {
+                    "playSeconds = 0",
+                    'Titles = { bought = {}, worn = "era" }',
+                    "Fair = { firstVisit = 0, visits = 0 }",
+                    'Records = { era1Seconds = 0, incomePerSec = 0, weeklyFishMm = 0, weeklyFishWeek = "" }',
+                    "version = 10",
                 }
             do
                 check.is_true(string.find(src, needle, 1, true) ~= nil)

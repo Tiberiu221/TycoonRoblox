@@ -18,6 +18,9 @@ local activity: string? = nil
 local activityFacing: string? = nil
 local setOutfitFn: ((string) -> ())? = nil
 local wantedOutfit: string? = nil
+local hiddenWanted = false
+local body: GuiObject? = nil
+local walking = false
 local keys: { [string]: boolean } = {}
 -- directia de la joystick, ca vector: -1..1 pe fiecare axa. Patru butoane dadeau doar 8
 -- directii si mancau o treime din ecranul de telefon.
@@ -46,6 +49,15 @@ end
 
 function CharacterController.X(): number
     return x
+end
+
+-- [D60] Spre ce parte te uiti si daca mergi: in balci, ceilalti te vad asa.
+function CharacterController.Facing(): string
+    return facing
+end
+
+function CharacterController.IsMoving(): boolean
+    return walking
 end
 
 -- Blocheaza miscarea cat timp cineva vorbeste cu jucatorul. Fara asta, replica devine zgomot
@@ -79,6 +91,15 @@ function CharacterController.SetOutfit(outfit: string)
     end
 end
 
+-- [D60] Personajul nu se vede: a urcat in barca (drumul il deseneaza FerryController). Pozitia ramane pe loc.
+function CharacterController.SetHidden(hidden: boolean)
+    hiddenWanted = hidden
+    local b = body
+    if b ~= nil then
+        b.Visible = not hidden
+    end
+end
+
 -- Joystick-ul de pe telefon. Magnitudinea conteaza: o impingere usoara merge incet.
 function CharacterController.SetStick(vx: number, vy: number)
     stickX, stickY = vx, vy
@@ -87,13 +108,29 @@ function CharacterController.SetStick(vx: number, vy: number)
     end
 end
 
+-- [D60] Portitele balciului (implicit = satul, neschimbat): IsBlocked = unde nu se poate calca, Spawn = unde apari,
+-- ZIndexFor = adancimea omului dupa y (in balci, oamenii si obiectele se acopera dupa cine e mai jos).
 function CharacterController.Init(deps: {
     Scroll: Frame,
     OnMove: (number, number) -> (),
     OnPlayerInput: (() -> ())?,
+    IsBlocked: ((number, number) -> boolean)?,
+    Spawn: { x: number, y: number }?,
+    ZIndexFor: ((number) -> number)?,
 })
     onPlayerInput = deps.OnPlayerInput
+    local spawn = deps.Spawn
+    if spawn ~= nil then
+        x, y = spawn.x, spawn.y
+    end
+    local isBlocked = deps.IsBlocked
+        or function(px: number, py: number): boolean
+            return WorldMap.isBlocked(rects, RiverConfig, px, py)
+        end
+    local zIndexFor = deps.ZIndexFor
     local sprite, setPose, setOutfit = SceneArt.MakeCharacter(deps.Scroll)
+    body = sprite
+    sprite.Visible = not hiddenWanted
     setOutfitFn = setOutfit
     if wantedOutfit ~= nil then
         setOutfit(wantedOutfit :: string)
@@ -141,7 +178,8 @@ function CharacterController.Init(deps: {
                 or UserInputService:IsKeyDown(Enum.KeyCode.LeftShift)
                 or UserInputService:IsKeyDown(Enum.KeyCode.RightShift)
             )
-        if dx ~= 0 or dy ~= 0 then
+        walking = dx ~= 0 or dy ~= 0
+        if walking then
             local len = math.sqrt(dx * dx + dy * dy)
             -- Directia se normalizeaza (diagonala nu e mai rapida), dar MAGNITUDINEA se pastreaza
             -- pana la 1: o impingere pe jumatate din joystick merge pe jumatate din viteza.
@@ -149,10 +187,10 @@ function CharacterController.Init(deps: {
             local speed = c.SPEED * (if running then c.RUN_MULTIPLIER else 1)
             local nx = x + dx / len * mag * speed * dt
             local ny = y + dy / len * mag * speed * dt
-            if not WorldMap.isBlocked(rects, RiverConfig, nx, y) then
+            if not isBlocked(nx, y) then
                 x = nx
             end
-            if not WorldMap.isBlocked(rects, RiverConfig, x, ny) then
+            if not isBlocked(x, ny) then
                 y = ny
             end
             facing = if dx ~= 0
@@ -163,7 +201,7 @@ function CharacterController.Init(deps: {
             setPose(false, activityFacing or facing, dt, false, activity)
         end
         sprite.Position = UDim2.fromOffset(x, y)
-        sprite.ZIndex = 6
+        sprite.ZIndex = if zIndexFor ~= nil then zIndexFor(y) else 6
         deps.OnMove(x, y)
     end)
 end

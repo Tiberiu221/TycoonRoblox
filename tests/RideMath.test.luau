@@ -30,16 +30,23 @@ return function()
             check.is_true(half > 0.35)
         end)
 
-        test.case("barca merge in amonte si se leagana pe drum", function()
-            local from = { x = 300, y = 640 }
-            local start = RideMath.at(0, from)
-            local mid = RideMath.at(RideMath.SECONDS / 2, from)
-            local finish = RideMath.at(RideMath.SECONDS, from)
-            check.equal(start.x, from.x)
-            check.is_true(mid.x > start.x and finish.x > mid.x)
-            check.is_true(mid.y < from.y) -- cotul spre mijlocul raului
-            check.equal(math.floor(finish.y + 0.5), from.y)
-        end)
+        test.case(
+            "barca merge in amonte (spre stanga, contra curentului) si se leagana pe drum",
+            function()
+                local from = { x = 300, y = 640 }
+                local start = RideMath.at(0, from)
+                local mid = RideMath.at(RideMath.SECONDS / 2, from)
+                local finish = RideMath.at(RideMath.SECONDS, from)
+                check.equal(start.x, from.x)
+                -- raul curge spre dreapta: lucrurile aduse de el pornesc din stanga lumii
+                local CatchFloat = require("../src/Shared/Modules/CatchFloat")
+                check.is_true(CatchFloat.SPAWN_X < from.x)
+                check.is_true(mid.x < start.x and finish.x < mid.x)
+                check.equal(start.x - finish.x, RideMath.DISTANCE)
+                check.is_true(mid.y < from.y) -- cotul spre mijlocul raului
+                check.equal(math.floor(finish.y + 0.5), from.y)
+            end
+        )
 
         test.case("Skip apare dupa o clipa, nu din prima", function()
             check.is_false(RideMath.canSkip(0))

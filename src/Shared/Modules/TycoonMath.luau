@@ -474,6 +474,20 @@ function TycoonMath.padStatuses(
 end
 
 -- floor; sub 1000 simplu ("950"); altfel K/M/B ca big() din simulator: 1200 -> "1.2K".
+-- [D60] Era la care a ajuns jucatorul: a primei platforme necumparate, in ordinea tabelului -- aceeasi regula ca `era0`
+-- din padStatuses. Cu toate cumparate, ultima era din tabel. Din ea iese titlul "Of the Landing" din balci.
+function TycoonMath.era(bought: { [string]: boolean }, pads: { TycoonConfig.Pad }?): number
+    local list = pads or TycoonConfig.PADS
+    local last = 1
+    for _, p in list do
+        if not bought[p.id] then
+            return p.era
+        end
+        last = math.max(last, p.era)
+    end
+    return last
+end
+
 function TycoonMath.formatNumber(n: number): string
     local v = math.floor(n)
     if v < 1000 then

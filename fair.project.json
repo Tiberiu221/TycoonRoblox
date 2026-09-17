@@ -1,11 +1,24 @@
 {
   "name": "DriftwoodFair",
+  "servePlaceIds": [
+    114983498774894
+  ],
   "globIgnorePaths": [
     "**/*.spec.luau",
     "**/*.test.luau"
   ],
   "tree": {
     "$className": "DataModel",
+    "ReplicatedFirst": {
+      "$className": "ReplicatedFirst",
+      "$path": "src/ReplicatedFirst",
+      "Place": {
+        "$className": "StringValue",
+        "$properties": {
+          "Value": "fair"
+        }
+      }
+    },
     "ReplicatedStorage": {
       "$className": "ReplicatedStorage",
       "Shared": {
@@ -28,7 +41,60 @@
     },
     "ServerScriptService": {
       "$className": "ServerScriptService",
-      "$path": "src/Fair/Server"
+      "Bootstrap": {
+        "$path": "src/Fair/Server/Bootstrap.server.luau"
+      },
+      "Net": {
+        "$className": "Folder",
+        "FairNetServer": {
+          "$path": "src/Fair/Server/Net/FairNetServer.luau"
+        },
+        "RateLimiter": {
+          "$path": "src/Server/Net/RateLimiter.luau"
+        }
+      },
+      "Services": {
+        "$className": "Folder",
+        "Analytics": {
+          "$path": "src/Server/Services/Analytics.luau"
+        },
+        "BoardService": {
+          "$path": "src/Fair/Server/Services/BoardService.luau"
+        },
+        "DataService": {
+          "$path": "src/Server/Services/DataService.luau"
+        },
+        "EconomyService": {
+          "$path": "src/Server/Services/EconomyService.luau"
+        },
+        "FerryService": {
+          "$path": "src/Server/Services/FerryService.luau"
+        },
+        "FishService": {
+          "$path": "src/Server/Services/FishService.luau"
+        },
+        "MarketService": {
+          "$path": "src/Fair/Server/Services/MarketService.luau"
+        },
+        "PlayerCardService": {
+          "$path": "src/Fair/Server/Services/PlayerCardService.luau"
+        },
+        "PresenceService": {
+          "$path": "src/Fair/Server/Services/PresenceService.luau"
+        },
+        "TitleService": {
+          "$path": "src/Fair/Server/Services/TitleService.luau"
+        },
+        "TreasureService": {
+          "$path": "src/Server/Services/TreasureService.luau"
+        },
+        "VillageService": {
+          "$path": "src/Server/Services/VillageService.luau"
+        },
+        "WheelService": {
+          "$path": "src/Server/Services/WheelService.luau"
+        }
+      }
     },
     "ServerStorage": {
       "$className": "ServerStorage",
@@ -42,9 +108,39 @@
       "$className": "StarterPlayer",
       "StarterPlayerScripts": {
         "$className": "StarterPlayerScripts",
-        "$path": "src/Fair/Client",
+        "Bootstrap": {
+          "$path": "src/Fair/Client/Bootstrap.client.luau"
+        },
         "UI": {
           "$path": "src/Client/UI"
+        },
+        "Controllers": {
+          "$className": "Folder",
+          "$path": "src/Fair/Client/Controllers",
+          "CameraController": {
+            "$path": "src/Client/Controllers/CameraController.luau"
+          },
+          "CharacterController": {
+            "$path": "src/Client/Controllers/CharacterController.luau"
+          },
+          "SceneArt": {
+            "$path": "src/Client/Controllers/SceneArt.luau"
+          },
+          "MenuBarController": {
+            "$path": "src/Client/Controllers/MenuBarController.luau"
+          },
+          "Panels": {
+            "$path": "src/Client/Controllers/Panels.luau"
+          },
+          "SoundController": {
+            "$path": "src/Client/Controllers/SoundController.luau"
+          },
+          "MusicController": {
+            "$path": "src/Client/Controllers/MusicController.luau"
+          },
+          "AudioPanel": {
+            "$path": "src/Client/Controllers/AudioPanel.luau"
+          }
         }
       }
     },

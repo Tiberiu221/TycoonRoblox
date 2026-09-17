@@ -31,7 +31,8 @@ local ShedController = require(script.Parent.ShedController)
 local ForgeController = require(script.Parent.ForgeController)
 local PierController = require(script.Parent.PierController)
 local VillageController = require(script.Parent.VillageController)
-local WheelController = require(script.Parent.WheelController)
+local WheelSignpostController = require(script.Parent.WheelSignpostController)
+local FerryController = require(script.Parent.FerryController)
 local Panels = require(script.Parent.Panels)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
@@ -77,10 +78,11 @@ local SOURCES: { (number, number) -> Focus.Focus? } = {
     ShedController.Focus, -- [D55] shed-ul de scrap
     ForgeController.Focus, -- [D55, D56] forja: lasi scrap-ul, iei fierul
     PadController.FocusBuilt,
-    -- [D59] pontonul: locul de pescuit, roata (timonierul) si avizierul satului -- toate cu cardul E, ca restul
+    -- [D59] pontonul: locul de pescuit, [D60] indicatorul rotii mutate si avizierul satului -- toate cu cardul E
     PierController.Focus,
-    WheelController.Focus,
+    WheelSignpostController.Focus,
     VillageController.Focus,
+    FerryController.Focus, -- [D60] barca spre balci, legata in aval de ponton
 }
 
 local function nextLevelCost(kind: string?, id: string?): number?

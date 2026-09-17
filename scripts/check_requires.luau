@@ -240,7 +240,8 @@ local function noteRemotes(inst: Instance, source: string)
     if not isServer and not isClient then
         return
     end
-    for name in string.gmatch(source, 'Net%.Get%(%s*"([%w_]+)"%s*%)') do
+    -- [D60] si `Net.GetUnreliable("X")`: remote-urile nesigure (prezenta din balci) au aceeasi regula
+    for name in string.gmatch(source, 'Net%.Get[%w_]*%(%s*"([%w_]+)"%s*%)') do
         local entry = remoteSide[name]
         if entry == nil then
             entry = { server = false, client = false }
@@ -258,17 +259,16 @@ local function collectRemoteNames(inst: Instance, source: string)
     if inst.Name ~= "Net" then
         return
     end
-    local block = string.match(source, "REMOTE_NAMES[^=]*=%s*{(.-)\n}")
-    if block == nil then
-        return
-    end
-    -- DOAR numele, adica sirul cu care INCEPE un rand din tabel. Un `string.gmatch` lacom peste tot
-    -- blocul aduna si sirurile din comentarii ("locked", "owned", ...) si raporteaza remote-uri
-    -- care nu exista.
-    for line in string.gmatch(block, "[^\n]+") do
-        local name = string.match(line, '^%s*"([%w_]+)",')
-        if name ~= nil then
-            table.insert(remoteNames, name)
+    -- [D60] toate listele: REMOTE_NAMES si UNRELIABLE_REMOTE_NAMES (balciul le are pe amandoua)
+    for block in string.gmatch(source, "[%w_]*REMOTE_NAMES[^=\n]*=%s*{(.-)\n}") do
+        -- DOAR numele, adica sirul cu care INCEPE un rand din tabel. Un `string.gmatch` lacom peste tot
+        -- blocul aduna si sirurile din comentarii ("locked", "owned", ...) si raporteaza remote-uri
+        -- care nu exista.
+        for line in string.gmatch(block, "[^\n]+") do
+            local name = string.match(line, '^%s*"([%w_]+)",')
+            if name ~= nil then
+                table.insert(remoteNames, name)
+            end
         end
     end
 end

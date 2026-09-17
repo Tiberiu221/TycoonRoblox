@@ -14,7 +14,7 @@ export type Facts = {
     speciesTotal: number, -- cate exista
     record: Record?, -- cel mai mare peste al tau
     decor: { [string]: boolean }, -- id-urile decorurilor cumparate
-    champion: boolean, -- ai castigat concursul saptamanii
+    champion: boolean, -- ai fost #1 la peste saptamana trecuta
     bought: { [string]: boolean }, -- titlurile cumparate cu perle
 }
 
@@ -32,7 +32,8 @@ TitleMath.FOR_SALE = {
     { id = "lord_of_the_river", label = "Lord of the River", price = 1600 },
 } :: { { id: string, label: string, price: number } }
 
-TitleMath.ZONE_TITLE = { "Of the Landing", "Of the Mill", "Of the Bend", "Of the Charter" }
+-- zonele erelor, ca in TycoonConfig.ZONES si docs/TYCOON.md: The Landing / The Mill / The Yard / The Harbor
+TitleMath.ZONE_TITLE = { "Of the Landing", "Of the Mill", "Of the Yard", "Of the Harbor" }
 
 local function saleLabel(id: string): string?
     for _, entry in TitleMath.FOR_SALE do
@@ -56,7 +57,8 @@ function TitleMath.label(id: string, facts: Facts): string?
         local r = facts.record
         return if r ~= nil and r.cm > 0 then `{r.fish} {math.floor(r.cm)} cm` else nil
     elseif id == "champion" then
-        return if facts.champion then "Market Champion" else nil
+        -- campionul e #1 la peste saptamana trecuta (BoardService), pana cand concursul de la iaz ii ia locul [D61]
+        return if facts.champion then "Champion of the Week" else nil
     end
     local decorId = string.match(id, "^decor_(%w+)$")
     if decorId ~= nil then

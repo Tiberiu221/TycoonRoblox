@@ -22,6 +22,10 @@ FairLayout.POND = { x = 210, y = 800, rx = 190, ry = 130 } -- iazul de concurs [
 FairLayout.WATER_Y = 1530 -- de aici in jos e raul pe care ai venit
 FairLayout.SPAWN = { x = 810, y = 1330 } -- unde pui piciorul pe mal, dupa capatul debarcaderului
 FairLayout.MAX_PLAYERS = 24 -- owner, 2026-09-16
+-- Eticheta de sub fiecare trofeu (BoardController): trofeele stau din 90 in 90, deci eticheta are 84, ca sa nu se
+-- atinga, si trei randuri (specia, marimea, numele taiat la `chars` litere). In Studio (2026-09-17), "Not caught yet"
+-- era mai lat decat cutia si cele patru se calcau; testul verifica acum si textul, nu doar cutia.
+FairLayout.TROPHY_TAG = { w = 84, h = 48, gap = 4, chars = 11 }
 
 -- Marginile, in ordinea in care le vezi mergand de la debarcader spre stanga. `open = false` = desenata, dar se
 -- deschide in D61; are indicatorul ei, ca nimeni sa nu astepte degeaba [D43].
@@ -116,6 +120,15 @@ function FairLayout.onFloor(x: number, y: number): boolean
     local f = FairLayout.FLOOR
     local dx, dy = (x - f.x) / f.rx, (y - f.y) / f.ry
     return dx * dx + dy * dy <= 1
+end
+
+-- Unde se poate merge: pe harta, deasupra raului de jos si in afara iazului (inchis pana la D61). Ca in sat, se merge
+-- si pe langa obiecte: in lumea vazuta de sus, doar apa opreste pasul.
+function FairLayout.isWalkable(x: number, y: number): boolean
+    if x < 0 or x > FairLayout.SIZE.w or y < 0 or y >= FairLayout.WATER_Y then
+        return false
+    end
+    return not FairLayout.inPond(x, y)
 end
 
 function FairLayout.inPond(x: number, y: number): boolean

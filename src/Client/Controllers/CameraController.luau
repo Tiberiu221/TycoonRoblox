@@ -22,6 +22,10 @@ local parallax: Frame
 local camera = Workspace.CurrentCamera
 local scaleObjects: { UIScale } = {}
 local onScaleChanged: { (number) -> () } = {}
+-- [D60] marimea lumii: harta satului, sau alta lume (balciul) data la Init. O lume data la Init, mai mica decat
+-- ecranul, sta in mijlocul lui; harta satului ramane cum a fost (lipita de colt).
+local worldW, worldH = RiverConfig.WORLD_WIDTH, RiverConfig.WORLD_HEIGHT
+local centerSmall = false
 
 local function recompute()
     local vp = camera.ViewportSize
@@ -52,9 +56,18 @@ end
 -- Structura corecta: Viewport (nescalat, taie la marginea ecranului) > Canvas (scalat) > straturi.
 -- UIScale scaleaza SI obiectul pe care e pus, nu doar copiii; daca era pe un cadru de marimea
 -- ecranului, pânza se micsora sub ecran si se vedea fundalul pe margini.
-function CameraController.Init(
-    deps: { WorldGui: Frame }
-): { Fixed: Frame, Parallax: Frame, Scroll: Frame, Plot: Frame }
+-- [D60] Portitele balciului (implicit = satul, neschimbat): WorldWidth/WorldHeight = marimea lumii in care se
+-- plimba camera, PlotOrigin = unde sta terenul.
+function CameraController.Init(deps: {
+    WorldGui: Frame,
+    WorldWidth: number?,
+    WorldHeight: number?,
+    PlotOrigin: { x: number, y: number }?,
+}): { Fixed: Frame, Parallax: Frame, Scroll: Frame, Plot: Frame }
+    worldW = deps.WorldWidth or RiverConfig.WORLD_WIDTH
+    worldH = deps.WorldHeight or RiverConfig.WORLD_HEIGHT
+    centerSmall = deps.WorldWidth ~= nil or deps.WorldHeight ~= nil
+    local origin = deps.PlotOrigin or TycoonConfig.PLOT_ORIGIN
     local viewport = Instance.new("Frame")
     viewport.Name = "Viewport"
     viewport.BackgroundTransparency = 1
@@ -65,7 +78,7 @@ function CameraController.Init(
     local canvas = Instance.new("Frame")
     canvas.Name = "WorldCanvas"
     canvas.BackgroundTransparency = 1
-    canvas.Size = UDim2.fromOffset(RiverConfig.WORLD_WIDTH, RiverConfig.WORLD_HEIGHT)
+    canvas.Size = UDim2.fromOffset(worldW, worldH)
     canvas.Parent = viewport
 
     local uiScale = Instance.new("UIScale")
@@ -92,7 +105,7 @@ function CameraController.Init(
     local plot = Instance.new("Frame")
     plot.Name = "Plot"
     plot.BackgroundTransparency = 1
-    plot.Position = UDim2.fromOffset(TycoonConfig.PLOT_ORIGIN.x, TycoonConfig.PLOT_ORIGIN.y)
+    plot.Position = UDim2.fromOffset(origin.x, origin.y)
     plot.Size = UDim2.fromOffset(0, 0) -- ancora pura; copiii nu sunt taiati (ClipsDescendants=false)
     -- 5, nu 3: pontonul de scanduri se deseneaza la 4 (ca sa acopere spuma malului, care e la 3),
     -- iar la 3 platformele si plasele ajungeau SUB scanduri -- se vedea doar varful placutelor
@@ -140,10 +153,14 @@ function CameraController.Follow(worldX: number, worldY: number)
         end
     end
     -- clamp pe cat de multa lume incape efectiv pe ecranul asta
-    local maxX = math.max(0, RiverConfig.WORLD_WIDTH - visibleW)
-    local maxY = math.max(0, RiverConfig.WORLD_HEIGHT - visibleH)
-    camX = math.clamp(worldX - visibleW / 2, 0, maxX)
-    camY = math.clamp(worldY - visibleH / 2, 0, maxY)
+    local maxX = math.max(0, worldW - visibleW)
+    local maxY = math.max(0, worldH - visibleH)
+    camX = if centerSmall and worldW < visibleW
+        then (worldW - visibleW) / 2
+        else math.clamp(worldX - visibleW / 2, 0, maxX)
+    camY = if centerSmall and worldH < visibleH
+        then (worldH - visibleH) / 2
+        else math.clamp(worldY - visibleH / 2, 0, maxY)
     -- smucitura se stinge liniar; `camX/camY` raman curate, ca IsVisible/WorldOrigin sa nu
     -- tresara si ele odata cu efectul
     local ox, oy = 0, 0

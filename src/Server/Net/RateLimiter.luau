@@ -22,6 +22,10 @@ local LIMITS: { [string]: { capacity: number, refillPerSecond: number } } = {
     Fishing = { capacity = 4, refillPerSecond = 1 },
     -- [D59] avizierul satului: cumparat, imbracat
     Shop = { capacity = 4, refillPerSecond = 2 },
+    -- [D60] barca dintre sat si balci: un drum dureaza secunde, deci doua cereri in rafala ajung si pentru o reincercare
+    Ferry = { capacity = 3, refillPerSecond = 0.5 },
+    -- [D60] cardul altui om din balci: un E pe cineva, cel mult unul pe secunda dupa primele trei
+    LookAt = { capacity = 3, refillPerSecond = 1 },
 }
 RateLimiter.LIMITS = LIMITS
 

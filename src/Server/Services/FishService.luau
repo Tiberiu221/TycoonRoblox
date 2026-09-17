@@ -22,7 +22,13 @@ local TreasureService = require(script.Parent.TreasureService)
 local VillageService = require(script.Parent.VillageService)
 
 local FishService = {}
-local deps: { PushState: ((Player) -> ())?, Now: (() -> number)? } = { PushState = nil, Now = nil }
+local deps: {
+    PushState: ((Player) -> ())?,
+    Now: (() -> number)?,
+    -- [D60] un peste scos: clasamentul balciului (LeaderboardService), doar in sat
+    OnLanded: ((Player, string, number) -> ())?,
+} =
+    { PushState = nil, Now = nil, OnLanded = nil }
 
 -- Un lucru agatat se prinde repede: sta deja langa ponton.
 local TREASURE_BITE = 1.5
@@ -246,6 +252,10 @@ function FishService.Land(player: Player, castId: number): (boolean, string, Res
         Analytics.PierStep(player, "FirstFish")
     end
     TreasureService.StartRiver(player) -- de la primul peste, raul incepe sa aduca (a doua oara nu schimba nimic)
+    local onLanded = deps.OnLanded
+    if onLanded ~= nil then
+        onLanded(player, species.id, size)
+    end
     local outfit: string? = nil
     if isNew and journalComplete(f) and VillageService.GrantOutfit(player, JOURNAL_OUTFIT) then
         outfit = JOURNAL_OUTFIT

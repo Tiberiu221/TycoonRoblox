@@ -33,6 +33,40 @@ function BoardMath.format(kind: string, value: number, extra: string?): string
     return tostring(value)
 end
 
+local INCOME_UNITS = { "K", "M", "B", "T" }
+
+-- Cifra scurta, pentru panourile pictate pe scena: scena ii lipeste unitatea (Strings.STAGE_UNITS), iar impreuna au
+-- cel mult opt litere, cat coloana ei (BoardController.VALUE_W). Specia pestelui sta in panoul mare.
+BoardMath.STAGE_CHARS = 8
+function BoardMath.compact(kind: string, value: number): string
+    if kind == "fish" then
+        return string.format("%.1f", math.floor(value) / 10)
+    elseif kind == "income" then
+        -- Urca la unitatea urmatoare cand numarul scris ar avea patru cifre: 999.95K s-ar rotunji la "1000.0K" si
+        -- n-ar mai incapea in coloana de pe scena, asa ca se scrie "1.0M".
+        local perSec = value / 100
+        local number, suffix = string.format("%.1f", perSec), ""
+        for _, unit in INCOME_UNITS do
+            if #number < 6 then
+                break
+            end
+            perSec /= 1000
+            number, suffix = string.format("%.1f", perSec), unit
+        end
+        return number .. suffix
+    elseif kind == "era1" then
+        local s = math.floor(value)
+        local h, m = math.floor(s / 3600), math.floor(s / 60) % 60
+        if h >= 100 then
+            return ">99h" -- pe panou nu mai incape, iar in panoul mare scrie intreg
+        end
+        return if h > 0
+            then string.format("%d:%02d:%02d", h, m, s % 60)
+            else string.format("%d:%02d", m, s % 60)
+    end
+    return tostring(value)
+end
+
 -- Cine e mai bun: la pescuit si la venit, cifra mare; la Era 1, timpul mic. La egalitate ramane cine a ajuns primul
 -- (ordinea in care le-a intors store-ul), ca sa nu sara randurile de la o citire la alta.
 function BoardMath.better(kind: string, a: number, b: number): boolean

@@ -49,8 +49,10 @@ local function placed(): { [string]: Box }
     things.storage = box(ST.x, ST.y, ST.w, ST.h)
     things.sawmill = box(SM.x, SM.y, SM.w, SM.h)
     things.tavern = box(TV.x, TV.y, TV.w, TV.h)
-    -- [D59] roata e un timonier pe punte (40x48 la x2) si are langa ea avizierul satului (40x44 la x2)
-    things.wheel = box(TycoonConfig.WHEEL_STAND.x, TycoonConfig.WHEEL_STAND.y, 80, 96)
+    -- [D59] avizierul satului (40x44 la x2) sta pe punte; [D60] langa el, unde era roata, indicatorul ei (28x36 la x2)
+    local post = Assets.props.signpost
+    things.wheel =
+        box(TycoonConfig.WHEEL_STAND.x, TycoonConfig.WHEEL_STAND.y, post.width * 2, post.height * 2)
     things.board = box(TycoonConfig.VILLAGE_BOARD.x, TycoonConfig.VILLAGE_BOARD.y, 80, 88)
     local PIER = TycoonConfig.PIER -- [D59] pontonul lung, 32x104 la x3, centrat
     things.pier = { x0 = PIER.x - 48, x1 = PIER.x + 48, y0 = PIER.y - 156, y1 = PIER.y + 156 }
@@ -427,11 +429,11 @@ return function()
         )
 
         test.case(
-            "roata zilnica (timonierul de pe punte) sta in zona si nu atinge nimic",
+            "[D60] indicatorul rotii mutate (unde statea timonierul) sta in zona si nu atinge nimic",
             function()
-                -- Roata are un card E ca orice obiect, deci o platforma de langa ea i-ar fura cardul.
-                -- [D59] Prinsa de baza (AnchorPoint 0.5,1), timonierul de 40x48 la x2, pe punte.
-                local art = Assets.tycoon.helm
+                -- Indicatorul are un card E ca orice obiect, deci o platforma de langa el i-ar fura cardul.
+                -- Prins de baza (AnchorPoint 0.5,1), 28x36 la x2, pe punte.
+                local art = Assets.props.signpost
                 local w, h = art.width * 2, art.height * 2
                 local x0, x1 =
                     TycoonConfig.WHEEL_STAND.x - w / 2, TycoonConfig.WHEEL_STAND.x + w / 2
@@ -538,6 +540,52 @@ return function()
         )
 
         test.case(
+            "[D60] barca balciului sta pe apa, intre plutitor si mal, fara sa atinga nimic de pe ponton",
+            function()
+                -- FerryController: 62x30 la x2, prinsa de baza, oglindita (prova in amonte); eticheta deasupra ei.
+                local things = placed()
+                local art = Assets.fair.ferry
+                local ferry =
+                    box(TycoonConfig.FERRY.x, TycoonConfig.FERRY.y, art.width * 2, art.height * 2)
+                local top, bottom = RiverConfig.RIVER_TOP, RiverConfig.RIVER_BOTTOM
+                check.is_true(ferry.y0 > top and ferry.y1 <= bottom)
+                -- sub plutitor (8x8) si sub fir, care coboara pana la el
+                local bob = TycoonConfig.BOBBER_AT
+                check.is_true(ferry.y0 > bob.y + 8)
+                -- ponton, avizier, indicator; niciun lucru adus de rau, niciun decor de pe apa
+                for _, name in { "pier", "board", "wheel" } do
+                    check.is_false(hit(ferry, things[name]))
+                end
+                for _, slot in TycoonConfig.TREASURE_SLOTS do
+                    local b =
+                        { x0 = slot.x - 30, x1 = slot.x + 30, y0 = slot.y - 24, y1 = slot.y + 24 }
+                    check.is_false(hit(ferry, b))
+                end
+                for _, d in VillageConfig.DECOR do
+                    if d.ground == "water" then
+                        local dart = (Assets.decor :: any)[d.sprite]
+                        for _, spot in d.spots do
+                            local b =
+                                box(spot.x, spot.y, dart.width * d.scale, dart.height * d.scale)
+                            check.is_false(hit(ferry, b))
+                        end
+                    end
+                end
+                -- prima plasa (48x28 la x3, pe banda ei) incepe dupa barca
+                local firstNet = TycoonConfig.byId.first_net
+                check.is_true(ferry.x1 < (firstNet.x :: number) - 72)
+                -- urci de pe marginea pontonului, de pe scanduri, nu din apa
+                local walk = TycoonConfig.PIER_WALK
+                local board = TycoonConfig.FERRY_BOARD
+                check.is_true(board.x > walk.x0 and board.x < walk.x1 and board.y > walk.y0)
+                check.is_true(board.y < bottom)
+                -- de pe locul de urcat, cardul barcii e mai aproape decat locul de pescuit (70)
+                local stand = TycoonConfig.FISH_STAND
+                check.is_true(math.sqrt((board.x - stand.x) ^ 2 + (board.y - stand.y) ^ 2) > 70)
+            end
+        )
+
+        test.case(
             "[D59] decorul cumparat nu acopera numele caselor, iar etichetele roții si avizierului nu se ating",
             function()
                 -- Textul din lume e in fontul de pixeli: 572/1024 em pe litera, randul ~1.03 em, contur de 2.
@@ -587,11 +635,11 @@ return function()
                 end
                 check.equal(table.concat(covered, ", "), "")
 
-                -- sub roata si sub avizier (baza + 2): cele doua etichete de pe punte
+                -- sub indicatorul rotii si sub avizier (baza + 2): cele doua etichete de pe punte
                 local wheel = textBox(
                     TycoonConfig.WHEEL_STAND.x,
                     TycoonConfig.WHEEL_STAND.y + 2,
-                    Strings.WHEEL_TAG
+                    Strings.WHEEL_MOVED_TAG
                 )
                 local board = textBox(
                     TycoonConfig.VILLAGE_BOARD.x,

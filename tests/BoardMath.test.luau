@@ -5,6 +5,7 @@ local test = frktest.test
 local check = frktest.assert.check
 
 local BoardMath = require("../src/Shared/Modules/BoardMath")
+local Strings = require("../src/Shared/Config/Strings")
 
 local function entry(id: number, name: string, value: number, extra: string?): BoardMath.Entry
     return { userId = id, name = name, value = value, extra = extra }
@@ -63,6 +64,46 @@ return function()
             check.equal(BoardMath.weekKey(monday), BoardMath.weekKey(monday + 86400 * 6 + 3600))
             check.is_false(BoardMath.weekKey(monday) == BoardMath.weekKey(monday + 86400 * 7))
             check.is_false(BoardMath.weekKey(monday) == BoardMath.weekKey(monday - 60))
+        end)
+
+        test.case("cifra scurta de pe scena, cu unitatea ei, incape in coloana panoului", function()
+            check.equal(BoardMath.compact("fish", 1875), "187.5")
+            check.equal(BoardMath.compact("income", 1234), "12.3")
+            check.equal(BoardMath.compact("income", 12345600), "123.5K")
+            check.equal(BoardMath.compact("income", 250000000), "2.5M")
+            check.equal(BoardMath.compact("era1", 2512), "41:52")
+            check.equal(BoardMath.compact("era1", 3723), "1:02:03")
+            -- 999.95K s-ar rotunji la "1000.0K" si ar iesi din coloana: urca la M
+            check.equal(BoardMath.compact("income", 99995000), "1.0M")
+            check.equal(BoardMath.compact("income", 99994000), "999.9K")
+            check.equal(BoardMath.compact("income", 99995), "1.0K")
+            check.equal(BoardMath.compact("income", 250000000000), "2.5B")
+            -- cu unitatea lipita de scena, cel mult opt litere, oricat de mare (cat se poate atinge) e cifra
+            local worst: { [string]: { number } } = {
+                fish = { 0, 40, 999, 2400, 9999 }, -- milimetri; cel mai mare peste are 240 cm
+                -- sutimi pe secunda, pana la 999.9T pe secunda
+                income = {
+                    0,
+                    99,
+                    99995,
+                    12345600,
+                    99994999,
+                    99995000,
+                    99999999999,
+                    99999999999999,
+                    99994000000000000,
+                },
+                era1 = { 0, 59, 3599, 3600, 359999, 360000, 1e12 },
+            }
+            for _, kind in BoardMath.KINDS do
+                for _, value in worst[kind] do
+                    local text = BoardMath.compact(kind, value)
+                        .. (Strings.STAGE_UNITS :: any)[kind]
+                    if #text > BoardMath.STAGE_CHARS then
+                        check.equal(`{kind} {value}: {text}`, "cel mult opt litere")
+                    end
+                end
+            end
         end)
     end)
 end

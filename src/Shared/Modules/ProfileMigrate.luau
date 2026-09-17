@@ -283,4 +283,27 @@ function ProfileMigrate.toV9(data: { [string]: any })
     data.Meta.version = 9
 end
 
+-- [D60] BALCIUL: titlurile (cumparate, purtat), vizitele, recordurile de pe tabela si timpul jucat efectiv. Totul
+-- aditiv: un profil vechi n-a cumparat niciun titlu, poarta titlul Erei lui si n-a fost niciodata la balci. ACELEASI
+-- campuri ca sablonul din DataService.
+function ProfileMigrate.toV10(data: { [string]: any })
+    local version = if data.Meta ~= nil and data.Meta.version ~= nil then data.Meta.version else 1
+    if version >= 10 then
+        return
+    end
+    if typeof(data.Stats) == "table" then
+        data.Stats.playSeconds = data.Stats.playSeconds or 0
+    end
+    if typeof(data.Titles) ~= "table" then
+        data.Titles = { bought = {}, worn = "era" }
+    end
+    if typeof(data.Fair) ~= "table" then
+        data.Fair = { firstVisit = 0, visits = 0 }
+    end
+    if typeof(data.Records) ~= "table" then
+        data.Records = { era1Seconds = 0, incomePerSec = 0, weeklyFishMm = 0, weeklyFishWeek = "" }
+    end
+    data.Meta.version = 10
+end
+
 return ProfileMigrate

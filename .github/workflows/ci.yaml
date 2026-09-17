@@ -98,18 +98,19 @@ jobs:
           echo "$RESPONSE"
           echo "version=$(echo "$RESPONSE" | jq -r '.versionNumber')" >> "$GITHUB_OUTPUT"
 
-      # [D60] balciul de seara, al doilea place din acelasi univers
+      # [D60] balciul de seara, al doilea place din acelasi univers. Id-ul nu e secret (sta si in PlaceConfig), deci nu
+      # mai depinde de o variabila din GitHub: la push-ul f82e404 pasul n-a publicat nimic, iar variabila nu se vedea.
       - name: Publish fair place to Driftwood-Staging (Open Cloud)
-        if: vars.FAIR_PLACE_ID != ''
         env:
           ROBLOX_API_KEY: ${{ secrets.ROBLOX_STAGING_API_KEY }}
+          FAIR_PLACE_ID: ${{ vars.FAIR_PLACE_ID || '114983498774894' }}
         run: |
-          curl -sSL --fail \
+          curl -sSL --fail-with-body \
             --header "x-api-key: $ROBLOX_API_KEY" \
             --header "Content-Type: application/octet-stream" \
             --data-binary "@DriftwoodFair.rbxl" \
             --request POST \
-            "https://apis.roblox.com/universes/v1/${{ vars.STAGING_UNIVERSE_ID }}/places/${{ vars.FAIR_PLACE_ID }}/versions?versionType=Published"
+            "https://apis.roblox.com/universes/v1/${{ vars.STAGING_UNIVERSE_ID }}/places/$FAIR_PLACE_ID/versions?versionType=Published"
 
       - name: Upload artifact tagged with versionNumber
         uses: actions/upload-artifact@v4

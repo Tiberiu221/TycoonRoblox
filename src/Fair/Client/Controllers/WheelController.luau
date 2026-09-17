@@ -16,6 +16,11 @@
 --   * fata din panou e timonierul, iar iconitele premiilor le pune codul intre spite, din WheelConfig;
 --   * premiile sunt darurile raului (perle, ce vine la ponton, momeala aurie), fara monede;
 --   * cand rotirea devine gata: punct pe butonul din bara si un toast.
+--
+-- [D60] ROATA S-A MUTAT IN BALCI (owner, 2026-09-16: "hai sa punem roata zilnica aici"). Fisierul e acum al balciului:
+-- roata o deseneaza FairScene (stalpul cu baldachin si focurile lui), locul ei vine prin `Stand`, iar perlele zboara
+-- prin `PearlFly` (HUD-ul balciului), nu prin JuiceController-ul satului. In sat ramane un indicator
+-- (WheelSignpostController).
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
@@ -24,26 +29,28 @@ local Assets = require(ReplicatedStorage.Shared.Config.Assets)
 local RiverConfig = require(ReplicatedStorage.Shared.Config.RiverConfig)
 local Strings = require(ReplicatedStorage.Shared.Config.Strings)
 local TreasureConfig = require(ReplicatedStorage.Shared.Config.TreasureConfig)
-local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 local WheelConfig = require(ReplicatedStorage.Shared.Config.WheelConfig)
 local WheelMath = require(ReplicatedStorage.Shared.Modules.WheelMath)
 
-local JuiceController = require(script.Parent.JuiceController)
 local MenuBarController = require(script.Parent.MenuBarController)
 local Panels = require(script.Parent.Panels)
 local SoundController = require(script.Parent.SoundController)
 local Focus = require(script.Parent.Parent.UI.Focus)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
-local GroundShadow = require(script.Parent.Parent.UI.GroundShadow)
 
 export type Snapshot = { ready: boolean, secondsLeft: number, spins: number }
 
 export type Deps = {
     HudGui: Frame,
-    Plot: Frame,
+    -- unde sta roata in lume: `x, y` = baza ei (cardul E se masoara de aici), `cardY` = baza cardului
+    Stand: { x: number, y: number, cardY: number },
+    -- stratul pe care se aprinde inelul auriu de sub roata cand rotirea e gata (nil = fara inel)
+    World: Frame?,
     Remotes: { SpinWheel: RemoteEvent, WheelResult: RemoteEvent },
     OnToast: (string, Color3?) -> (),
+    -- perlele castigate zboara din fereastra spre pastila lor (coordonate pe panza HUD)
+    PearlFly: (number, number, number) -> (),
 }
 
 local WheelController = {}
@@ -73,7 +80,6 @@ local ICON_RADIUS = FACE * 0.30 -- mijlocul feliei, intre butuc si obada
 local LIST_X = 260
 local Z = 70
 local SPINS = 5 -- ture intregi inainte sa incetineasca
-local HELM_SCALE = 2
 
 local function fmtTimer(seconds: number): string
     local h = math.floor(seconds / 3600)
@@ -162,13 +168,14 @@ function WheelController.Toggle()
     end
 end
 
--- [D59] Cardul timonierului: rotirea gata -> "Spin the wheel (E)", care deschide fereastra (sansele se vad inainte);
+-- [D59] Cardul rotii: rotirea gata -> "Spin the wheel (E)", care deschide fereastra (sansele se vad inainte);
 -- altfel ceasul, pe care E il spune.
 function WheelController.Focus(px: number, py: number): Focus.Focus?
-    if deps == nil then
+    local d = deps
+    if d == nil then
         return nil
     end
-    local stand = TycoonConfig.WHEEL_STAND
+    local stand = d.Stand
     local distance = Focus.distance(px, py, stand.x, stand.y - 20)
     if distance > RiverConfig.INTERACT_DISTANCE then
         return nil
@@ -179,7 +186,7 @@ function WheelController.Focus(px: number, py: number): Focus.Focus?
         key = "wheel",
         distance = distance,
         x = stand.x,
-        y = stand.y - Assets.tycoon.helm.height * HELM_SCALE - 8,
+        y = stand.cardY,
         action = if ready then Strings.wheelCard(keyHint) else nil,
         act = if ready then WheelController.Open else nil,
         status = if ready then nil else Strings.wheelCardWait(fmtTimer(localSecondsLeft)),
@@ -255,62 +262,34 @@ local function landOn(prizeId: string, pearls: number, converted: boolean)
         placeIcons(subject.Rotation)
         resultLabel.Text = resultText(prize, pearls, converted)
         SoundController.Play("chime")
-        if pearls > 0 and deps ~= nil then
+        local d = deps
+        if pearls > 0 and d ~= nil then
             local hx, hy = hudPoint(subject)
-            JuiceController.PearlFly(hx, hy, pearls)
+            d.PearlFly(hx, hy, pearls)
         end
         refresh()
     end)
 end
 
--- Timonierul pe punte, langa ponton. Sub el, inelul auriu cand rotirea e gata (limbajul locurilor care te cheama).
-local function buildWorldWheel(d: Deps)
-    local stand = TycoonConfig.WHEEL_STAND
-    local sprite = Assets.tycoon.helm
-    local w, h = sprite.width * HELM_SCALE, sprite.height * HELM_SCALE
-    GroundShadow.add(d.Plot, UDim2.fromOffset(stand.x, stand.y), w * 0.6, 3, 0.35)
-
-    if Assets.has(Assets.ui.groundring) then
-        local ring = Instance.new("ImageLabel")
-        ring.Name = "WheelReadyRing"
-        ring.BackgroundTransparency = 1
-        ring.Image = Assets.url(Assets.ui.groundring)
-        ring.ResampleMode = Enum.ResamplerMode.Pixelated
-        ring.ImageColor3 = Theme.COLOR.gold
-        ring.AnchorPoint = Vector2.new(0.5, 0.5)
-        ring.Position = UDim2.fromOffset(stand.x, stand.y - 4)
-        ring.Size =
-            UDim2.fromOffset(Assets.ui.groundring.width * 3, Assets.ui.groundring.height * 3)
-        ring.ZIndex = 3
-        ring.Visible = false
-        ring.Parent = d.Plot
-        worldRing = ring
+-- Inelul auriu de sub roata, cand rotirea e gata (limbajul locurilor care te cheama). Roata insasi e a lui FairScene.
+local function buildReadyRing(d: Deps)
+    local world = d.World
+    if world == nil or not Assets.has(Assets.ui.groundring) then
+        return
     end
-
-    local helm = Instance.new("ImageLabel")
-    helm.Name = "LuckyWheel"
-    helm.BackgroundTransparency = 1
-    helm.AnchorPoint = Vector2.new(0.5, 1)
-    helm.Position = UDim2.fromOffset(stand.x, stand.y)
-    helm.Size = UDim2.fromOffset(w, h)
-    helm.ZIndex = 4
-    if Assets.has(sprite) then
-        helm.Image = Assets.url(sprite)
-        helm.ResampleMode = Enum.ResamplerMode.Pixelated
-    else
-        helm.BackgroundTransparency = 0
-        helm.BackgroundColor3 = Theme.COLOR.wood
-    end
-    helm.Parent = d.Plot
-
-    local name =
-        Widgets.Label(helm, Strings.WHEEL_TAG, Theme.TEXT.tiny, Theme.COLOR.onDark, "strong")
-    name.AnchorPoint = Vector2.new(0.5, 0)
-    name.Position = UDim2.new(0.5, 0, 1, 2)
-    name.Size = UDim2.fromOffset(w + 60, 30) -- doua randuri
-    name.TextXAlignment = Enum.TextXAlignment.Center
-    name.ZIndex = 5
-    Theme.punch(name, 2)
+    local ring = Instance.new("ImageLabel")
+    ring.Name = "WheelReadyRing"
+    ring.BackgroundTransparency = 1
+    ring.Image = Assets.url(Assets.ui.groundring)
+    ring.ResampleMode = Enum.ResamplerMode.Pixelated
+    ring.ImageColor3 = Theme.COLOR.gold
+    ring.AnchorPoint = Vector2.new(0.5, 0.5)
+    ring.Position = UDim2.fromOffset(d.Stand.x, d.Stand.y - 4)
+    ring.Size = UDim2.fromOffset(Assets.ui.groundring.width * 4, Assets.ui.groundring.height * 4)
+    ring.ZIndex = 6 -- pe pamant, peste poiana si lumini (FairScene.Z), sub obiecte
+    ring.Visible = false
+    ring.Parent = world
+    worldRing = ring
 end
 
 function WheelController.Init(d: Deps)
@@ -496,7 +475,7 @@ function WheelController.Init(d: Deps)
     end)
 
     Panels.Register("wheel", { isOpen = WheelController.IsOpen, close = WheelController.Close })
-    buildWorldWheel(d)
+    buildReadyRing(d)
 end
 
 return WheelController

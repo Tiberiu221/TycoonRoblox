@@ -81,7 +81,8 @@ local SALE_PILL_W, SALE_PILL_H = 110, 30
 local BOAT_W = Assets.props.boat.width * TycoonConfig.PROP_SCALE
 local BOAT_H = Assets.props.boat.height * TycoonConfig.PROP_SCALE
 -- [D59] Barca pleaca din dreapta pontonului, in aval: in stanga lui asteapta ce aduce raul (TREASURE_SLOTS), iar in
--- stanga-sus pleca pana acum chiar peste ele.
+-- stanga-sus pleca pana acum chiar peste ele. [D60] Acolo sta legata acum barca balciului (TycoonConfig.FERRY, Z 5):
+-- barca vanzarii (Z 4) iese din spatele ei.
 local BOAT_START = UDim2.fromOffset(PIER.x + 100, 738)
 local BOAT_END = UDim2.fromOffset(PIER.x + 260, 650)
 local BOAT_TWEEN_SECONDS = 1.1

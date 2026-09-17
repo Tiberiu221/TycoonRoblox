@@ -1,5 +1,8 @@
 {
   "name": "Driftwood",
+  "servePlaceIds": [
+    132381101591529
+  ],
   "globIgnorePaths": [
     "**/*.spec.luau",
     "**/*.test.luau"
@@ -8,7 +11,13 @@
     "$className": "DataModel",
     "ReplicatedFirst": {
       "$className": "ReplicatedFirst",
-      "$path": "src/ReplicatedFirst"
+      "$path": "src/ReplicatedFirst",
+      "Place": {
+        "$className": "StringValue",
+        "$properties": {
+          "Value": "village"
+        }
+      }
     },
     "ReplicatedStorage": {
       "$className": "ReplicatedStorage",

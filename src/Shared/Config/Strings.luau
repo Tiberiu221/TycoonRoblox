@@ -352,7 +352,11 @@ end
 function Strings.wheelCard(keyHint: string): string
     return `Spin the wheel{keyHint}`
 end
-Strings.WHEEL_READY_TOAST = "A free spin is waiting at the pier"
+Strings.WHEEL_READY_TOAST = "Your free spin is ready"
+-- [D60] In sat, unde statea roata, ramane un indicator: roata s-a mutat in balci, iar rotirea zilnica te asteapta acolo.
+Strings.WHEEL_MOVED_TAG = "Wheel moved\nto the fair"
+Strings.WHEEL_MOVED = "The wheel moved to the fair"
+Strings.WHEEL_READY_AT_FAIR = "A free spin is waiting at the fair"
 -- pe cardul timonierului (240 lat): mai scurt decat ceasul din fereastra
 function Strings.wheelCardWait(duration: string): string
     return `Next spin in {duration}`
@@ -466,6 +470,8 @@ function Strings.shopResult(what: string, name: string, ok: boolean, reason: str
             return `Built: {name}`
         elseif what == "outfit" then
             return `New outfit: {name}`
+        elseif what == "title" then
+            return `New title: {name}` -- [D60]
         end
         return `Wearing {name}`
     end
@@ -477,6 +483,8 @@ function Strings.shopResult(what: string, name: string, ok: boolean, reason: str
         return "Complete the Journal to earn it"
     elseif reason == "not_owned" then
         return "Buy it first"
+    elseif reason == "not_earned" then
+        return "You haven't earned that title yet" -- [D60]
     end
     return "Can't do that right now"
 end
@@ -498,6 +506,109 @@ end
 
 -- [D60] Balciul de seara (place-ul al doilea)
 Strings.FAIR_ROW_HOME = "Row home"
+Strings.FAIR_FERRY_TAG = "Ferry home"
+Strings.FAIR_ROWING_HOME = "Rowing home..."
+function Strings.fairRowHomeCard(keyHint: string): string
+    return `Row home{keyHint}`
+end
+-- [D60] Titlurile: ce scrie sub numele tau in balci. Panoul spune de unde vine fiecare.
+Strings.TITLES_TITLE = "Titles"
+Strings.TITLES_BLURB = "Your title shows under your name at the fair."
+function Strings.titlesWorn(label: string): string
+    return `Your title: {label}`
+end
+Strings.TITLES_EARNED = "Earned"
+Strings.TITLES_TO_EARN = "Still to earn"
+Strings.TITLES_FOR_SALE = "For pearls"
+Strings.TITLE_FROM = {
+    era = "How far your river has come",
+    legend = "Every fish in the Journal",
+    record = "Your biggest fish so far",
+    champion = "Biggest fish of last week",
+    decor = "From your village decor",
+    sale = "Bought with pearls",
+}
+function Strings.titleLegendProgress(n: number, total: number): string
+    return `Catch every fish ({n}/{total})`
+end
+function Strings.titleDecorHint(decorName: string): string
+    return `Build the {decorName} in your village`
+end
+-- [D60] Oamenii din balci: cardul de langa cineva si panoul cu ce a facut.
+function Strings.lookAtCard(name: string, keyHint: string): string
+    return `Look at {name}{keyHint}`
+end
+Strings.ERA_NAMES = { "The Landing", "The Mill", "The Yard", "The Harbor" }
+function Strings.cardEra(era: number, name: string): string
+    return `Era {era}: {name}`
+end
+Strings.CARD_INCOME = "Income"
+Strings.CARD_INCOME_UNKNOWN = "Not measured yet"
+Strings.CARD_FISH = "Biggest fish"
+Strings.CARD_NO_FISH = "None yet"
+Strings.CARD_TREASURES = "Pulled from the river"
+Strings.CARD_DECOR = "Village decor"
+Strings.CARD_JOURNAL = "Journal"
+Strings.CARD_ADD_FRIEND = "Add friend"
+Strings.CARD_GONE = "They just left the fair"
+function Strings.cardFish(name: string, cm: number): string
+    return `{name}, {cm} cm`
+end
+function Strings.cardOf(n: number, total: number): string
+    return `{n}/{total}`
+end
+-- [D60] Scena, adica tabela balciului: trei clasamente ale saptamanii, trofeele si campionul.
+Strings.STAGE_TITLES = { fish = "BIGGEST FISH", income = "RICHEST RIVER", era1 = "FASTEST ERA 1" }
+Strings.STAGE_UNITS = { fish = "cm", income = "/s", era1 = "" }
+Strings.STAGE_EMPTY = "No one yet"
+Strings.STAGE_EMPTY_BOARD = "No one yet\nthis week" -- pe hartia unui panou gol, pe doua randuri
+Strings.STAGES_TITLE = "Leaderboards"
+Strings.STAGES_BLURB = "This week's best. The boards start over every Monday."
+Strings.STAGES_EMPTY = "No one yet this week. It could be you."
+Strings.STAGES_TABS = { fish = "Fish", income = "Income", era1 = "Era 1", trophies = "Trophies" }
+Strings.STAGES_TROPHIES_BLURB = "The biggest of each fish, ever."
+Strings.TROPHY_NONE = "Not caught yet"
+-- [2026-09-17] sub un trofeu fara record, cand altele au; cand niciunul n-are, o singura fraza sub tot randul
+Strings.TROPHY_OPEN = "No record"
+Strings.TROPHIES_EMPTY = "No record catches yet"
+Strings.CHAMPION_TAG = "Champion of the Week"
+function Strings.stagesCard(keyHint: string): string
+    return `Leaderboards{keyHint}`
+end
+function Strings.trophyLine(cm: number): string
+    return string.format("%.1f cm", cm)
+end
+-- [D60] Negustorul: vitrina zilei, patru lucruri de aspect, aceleasi pentru toata lumea.
+Strings.MARKET_TITLE = "Market"
+function Strings.marketCard(keyHint: string): string
+    return `Market{keyHint}`
+end
+Strings.MARKET_BLURB = "Four looks a day. The rest stays on the Village Board and in Titles."
+function Strings.marketRestock(duration: string): string
+    return `New stock in {duration}`
+end
+Strings.MARKET_KIND = { decor = "For your village", outfit = "Outfit", title = "Title" }
+Strings.MARKET_OWNED = "Owned"
+-- marginile balciului care se deschid in D61: placuta lor spune asta, ca nimeni sa nu astepte degeaba [D43]
+Strings.FAIR_OPENS_SOON = "Opens soon"
+-- Barca de la ponton, in amonte, spre balci. Eticheta de pe apa, cardul si drumul.
+Strings.FERRY_TAG = "Ferry to the Fair"
+function Strings.ferryCard(keyHint: string): string
+    return `Row up to the fair{keyHint}`
+end
+Strings.FERRY_SKIP = "Skip"
+Strings.FERRY_ROWING = "Rowing up to the fair..."
+-- De ce n-a plecat barca (FerryService). Spune ce s-a intamplat si ce poti face; satul merge mai departe [D40, D43].
+function Strings.ferryFailed(reason: string): string
+    if reason == "studio" then
+        return "The ferry only sails in the published game"
+    elseif reason == "closed" then
+        return "The fair isn't open in this game yet"
+    elseif reason == "no_profile" then
+        return "Your save is still loading. Try again in a moment"
+    end
+    return "The ferry couldn't leave. Try again in a moment"
+end
 
 -- [Tutorial] Deschiderea. O propozitie pe pas, niciodata doua.
 Strings.TUTORIAL_CHAPTER_TITLE = "Chapter 1 — The Landing"

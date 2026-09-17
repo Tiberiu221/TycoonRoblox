@@ -71,6 +71,32 @@ function Analytics.PierStep(player: Player, stepName: string)
     end)
 end
 
+-- [D60] Balciul, pe canalul lui: cati urca in barca, cati ajung, cati isi pun un titlu, cati vad tabela, cati cumpara
+-- ceva acolo. Fiecare pas o singura data pe jucator (Firsts).
+Analytics.FAIR_STEPS = {
+    FirstRide = 1,
+    FirstFairVisit = 2,
+    FirstTitleWorn = 3,
+    FirstBoardSeen = 4,
+    FirstFairPurchase = 5,
+}
+
+function Analytics.FairStep(player: Player, stepName: string)
+    local step = Analytics.FAIR_STEPS[stepName]
+    if step == nil then
+        warn(`[Analytics] pas de balci necunoscut: {stepName}`)
+        return
+    end
+    task.spawn(function()
+        local ok, err = pcall(function()
+            AnalyticsService:LogFunnelStepEvent(player, "Fair", nil, step, stepName)
+        end)
+        if not ok then
+            print(`[Analytics] balci {step} {stepName} (nelivrat in Studio): {err}`)
+        end
+    end)
+end
+
 function Analytics.Funnel(player: Player, stepName: string)
     local step = Analytics.STEPS[stepName]
     if step == nil then

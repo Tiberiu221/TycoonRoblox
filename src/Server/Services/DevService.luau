@@ -277,7 +277,9 @@ local HANDLERS: { [string]: Handler } = {
     end,
 
     wheel = function(player: Player, _arg: unknown): string
-        return if WheelService.DevReady(player) then "wheel ready" else "no profile"
+        return if WheelService.DevReady(player)
+            then "wheel ready (spin it at the fair)"
+            else "no profile"
     end,
 
     village = function(player: Player, _arg: unknown): string

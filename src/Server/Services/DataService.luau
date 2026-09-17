@@ -6,6 +6,10 @@
 -- poata vedea revenirea: Welcome back, ce aduce raul cat lipsesti), dar testele de zi cu zi incep de la capat, ca inainte.
 -- Schema v2 (pivotul D45 la tycoon) [F0 spec 1.3]: cheia de store ramane PlayerData_v1, doar
 -- continutul se schimba; ProfileMigrate.toV2 goleste orice profil vechi inainte de Reconcile.
+-- [D60] Acelasi modul ruleaza in AMBELE place-uri (satul si balciul), cu acelasi profil. Barca te muta dintr-unul in
+-- celalalt fara sa inchida sesiunea inainte: daca teleportul pica, ramai unde erai, cu profilul in mana. Sesiunea o ia
+-- apoi place-ul in care ajungi (ProfileStore cere, prin MessagingService, sesiunii vechi sa se inchida), iar cine e
+-- "in drum" (MarkTeleporting) nu e dat afara cand se intampla asta.
 local DataStoreService = game:GetService("DataStoreService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -110,6 +114,7 @@ export type ProfileData = {
         ironSold: number, -- [D56] bucati de fier predate la taverna
         fished: number, -- [D59] pesti scosi la undita (quest-ul "Catch a fish at the pier")
         treasures: number, -- [D59] lucruri scoase din rau la ponton
+        playSeconds: number, -- [D60] timpul jucat efectiv (fara zilele offline), pentru "Fastest Era 1"
         coinsEarned: number,
         padsBought: number,
         repairs: number, -- pentru WorkshopService (F1)
@@ -137,10 +142,20 @@ export type ProfileData = {
     },
     -- [D59] SATUL: decorul cumparat (id -> true), tinutele avute si cea purtata
     Village: { decor: { [string]: boolean }, outfits: { [string]: boolean }, outfit: string },
+    -- [D60] BALCIUL: titlurile cumparate si cel purtat (TitleMath), cate vizite, si recordurile de pe tabela.
+    -- `incomePerSec` e ultimul venit masurat in sat (sutimi): balciul n-are lantul, dar cardul jucatorului il arata.
+    Titles: { bought: { [string]: boolean }, worn: string },
+    Fair: { firstVisit: number, visits: number },
+    Records: {
+        era1Seconds: number,
+        incomePerSec: number,
+        weeklyFishMm: number,
+        weeklyFishWeek: string,
+    },
 }
 
 local PROFILE_TEMPLATE: ProfileData = {
-    Meta = { version = 9, createdAt = 0, lastSeenAt = 0 },
+    Meta = { version = 10, createdAt = 0, lastSeenAt = 0 },
     Coins = 0,
     Pearls = 0,
     Pads = {},
@@ -190,6 +205,7 @@ local PROFILE_TEMPLATE: ProfileData = {
         ironSold = 0, -- [D56] fier predat la taverna (quest-ul "Sell the iron at the tavern")
         fished = 0, -- [D59] ACELEASI campuri ca ProfileMigrate.toV9
         treasures = 0,
+        playSeconds = 0, -- [D60] ACELEASI campuri ca ProfileMigrate.toV10
         coinsEarned = 0,
         padsBought = 0,
         repairs = 0,
@@ -201,6 +217,10 @@ local PROFILE_TEMPLATE: ProfileData = {
     Fishing = { seed = 0, casts = 0, bait = 0, species = {} },
     River = { started = false, waiting = {}, nextAt = 0, seed = 0, total = 0, notes = 0 },
     Village = { decor = {}, outfits = { keeper = true }, outfit = "keeper" },
+    -- [D60] ACELEASI campuri ca ProfileMigrate.toV10
+    Titles = { bought = {}, worn = "era" },
+    Fair = { firstVisit = 0, visits = 0 },
+    Records = { era1Seconds = 0, incomePerSec = 0, weeklyFishMm = 0, weeklyFishWeek = "" },
 }
 
 local function deepCopy(value: any): any
@@ -222,6 +242,13 @@ local IS_STUDIO = RunService:IsStudio()
 -- Play-ul urmator, iar in joc nu exista si nici nu se citeste.
 local STUDIO_STORE = "StudioDevSettings_v1"
 local studioFresh: { [Player]: boolean } = {}
+-- [D60] cand a inceput sesiunea asta, ca la plecare sa se adune timpul jucat efectiv (Stats.playSeconds)
+local sessionStartedAt: { [Player]: number } = {}
+-- [D60] cine a urcat in barca: sesiunea lui o va lua celalalt place, deci pierderea ei nu e o eroare de aratat
+local teleporting: { [Player]: boolean } = {}
+-- [D60] "village" (satul, place-ul de start) sau "fair" (balciul). Balciul nu simuleaza satul: nu atinge `lastSeenAt`,
+-- ca la intoarcere satul sa plateasca, ca offline, tot timpul cat ai lipsit din el. Se alege la Init.
+local place = "village"
 
 local function keepSaveKey(player: Player): string
     return `keepSave_{player.UserId}`
@@ -313,6 +340,51 @@ function DataService.Reset(player: Player): boolean
     return true
 end
 
+-- [D60] De cate ori ai ajuns in balci (0 = niciodata): barca arata Skip abia de la al doilea drum.
+function DataService.FairVisits(player: Player): number
+    local data = DataService.Get(player)
+    local fair: any = if data ~= nil then data.Fair else nil
+    return if typeof(fair) == "table" and typeof(fair.visits) == "number" then fair.visits else 0
+end
+
+-- [D60] Urci in barca (on = true) sau barca n-a plecat (on = false). La urcare se noteaza timpul jucat si ora plecarii:
+-- daca celalalt place ia sesiunea inainte ca plecarea sa fie vazuta aici, salvarea lui are deja amandoua.
+function DataService.MarkTeleporting(player: Player, on: boolean)
+    if not on then
+        teleporting[player] = nil
+        return
+    end
+    teleporting[player] = true
+    local data = DataService.Get(player)
+    local started = sessionStartedAt[player]
+    if data == nil then
+        return
+    end
+    local now = os.time()
+    if started ~= nil then
+        data.Stats.playSeconds = (data.Stats.playSeconds or 0) + math.max(0, now - started)
+        sessionStartedAt[player] = now
+    end
+    if place == "village" then
+        data.Meta.lastSeenAt = now
+    end
+end
+
+-- [D60] Timpul jucat efectiv pana acum: cel strans in sesiunile trecute plus sesiunea asta.
+function DataService.PlaySeconds(player: Player): number
+    local data = DataService.Get(player)
+    if data == nil then
+        return 0
+    end
+    local started = sessionStartedAt[player]
+    local now = if started ~= nil then math.max(0, os.time() - started) else 0
+    return (data.Stats.playSeconds or 0) + now
+end
+
+function DataService.IsTeleporting(player: Player): boolean
+    return teleporting[player] == true
+end
+
 -- [2026-09-15] "fresh" = Play-ul din Studio a pornit de la zero (store Mock), "kept" = pe salvarea reala, nil = in joc.
 function DataService.StudioSave(player: Player): string?
     if not IS_STUDIO then
@@ -356,10 +428,12 @@ local function onPlayerAdded(player: Player)
     ProfileMigrate.toV7(profile.Data) -- resturile [D55]: shed, forja, fierul -- aditiv, nimic nu se muta
     ProfileMigrate.toV8(profile.Data) -- linia fierului [D56]: meseriile noi; scrap-ul/fierul din roabe in gramezi
     ProfileMigrate.toV9(profile.Data) -- pontonul [D59]: undita, ce aduce raul, satul -- aditiv
+    ProfileMigrate.toV10(profile.Data) -- balciul [D60]: titluri, vizite, recorduri, timpul jucat -- aditiv
     profile:Reconcile()
     profile.OnSessionEnd:Connect(function()
         profiles[player] = nil
-        if player.Parent == Players then
+        -- [D60] in drum spre celalalt place: acolo e sesiunea lui acum, iar un Kick aici ar opri teleportul
+        if player.Parent == Players and not teleporting[player] then
             player:Kick("Your save session ended (another server took over your profile).")
         end
     end)
@@ -371,12 +445,29 @@ local function onPlayerAdded(player: Player)
     if data.Meta.createdAt == 0 then
         data.Meta.createdAt = os.time()
     end
-    data.Stats.sessions += 1
-    if not data.Firsts.Joined then
-        data.Firsts.Joined = true
-        Analytics.Funnel(player, "Joined")
+    if place == "fair" then
+        -- [D60] o vizita in balci nu e o sesiune noua de joc: satul le numara doar pe ale lui
+        local fair = data.Fair
+        fair.visits += 1
+        if fair.firstVisit == 0 then
+            fair.firstVisit = os.time()
+        end
+        if not data.Firsts.FirstFairVisit then
+            data.Firsts.FirstFairVisit = true
+            Analytics.FairStep(player, "FirstFairVisit")
+        end
+    else
+        data.Stats.sessions += 1
+        if not data.Firsts.Joined then
+            data.Firsts.Joined = true
+            Analytics.Funnel(player, "Joined")
+        end
     end
     profiles[player] = profile
+    sessionStartedAt[player] = os.time()
+    -- [D60] ecranul de incarcare (ReplicatedFirst) il asteapta: pana aici, dupa o calatorie cu barca, profilul inca era
+    -- in celalalt place
+    player:SetAttribute("SaveLoaded", true)
     -- ATENTIE: se trimite DOAR jucatorul, niciodata tabelul de date.
     -- BindableEvent copiaza tabelele la trecerea prin el. Cand semnalul ducea si `data`,
     -- fiecare handler primea o COPIE: cladirile de start create acolo se scriau in copie si
@@ -385,16 +476,26 @@ local function onPlayerAdded(player: Player)
     loadedSignal:Fire(player)
 end
 
-function DataService.Init(_deps: {})
+function DataService.Init(deps: { Place: string? })
+    place = if deps.Place == "fair" then "fair" else "village"
     Players.PlayerAdded:Connect(onPlayerAdded)
     for _, player in Players:GetPlayers() do
         task.spawn(onPlayerAdded, player)
     end
     Players.PlayerRemoving:Connect(function(player: Player)
         studioFresh[player] = nil
+        teleporting[player] = nil
         local profile = profiles[player]
+        local started = sessionStartedAt[player]
+        sessionStartedAt[player] = nil
         if profile ~= nil then
-            profile.Data.Meta.lastSeenAt = os.time()
+            if started ~= nil then
+                local stats = profile.Data.Stats
+                stats.playSeconds = (stats.playSeconds or 0) + math.max(0, os.time() - started)
+            end
+            if place == "village" then
+                profile.Data.Meta.lastSeenAt = os.time()
+            end
             profile:EndSession()
         end
     end)

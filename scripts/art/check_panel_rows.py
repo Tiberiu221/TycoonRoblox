@@ -184,6 +184,76 @@ JOURNAL_ROW = dict(
 )
 
 
+# [D60] Titlurile (TitleController): rand de 56 in lista panoului de 600. Randurile de titlu de parte ("Earned") au doar
+# textul lor, pe un rand de 28 -- verificate separat, ca sa nu se amestece starile.
+TITLE_ROW = dict(
+    panel="Titles (TitleController)", panel_w=600, row_h=56,
+    boxes=lambda w: [
+        ("icon", md, 14, 28, 28, None),
+        ("name", 56, 8, 280, 22, None),
+        ("sub", 56, 32, 280, 18, None),
+        ("state", w - md - 150, 56 // 2 - 12, 150, 24, "wearing"),
+        ("button", w - md - 150, 56 // 2 - 22, 150, 44, "wear"),
+    ],
+)
+TITLE_HEAD = dict(
+    panel="Titles, titlul de parte (TitleController)", panel_w=600, row_h=28,
+    boxes=lambda w: [("head", SPACE["xs"], 4, w - SPACE["xs"] * 2, 20, None)],
+)
+
+# [D60] Vitrina negustorului (MarketController): randurile stau direct in corpul panoului (fara lista), 600 - rama.
+MARKET_ROW = dict(
+    panel="Market (MarketController)", panel_w=600, width=600 - SPACE["lg"] * 2, row_h=64,
+    boxes=lambda w: [
+        ("art", md, 6, 52, 52, None),
+        ("name", 80, 10, 250, 22, None),
+        ("sub", 80, 36, 250, 18, None),
+        ("state", w - md - 150, 64 // 2 - 12, 150, 24, "owned"),
+        ("button", w - md - 150, 64 // 2 - 22, 150, 44, "buy"),
+    ],
+)
+
+# [D60] Panoul mare al clasamentelor (BoardController): rand de 30 in lista panoului de 640.
+LEADERBOARD_ROW = dict(
+    panel="Leaderboards (BoardController)", panel_w=640, row_h=30,
+    boxes=lambda w: [
+        ("rank", SPACE["sm"], 4, 40, 22, None),
+        ("name", 52, 4, 250, 22, None),
+        ("value", w - SPACE["sm"] - 240, 4, 240, 22, None),
+    ],
+)
+
+# [D60] Un panou pictat pe scena (BoardController.buildPanels): 49 de pixeli de desen x3, randuri de 20. Locul sta in
+# insigna de peste patratelul pictat (centrul la 15; 22 de lat cand are doua cifre), textul incepe dupa el, la 27.
+STAGE_TEXT_X, STAGE_VALUE_W = 27, 60
+STAGE_PANEL = dict(
+    panel="Scena, un panou (BoardController)", width=49 * 3, row_h=20,
+    boxes=lambda w: [
+        ("rank", 15 - 22 // 2, 2, 22, 16, None),
+        ("name", STAGE_TEXT_X, 0, (w - 4) - STAGE_VALUE_W - 2 - STAGE_TEXT_X, 20, None),
+        ("value", (w - 4) - STAGE_VALUE_W, 0, STAGE_VALUE_W, 20, None),
+    ],
+)
+
+# [D60] Cardul altui jucator (PlayerCardController): fereastra fixa 480x460 -> corpul 440x364 (rama lg, antetul 56).
+PLAYER_CARD = dict(
+    panel="Player card (PlayerCardController)", width=480 - SPACE["lg"] * 2, row_h=460 - SPACE["lg"] * 2 - 56,
+    boxes=lambda w: [
+        ("portrait", 0, 0, 96, 104, None),
+        ("name", 112, 4, w - 112, 28, None),
+        ("title", 112, 38, w - 112, 24, None),
+        ("era", 112, 70, w - 112, 20, None),
+    ] + [
+        box
+        for i in range(5)
+        for box in (
+            (f"label{i}", 0, 120 + i * 34, 200, 24, None),
+            (f"value{i}", w - 220, 120 + i * 34, 220, 24, None),
+        )
+    ] + [("friend", w // 2 - 110, (460 - SPACE["lg"] * 2 - 56) - 48, 220, 48, None)],
+)
+
+
 def overlap(a, b):
     if a[5] is not None and b[5] is not None and a[5] != b[5]:
         return None  # nu apar niciodata in acelasi timp
@@ -217,7 +287,9 @@ def check(spec):
 
 def main():
     bad = sum(check(spec) for spec in (STATION_ROW, QUEST_ROW, APPROACH_CARD, STATION_MENU, INTERACT_CARD, AUDIO_PANEL,
-                                      WHEEL_PANEL, WHEEL_ROW, BOARD_ROW, JOURNAL_ROW))
+                                      WHEEL_PANEL, WHEEL_ROW, BOARD_ROW, JOURNAL_ROW,
+                                      TITLE_ROW, TITLE_HEAD, MARKET_ROW, LEADERBOARD_ROW, STAGE_PANEL,
+                                      PLAYER_CARD))
     if bad:
         raise SystemExit(f"{bad} coliziuni de asezare")
 

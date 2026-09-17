@@ -1,157 +1,379 @@
 --!strict
--- [D60] Clientul balciului de seara (place-ul al doilea). Deocamdata SCHELETUL: deseneaza locul intreg, exact din
--- FairLayout -- aceleasi pozitii pe care le verifica testul de asezare --, si are butonul de intors acasa. Mersul,
--- oamenii, cardurile, scena cu clasamente si roata vin in pasii urmatori ai planului D60.
+-- [D60] Clientul BALCIULUI DE SEARA (place-ul al doilea). Ca in sat: lumea 2D pe straturile camerei (care te urmareste),
+-- HUD-ul in zona sigura, cardul obiectului de langa tine. Aici: roata zilnica, barca spre casa si, in pasii urmatori,
+-- oamenii, titlurile, tabela de pe scena si negustorul.
+--
+-- Starea (FairState) se INLOCUIESTE la fiecare mesaj si se copiaza camp cu camp [CLAUDE.md, capcana 3].
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local StarterGui = game:GetService("StarterGui")
+local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 
-local Assets = require(ReplicatedStorage.Shared.Config.Assets)
-local Strings = require(ReplicatedStorage.Shared.Config.Strings)
+local AudioLevels = require(ReplicatedStorage.Shared.Modules.AudioLevels)
 local FairLayout = require(ReplicatedStorage.Shared.Modules.FairLayout)
 local Net = require(ReplicatedStorage.Net.Net)
-local Widgets = require(script.Parent.UI.Widgets)
+local RiverConfig = require(ReplicatedStorage.Shared.Config.RiverConfig)
+local Strings = require(ReplicatedStorage.Shared.Config.Strings)
+local VillageConfig = require(ReplicatedStorage.Shared.Config.VillageConfig)
 
-local NIGHT = Color3.fromRGB(18, 24, 44) -- cerul de seara, in care se scufunda tot
-local NIGHT_TINT = Color3.fromRGB(120, 132, 176) -- ce e departe de felinare
-local WARM_TINT = Color3.fromRGB(255, 226, 186) -- ce sta in lumina
-local WATER = Color3.fromRGB(16, 30, 52)
+local Controllers = script.Parent:WaitForChild("Controllers")
+local AudioPanel = require(Controllers:WaitForChild("AudioPanel"))
+local BoardController = require(Controllers:WaitForChild("BoardController"))
+local CameraController = require(Controllers:WaitForChild("CameraController"))
+local CharacterController = require(Controllers:WaitForChild("CharacterController"))
+local FairFerryController = require(Controllers:WaitForChild("FairFerryController"))
+local FairHUDController = require(Controllers:WaitForChild("FairHUDController"))
+local FairInteractController = require(Controllers:WaitForChild("FairInteractController"))
+local FairScene = require(Controllers:WaitForChild("FairScene"))
+local MarketController = require(Controllers:WaitForChild("MarketController"))
+local MenuBarController = require(Controllers:WaitForChild("MenuBarController"))
+local MusicController = require(Controllers:WaitForChild("MusicController"))
+local PlayerCardController = require(Controllers:WaitForChild("PlayerCardController"))
+local PresenceController = require(Controllers:WaitForChild("PresenceController"))
+local Panels = require(Controllers:WaitForChild("Panels"))
+local SoundController = require(Controllers:WaitForChild("SoundController"))
+local TitleController = require(Controllers:WaitForChild("TitleController"))
+local WheelController = require(Controllers:WaitForChild("WheelController"))
+local Theme = require(script.Parent:WaitForChild("UI"):WaitForChild("Theme"))
 
-local gui = Instance.new("ScreenGui")
-gui.Name = "Fair"
-gui.IgnoreGuiInset = true
-gui.ResetOnSpawn = false
-gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui") :: PlayerGui
 
-local sky = Instance.new("Frame")
-sky.Name = "Night"
-sky.BackgroundColor3 = NIGHT
-sky.BorderSizePixel = 0
-sky.Size = UDim2.fromScale(1, 1)
-sky.Parent = gui
-
-local world = Instance.new("Frame")
-world.Name = "World"
-world.BackgroundTransparency = 1
-world.AnchorPoint = Vector2.new(0.5, 0.5)
-world.Position = UDim2.fromScale(0.5, 0.5)
-world.Size = UDim2.fromOffset(FairLayout.SIZE.w, FairLayout.SIZE.h)
-world.Parent = sky
-local worldScale = Instance.new("UIScale")
-worldScale.Parent = world
-
-local function image(
-    sprite: Assets.Sprite,
-    x: number,
-    y: number,
-    w: number,
-    h: number,
-    z: number
-): ImageLabel
-    local img = Instance.new("ImageLabel")
-    img.BackgroundTransparency = 1
-    img.Image = Assets.url(sprite)
-    img.ResampleMode = Enum.ResamplerMode.Pixelated
-    img.Position = UDim2.fromOffset(x, y)
-    img.Size = UDim2.fromOffset(w, h)
-    img.ZIndex = z
-    img.Parent = world
-    return img
-end
-
-local function tiled(sprite: Assets.Sprite, img: ImageLabel)
-    img.ScaleType = Enum.ScaleType.Tile
-    img.TileSize =
-        UDim2.fromOffset(sprite.width * Assets.PIXEL_SCALE, sprite.height * Assets.PIXEL_SCALE)
-end
-
-local function ellipse(
-    x: number,
-    y: number,
-    rx: number,
-    ry: number,
-    color: Color3,
-    z: number
-): Frame
-    local f = Instance.new("Frame")
-    f.BackgroundColor3 = color
-    f.BorderSizePixel = 0
-    f.Position = UDim2.fromOffset(x - rx, y - ry)
-    f.Size = UDim2.fromOffset(rx * 2, ry * 2)
-    f.ZIndex = z
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0.5, 0)
-    corner.Parent = f
-    f.Parent = world
-    return f
-end
-
--- iarba de seara, poiana de pamant batatorit, iazul si raul pe care ai venit
-local grass = image(Assets.grass_tile, 0, 0, FairLayout.SIZE.w, FairLayout.WATER_Y, 1)
-tiled(Assets.grass_tile, grass)
-grass.ImageColor3 = NIGHT_TINT
-
-local f = FairLayout.FLOOR
-local floor = image(Assets.tile_fair, f.x - f.rx, f.y - f.ry, f.rx * 2, f.ry * 2, 2)
-tiled(Assets.tile_fair, floor)
-floor.ImageColor3 = WARM_TINT
-local floorCorner = Instance.new("UICorner")
-floorCorner.CornerRadius = UDim.new(0.5, 0)
-floorCorner.Parent = floor
-
-local p = FairLayout.POND
-ellipse(p.x, p.y, p.rx, p.ry, WATER, 3)
-
-local river = Instance.new("Frame")
-river.BackgroundColor3 = WATER
-river.BorderSizePixel = 0
-river.Position = UDim2.fromOffset(0, FairLayout.WATER_Y)
-river.Size = UDim2.fromOffset(FairLayout.SIZE.w, FairLayout.SIZE.h - FairLayout.WATER_Y)
-river.ZIndex = 1
-river.Parent = world
-
--- obiectele, ordonate pe adancime: ce e mai jos acopera ce e mai sus, ca peste tot in joc
-local center = FairLayout.CENTER
-for _, spot in FairLayout.SPOTS do
-    local art = (Assets.fair :: any)[spot.sprite] :: Assets.Sprite?
-    if art == nil or not Assets.has(art) then
-        continue
-    end
-    local sprite = art :: Assets.Sprite
-    local w, h = sprite.width * spot.scale, sprite.height * spot.scale
-    local img = image(sprite, spot.x - w / 2, spot.y - h, w, h, 5 + math.floor(spot.y / 64))
-    -- lumina calda langa vatra, rece spre margini; pâlpâirea o face pasul cu luminile
-    local d = math.clamp(math.sqrt((spot.x - center.x) ^ 2 + (spot.y - center.y) ^ 2) / 700, 0, 1)
-    img.ImageColor3 = WARM_TINT:Lerp(NIGHT_TINT, d)
-end
-
--- tot balciul pe ecran, oricat de mare e fereastra
+-- Lumea 3D nu exista: camera fixa, CoreGui minim (topbar-ul ramane, D04)
 local camera = Workspace.CurrentCamera
-local function fit()
-    local vp = camera.ViewportSize
-    worldScale.Scale = math.min(vp.X / FairLayout.SIZE.w, vp.Y / FairLayout.SIZE.h) * 0.96
+camera.CameraType = Enum.CameraType.Scriptable
+camera.CFrame = CFrame.new(0, 1000, 0)
+pcall(function()
+    StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, false)
+end)
+
+local function makeRoot(name: string, displayOrder: number, insets: Enum.ScreenInsets): ScreenGui
+    local gui = Instance.new("ScreenGui")
+    gui.Name = name
+    gui.ScreenInsets = insets
+    gui.ResetOnSpawn = false
+    gui.DisplayOrder = displayOrder
+    gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    gui.Parent = playerGui
+    return gui
 end
-fit()
-camera:GetPropertyChangedSignal("ViewportSize"):Connect(fit)
 
--- barca spre casa
-local hud = Instance.new("Frame")
-hud.Name = "Hud"
-hud.BackgroundTransparency = 1
-hud.Size = UDim2.fromScale(1, 1)
-hud.ZIndex = 50
-hud.Parent = gui
-local rowHome = Net.Get("RowHome")
-local home = Widgets.Button(hud, {
-    text = Strings.FAIR_ROW_HOME,
-    width = 200,
-    height = 48,
-    z = 51,
-    onClick = function()
-        rowHome:FireServer()
-    end,
+-- HUD-ul pe panza scalata dupa ecran, cu podea pentru telefon -- aceeasi regula ca in sat
+local function attachHudScale(gui: ScreenGui): Frame
+    local canvas = Instance.new("Frame")
+    canvas.Name = "Canvas"
+    canvas.BackgroundTransparency = 1
+    local scale = Instance.new("UIScale")
+    local ref = Vector2.new(RiverConfig.SCREEN_WIDTH, RiverConfig.SCREEN_HEIGHT)
+    local function update()
+        local vp = camera.ViewportSize
+        local s = math.max(0.62, math.min(vp.X / ref.X, vp.Y / ref.Y))
+        scale.Scale = s
+        canvas.Size = UDim2.fromOffset(math.ceil(vp.X / s), math.ceil(vp.Y / s))
+    end
+    update()
+    camera:GetPropertyChangedSignal("ViewportSize"):Connect(update)
+    scale.Parent = canvas
+    canvas.Parent = gui
+    return canvas
+end
+
+local worldGui = makeRoot("World", 1, Enum.ScreenInsets.None)
+local hudGui = makeRoot("HUD", 2, Enum.ScreenInsets.CoreUISafeInsets)
+local backdrop = Instance.new("Frame")
+backdrop.Name = "Backdrop"
+backdrop.Size = UDim2.fromScale(1, 1)
+backdrop.BackgroundColor3 = FairScene.NIGHT
+backdrop.BorderSizePixel = 0
+backdrop.ZIndex = 0
+backdrop.Parent = worldGui
+local hudCanvas = attachHudScale(hudGui)
+
+local function safeInit(name: string, fn: () -> ())
+    local ok, err = pcall(fn)
+    if not ok then
+        warn(`[Fair] {name} a esuat: {err}`)
+    end
+end
+
+local layers = CameraController.Init({
+    WorldGui = worldGui,
+    WorldWidth = FairLayout.SIZE.w,
+    WorldHeight = FairLayout.SIZE.h,
+    PlotOrigin = { x = 0, y = 0 },
 })
-home.AnchorPoint = Vector2.new(1, 0)
-home.Position = UDim2.new(1, -16, 0, 16)
+safeInit("FairScene", function()
+    FairScene.Build(layers.Scroll)
+end)
+safeInit("CharacterController", function()
+    CharacterController.Init({
+        Scroll = layers.Scroll,
+        OnMove = CameraController.Follow,
+        IsBlocked = function(x: number, y: number): boolean
+            return not FairLayout.isWalkable(x, y)
+        end,
+        Spawn = FairLayout.SPAWN,
+        ZIndexFor = FairScene.ZIndexFor,
+    })
+end)
 
-gui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
+FairHUDController.Init({
+    HudGui = hudCanvas,
+    SetStick = CharacterController.SetStick,
+    Interact = function()
+        FairInteractController.Interact()
+    end,
+    PanelsOpen = Panels.AnyOpen,
+})
+safeInit("FairInteractController", function()
+    FairInteractController.Init({
+        World = layers.Scroll,
+        Z = FairScene.Z.CARD,
+        CharacterPos = CharacterController.Position,
+        OnToast = FairHUDController.Toast,
+    })
+end)
+
+-- roata zilnica: fereastra de sus, cardul la stalpul ei din lume, perlele spre pastila
+safeInit("WheelController", function()
+    local x, y, _, h = FairScene.Spot("wheel")
+    WheelController.Init({
+        HudGui = hudCanvas,
+        Stand = { x = x, y = y, cardY = y - h - 8 },
+        World = layers.Scroll,
+        Remotes = { SpinWheel = Net.Get("SpinWheel"), WheelResult = Net.Get("WheelResult") },
+        OnToast = FairHUDController.Toast,
+        PearlFly = FairHUDController.PearlFly,
+    })
+    FairInteractController.AddSource(WheelController.Focus)
+end)
+
+safeInit("FairFerryController", function()
+    FairFerryController.Init({
+        PlayerGui = playerGui,
+        Remotes = { RowHome = Net.Get("RowHome"), FerryFailed = Net.Get("FerryFailed") },
+        OnToast = FairHUDController.Toast,
+    })
+    FairInteractController.AddSource(FairFerryController.Focus)
+end)
+
+-- scena: clasamentele saptamanii, trofeele, campionul; cardul "Leaderboards (E)" in fata ei
+safeInit("BoardController", function()
+    BoardController.Init({
+        World = layers.Scroll,
+        HudGui = hudCanvas,
+        BoardState = Net.Get("BoardState"),
+    })
+    FairInteractController.AddSource(BoardController.Focus)
+end)
+
+-- negustorul: vitrina zilei pe cele trei tarabe
+safeInit("MarketController", function()
+    MarketController.Init({
+        World = layers.Scroll,
+        HudGui = hudCanvas,
+        MarketBuy = Net.Get("MarketBuy"),
+        OnRestock = function()
+            Net.Get("RequestState"):FireServer()
+        end,
+    })
+    FairInteractController.AddSource(MarketController.Focus)
+end)
+
+-- ceilalti oameni: pozitiile, numele si titlurile lor, si cardul "Look at ... (E)" langa fiecare
+safeInit("PlayerCardController", function()
+    PlayerCardController.Init({
+        HudGui = hudCanvas,
+        Remotes = { LookAt = Net.Get("LookAt"), LookAtResult = Net.Get("LookAtResult") },
+        OnToast = FairHUDController.Toast,
+    })
+end)
+safeInit("PresenceController", function()
+    PresenceController.Init({
+        World = layers.Scroll,
+        ZIndexFor = FairScene.ZIndexFor,
+        LabelZ = FairScene.Z.LABELS,
+        LocalUserId = player.UserId,
+        CharacterPos = CharacterController.Position,
+        Facing = CharacterController.Facing,
+        IsMoving = CharacterController.IsMoving,
+        Remotes = {
+            Where = Net.GetUnreliable("Where"),
+            Crowd = Net.GetUnreliable("Crowd"),
+            People = Net.Get("People"),
+        },
+        OnLookAt = function(person)
+            PlayerCardController.Open(person.userId)
+        end,
+        LookAtText = Strings.lookAtCard,
+    })
+    FairInteractController.AddSource(PresenceController.Focus)
+end)
+
+safeInit("TitleController", function()
+    TitleController.Init({
+        HudGui = hudCanvas,
+        Remotes = { BuyTitle = Net.Get("BuyTitle"), WearTitle = Net.Get("WearTitle") },
+    })
+end)
+
+-- raspunsul cumparaturilor din balci: titlurile si vitrina negustorului
+Net.Get("ShopResult").OnClientEvent
+    :Connect(function(what: string, id: string, ok: boolean, reason: string)
+        local decor = VillageConfig.decorById[id]
+        local outfit = VillageConfig.outfitById[id]
+        local name = if what == "decor" and decor ~= nil
+            then decor.name
+            elseif what == "outfit" and outfit ~= nil then outfit.name
+            else TitleController.LabelOf(id)
+        FairHUDController.Toast(
+            Strings.shopResult(what, name, ok, reason),
+            if ok then Theme.COLOR.gold else Theme.COLOR.bad
+        )
+        if ok then
+            SoundController.Play("chime")
+        end
+    end)
+
+safeInit("MusicController", function()
+    MusicController.Init()
+end)
+safeInit("AudioPanel", function()
+    AudioPanel.Init({ HudGui = hudCanvas, SetAudio = Net.Get("SetAudio") })
+end)
+
+-- bara din dreapta si tastele ei (aceleasi taste ca in sat, unde exista acelasi lucru)
+local menuEntries = {
+    {
+        name = "wheel",
+        icon = "spin",
+        label = Strings.WHEEL_TITLE,
+        key = "L",
+        open = WheelController.Toggle,
+    },
+    {
+        name = "titles",
+        icon = "people",
+        label = Strings.TITLES_TITLE,
+        key = "T",
+        open = TitleController.Toggle,
+    },
+    {
+        name = "sound",
+        icon = "music",
+        label = Strings.MENU_SOUND,
+        key = "M",
+        open = AudioPanel.Toggle,
+    },
+}
+safeInit("MenuBarController", function()
+    MenuBarController.Init({
+        HudGui = hudCanvas,
+        IsUnlocked = function(_name: string): boolean
+            return true
+        end,
+        Entries = menuEntries,
+    })
+end)
+do
+    local keys: { [Enum.KeyCode]: () -> () } = {}
+    for _, entry in menuEntries do
+        local ok, code = pcall(function()
+            return (Enum.KeyCode :: any)[entry.key]
+        end)
+        if ok and code ~= nil then
+            keys[code] = entry.open
+        end
+    end
+    UserInputService.InputBegan:Connect(function(input: InputObject, processed: boolean)
+        if processed then
+            return
+        end
+        if input.KeyCode == Enum.KeyCode.Q or input.KeyCode == Enum.KeyCode.Escape then
+            Panels.CloseAll()
+            return
+        end
+        local action = keys[input.KeyCode]
+        if action ~= nil then
+            action()
+        end
+    end)
+end
+
+-- Starea balciului, copiata camp cu camp.
+Net.Get("FairState").OnClientEvent:Connect(function(raw: { [string]: any })
+    local rawVillage: any = raw.village or {}
+    local village = {
+        decor = table.clone(rawVillage.decor or {}),
+        outfits = table.clone(rawVillage.outfits or {}),
+        outfit = rawVillage.outfit or "keeper",
+    }
+    local rawWheel: any = raw.wheel or {}
+    local wheel = {
+        ready = rawWheel.ready == true,
+        secondsLeft = rawWheel.secondsLeft or 0,
+        spins = rawWheel.spins or 0,
+    }
+    local rawSettings: any = raw.settings or {}
+    local musicLevel = if AudioLevels.valid(rawSettings.musicLevel)
+        then rawSettings.musicLevel :: number
+        else AudioLevels.DEFAULT_MUSIC
+    local soundLevel = if AudioLevels.valid(rawSettings.soundLevel)
+        then rawSettings.soundLevel :: number
+        else AudioLevels.DEFAULT_SOUND
+    local visits = if typeof(raw.visits) == "number" then raw.visits :: number else 0
+    local rawTitles: any = raw.titles or {}
+    local earned = {}
+    for i, e in (rawTitles.earned or {}) do
+        earned[i] = { id = e.id, label = e.label }
+    end
+    local forSale = {}
+    for i, e in (rawTitles.forSale or {}) do
+        forSale[i] = { id = e.id, label = e.label, price = e.price, owned = e.owned == true }
+    end
+    local titles = {
+        worn = rawTitles.worn or "era",
+        label = rawTitles.label or "",
+        earned = earned,
+        forSale = forSale,
+        species = rawTitles.species or 0,
+        speciesTotal = rawTitles.speciesTotal or 0,
+        decor = table.clone(rawTitles.decor or {}),
+    }
+    local pearls = if typeof(raw.pearls) == "number" then raw.pearls :: number else 0
+    local rawMarket: any = raw.market or {}
+    local marketItems = {}
+    for i, e in (rawMarket.items or {}) do
+        marketItems[i] = {
+            key = e.key,
+            kind = e.kind,
+            id = e.id,
+            name = e.name,
+            price = e.price,
+            owned = e.owned == true,
+        }
+    end
+    local market = { secondsLeft = rawMarket.secondsLeft or 0, items = marketItems }
+
+    FairHUDController.SetPearls(pearls)
+    TitleController.Apply(titles, pearls)
+    MarketController.Apply(market, pearls)
+    MusicController.Apply(musicLevel)
+    SoundController.Apply(soundLevel)
+    AudioPanel.Refresh()
+    WheelController.Apply(wheel)
+    CharacterController.SetOutfit(village.outfit)
+    FairFerryController.Apply(village.outfit, visits)
+end)
+
+-- cerem starea de cateva ori: primul mesaj se poate pierde daca serverul nu e gata
+Net.Get("RequestState"):FireServer()
+task.delay(1, function()
+    Net.Get("RequestState"):FireServer()
+end)
+task.delay(3, function()
+    Net.Get("RequestState"):FireServer()
+end)
+
+print("[Fair] client bootstrap complet")

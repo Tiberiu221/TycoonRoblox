@@ -19,16 +19,20 @@ function RideMath.progress(t: number): number
     return math.clamp(eased - current, 0, 1)
 end
 
--- Pozitia barcii pe drum, in unitatile lumii din sat: de la pontonul tau spre amonte (spre est), cu un cot spre
--- mijlocul raului. `from` e capatul pontonului.
+-- Cat din drumul pictat se parcurge: scena drumului (FerryController) e mai lunga decat ecranul, iar malurile trec pe
+-- langa barca exact cu atat.
+RideMath.DISTANCE = 900
+
+-- Pozitia barcii pe drum, de la `from` spre AMONTE. In sat raul curge spre dreapta (bustenii pleaca de la marginea din
+-- stanga, CatchFloat.SPAWN_X), deci in amonte inseamna spre stanga: x scade. Pe drum, un cot spre mijlocul raului.
 function RideMath.at(
     t: number,
     from: { x: number, y: number }
 ): { x: number, y: number, tilt: number }
     local p = RideMath.progress(t)
-    local dx = 900 * p
+    local dx = RideMath.DISTANCE * p
     local sway = math.sin(p * math.pi) * 70
-    return { x = from.x + dx, y = from.y - sway, tilt = math.sin(p * math.pi * 2) * 4 }
+    return { x = from.x - dx, y = from.y - sway, tilt = math.sin(p * math.pi * 2) * 4 }
 end
 
 function RideMath.canSkip(t: number): boolean

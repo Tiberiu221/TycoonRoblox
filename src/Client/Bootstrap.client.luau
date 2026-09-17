@@ -121,12 +121,15 @@ end
 local QuestController = require(script.Parent.Controllers.QuestController)
 local TutorialController = require(script.Parent.Controllers.TutorialController)
 local WelcomeController = require(script.Parent.Controllers.WelcomeController)
-local WheelController = require(script.Parent.Controllers.WheelController)
+-- [D60] roata s-a mutat in balci; pe punte ramane indicatorul
+local WheelSignpostController = require(script.Parent.Controllers.WheelSignpostController)
 -- [D59] pontonul: undita, ce aduce raul, avizierul satului, jurnalul
 local PierController = require(script.Parent.Controllers.PierController)
 local TreasureController = require(script.Parent.Controllers.TreasureController)
 local VillageController = require(script.Parent.Controllers.VillageController)
 local JournalController = require(script.Parent.Controllers.JournalController)
+-- [D60] barca spre balci
+local FerryController = require(script.Parent.Controllers.FerryController)
 local Panels = require(script.Parent.Controllers.Panels)
 local layers = CameraController.Init({ WorldGui = worldGui })
 
@@ -287,13 +290,8 @@ safeInit("WorkshopController", function()
 end)
 -- Fereastra de revenire: scrisa de mult, dar niciodata pornita din Bootstrap -- deci nu s-a vazut
 -- niciodata. Acum serverul chiar trage `WelcomeBack` (StationService), deci are ce arata.
-safeInit("WheelController", function()
-    WheelController.Init({
-        HudGui = hudCanvas,
-        Plot = layers.Plot, -- roata sta si ca obiect in lume, langa debarcader
-        Remotes = { SpinWheel = Net.Get("SpinWheel"), WheelResult = Net.Get("WheelResult") },
-        OnToast = HUDController.Toast,
-    })
+safeInit("WheelSignpostController", function()
+    WheelSignpostController.Init({ Plot = layers.Plot, OnToast = HUDController.Toast })
 end)
 safeInit("WelcomeController", function()
     WelcomeController.Init({ HudGui = hudCanvas, WelcomeBack = Net.Get("WelcomeBack") })
@@ -361,13 +359,6 @@ local function isMenuUnlocked(_name: string): boolean
     return true
 end
 local menuEntries = {
-    {
-        name = "wheel",
-        icon = "spin", -- [D59] timonierul, nu ceasul
-        label = Strings.WHEEL_TITLE,
-        key = "L",
-        open = WheelController.Toggle,
-    },
     {
         -- [D59] jurnalul pestilor si al raului
         name = "journal",
@@ -612,6 +603,14 @@ safeInit("VillageController", function()
 end)
 safeInit("JournalController", function()
     JournalController.Init({ HudGui = hudCanvas })
+end)
+safeInit("FerryController", function()
+    FerryController.Init({
+        Plot = layers.Plot,
+        PlayerGui = playerGui,
+        Remotes = { RowUp = Net.Get("RowUp"), FerryFailed = Net.Get("FerryFailed") },
+        OnToast = HUDController.Toast,
+    })
 end)
 
 if Overlay ~= nil then
@@ -943,6 +942,9 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
         outfit = rawVillage.outfit or "keeper",
     }
 
+    local rawFair: any = raw.fair or {}
+    local fair = { visits = rawFair.visits or 0 } -- [D60]
+
     local rawSettings: any = raw.settings or {}
     local snapshot = {
         -- [D54] nivelurile sunetului, copiate explicit; o valoare lipsa sau stricata cade pe implicit
@@ -977,6 +979,7 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
         fishing = fishing,
         river = river,
         village = village,
+        fair = fair,
         bottleneck = raw.bottleneck or "nets",
         firsts = firsts,
         sack = {
@@ -1006,7 +1009,7 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
         everClaimed = snapshot.quests ~= nil and snapshot.quests.everClaimed,
         claimable = if snapshot.quests ~= nil then snapshot.quests.claimable else 0,
     })
-    WheelController.Apply(snapshot.wheel)
+    WheelSignpostController.Apply(snapshot.wheel)
     -- [D59] pontonul
     PierController.Apply(snapshot.river.waiting)
     TreasureController.Apply(snapshot.river.waiting)
@@ -1016,6 +1019,7 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
         snapshot.pearls,
         JournalController.SpeciesCaught(snapshot.fishing)
     )
+    FerryController.Apply(snapshot.village.outfit, snapshot.fair.visits)
     if snapshot.quests ~= nil then
         HUDController.SetQuest(snapshot.quests.active, snapshot.quests.claimable)
         QuestController.Apply(snapshot.quests)

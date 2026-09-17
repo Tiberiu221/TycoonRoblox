@@ -35,6 +35,34 @@ return function()
         end)
     end)
 
+    test.suite("TycoonMath.era [D60]", function()
+        test.case("un profil nou e in Era 1", function()
+            check.equal(TycoonMath.era({}), 1)
+        end)
+
+        test.case("Era e cea a primei platforme necumparate, in ordinea tabelului", function()
+            local bought = {}
+            for _, p in TycoonConfig.PADS do
+                if p.era == 1 then
+                    bought[p.id] = true
+                end
+            end
+            check.equal(TycoonMath.era(bought), 2) -- clopotul Erei 1 sunat: esti la Moara
+            bought.landing_bell = nil
+            check.equal(TycoonMath.era(bought), 1)
+        end)
+
+        test.case("cu totul cumparat, ramai in ultima era", function()
+            local bought = {}
+            local last = 1
+            for _, p in TycoonConfig.PADS do
+                bought[p.id] = true
+                last = math.max(last, p.era)
+            end
+            check.equal(TycoonMath.era(bought), last)
+        end)
+    end)
+
     test.suite("TycoonMath.padStatuses", function()
         -- Regula s-a schimbat la E1.3: nu mai e "primele doua din tabel", ci "toate cele care si-au
         -- implinit conditia". Fara asta, jucatorul era obligat sa cumpere a treia plasa (inutila

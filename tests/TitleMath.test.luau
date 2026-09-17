@@ -28,7 +28,8 @@ return function()
             check.equal(TitleMath.label("era", facts()), "Of the Landing")
             check.equal(TitleMath.label("era", facts({ era = 2 })), "Of the Mill")
             -- o era necunoscuta nu lasa omul fara titlu: se opreste la ultima scrisa
-            check.equal(TitleMath.label("era", facts({ era = 9 })), "Of the Charter")
+            check.equal(TitleMath.label("era", facts({ era = 9 })), "Of the Harbor")
+            check.equal(TitleMath.label("era", facts({ era = 3 })), "Of the Yard")
         end)
 
         test.case("jurnalul complet da River Legend, jurnalul pe jumatate nu da nimic", function()
@@ -89,7 +90,7 @@ return function()
             end
             check.equal(
                 table.concat(labels, ", "),
-                "Of the Mill, River Legend, Pike 96 cm, Market Champion, Statue Patron, Old Salt"
+                "Of the Mill, River Legend, Pike 96 cm, Champion of the Week, Statue Patron, Old Salt"
             )
         end)
     end)

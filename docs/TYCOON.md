@@ -408,7 +408,8 @@ analytics (arie T).
   obiective, panourile Build / People / Colony.
 - **Bara din dreapta:** Workshop, Collection, Shop, Rebirth (când e disponibilă), Settings. **[D56]** Azi: roata,
   quest-urile, Sound; Workshop și Collection au ieșit odată cu colecția parcată. **[D59]** Plus jurnalul (K) și
-  avizierul satului (B); roata are pictograma timonierului și un punct cât rotirea e gata.
+  avizierul satului (B); roata are pictograma timonierului și un punct cât rotirea e gata. **[D60]** Roata s-a mutat
+  în bâlci, cu tasta ei (L); acolo bara are roata, titlurile (T) și Sound.
 - **Atingi o stație** → cartonașul ei (nivel, ce produce) — `BuildingCardController` reconvertit.
 - Tot ce cere bucla centrală: **cel mult un tap** [ui]. Ținte de atingere de 44 pt [ui].
 
@@ -517,6 +518,12 @@ P4 panoul Shop.
 
 ### Q. Retenția pe termen lung
 
+> **[D60, 2026-09-16] Bâlciul de seară.** Un loc separat (al doilea place), la care ajungi cu barca de la ponton, în
+> amonte: până la 24 de oameni se văd cu numele, titlul și ținuta lor; roata zilnică stă acum aici; negustorul are o
+> vitrină nouă în fiecare zi; scena e tabela săptămânii (pește, venit, Era 1), cu trofeele speciilor și campionul
+> săptămânii trecute. Titlurile de vânzare (600/1.000/1.600 de perle) sunt ce rămâne de dorit după catalogul de decor.
+> Iazul de concurs, gheretele, vizitele în sate și colțul cu Robux vin în D61. Vezi D60.
+>
 > **[D59, 2026-09-15] Ce faci cât aștepți.** La ponton: undița (fără eșec, oricât), ce aduce râul (cel mult trei te
 > așteaptă, nimic nu expiră), roata zilnică și avizierul satului. Jurnalul (12 pești, biletele) și catalogul de decor
 > sunt țintele pe termen lung de azi; conținutul nou la 2–4 săptămâni se poate turna în ele (pești, bilete, decor).
@@ -538,6 +545,10 @@ izolată (B5), ca să nu fie o rescriere.
 
 **Sarcini:** R1 terenuri multiple · R2 clasamentul top 30 (`OrderedDataStore`) · R3 lobby-ul
 (decizia de avatar, D20/D23).
+
+> **[D60, 2026-09-16] Socialul a început, dar nu pe terenul tău.** R2 și R3 s-au făcut altfel decât scrie mai sus:
+> bâlciul de seară e locul comun (place separat, avatarul e tot omul 2D), iar clasamentele sunt săptămânale, câte 10,
+> pe scena lui. Terenurile multiple (R1) rămân pe mai târziu; vizitele în satele altora vin în D61, prin poarta satelor.
 
 ### S. Arhitectura tehnică
 

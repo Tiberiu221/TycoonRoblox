@@ -22,9 +22,8 @@ local REMOTE_NAMES = {
 
     -- Noi la pivotul tycoon (D45) [F0 spec 1.4]
     "TycoonState", -- S->C: instantaneul complet; clientul INLOCUIESTE starea, nu o combina
-    "SpinWheel", -- C->S: cere rotirea gratuita a zilei
     "SetAudio", -- C->S {kind, level}: nivelul muzicii sau al efectelor, 0..10, tinut minte in profil [D54]
-    "WheelResult", -- S->C: {prizeId, pearls, converted} sau {nil, 0, false, reason} daca n-a mers [D59]
+    -- [D60] SpinWheel/WheelResult s-au mutat in balci (src/Fair/Net), odata cu roata
     "ClaimQuest", -- C->S: {questId} -- ia recompensa unui quest terminat
     "QuestRejected", -- S->C: {reason}
     "UpgradeStation", -- C->S: {kind, id, count} -- urca nivelul unei statii
@@ -60,6 +59,10 @@ local REMOTE_NAMES = {
     "BuyOutfit", -- C->S {outfitId}: o tinuta, pe perle (o si imbraci)
     "WearOutfit", -- C->S {outfitId}: schimbi intre tinutele pe care le ai
     "ShopResult", -- S->C {what, id, ok, reason}: raspunsul avizierului
+
+    -- Noi la D60 (balciul de seara, place-ul al doilea)
+    "RowUp", -- C->S: urci in barca de la ponton (dupa drumul pictat); serverul te duce in balci
+    "FerryFailed", -- S->C {reason}: barca n-a plecat ("studio" | "closed" | "no_profile" | "failed" | "timeout")
 }
 
 local Net = {}

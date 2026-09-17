@@ -343,6 +343,9 @@ local Assets = {
         barrel = sprite(84865005444327, 18, 24),
         reeds = sprite(83701820915406, 18, 26),
         miniature = sprite(90688181765981, 32, 26), -- satul altcuiva, pe panoul de la poarta
+        -- [2026-09-17] fundalul copt al balciului (scripts/art/d60_ground.py) si lumina moale colorata de joc
+        ground = sprite(117698032332874, 740, 720),
+        glow = sprite(122489449102404, 64, 64),
     },
     -- F1 (O1): sunete sintetizate de noi (scripts/audio), urcate ca Audio. 0 = inca neincarcat ->
     -- SoundController tace, fara eroare.

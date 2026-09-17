@@ -24,6 +24,8 @@ local WheelService = require(Services:WaitForChild("WheelService"))
 local FishService = require(Services:WaitForChild("FishService"))
 local TreasureService = require(Services:WaitForChild("TreasureService"))
 local VillageService = require(Services:WaitForChild("VillageService"))
+local FerryService = require(Services:WaitForChild("FerryService"))
+local LeaderboardService = require(Services:WaitForChild("LeaderboardService"))
 local NetServer = require(NetFolder:WaitForChild("NetServer"))
 
 RiverService.Init({
@@ -62,7 +64,7 @@ StationService.Init({
     Treasures = TreasureService,
 })
 QuestService.Init({ PushState = NetServer.PushState, Stations = StationService })
-WheelService.Init({ PushState = NetServer.PushState })
+-- [D60] roata se invarte in balci: aici WheelService da doar ceasul ei (Snapshot), fara Init
 -- [D59] pontonul: ce aduce raul (vestea ca ceva a venit, cat esti in joc), undita (pe ora serverului), satul.
 -- ORDINEA CONTEAZA: StationService.Init (mai sus) se leaga primul la ProfileLoaded, iar handler-ul lui cere
 -- TreasureService.SettleOffline si pune numarul pe ecranul de bun venit; handler-ul lui TreasureService, legat aici, vine
@@ -73,9 +75,31 @@ TreasureService.Init({
         Net.Get("TreasureArrived"):FireClient(player, kind, slot)
     end,
 })
-FishService.Init({ PushState = NetServer.PushState, Now = RiverService.Now })
+-- [D60] clasamentele balciului se scriu de aici: pestele scos, clopotul Erei 1, venitul din minut in minut
+LeaderboardService.Init({ Income = EconomyService.IncomePerSec })
+FishService.Init({
+    PushState = NetServer.PushState,
+    Now = RiverService.Now,
+    OnLanded = LeaderboardService.FishLanded,
+})
 VillageService.Init({ PushState = NetServer.PushState })
-PadService.Init({ PushState = NetServer.PushState, Hands = HandService, Stations = StationService })
+-- [D60] barca spre balci: tinuta ta pleaca cu ea, doar pentru desenul din timpul incarcarii
+FerryService.Init({
+    Destination = "fair",
+    OnFailed = function(player: Player, reason: string)
+        Net.Get("FerryFailed"):FireClient(player, reason)
+    end,
+    TravelData = function(player: Player)
+        return { from = "village", outfit = VillageService.Snapshot(player).outfit }
+    end,
+    OnDepart = LeaderboardService.SampleIncome,
+})
+PadService.Init({
+    PushState = NetServer.PushState,
+    Hands = HandService,
+    Stations = StationService,
+    OnBought = LeaderboardService.EraBell,
+})
 NetService.Init({
     Remotes = { NetCaught = Net.Get("NetCaught") },
     PushState = NetServer.PushState,
@@ -114,7 +138,8 @@ NetServer.Init({
     Economy = EconomyService,
     Workshop = WorkshopService,
     Hands = HandService,
+    Ferry = FerryService,
 })
-DataService.Init({})
+DataService.Init({ Place = "village" })
 
 print("[Driftwood] server bootstrap complet")
