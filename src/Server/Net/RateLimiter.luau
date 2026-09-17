@@ -26,6 +26,10 @@ local LIMITS: { [string]: { capacity: number, refillPerSecond: number } } = {
     Ferry = { capacity = 3, refillPerSecond = 0.5 },
     -- [D60] cardul altui om din balci: un E pe cineva, cel mult unul pe secunda dupa primele trei
     LookAt = { capacity = 3, refillPerSecond = 1 },
+    -- [D61] gheretele: inceputul si sfarsitul unui joc (un joc tine cateva secunde)
+    Booth = { capacity = 4, refillPerSecond = 1 },
+    -- [D61] mesele: te asezi, te ridici, faci cu mana (Wave are si pauza lui de 2 s pe server)
+    Seat = { capacity = 4, refillPerSecond = 1 },
 }
 RateLimiter.LIMITS = LIMITS
 

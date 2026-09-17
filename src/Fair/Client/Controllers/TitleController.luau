@@ -26,6 +26,8 @@ export type Snapshot = {
     species: number,
     speciesTotal: number,
     decor: { [string]: boolean },
+    pondWins: number, -- [D61]
+    perfectGames: number,
 }
 
 export type Deps = {
@@ -67,8 +69,10 @@ local function iconFor(id: string): string
         return "people"
     elseif id == "legend" then
         return "note"
-    elseif id == "record" or id == "champion" then
+    elseif id == "record" or id == "champion" or id == "pond" then
         return "fish"
+    elseif id == "sharpshooter" then
+        return "check"
     elseif string.sub(id, 1, 6) == "decor_" then
         return "build"
     end
@@ -254,6 +258,21 @@ local function refresh()
             icon = "note",
             name = "River Legend",
             sub = Strings.titleLegendProgress(snap.species, snap.speciesTotal),
+        })
+    end
+    -- [D61] iazul si gheretele: se castiga in balci, cu progresul lor
+    if snap.pondWins < TitleMath.POND_WINS then
+        table.insert(toEarn, {
+            icon = "fish",
+            name = "Pond Champion",
+            sub = Strings.titlePondProgress(snap.pondWins, TitleMath.POND_WINS),
+        })
+    end
+    if snap.perfectGames < TitleMath.PERFECT_GAMES then
+        table.insert(toEarn, {
+            icon = "check",
+            name = "Sharpshooter",
+            sub = Strings.titleSharpshooterProgress(snap.perfectGames, TitleMath.PERFECT_GAMES),
         })
     end
     local decorIds = {}

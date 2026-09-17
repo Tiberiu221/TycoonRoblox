@@ -31,6 +31,11 @@ local REMOTE_NAMES = {
     "PondLandResult", -- S->C {castId, ok, reason, result, wait}
     "PondState", -- S->C: runda (faza, ore absolute), clasamentul ei, podiumul rundei trecute (PondService)
     "PondResult", -- S->C {index, place, count, prize, contest, won, wins, title}: al tau, la sfarsitul rundei
+    -- [D61] gheretele (BoothService): samanta vine de la server, apasarile de la client
+    "BoothStart", -- C->S {game}: "ring" | "duck"
+    "BoothStarted", -- S->C {game, seed, left} sau {game, nil, reason}
+    "BoothFinish", -- C->S {presses}: secundele de la inceputul jocului
+    "BoothResult", -- S->C {ok, reason, result}
 }
 
 -- [D60] Pozitiile, de zece ori pe secunda: un pachet pierdut nu conteaza, urmatorul vine imediat. Aceeasi regula ca

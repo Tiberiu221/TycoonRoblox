@@ -46,6 +46,12 @@ export type Deps = {
         Cast: (Player) -> (),
         SendTo: (Player) -> (),
     },
+    -- [D61] gheretele
+    Booth: {
+        Snapshot: (Player) -> { [string]: any },
+        Start: (Player, string) -> (boolean, string, number?, number?),
+        Finish: (Player, unknown) -> (boolean, string, { [string]: any }?),
+    },
 }
 
 local function isInteger(value: unknown): boolean
@@ -68,6 +74,7 @@ local function buildState(player: Player): { [string]: any }
         visits = deps.Data.FairVisits(player),
         titles = deps.Titles.Snapshot(player),
         market = deps.Market.Snapshot(player),
+        booth = deps.Booth.Snapshot(player),
         settings = { musicLevel = musicLevel, soundLevel = soundLevel },
     }
 end
@@ -202,6 +209,32 @@ function FairNetServer.Init(d: Deps)
         end
         local ok, reason, result, wait = deps.Fish.Land(player, castId :: number)
         Net.Get("PondLandResult"):FireClient(player, castId, ok, reason, result, wait)
+    end)
+
+    -- [D61] Gheretele: jocul incepe pe server (samanta, ora), se joaca pe client, se socoteste pe server.
+    Net.Get("BoothStart").OnServerEvent:Connect(function(player: Player, game: unknown)
+        if not RateLimiter.Allow(player, "Booth") then
+            return
+        end
+        if game ~= "ring" and game ~= "duck" then
+            return
+        end
+        local ok, reason, seed, left = deps.Booth.Start(player, game :: string)
+        if ok then
+            Net.Get("BoothStarted"):FireClient(player, game, seed, left)
+        else
+            Net.Get("BoothStarted"):FireClient(player, game, nil, reason)
+        end
+    end)
+    Net.Get("BoothFinish").OnServerEvent:Connect(function(player: Player, presses: unknown)
+        if not RateLimiter.Allow(player, "Booth") then
+            return
+        end
+        if typeof(presses) ~= "table" or #(presses :: { any }) > 8 then
+            return
+        end
+        local ok, reason, result = deps.Booth.Finish(player, presses)
+        Net.Get("BoothResult"):FireClient(player, ok, reason, result)
     end)
 
     -- [D54] nivelul muzicii sau al efectelor, din panoul "Sound": acelasi profil ca in sat

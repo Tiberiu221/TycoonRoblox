@@ -20,6 +20,7 @@ local VillageConfig = require(ReplicatedStorage.Shared.Config.VillageConfig)
 local Controllers = script.Parent:WaitForChild("Controllers")
 local AudioPanel = require(Controllers:WaitForChild("AudioPanel"))
 local BoardController = require(Controllers:WaitForChild("BoardController"))
+local BoothController = require(Controllers:WaitForChild("BoothController"))
 local CameraController = require(Controllers:WaitForChild("CameraController"))
 local CharacterController = require(Controllers:WaitForChild("CharacterController"))
 local FairFerryController = require(Controllers:WaitForChild("FairFerryController"))
@@ -191,6 +192,23 @@ safeInit("MarketController", function()
         end,
     })
     FairInteractController.AddSource(MarketController.Focus)
+end)
+
+-- [D61] gheretele de joc: numele deasupra lor, cardul si panoul cu cele doua jocuri
+safeInit("BoothController", function()
+    BoothController.Init({
+        World = layers.Scroll,
+        HudGui = hudCanvas,
+        Remotes = {
+            BoothStart = Net.Get("BoothStart"),
+            BoothStarted = Net.Get("BoothStarted"),
+            BoothFinish = Net.Get("BoothFinish"),
+            BoothResult = Net.Get("BoothResult"),
+        },
+        OnToast = FairHUDController.Toast,
+        PearlFly = FairHUDController.PearlFly,
+    })
+    FairInteractController.AddSource(BoothController.Focus)
 end)
 
 -- ceilalti oameni: pozitiile, numele si titlurile lor, si cardul "Look at ... (E)" langa fiecare
@@ -377,6 +395,16 @@ Net.Get("FairState").OnClientEvent:Connect(function(raw: { [string]: any })
         species = rawTitles.species or 0,
         speciesTotal = rawTitles.speciesTotal or 0,
         decor = table.clone(rawTitles.decor or {}),
+        pondWins = if typeof(rawTitles.pondWins) == "number" then rawTitles.pondWins else 0,
+        perfectGames = if typeof(rawTitles.perfectGames) == "number"
+            then rawTitles.perfectGames
+            else 0,
+    }
+    -- [D61] gheretele: cate jocuri cu premiu mai ai azi
+    local rawBooth: any = raw.booth or {}
+    local booth = {
+        left = if typeof(rawBooth.left) == "number" then rawBooth.left else 0,
+        perfect = if typeof(rawBooth.perfect) == "number" then rawBooth.perfect else 0,
     }
     local pearls = if typeof(raw.pearls) == "number" then raw.pearls :: number else 0
     local rawMarket: any = raw.market or {}
@@ -396,6 +424,7 @@ Net.Get("FairState").OnClientEvent:Connect(function(raw: { [string]: any })
     FairHUDController.SetPearls(pearls)
     TitleController.Apply(titles, pearls)
     MarketController.Apply(market, pearls)
+    BoothController.Apply(booth)
     MusicController.Apply(musicLevel)
     SoundController.Apply(soundLevel)
     AudioPanel.Refresh()

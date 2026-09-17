@@ -79,6 +79,9 @@
         "PondService": {
           "$path": "src/Fair/Server/Services/PondService.luau"
         },
+        "BoothService": {
+          "$path": "src/Fair/Server/Services/BoothService.luau"
+        },
         "MarketService": {
           "$path": "src/Fair/Server/Services/MarketService.luau"
         },

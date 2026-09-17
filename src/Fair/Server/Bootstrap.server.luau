@@ -28,6 +28,7 @@ local BoardService = require(Services:WaitForChild("BoardService"))
 local MarketService = require(Services:WaitForChild("MarketService"))
 local LeaderboardService = require(Services:WaitForChild("LeaderboardService"))
 local PondService = require(Services:WaitForChild("PondService"))
+local BoothService = require(Services:WaitForChild("BoothService"))
 local FairNetServer = require(NetFolder:WaitForChild("FairNetServer"))
 
 VillageService.Init({ PushState = FairNetServer.PushState })
@@ -94,6 +95,9 @@ PondService.Init({
     PositionOf = PresenceService.PositionOf,
 })
 
+-- [D61] gheretele de joc
+BoothService.Init({ PushState = FairNetServer.PushState, PositionOf = PresenceService.PositionOf })
+
 FairNetServer.Init({
     Data = DataService,
     Economy = EconomyService,
@@ -107,6 +111,7 @@ FairNetServer.Init({
     Market = MarketService,
     Fish = FishService,
     Pond = PondService,
+    Booth = BoothService,
 })
 DataService.Init({ Place = "fair" })
 

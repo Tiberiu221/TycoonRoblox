@@ -235,6 +235,20 @@ STAGE_PANEL = dict(
     ],
 )
 
+# [D61] Panoul gheretelor (BoothController): fereastra fixa 560x470 -> corpul 520x374. Zona jocului sus, dedesubt
+# ajutorul, progresul, jocurile cu premiu si nota (stanga), butonul (dreapta).
+BOOTH_PANEL = dict(
+    panel="Booth (BoothController)", width=560 - SPACE["lg"] * 2, row_h=470 - SPACE["lg"] * 2 - 56,
+    boxes=lambda w: [
+        ("area", 0, 0, 520, 250, None),
+        ("help", 0, 256, w, 20, None),
+        ("progress", 0, 282, 300, 22, None),
+        ("prizeGames", 0, 310, 300, 20, None),
+        ("hint", 0, 334, 300, 18, None),
+        ("button", w - 190, 314, 190, 52, None),
+    ],
+)
+
 # [D60] Cardul altui jucator (PlayerCardController): fereastra fixa 480x460 -> corpul 440x364 (rama lg, antetul 56).
 PLAYER_CARD = dict(
     panel="Player card (PlayerCardController)", width=480 - SPACE["lg"] * 2, row_h=460 - SPACE["lg"] * 2 - 56,
@@ -289,7 +303,7 @@ def main():
     bad = sum(check(spec) for spec in (STATION_ROW, QUEST_ROW, APPROACH_CARD, STATION_MENU, INTERACT_CARD, AUDIO_PANEL,
                                       WHEEL_PANEL, WHEEL_ROW, BOARD_ROW, JOURNAL_ROW,
                                       TITLE_ROW, TITLE_HEAD, MARKET_ROW, LEADERBOARD_ROW, STAGE_PANEL,
-                                      PLAYER_CARD))
+                                      PLAYER_CARD, BOOTH_PANEL))
     if bad:
         raise SystemExit(f"{bad} coliziuni de asezare")
 

@@ -599,6 +599,52 @@ function Strings.pondResult(
     return `Round {index}: {Strings.ordinal(place)} of {count} · +{prize} pearls`
 end
 
+-- [D61] Gheretele de joc: cardul, panoul si ce ai castigat. Premiile se dau la primele jocuri din zi; panoul o spune.
+Strings.BOOTH_TITLES = { ring = "Ring Toss", duck = "Hook a Duck" }
+Strings.BOOTH_HELP = {
+    ring = "Throw when the ring is over a bottle",
+    duck = "Drop the hook when a duck is under it",
+}
+Strings.BOOTH_HINT = {
+    ring = "Prizes: 1 hit 1 · 3 hits 4 · 5 hits 10 pearls",
+    duck = "Bigger numbers swim faster",
+}
+Strings.BOOTH_ACTION = { ring = "Throw", duck = "Hook" }
+Strings.BOOTH_AGAIN = "Play again"
+Strings.BOOTH_WAIT = "Getting ready..."
+Strings.BOOTH_NO_PRIZE = "Play for fun, prizes are back tomorrow"
+Strings.SHARPSHOOTER_UNLOCKED = "New title: Sharpshooter"
+function Strings.boothCard(game: string, keyHint: string): string
+    return `Play {(Strings.BOOTH_TITLES :: any)[game] or "a game"}{keyHint}`
+end
+function Strings.boothProgress(game: string, done: number, total: number, score: number): string
+    if game == "ring" then
+        return `Rings {done}/{total} · Hits {score}`
+    end
+    return `Hooks {done}/{total} · Score {score}`
+end
+function Strings.boothPrizeGames(used: number, total: number): string
+    return `Prize games today {used}/{total}`
+end
+function Strings.boothResult(game: string, score: number, prize: number, prizeGame: boolean): string
+    local what = if game == "ring" then `{score} hits` else `Score {score}`
+    if not prizeGame then
+        return `{what} · just for fun`
+    end
+    if prize <= 0 then
+        return `{what} · no prize this time`
+    end
+    return `{what} · +{prize} pearls`
+end
+function Strings.boothRejected(reason: string): string
+    if reason == "too_far" then
+        return "Walk up to the booth to play"
+    elseif reason == "invalid" or reason == "no_game" then
+        return "That game didn't count. Play again"
+    end
+    return "Try again in a moment"
+end
+
 -- [D60] Oamenii din balci: cardul de langa cineva si panoul cu ce a facut.
 function Strings.lookAtCard(name: string, keyHint: string): string
     return `Look at {name}{keyHint}`

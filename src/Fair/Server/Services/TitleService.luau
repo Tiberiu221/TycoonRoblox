@@ -77,6 +77,14 @@ function TitleService.Facts(player: Player): TitleMath.Facts?
         decor = table.clone(data.Village.decor or {}),
         champion = champion ~= nil and champion(player),
         bought = table.clone(titlesOf(data).bought),
+        -- [D61] iazul si gheretele
+        pondWins = if typeof(data.Fair) == "table" and typeof(data.Fair.pond) == "table"
+            then data.Fair.pond.wins or 0
+            else 0,
+        perfectGames = if typeof(data.Fair) == "table"
+                and typeof(data.Fair.booth) == "table"
+            then data.Fair.booth.perfect or 0
+            else 0,
     }
 end
 
@@ -104,6 +112,8 @@ export type Snapshot = {
     species: number,
     speciesTotal: number,
     decor: { [string]: boolean },
+    pondWins: number, -- [D61] progresul titlurilor din balci
+    perfectGames: number,
 }
 
 function TitleService.Snapshot(player: Player): Snapshot
@@ -126,6 +136,8 @@ function TitleService.Snapshot(player: Player): Snapshot
         species = if facts ~= nil then facts.species else 0,
         speciesTotal = #FishConfig.SPECIES,
         decor = if facts ~= nil then facts.decor else {},
+        pondWins = if facts ~= nil then facts.pondWins or 0 else 0,
+        perfectGames = if facts ~= nil then facts.perfectGames or 0 else 0,
     }
 end
 
