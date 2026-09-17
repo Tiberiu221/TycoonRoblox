@@ -65,6 +65,8 @@ python3 scripts/art/check_panel_rows.py
 ```
 `rojo build` și `check_requires` **nu parsează Luau** — o eroare de sintaxă trece de ele; doar
 stylua/selene o prind. Rulează-le mereu pe toate, nu înlănțuite după o eroare.
+**selene pică CI-ul și la un singur avertisment** (cod 1). Nu-i trece ieșirea prin `tail`/`grep`: pipe-ul ascunde codul
+(așa a picat D61 pasul 3 pe CI, deși local părea verde).
 
 ## Mod de lucru
 
@@ -93,11 +95,21 @@ stylua/selene o prind. Rulează-le mereu pe toate, nu înlănțuite după o eroa
   bâlciul doar în 114983498774894); serverul Rojo al satului rulează detașat pe 34872 și trebuie repornit ca să citească
   o schimbare de proiect. Ce a rulat în Studio se vede în `~/Library/Logs/Roblox/*_last.log` (`CreatorOutput`, `open place`).
 
-## Stare (2026-09-16)
+## Stare (2026-09-17)
 
-**Bâlciul de seară [D60]** — scris după planul aprobat, trece poarta (420 de teste), **necomis** (începutul e în
-f82e404). Bâlciul s-a văzut în Studio ca fișier local; barca și doi jucători se pot verifica doar pe staging. Detaliile
-în DECIZII D60.
+**Iazul, gheretele, mesele [D61, partea 1]** — plan aprobat, comis pe pași (4c05c81 … fc3960b), CI verde, **publicat pe
+staging** (ambele place-uri, 11:10Z). Trece poarta (442 de teste). **Neverificat încă în Studio.**
+- **Iazul:** jetiul pe malul de sud, aceeași undiță ca acasă (`UI/FishingRig`, comun cu `PierController`).
+- **Concursul:** runde de 6 min după ceas (`PondMath`, `PondService`), tabla pe mal, banda de sus, `Pond Champion`.
+- **Gheretele:** `Ring Toss` și `Hook a Duck` (`BoothMath`, `BoothService`, `BoothController`); premiu doar la primele
+  5 jocuri pe zi UTC; titlul `Sharpshooter`.
+- **Mesele:** `Sit (E)` și Wave pe G (`SocialController`, `PresenceService`); muzicanții animați; melodia bâlciului, mai
+  tare lângă ei (`MusicController.Init({Track, Proximity})`).
+- **Profilul și rețeaua:** profil **v11**; `Crowd` poartă și flagurile stă jos / face cu mâna / pescuiește.
+- **Rămâne pentru D61, partea a doua:** croitoreasa și poarta satelor. Colțul cu Robux vine după ce vedem bâlciul jucat.
+
+**Bâlciul de seară [D60]** — comis (6f96cbf) și publicat pe staging (primul run complet verde: e89b842). Bâlciul s-a
+văzut în Studio ca fișier local; barca și doi jucători se pot verifica doar pe staging. Detaliile în DECIZII D60.
 - **Barca:** legată în aval de ponton (`TycoonConfig.FERRY`); drumul pictat comun (`UI/RideScene`, în amonte = spre
   stânga), cererea pleacă pe negru (`RowUp`/`RowHome` → `FerryService`). Sesiunea profilului nu se închide înainte de
   teleport: `DataService.MarkTeleporting` oprește Kick-ul, iar bâlciul nu scrie `lastSeenAt` (satul plătește ca offline).
@@ -113,7 +125,7 @@ f82e404). Bâlciul s-a văzut în Studio ca fișier local; barca și doi jucăto
   orice mutare în `FairLayout`), cu pădure, lumină moale, scântei și ghirlande. Imaginile sunt urcate. La a doua
   privire au plecat punctele gri de pe poiană. Etichetele trofeelor au testul lor de text, iar tabelele stau în lumina
   scenei.
-- **Amânat pe D61:** iazul, gheretele, poarta satelor, croitoreasa, colțul cu Robux.
+- **Amânat pe D61:** poarta satelor, croitoreasa, colțul cu Robux (iazul și gheretele s-au făcut, vezi mai sus).
 
 **Pontonul: undița, ce aduce râul, perlele pe sat, roata la locul ei [D59]** — plan aprobat de owner. Pontonul intră în
 râu și se merge pe el (`WorldMap` cu trecere); la capăt, undița fără eșec (`ReelMath`: doar ținut apăsat scoți orice

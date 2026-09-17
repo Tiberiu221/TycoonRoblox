@@ -518,6 +518,12 @@ P4 panoul Shop.
 
 ### Q. Retenția pe termen lung
 
+> **[D61, 2026-09-17] De ce te întorci în bâlci.** Iazul de concurs are runde de 6 minute după ceas, aceleași pe toate
+> serverele. Câștigă peștele cel mai mare, cu premii mici în perle și titlul `Pond Champion`. Gheretele (`Ring Toss`,
+> `Hook a Duck`) sunt jocuri de îndemânare gratuite: premiu dau doar primele 5 jocuri din zi, iar titlul lor e
+> `Sharpshooter`. Mesele cu muzicanți sunt locul unde se strânge lumea (`Sit`, `Wave`, melodia bâlciului) și nu dau
+> nimic. Croitoreasa și poarta satelor vin în partea a doua a D61. Vezi D61.
+>
 > **[D60, 2026-09-16] Bâlciul de seară.** Un loc separat (al doilea place), la care ajungi cu barca de la ponton, în
 > amonte: până la 24 de oameni se văd cu numele, titlul și ținuta lor; roata zilnică stă acum aici; negustorul are o
 > vitrină nouă în fiecare zi; scena e tabela săptămânii (pește, venit, Era 1), cu trofeele speciilor și campionul

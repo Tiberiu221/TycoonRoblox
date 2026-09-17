@@ -11,6 +11,101 @@ Convenție: în tot proiectul, „server" înseamnă o instanță Roblox efemer�
 
 ---
 
+## D61 — Iazul de concurs, gheretele de joc, mesele cu muzicanții (partea 1)
+**DECIS** (2026-09-17) — owner-ul: *„ok, continuăm dezvoltarea"*. Dintre variante a ales **„Iazul și jocurile"**, iar
+planul a fost aprobat înainte de cod. Machetele sunt desenate peste fundalul copt: `d61_iaz.png`, `d61_jocuri.png`,
+`d61_mese.png`.
+- **Partea a doua din D61:** croitoreasa și poarta satelor.
+- **Mai târziu:** colțul cu Robux, după ce vedem bâlciul jucat (D60).
+
+**Ce era de rezolvat:** în bâlci nu aveai ce face în afară de roată, tabelă și negustor. Trei margini ale hărții scriau
+`Opens soon`, iar pescuitul, activitatea de așteptare din sat, nu avea unde să se întreacă cu alții.
+
+1. **Iazul.**
+   - **Jetiul** pleacă de pe malul de sud și se poate călca (`FairLayout.JETTY`). Capătul lui e zona de aruncare
+     (`CAST_ZONE`), unde apare cardul `Cast (E)`.
+   - **Undița e aceeași ca acasă:** `UI/FishingRig`, scos din `PierController` și folosit de amândouă. Aceiași pești,
+     aceleași perle, același jurnal și aceleași recorduri; un pește mare intră și pe `BIGGEST FISH`.
+   - **Ce aduce râul rămâne la ponton:** `FishService.Cast(player, "pond")` nu agață comori.
+   - **Plutitorul** cade mereu în apă, dincolo de marginea jetiului (`FairLayout.bobberFor`).
+   - **Ceilalți te văd pescuind:** flagul `fishing` din `Crowd`, pe care serverul îl crede doar pe jetiu. Eticheta ta se
+     ascunde cât mulinezi.
+   - **Bug găsit la plan:** în bâlci, `FishService` socotea mușcătura pe `os.clock`, iar clientul o aștepta pe
+     `GetServerTimeNow`. Acum serviciul primește `Now`.
+2. **Concursul** (`PondMath`, `PondService`).
+   - **Rundele merg după ceas,** la fel pe toate serverele: 6 minute, 4 de pescuit și 2 de pauză, numerotate în zi.
+   - **Câștigă cel mai mare pește** (în cm) scos în rundă; la egalitate, cine l-a scos primul.
+   - **Premiile** se dau la final, doar cui e încă în bâlci:
+     - cu cel puțin doi pescari: **20 / 12 / 8**, iar oricine altcineva a prins ceva ia **3**;
+     - singur la iaz: **3**, cu mesajul `You were the only one fishing`.
+   - **Tabla de pe malul de nord:** în rundă, primii 4, rândul tău și timpul; în pauză, podiumul și `Next round in`.
+     Banda de sus apare cât ești lângă iaz.
+   - **`Pond Champion`** vine după 3 runde câștigate cu cel puțin doi pescari.
+   - **Bugetul:** cine câștigă toate rundele ia în plus cel mult 3,3 perle pe minut, sub jumătate din pescuit (8,3).
+     Testul `PearlBudget` verifică pragul.
+3. **Gheretele** (`BoothMath`, `BoothService`, `BoothController`).
+   - **`Ring Toss`:** 5 inele peste trei sticle, fiecare mai repede decât cel dinainte.
+   - **`Hook a Duck`:** 3 cârlige, rățuște cu 1/2/3/5; cele mari înoată mai repede.
+   - **Scorul îl socotește serverul.** El dă sămânța, iar clientul trimite doar clipele apăsărilor. Serverul le verifică
+     (ordinea, pauza minimă, timpul trecut), apoi socotește cu aceleași funcții ca desenul. La scor ajung doar
+     aruncările verificate.
+   - **Premiu dau doar primele 5 jocuri din ziua UTC,** la un loc pentru ambele gherete, deci cel mult 50 de perle pe zi.
+     - la inele: 0/1/2/4/6/10 perle, după câte ai prins;
+     - la rățuște: 1/2/4/6/10 perle, pentru scorurile 0–3 / 4–6 / 7–9 / 10–12 / 13–15.
+   - **Restul jocurilor sunt de plăcere,** iar panoul o spune (`Prize games today 2/5`).
+   - **`Sharpshooter`** vine după 5 jocuri perfecte.
+4. **Mesele și muzicanții.**
+   - **`Sit (E)`** merge la 6 bănci și la 4 locuri de la mese (`FairLayout.SEATS`).
+     - Omul trece pe loc cu fața spre cameră, desenat sub mobilă.
+     - Serverul verifică dacă locul e liber și dacă ești aproape. La refuz te ridici, iar un toast spune de ce.
+     - Orice pas sau `Stand up (E)` te ridică.
+   - **`Wave`** (tasta G și butonul din bara din dreapta): brațele sus 2 s și o mână deasupra capului.
+   - **Ceilalți văd tot:** pachetul `Crowd` spune și cine stă jos și cine face cu mâna.
+   - **Muzicanții:** scripcarul și toboșarul își schimbă cadrele, iar deasupra lor se ridică note.
+   - **Melodia bâlciului** (`make_music.py fair`: sol major, 108 BPM) se aude tare lângă muzicanți și la 35% departe de
+     ei. Panoul Sound o reglează ca pe cealaltă.
+   - **Nimic de aici nu dă recompense.**
+5. **Profilul și rețeaua.**
+   - **Profil v11, aditiv:** `Fair.pond = {wins, rounds}` și `Fair.booth = {day, prizeGames, perfect}`.
+   - **Remote-uri noi în bâlci:**
+     - iazul: `PondCast`, `PondCastResult`, `PondLand`, `PondLandResult`, `PondState`, `PondResult`;
+     - gheretele: `BoothStart`, `BoothStarted`, `BoothFinish`, `BoothResult`;
+     - mesele: `Sit`, `Stand`, `Wave`, `SeatResult`.
+   - **Limitele de rată:** bucket-uri noi `Booth` și `Seat`; iazul folosește `Fishing`.
+   - **Pâlnia „Fair":** FirstPondCast, FirstPondRound, FirstBoothGame, FirstSit, FirstWave.
+   - **Pachetul `Crowd`** rămâne de 6 octeți de om: flagurile stau pe biții liberi.
+   - **Quest-ul** `Catch a fish at the pier` devine `Catch a fish`, pentru că se bifa oricum și la iaz.
+   - **Arta:** 11 imagini urcate (tabla iazului, muzicanții pe două cadre, piesele jocurilor, mâna, nota, fundalul
+     refăcut), plus melodia.
+
+**Abateri de la plan, ale mele:**
+- **Muzicanții** stau la (1030/1090, 612), nu lângă a doua masă. Acolo se călcau între ei și cu firma negustorului, iar
+  copacii intrau în masa mutată; a doua masă a rămas unde era.
+- **Aruncarea** se face dintr-o zonă (capătul jetiului), nu din trei puncte fixe. Plutitorul se socotește din poziția ta.
+- **Cadrele muzicanților** sunt două imagini care se schimbă între ele, nu `ImageRectOffset`: așa le urcă scriptul de
+  artă.
+- **Așezarea** se vede imediat, înainte de răspunsul serverului.
+  - **De ce:** dacă omul aștepta răspunsul, cine apăsa E din mers nu se așeza și nu afla de ce.
+  - **Plasa de siguranță:** un pachet de poziție întârziat nu ridică pe nimeni în prima secundă.
+- **Numele:** `SeatController` din plan se numește `SocialController`, pentru că are și Wave.
+
+**Se verifică doar publicat** (sau în Studio, cu un server local și 2 clienți):
+- o rundă cu doi pescari dă locuri și premii;
+- singur la iaz primești 3 perle și mesajul;
+- un pește de la iaz apare pe `BIGGEST FISH` într-un minut;
+- celălalt jucător vede Sit și Wave.
+
+**În Studio** (`Balci.rbxl`) se văd:
+- jetiul și undița;
+- tabla și banda;
+- gheretele: 5 jocuri cu premiu, apoi fără;
+- Sit și Wave;
+- muzica, mai tare lângă muzicanți.
+
+În sat, pontonul trebuie să se poarte ca înainte după mutarea undiței în `FishingRig`.
+
+---
+
 ## D60 — Bâlciul de seară: locul unde te vezi cu ceilalți și te etalezi
 **DECIS** (2026-09-16) — owner-ul, după machete: *„un hub circular în care ai în fiecare margine câte ceva de văzut/făcut,
 hartă mult mai mare"*, *„mai bine place separat și ajungi cu barca contrar river flow"*, *„bâlci de seară cu lumini și
