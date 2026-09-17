@@ -75,11 +75,14 @@ stylua/selene o prind. Rulează-le mereu pe toate, nu înlănțuite după o eroa
   mereu"; înainte era „fără commit fără cerere"). Repo privat `github.com/Tiberiu221/TycoonRoblox`, ramura `main`.
   CI-ul rulează poarta la fiecare push și scrie rezultatul pe ramura `ci-status` (citit prin SSH:
   `git fetch origin ci-status && git show FETCH_HEAD:status.txt`; jurnalul pașilor picați e în `failed.log`).
-  **Publicarea pe staging** nu vine din CI: după toate semnele, `publish-staging` n-a publicat niciodată. Actualizările
-  satului luate drept publicări erau salvări din Studio (editarea colaborativă salvează singură satul deschis), iar
-  bâlciul a rămas gol de la creare. Se publică de pe Mac cu `python3 scripts/publish_staging.py`: poarta, build,
-  publicare, verificare în `updateTime`. Scriptul folosește cheia de publicare din `~/.driftwood_publish_key`; cheia din
-  `~/.driftwood_api_key` are drept doar pe imagini. Rularea lui e publicare, deci cere acordul owner-ului.
+  **Publicarea pe staging:** CI-ul publică la fiecare push (`scripts/ci_publish.sh`), dar **satul nu se publică cât e
+  deschis în Studio**. Roblox răspunde 409 „Server is busy" cât trăiește sesiunea de editare colaborativă, adică încă
+  câteva minute după închidere. Așa a picat publicarea satului la fiecare push, până pe 2026-09-17. Actualizările
+  satului luate atunci drept publicări erau salvări automate din Studio, iar bâlciul a rămas gol de la creare.
+  Când owner-ul vrea satul pe staging, închide fereastra satului din Studio, iar eu public din nou: un push, fie și un
+  commit gol. Varianta de pe Mac e `python3 scripts/publish_staging.py`. Are aceeași poartă și aceleași reîncercări,
+  dar cere o cheie de publicare în `~/.driftwood_publish_key`, care încă nu există. Cheia din `~/.driftwood_api_key`
+  are drept doar pe imagini. Rularea scriptului e publicare, deci cere acordul owner-ului.
   **Nu trimite owner-ul în GitHub** (nu găsește Actions). Owner-ul vede satul prin `rojo serve` + Connect în Studio, iar
   bâlciul ca fișier local (`rojo build fair.project.json -o Balci.rbxl`, deschis în Studio, fără teleport și fără
   DataStore).

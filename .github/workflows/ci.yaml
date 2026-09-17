@@ -84,44 +84,23 @@ jobs:
       - name: Build fair place
         run: rojo build fair.project.json -o DriftwoodFair.rbxl
 
-      # [2026-09-17] Pasul asta pica, iar `--fail` ascundea raspunsul Roblox: acum se vede codul si mesajul (fara cheie;
-      # doar lungimea ei, ca un secret gol sa se recunoasca).
+      # [2026-09-17] Publicarea satului pica cu 409 cat satul e deschis in Studio (editare colaborativa); scriptul
+      # reincearca trei minute, apoi spune limpede de ce n-a mers. Raspunsul Roblox se vede in jurnal, cheia nu.
       - name: Publish to Driftwood-Staging (Open Cloud)
         id: publish
         env:
           ROBLOX_API_KEY: ${{ secrets.ROBLOX_STAGING_API_KEY }}
           UNIVERSE_ID: ${{ vars.STAGING_UNIVERSE_ID }}
-          PLACE_ID: ${{ vars.STAGING_PLACE_ID }}
-        run: |
-          echo "universe=$UNIVERSE_ID place=$PLACE_ID key_length=${#ROBLOX_API_KEY}"
-          set +e
-          RESPONSE=$(curl -sSL --fail-with-body \
-            --header "x-api-key: $ROBLOX_API_KEY" \
-            --header "Content-Type: application/octet-stream" \
-            --data-binary "@Driftwood.rbxl" \
-            --request POST \
-            "https://apis.roblox.com/universes/v1/$UNIVERSE_ID/places/$PLACE_ID/versions?versionType=Published")
-          STATUS=$?
-          set -e
-          echo "raspuns: $RESPONSE"
-          if [ "$STATUS" -ne 0 ]; then exit "$STATUS"; fi
-          echo "version=$(echo "$RESPONSE" | jq -r '.versionNumber')" >> "$GITHUB_OUTPUT"
+        run: bash scripts/ci_publish.sh "${{ vars.STAGING_PLACE_ID }}" Driftwood.rbxl
 
-      # [D60] balciul de seara, al doilea place din acelasi univers. Id-ul nu e secret (sta si in PlaceConfig), deci nu
-      # mai depinde de o variabila din GitHub: la push-ul f82e404 pasul n-a publicat nimic, iar variabila nu se vedea.
+      # [D60] balciul, al doilea place din acelasi univers, si cand satul n-a mers. Id-ul e scris aici (nu e secret, sta
+      # si in PlaceConfig): variabila FAIR_PLACE_ID din GitHub are o valoare pe care curl o respinge ca URL.
       - name: Publish fair place to Driftwood-Staging (Open Cloud)
-        # si cand satul n-a mers: fiecare place isi arata singur raspunsul
         if: ${{ !cancelled() }}
         env:
           ROBLOX_API_KEY: ${{ secrets.ROBLOX_STAGING_API_KEY }}
-          FAIR_PLACE_ID: ${{ vars.FAIR_PLACE_ID || '114983498774894' }}
-        run: |
-          curl -sSL --fail-with-body \
-            --header "x-api-key: $ROBLOX_API_KEY" \
-            --header "Content-Type: application/octet-stream" \
-            --data-binary "@DriftwoodFair.rbxl" \
-            --request POST \
-            "https://apis.roblox.com/universes/v1/${{ vars.STAGING_UNIVERSE_ID }}/places/$FAIR_PLACE_ID/versions?versionType=Published"
+          UNIVERSE_ID: ${{ vars.STAGING_UNIVERSE_ID }}
+        run: bash scripts/ci_publish.sh 114983498774894 DriftwoodFair.rbxl
 
       - name: Upload artifact tagged with versionNumber
         uses: actions/upload-artifact@v4

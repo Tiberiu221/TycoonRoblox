@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 """Publica satul si balciul pe staging, de pe Mac, dupa poarta intreaga.
 
-DE CE EXISTA (2026-09-17): pasul `publish-staging` din CI n-a publicat, dupa toate semnele, niciodata. Actualizarile
-satului pe care le-am luat drept publicari erau salvari din Studio (editarea colaborativa), iar balciul a ramas gol de
-la creare. Variabilele si secretul din GitHub nu se vad de aici, iar owner-ul nu gaseste paginile acelea. Asa ca
-publicarea se face de aici, cu o cheie care are doar dreptul de publicare (`universe-places`, Write), si se verifica
-tot de aici, in `updateTime`.
+DE CE EXISTA (2026-09-17): CI-ul publica la fiecare push (scripts/ci_publish.sh), dar pana azi publicarea satului a
+picat de fiecare data cu 409, pentru ca satul era deschis in Studio (editare colaborativa). Scriptul asta e varianta de
+pe Mac, pentru cand trebuie publicat fara un push: aceeasi poarta, aceleasi reincercari. Cere o cheie care are doar
+dreptul de publicare (`universe-places`, Write) si verifica rezultatul in `updateTime`.
 
 Cheile se citesc din fisiere si nu se afiseaza niciodata:
   ~/.driftwood_publish_key   publicarea (universe-places: write, experienta Driftycoon (Staging))
@@ -67,22 +66,34 @@ def update_time(place, key):
         return f"(citire esuata: HTTP {e.code})"
 
 
+# 409 "Server is busy": place-ul e deschis in Studio (editare colaborativa), iar Roblox nu primeste publicarea cat
+# sesiunea traieste -- inca cateva minute dupa ce se inchide Studio (raspunsul Roblox de pe forum, 2026-09-17).
+BUSY_WAITS = (0, 30, 60, 90)
+
+
 def publish(place, path, key):
     with open(path, "rb") as f:
         body = f.read()
-    req = urllib.request.Request(
-        f"https://apis.roblox.com/universes/v1/{UNIVERSE}/places/{place}/versions?versionType=Published",
-        data=body,
-        headers={"x-api-key": key, "Content-Type": "application/octet-stream"},
-        method="POST",
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=120) as r:
-            return json.load(r).get("versionNumber")
-    except urllib.error.HTTPError as e:
-        detail = e.read()[:300].decode("utf-8", "replace")
-        print(f"PICAT: publicarea place-ului {place}: HTTP {e.code} {detail}")
-        sys.exit(1)
+    for wait in BUSY_WAITS:
+        time.sleep(wait)
+        req = urllib.request.Request(
+            f"https://apis.roblox.com/universes/v1/{UNIVERSE}/places/{place}/versions?versionType=Published",
+            data=body,
+            headers={"x-api-key": key, "Content-Type": "application/octet-stream"},
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=120) as r:
+                return json.load(r).get("versionNumber")
+        except urllib.error.HTTPError as e:
+            detail = e.read()[:300].decode("utf-8", "replace")
+            if e.code == 409:
+                print(f"  409, reincerc: {detail}")
+                continue
+            print(f"PICAT: publicarea place-ului {place}: HTTP {e.code} {detail}")
+            sys.exit(1)
+    print(f"PICAT: place-ul {place} e deschis in Studio (sesiune colaborativa). Inchide-l, asteapta cateva minute, reia.")
+    sys.exit(1)
 
 
 def main():
