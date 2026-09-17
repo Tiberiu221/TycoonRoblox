@@ -33,6 +33,7 @@ type Mark = {
     sample: FairPresence.Sample,
     facing: string,
     moving: boolean,
+    fishing: boolean, -- [D61] cu undita pe jetiu (doar aspect; crezut doar pe jetiu)
     heardAt: number,
     card: Person,
 }
@@ -120,6 +121,7 @@ local function arrive(player: Player)
         sample = { x = spawn.x, y = spawn.y, t = os.clock() },
         facing = "up",
         moving = false,
+        fishing = false,
         heardAt = 0,
         card = describe(player, slot),
     }
@@ -151,6 +153,15 @@ function PresenceService.Touch(player: Player)
         mark.card = card
         sendRoster()
     end
+end
+
+-- [D61] Unde e omul, dupa ultimul pachet crezut (iazul verifica de aici ca arunci de pe jetiu).
+function PresenceService.PositionOf(player: Player): (number?, number?)
+    local mark = marks[player]
+    if mark == nil then
+        return nil, nil
+    end
+    return mark.sample.x, mark.sample.y
 end
 
 -- Cartea de vizita a unui om de pe server (numele, tinuta, titlul), pentru cardul lui.
@@ -187,7 +198,14 @@ function PresenceService.Init(d: Deps)
     end)
 
     d.Where.OnServerEvent:Connect(
-        function(player: Player, x: unknown, y: unknown, facing: unknown, moving: unknown)
+        function(
+            player: Player,
+            x: unknown,
+            y: unknown,
+            facing: unknown,
+            moving: unknown,
+            fishing: unknown
+        )
             local mark = marks[player]
             if mark == nil then
                 return
@@ -200,12 +218,23 @@ function PresenceService.Init(d: Deps)
             if not FairPresence.isValidFacing(facing) or typeof(moving) ~= "boolean" then
                 return
             end
+            if fishing ~= nil and typeof(fishing) ~= "boolean" then
+                return
+            end
             if not FairPresence.accept(mark.sample, x, y, now) then
                 return -- un pachet respins nu muta nimic: ramane ultimul bun
             end
             mark.sample = { x = x :: number, y = y :: number, t = now }
             mark.facing = facing :: string
             mark.moving = moving :: boolean
+            -- undita se vede doar de pe jetiu: altfel pachetul ar pune pe oricine "sa pescuiasca" in mijlocul balciului
+            mark.fishing = fishing == true
+                and FairLayout.inRect(
+                    FairLayout.CAST_ZONE,
+                    x :: number,
+                    y :: number,
+                    FairLayout.CAST_TOLERANCE
+                )
             noteStage(player, x :: number, y :: number)
         end
     )
@@ -225,6 +254,7 @@ function PresenceService.Init(d: Deps)
                 y = mark.sample.y,
                 facing = mark.facing,
                 moving = mark.moving,
+                fishing = mark.fishing,
             })
         end
         if #entries > 0 then

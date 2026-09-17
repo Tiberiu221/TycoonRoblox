@@ -36,6 +36,7 @@ local JOURNAL_OUTFIT = "legend"
 
 type Pending = {
     castId: number,
+    spot: string, -- [D61] "pier" (satul) | "pond" (iazul din balci)
     biteAt: number,
     kind: string, -- "fish" | "treasure"
     difficulty: number,
@@ -116,7 +117,10 @@ function FishService.Snapshot(player: Player): Snapshot
 end
 
 -- Intoarce (reusit, motiv, aruncarea). Aruncarea nu spune ce e in apa, doar cat de greu se scoate.
-function FishService.Cast(player: Player): (boolean, string, Cast?)
+-- [D61] `spot` = "pond" la iazul din balci: acolo nu se agata ce te asteapta la pontonul tau, iar pasii palniei
+-- pontonului nu se numara (iazul are pasii lui, in PondService).
+function FishService.Cast(player: Player, spot: string?): (boolean, string, Cast?)
+    local where = if spot == "pond" then "pond" else "pier"
     local data = DataService.Get(player)
     if data == nil then
         return false, "no_profile", nil
@@ -136,11 +140,12 @@ function FishService.Cast(player: Player): (boolean, string, Cast?)
     nextCastId += 1
 
     local p: Pending
-    local waiting = TreasureService.FirstWaiting(player)
+    local waiting = if where == "pond" then nil else TreasureService.FirstWaiting(player)
     local treasure = if waiting ~= nil then TreasureConfig.byId[waiting] else nil
     if treasure ~= nil then
         p = {
             castId = nextCastId,
+            spot = where,
             biteAt = t + TREASURE_BITE,
             kind = "treasure",
             difficulty = treasure.difficulty,
@@ -156,6 +161,7 @@ function FishService.Cast(player: Player): (boolean, string, Cast?)
         end
         p = {
             castId = nextCastId,
+            spot = where,
             biteAt = t
                 + FishConfig.BITE_MIN
                 + biteRoll * (FishConfig.BITE_MAX - FishConfig.BITE_MIN),
@@ -167,7 +173,7 @@ function FishService.Cast(player: Player): (boolean, string, Cast?)
         }
     end
     pending[player] = p
-    if not data.Firsts.FirstCast then
+    if where == "pier" and not data.Firsts.FirstCast then
         data.Firsts.FirstCast = true
         Analytics.PierStep(player, "FirstCast")
     end
@@ -247,7 +253,7 @@ function FishService.Land(player: Player, castId: number): (boolean, string, Res
     local pearls = FishMath.pearlsFor(species, isNew, baited)
     EconomyService.AddPearls(player, pearls, "fish")
     data.Stats.fished = (data.Stats.fished or 0) + 1
-    if not data.Firsts.FirstFish then
+    if p.spot == "pier" and not data.Firsts.FirstFish then
         data.Firsts.FirstFish = true
         Analytics.PierStep(player, "FirstFish")
     end

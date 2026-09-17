@@ -36,7 +36,23 @@ export type Deps = {
         Snapshot: (Player) -> { [string]: any },
         Buy: (Player, string) -> (boolean, string, string, string),
     },
+    -- [D61] iazul: undita (FishService, ca in sat) si concursul (PondService)
+    Fish: {
+        Cast: (Player, string?) -> (boolean, string, { [string]: any }?),
+        Land: (Player, number) -> (boolean, string, { [string]: any }?, number?),
+    },
+    Pond: {
+        CanCast: (Player) -> boolean,
+        Cast: (Player) -> (),
+        SendTo: (Player) -> (),
+    },
 }
+
+local function isInteger(value: unknown): boolean
+    return typeof(value) == "number"
+        and math.isfinite(value :: number)
+        and (value :: number) % 1 == 0
+end
 
 local FairNetServer = {}
 local deps: Deps
@@ -79,11 +95,13 @@ function FairNetServer.Init(d: Deps)
     deps.Data.ProfileLoaded:Connect(function(player: Player)
         FairNetServer.PushState(player)
         Net.Get("BoardState"):FireClient(player, deps.Board.State())
+        deps.Pond.SendTo(player)
     end)
     Net.Get("RequestState").OnServerEvent:Connect(function(player: Player)
         if RateLimiter.Allow(player, "RequestState") then
             FairNetServer.PushState(player)
             Net.Get("BoardState"):FireClient(player, deps.Board.State())
+            deps.Pond.SendTo(player)
         end
     end)
 
@@ -150,6 +168,40 @@ function FairNetServer.Init(d: Deps)
         end
         local card = deps.Cards.Of(userId :: number)
         Net.Get("LookAtResult"):FireClient(player, card, userId)
+    end)
+
+    -- [D61] Iazul: aceeasi undita ca in sat. Se arunca doar de pe jetiu (pozitia o stie PresenceService); raspunsul are
+    -- aceeasi forma ca in sat, ca undita comuna (UI/FishingRig) sa-l citeasca la fel.
+    Net.Get("PondCast").OnServerEvent:Connect(function(player: Player)
+        if not RateLimiter.Allow(player, "Fishing") then
+            return
+        end
+        if not deps.Pond.CanCast(player) then
+            Net.Get("PondCastResult"):FireClient(player, nil, "not_here")
+            return
+        end
+        local ok, reason, cast = deps.Fish.Cast(player, "pond")
+        if ok and cast ~= nil then
+            deps.Pond.Cast(player)
+            Net.Get("PondCastResult"):FireClient(
+                player,
+                cast.castId,
+                cast.biteAt,
+                cast.kind,
+                cast.difficulty,
+                cast.reelSeed,
+                nil
+            )
+        else
+            Net.Get("PondCastResult"):FireClient(player, nil, reason)
+        end
+    end)
+    Net.Get("PondLand").OnServerEvent:Connect(function(player: Player, castId: unknown)
+        if not RateLimiter.Allow(player, "Fishing") or not isInteger(castId) then
+            return
+        end
+        local ok, reason, result, wait = deps.Fish.Land(player, castId :: number)
+        Net.Get("PondLandResult"):FireClient(player, castId, ok, reason, result, wait)
     end)
 
     -- [D54] nivelul muzicii sau al efectelor, din panoul "Sound": acelasi profil ca in sat

@@ -27,12 +27,18 @@ local pearlPill: Frame
 local pearlValue: TextLabel
 local toastLabel: TextLabel
 local toastToken = 0
+-- [D61] degetul care tine butonul rotund (bara undiței de la iaz) si banda de sus a concursului
+local actionHeldBy: InputObject? = nil
+local banner: Frame
+local bannerTop: TextLabel
+local bannerBottom: TextLabel
 
 local PILL_W, PILL_H = 170, 48
 local TOAST_HOME = UDim2.fromScale(0.5, 0.26)
 -- ca in HUDController (joystick-ul si butonul rotund)
 local STICK_BASE, STICK_KNOB, STICK_RADIUS, STICK_DEADZONE, STICK_MARGIN = 170, 76, 58, 10, 44
 local ACTION_SIZE = 108
+local BANNER_W = 460
 
 function FairHUDController.SetPearls(n: number)
     if hud ~= nil then
@@ -126,6 +132,32 @@ function FairHUDController.PearlFly(fromX: number, fromY: number, amount: number
         scale.Scale = 1.25
         TweenService:Create(scale, TweenInfo.new(0.25), { Scale = 1 }):Play()
     end)
+end
+
+-- [D61] Butonul rotund e tinut apasat (bara undiței).
+function FairHUDController.IsActionHeld(): boolean
+    return actionHeldBy ~= nil
+end
+
+-- [D61] Banda concursului: doua randuri, sau nil ca sa dispara. Textul se strange ca sa incapa (fontul de pixeli e lat).
+function FairHUDController.SetBanner(top: string?, bottom: string?)
+    if banner == nil then
+        return
+    end
+    if top == nil then
+        banner.Visible = false
+        return
+    end
+    if bannerTop.Text ~= top then
+        bannerTop.Text = top
+        bannerTop.TextSize = Theme.fitSize(top, Theme.TEXT.small, "strong", BANNER_W - 20)
+    end
+    local second = bottom or ""
+    if bannerBottom.Text ~= second then
+        bannerBottom.Text = second
+        bannerBottom.TextSize = Theme.fitSize(second, Theme.TEXT.small, "strong", BANNER_W - 20)
+    end
+    banner.Visible = true
 end
 
 function FairHUDController.Init(deps: Deps)
@@ -253,6 +285,54 @@ function FairHUDController.Init(deps: Deps)
         icon.ZIndex = 12
     end
     action.Activated:Connect(deps.Interact)
+    -- [D61] Butonul se si TINE apasat (bara undiței de la iaz), ca in sat: degetul care a apasat e urmarit pana se ridica
+    -- oriunde pe ecran, altfel undita ar ramane "tinuta" singura cand degetul aluneca de pe buton.
+    action.InputBegan:Connect(function(input: InputObject)
+        if
+            input.UserInputType == Enum.UserInputType.Touch
+            or input.UserInputType == Enum.UserInputType.MouseButton1
+        then
+            actionHeldBy = input
+        end
+    end)
+    UserInputService.InputEnded:Connect(function(input: InputObject)
+        if input == actionHeldBy then
+            actionHeldBy = nil
+        end
+    end)
+
+    -- [D61] banda concursului de la iaz, sus la mijloc: doua randuri, doar cat esti aproape de iaz
+    banner = Instance.new("Frame")
+    banner.Name = "PondBanner"
+    banner.AnchorPoint = Vector2.new(0.5, 0)
+    banner.Position = UDim2.new(0.5, 0, 0, 12)
+    banner.Size = UDim2.fromOffset(BANNER_W, 58)
+    banner.BackgroundColor3 = Theme.COLOR.plate
+    banner.BackgroundTransparency = 0.25
+    banner.BorderSizePixel = 0
+    banner.ZIndex = 8
+    banner.Visible = false
+    banner.Parent = deps.HudGui
+    local bannerCorner = Instance.new("UICorner")
+    bannerCorner.CornerRadius = UDim.new(0, 10)
+    bannerCorner.Parent = banner
+    local bannerLine = Instance.new("Frame")
+    bannerLine.BackgroundColor3 = Theme.COLOR.gold
+    bannerLine.BorderSizePixel = 0
+    bannerLine.Size = UDim2.new(1, -20, 0, 2)
+    bannerLine.Position = UDim2.fromOffset(10, 0)
+    bannerLine.ZIndex = 9
+    bannerLine.Parent = banner
+    bannerTop = Widgets.Label(banner, "", Theme.TEXT.small, Theme.COLOR.gold, "strong")
+    bannerTop.Position = UDim2.fromOffset(10, 8)
+    bannerTop.Size = UDim2.new(1, -20, 0, 20)
+    bannerTop.TextXAlignment = Enum.TextXAlignment.Center
+    bannerTop.ZIndex = 9
+    bannerBottom = Widgets.Label(banner, "", Theme.TEXT.small, Theme.COLOR.onDark, "strong")
+    bannerBottom.Position = UDim2.fromOffset(10, 32)
+    bannerBottom.Size = UDim2.new(1, -20, 0, 20)
+    bannerBottom.TextXAlignment = Enum.TextXAlignment.Center
+    bannerBottom.ZIndex = 9
 
     -- cu un panou deschis, butoanele de pe ecran se ascund (pe telefon, degetul ar apasa prin panou)
     RunService.Heartbeat:Connect(function()

@@ -73,6 +73,12 @@
         "FishService": {
           "$path": "src/Server/Services/FishService.luau"
         },
+        "LeaderboardService": {
+          "$path": "src/Server/Services/LeaderboardService.luau"
+        },
+        "PondService": {
+          "$path": "src/Fair/Server/Services/PondService.luau"
+        },
         "MarketService": {
           "$path": "src/Fair/Server/Services/MarketService.luau"
         },

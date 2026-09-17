@@ -35,17 +35,22 @@ return function()
             RateLimiter.Forget(player)
         end)
 
-        test.case("fiecare bucket cerut de NetServer exista", function()
-            local src = fs.readFile("src/Server/Net/NetServer.luau")
-            local seen = 0
-            for name in string.gmatch(src, 'RateLimiter%.Allow%(player, "(%w+)"%)') do
-                seen += 1
-                if RateLimiter.LIMITS[name] == nil then
-                    print("  ! bucket lipsa: " .. name)
+        test.case("fiecare bucket cerut de NetServer si de FairNetServer exista", function()
+            -- [D61] si serverul balciului: o greseala de scriere acolo ar fi refuzat in tacere orice cerere
+            for _, path in
+                { "src/Server/Net/NetServer.luau", "src/Fair/Server/Net/FairNetServer.luau" }
+            do
+                local src = fs.readFile(path)
+                local seen = 0
+                for name in string.gmatch(src, 'RateLimiter%.Allow%(player, "(%w+)"%)') do
+                    seen += 1
+                    if RateLimiter.LIMITS[name] == nil then
+                        print(`  ! bucket lipsa in {path}: {name}`)
+                    end
+                    check.not_nil(RateLimiter.LIMITS[name])
                 end
-                check.not_nil(RateLimiter.LIMITS[name])
+                check.is_true(seen >= 5)
             end
-            check.is_true(seen >= 10)
         end)
     end)
 end

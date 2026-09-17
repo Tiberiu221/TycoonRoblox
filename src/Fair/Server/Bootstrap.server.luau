@@ -9,6 +9,7 @@
 -- Ordinea Init-urilor: serviciile, apoi FairNetServer (asculta ProfileLoaded), apoi DataService (el il declanseaza).
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
 local Services = script.Parent:WaitForChild("Services")
 local NetFolder = script.Parent:WaitForChild("Net")
 
@@ -25,12 +26,25 @@ local PresenceService = require(Services:WaitForChild("PresenceService"))
 local PlayerCardService = require(Services:WaitForChild("PlayerCardService"))
 local BoardService = require(Services:WaitForChild("BoardService"))
 local MarketService = require(Services:WaitForChild("MarketService"))
+local LeaderboardService = require(Services:WaitForChild("LeaderboardService"))
+local PondService = require(Services:WaitForChild("PondService"))
 local FairNetServer = require(NetFolder:WaitForChild("FairNetServer"))
 
 VillageService.Init({ PushState = FairNetServer.PushState })
 WheelService.Init({ PushState = FairNetServer.PushState })
--- FishService: doar momeala de la roata (AddBait); undita e in sat. Init leaga doar curatenia de la plecare.
-FishService.Init({ PushState = FairNetServer.PushState })
+-- [D61] FishService: momeala de la roata si undita de la iaz. Ceasul e al serverului, ca in sat (RiverService.Now):
+-- clientul asteapta muscatura pe GetServerTimeNow. Un peste scos intra pe tabla saptamanii (ca in sat) si in concurs.
+LeaderboardService.Init({ Income = nil })
+FishService.Init({
+    PushState = FairNetServer.PushState,
+    Now = function(): number
+        return Workspace:GetServerTimeNow()
+    end,
+    OnLanded = function(player: Player, speciesId: string, cm: number)
+        LeaderboardService.FishLanded(player, speciesId, cm)
+        PondService.Landed(player, speciesId, cm)
+    end,
+})
 FerryService.Init({
     Destination = "village",
     OnFailed = function(player: Player, reason: string)
@@ -64,6 +78,22 @@ PresenceService.Init({
     end,
 })
 
+-- [D61] concursul de la iaz: runda dupa ceas, tabla la toti, rezultatul fiecaruia
+PondService.Init({
+    Push = function(player: Player?, state: { [string]: any })
+        if player ~= nil then
+            Net.Get("PondState"):FireClient(player, state)
+        else
+            Net.Get("PondState"):FireAllClients(state)
+        end
+    end,
+    Result = function(player: Player, result: { [string]: any })
+        Net.Get("PondResult"):FireClient(player, result)
+    end,
+    PushState = FairNetServer.PushState,
+    PositionOf = PresenceService.PositionOf,
+})
+
 FairNetServer.Init({
     Data = DataService,
     Economy = EconomyService,
@@ -75,6 +105,8 @@ FairNetServer.Init({
     Cards = PlayerCardService,
     Board = BoardService,
     Market = MarketService,
+    Fish = FishService,
+    Pond = PondService,
 })
 DataService.Init({ Place = "fair" })
 

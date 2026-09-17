@@ -46,6 +46,7 @@ type Other = {
     newer: Sample?,
     facing: string,
     moving: boolean,
+    fishing: boolean, -- [D61] cu undita pe jetiu
     x: number,
     y: number,
 }
@@ -55,6 +56,9 @@ local deps: Deps? = nil
 local others: { [number]: Other } = {} -- dupa slot
 local mine: Person? = nil
 local myTag: Tag? = nil
+-- [D61] ce spui tu despre tine: undita (doar aspect; serverul o crede doar pe jetiu) si eticheta ascunsa cat mulinezi
+local myFishing = false
+local myTagHidden = false
 
 local SEND_EVERY = 1 / FairPresence.RATE
 local HEARTBEAT = 1 -- cat stai pe loc, pozitia pleaca totusi o data pe secunda
@@ -154,6 +158,7 @@ local function applyPeople(list: unknown)
                 newer = nil,
                 facing = "down",
                 moving = false,
+                fishing = false,
                 x = 0,
                 y = 0,
             }
@@ -182,6 +187,7 @@ local function applyCrowd(packet: unknown)
         o.newer = { x = e.x, y = e.y, t = now }
         o.facing = e.facing
         o.moving = e.moving
+        o.fishing = e.fishing == true
     end
 end
 
@@ -204,15 +210,25 @@ local function draw(dt: number)
         o.tag.host.Visible = true
         o.sprite.Position = UDim2.fromOffset(math.round(o.x), math.round(o.y))
         o.sprite.ZIndex = d.ZIndexFor(o.y)
-        o.pose(o.moving, o.facing, dt, false, nil)
+        o.pose(o.moving, o.facing, dt, false, if o.fishing and not o.moving then "fishing" else nil)
         placeTag(o.tag, o.x, o.y)
     end
     local tag = myTag
     if tag ~= nil then
         local x, y = d.CharacterPos()
-        tag.host.Visible = mine ~= nil
+        tag.host.Visible = mine ~= nil and not myTagHidden
         placeTag(tag, x, y)
     end
+end
+
+-- [D61] Cu undita in apa (PondController): ceilalti te vad pescuind.
+function PresenceController.SetFishing(on: boolean)
+    myFishing = on
+end
+
+-- [D61] Cat e bara de mulinat deasupra ta, numele si titlul tau se ascund (ar sta sub bara).
+function PresenceController.SetMyTagHidden(hidden: boolean)
+    myTagHidden = hidden
 end
 
 -- Cel mai apropiat om, pentru cardul "Look at Mara (E)".
@@ -273,7 +289,7 @@ function PresenceController.Init(d: Deps)
     end)
 
     local lastSent = -math.huge
-    local sentX, sentY, sentFacing, sentMoving = math.huge, math.huge, "", false
+    local sentX, sentY, sentFacing, sentMoving, sentFishing = math.huge, math.huge, "", false, false
     RunService.PreRender:Connect(function(dt: number)
         draw(dt)
         local now = os.clock()
@@ -286,12 +302,13 @@ function PresenceController.Init(d: Deps)
             or math.abs(y - sentY) >= 1
             or facing ~= sentFacing
             or moving ~= sentMoving
+            or myFishing ~= sentFishing
         if not changed and now - lastSent < HEARTBEAT then
             return
         end
         lastSent = now
-        sentX, sentY, sentFacing, sentMoving = x, y, facing, moving
-        d.Remotes.Where:FireServer(x, y, facing, moving)
+        sentX, sentY, sentFacing, sentMoving, sentFishing = x, y, facing, moving, myFishing
+        d.Remotes.Where:FireServer(x, y, facing, moving, myFishing)
     end)
 end
 

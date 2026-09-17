@@ -24,12 +24,19 @@ local REMOTE_NAMES = {
     "LookAtResult", -- S->C {card} sau {nil, userId}: ce a facut (PlayerCardService), sau ca a plecat
     "BoardState", -- S->C: clasamentele saptamanii, campionul, trofeele (BoardService), din minut in minut
     "People", -- S->C {{slot, userId, name, outfit, title}}: cine e aici, cand se schimba ceva; C->S: trimite-mi-o
+    -- [D61] iazul de concurs: aceeasi undita ca la pontonul din sat (FishService), alte nume, plus tabla rundei
+    "PondCast", -- C->S: arunc de pe jetiu
+    "PondCastResult", -- S->C {castId, biteAt, kind, difficulty, reelSeed} sau {nil, reason}
+    "PondLand", -- C->S {castId}: bara e plina
+    "PondLandResult", -- S->C {castId, ok, reason, result, wait}
+    "PondState", -- S->C: runda (faza, ore absolute), clasamentul ei, podiumul rundei trecute (PondService)
+    "PondResult", -- S->C {index, place, count, prize, contest, won, wins, title}: al tau, la sfarsitul rundei
 }
 
 -- [D60] Pozitiile, de zece ori pe secunda: un pachet pierdut nu conteaza, urmatorul vine imediat. Aceeasi regula ca
 -- mai sus in check_requires (ascultator si trimitator pe fiecare).
 local UNRELIABLE_REMOTE_NAMES = {
-    "Where", -- C->S {x, y, facing, moving}: unde esti (validat: numere, drum, pas)
+    "Where", -- C->S {x, y, facing, moving, fishing}: unde esti (validat: numere, drum, pas; undita doar pe jetiu)
     "Crowd", -- S->C buffer, 6 octeti de om: slot u8, x u16, y u16, directie + mers u8
 }
 

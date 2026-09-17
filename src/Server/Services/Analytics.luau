@@ -79,6 +79,12 @@ Analytics.FAIR_STEPS = {
     FirstTitleWorn = 3,
     FirstBoardSeen = 4,
     FirstFairPurchase = 5,
+    -- [D61] iazul, gheretele, mesele
+    FirstPondCast = 6,
+    FirstPondRound = 7,
+    FirstBoothGame = 8,
+    FirstSit = 9,
+    FirstWave = 10,
 }
 
 function Analytics.FairStep(player: Player, stepName: string)

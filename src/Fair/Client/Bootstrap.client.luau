@@ -30,6 +30,7 @@ local MarketController = require(Controllers:WaitForChild("MarketController"))
 local MenuBarController = require(Controllers:WaitForChild("MenuBarController"))
 local MusicController = require(Controllers:WaitForChild("MusicController"))
 local PlayerCardController = require(Controllers:WaitForChild("PlayerCardController"))
+local PondController = require(Controllers:WaitForChild("PondController"))
 local PresenceController = require(Controllers:WaitForChild("PresenceController"))
 local Panels = require(Controllers:WaitForChild("Panels"))
 local SoundController = require(Controllers:WaitForChild("SoundController"))
@@ -89,6 +90,17 @@ backdrop.BorderSizePixel = 0
 backdrop.ZIndex = 0
 backdrop.Parent = worldGui
 local hudCanvas = attachHudScale(hudGui)
+
+-- [D61] Din lume in panza HUD-ului (perlele care zboara de la iaz spre pastila), ca worldToHud din sat: prin originea si
+-- scara camerei, minus coltul panzei, impartit la scara HUD-ului.
+local function worldToHud(x: number, y: number): (number, number)
+    local camX, camY = CameraController.WorldOrigin()
+    local scale = CameraController.Scale()
+    local hud = hudCanvas.AbsolutePosition - backdrop.AbsolutePosition
+    local uiScale = hudCanvas:FindFirstChildOfClass("UIScale")
+    local s = if uiScale ~= nil then uiScale.Scale else 1
+    return ((x - camX) * scale - hud.X) / s, ((y - camY) * scale - hud.Y) / s
+end
 
 local function safeInit(name: string, fn: () -> ())
     local ok, err = pcall(fn)
@@ -209,6 +221,31 @@ safeInit("PresenceController", function()
         LookAtText = Strings.lookAtCard,
     })
     FairInteractController.AddSource(PresenceController.Focus)
+end)
+
+-- [D61] iazul de concurs: undita de pe jetiu, tabla de pe mal, banda de sus
+safeInit("PondController", function()
+    PondController.Init({
+        World = layers.Scroll,
+        CharacterPos = CharacterController.Position,
+        Facing = CharacterController.Facing,
+        WorldToHud = worldToHud,
+        Remotes = {
+            PondCast = Net.Get("PondCast"),
+            PondCastResult = Net.Get("PondCastResult"),
+            PondLand = Net.Get("PondLand"),
+            PondLandResult = Net.Get("PondLandResult"),
+            PondState = Net.Get("PondState"),
+            PondResult = Net.Get("PondResult"),
+        },
+        IsActionHeld = FairHUDController.IsActionHeld,
+        PearlFly = FairHUDController.PearlFly,
+        OnToast = FairHUDController.Toast,
+        SetBanner = FairHUDController.SetBanner,
+        SetFishing = PresenceController.SetFishing,
+        SetMyTagHidden = PresenceController.SetMyTagHidden,
+    })
+    FairInteractController.AddSource(PondController.Focus)
 end)
 
 safeInit("TitleController", function()

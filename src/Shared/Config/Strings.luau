@@ -399,6 +399,8 @@ Strings.FISH_BAIT_USED = "Bait ×2"
 function Strings.fishRejected(reason: string): string
     if reason == "expired" then
         return "Your line was out too long. Cast again"
+    elseif reason == "not_here" then
+        return "Cast from the jetty, over the water" -- [D61] iazul din balci
     end
     return "Cast again"
 end
@@ -542,6 +544,61 @@ end
 function Strings.titleDecorHint(decorName: string): string
     return `Build the {decorName} in your village`
 end
+-- [D61] Concursul de la iaz: tabla de pe mal, banda de sus cat esti aproape, rezultatul tau la sfarsitul rundei.
+Strings.POND_BOARD_TITLE = "CONTEST POND"
+Strings.POND_PRIZES_NOTE = "Prizes when the round ends"
+Strings.POND_ALONE = "You were the only one fishing"
+Strings.POND_ENTER = "Land a fish to enter"
+Strings.POND_NOBODY_YET = "No catches yet"
+Strings.POND_TITLE_UNLOCKED = "New title: Pond Champion"
+local function clock(seconds: number): string
+    local s = math.max(0, math.floor(seconds))
+    return string.format("%d:%02d", math.floor(s / 60), s % 60)
+end
+function Strings.ordinal(n: number): string
+    local tens = n % 100
+    local suffix = if tens >= 11 and tens <= 13
+        then "th"
+        elseif n % 10 == 1 then "st"
+        elseif n % 10 == 2 then "nd"
+        elseif n % 10 == 3 then "rd"
+        else "th"
+    return `{n}{suffix}`
+end
+function Strings.pondTimeLeft(seconds: number): string
+    return `{clock(seconds)} left`
+end
+function Strings.pondNextIn(seconds: number): string
+    return `Next round in {clock(seconds)}`
+end
+function Strings.pondBanner(index: number, seconds: number): string
+    return `POND CONTEST · round {index} · {clock(seconds)} left`
+end
+function Strings.pondBannerBreak(seconds: number): string
+    return `POND CONTEST · next round in {clock(seconds)}`
+end
+function Strings.pondYou(place: number, species: string, cm: number): string
+    return `You: {Strings.ordinal(place)} · {species} {math.floor(cm)} cm`
+end
+function Strings.pondRow(species: string, cm: number): string
+    return `{species} {math.floor(cm)}`
+end
+function Strings.pondLast(index: number): string
+    return `Round {index}`
+end
+function Strings.pondResult(
+    index: number,
+    place: number,
+    count: number,
+    prize: number,
+    contest: boolean
+): string
+    if not contest then
+        return `Round {index}: you were the only one fishing · +{prize} pearls`
+    end
+    return `Round {index}: {Strings.ordinal(place)} of {count} · +{prize} pearls`
+end
+
 -- [D60] Oamenii din balci: cardul de langa cineva si panoul cu ce a facut.
 function Strings.lookAtCard(name: string, keyHint: string): string
     return `Look at {name}{keyHint}`
