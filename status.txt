@@ -1,6 +1,6 @@
-run: 35195751803
-sha: 5506cf621e2da973091ae463a13f037cc47c384a
-finished: 2026-09-17T07:41:50Z
+run: 35196209495
+sha: b3d100be06d46a8d27baea101f08f580fc01bf64
+finished: 2026-09-17T07:50:14Z
 lint-format-test: success
 publish-staging: failure
 smoke-test-staging: skipped
@@ -32,7 +32,7 @@ steps:
   publish-staging / Build place: success
   publish-staging / Build fair place: success
   publish-staging / Publish to Driftwood-Staging (Open Cloud): failure
-  publish-staging / Publish fair place to Driftwood-Staging (Open Cloud): failure
+  publish-staging / Publish fair place to Driftwood-Staging (Open Cloud): success
   publish-staging / Upload artifact tagged with versionNumber: skipped
   publish-staging / Post Run actions/checkout@v4: success
   publish-staging / Complete job: success
