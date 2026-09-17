@@ -59,6 +59,18 @@ type Twinkle = { host: ImageLabel, phase: number }
 local flickers: { Flicker } = {}
 local sparks: { Spark } = {}
 local twinkles: { Twinkle } = {}
+
+-- [D61] Muzicantii: doua cadre, schimbate fiecare in ritmul lui, si note care se ridica deasupra lor.
+local FRAMES: { [string]: { second: string, period: number } } = {
+    performer = { second = "performer_b", period = 0.42 },
+    musician = { second = "musician_b", period = 0.28 },
+}
+type Musician = { img: ImageLabel, a: string, b: string, period: number, shown: number }
+type Note = { f: ImageLabel, x: number, y: number, age: number, life: number, drift: number }
+local musicians: { Musician } = {}
+local notes: { Note } = {}
+local NOTE_COUNT = 6
+local NOTE_LIFE = 2.4
 local spriteOf: { [string]: ImageLabel } = {}
 local world: Frame
 
@@ -306,8 +318,39 @@ local function reSpark(s: Spark)
     s.f.Visible = true
 end
 
+local function respawnNote(n: Note)
+    local m = musicians[math.random(1, math.max(1, #musicians))]
+    if m == nil then
+        return
+    end
+    local pos = m.img.Position
+    n.x = pos.X.Offset + (math.random() - 0.5) * 30
+    n.y = pos.Y.Offset - m.img.Size.Y.Offset - 4
+    n.age = 0
+    n.life = NOTE_LIFE * (0.8 + math.random() * 0.4)
+    n.drift = (math.random() - 0.5) * 18
+    n.f.Visible = true
+end
+
 local function animate(dt: number)
     local t = os.clock()
+    for _, m in musicians do
+        local frame = math.floor(t / m.period) % 2
+        if frame ~= m.shown then
+            m.shown = frame
+            m.img.Image = if frame == 0 then m.a else m.b
+        end
+    end
+    for _, n in notes do
+        n.age += dt
+        if n.age >= n.life then
+            respawnNote(n)
+        end
+        local k = n.age / n.life
+        n.f.Position =
+            UDim2.fromOffset(math.round(n.x + math.sin(k * 6) * n.drift), math.round(n.y - k * 70))
+        n.f.ImageTransparency = math.clamp(k * 1.2 - 0.1, 0, 1)
+    end
     for _, fl in flickers do
         local k = 1
             + fl.amount
@@ -349,6 +392,40 @@ function FairScene.Build(layer: Frame)
             local img = standing(art, spot.x, spot.y, spot.scale, FairScene.LitTint(spot.x, spot.y))
             img.Name = spot.id
             spriteOf[spot.id] = img
+            local frames = FRAMES[spot.sprite]
+            local second = if frames ~= nil
+                then (Assets.fair :: any)[frames.second] :: Assets.Sprite?
+                else nil
+            if frames ~= nil and second ~= nil and Assets.has(art) and Assets.has(second) then
+                table.insert(musicians, {
+                    img = img,
+                    a = Assets.url(art),
+                    b = Assets.url(second),
+                    period = frames.period,
+                    shown = 0,
+                })
+            end
+        end
+    end
+    -- [D61] notele de deasupra muzicantilor
+    if #musicians > 0 and Assets.has(Assets.ui.music_note) then
+        for i = 1, NOTE_COUNT do
+            local f = Instance.new("ImageLabel")
+            f.Name = "MusicNote"
+            f.BackgroundTransparency = 1
+            f.Image = Assets.url(Assets.ui.music_note)
+            f.ResampleMode = Enum.ResamplerMode.Pixelated
+            f.AnchorPoint = Vector2.new(0.5, 1)
+            f.Size = UDim2.fromOffset(
+                Assets.ui.music_note.width * ART,
+                Assets.ui.music_note.height * ART
+            )
+            f.ZIndex = FairScene.Z.SPARKS
+            f.Parent = world
+            local n: Note = { f = f, x = 0, y = 0, age = 0, life = 1, drift = 0 }
+            respawnNote(n)
+            n.age = n.life * (i / NOTE_COUNT) -- pornite decalat, nu toate deodata
+            table.insert(notes, n)
         end
     end
     -- padurea din jur

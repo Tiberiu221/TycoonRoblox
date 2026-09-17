@@ -26,6 +26,12 @@ export type Deps = {
     People: RemoteEvent,
     -- tinuta si titlul purtat, din profil (VillageService, TitleService)
     Describe: (Player) -> (string, string),
+    -- [D61] mesele: te asezi, te ridici, faci cu mana; raspunsul la asezare
+    Sit: RemoteEvent,
+    Stand: RemoteEvent,
+    Wave: RemoteEvent,
+    SeatResult: RemoteEvent,
+    Allow: (Player, string) -> boolean, -- limita de rata (RateLimiter)
 }
 
 type Mark = {
@@ -34,9 +40,21 @@ type Mark = {
     facing: string,
     moving: boolean,
     fishing: boolean, -- [D61] cu undita pe jetiu (doar aspect; crezut doar pe jetiu)
+    seat: string?, -- [D61] locul pe care stai (FairLayout.SEATS)
+    seatedAt: number, -- [D61] cand te-ai asezat (os.clock)
+    cheerUntil: number, -- [D61] pana cand faci cu mana (os.clock)
     heardAt: number,
     card: Person,
 }
+
+local WAVE_SECONDS = 2
+local SEAT_LEAVE = 6 -- cat te poti misca pe loc fara sa te ridici
+-- Clientul se aseaza abia cand afla raspunsul; un pachet cu pozitia de dinainte, inca pe drum, nu trebuie sa-l ridice.
+-- Ridicarea adevarata vine oricum pe Stand (sigur); pachetele sunt doar plasa pentru un client care nu-l trimite.
+local SEAT_GRACE = 1
+-- Pozitia de pe server ramane in urma cu un pachet si cu drumul pana aici: cine apasa E din mers e tot langa loc.
+local SIT_SLACK = 60
+local occupied: { [string]: Player } = {} -- [D61] locul -> cine sta pe el
 
 local MIN_GAP = 1 / (FairPresence.RATE * 2) -- un client care trimite mai des de 20 Hz e ignorat intre pachete
 local marks: { [Player]: Mark } = {}
@@ -122,13 +140,38 @@ local function arrive(player: Player)
         facing = "up",
         moving = false,
         fishing = false,
+        seat = nil,
+        seatedAt = 0,
+        cheerUntil = 0,
         heardAt = 0,
         card = describe(player, slot),
     }
     sendRoster()
 end
 
+-- [D61] Locul tau se elibereaza (te-ai ridicat, ai plecat, te-ai mutat).
+local function freeSeat(player: Player)
+    local mark = marks[player]
+    local seat = if mark ~= nil then mark.seat else nil
+    if mark == nil or seat == nil then
+        return
+    end
+    if occupied[seat] == player then
+        occupied[seat] = nil
+    end
+    mark.seat = nil
+end
+
+local function firstStep(player: Player, flag: string)
+    local data = DataService.Get(player)
+    if data ~= nil and not data.Firsts[flag] then
+        data.Firsts[flag] = true
+        Analytics.FairStep(player, flag)
+    end
+end
+
 local function leave(player: Player)
+    freeSeat(player)
     local mark = marks[player]
     if mark == nil then
         return
@@ -221,12 +264,25 @@ function PresenceService.Init(d: Deps)
             if fishing ~= nil and typeof(fishing) ~= "boolean" then
                 return
             end
+            -- [D61] departe de locul pe care stai: te-ai ridicat mergand (sau e un pachet de dinainte de asezare)
+            local seat = if mark.seat ~= nil then FairLayout.seatById(mark.seat) else nil
+            local offSeat = seat ~= nil
+                and typeof(x) == "number"
+                and typeof(y) == "number"
+                and math.sqrt(((x :: number) - seat.x) ^ 2 + ((y :: number) - seat.y) ^ 2)
+                    > SEAT_LEAVE
+            if offSeat and now - mark.seatedAt < SEAT_GRACE then
+                return
+            end
             if not FairPresence.accept(mark.sample, x, y, now) then
                 return -- un pachet respins nu muta nimic: ramane ultimul bun
             end
             mark.sample = { x = x :: number, y = y :: number, t = now }
             mark.facing = facing :: string
             mark.moving = moving :: boolean
+            if offSeat then
+                freeSeat(player)
+            end
             -- undita se vede doar de pe jetiu: altfel pachetul ar pune pe oricine "sa pescuiasca" in mijlocul balciului
             mark.fishing = fishing == true
                 and FairLayout.inRect(
@@ -238,6 +294,60 @@ function PresenceService.Init(d: Deps)
             noteStage(player, x :: number, y :: number)
         end
     )
+
+    -- [D61] Te asezi: locul exista, e liber si esti langa el. Pozitia ta devine a locului (ceilalti te vad acolo).
+    -- Clientul s-a asezat deja, ca sa raspunda pe loc; la refuz se ridica si spune de ce.
+    d.Sit.OnServerEvent:Connect(function(player: Player, seatId: unknown)
+        if not d.Allow(player, "Seat") then
+            return
+        end
+        local mark = marks[player]
+        if mark == nil or typeof(seatId) ~= "string" or #(seatId :: string) > 24 then
+            return
+        end
+        local seat = FairLayout.seatById(seatId :: string)
+        if seat == nil then
+            return
+        end
+        local holder = occupied[seat.id]
+        if holder ~= nil and holder ~= player then
+            d.SeatResult:FireClient(player, seat.id, false, "taken")
+            return
+        end
+        local distance = math.sqrt((mark.sample.x - seat.x) ^ 2 + (mark.sample.y - seat.y) ^ 2)
+        if distance > FairLayout.SEAT_REACH + SIT_SLACK then
+            d.SeatResult:FireClient(player, seat.id, false, "too_far")
+            return
+        end
+        freeSeat(player)
+        occupied[seat.id] = player
+        mark.seat = seat.id
+        mark.seatedAt = os.clock()
+        mark.sample = { x = seat.x, y = seat.y, t = mark.seatedAt }
+        mark.facing = "down"
+        mark.moving = false
+        firstStep(player, "FirstSit")
+        d.SeatResult:FireClient(player, seat.id, true)
+    end)
+    d.Stand.OnServerEvent:Connect(function(player: Player)
+        if not d.Allow(player, "Seat") then
+            return
+        end
+        freeSeat(player)
+    end)
+    -- [D61] Faci cu mana: cate o data, 2 secunde; ceilalti te vad in pachetul urmator.
+    d.Wave.OnServerEvent:Connect(function(player: Player)
+        if not d.Allow(player, "Seat") then
+            return
+        end
+        local mark = marks[player]
+        local now = os.clock()
+        if mark == nil or now < mark.cheerUntil - 0.1 then
+            return
+        end
+        mark.cheerUntil = now + WAVE_SECONDS
+        firstStep(player, "FirstWave")
+    end)
 
     local acc = 0
     RunService.Heartbeat:Connect(function(dt: number)
@@ -255,6 +365,8 @@ function PresenceService.Init(d: Deps)
                 facing = mark.facing,
                 moving = mark.moving,
                 fishing = mark.fishing,
+                sitting = mark.seat ~= nil,
+                cheering = os.clock() < mark.cheerUntil,
             })
         end
         if #entries > 0 then

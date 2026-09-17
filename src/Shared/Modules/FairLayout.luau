@@ -151,6 +151,24 @@ function FairLayout.seatById(id: string): Seat?
     return nil
 end
 
+-- [D61] Cel mai apropiat loc de stat jos pana la `reach`, sarind peste cele pentru care `skip` zice da (ocupate).
+function FairLayout.nearestSeat(
+    x: number,
+    y: number,
+    reach: number,
+    skip: ((Seat) -> boolean)?
+): (Seat?, number)
+    local best: Seat? = nil
+    local bestDistance = reach
+    for _, seat in FairLayout.SEATS do
+        local distance = math.sqrt((x - seat.x) ^ 2 + (y - seat.y) ^ 2)
+        if distance <= bestDistance and (skip == nil or not skip(seat)) then
+            best, bestDistance = seat, distance
+        end
+    end
+    return best, bestDistance
+end
+
 function FairLayout.inRect(r: Rect, x: number, y: number, margin: number?): boolean
     local m = margin or 0
     return x >= r.x0 - m and x <= r.x1 + m and y >= r.y0 - m and y <= r.y1 + m

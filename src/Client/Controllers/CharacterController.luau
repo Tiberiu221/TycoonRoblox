@@ -27,6 +27,9 @@ local keys: { [string]: boolean } = {}
 local stickX, stickY = 0, 0
 local locked = false
 local onPlayerInput: (() -> ())? = nil
+-- [D61] Asezat (balciul): pe locul unui obiect, desenat chiar sub el (`z` = baza obiectului). Orice pas te ridica.
+local seat: { x: number, y: number, z: number }? = nil
+local onStand: (() -> ())? = nil
 -- Static: nu mai exista cladiri de colonie care sa blocheze mersul, iar platformele tycoon-ului
 -- NU blocheaza (trebuie sa poti calca pe ele ca sa le cumperi) -- doar raul opreste personajul.
 -- [D59] ...in afara pontonului lung: pe el mergi pana la capat, unde pescuiesti.
@@ -98,6 +101,36 @@ function CharacterController.SetHidden(hidden: boolean)
     if b ~= nil then
         b.Visible = not hidden
     end
+end
+
+-- [D61] Te asezi pe un loc (banca, masa): omul trece pe locul lui, cu fata spre noi, desenat sub obiect. Primul pas te
+-- ridica si cheama `standCallback` (serverul afla ca locul e liber).
+function CharacterController.SitAt(sx: number, sy: number, z: number, standCallback: (() -> ())?)
+    seat = { x = sx, y = sy, z = z }
+    onStand = standCallback
+    x, y = sx, sy
+    facing = "down"
+end
+
+function CharacterController.StandUp()
+    if seat == nil then
+        return
+    end
+    seat = nil
+    local callback = onStand
+    onStand = nil
+    if callback ~= nil then
+        callback()
+    end
+end
+
+function CharacterController.IsSeated(): boolean
+    return seat ~= nil
+end
+
+-- [D61] Ce face omul pe loc acum (undita, bucuria), ca Wave sa nu stearga undita.
+function CharacterController.Task(): string?
+    return activity
 end
 
 -- Joystick-ul de pe telefon. Magnitudinea conteaza: o impingere usoara merge incet.
@@ -179,6 +212,9 @@ function CharacterController.Init(deps: {
                 or UserInputService:IsKeyDown(Enum.KeyCode.RightShift)
             )
         walking = dx ~= 0 or dy ~= 0
+        if walking and seat ~= nil then
+            CharacterController.StandUp()
+        end
         if walking then
             local len = math.sqrt(dx * dx + dy * dy)
             -- Directia se normalizeaza (diagonala nu e mai rapida), dar MAGNITUDINEA se pastreaza
@@ -201,7 +237,11 @@ function CharacterController.Init(deps: {
             setPose(false, activityFacing or facing, dt, false, activity)
         end
         sprite.Position = UDim2.fromOffset(x, y)
-        sprite.ZIndex = if zIndexFor ~= nil then zIndexFor(y) else 6
+        local sitting = seat
+        sprite.ZIndex = if zIndexFor == nil
+            then 6
+            elseif sitting ~= nil then zIndexFor(sitting.z) - 1
+            else zIndexFor(y)
         deps.OnMove(x, y)
     end)
 end

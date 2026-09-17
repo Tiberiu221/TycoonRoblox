@@ -6,11 +6,15 @@
 --     in urma (asa se interpoleaza intre doua pozitii stiute, nu se ghiceste);
 --   * fiecare om e desenat ca tine (SceneArt.MakeCharacter, cu tinuta lui), cu NUMELE deasupra capului si TITLUL sub
 --     nume; si deasupra ta scrie ce vad ceilalti.
+-- [D61] Pachetul spune si ce face fiecare pe loc: pescuieste (poza cu undita), sta jos (pe locul lui, desenat sub
+-- banca sau masa, cu fata spre noi) sau face cu mana (bratele sus si o mana deasupra numelui).
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
+local Assets = require(ReplicatedStorage.Shared.Config.Assets)
 local CrowdCodec = require(ReplicatedStorage.Shared.Modules.CrowdCodec)
+local FairLayout = require(ReplicatedStorage.Shared.Modules.FairLayout)
 local FairPresence = require(ReplicatedStorage.Shared.Modules.FairPresence)
 local RiverConfig = require(ReplicatedStorage.Shared.Config.RiverConfig)
 
@@ -47,6 +51,9 @@ type Other = {
     facing: string,
     moving: boolean,
     fishing: boolean, -- [D61] cu undita pe jetiu
+    sitting: boolean, -- [D61] pe o banca sau la o masa
+    cheering: boolean, -- [D61] face cu mana
+    hand: ImageLabel?,
     x: number,
     y: number,
 }
@@ -59,6 +66,8 @@ local myTag: Tag? = nil
 -- [D61] ce spui tu despre tine: undita (doar aspect; serverul o crede doar pe jetiu) si eticheta ascunsa cat mulinezi
 local myFishing = false
 local myTagHidden = false
+local myHand: ImageLabel? = nil
+local myHandUntil = 0
 
 local SEND_EVERY = 1 / FairPresence.RATE
 local HEARTBEAT = 1 -- cat stai pe loc, pozitia pleaca totusi o data pe secunda
@@ -66,6 +75,9 @@ local DELAY = 1 / FairPresence.RATE -- cu cat ramane desenul in urma, ca sa fie 
 local HEAD = RiverConfig.CHARACTER.HEIGHT
 local LOOK_DISTANCE = 80
 local NAME_W = 220
+local WAVE_SECONDS = 2
+local HAND_LIFT = HEAD + 44 -- mana sta deasupra numelui si a titlului
+local ON_SEAT = 6 -- cat de aproape de un loc inseamna "sta pe el"
 
 local function makeTag(parent: Frame, z: number): Tag
     local host = Instance.new("Frame")
@@ -96,6 +108,36 @@ local function placeTag(tag: Tag, x: number, y: number)
     tag.host.Position = UDim2.fromOffset(math.round(x), math.round(y - HEAD - 4))
 end
 
+-- [D61] Mana de deasupra celui care face cu mana. Fara desen urcat nu se arata nimic (bratele sus raman).
+local function makeHand(parent: Frame, z: number): ImageLabel?
+    local art = Assets.ui.wave_hand
+    if not Assets.has(art) then
+        return nil
+    end
+    local hand = Instance.new("ImageLabel")
+    hand.Name = "WaveHand"
+    hand.BackgroundTransparency = 1
+    hand.Image = Assets.url(art)
+    hand.ResampleMode = Enum.ResamplerMode.Pixelated
+    hand.AnchorPoint = Vector2.new(0.5, 1)
+    hand.Size = UDim2.fromOffset(art.width * Assets.PIXEL_SCALE, art.height * Assets.PIXEL_SCALE)
+    hand.ZIndex = z
+    hand.Visible = false
+    hand.Parent = parent
+    return hand
+end
+
+local function placeHand(hand: ImageLabel?, x: number, y: number, on: boolean, t: number)
+    if hand == nil then
+        return
+    end
+    hand.Visible = on
+    if on then
+        hand.Rotation = math.sin(t * 12) * 15 -- se leagana, ca o mana care saluta
+        hand.Position = UDim2.fromOffset(math.round(x), math.round(y - HAND_LIFT))
+    end
+end
+
 local function setCard(tag: Tag, card: Person)
     tag.name.Text = card.name
     tag.title.Text = card.title
@@ -108,6 +150,10 @@ local function forget(slot: number)
     end
     o.sprite:Destroy()
     o.tag.host:Destroy()
+    local hand = o.hand
+    if hand ~= nil then
+        hand:Destroy()
+    end
     others[slot] = nil
 end
 
@@ -159,6 +205,9 @@ local function applyPeople(list: unknown)
                 facing = "down",
                 moving = false,
                 fishing = false,
+                sitting = false,
+                cheering = false,
+                hand = makeHand(d.World, d.LabelZ),
                 x = 0,
                 y = 0,
             }
@@ -188,6 +237,8 @@ local function applyCrowd(packet: unknown)
         o.facing = e.facing
         o.moving = e.moving
         o.fishing = e.fishing == true
+        o.sitting = e.sitting == true
+        o.cheering = e.cheering == true
     end
 end
 
@@ -196,7 +247,8 @@ local function draw(dt: number)
     if d == nil then
         return
     end
-    local renderAt = os.clock() - DELAY
+    local now = os.clock()
+    local renderAt = now - DELAY
     for _, o in others do
         local newer = o.newer
         if newer == nil then
@@ -209,16 +261,25 @@ local function draw(dt: number)
         o.sprite.Visible = true
         o.tag.host.Visible = true
         o.sprite.Position = UDim2.fromOffset(math.round(o.x), math.round(o.y))
-        o.sprite.ZIndex = d.ZIndexFor(o.y)
-        o.pose(o.moving, o.facing, dt, false, if o.fishing and not o.moving then "fishing" else nil)
+        -- asezat: chiar sub mobila lui, care ii acopera picioarele (ca la tine, CharacterController.SitAt)
+        local seat = if o.sitting then FairLayout.nearestSeat(o.x, o.y, ON_SEAT) else nil
+        o.sprite.ZIndex = if seat ~= nil then d.ZIndexFor(seat.z) - 1 else d.ZIndexFor(o.y)
+        local activity = if o.moving
+            then nil
+            elseif o.fishing then "fishing"
+            elseif o.cheering then "cheer"
+            else nil
+        o.pose(o.moving, if o.sitting then "down" else o.facing, dt, false, activity)
         placeTag(o.tag, o.x, o.y)
+        placeHand(o.hand, o.x, o.y, o.cheering, now)
     end
+    local x, y = d.CharacterPos()
     local tag = myTag
     if tag ~= nil then
-        local x, y = d.CharacterPos()
         tag.host.Visible = mine ~= nil and not myTagHidden
         placeTag(tag, x, y)
     end
+    placeHand(myHand, x, y, now < myHandUntil, now)
 end
 
 -- [D61] Cu undita in apa (PondController): ceilalti te vad pescuind.
@@ -229,6 +290,26 @@ end
 -- [D61] Cat e bara de mulinat deasupra ta, numele si titlul tau se ascund (ar sta sub bara).
 function PresenceController.SetMyTagHidden(hidden: boolean)
     myTagHidden = hidden
+end
+
+-- [D61] Faci cu mana: mana apare si deasupra ta, cat o vad si ceilalti.
+function PresenceController.WaveMine()
+    myHandUntil = os.clock() + WAVE_SECONDS
+end
+
+-- [D61] Sta cineva pe locul asta? (Serverul are ultimul cuvant; asta doar ascunde cardul "Sit".)
+function PresenceController.IsSeatTaken(seatX: number, seatY: number): boolean
+    for _, o in others do
+        local newer = o.newer
+        if
+            o.sitting
+            and newer ~= nil
+            and Focus.distance(newer.x, newer.y, seatX, seatY) <= ON_SEAT
+        then
+            return true
+        end
+    end
+    return false
 end
 
 -- Cel mai apropiat om, pentru cardul "Look at Mara (E)".
@@ -279,6 +360,7 @@ end
 function PresenceController.Init(d: Deps)
     deps = d
     myTag = makeTag(d.World, d.LabelZ)
+    myHand = makeHand(d.World, d.LabelZ)
     d.Remotes.People.OnClientEvent:Connect(applyPeople)
     d.Remotes.Crowd.OnClientEvent:Connect(applyCrowd)
     d.Remotes.People:FireServer() -- lista intreaga, chiar daca a plecat inainte sa ascultam

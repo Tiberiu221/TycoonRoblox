@@ -30,6 +30,7 @@ local LeaderboardService = require(Services:WaitForChild("LeaderboardService"))
 local PondService = require(Services:WaitForChild("PondService"))
 local BoothService = require(Services:WaitForChild("BoothService"))
 local FairNetServer = require(NetFolder:WaitForChild("FairNetServer"))
+local RateLimiter = require(NetFolder:WaitForChild("RateLimiter"))
 
 VillageService.Init({ PushState = FairNetServer.PushState })
 WheelService.Init({ PushState = FairNetServer.PushState })
@@ -76,6 +77,13 @@ PresenceService.Init({
     Describe = function(player: Player): (string, string)
         local _, title = TitleService.Worn(player)
         return VillageService.Snapshot(player).outfit, title
+    end,
+    Sit = Net.Get("Sit"),
+    Stand = Net.Get("Stand"),
+    Wave = Net.Get("Wave"),
+    SeatResult = Net.Get("SeatResult"),
+    Allow = function(player: Player, name: string): boolean
+        return RateLimiter.Allow(player, name)
     end,
 })
 

@@ -368,6 +368,33 @@ return function()
             end
         )
 
+        test.case("cel mai apropiat loc liber, pana la distanta data", function()
+            local a = FairLayout.SEATS[1]
+            local seat, distance = FairLayout.nearestSeat(a.x + 3, a.y + 4, FairLayout.SEAT_REACH)
+            check.equal(seat, a)
+            check.equal(distance, 5)
+            -- prea departe: nimic
+            local far =
+                FairLayout.nearestSeat(a.x, a.y + FairLayout.SEAT_REACH + 1, FairLayout.SEAT_REACH)
+            check.equal(far, nil)
+            -- ocupat: se sare peste el
+            local skipped = FairLayout.nearestSeat(a.x, a.y, FairLayout.SEAT_REACH, function(s)
+                return s == a
+            end)
+            check.is_true(skipped ~= a)
+            -- la masa, locul mai apropiat dintre cele doua
+            local left, right = FairLayout.seatById("table_1_a"), FairLayout.seatById("table_1_b")
+            assert(left ~= nil and right ~= nil, "mesele")
+            check.equal(
+                FairLayout.nearestSeat(left.x + 10, left.y + 20, FairLayout.SEAT_REACH),
+                left
+            )
+            check.equal(
+                FairLayout.nearestSeat(right.x - 10, right.y + 20, FairLayout.SEAT_REACH),
+                right
+            )
+        end)
+
         test.case("fiecare gheretă are jocul ei", function()
             local games: { [string]: boolean } = {}
             for _, booth in FairLayout.BOOTHS do

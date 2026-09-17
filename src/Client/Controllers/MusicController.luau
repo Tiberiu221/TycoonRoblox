@@ -7,6 +7,7 @@
 -- prea tare, nu prea este de fundal". Implicit nivelul 4 (AudioLevels), cu ~11 dB sub vechiul 0.35.
 -- Intra incet, dupa prima stare primita, ca sa nu sara peste cardul capitolului.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local SoundService = game:GetService("SoundService")
 local TweenService = game:GetService("TweenService")
 
@@ -19,6 +20,7 @@ local group: SoundGroup? = nil
 local level = AudioLevels.DEFAULT_MUSIC
 local applied = false -- nivelul din profil s-a aplicat (sau jucatorul l-a schimbat deja)
 local fadeToken = 0
+local trackId: number? = nil -- [D61] piesa aleasa la Init (satul: raul; balciul: dansul de seara); nil = inainte de Init
 
 local FADE_IN_FIRST = 4
 local FADE_CHANGE = 0.35
@@ -53,7 +55,7 @@ end
 
 -- Exista muzica urcata? Fara ea randul Music nu apare in panou: un reglaj fara muzica ar minti [D40].
 function MusicController.Available(): boolean
-    return Assets.music.river ~= 0
+    return (if trackId ~= nil then trackId else Assets.music.river) ~= 0
 end
 
 function MusicController.Level(): number
@@ -81,8 +83,14 @@ function MusicController.SetLevel(newLevel: number)
     fadeTo(AudioLevels.volume(level, AudioLevels.MUSIC_MAX), FADE_CHANGE)
 end
 
-function MusicController.Init()
-    local id = Assets.music.river
+-- [D61] `Track` = alta piesa decat raul; `Proximity` = cat de aproape esti de sursa ei (0..1): muzicantii din balci.
+-- Nivelul din panou ramane pe grup; apropierea schimba doar volumul sunetului, lin, intre 35% si 100%.
+export type Options = { Track: number?, Proximity: (() -> number)? }
+
+function MusicController.Init(options: Options?)
+    local o: Options = options or {}
+    local id = o.Track or Assets.music.river
+    trackId = id
     if id == 0 then
         return -- neurcata inca: tace, fara eroare
     end
@@ -91,13 +99,20 @@ function MusicController.Init()
     g.Volume = 0
     g.Parent = SoundService
     local s = Instance.new("Sound")
-    s.Name = "RiverTheme"
+    s.Name = if o.Track ~= nil then "Theme" else "RiverTheme"
     s.SoundId = Assets.soundUrl(id)
     s.Looped = true
     s.Volume = 1 -- fix: nivelul sta pe grup [D54]
     s.SoundGroup = g
     s.Parent = SoundService
     sound, group = s, g
+    local proximity = o.Proximity
+    if proximity ~= nil then
+        RunService.Heartbeat:Connect(function(dt: number)
+            local target = 0.35 + 0.65 * math.clamp(proximity(), 0, 1)
+            s.Volume += (target - s.Volume) * math.min(1, dt * 2)
+        end)
+    end
 end
 
 return MusicController

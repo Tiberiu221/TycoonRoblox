@@ -116,10 +116,8 @@ function BoothService.Finish(
     if data == nil then
         return false, "no_profile", nil
     end
-    local clean: { number } = {}
-    for i, p in presses :: { number } do
-        clean[i] = p
-    end
+    -- doar aruncarile verificate (1..throws): o cheie in plus trimisa de client nu ajunge la scor
+    local clean = table.move(presses :: { number }, 1, BoothMath.GAMES[g.game].throws, 1, {})
     local score, results = BoothMath.score(g.game, g.seed, clean)
     local b = boothOf(data)
     local prize = 0

@@ -10,6 +10,7 @@ local StarterGui = game:GetService("StarterGui")
 local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 
+local Assets = require(ReplicatedStorage.Shared.Config.Assets)
 local AudioLevels = require(ReplicatedStorage.Shared.Modules.AudioLevels)
 local FairLayout = require(ReplicatedStorage.Shared.Modules.FairLayout)
 local Net = require(ReplicatedStorage.Net.Net)
@@ -34,6 +35,7 @@ local PlayerCardController = require(Controllers:WaitForChild("PlayerCardControl
 local PondController = require(Controllers:WaitForChild("PondController"))
 local PresenceController = require(Controllers:WaitForChild("PresenceController"))
 local Panels = require(Controllers:WaitForChild("Panels"))
+local SocialController = require(Controllers:WaitForChild("SocialController"))
 local SoundController = require(Controllers:WaitForChild("SoundController"))
 local TitleController = require(Controllers:WaitForChild("TitleController"))
 local WheelController = require(Controllers:WaitForChild("WheelController"))
@@ -266,6 +268,20 @@ safeInit("PondController", function()
     FairInteractController.AddSource(PondController.Focus)
 end)
 
+-- [D61] mesele si Wave: "Sit (E)" langa un loc liber, mana deasupra ta pe G
+safeInit("SocialController", function()
+    SocialController.Init({
+        Remotes = {
+            Sit = Net.Get("Sit"),
+            Stand = Net.Get("Stand"),
+            Wave = Net.Get("Wave"),
+            SeatResult = Net.Get("SeatResult"),
+        },
+        OnToast = FairHUDController.Toast,
+    })
+    FairInteractController.AddSource(SocialController.Focus)
+end)
+
 safeInit("TitleController", function()
     TitleController.Init({
         HudGui = hudCanvas,
@@ -291,8 +307,20 @@ Net.Get("ShopResult").OnClientEvent
         end
     end)
 
+-- [D61] melodia balciului: tare langa muzicanti, mai incet cu cat te departezi (dar niciodata stinsa)
 safeInit("MusicController", function()
-    MusicController.Init()
+    local ax, ay = FairScene.Spot("musician_1")
+    local bx, by = FairScene.Spot("musician_2")
+    local mx, my = (ax + bx) / 2, (ay + by) / 2
+    local NEAR, FAR = 250, 900
+    MusicController.Init({
+        Track = Assets.music.fair,
+        Proximity = function(): number
+            local px, py = CharacterController.Position()
+            local distance = math.sqrt((px - mx) ^ 2 + (py - my) ^ 2)
+            return 1 - math.clamp((distance - NEAR) / (FAR - NEAR), 0, 1)
+        end,
+    })
 end)
 safeInit("AudioPanel", function()
     AudioPanel.Init({ HudGui = hudCanvas, SetAudio = Net.Get("SetAudio") })
@@ -320,6 +348,14 @@ local menuEntries = {
         label = Strings.MENU_SOUND,
         key = "M",
         open = AudioPanel.Toggle,
+    },
+    -- [D61] nu e un panou: bratele sus doua secunde
+    {
+        name = "wave",
+        icon = "wave_hand",
+        label = Strings.WAVE,
+        key = "G",
+        open = SocialController.Wave,
     },
 }
 safeInit("MenuBarController", function()

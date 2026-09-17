@@ -645,6 +645,21 @@ function Strings.boothRejected(reason: string): string
     return "Try again in a moment"
 end
 
+-- [D61] Mesele si Wave.
+function Strings.sitCard(keyHint: string): string
+    return `Sit{keyHint}`
+end
+function Strings.standCard(keyHint: string): string
+    return `Stand up{keyHint}`
+end
+Strings.WAVE = "Wave"
+function Strings.seatRejected(reason: string): string
+    if reason == "taken" then
+        return "Someone is sitting there"
+    end
+    return "Walk up to the seat"
+end
+
 -- [D60] Oamenii din balci: cardul de langa cineva si panoul cu ce a facut.
 function Strings.lookAtCard(name: string, keyHint: string): string
     return `Look at {name}{keyHint}`

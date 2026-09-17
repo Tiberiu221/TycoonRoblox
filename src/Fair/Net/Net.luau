@@ -36,13 +36,18 @@ local REMOTE_NAMES = {
     "BoothStarted", -- S->C {game, seed, left} sau {game, nil, reason}
     "BoothFinish", -- C->S {presses}: secundele de la inceputul jocului
     "BoothResult", -- S->C {ok, reason, result}
+    -- [D61] mesele: statul jos si facutul cu mana (PresenceService)
+    "Sit", -- C->S {seatId}
+    "Stand", -- C->S: te-ai ridicat
+    "Wave", -- C->S: faci cu mana (2 s)
+    "SeatResult", -- S->C {seatId, ok, reason}: clientul s-a asezat deja; la refuz ("taken" | "too_far") se ridica
 }
 
 -- [D60] Pozitiile, de zece ori pe secunda: un pachet pierdut nu conteaza, urmatorul vine imediat. Aceeasi regula ca
 -- mai sus in check_requires (ascultator si trimitator pe fiecare).
 local UNRELIABLE_REMOTE_NAMES = {
     "Where", -- C->S {x, y, facing, moving, fishing}: unde esti (validat: numere, drum, pas; undita doar pe jetiu)
-    "Crowd", -- S->C buffer, 6 octeti de om: slot u8, x u16, y u16, directie + mers u8
+    "Crowd", -- S->C buffer, 6 octeti de om: slot u8, x u16, y u16, directie + mers + sta/face cu mana/pescuieste u8
 }
 
 local Net = {}
