@@ -72,13 +72,19 @@ stylua/selene o prind. Rulează-le mereu pe toate, nu înlănțuite după o eroa
   **verifici tu** în cod ce raportează — au greșit de mai multe ori.
 - Dus la capăt singur, apoi o listă scurtă cu ce poate verifica doar owner-ul în Studio.
 - **Commit și push după fiecare lucru terminat**, cu poarta verde înainte (owner, 2026-09-17: „fă commit și push
-  mereu"; înainte era „fără commit fără cerere"). Repo privat `github.com/Tiberiu221/TycoonRoblox`, ramura `main`;
-  CI-ul rulează poarta (fără Studio) la fiecare push și publică pe staging (`publish-staging`): la push-ul f82e404
-  (2026-09-16) satul s-a publicat, **bâlciul nu**; de atunci pasul bâlciului are id-ul scris în `ci.yaml` (nu mai cere
-  variabila `FAIR_PLACE_ID`). **Nu trimite owner-ul în GitHub** (nu găsește Actions): după push, verifică tu publicarea
-  în `updateTime` al fiecărui place (Open Cloud v2). Owner-ul vede satul prin `rojo serve` + Connect în Studio; bâlciul,
-  ca fișier local (`rojo build fair.project.json -o Balci.rbxl`, deschis în Studio, fără teleport și fără DataStore).
-- Cheia API în `~/.driftwood_api_key` — niciodată în chat, în repo sau ca argument de comandă.
+  mereu"; înainte era „fără commit fără cerere"). Repo privat `github.com/Tiberiu221/TycoonRoblox`, ramura `main`.
+  CI-ul rulează poarta la fiecare push și scrie rezultatul pe ramura `ci-status` (citit prin SSH:
+  `git fetch origin ci-status && git show FETCH_HEAD:status.txt`; jurnalul pașilor picați e în `failed.log`).
+  **Publicarea pe staging** nu vine din CI: după toate semnele, `publish-staging` n-a publicat niciodată. Actualizările
+  satului luate drept publicări erau salvări din Studio (editarea colaborativă salvează singură satul deschis), iar
+  bâlciul a rămas gol de la creare. Se publică de pe Mac cu `python3 scripts/publish_staging.py`: poarta, build,
+  publicare, verificare în `updateTime`. Scriptul folosește cheia de publicare din `~/.driftwood_publish_key`; cheia din
+  `~/.driftwood_api_key` are drept doar pe imagini. Rularea lui e publicare, deci cere acordul owner-ului.
+  **Nu trimite owner-ul în GitHub** (nu găsește Actions). Owner-ul vede satul prin `rojo serve` + Connect în Studio, iar
+  bâlciul ca fișier local (`rojo build fair.project.json -o Balci.rbxl`, deschis în Studio, fără teleport și fără
+  DataStore).
+- Cheile API (`~/.driftwood_api_key`, `~/.driftwood_publish_key`) — niciodată în chat, în repo sau ca argument de
+  comandă.
 - **Rojo toarnă proiectul în orice fereastră Studio conectată** (așa a ajuns satul peste `Balci.rbxl` și în jocul
   accidental „The Fair", universul 10766663878). De aceea fiecare proiect are `servePlaceIds` (satul doar în 132381101591529,
   bâlciul doar în 114983498774894); serverul Rojo al satului rulează detașat pe 34872 și trebuie repornit ca să citească

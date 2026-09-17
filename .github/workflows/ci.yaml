@@ -121,6 +121,55 @@ jobs:
             DriftwoodFair.rbxl
           retention-days: 90
 
+  # [2026-09-17] Rezultatul fiecarei rulari ajunge pe ramura `ci-status` (status.txt + coada jurnalului pasilor picati).
+  # Owner-ul nu gaseste Actions, iar repo-ul privat nu se vede prin API de pe Mac; ramura se citeste prin SSH:
+  #   git fetch origin ci-status && git show FETCH_HEAD:status.txt
+  report:
+    needs: [lint-format-test, publish-staging, smoke-test-staging]
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - name: Write the run result to the ci-status branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+          SHA: ${{ github.sha }}
+          LINT: ${{ needs.lint-format-test.result }}
+          PUBLISH: ${{ needs.publish-staging.result }}
+          SMOKE: ${{ needs.smoke-test-staging.result }}
+        run: |
+          work=$(mktemp -d)
+          cd "$work"
+          git init -q
+          git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git"
+          if git fetch -q --depth=30 origin ci-status 2>/dev/null; then
+            git checkout -q -B ci-status FETCH_HEAD
+          else
+            git checkout -q --orphan ci-status
+          fi
+          {
+            echo "run: $RUN_ID"
+            echo "sha: $SHA"
+            echo "finished: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo "lint-format-test: $LINT"
+            echo "publish-staging: $PUBLISH"
+            echo "smoke-test-staging: $SMOKE"
+            echo "steps:"
+            gh api "repos/$REPO/actions/runs/$RUN_ID/jobs" --jq '.jobs[] | select(.name != "report") | .name as $job | .steps[] | "  \($job) / \(.name): \(.conclusion // .status)"' || echo "  (lista pasilor nu s-a putut citi)"
+          } > status.txt
+          : > failed.log
+          for id in $(gh api "repos/$REPO/actions/runs/$RUN_ID/jobs" --jq '.jobs[] | select(.conclusion == "failure") | .id'); do
+            echo "=== job $id" >> failed.log
+            gh api "repos/$REPO/actions/jobs/$id/logs" 2>&1 | tail -n 150 >> failed.log || true
+          done
+          git add status.txt failed.log
+          git -c user.name="ci" -c user.email="ci@users.noreply.github.com" commit -q -m "CI ${SHA::7}: lint=$LINT publish=$PUBLISH smoke=$SMOKE"
+          git push -q origin HEAD:refs/heads/ci-status
+
   smoke-test-staging:
     needs: publish-staging
     runs-on: ubuntu-latest
