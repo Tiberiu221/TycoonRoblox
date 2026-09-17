@@ -174,12 +174,20 @@ local function buildPanels(world: Frame)
             end
             table.insert(rows, buildRow(world, kind, x, cy, light))
         end
+        -- o eticheta pe foaia liniata: liniile se opresc in jurul textului, nu trec prin el (vazut in Studio)
+        local emptyText = Strings.STAGE_EMPTY_BOARD
+        local emptyW = math.ceil(Theme.textWidth(emptyText, Theme.TEXT.tiny, "strong")) + 12
+        local emptyH = math.ceil(Theme.textHeight(emptyText, Theme.TEXT.tiny, "strong", emptyW)) + 6
         local empty = worldLabel(world, Theme.TEXT.tiny, INK, "strong")
-        empty.Position = UDim2.fromOffset(x + COVER_X, paperTop)
-        empty.Size = UDim2.fromOffset(paperW, paperH)
+        empty.AnchorPoint = Vector2.new(0.5, 0.5)
+        empty.Position = UDim2.fromOffset(x + COVER_X + paperW / 2, paperTop + paperH / 2)
+        empty.Size = UDim2.fromOffset(emptyW, emptyH)
+        empty.BackgroundColor3 = paper
+        empty.BackgroundTransparency = 0
+        empty.BorderSizePixel = 0
         empty.TextXAlignment = Enum.TextXAlignment.Center
         empty.TextTruncate = Enum.TextTruncate.None
-        empty.Text = Strings.STAGE_EMPTY_BOARD
+        empty.Text = emptyText
         panels[kind] = { rows = rows, empty = empty }
     end
 end
