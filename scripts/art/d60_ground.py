@@ -145,8 +145,7 @@ def build_lights(L):
     lights = []
     for s in L["spots"]:
         for dx, dy, r, rgb, strength in LIGHT_KIND.get(s["sprite"], []):
-            if s["id"] == "pond_dock":
-                continue  # jetiul iazului e inchis pana la D61: fara felinar
+            # [D61] jetiul iazului s-a deschis: felinarul lui de capat arde, ca la debarcader
             lights.append(dict(x=s["x"] + dx, y=s["y"] + dy, r=r, rgb=rgb, strength=strength))
     p = L["pond"]
     lights.append(dict(x=p["x"] + 40, y=p["y"] - 90, r=120, rgb=WARM, strength=0.26))
@@ -255,6 +254,13 @@ def label_boxes(L, sizes):
         if not e["open"]:
             w = max(len(e["label"]), len("Opens soon")) * em * 13 + 12
             out.append((e["x"] - w / 2, e["x"] + w / 2, e["y"] - 24, e["y"] + 24))
+    # [D61] numele gheretelor, deasupra lor (BoothController), la fel ca firma negustorului
+    for spot_id, label in (("booth_1", "Ring Toss"), ("booth_2", "Hook a Duck")):
+        s = next(x for x in L["spots"] if x["id"] == spot_id)
+        _w, h = sizes[s["sprite"]]
+        top = s["y"] - h * s["scale"] - 6 - 26
+        w = len(label) * em * 15 + 24
+        out.append((s["x"] - w / 2, s["x"] + w / 2, top, top + 26))
     return out
 
 
@@ -356,6 +362,8 @@ def bake(L, sizes, lights, trees, garlands):
     worn_path([(spawn["x"], f["y"] + f["ry"] - 40), (spawn["x"] + 10, spawn["y"]), (spawn["x"], L["water_y"] - 10)], 96, 0.78)
     worn_path([(f["x"] - f["rx"] * 0.7, f["y"] + f["ry"] * 0.6), (386, 1250)], 84, 0.70)
     worn_path([(f["x"] - f["rx"] + 30, f["y"] + 30), (p["x"] + p["rx"] - 10, p["y"] + 20)], 70, 0.62)
+    # [D61] spre baza jetiului, pe malul de sud al iazului
+    worn_path([(f["x"] - f["rx"] * 0.55, f["y"] + f["ry"] * 0.62), (300, 990)], 72, 0.66)
     worn_path([(f["x"], f["y"] - f["ry"] + 40), (f["x"], 372)], 120, 0.46)
     worn_path([(f["x"] + f["rx"] - 40, f["y"] - 60), (1330, 700)], 80, 0.66)
 

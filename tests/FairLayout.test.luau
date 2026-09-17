@@ -222,6 +222,12 @@ return function()
                 math.ceil(textWidth(Strings.FAIR_FERRY_TAG, SMALL)) + 12,
                 18
             )
+            -- [D61] numele gheretelor, deasupra lor (BoothController), ca firma negustorului
+            for _, booth in FairLayout.BOOTHS do
+                local b = spotBox(booth.spot)
+                local w = math.ceil(textWidth(booth.label, SMALL)) + 24
+                centered(`booth_sign_{booth.spot}`, (b.x0 + b.x1) / 2, b.y0 - 6 - 26, w, 26)
+            end
             local hosts = { tailor = "tent", gate = "arch", games = "booth_1", pond = "pond_dock" }
             for _, edge in FairLayout.EDGES do
                 if not edge.open then
@@ -281,6 +287,96 @@ return function()
             local rowWidth = (last.x0 + last.x1) / 2 - (first.x0 + first.x1) / 2 + tag.w
             fits("niciun record", Strings.TROPHIES_EMPTY, rowWidth)
             check.equal(table.concat(wide, ", "), "")
+        end)
+
+        test.case("jetiul duce de pe malul de sud in iaz, iar de pe el se arunca in apa", function()
+            local j = FairLayout.JETTY
+            local midX = (j.x0 + j.x1) / 2
+            for y = j.y0, j.y1, 12 do
+                check.is_true(FairLayout.isWalkable(midX, y))
+            end
+            -- la baza lui se ajunge de pe mal, iar capatul lui e in apa
+            check.is_true(FairLayout.isWalkable(midX, j.y1 + 16))
+            check.is_false(FairLayout.inPond(midX, j.y1 + 16))
+            check.is_true(FairLayout.inPond(midX, j.y0))
+            -- langa jetiu nu se merge
+            check.is_false(FairLayout.isWalkable(j.x0 - 30, j.y0 + 40))
+            check.is_false(FairLayout.isWalkable(j.x1 + 30, j.y0 + 40))
+            -- se arunca doar de pe jetiu, de deasupra apei; plutitorul cade in apa, nu pe scanduri, de ambele parti
+            local z = FairLayout.CAST_ZONE
+            local bad = {}
+            for y = z.y0, z.y1, 7 do
+                if not FairLayout.inPond(midX, y) then
+                    table.insert(bad, `aruncare de pe mal la y {y}`)
+                end
+                for _, side in { "left", "right" } do
+                    local bx, by = FairLayout.bobberFor(y, side)
+                    if not FairLayout.inPond(bx, by) or FairLayout.inRect(j, bx, by) then
+                        table.insert(bad, `plutitor {side} la y {y}`)
+                    end
+                end
+            end
+            check.is_true(z.x0 >= j.x0 and z.x1 <= j.x1 and z.y0 >= j.y0 and z.y1 <= j.y1)
+            check.equal(table.concat(bad, ", "), "")
+        end)
+
+        test.case(
+            "locurile de stat jos sunt langa obiectul lor, pe pamant, si nu se calca",
+            function()
+                local hosts: { [string]: FairLayout.Spot } = {}
+                for _, spot in FairLayout.SPOTS do
+                    hosts[spot.id] = spot
+                end
+                local bad = {}
+                local seen: { [string]: boolean } = {}
+                for i, seat in FairLayout.SEATS do
+                    local host = hosts[seat.host]
+                    if host == nil then
+                        table.insert(bad, `{seat.id}: fara obiect`)
+                        continue
+                    end
+                    if seen[seat.id] then
+                        table.insert(bad, `{seat.id} de doua ori`)
+                    end
+                    seen[seat.id] = true
+                    if seat.z ~= host.y then
+                        table.insert(bad, `{seat.id}: z nu e baza obiectului`)
+                    end
+                    -- omul sta chiar in spatele obiectului, care ii acopera picioarele
+                    if
+                        seat.y >= seat.z
+                        or seat.z - seat.y > 20
+                        or math.abs(seat.x - host.x) > 60
+                    then
+                        table.insert(bad, `{seat.id}: nu sta la obiectul lui`)
+                    end
+                    if not FairLayout.isWalkable(seat.x, seat.y) then
+                        table.insert(bad, `{seat.id} in apa`)
+                    end
+                    if FairLayout.seatById(seat.id) ~= seat then
+                        table.insert(bad, `{seat.id} nu se gaseste dupa id`)
+                    end
+                    for k = i + 1, #FairLayout.SEATS do
+                        local o = FairLayout.SEATS[k]
+                        if math.abs(o.x - seat.x) < 100 and math.abs(o.y - seat.y) < 40 then
+                            table.insert(bad, `{seat.id} x {o.id}: etichetele s-ar calca`)
+                        end
+                    end
+                end
+                check.equal(table.concat(bad, ", "), "")
+                check.is_true(#FairLayout.SEATS >= 10)
+            end
+        )
+
+        test.case("fiecare gheretă are jocul ei", function()
+            local games: { [string]: boolean } = {}
+            for _, booth in FairLayout.BOOTHS do
+                spotBox(booth.spot) -- da eroare daca locul nu exista
+                check.is_true(booth.game == "ring" or booth.game == "duck")
+                check.is_true(games[booth.game] == nil)
+                games[booth.game] = true
+            end
+            check.equal(#FairLayout.BOOTHS, 2)
         end)
 
         test.case("la fiecare margine se ajunge pe jos", function()

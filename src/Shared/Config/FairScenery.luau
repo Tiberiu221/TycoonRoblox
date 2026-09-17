@@ -32,6 +32,7 @@ FairScenery.LIGHTS = {
     { x = 1234, y = 1200, r = 120, strength = 0.26 },
     { x = 810, y = 1410, r = 150, strength = 0.4 },
     { x = 386, y = 1200, r = 140, strength = 0.32 },
+    { x = 270, y = 810, r = 150, strength = 0.4 },
     { x = 379, y = 303, r = 120, strength = 0.26 },
     { x = 230, y = 440, r = 120, strength = 0.26 },
     { x = 810, y = 806, r = 330, strength = 0.66 },

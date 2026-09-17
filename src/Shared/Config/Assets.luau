@@ -350,7 +350,7 @@ local Assets = {
         reeds = sprite(83701820915406, 18, 26),
         miniature = sprite(90688181765981, 32, 26), -- satul altcuiva, pe panoul de la poarta
         -- [2026-09-17] fundalul copt al balciului (scripts/art/d60_ground.py) si lumina moale colorata de joc
-        ground = sprite(117698032332874, 740, 720),
+        ground = sprite(135941370631156, 740, 720),
         glow = sprite(122489449102404, 64, 64),
         -- [D61] tabla concursului de la iaz si muzicantii (scripts/art/d61.py); cadrele muzicantilor sunt imagini
         -- separate, cu aceeasi marime, ca sa ramana cutia unui om in FairLayout
