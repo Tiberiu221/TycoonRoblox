@@ -18,8 +18,10 @@ Totul cu numpy: corzile din armonice care se sting (nu Karplus-Strong esantion c
 ar dura minute in Python), reverbul prin convolutie in FFT cu un raspuns sintetic. Timpul si
 intensitatea notelor sunt usor umanizate, din acelasi seed -- piesa iese identica la fiecare rulare.
 
-Folosire: python3 scripts/audio/make_music.py [cale_preview.mp3]
-Scrie assets/audio/music_river.ogg (ce urca scripts/upload_assets.py --audio music_river) si,
+[D61] A doua piesa, a balciului: un dans de seara in Sol major, 108 BPM, 32 de masuri, cu aceleasi instrumente.
+
+Folosire: python3 scripts/audio/make_music.py [river|fair] [cale_preview.mp3]
+Scrie assets/audio/music_<piesa>.ogg (ce urca scripts/upload_assets.py --audio music_<piesa>) si,
 optional, un MP3 de ascultat (macOS nu deschide .ogg din Finder).
 """
 import os
@@ -32,26 +34,38 @@ import wave
 import numpy as np
 
 SR = 44100
-BPM = 84
-BEAT = 60.0 / BPM
-BAR = 4 * BEAT
-BARS = 48
-LOOP_SECONDS = BARS * BAR
 TAIL_SECONDS = 5.0  # cat mai suna dupa ultima masura; se aduna peste inceput
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-OUT = os.path.join(ROOT, "assets", "audio", "music_river.ogg")
+AUDIO_DIR = os.path.join(ROOT, "assets", "audio")
 OGGENC = shutil.which("oggenc") or "/opt/homebrew/bin/oggenc"
 LAME = shutil.which("lame") or "/opt/homebrew/bin/lame"
 
-rng = np.random.default_rng(20260913)
-TOTAL = int((LOOP_SECONDS + TAIL_SECONDS) * SR)
-mixL = np.zeros(TOTAL)
-mixR = np.zeros(TOTAL)
+# Starea piesei in lucru. `start` o pune la zero; instrumentele de mai jos o citesc la fiecare apel, deci aceleasi
+# functii scriu si raul, si balciul [D61]. Ordinea apelurilor e cea dinainte, asa ca raul iese esantion cu esantion la
+# fel ca inainte de impartirea pe piese (verificat pe 2026-09-17).
+BPM = BEAT = BAR = LOOP_SECONDS = 0.0
+BARS = TOTAL = 0
+rng = np.random.default_rng(0)
+mixL = mixR = np.zeros(0)
 # pista separata pentru fluier: primeste suflul la sfarsit, pe toata lungimea deodata
-fluteEnvTrack = np.zeros(TOTAL)
-fluteToneL = np.zeros(TOTAL)
-fluteToneR = np.zeros(TOTAL)
+fluteEnvTrack = fluteToneL = fluteToneR = np.zeros(0)
+
+
+def start(bpm, bars, seed):
+    global BPM, BEAT, BAR, BARS, LOOP_SECONDS, TOTAL, rng, mixL, mixR, fluteEnvTrack, fluteToneL, fluteToneR
+    BPM = bpm
+    BEAT = 60.0 / BPM
+    BAR = 4 * BEAT
+    BARS = bars
+    LOOP_SECONDS = BARS * BAR
+    rng = np.random.default_rng(seed)
+    TOTAL = int((LOOP_SECONDS + TAIL_SECONDS) * SR)
+    mixL = np.zeros(TOTAL)
+    mixR = np.zeros(TOTAL)
+    fluteEnvTrack = np.zeros(TOTAL)
+    fluteToneL = np.zeros(TOTAL)
+    fluteToneR = np.zeros(TOTAL)
 
 
 def hz(midi):
@@ -238,6 +252,13 @@ PAD = {
     "Em": (59, 64, 67),
 }
 KAL_TOP = {"D": (74, 78, 81), "A": (73, 76, 81), "Bm": (74, 78, 83), "G": (74, 79, 83), "Em": (76, 79, 83)}
+# [D61] balciul e in Sol major: mai trebuie Do si La minor
+CHORD["C"] = (48, 43, (55, 60, 64))
+CHORD["Am"] = (45, 52, (57, 60, 64))
+PAD["C"] = (60, 64, 67)
+PAD["Am"] = (60, 64, 69)
+KAL_TOP["C"] = (72, 76, 79)
+KAL_TOP["Am"] = (72, 76, 81)
 
 PROG_A = ["D", "A", "Bm", "G", "D", "G", "A", "D"]
 PROG_B = ["G", "D", "Em", "Bm", "G", "D", "Em", "A"]
@@ -275,7 +296,31 @@ MEL_B = [
     (73, 2), (76, 1), (69, 1),
 ]
 
-for name, mel in (("A", MEL_A), ("A2", MEL_A2), ("B", MEL_B)):
+# [D61] Balciul: un dans de seara in Sol major, cu ritm punctat -- vesel, dar tot din lemn, ca raul.
+PROG_F1 = ["G", "C", "G", "D", "G", "C", "D", "G"]
+PROG_F2 = ["Em", "C", "G", "D", "Em", "Am", "D", "D"]
+MEL_F1 = [
+    (67, 0.5), (71, 0.5), (74, 1), (71, 0.5), (74, 0.5), (79, 1),
+    (76, 1), (72, 0.5), (76, 0.5), (79, 1), (76, 1),
+    (74, 0.5), (71, 0.5), (67, 1), (71, 0.5), (74, 0.5), (71, 1),
+    (69, 1), (66, 0.5), (69, 0.5), (74, 2),
+    (67, 0.5), (71, 0.5), (74, 1), (79, 1), (78, 0.5), (76, 0.5),
+    (76, 1), (79, 0.5), (76, 0.5), (72, 1), (76, 1),
+    (74, 1), (72, 0.5), (71, 0.5), (69, 1), (66, 1),
+    (67, 3), (None, 1),
+]
+MEL_F2 = [
+    (71, 1), (74, 0.5), (76, 0.5), (79, 1), (76, 1),
+    (79, 0.5), (76, 0.5), (72, 1), (76, 1), (72, 1),
+    (74, 1), (71, 0.5), (74, 0.5), (79, 1.5), (78, 0.5),
+    (76, 1), (74, 1), (69, 2),
+    (71, 0.5), (74, 0.5), (76, 1), (79, 0.5), (81, 0.5), (79, 1),
+    (76, 1), (72, 0.5), (76, 0.5), (81, 1), (76, 1),
+    (78, 1), (74, 0.5), (72, 0.5), (69, 1), (66, 1),
+    (69, 1), (74, 1), (78, 1), (81, 1),
+]
+
+for name, mel in (("A", MEL_A), ("A2", MEL_A2), ("B", MEL_B), ("F1", MEL_F1), ("F2", MEL_F2)):
     total = sum(d for _, d in mel)
     assert abs(total - 32) < 1e-9, f"melodia {name} are {total} batai, nu 32"
 
@@ -358,34 +403,39 @@ def section(prog, first_bar, lute=0.0, sparse=False, pad=0.0, bass=0.0, bass_who
         melody(mel, start, mel_gain)
 
 
-section(PROG_A, 0, lute=0.34, pad=0.065, kal=0.15)
-section(PROG_A, 8, lute=0.36, pad=0.065, bass=0.28, mel=MEL_A, mel_gain=0.20)
-section(PROG_B, 16, lute=0.34, pad=0.07, bass=0.28, shaker=0.08, block=0.05, mel=MEL_B, mel_gain=0.20)
-section(PROG_A, 24, lute=0.36, pad=0.065, bass=0.30, shaker=0.085, block=0.055, drum=0.16, mel=MEL_A2, mel_gain=0.21)
-section(PROG_C, 32, lute=0.30, sparse=True, pad=0.09, bass=0.2, bass_whole=True, kal=0.19, kal_busy=True)
-section(PROG_A, 40, lute=0.36, pad=0.065, bass=0.28, shaker=0.08, block=0.05, mel=MEL_A, mel_gain=0.20)
+def river():
+    """Raul [D51]: Re major, 84 BPM, 48 de masuri."""
+    section(PROG_A, 0, lute=0.34, pad=0.065, kal=0.15)
+    section(PROG_A, 8, lute=0.36, pad=0.065, bass=0.28, mel=MEL_A, mel_gain=0.20)
+    section(PROG_B, 16, lute=0.34, pad=0.07, bass=0.28, shaker=0.08, block=0.05, mel=MEL_B, mel_gain=0.20)
+    section(PROG_A, 24, lute=0.36, pad=0.065, bass=0.30, shaker=0.085, block=0.055, drum=0.16, mel=MEL_A2, mel_gain=0.21)
+    section(PROG_C, 32, lute=0.30, sparse=True, pad=0.09, bass=0.2, bass_whole=True, kal=0.19, kal_busy=True)
+    section(PROG_A, 40, lute=0.36, pad=0.065, bass=0.28, shaker=0.08, block=0.05, mel=MEL_A, mel_gain=0.20)
+
+def dance_bar(bar_start, drum, shaker, block):
+    """Toba pe unu si trei (si o atingere pe "si"-ul lui patru), shakerul pe optimi, toaca pe doi si patru."""
+    for beat, gain in ((0, 1.0), (2, 0.8), (3.5, 0.45)):
+        place(frame_drum(), bar_start + beat * BEAT + human(0.003), drum * gain, 0)
+    for i in range(8):
+        accent = 1.0 if i % 2 == 1 else 0.6
+        place(shaker_hit(accent), bar_start + i * BEAT / 2 + human(0.004), shaker, 0.55)
+    for beat in (1, 3):
+        place(woodblock(), bar_start + beat * BEAT + human(0.004), block, -0.5)
+
+
+def fair():
+    """Balciul [D61]: Sol major, 108 BPM, 32 de masuri (~71 s). Lauta ciupita des, bas, toba de dans, fluierul cu
+    melodia; kalimba doar in partea a doua, ca lumina ghirlandelor. Fara apa: aici se aude lumea, nu raul."""
+    section(PROG_F1, 0, lute=0.36, bass=0.30, pad=0.04, mel=MEL_F1, mel_gain=0.21)
+    section(PROG_F2, 8, lute=0.34, bass=0.30, pad=0.05, kal=0.11, kal_busy=True, mel=MEL_F2, mel_gain=0.21)
+    section(PROG_F1, 16, lute=0.38, bass=0.32, pad=0.04, mel=MEL_F1, mel_gain=0.22)
+    section(PROG_F2, 24, lute=0.36, bass=0.32, pad=0.05, kal=0.12, kal_busy=True, mel=MEL_F2, mel_gain=0.22)
+    for bar in range(BARS):
+        loud = bar >= 16
+        dance_bar(bar * BAR, 0.20 if loud else 0.16, 0.10 if loud else 0.08, 0.06 if loud else 0.05)
+
 
 # ---- suflul fluierului, apa, reverbul, bucla ------------------------------------------------------
-
-breath = band_noise(TOTAL, 1800, 7500, 4242) * 0.065
-mixL += fluteToneL + breath * fluteEnvTrack * 0.8
-mixR += fluteToneR + breath * fluteEnvTrack
-
-# Apa: zgomot "brun" (acumulat) intre 60 si 900 Hz, care creste si scade incet. Facuta cu 3 s mai
-# lunga si cu capetele suprapuse, ca sa nu se auda unde incepe bucla.
-loop_n = int(LOOP_SECONDS * SR)
-xfade = int(3.0 * SR)
-water_n = loop_n + xfade
-water = band_noise(water_n, 60, 900, 99) + 0.35 * band_noise(water_n, 900, 2600, 98)
-tt = np.arange(water_n) / SR
-swell = 0.65 + 0.2 * np.sin(2 * np.pi * tt / 11.0) + 0.15 * np.sin(2 * np.pi * tt / 4.3 + 1.1)
-water *= swell
-ramp = np.linspace(0, 1, xfade)
-water[:xfade] = water[:xfade] * ramp + water[loop_n:] * (1 - ramp)
-water = water[:loop_n]
-water /= np.max(np.abs(water)) + 1e-9
-mixL[:loop_n] += water * 0.035
-mixR[:loop_n] += np.roll(water, int(0.013 * SR)) * 0.035
 
 
 def reverb_ir(seed, seconds=2.3):
@@ -406,18 +456,6 @@ def convolve(sig, ir):
     return out[: len(sig)]
 
 
-wetL = convolve(mixL, reverb_ir(11))
-wetR = convolve(mixR, reverb_ir(23))
-outL = mixL * 0.82 + wetL * 0.34
-outR = mixR * 0.82 + wetR * 0.34
-
-# bucla: ce suna dupa ultima masura se aduna peste inceput
-tail = TOTAL - loop_n
-outL[:tail] += outL[loop_n:]
-outR[:tail] += outR[loop_n:]
-outL = outL[:loop_n]
-outR = outR[:loop_n]
-
 # Egalizarea finala, in FFT (bucla e periodica, deci FFT-ul nu taie nimic): fara ea mixul iesea
 # cu 15-20 dB mai intunecat decat o inregistrare acustica -- masurat pe benzi, "ca prin perete".
 # Putin mai putin sub 150 Hz (padul si basul se adunau acolo), aer de la 1.5 kHz in sus.
@@ -428,15 +466,50 @@ def tilt(sig):
     return np.fft.irfft(spec * 10 ** (db / 20), len(sig))
 
 
-outL, outR = tilt(outL), tilt(outR)
+def finish(water=True):
+    """Suflul fluierului, apa (doar la rau), reverbul, bucla fara cusatura, egalizarea si varful la -3 dBFS."""
+    breath = band_noise(TOTAL, 1800, 7500, 4242) * 0.065
+    left = mixL + (fluteToneL + breath * fluteEnvTrack * 0.8)
+    right = mixR + (fluteToneR + breath * fluteEnvTrack)
+    loop_n = int(LOOP_SECONDS * SR)
 
-# stapanire blanda a varfurilor, apoi varful la -3 dBFS
-peak = max(np.max(np.abs(outL)), np.max(np.abs(outR)))
-outL, outR = outL / peak * 0.9, outR / peak * 0.9
-outL, outR = np.tanh(outL * 1.25) / np.tanh(1.25), np.tanh(outR * 1.25) / np.tanh(1.25)
-peak = max(np.max(np.abs(outL)), np.max(np.abs(outR)))
-target = 10 ** (-3 / 20)
-outL, outR = outL / peak * target, outR / peak * target
+    if water:
+        # Apa: zgomot "brun" (acumulat) intre 60 si 900 Hz, care creste si scade incet. Facuta cu 3 s mai
+        # lunga si cu capetele suprapuse, ca sa nu se auda unde incepe bucla.
+        xfade = int(3.0 * SR)
+        water_n = loop_n + xfade
+        wave_ = band_noise(water_n, 60, 900, 99) + 0.35 * band_noise(water_n, 900, 2600, 98)
+        tt = np.arange(water_n) / SR
+        swell = 0.65 + 0.2 * np.sin(2 * np.pi * tt / 11.0) + 0.15 * np.sin(2 * np.pi * tt / 4.3 + 1.1)
+        wave_ *= swell
+        ramp = np.linspace(0, 1, xfade)
+        wave_[:xfade] = wave_[:xfade] * ramp + wave_[loop_n:] * (1 - ramp)
+        wave_ = wave_[:loop_n]
+        wave_ /= np.max(np.abs(wave_)) + 1e-9
+        left[:loop_n] += wave_ * 0.035
+        right[:loop_n] += np.roll(wave_, int(0.013 * SR)) * 0.035
+
+    wetL = convolve(left, reverb_ir(11))
+    wetR = convolve(right, reverb_ir(23))
+    outL = left * 0.82 + wetL * 0.34
+    outR = right * 0.82 + wetR * 0.34
+
+    # bucla: ce suna dupa ultima masura se aduna peste inceput
+    tail = TOTAL - loop_n
+    outL[:tail] += outL[loop_n:]
+    outR[:tail] += outR[loop_n:]
+    outL = outL[:loop_n]
+    outR = outR[:loop_n]
+
+    outL, outR = tilt(outL), tilt(outR)
+
+    # stapanire blanda a varfurilor, apoi varful la -3 dBFS
+    peak = max(np.max(np.abs(outL)), np.max(np.abs(outR)))
+    outL, outR = outL / peak * 0.9, outR / peak * 0.9
+    outL, outR = np.tanh(outL * 1.25) / np.tanh(1.25), np.tanh(outR * 1.25) / np.tanh(1.25)
+    peak = max(np.max(np.abs(outL)), np.max(np.abs(outR)))
+    target = 10 ** (-3 / 20)
+    return outL / peak * target, outR / peak * target
 
 
 def write_wav(path, left, right):
@@ -450,22 +523,40 @@ def write_wav(path, left, right):
         f.writeframes(pcm.tobytes())
 
 
+PIECES = {
+    # nume: (BPM, masuri, samanta, compunerea, apa)
+    "river": (84, 48, 20260913, river, True),
+    "fair": (108, 32, 20260917, fair, False),
+}
+
+
+def render(name):
+    bpm, bars, seed, compose, water = PIECES[name]
+    start(bpm, bars, seed)
+    compose()
+    return finish(water)
+
+
 def main():
-    preview = sys.argv[1] if len(sys.argv) > 1 else None
+    args = sys.argv[1:]
+    name = args[0] if args and args[0] in PIECES else "river"
+    preview = next((a for a in args if a.endswith(".mp3")), None)
+    left, right = render(name)
+    out = os.path.join(AUDIO_DIR, f"music_{name}.ogg")
     fd, wav_path = tempfile.mkstemp(suffix=".wav")
     os.close(fd)
     try:
-        write_wav(wav_path, outL, outR)
-        os.makedirs(os.path.dirname(OUT), exist_ok=True)
-        subprocess.run([OGGENC, "-Q", "-q", "5", "-o", OUT, wav_path], check=True)
+        write_wav(wav_path, left, right)
+        os.makedirs(AUDIO_DIR, exist_ok=True)
+        subprocess.run([OGGENC, "-Q", "-q", "5", "-o", out, wav_path], check=True)
         if preview:
             subprocess.run([LAME, "--silent", "-V", "2", wav_path, preview], check=True)
     finally:
         os.remove(wav_path)
-    rms = np.sqrt(np.mean(np.concatenate([outL, outR]) ** 2))
-    seam = abs(outL[-1] - outL[0]) + abs(outR[-1] - outR[0])
-    print(f"  music_river  {LOOP_SECONDS:6.1f}s  rms {20 * np.log10(rms):5.1f} dBFS  "
-          f"salt la cusatura {seam:.4f}  -> {OUT}")
+    rms = np.sqrt(np.mean(np.concatenate([left, right]) ** 2))
+    seam = abs(left[-1] - left[0]) + abs(right[-1] - right[0])
+    print(f"  music_{name}  {LOOP_SECONDS:6.1f}s  rms {20 * np.log10(rms):5.1f} dBFS  "
+          f"salt la cusatura {seam:.4f}  -> {out}")
     if preview:
         print(f"  mostra: {preview}")
 

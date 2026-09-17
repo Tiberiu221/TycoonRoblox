@@ -121,6 +121,12 @@ local Assets = {
         close = sprite(132144173252476, 20, 20),
         close_hover = sprite(76160501164057, 20, 20),
         close_down = sprite(132296781809933, 20, 20),
+        -- [D61] piesele gheretelor, mana de la Wave si notele muzicantilor (scripts/art/d61.py)
+        booth_bottle = sprite(95924859733627, 10, 24),
+        booth_ring = sprite(99387593948162, 14, 6),
+        booth_duck = sprite(110701638521318, 12, 10),
+        wave_hand = sprite(135941396804265, 9, 10),
+        music_note = sprite(125023281278923, 6, 8),
     },
     -- Ilustratiile cardurilor de capitol. Cheia = id-ul capitolului din QuestConfig.
     chapters = {
@@ -346,6 +352,13 @@ local Assets = {
         -- [2026-09-17] fundalul copt al balciului (scripts/art/d60_ground.py) si lumina moale colorata de joc
         ground = sprite(117698032332874, 740, 720),
         glow = sprite(122489449102404, 64, 64),
+        -- [D61] tabla concursului de la iaz si muzicantii (scripts/art/d61.py); cadrele muzicantilor sunt imagini
+        -- separate, cu aceeasi marime, ca sa ramana cutia unui om in FairLayout
+        pond_board = sprite(73087998923570, 60, 52),
+        performer = sprite(114790962686258, 18, 30),
+        performer_b = sprite(91638431233055, 18, 30),
+        musician = sprite(73984848832473, 20, 30),
+        musician_b = sprite(76251714686019, 20, 30),
     },
     -- F1 (O1): sunete sintetizate de noi (scripts/audio), urcate ca Audio. 0 = inca neincarcat ->
     -- SoundController tace, fara eroare.
@@ -353,6 +366,7 @@ local Assets = {
     -- butonul ei nu apare in bara.
     music = {
         river = 72095931356905,
+        fair = 106949553479700, -- [D61] melodia balciului (scripts/audio/make_music.py fair)
     },
     sounds = {
         splash = 125294013048224,
