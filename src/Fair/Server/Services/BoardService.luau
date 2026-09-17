@@ -44,6 +44,9 @@ local state: State =
     { week = "", boards = { fish = {}, income = {}, era1 = {} }, champion = nil, trophies = {} }
 local names: { [number]: string } = {}
 local speciesOf: { [string]: string } = {} -- "<saptamana>:<userId>:<mm>" -> specia
+-- aceeasi eroare a aceluiasi store se spune o data, nu din minut in minut (2026-09-17: trei avertismente pe minut in
+-- jurnalul Studio)
+local lastError: { [string]: string } = {}
 
 local function nameOf(userId: number): string
     local cached = names[userId]
@@ -80,7 +83,13 @@ local function readTop(
         end
     end)
     if not ok then
-        warn(`[Board] {storeName} n-a putut fi citit: {err}`)
+        local message = tostring(err)
+        if lastError[storeName] ~= message then
+            lastError[storeName] = message
+            warn(`[Board] {storeName} n-a putut fi citit: {message}`)
+        end
+    else
+        lastError[storeName] = nil
     end
     return out
 end
@@ -176,6 +185,15 @@ end
 
 function BoardService.Init(d: Deps)
     deps = d
+    if game.PlaceId == 0 then
+        -- fisierul local din Studio (Balci.rbxl): DataStore exista doar intr-un place publicat, deci tabela ramane
+        -- goala, iar panourile scriu "No one yet"
+        print(
+            "[Board] fisier local, nepublicat: tabela ramane goala (DataStore merge doar in place-ul publicat)"
+        )
+        push()
+        return
+    end
     task.spawn(function()
         readChampion()
         readTrophies()
