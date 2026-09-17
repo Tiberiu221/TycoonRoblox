@@ -461,7 +461,7 @@ return function()
                 st.allCrewsHired = true
                 st.quest = {
                     key = "catch_fish",
-                    text = "Catch a fish at the pier",
+                    text = "Catch a fish",
                     x = stand.x,
                     y = stand.y,
                     kind = "fished",

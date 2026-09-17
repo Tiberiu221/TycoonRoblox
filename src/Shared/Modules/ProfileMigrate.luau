@@ -306,4 +306,23 @@ function ProfileMigrate.toV10(data: { [string]: any })
     data.Meta.version = 10
 end
 
+-- [D61] Iazul si gheretele: rundele castigate si jucate, jocurile cu premiu din ziua curenta, jocurile perfecte.
+-- Aditiv, in tabela Fair (pe care o face toV10 daca lipseste).
+function ProfileMigrate.toV11(data: { [string]: any })
+    local version = if data.Meta ~= nil and data.Meta.version ~= nil then data.Meta.version else 1
+    if version >= 11 then
+        return
+    end
+    if typeof(data.Fair) ~= "table" then
+        data.Fair = { firstVisit = 0, visits = 0 }
+    end
+    if typeof(data.Fair.pond) ~= "table" then
+        data.Fair.pond = { wins = 0, rounds = 0 }
+    end
+    if typeof(data.Fair.booth) ~= "table" then
+        data.Fair.booth = { day = 0, prizeGames = 0, perfect = 0 }
+    end
+    data.Meta.version = 11
+end
+
 return ProfileMigrate

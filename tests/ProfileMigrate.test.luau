@@ -610,9 +610,65 @@ return function()
                 {
                     "playSeconds = 0",
                     'Titles = { bought = {}, worn = "era" }',
-                    "Fair = { firstVisit = 0, visits = 0 }",
+                    "firstVisit = 0",
+                    "visits = 0",
                     'Records = { era1Seconds = 0, incomePerSec = 0, weeklyFishMm = 0, weeklyFishWeek = "" }',
-                    "version = 10",
+                }
+            do
+                check.is_true(string.find(src, needle, 1, true) ~= nil)
+            end
+        end)
+    end)
+
+    test.suite("ProfileMigrate.toV11 - iazul si gheretele [D61]", function()
+        local function v10(): { [string]: any }
+            return {
+                Meta = { version = 10, createdAt = 1, lastSeenAt = 2 },
+                Pearls = 40,
+                Fair = { firstVisit = 5, visits = 3 },
+                Titles = { bought = {}, worn = "legend" },
+            }
+        end
+
+        test.case("rundele si jocurile se adauga in Fair; vizitele si restul raman", function()
+            local data = v10()
+            ProfileMigrate.toV11(data)
+            check.equal(data.Meta.version, 11)
+            check.equal(data.Fair.visits, 3)
+            check.equal(data.Fair.firstVisit, 5)
+            check.equal(data.Fair.pond.wins, 0)
+            check.equal(data.Fair.pond.rounds, 0)
+            check.equal(data.Fair.booth.day, 0)
+            check.equal(data.Fair.booth.prizeGames, 0)
+            check.equal(data.Fair.booth.perfect, 0)
+            check.equal(data.Pearls, 40)
+            check.equal(data.Titles.worn, "legend")
+        end)
+
+        test.case("un profil fara Fair primeste tot; migrarea e idempotenta", function()
+            local data: { [string]: any } = { Meta = { version = 9 } }
+            ProfileMigrate.toV10(data)
+            ProfileMigrate.toV11(data)
+            check.equal(data.Fair.visits, 0)
+            check.equal(data.Fair.pond.wins, 0)
+            data.Fair.pond.wins = 2
+            data.Meta.version = 10
+            ProfileMigrate.toV11(data)
+            check.equal(data.Fair.pond.wins, 2)
+            local fresh: { [string]: any } = { Meta = { version = 11 }, Fair = { visits = 1 } }
+            ProfileMigrate.toV11(fresh)
+            check.equal(fresh.Fair.pond, nil)
+        end)
+
+        test.case("sablonul si migrarea adauga aceleasi campuri", function()
+            local fs = require("@lune/fs")
+            local src = fs.readFile("src/Server/Services/DataService.luau")
+            for _, needle in
+                {
+                    "pond = { wins = 0, rounds = 0 }",
+                    "booth = { day = 0, prizeGames = 0, perfect = 0 }",
+                    "version = 11",
+                    "ProfileMigrate.toV11(profile.Data)",
                 }
             do
                 check.is_true(string.find(src, needle, 1, true) ~= nil)

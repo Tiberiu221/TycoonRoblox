@@ -525,11 +525,19 @@ Strings.TITLE_FROM = {
     legend = "Every fish in the Journal",
     record = "Your biggest fish so far",
     champion = "Biggest fish of last week",
+    pond = "Rounds won at the Contest Pond",
+    sharpshooter = "Perfect games at the booths",
     decor = "From your village decor",
     sale = "Bought with pearls",
 }
 function Strings.titleLegendProgress(n: number, total: number): string
     return `Catch every fish ({n}/{total})`
+end
+function Strings.titlePondProgress(n: number, goal: number): string
+    return `Win pond rounds ({n}/{goal})`
+end
+function Strings.titleSharpshooterProgress(n: number, goal: number): string
+    return `Play perfect booth games ({n}/{goal})`
 end
 function Strings.titleDecorHint(decorName: string): string
     return `Build the {decorName} in your village`

@@ -2,6 +2,7 @@
 -- [D60] PACHETUL CU OAMENII DIN BALCI: 24 de oameni intr-un UnreliableRemoteEvent, a carui limita e ~1000 de octeti.
 -- Ca tabel Luau (id, x, y, directie, mers) ar trece de ea; ca buffer, 6 octeti de om = 144 pentru 24.
 --   slot u8 | x u16 | y u16 | directia (2 biti) + mers (bitul 3) u8
+-- [D61] In acelasi octet: sta jos (bitul 4), face cu mana (bitul 5), pescuieste (bitul 6). Pachetul ramane de 6 octeti.
 -- Slotul e numarul omului pe server (lista `People` spune cine e); coordonatele sunt intregi, harta are sub 65536.
 -- Modul pur: acelasi cod scrie pe server si citeste pe client, iar testul verifica drumul dus-intors.
 local CrowdCodec = {}
@@ -13,7 +14,18 @@ for i, f in CrowdCodec.FACINGS do
     indexOf[f] = i - 1
 end
 
-export type Entry = { slot: number, x: number, y: number, facing: string, moving: boolean }
+export type Entry = {
+    slot: number,
+    x: number,
+    y: number,
+    facing: string,
+    moving: boolean,
+    sitting: boolean?,
+    cheering: boolean?,
+    fishing: boolean?,
+}
+
+local SITTING, CHEERING, FISHING = 8, 16, 32
 
 local function u16(v: number): number
     return math.clamp(math.round(v), 0, 65535)
@@ -26,7 +38,11 @@ function CrowdCodec.encode(entries: { Entry }): buffer
         buffer.writeu8(buf, o, math.clamp(e.slot, 0, 255))
         buffer.writeu16(buf, o + 1, u16(e.x))
         buffer.writeu16(buf, o + 3, u16(e.y))
-        local flags = (indexOf[e.facing] or 0) + (if e.moving then 4 else 0)
+        local flags = (indexOf[e.facing] or 0)
+            + (if e.moving then 4 else 0)
+            + (if e.sitting then SITTING else 0)
+            + (if e.cheering then CHEERING else 0)
+            + (if e.fishing then FISHING else 0)
         buffer.writeu8(buf, o + 5, flags)
     end
     return buf
@@ -51,6 +67,9 @@ function CrowdCodec.decode(value: unknown): { Entry }
             y = buffer.readu16(buf, o + 3),
             facing = CrowdCodec.FACINGS[bit32.band(flags, 3) + 1],
             moving = bit32.band(flags, 4) ~= 0,
+            sitting = bit32.band(flags, SITTING) ~= 0,
+            cheering = bit32.band(flags, CHEERING) ~= 0,
+            fishing = bit32.band(flags, FISHING) ~= 0,
         })
     end
     return out

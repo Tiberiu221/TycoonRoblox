@@ -218,7 +218,7 @@ QuestConfig.CHAPTERS = {
                 -- sageata spre capatul pontonului chiar si asa -- o singura exceptie numita, in GuideMath. Un peste,
                 -- nu zece: pescuitul doar adauga, nu se cere [D59].
                 id = "catch_fish",
-                text = "Catch a fish at the pier",
+                text = "Catch a fish", -- [D61] si pestii de la iazul din balci se numara
                 kind = "fished",
                 goal = 1,
                 reward = { pearls = 3 },

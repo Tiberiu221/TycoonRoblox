@@ -110,6 +110,10 @@ function AnimConfig.rowFor(
     if task == "fishing" then
         return AnimConfig.ROWS.fish
     end
+    -- [D61] Wave in balci: bratele sus, randul de bucurie
+    if task == "cheer" then
+        return AnimConfig.ROWS.cheer
+    end
     if task == "using" then
         return USING_BY_KIND[targetKind or ""]
             or IDLE_BY_FACING[facing]

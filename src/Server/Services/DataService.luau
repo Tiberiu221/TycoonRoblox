@@ -155,7 +155,7 @@ export type ProfileData = {
 }
 
 local PROFILE_TEMPLATE: ProfileData = {
-    Meta = { version = 10, createdAt = 0, lastSeenAt = 0 },
+    Meta = { version = 11, createdAt = 0, lastSeenAt = 0 },
     Coins = 0,
     Pearls = 0,
     Pads = {},
@@ -219,7 +219,13 @@ local PROFILE_TEMPLATE: ProfileData = {
     Village = { decor = {}, outfits = { keeper = true }, outfit = "keeper" },
     -- [D60] ACELEASI campuri ca ProfileMigrate.toV10
     Titles = { bought = {}, worn = "era" },
-    Fair = { firstVisit = 0, visits = 0 },
+    Fair = {
+        firstVisit = 0,
+        visits = 0,
+        -- [D61] ACELEASI campuri ca ProfileMigrate.toV11
+        pond = { wins = 0, rounds = 0 },
+        booth = { day = 0, prizeGames = 0, perfect = 0 },
+    },
     Records = { era1Seconds = 0, incomePerSec = 0, weeklyFishMm = 0, weeklyFishWeek = "" },
 }
 
@@ -429,6 +435,7 @@ local function onPlayerAdded(player: Player)
     ProfileMigrate.toV8(profile.Data) -- linia fierului [D56]: meseriile noi; scrap-ul/fierul din roabe in gramezi
     ProfileMigrate.toV9(profile.Data) -- pontonul [D59]: undita, ce aduce raul, satul -- aditiv
     ProfileMigrate.toV10(profile.Data) -- balciul [D60]: titluri, vizite, recorduri, timpul jucat -- aditiv
+    ProfileMigrate.toV11(profile.Data) -- iazul si gheretele [D61]: runde, jocuri cu premiu -- aditiv
     profile:Reconcile()
     profile.OnSessionEnd:Connect(function()
         profiles[player] = nil

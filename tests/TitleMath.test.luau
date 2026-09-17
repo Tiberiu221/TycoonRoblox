@@ -32,6 +32,24 @@ return function()
             check.equal(TitleMath.label("era", facts({ era = 3 })), "Of the Yard")
         end)
 
+        test.case("[D61] iazul si gheretele dau titlurile lor, doar dupa prag", function()
+            check.equal(TitleMath.label("pond", facts()), nil)
+            check.equal(TitleMath.label("pond", facts({ pondWins = 2 })), nil)
+            check.equal(TitleMath.label("pond", facts({ pondWins = 3 })), "Pond Champion")
+            check.equal(TitleMath.label("sharpshooter", facts({ perfectGames = 4 })), nil)
+            check.equal(
+                TitleMath.label("sharpshooter", facts({ perfectGames = 5 })),
+                "Sharpshooter"
+            )
+            local ids = {}
+            for _, entry in TitleMath.earned(facts({ pondWins = 9, perfectGames = 9 })) do
+                ids[entry.id] = true
+            end
+            check.is_true(ids.pond == true and ids.sharpshooter == true)
+            check.is_true(TitleMath.canWear("pond", facts({ pondWins = 3 })))
+            check.is_false(TitleMath.canWear("sharpshooter", facts()))
+        end)
+
         test.case("jurnalul complet da River Legend, jurnalul pe jumatate nu da nimic", function()
             check.equal(TitleMath.label("legend", facts({ species = 12 })), "River Legend")
             check.equal(TitleMath.label("legend", facts({ species = 11 })), nil)

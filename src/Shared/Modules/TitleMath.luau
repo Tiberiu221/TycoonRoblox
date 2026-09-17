@@ -16,7 +16,13 @@ export type Facts = {
     decor: { [string]: boolean }, -- id-urile decorurilor cumparate
     champion: boolean, -- ai fost #1 la peste saptamana trecuta
     bought: { [string]: boolean }, -- titlurile cumparate cu perle
+    pondWins: number?, -- [D61] runde castigate la iaz (cu cel putin doi pescari)
+    perfectGames: number?, -- [D61] jocuri perfecte la gherete
 }
+
+-- [D61] Pragurile titlurilor din balci: se castiga, nu se cumpara.
+TitleMath.POND_WINS = 3
+TitleMath.PERFECT_GAMES = 5
 
 -- Titlurile din decor: cumperi lucrul, primesti titlul; asa se vad perlele cheltuite fara sa-ti viziteze cineva satul.
 TitleMath.FROM_DECOR = {
@@ -59,6 +65,10 @@ function TitleMath.label(id: string, facts: Facts): string?
     elseif id == "champion" then
         -- campionul e #1 la peste saptamana trecuta (BoardService), pana cand concursul de la iaz ii ia locul [D61]
         return if facts.champion then "Champion of the Week" else nil
+    elseif id == "pond" then
+        return if (facts.pondWins or 0) >= TitleMath.POND_WINS then "Pond Champion" else nil
+    elseif id == "sharpshooter" then
+        return if (facts.perfectGames or 0) >= TitleMath.PERFECT_GAMES then "Sharpshooter" else nil
     end
     local decorId = string.match(id, "^decor_(%w+)$")
     if decorId ~= nil then
@@ -80,7 +90,7 @@ function TitleMath.earned(facts: Facts): { { id: string, label: string } }
         table.insert(order, `decor_{decorId}`)
     end
     table.sort(order)
-    local ordered = { "era", "legend", "record", "champion" }
+    local ordered = { "era", "legend", "record", "champion", "pond", "sharpshooter" }
     for _, id in order do
         if string.sub(id, 1, 6) == "decor_" then
             table.insert(ordered, id)

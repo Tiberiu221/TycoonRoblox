@@ -13,6 +13,8 @@ local TreasureConfig = require("../src/Shared/Config/TreasureConfig")
 local WheelConfig = require("../src/Shared/Config/WheelConfig")
 local VillageConfig = require("../src/Shared/Config/VillageConfig")
 local QuestConfig = require("../src/Shared/Config/QuestConfig")
+local PondMath = require("../src/Shared/Modules/PondMath")
+local BoothMath = require("../src/Shared/Modules/BoothMath")
 
 -- Perle pe minut de pescuit continuu, cu bara tinuta apasat tot timpul (varianta lenta, deci cifra e cinstita).
 local function fishingPerMinute(): number
@@ -78,6 +80,19 @@ return function()
                 check.is_true(perSpin >= 8 and perSpin <= 16)
             end
         )
+    end)
+
+    test.suite("PearlBudget - balciul [D61]", function()
+        test.case(
+            "concursul de la iaz: cine castiga toate rundele ia cel mult jumatate din cat aduce pescuitul",
+            function()
+                check.is_true(PondMath.bestPerMinute() <= 0.5 * fishingPerMinute())
+            end
+        )
+
+        test.case("gheretele: cel mult 50 de perle pe zi", function()
+            check.is_true(BoothMath.PRIZE_GAMES * BoothMath.maxPrize() <= 50)
+        end)
     end)
 
     test.suite("PearlBudget - cat costa ce cumperi", function()

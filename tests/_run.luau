@@ -18,6 +18,8 @@ require("./MarketMath.test")()
 require("./FairPresence.test")()
 require("./CrowdCodec.test")()
 require("./FairScenery.test")()
+require("./PondMath.test")() -- [D61]
+require("./BoothMath.test")() -- [D61]
 require("./TycoonMath.test")()
 require("./ProfileMigrate.test")()
 require("./HandMath.test")()

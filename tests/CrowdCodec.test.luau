@@ -42,6 +42,34 @@ return function()
             check.is_true(buffer.len(CrowdCodec.encode(entries)) < 1000)
         end)
 
+        test.case("[D61] cine sta jos, face cu mana sau pescuieste se vede la ceilalti", function()
+            local entries = {
+                { slot = 1, x = 1050, y = 899, facing = "down", moving = false, sitting = true },
+                { slot = 2, x = 900, y = 900, facing = "left", moving = false, cheering = true },
+                { slot = 3, x = 270, y = 800, facing = "right", moving = false, fishing = true },
+                {
+                    slot = 4,
+                    x = 1,
+                    y = 1,
+                    facing = "up",
+                    moving = true,
+                    sitting = true,
+                    cheering = true,
+                    fishing = true,
+                },
+                { slot = 5, x = 2, y = 2, facing = "down", moving = true },
+            }
+            local back = CrowdCodec.decode(CrowdCodec.encode(entries))
+            for i, e in entries do
+                check.equal(back[i].facing, e.facing)
+                check.equal(back[i].moving, e.moving)
+                check.equal(back[i].sitting, e.sitting == true)
+                check.equal(back[i].cheering, e.cheering == true)
+                check.equal(back[i].fishing, e.fishing == true)
+            end
+            check.equal(buffer.len(CrowdCodec.encode(entries)), #entries * CrowdCodec.BYTES)
+        end)
+
         test.case("un pachet stricat da o lista goala", function()
             check.equal(#CrowdCodec.decode(nil), 0)
             check.equal(#CrowdCodec.decode("hello"), 0)
