@@ -28,6 +28,7 @@ import json
 import math
 import os
 import random
+import struct
 import subprocess
 import sys
 
@@ -140,11 +141,15 @@ def check(G):
         problems.append(
             "geometria satului (maluri, punte, drumuri, curti, decor) s-a schimbat de la ultima coacere a pamantului"
         )
+    # Marimea se citeste direct din antetul PNG (IHDR), cu calea relativa la repo: `preview_tycoon.load` are scrisa in el
+    # calea de pe Mac-ul owner-ului, iar verificarea asta ruleaza si in CI.
     try:
-        w, h, _px = load("prop_village_ground")
+        with open(OUT, "rb") as f:
+            head = f.read(24)
+        w, h = struct.unpack(">II", head[16:24])
         if (w, h) != (G["world"]["w"] // D, G["world"]["h"] // D):
             problems.append(f"prop_village_ground.png are {w}x{h}, nu marimea lumii impartita la {D}")
-    except FileNotFoundError:
+    except (FileNotFoundError, struct.error):
         problems.append("lipseste assets/sprites/prop_village_ground.png")
     if problems:
         print("village_ground: " + "; ".join(problems))
