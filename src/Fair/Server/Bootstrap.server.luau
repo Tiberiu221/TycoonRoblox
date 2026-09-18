@@ -9,6 +9,7 @@
 -- Ordinea Init-urilor: serviciile, apoi FairNetServer (asculta ProfileLoaded), apoi DataService (el il declanseaza).
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 local Services = script.Parent:WaitForChild("Services")
 local NetFolder = script.Parent:WaitForChild("Net")
@@ -145,6 +146,19 @@ PurchaseService.Init({
     end,
     HasPass = PassService.Has,
 })
+
+-- [Studio] Perle de proba in Balci.rbxl. Fisierul local porneste cu profil proaspat la fiecare Play (fara DataStore), deci
+-- cu 0 perle: croitoreasa si negustorul n-ar avea cum sa fie incercati. Atributul `DevPearls` (numar) de pe Workspace
+-- da perlele la incarcarea profilului. Doar in Studio, ca `DevPasses`: pe un server adevarat atributul nu e citit.
+if RunService:IsStudio() then
+    DataService.ProfileLoaded:Connect(function(player: Player)
+        local raw = Workspace:GetAttribute("DevPearls")
+        if typeof(raw) == "number" and raw == raw and raw > 0 then
+            EconomyService.AddPearls(player, math.min(math.floor(raw), 100000), "dev")
+            task.defer(FairNetServer.PushState, player)
+        end
+    end)
+end
 
 -- [D61] gheretele de joc
 BoothService.Init({ PushState = FairNetServer.PushState, PositionOf = PresenceService.PositionOf })

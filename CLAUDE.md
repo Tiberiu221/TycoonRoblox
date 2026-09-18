@@ -87,8 +87,9 @@ stylua/selene o prind. Rulează-le mereu pe toate, nu înlănțuite după o eroa
   dar cere o cheie de publicare în `~/.driftwood_publish_key`, care încă nu există. Cheia din `~/.driftwood_api_key`
   are drept doar pe imagini. Rularea scriptului e publicare, deci cere acordul owner-ului.
   **Nu trimite owner-ul în GitHub** (nu găsește Actions). Owner-ul vede satul prin `rojo serve` + Connect în Studio, iar
-  bâlciul ca fișier local (`rojo build fair.project.json -o Balci.rbxl`, deschis în Studio, fără teleport și fără
-  DataStore).
+  bâlciul ca fișier local (`lune run scripts/build_balci [perle] [pass-uri]` scrie `Balci.rbxl`, deschis în Studio,
+  fără teleport și fără DataStore). Scriptul pune pe Workspace atributele `DevPearls` și `DevPasses`, citite doar în
+  Studio: fișierul local pornește mereu cu profil proaspăt, deci fără ele n-ai cu ce cumpăra o ținută.
 - Cheile API (`~/.driftwood_api_key`, `~/.driftwood_publish_key`) — niciodată în chat, în repo sau ca argument de
   comandă.
 - **Rojo toarnă proiectul în orice fereastră Studio conectată** (așa a ajuns satul peste `Balci.rbxl` și în jocul
