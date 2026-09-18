@@ -1,25 +1,43 @@
-run: 35371755877
-sha: abb93a42e8f2e0c69654543007fbeab5564e2de4
-finished: 2026-09-18T17:00:25Z
-lint-format-test: failure
-publish-staging: skipped
-smoke-test-staging: skipped
+run: 35371971580
+sha: 67873e296f3e4d36be1dc9b4ddef0439ea2a2a27
+finished: 2026-09-18T17:05:32Z
+lint-format-test: success
+publish-staging: success
+smoke-test-staging: success
 steps:
   lint-format-test / Set up job: success
   lint-format-test / Run actions/checkout@v4: success
   lint-format-test / Install Rokit: success
   lint-format-test / Add Rokit to PATH: success
-  lint-format-test / Install pinned toolchain: failure
-  lint-format-test / Format check (StyLua): skipped
-  lint-format-test / Lint (selene, std roblox): skipped
-  lint-format-test / Install Wally packages: skipped
-  lint-format-test / Unit tests (Lune + frktest): skipped
-  lint-format-test / Economy simulator: skipped
-  lint-format-test / Panel row layout: skipped
-  lint-format-test / Build place: skipped
-  lint-format-test / Build fair place: skipped
-  lint-format-test / Check require paths resolve: skipped
-  lint-format-test / Check require paths resolve (fair): skipped
-  lint-format-test / Run actions/upload-artifact@v4: skipped
+  lint-format-test / Install pinned toolchain: success
+  lint-format-test / Format check (StyLua): success
+  lint-format-test / Lint (selene, std roblox): success
+  lint-format-test / Install Wally packages: success
+  lint-format-test / Unit tests (Lune + frktest): success
+  lint-format-test / Economy simulator: success
+  lint-format-test / Panel row layout: success
+  lint-format-test / Build place: success
+  lint-format-test / Build fair place: success
+  lint-format-test / Check require paths resolve: success
+  lint-format-test / Check require paths resolve (fair): success
+  lint-format-test / Run actions/upload-artifact@v4: success
   lint-format-test / Post Run actions/checkout@v4: success
   lint-format-test / Complete job: success
+  publish-staging / Set up job: success
+  publish-staging / Run actions/checkout@v4: success
+  publish-staging / Install Rokit: success
+  publish-staging / Run echo "$HOME/.rokit/bin" >> "$GITHUB_PATH": success
+  publish-staging / Run bash scripts/ci_retry.sh rokit install --no-trust-check: success
+  publish-staging / Run bash scripts/ci_retry.sh wally install: success
+  publish-staging / Build place: success
+  publish-staging / Build fair place: success
+  publish-staging / Publish to Driftwood-Staging (Open Cloud): success
+  publish-staging / Publish fair place to Driftwood-Staging (Open Cloud): success
+  publish-staging / Upload artifact tagged with versionNumber: success
+  publish-staging / Post Run actions/checkout@v4: success
+  publish-staging / Complete job: success
+  smoke-test-staging / Set up job: success
+  smoke-test-staging / Run actions/checkout@v4: success
+  smoke-test-staging / Run smoke tests via Open Cloud Luau Execution: success
+  smoke-test-staging / Post Run actions/checkout@v4: success
+  smoke-test-staging / Complete job: success
