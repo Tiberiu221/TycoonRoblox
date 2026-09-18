@@ -185,6 +185,30 @@ def outline(c, x0, y0, w, h, col=OUT):
                 c.px[y0 + y][x0 + x] = col
 
 
+class _CellClip:
+    """[D61] Panza care deseneaza doar in celula capului. La un cadru cu saritura (bob negativ) randul de sus al
+    palariei cade in celula de DEASUPRA din foaie (vezi nota de la RUN_SIDE). La palariile vechi scurgerea e un pixel
+    inchis sub picioarele cadrului de deasupra si nu se vede; la cele noi (pana rosie a menestrelului, jobenul inalt,
+    gluga) se vedea ca un punct colorat care clipeste sub picioare in mers. Doar pentru palariile noi: foile deja
+    urcate raman bit cu bit la fel."""
+
+    def __init__(self, c, y_head):
+        self.c = c
+        self.cell = (y_head + 4) // FH  # randul de jos al palariei e mereu in celula buna
+
+    def put(self, x, y, col):
+        if int(y) // FH == self.cell:
+            self.c.put(x, y, col)
+
+    def rect(self, x, y, w, h, col):
+        for yy in range(int(y), int(y + h)):
+            for xx in range(int(x), int(x + w)):
+                self.put(xx, yy, col)
+
+
+NEW_HATS = ("tophat", "feathercap", "hood", "wreath")
+
+
 def draw_hat(c, ox, y, facing, layer):
     """Acoperamantul de cap curent (_CUR["hat_kind"]) - singurul lucru desenat pe stratul
     "outfit" in head(). Toate siluetele stau in y+0..y+4 (niciodata sub 0) ca sa nu
@@ -195,6 +219,8 @@ def draw_hat(c, ox, y, facing, layer):
     if k == "none":
         return
     hat, hat_d, hat_l = _CUR["hat"], _CUR["hat_d"], _CUR["hat_l"]
+    if k in NEW_HATS:
+        c = _CellClip(c, y)  # [D61] palariile noi nu se scurg in cadrul de deasupra din foaie
     if k == "band":                                    # doar o fasie pe frunte (innkeeper)
         # un singur rand, la y+4 - fata (stratul "body") incepe la y+5 (fy), niciodata mai
         # jos: la separarea pe straturi tinuta se suprapune mereu ultima (vezi punch()),
