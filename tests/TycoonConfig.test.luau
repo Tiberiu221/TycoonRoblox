@@ -664,22 +664,24 @@ return function()
             -- venit, nu scara), deci clopotul vine mai ieftin decat in D55.
             local era1 = {
                 first_net = 0,
-                first_runner = 12,
-                hire_porter = 15,
-                hire_sawyer = 18,
-                hire_hauler = 20,
-                dock_trader = 25,
+                -- [D62] oamenii capitolului 1 vin in rafala (secunde de venit, nu scara): erau 12/15/18/20/25
+                first_runner = 5,
+                hire_porter = 6,
+                hire_sawyer = 7,
+                hire_hauler = 8,
+                dock_trader = 10,
                 second_net = 28,
                 third_net = 90,
                 bigger_sack = 80,
                 far_lane_net = 900,
                 workshop = 5500,
                 fifth_net = 7000,
-                scrap_shed = 2500,
-                hire_scrap_collector = 2500,
-                hire_scrap_porter = 2800,
-                hire_smelter = 3500,
-                hire_iron_hauler = 3500,
+                -- [D62] rafala scurta a fierului: erau 2500 / 2500 / 2800 / 3500 / 3500
+                scrap_shed = 700,
+                hire_scrap_collector = 700,
+                hire_scrap_porter = 800,
+                hire_smelter = 900,
+                hire_iron_hauler = 1100,
                 landing_bell = 8000,
             }
             local seen = 0

@@ -573,7 +573,18 @@ QUEST_UNLOCKS = (
 # ce s-a deschis inainte (podeaua lui `nice`). Pe scara, patru angajari la rand ar fi impins clopotul cu
 # 1.17^4 mai departe (Era 1 peste o ora), pentru niste oameni care fac doar sa mearga o linie deja cumparata.
 # Shed-ul vine cu ei: e locul in care lasa Scrap Collector-ul.
-BURST_WAIT = {"shed": 45.0, "scrapCollector": 45.0, "scrapPorter": 50.0, "smelter": 55.0, "ironHauler": 60.0}
+# [D62] RAFALA SCURTA: erau 45-60 de secunde de venit fiecare, adica ~1m30s reale de strans pentru o cumparatura care
+# aduce 0-3% (linia fierului incepe sa plateasca abia cand are toti oamenii si i se urca nivelurile). Cinci la rand
+# faceau, cu forja si plasa a cincea dinainte, 14 minute in care venitul crestea cu 7%. Acum oamenii fierului vin la
+# ~25 de secunde reale unul de altul, iar nivelurile fierului (saltul de +80%) vin imediat dupa ei.
+BURST_WAIT = {"shed": 12.0, "scrapCollector": 12.0, "scrapPorter": 14.0, "smelter": 16.0, "ironHauler": 18.0}
+# [D62] SI OAMENII CAPITOLULUI 1 VIN IN RAFALA. Owner-ul a cerut in D52 ca "al doilea tur sa isi deblocheze treptat
+# npc-urile"; pe scara deblocarilor ieseau insa la 41 / 49 / 59 / 67 / 83 de secunde reale unul de altul, pe un venit
+# care nu se misca deloc (cu o singura plasa, plasa e veriga slaba: un om adauga zero). Adica primele cinci minute
+# ale jocului erau cinci asteptari tot mai lungi pentru cinci cumparaturi care nu cresc nimic. Acum costa cateva
+# secunde de venit fiecare: prima vanzare (12 monede) ii plateste pe primii doi pe loc, iar toti cinci sunt angajati
+# in ~2 minute reale. Scara porneste de unde ajunsese dupa ei (`LADDER_START`), deci restul preturilor nu se schimba.
+BURST_WAIT.update({"collector": 9.0, "porter": 11.0, "sawyer": 13.0, "hauler": 15.0, "trader": 18.0})
 
 # uid -> pe ce veriga apasa deblocarea (pentru cazul in care nimic nu da castig imediat)
 UNLOCK_STAGE = {
@@ -608,7 +619,12 @@ def target_wait(k: int) -> float:
     minute vine din niveluri, nu din deblocari.
     Prima varianta avea 20s si crestere 1.22: deblocarile ieseau atat de ieftine incat jucatorul
     lacom le lua pe toate la rand si nu urca niciun nivel pana in minutul 3."""
-    return min(420.0, 20.0 * 1.17**k)
+    return min(420.0, 20.0 * 1.17 ** (k + LADDER_START))
+
+
+# [D62] Cele cinci angajari ale capitolului 1 urcau scara; acum au pretul lor (BURST_WAIT). Scara porneste de la treapta
+# la care ajunsese dupa ele, ca plasele si tot ce urmeaza sa coste exact cat costau.
+LADDER_START = 5
 
 
 NICE = (1, 1.1, 1.2, 1.3, 1.5, 1.6, 1.8, 2, 2.2, 2.5, 2.8, 3, 3.5, 4, 4.5, 5, 5.5, 6, 7, 7.5, 8, 9)
@@ -925,6 +941,9 @@ def check_hire_order():
 # asta ("gaterul si taverna nu mai merita urcate in Era 1"). Pragul ramane ca sa prinda o veriga care
 # nu e NICIODATA gatuirea.
 MIN_BOTTLENECK_SHARE = 0.005
+# [D62] Primele cinci minute: rafala de angajari, apoi nivelurile plasei si a doua plasa. Era 6 (cate una pe minut).
+MIN_FIRST_FIVE = 20
+CREW_BURST_REAL = 150
 # [D56] COMPROMISUL LINIEI FIERULUI, ca in D52: pe linia fierului pasul cel mai lent e aproape mereu forja (~66% din
 # timpul cu fier) sau Scrap Collector-ul (~30%). Iron Hauler-ul e ultimul om de drum, deci baza lui trebuie sa
 # duca macar cat tot timpul tau (altfel angajarea lui ar putea scadea venitul): la baza asta e cel mai lent 0-0.5%
@@ -938,8 +957,13 @@ def check_run(rows, longest_idle, shares, prices, scrap_time):
     """Portile care se masoara pe o rulare (si pe fiecare rulare din --robust)."""
     problems = []
     five_min = [r for r in rows if r[3] * REAL <= 300]
-    if len(five_min) < 6:
-        problems.append(f"primele 5 minute reale au doar {len(five_min)} cumparaturi (minim 6) [L1]")
+    if len(five_min) < MIN_FIRST_FIVE:
+        problems.append(f"primele 5 minute reale au doar {len(five_min)} cumparaturi (minim {MIN_FIRST_FIVE}) [L1]")
+    # [D62] Toti oamenii capitolului 1, in cel mult CREW_BURST_REAL secunde reale de la prima plasa
+    hired = [r[3] * REAL for r in rows if r[1] == "unlock" and r[0] == "unlock:Innkeeper"]
+    if not hired or hired[0] > CREW_BURST_REAL:
+        when = fmt(hired[0]) if hired else "niciodata"
+        problems.append(f"cei cinci oameni ai capitolului 1 sunt angajati abia la {when} real (maxim {fmt(CREW_BURST_REAL)})")
     if longest_idle > 180:
         problems.append(f"{fmt(longest_idle)} fara nimic de apasat (maxim 3 min)")
     # O veriga care e rar cea mai slaba e decor: jucatorul n-are de ce s-o urce, iar meniul ei ar
@@ -1139,7 +1163,7 @@ if __name__ == "__main__":
     total = sum(shares.values())
     print(f"\nEra 1: {len(rows)} cumparaturi ({len(unlocks)} deblocari, {len(levels)} niveluri si trepte)")
     print(f"  terminata in {fmt(rows[-1][3])} lacom  ->  {fmt(rows[-1][3] * REAL)} real")
-    print(f"  primele 5 minute reale: {len(five_min)} cumparaturi (minim 6)")
+    print(f"  primele 5 minute reale: {len(five_min)} cumparaturi (minim {MIN_FIRST_FIVE})")
     print(f"  cea mai lunga pauza fara nimic de apasat: {fmt(longest_idle)}")
     print(
         "  gatuirea, ca parte din timp: "

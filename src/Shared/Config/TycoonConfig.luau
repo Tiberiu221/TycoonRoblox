@@ -494,7 +494,7 @@ TycoonConfig.PADS = {
         name = "Collector",
         era = 1,
         motive = "A",
-        price = 12,
+        price = 5,
         effects = { hireEffect("collector") },
         live = true,
         -- [D57] Casele oamenilor stau pe un rand, peste strada de curtea liniei lor, fiecare pe pamantul ei (YARDS).
@@ -512,7 +512,7 @@ TycoonConfig.PADS = {
         name = "Porter",
         era = 1,
         motive = "A",
-        price = 15,
+        price = 6,
         effects = { hireEffect("porter") },
         live = true,
         -- [D57] in randul caselor lemnului, dupa Collector: coliba mare (120x102) ocupa x 730..850
@@ -528,7 +528,7 @@ TycoonConfig.PADS = {
         name = "Sawyer",
         era = 1,
         motive = "A",
-        price = 18,
+        price = 7,
         effects = { hireEffect("sawyer") },
         live = true,
         -- [D57] in randul caselor lemnului, peste strada de gater; omul insusi sta la panza (SAWYER_STAND)
@@ -544,7 +544,7 @@ TycoonConfig.PADS = {
         name = "Hauler",
         era = 1,
         motive = "A",
-        price = 20,
+        price = 8,
         effects = { hireEffect("hauler") },
         live = true,
         -- [D57] ultima casa a lemnului, spre curtea fierului: coliba mare (120x102) ocupa x 1050..1170
@@ -560,7 +560,7 @@ TycoonConfig.PADS = {
         name = "Innkeeper",
         era = 1,
         motive = "A",
-        price = 25,
+        price = 10,
         effects = { hireEffect("trader") },
         live = true,
         -- LANGA TAVERNA, nu in randul statiilor: un Innkeeper departe de taverna nu se leaga. [D57] Taraba (128x80) sta
@@ -681,7 +681,7 @@ TycoonConfig.PADS = {
         name = "Scrap Shed",
         era = 1,
         motive = "V",
-        price = 2500,
+        price = 700,
         effects = { flagEffect("scrapShed") },
         live = true,
         -- [D57] sus in curtea fierului, sub plasa a cincea: sopronul (120x96) ocupa x 1430..1550, y 914..1010
@@ -697,7 +697,7 @@ TycoonConfig.PADS = {
         name = "Scrap Collector",
         era = 1,
         motive = "A",
-        price = 2500,
+        price = 700,
         effects = { hireEffect("scrapCollector") },
         live = true,
         -- [D57] prima casa a fierului, peste strada de curtea lui: coliba mare (120x102) ocupa x 1240..1360
@@ -713,7 +713,7 @@ TycoonConfig.PADS = {
         name = "Scrap Porter",
         era = 1,
         motive = "A",
-        price = 2800,
+        price = 800,
         effects = { hireEffect("scrapPorter") },
         live = true,
         -- [D57] in randul caselor fierului: coliba mare (120x102) ocupa x 1390..1510
@@ -729,7 +729,7 @@ TycoonConfig.PADS = {
         name = "Smelter",
         era = 1,
         motive = "A",
-        price = 3500,
+        price = 900,
         effects = { hireEffect("smelter") },
         live = true,
         -- [D57] in randul caselor fierului, peste strada de forja: coliba mare (120x102) ocupa x 1540..1660
@@ -745,7 +745,7 @@ TycoonConfig.PADS = {
         name = "Iron Hauler",
         era = 1,
         motive = "A",
-        price = 3500,
+        price = 1100,
         effects = { hireEffect("ironHauler") },
         live = true,
         -- [D57] ultima casa a fierului, spre poarta Morii: coliba mare (120x102) ocupa x 1690..1810
