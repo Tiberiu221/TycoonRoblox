@@ -12,9 +12,9 @@ Convenție: în tot proiectul, „server" înseamnă o instanță Roblox efemer�
 ---
 
 ## D62 — De ce nu prinde jocul: auditul, și primele reparații
-**ÎN LUCRU** (2026-09-18) — owner-ul: *„verifică graficile, texturile și tot. și verifică mai ales logica jocului, am
-impresia că nu te prinde deloc, adică nu mă atrage deloc"*. Pașii 1 și 2 sunt comiși; pașii 3–5 așteaptă alegerea
-owner-ului.
+**SCRIS ÎN ÎNTREGIME, NEJUCAT ÎNCĂ** (2026-09-18 → 2026-09-19) — owner-ul: *„verifică graficile, texturile și tot. și
+verifică mai ales logica jocului, am impresia că nu te prinde deloc, adică nu mă atrage deloc"*. Cei cinci pași sunt
+comiși, iar arta lor e urcată (2026-09-19). Dacă jocul prinde sau nu se află doar jucându-l: asta e verificarea rămasă.
 
 **Cum s-a verificat:**
 - **Jurnalele Studio:** ce a rulat și cât.
@@ -65,8 +65,8 @@ owner-ului.
 - **În meniu:** cifra sare, o bară arată cât mai e până la pragul următor, iar rândul pragului scrie „Level 10
   reached!".
 - **Oamenii:** coliba sare, omul spune „Better tools. Thanks!", iar al doilea om are toastul lui.
-- **Sunete:** `sfx_levelup` și `sfx_milestone` sunt sintetizate, **încă neurcate**; până atunci se aud `pop` și
-  `chime`. Nivelurile cumpărate la rând urcă în înălțime, câte un semiton.
+- **Sunete:** `sfx_levelup` și `sfx_milestone`, sintetizate de noi, urcate și aprobate de moderare (bb301c1). Nivelurile
+  cumpărate la rând urcă în înălțime, câte un semiton.
 - **Quest-urile:** perlele zboară de la Claim spre contor.
   - Recompensa capitolului se plătește la ultima revendicare (`QuestMath.chapterClosedBy`), cu banner.
   - Capitolul 1 dă acum 20 de perle, exact cât primul decor.
@@ -114,8 +114,8 @@ owner-ului.
   le ține legate).
 - **Amendează D59,** unde râul dădea doar perle: aici bonusul e mărginit de program, deci se poate socoti; perlele rămân
   la undiță și la comori.
-- Profil **v15**, aditiv: `Stats.drifts`, `Stats.lastDrift`. Artă desenată, neurcată: `treasure_barrel_water`,
-  `treasure_crate_water` (până atunci, un butoi și o ladă din dreptunghiuri).
+- Profil **v15**, aditiv: `Stats.drifts`, `Stats.lastDrift`. Butoiul și lada pe apă (`treasure_barrel_water`,
+  `treasure_crate_water`) sunt urcate din 2026-09-19.
 - După aceea pot veni evenimentele anunțate („Log drive!").
 
 **Pasul 4 — undița și avizierul, devreme (făcut pe 2026-09-18, în planul aprobat de owner; neverificat încă în Studio).**
@@ -132,7 +132,8 @@ owner-ului.
   continuă ca înainte: nivelul 2 al plasei, a doua plasă.
 - Capitolul 1 are acum 13 quest-uri și 25 de perle cu tot cu răsplata lui; capitolul 2 are cu 3 mai puțin.
 
-**Pasul 5 — satul crește la vedere (prima parte, făcută pe 2026-09-18; neverificată încă în Studio).**
+**Pasul 5 — satul crește la vedere (prima parte, făcută pe 2026-09-18; arta urcată pe 2026-09-19; neverificată încă în
+Studio).**
 - **Ce se vede fără imagini noi, de acum:**
   - **treapta meseriei** (1–5), ca cinci pătrățele deasupra acoperișului casei, cele câștigate aurii. Treapta nu schimbă
     înfățișarea omului, deci până acum o treaptă cumpărată nu se vedea nicăieri în lume. Deasupra acoperișului, nu sub
@@ -140,7 +141,7 @@ owner-ului.
   - **fum la hornuri:** casele mari (doi oameni pe meserie) au horn, deci fumul e și un semn că meseria a crescut;
     taverna fumegă mereu. Hornurile sunt măsurate pe foile de sprite (`PadArt.CHIMNEY`). `SceneArt.AddSmoke` exista,
     nefolosit.
-- **Ce se vede după ce arta e aprobată și urcată** (codul cade pe desenul de azi până atunci):
+- **Ce se vede cu arta urcată** (o variantă care lipsește cade pe desenul de bază):
   - **plasa pe ranguri,** la pragurile 10 / 25 / 50 (`ChainMath.rankOf`, pur): flotoare roșii pe ramă, apoi mai multe și
     ață mai deasă, apoi flotoare și ramă aurii (`prop_net_water_r1..r3`, cu varianta plină);
   - **insigna `Lv N`** trece din albastru în bronz / argint / aur (`ui_levelbadge_*`), cu textul închis pe argint și aur;
