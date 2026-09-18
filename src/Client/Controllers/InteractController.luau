@@ -33,6 +33,7 @@ local PierController = require(script.Parent.PierController)
 local VillageController = require(script.Parent.VillageController)
 local WheelSignpostController = require(script.Parent.WheelSignpostController)
 local FerryController = require(script.Parent.FerryController)
+local DriftController = require(script.Parent.DriftController)
 local Panels = require(script.Parent.Panels)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
@@ -83,6 +84,7 @@ local SOURCES: { (number, number) -> Focus.Focus? } = {
     WheelSignpostController.Focus,
     VillageController.Focus,
     FerryController.Focus, -- [D60] barca spre balci, legata in aval de ponton
+    DriftController.Focus, -- [D62] darul care trece pe rau, cat e in dreptul tau
 }
 
 local function nextLevelCost(kind: string?, id: string?): number?

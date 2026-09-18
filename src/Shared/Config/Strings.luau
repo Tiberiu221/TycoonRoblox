@@ -751,6 +751,17 @@ end
 function Strings.tailorWearing(name: string): string
     return `Wearing: {name}`
 end
+-- [D62, pasul 3] Darurile raului: un butoi, o lada sau un bustean de aur trec pe rau; il scoti de pe punte.
+function Strings.driftCard(keyHint: string): string
+    return `Grab it{keyHint}`
+end
+Strings.DRIFT_NAMES = { barrel = "barrel", crate = "crate", golden = "golden log" }
+function Strings.driftSeen(kind: string): string
+    local name = (Strings.DRIFT_NAMES :: any)[kind] or "barrel"
+    return `A {name} is drifting by. Run along the deck and grab it!`
+end
+Strings.DRIFT_GOLDEN = "A golden log is drifting by!"
+
 -- [D61, partea 2] Coltul cu Robux. Numele si frazele lucrurilor stau in MonetizationConfig; pretul vine de la Roblox.
 Strings.SHOP_TITLE = "Shop"
 Strings.SHOP_BLURB = "Speed, room and looks. Never luck. Nothing you buy is ever lost."

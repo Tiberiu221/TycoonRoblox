@@ -42,6 +42,11 @@ function RiverService.Now(): number
     return Workspace:GetServerTimeNow()
 end
 
+-- [D62] Samanta raului, aceeasi pe care o primeste clientul in configul raului: si darurile raului (DriftMath) ies din ea.
+function RiverService.Seed(): number
+    return BASE_SEED
+end
+
 function RiverService.SeasonIndex(unixTime: number): number
     return math.floor((unixTime - SEASON_EPOCH) / SEASON_LENGTH_SECONDS) % #SEASONS
 end

@@ -32,6 +32,8 @@ local LIMITS: { [string]: { capacity: number, refillPerSecond: number } } = {
     Seat = { capacity = 4, refillPerSecond = 1 },
     -- [D61, partea 2] poarta satelor: lista, fotografia unui sat, like-ul
     Visit = { capacity = 4, refillPerSecond = 1 },
+    -- [D62, pasul 3] darurile raului: unul la ~56 s; doua cereri la rand acopera un E apasat de doua ori
+    Drift = { capacity = 2, refillPerSecond = 0.2 },
     -- [D61, partea 2] coltul cu Robux: cererea ferestrei de cumparare
     Robux = { capacity = 3, refillPerSecond = 0.5 },
 }

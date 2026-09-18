@@ -44,6 +44,7 @@ require("./LookMath.test")()
 require("./VillageLook.test")()
 require("./VisitMath.test")()
 require("./PassMath.test")()
+require("./DriftMath.test")()
 
 local frktest = require("@frktest/frktest")
 local console_reporter = require("@frktest/reporters/console_reporter")

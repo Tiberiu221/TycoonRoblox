@@ -158,6 +158,13 @@ function CameraController.HasFocus(): boolean
     return focus ~= nil
 end
 
+-- [D62] Lasa camera doar daca inca o tii TU: cine a luat-o intre timp (tutorialul, o ceremonie) n-o pierde.
+function CameraController.ReleaseFocus(getter: () -> (number?, number?))
+    if focus == getter then
+        focus = nil
+    end
+end
+
 function CameraController.Follow(worldX: number, worldY: number)
     if focus ~= nil then
         local fx, fy = focus()

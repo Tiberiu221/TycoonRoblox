@@ -51,6 +51,8 @@ export type Deps = {
         BuyOutfit: (Player, string) -> (boolean, string),
         WearOutfit: (Player, string) -> (boolean, string),
     },
+    -- [D62, pasul 3] darurile raului
+    Drift: { Grab: (Player, number) -> (boolean, string, string?, number?) },
     -- [D61, partea 2] coltul cu Robux: pass-urile tale, ce ar aduce produsele acum, fereastra de cumparare
     Shop: {
         Snapshot: (Player) -> { [string]: any },
@@ -358,6 +360,19 @@ function NetServer.Init(d: Deps)
     Net.Get("BuyDecor").OnServerEvent:Connect(shopHandler("decor", deps.Village.BuyDecor))
     Net.Get("BuyOutfit").OnServerEvent:Connect(shopHandler("outfit", deps.Village.BuyOutfit))
     Net.Get("WearOutfit").OnServerEvent:Connect(shopHandler("wear", deps.Village.WearOutfit))
+
+    -- [D62, pasul 3] DARURILE RAULUI. Clientul spune care dar (fereastra de timp); serverul il reface din acelasi
+    -- program si verifica momentul si ca n-a mai fost scos. Raspunde mereu: clientul a pornit deja zborul spre tine.
+    Net.Get("GrabDrift").OnServerEvent:Connect(function(player: Player, giftId: unknown)
+        if not RateLimiter.Allow(player, "Drift") then
+            return
+        end
+        if not isInteger(giftId) then
+            return
+        end
+        local ok, reason, kind, coins = deps.Drift.Grab(player, giftId :: number)
+        Net.Get("DriftGrabbed"):FireClient(player, giftId, ok, reason, kind, coins)
+    end)
 
     -- [D61, partea 2] COLTUL CU ROBUX. Clientul cere un lucru din catalog; fereastra Roblox o deschide serverul, daca
     -- lucrul exista pe universul asta si are rost acum. Un refuz se spune [D43]; ce ai primit vine tot pe RobuxResult,

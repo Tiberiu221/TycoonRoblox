@@ -93,14 +93,32 @@ owner-ului.
 - **Concluzia:** angajările nu cresc venitul, doar te eliberează. Deci trebuie să vină repede, iar timpul eliberat
   trebuie să aibă o folosință (pasul 3).
 
-**Propuse, în așteptarea owner-ului:**
-- **Pasul 3 — darurile râului.**
-  - La ~45–60 s trece pe lângă punte un butoi, o ladă sau, rar, un buștean de aur. Alergi în dreptul lui și apeși E.
-  - Primești monede cât 10–75 s din venitul tău, cu un minim ca să conteze și în primul minut.
-  - Scăpat, nu pierzi nimic.
-  - Amendează D59, unde râul dă doar perle. Bonusul e mărginit de program (~+30% pentru cine le prinde pe toate), deci
-    se poate modela.
-  - După aceea vin evenimentele anunțate („Log drive!").
+**Pasul 3 — darurile râului (făcut pe 2026-09-18, în planul aprobat de owner; neverificat încă în Studio).**
+- **Ce vede jucătorul:** la fiecare 56 s trece pe râu, dincolo de plase, un **butoi** (72%), o **ladă** (22%) sau un
+  **buștean de aur** (6%, cu clinchet și anunț). Alergi pe punte sau pe ponton în dreptul lui; cardul scrie
+  `Grab it (E)`. Darul vine spre tine, iar monedele sar spre contor.
+- **Cât aduce:** butoiul cât **10 s** din venitul tău de acum (minimum 6 monede, ca în primul minut să însemne un om
+  angajat), lada **25 s** (minimum 15), bușteanul de aur **75 s** (minimum 40).
+- **Scăpat, pleacă pe râu și atât:** n-ai avut nimic, nu pierzi nimic [P2]. Oamenii tăi nu le prind: e treaba ta, singurul
+  lucru de făcut cu mâinile după ce satul merge singur.
+- **Programul e determinist** pe sămânța râului și fereastra de timp (`DriftMath`, pur): serverul nu lansează nimic și
+  clientul nu cere nimic ca să-l deseneze. La `GrabDrift`, serverul reface același dar și verifică **momentul** (chiar
+  trece prin dreptul punții), că e **mai nou decât ultimul scos** (`Stats.lastDrift`, în profil: nici o reintrare, nici
+  alt server nu-l mai dau o dată) și rata. **Poziția ta nu se verifică:** în sat serverul nu știe unde stai nici la
+  cules, nici la predat. Cine trimite cererea fără să alerge câștigă cel mult cât unul care le prinde pe toate.
+- **Pe telefon** râul din larg iese din ecran când stai pe punte: cât ai un dar în rază, camera se mută lin la jumătatea
+  drumului și se întoarce după (`CameraController.ReleaseFocus` lasă camera doar dacă încă e a ta).
+- **Cât adaugă la venit:** ~31% pentru cine le prinde pe toate, ~15% pentru cine prinde jumătate. E o **estimare**, deci
+  **nu intră în prețuri și nici în porțile de ritm**: acelea rămân pe jucătorul care nu prinde niciunul. Simulatorul
+  doar afișează cât s-ar scurta Era 1 (33m36s → ~29m cu jumătate prinse), din aceleași cifre ca `DriftMath` (un test
+  le ține legate).
+- **Amendează D59,** unde râul dădea doar perle: aici bonusul e mărginit de program, deci se poate socoti; perlele rămân
+  la undiță și la comori.
+- Profil **v15**, aditiv: `Stats.drifts`, `Stats.lastDrift`. Artă desenată, neurcată: `treasure_barrel_water`,
+  `treasure_crate_water` (până atunci, un butoi și o ladă din dreptunghiuri).
+- După aceea pot veni evenimentele anunțate („Log drive!").
+
+**Propuse, rămase:**
 - **Pasul 4 — undița și avizierul mai devreme în quest-uri,** cât aștepți banii pentru oameni.
   - Primul pește dă 6–17 perle, deci primul decor se poate lua în primele minute.
   - Amendează locul quest-ului din D59.
@@ -206,7 +224,7 @@ satul tău nu-l vedea nimeni: bâlciul te lăsa să te etalezi doar cu o ținut�
      permisiunile pentru game passes și developer products le pot crea eu (nume, descriere, preț, iconiță). ID-urile
      intră în `MonetizationConfig.IDS`, pe univers.
 
-**Rămâne din plan:** D62 pașii 3–5 (darurile râului, undița și avizierul devreme, satul care crește la vedere).
+**Rămâne din plan:** D62 pașii 4–5 (undița și avizierul devreme, satul care crește la vedere).
 
 ---
 

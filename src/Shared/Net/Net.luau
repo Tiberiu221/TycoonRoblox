@@ -62,6 +62,9 @@ local REMOTE_NAMES = {
     "BuyOutfit", -- C->S {outfitId}: o tinuta, pe perle (o si imbraci)
     "WearOutfit", -- C->S {outfitId}: schimbi intre tinutele pe care le ai
     "ShopResult", -- S->C {what, id, ok, reason}: raspunsul avizierului
+    -- [D62, pasul 3] darurile raului (DriftService): programul e determinist, deci clientul spune doar care dar
+    "GrabDrift", -- C->S {giftId}: am scos darul ferestrei asteia (DriftMath)
+    "DriftGrabbed", -- S->C {giftId, ok, reason, kind, coins}
     -- [D61, partea 2] coltul cu Robux: fereastra de cumparare o deschide serverul (PurchaseService.Prompt)
     "RobuxBuy", -- C->S {key}: vreau lucrul asta din catalog (MonetizationConfig)
     "RobuxResult", -- S->C {key, ok, reason, coins}: refuzul ("soon" | "owned" | "nothing" | ...) sau ce ai primit

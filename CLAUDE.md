@@ -131,6 +131,14 @@ vedere). Owner-ul: „tot ce știi sigur că funcționează, fără presupus. nu
   (`prop_fair_shop`, `outfit_supporter`, cele patru ținute ale croitoresei). Taraba intră în `FairLayout` după urcare.
 - Trece poarta (485 de teste).
 
+**Darurile râului [D62, pasul 3]** — comise, **neverificate încă în Studio.** La 56 s trece pe râu un butoi, o ladă sau
+un buștean de aur; de pe punte, `Grab it (E)` dă monede cât 10 / 25 / 75 s din venitul de acum (cu minim).
+- `DriftMath` (pur): program determinist pe sămânța râului și fereastra de timp, același pe server și pe client.
+- `DriftService.Grab`: verifică momentul și `Stats.lastDrift` (profil **v15**), nu poziția. `DriftController`: desenul,
+  cardul, camera care se mută lin spre dar (pe telefon râul din larg iese din ecran).
+- **Nu intră în prețuri:** simulatorul doar afișează estimarea (~15% cu jumătate prinse). Amendează D59.
+- Artă neurcată: `treasure_barrel_water`, `treasure_crate_water`.
+
 **De ce nu prinde jocul [D62]** — owner-ul: „nu te prinde deloc, nu mă atrage deloc". Auditul și cifrele sunt în
 DECIZII D62; citește-l înainte de orice lucru nou pe sat. Comise și publicate pe staging, **nevăzute încă în Studio:**
 - **Pasul 1 (86e4a62):** nivelurile și treptele se simt (`StationUpgraded` / `CrewUpgraded` / `QuestClaimed`, `UI/Pop`,
@@ -138,8 +146,8 @@ DECIZII D62; citește-l înainte de orice lucru nou pe sat. Comise și publicate
 - **Pasul 2 (5a12a14):** oamenii capitolului 1 costă 5/6/7/8/10 și vin în ~2 minute; oamenii fierului 700–1100. Era 1
   la 33m36s reali.
 - **Sunetele `sfx_levelup` și `sfx_milestone`** sunt urcate și aprobate de moderare (bb301c1).
-- **În așteptarea owner-ului:** darurile râului (monede din ce prinzi cu mâna, amendează D59), undița și avizierul mai
-  devreme în quest-uri, satul care crește la vedere (imagini noi).
+- **Rămân din plan:** undița și avizierul mai devreme în quest-uri (pasul 4), satul care crește la vedere (pasul 5,
+  imagini noi).
 - **Unealtă:** `python3 scripts/economy/tune_tycoon.py eval NUME=valoare` încarcă simulatorul adevărat, suprascrie
   constante în memorie și măsoară porțile de ritm. Nu schimba constante din ochi: „jucătorul e veriga slabă" a stricat
   toată curba.

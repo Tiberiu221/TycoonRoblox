@@ -115,6 +115,8 @@ export type ProfileData = {
         fished: number, -- [D59] pesti scosi la undita (quest-ul "Catch a fish at the pier")
         treasures: number, -- [D59] lucruri scoase din rau la ponton
         playSeconds: number, -- [D60] timpul jucat efectiv (fara zilele offline), pentru "Fastest Era 1"
+        drifts: number, -- [D62] daruri ale raului scoase cu mana ta
+        lastDrift: number, -- [D62] fereastra ultimului dar scos (DriftMath): acelasi dar nu se ia de doua ori
         coinsEarned: number,
         padsBought: number,
         repairs: number, -- pentru WorkshopService (F1)
@@ -164,7 +166,7 @@ export type ProfileData = {
 
 local PROFILE_TEMPLATE: ProfileData = {
     -- [D61, partea 2] `lastWelcome`: suma platita la ultima revenire (Welcome Back x2) -- ca ProfileMigrate.toV14
-    Meta = { version = 14, createdAt = 0, lastSeenAt = 0, lastWelcome = 0 },
+    Meta = { version = 15, createdAt = 0, lastSeenAt = 0, lastWelcome = 0 },
     Coins = 0,
     Pearls = 0,
     Pads = {},
@@ -215,6 +217,8 @@ local PROFILE_TEMPLATE: ProfileData = {
         fished = 0, -- [D59] ACELEASI campuri ca ProfileMigrate.toV9
         treasures = 0,
         playSeconds = 0, -- [D60] ACELEASI campuri ca ProfileMigrate.toV10
+        drifts = 0, -- [D62] ACELEASI campuri ca ProfileMigrate.toV15
+        lastDrift = 0,
         coinsEarned = 0,
         padsBought = 0,
         repairs = 0,
@@ -468,6 +472,7 @@ local function onPlayerAdded(player: Player)
     ProfileMigrate.toV12(profile.Data) -- croitoreasa [D61]: infatisarea jucatorului -- aditiv
     ProfileMigrate.toV13(profile.Data) -- poarta satelor [D61]: like-urile primite si date -- aditiv
     ProfileMigrate.toV14(profile.Data) -- coltul cu Robux [D61]: pass-urile, chitantele, ultima revenire -- aditiv
+    ProfileMigrate.toV15(profile.Data) -- darurile raului [D62]: cate ai scos, care a fost ultimul -- aditiv
     profile:Reconcile()
     profile.OnSessionEnd:Connect(function()
         profiles[player] = nil

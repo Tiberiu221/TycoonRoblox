@@ -836,8 +836,54 @@ return function()
                 {
                     "Purchases = { ids = {}, passes = {} },",
                     "lastWelcome = 0",
-                    "version = 14",
                     "ProfileMigrate.toV14(profile.Data)",
+                }
+            do
+                check.is_true(string.find(src, needle, 1, true) ~= nil)
+            end
+        end)
+    end)
+
+    test.suite("ProfileMigrate.toV15 - darurile raului [D62]", function()
+        test.case("un profil v14 primeste numaratorii; restul statisticilor raman", function()
+            local data: { [string]: any } = {
+                Meta = { version = 14 },
+                Stats = { fished = 9, sold = 120 },
+            }
+            ProfileMigrate.toV15(data)
+            check.equal(data.Meta.version, 15)
+            check.equal(data.Stats.drifts, 0)
+            check.equal(data.Stats.lastDrift, 0)
+            check.equal(data.Stats.fished, 9)
+            check.equal(data.Stats.sold, 120)
+        end)
+
+        test.case(
+            "ce ai scos nu se pierde; migrarea e idempotenta; un profil fara Stats primeste tot",
+            function()
+                local data: { [string]: any } = {
+                    Meta = { version = 14 },
+                    Stats = { drifts = 4, lastDrift = 31000000 },
+                }
+                ProfileMigrate.toV15(data)
+                ProfileMigrate.toV15(data)
+                check.equal(data.Stats.drifts, 4)
+                check.equal(data.Stats.lastDrift, 31000000)
+                local bare: { [string]: any } = { Meta = { version = 14 } }
+                ProfileMigrate.toV15(bare)
+                check.equal(bare.Stats.drifts, 0)
+            end
+        )
+
+        test.case("sablonul si migrarea adauga aceleasi campuri", function()
+            local fs = require("@lune/fs")
+            local src = fs.readFile("src/Server/Services/DataService.luau")
+            for _, needle in
+                {
+                    "drifts = 0,",
+                    "lastDrift = 0,",
+                    "version = 15",
+                    "ProfileMigrate.toV15(profile.Data)",
                 }
             do
                 check.is_true(string.find(src, needle, 1, true) ~= nil)

@@ -383,4 +383,24 @@ function ProfileMigrate.toV14(data: { [string]: any })
     data.Meta.version = 14
 end
 
+-- [D62, pasul 3] Darurile raului: cate ai scos si care a fost ultimul (fereastra de timp, DriftMath). Ultimul se tine
+-- minte ca acelasi dar sa nu se poata lua de doua ori -- nici dupa o reintrare, nici de pe alt server (toate serverele
+-- au acelasi program). Aditiv.
+function ProfileMigrate.toV15(data: { [string]: any })
+    local version = if data.Meta ~= nil and data.Meta.version ~= nil then data.Meta.version else 1
+    if version >= 15 then
+        return
+    end
+    if typeof(data.Stats) ~= "table" then
+        data.Stats = {}
+    end
+    if typeof(data.Stats.drifts) ~= "number" then
+        data.Stats.drifts = 0
+    end
+    if typeof(data.Stats.lastDrift) ~= "number" then
+        data.Stats.lastDrift = 0
+    end
+    data.Meta.version = 15
+end
+
 return ProfileMigrate

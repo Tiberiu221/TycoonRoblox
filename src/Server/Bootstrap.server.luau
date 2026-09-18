@@ -26,6 +26,7 @@ local TreasureService = require(Services:WaitForChild("TreasureService"))
 local VillageService = require(Services:WaitForChild("VillageService"))
 local FerryService = require(Services:WaitForChild("FerryService"))
 local LeaderboardService = require(Services:WaitForChild("LeaderboardService"))
+local DriftService = require(Services:WaitForChild("DriftService"))
 local PassService = require(Services:WaitForChild("PassService"))
 local PurchaseService = require(Services:WaitForChild("PurchaseService"))
 local NetServer = require(NetFolder:WaitForChild("NetServer"))
@@ -117,6 +118,14 @@ HandService.Init({
     Remotes = { HandDelivered = Net.Get("HandDelivered") },
     PushState = NetServer.PushState,
 })
+-- [D62, pasul 3] darurile raului: acelasi program pe server si pe client (samanta si ceasul raului)
+DriftService.Init({
+    Seed = RiverService.Seed,
+    Now = RiverService.Now,
+    Income = StationService.Income,
+    PushState = NetServer.PushState,
+})
+
 -- [D61, partea 2] COLTUL CU ROBUX. Pass-urile: copia din profil, verificata la intrare; cand una se schimba, cele doua
 -- cache-uri de stare se golesc (altfel venitul de pe HUD s-ar dubla abia la urmatoarea cumparatura). Produsele: singurul
 -- ProcessReceipt al place-ului; aici venitul e cel viu, din lant.
@@ -165,6 +174,7 @@ NetServer.Init({
     Workshop = WorkshopService,
     Hands = HandService,
     Ferry = FerryService,
+    Drift = DriftService,
     Shop = {
         Snapshot = function(player: Player): { [string]: any }
             return {

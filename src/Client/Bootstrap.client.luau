@@ -138,6 +138,7 @@ local Panels = require(script.Parent.Controllers.Panels)
 local MonetizationConfig = require(ReplicatedStorage.Shared.Config.MonetizationConfig)
 local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
 local ShopPanel = require(script.Parent.Controllers.ShopPanel)
+local DriftController = require(script.Parent.Controllers.DriftController) -- [D62, pasul 3]
 local Theme = require(script.Parent.UI.Theme)
 local layers = CameraController.Init({ WorldGui = worldGui })
 
@@ -176,6 +177,16 @@ safeInit("RiverRenderController", function()
     RiverRenderController.Init({
         Layers = layers,
         RiverConfig = Net.Get("RiverConfig"),
+    })
+end)
+-- [D62, pasul 3] darurile raului: devreme, ca sa prinda configul raului (samanta); zborul monedelor se leaga mai jos
+safeInit("DriftController", function()
+    DriftController.Init({
+        Plot = layers.Plot,
+        CharacterPos = CharacterController.Position,
+        RiverConfig = Net.Get("RiverConfig"),
+        Remotes = { GrabDrift = Net.Get("GrabDrift"), DriftGrabbed = Net.Get("DriftGrabbed") },
+        OnToast = HUDController.Toast,
     })
 end)
 safeInit("ZoneController", function()
@@ -626,6 +637,8 @@ safeInit("TutorialController", function()
         OpenQuests = QuestController.Open,
     })
 end)
+
+DriftController.SetHud(worldToHud, JuiceController.CoinFly) -- [D62, pasul 3] monedele darului zboara spre contor
 
 -- [D59] Pontonul, dupa `worldToHud` (perlele zboara din lume in HUD): ce aduce raul, undita, avizierul, jurnalul.
 safeInit("TreasureController", function()

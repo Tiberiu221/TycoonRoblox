@@ -317,6 +317,10 @@ local Assets = {
         bottle_water = sprite(72648872332248, 16, 16),
         chest_water = sprite(97270437241778, 20, 16),
         golden_water = sprite(114933237701252, 24, 12),
+        -- [D62, pasul 3] darurile raului (scripts/art/d62.py): butoiul si lada care trec plutind. Id 0 = inca neurcate:
+        -- DriftController deseneaza un butoi / o lada din dreptunghiuri, cat sa se vada ce trece.
+        barrel_water = sprite(0, 22, 16),
+        crate_water = sprite(0, 20, 16),
     },
     -- [D59] imbunatatirile satului cumparate cu perle (VillageConfig.DECOR), decor_<id>.png
     decor = {

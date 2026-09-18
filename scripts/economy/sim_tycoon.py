@@ -46,6 +46,20 @@ from dataclasses import dataclass, field
 
 REAL = 1.8  # un jucator real ~ de 1.8 ori mai lent decat cel lacom (IPOTEZA, de masurat)
 
+# [D62, pasul 3] DARURILE RAULUI (src/Shared/Modules/DriftMath.luau): un butoi / o lada / un bustean de aur la 56 s,
+# platite in secunde din venitul de acum. Cine le prinde pe TOATE castiga ~31% in plus; cine prinde jumatate, ~15%.
+# E o ESTIMARE (nu stim cate prind jucatorii), deci NU intra in preturi si nici in portile de ritm: acelea raman pe
+# jucatorul care nu prinde niciunul. Aici se afiseaza doar cat s-ar scurta Era 1.
+DRIFT_WINDOW = 56.0
+DRIFT_KINDS = ((72, 10.0), (22, 25.0), (6, 75.0))  # (pondere, secunde de venit): butoi, lada, bustean de aur
+DRIFT_SHARE = 0.5  # cat din daruri prinde un jucator obisnuit (IPOTEZA, de masurat)
+
+
+def drift_bonus(share=DRIFT_SHARE):
+    total = sum(w for w, _ in DRIFT_KINDS)
+    seconds = sum(w * sec for w, sec in DRIFT_KINDS) / total
+    return share * seconds / DRIFT_WINDOW
+
 GOODS = {  # valoarea de baza a unei bucati, in monede
     "driftwood": 1.0,
     "scrap": 3.0,  # [D55] se vinde doar topit: fierul valoreaza cat scrap-ul din care iese
@@ -1163,6 +1177,11 @@ if __name__ == "__main__":
     total = sum(shares.values())
     print(f"\nEra 1: {len(rows)} cumparaturi ({len(unlocks)} deblocari, {len(levels)} niveluri si trepte)")
     print(f"  terminata in {fmt(rows[-1][3])} lacom  ->  {fmt(rows[-1][3] * REAL)} real")
+    print(
+        f"  cu darurile raului prinse pe jumatate (+{drift_bonus() * 100:.0f}% venit, estimare): "
+        f"~{fmt(rows[-1][3] * REAL / (1 + drift_bonus()))} real; cu toate (+{drift_bonus(1.0) * 100:.0f}%): "
+        f"~{fmt(rows[-1][3] * REAL / (1 + drift_bonus(1.0)))}"
+    )
     print(f"  primele 5 minute reale: {len(five_min)} cumparaturi (minim {MIN_FIRST_FIVE})")
     print(f"  cea mai lunga pauza fara nimic de apasat: {fmt(longest_idle)}")
     print(
