@@ -1128,6 +1128,17 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
         QuestController.Apply(snapshot.quests)
     end
     HUDController.SetSack(sackCount, sackCapacity)
+    -- [D62, pasul 5] nivelul cladirilor lantului, pentru a doua lor infatisare de la pragul 25. Inainte de
+    -- PadController.Apply, ca prima desenare a forjei sa aleaga deja desenul potrivit (altfel ar "creste" la intrare).
+    for _, row in snapshot.stations.rows do
+        if row.kind == "saw" then
+            SawmillController.SetLevel(row.level)
+        elseif row.kind == "dock" then
+            DockController.SetLevel(row.level)
+        elseif row.kind == "forge" then
+            PadController.SetForgeLevel(row.level)
+        end
+    end
     PadController.SetCrews(crewCounts, crewTiers) -- [D55] inainte de Apply: prima desenare alege deja casa potrivita
     PadController.Apply(
         snapshot.pads,

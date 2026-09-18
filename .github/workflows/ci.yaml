@@ -46,6 +46,11 @@ jobs:
       - name: Panel row layout
         run: python3 scripts/art/check_panel_rows.py
 
+      # [D62, pasul 5] Pamantul satului e o imagine coapta din geometria jocului (maluri, punte, drumuri, curti).
+      # Pica daca geometria s-a mutat si imaginea n-a fost recoapta: altfel drumul desenat ramane in urma celui adevarat.
+      - name: Baked village ground is current
+        run: python3 scripts/art/village_ground.py --check
+
       - name: Build place
         run: rojo build default.project.json -o Driftwood.rbxl
 

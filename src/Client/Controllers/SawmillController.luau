@@ -28,6 +28,7 @@ local PileView = require(script.Parent.Parent.UI.PileView)
 local Focus = require(script.Parent.Parent.UI.Focus)
 local StandRing = require(script.Parent.Parent.UI.StandRing)
 local GroundShadow = require(script.Parent.Parent.UI.GroundShadow)
+local PadArt = require(script.Parent.Parent.UI.PadArt)
 
 export type Deps = {
     Plot: Frame,
@@ -60,6 +61,9 @@ export type Snapshot = {
 local SawmillController = {}
 local deps: Deps
 local blade: GuiObject? = nil
+-- [D62, pasul 5] desenul cladirii: de la nivelul 25 gaterul are a doua infatisare (PadArt.station)
+local buildingArt: ImageLabel? = nil
+local buildingLevel = 1
 local inPile: PileView.View
 local outPile: PileView.View
 local sack: Sack =
@@ -99,6 +103,15 @@ local function distance(): number
 end
 
 -- Impins din Bootstrap la fiecare TycoonState; campurile sunt copiate explicit acolo [CLAUDE.md].
+-- [D62, pasul 5] Nivelul gaterului, din randurile statiilor: la pragul 25 cladirea isi schimba desenul.
+function SawmillController.SetLevel(level: number)
+    buildingLevel = level
+    local art = buildingArt
+    if art ~= nil then
+        art.Image = Assets.url(PadArt.station("saw", level))
+    end
+end
+
 function SawmillController.Apply(newSack: Sack, snap: Snapshot?)
     sack = newSack
     if snap == nil then
@@ -169,7 +182,7 @@ function SawmillController.Init(d: Deps)
     marker.ZIndex = 3
     marker.Parent = deps.Plot
 
-    local building = Assets.tycoon.sawmill
+    local building = PadArt.station("saw", buildingLevel)
     if Assets.has(building) then
         local art = Instance.new("ImageLabel")
         art.Name = "Art"
@@ -179,6 +192,7 @@ function SawmillController.Init(d: Deps)
         art.Size = UDim2.fromScale(1, 1)
         art.ZIndex = 3
         art.Parent = marker
+        buildingArt = art
     else
         -- arta inca neurcata: un sopron de lemn simplu, cat sa se vada unde e gaterul [regula 6]
         marker.BackgroundTransparency = 0.15

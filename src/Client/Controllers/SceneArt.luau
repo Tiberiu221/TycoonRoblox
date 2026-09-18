@@ -136,6 +136,45 @@ local function buildDecor(scroll: Frame)
     end
 end
 
+-- Iarba desenata din dale (harta fara imaginea coapta): dala de baza, a doua tesatura si petele de nuanta.
+local function buildGrass(groundLayer: Frame, W: number, H: number)
+    tiled(groundLayer, Assets.grass_tile, 0, 0, W, H, 0)
+    -- A doua tesatura, la o scara care NU e multiplu al primeia: ochiul prinde imediat un tile
+    -- repetat la 384px, dar doua tipare care nu se suprapun niciodata la fel nu mai au ritm.
+    local weave = image(groundLayer, Assets.grass_tile, -90, -140, W + 180, H + 280, 1)
+    weave.ScaleType = Enum.ScaleType.Tile
+    weave.TileSize = UDim2.fromOffset(
+        math.round(Assets.grass_tile.width * Assets.PIXEL_SCALE * 1.53),
+        math.round(Assets.grass_tile.height * Assets.PIXEL_SCALE * 1.37)
+    )
+    weave.ImageTransparency = 0.72
+
+    -- Petele de nuanta: nu sunt obiecte, doar culoare intinsa moale peste iarba. Rolul lor e ca
+    -- ochiul sa nu mai recunoasca un singur tile repetat la infinit.
+    local GRASS_TONES = {
+        Color3.fromRGB(152, 188, 106), -- bataia soarelui
+        Color3.fromRGB(64, 102, 54), -- umbra deasa
+        Color3.fromRGB(146, 126, 84), -- pamant calcat, uscat
+    }
+    -- Petele stau DOAR pe malul de sud, sub cea mai adanca intrare a apei (824): asa nu e nevoie
+    -- sa fie decupate dupa forma malului, si nu le acopera coloanele de mal desenate mai jos.
+    local patchArea = { x0 = 0, y0 = 860, x1 = W, y1 = H - 20, tones = #GRASS_TONES }
+    for _, p in Shoreline.patches(PATCH_SEED, patchArea, 84) do
+        local f = frame(groundLayer, p.x, p.y, p.w, p.h, GRASS_TONES[p.tone], 1)
+        f.BackgroundTransparency = 0.87
+        f.Rotation = p.rot
+        rounded(f, math.floor(math.min(p.w, p.h) / 2))
+        local g = Instance.new("UIGradient")
+        g.Rotation = p.rot + 90
+        g.Transparency = NumberSequence.new({
+            NumberSequenceKeypoint.new(0, 1),
+            NumberSequenceKeypoint.new(0.5, 0),
+            NumberSequenceKeypoint.new(1, 1),
+        })
+        g.Parent = f
+    end
+end
+
 function SceneArt.BuildBackground(layers: Layers)
     local W, H = RiverConfig.WORLD_WIDTH, RiverConfig.WORLD_HEIGHT
     local scroll = layers.Scroll
@@ -178,42 +217,15 @@ function SceneArt.BuildBackground(layers: Layers)
     local trimLayer = layerFrame("Trim", 3)
     local builtLayer = layerFrame("Built", 4)
 
-    tiled(groundLayer, Assets.grass_tile, 0, 0, W, H, 0)
-    -- A doua tesatura, la o scara care NU e multiplu al primeia: ochiul prinde imediat un tile
-    -- repetat la 384px, dar doua tipare care nu se suprapun niciodata la fel nu mai au ritm.
-    local weave = image(groundLayer, Assets.grass_tile, -90, -140, W + 180, H + 280, 1)
-    weave.ScaleType = Enum.ScaleType.Tile
-    weave.TileSize = UDim2.fromOffset(
-        math.round(Assets.grass_tile.width * Assets.PIXEL_SCALE * 1.53),
-        math.round(Assets.grass_tile.height * Assets.PIXEL_SCALE * 1.37)
-    )
-    weave.ImageTransparency = 0.72
-
-    -- Petele de nuanta: nu sunt obiecte, doar culoare intinsa moale peste iarba. Rolul lor e ca
-    -- ochiul sa nu mai recunoasca un singur tile repetat la infinit.
-    local GRASS_TONES = {
-        Color3.fromRGB(152, 188, 106), -- bataia soarelui
-        Color3.fromRGB(64, 102, 54), -- umbra deasa
-        Color3.fromRGB(146, 126, 84), -- pamant calcat, uscat
-    }
-    -- Petele stau DOAR pe malul de sud, sub cea mai adanca intrare a apei (824): asa nu e nevoie
-    -- sa fie decupate dupa forma malului, si nu le acopera coloanele de mal desenate mai jos.
-    local patchArea = { x0 = 0, y0 = 860, x1 = W, y1 = H - 20, tones = #GRASS_TONES }
-    for _, p in Shoreline.patches(PATCH_SEED, patchArea, 84) do
-        local f = frame(groundLayer, p.x, p.y, p.w, p.h, GRASS_TONES[p.tone], 1)
-        f.BackgroundTransparency = 0.87
-        f.Rotation = p.rot
-        rounded(f, math.floor(math.min(p.w, p.h) / 2))
-        local g = Instance.new("UIGradient")
-        g.Rotation = p.rot + 90
-        g.Transparency = NumberSequence.new({
-            NumberSequenceKeypoint.new(0, 1),
-            NumberSequenceKeypoint.new(0.5, 0),
-            NumberSequenceKeypoint.new(1, 1),
-        })
-        g.Parent = f
+    -- [D62, pasul 5] PAMANTUL COPT: cand imaginea e urcata, tot uscatul (iarba, padurea, plajele, puntea, curtile,
+    -- drumurile, piata) e O SINGURA imagine cu alfa, facuta de scripts/art/village_ground.py din aceleasi cifre
+    -- (Shoreline, TycoonConfig). Raul animat curge pe dedesubt si se vede prin partea ei transparenta, unde imaginea
+    -- are doar tentele apei: apa mica langa maluri si canalul adanc, dupa forma malurilor. Din desenul vechi raman
+    -- doar ce se misca (apa, spuma) si obiectele asezate peste. Pana la urcare, harta se deseneaza ca inainte.
+    local baked = Assets.has(Assets.tycoon.village_ground)
+    if not baked then
+        buildGrass(groundLayer, W, H)
     end
-
     -- Apa se intinde DINCOLO de banda raului: coloanele de mal musca din ea in ambele sensuri,
     -- deci sub iarba trebuie sa existe apa si acolo unde linia malului urca peste RIVER_TOP.
     -- Marginile trebuie sa treaca DINCOLO de cea mai adanca intrare a fiecarui mal (392 sus,
@@ -230,15 +242,17 @@ function SceneArt.BuildBackground(layers: Layers)
     -- coloana: incercarea pe coloane avea alt gradient in fiecare, iar la imbinari sareau
     -- treptele -- in joc se vedeau dreptunghiuri negre la fiecare 32px. Capetele nu trebuie taiate
     -- dupa forma malului: coloanele de iarba de deasupra o fac oricum.
-    local depth = frame(waterLayer, 0, waterTop, W, waterH, Color3.fromRGB(8, 34, 62), 3)
-    local depthGradient = Instance.new("UIGradient")
-    depthGradient.Rotation = 90
-    depthGradient.Transparency = NumberSequence.new({
-        NumberSequenceKeypoint.new(0, 1),
-        NumberSequenceKeypoint.new(0.5, 0.6),
-        NumberSequenceKeypoint.new(1, 1),
-    })
-    depthGradient.Parent = depth
+    if not baked then
+        local depth = frame(waterLayer, 0, waterTop, W, waterH, Color3.fromRGB(8, 34, 62), 3)
+        local depthGradient = Instance.new("UIGradient")
+        depthGradient.Rotation = 90
+        depthGradient.Transparency = NumberSequence.new({
+            NumberSequenceKeypoint.new(0, 1),
+            NumberSequenceKeypoint.new(0.5, 0.6),
+            NumberSequenceKeypoint.new(1, 1),
+        })
+        depthGradient.Parent = depth
+    end
 
     -- Cele doua maluri. Cifrele sunt in campurile SHORE din RiverConfig, ca sa le poata verifica testele:
     -- uscatul nu are voie sa intre peste benzile bunurilor, iar apa nu are voie sa atinga
@@ -305,13 +319,13 @@ function SceneArt.BuildBackground(layers: Layers)
         wet.Parent = sand
     end
 
-    local farCols = Shoreline.columns(FAR, W, STEP)
-    local nearCols = Shoreline.columns(NEAR, W, STEP)
-    for _, c in farCols do
-        bankColumn(c, true)
-    end
-    for _, c in nearCols do
-        bankColumn(c, false)
+    if not baked then
+        for _, c in Shoreline.columns(FAR, W, STEP) do
+            bankColumn(c, true)
+        end
+        for _, c in Shoreline.columns(NEAR, W, STEP) do
+            bankColumn(c, false)
+        end
     end
 
     -- Pietrele de pe plaja. `pebbles` le imprastie in jurul liniei; le impingem toate pe uscat,
@@ -337,8 +351,10 @@ function SceneArt.BuildBackground(layers: Layers)
             rounded(f, p.r)
         end
     end
-    scatterStones(FAR, -1)
-    scatterStones(NEAR, 1)
+    if not baked then
+        scatterStones(FAR, -1)
+        scatterStones(NEAR, 1)
+    end
 
     -- Spuma: pete albe pe linia apei, tinute intr-un singur cadru care se leagana. Un cadru care
     -- se misca inseamna doua scrieri pe redare, nu 200 -- si arata ca apa care linge malul.
@@ -373,46 +389,48 @@ function SceneArt.BuildBackground(layers: Layers)
     local farFoam = scatterFoam(FAR, -1)
     local nearFoam = scatterFoam(NEAR, 1)
 
-    -- Padurea de dincolo. Inchide harta fara zid si spune, dintr-o privire, ca acolo nu se
-    -- ajunge. NU e un dreptunghi verde inchis (asa era prima incercare, si arata exact ca un
-    -- dreptunghi): e o masa compacta sus, si sub ea coroane rotunde care fac silueta zdrentuita.
-    local forest = frame(trimLayer, 0, 0, W, 150, Color3.fromRGB(36, 62, 44), 3)
-    local forestGradient = Instance.new("UIGradient")
-    forestGradient.Rotation = 90
-    forestGradient.Transparency = NumberSequence.new({
-        NumberSequenceKeypoint.new(0, 0.1),
-        NumberSequenceKeypoint.new(0.7, 0.3),
-        NumberSequenceKeypoint.new(1, 0.8),
-    })
-    forestGradient.Parent = forest
+    if not baked then
+        -- Padurea de dincolo. Inchide harta fara zid si spune, dintr-o privire, ca acolo nu se
+        -- ajunge. NU e un dreptunghi verde inchis (asa era prima incercare, si arata exact ca un
+        -- dreptunghi): e o masa compacta sus, si sub ea coroane rotunde care fac silueta zdrentuita.
+        local forest = frame(trimLayer, 0, 0, W, 150, Color3.fromRGB(36, 62, 44), 3)
+        local forestGradient = Instance.new("UIGradient")
+        forestGradient.Rotation = 90
+        forestGradient.Transparency = NumberSequence.new({
+            NumberSequenceKeypoint.new(0, 0.1),
+            NumberSequenceKeypoint.new(0.7, 0.3),
+            NumberSequenceKeypoint.new(1, 0.8),
+        })
+        forestGradient.Parent = forest
 
-    local CROWNS = {
-        Color3.fromRGB(34, 60, 40),
-        Color3.fromRGB(46, 78, 48),
-        Color3.fromRGB(26, 48, 34),
-    }
-    local treeLine: Shoreline.Edge = { seed = FOREST_SEED, baseY = 312, amp = 96, side = -1 }
-    local rng = Prng.new(FOREST_SEED)
-    local cx = -40
-    while cx < W + 40 do
-        local base = Shoreline.edgeY(treeLine, math.max(0, cx))
-        -- patru randuri, pana sus: silueta de jos e cea care conteaza, dar daca deasupra ei
-        -- ramane un dreptunghi plat, tot a dreptunghi arata. Randurile de sus dau textura masei.
-        for row = 0, 3 do
-            local size = 54 + Prng.nextInteger(rng, 0, 66) - row * 6
-            local cy = base - row * 58 - Prng.nextInteger(rng, 0, 26)
-            local crown = frame(
-                trimLayer,
-                math.round(cx - size / 2),
-                math.round(cy - size / 2),
-                size,
-                math.round(size * 0.86),
-                CROWNS[Prng.nextInteger(rng, 1, #CROWNS)],
-                8 - row
-            )
-            rounded(crown, math.floor(size / 2))
+        local CROWNS = {
+            Color3.fromRGB(34, 60, 40),
+            Color3.fromRGB(46, 78, 48),
+            Color3.fromRGB(26, 48, 34),
+        }
+        local treeLine: Shoreline.Edge = { seed = FOREST_SEED, baseY = 312, amp = 96, side = -1 }
+        local rng = Prng.new(FOREST_SEED)
+        local cx = -40
+        while cx < W + 40 do
+            local base = Shoreline.edgeY(treeLine, math.max(0, cx))
+            -- patru randuri, pana sus: silueta de jos e cea care conteaza, dar daca deasupra ei
+            -- ramane un dreptunghi plat, tot a dreptunghi arata. Randurile de sus dau textura masei.
+            for row = 0, 3 do
+                local size = 54 + Prng.nextInteger(rng, 0, 66) - row * 6
+                local cy = base - row * 58 - Prng.nextInteger(rng, 0, 26)
+                local crown = frame(
+                    trimLayer,
+                    math.round(cx - size / 2),
+                    math.round(cy - size / 2),
+                    size,
+                    math.round(size * 0.86),
+                    CROWNS[Prng.nextInteger(rng, 1, #CROWNS)],
+                    8 - row
+                )
+                rounded(crown, math.floor(size / 2))
+            end
+            cx += 22 + Prng.nextInteger(rng, 0, 12)
         end
-        cx += 22 + Prng.nextInteger(rng, 0, 12)
     end
 
     local t = 0
@@ -426,110 +444,131 @@ function SceneArt.BuildBackground(layers: Layers)
             UDim2.fromOffset(math.sin(t * 0.8 + 1.7) * 7, math.cos(t * 0.62 + 0.4) * 2)
     end)
 
-    -- [F3] Malul construit: pontonul (scandurile de-a lungul apei, unde stau stalpii plaselor) si
-    -- drumurile batatorite pe care merg oamenii [D50, TycoonConfig.DECK/ROADS].
-    local function groundStrip(
-        sprite: Assets.Sprite,
-        r: { x0: number, x1: number, y0: number, y1: number },
-        z: number,
-        ragged: boolean,
-        shadow: boolean?
-    )
-        local w, h = r.x1 - r.x0, r.y1 - r.y0
-        -- Umbra dedesubt doar pentru scandurile puntii: ele chiar stau PESTE mal. [D57] Un drum de pamant e calcat IN
-        -- iarba; cu umbra, drumurile pareau fasii de carton puse pe harta (owner: "parca plutesc mereu").
-        if shadow == true then
-            local sh =
-                frame(builtLayer, r.x0 - 2, r.y0 + 7, w + 6, h + 2, Color3.fromRGB(26, 32, 24), z)
-            sh.BackgroundTransparency = 0.7
-            rounded(sh, 6)
-        end
-        local function tile(x: number, y: number, tw: number, th: number, zz: number)
-            if Assets.has(sprite) then
-                local img = tiled(builtLayer, sprite, x, y, tw, th, zz)
-                img.ClipsDescendants = true
-                if ragged then
-                    -- poteca batatorita: pamant, nu caramida. Fara tinta iese prea rosie langa
-                    -- iarba si trage ochiul mai tare decat pontonul, care e piesa importanta.
-                    img.ImageColor3 = Color3.fromRGB(214, 205, 186)
+    if baked then
+        -- deasupra apei (stratul Water), sub spuma care se leagana (stratul Trim)
+        local ground = image(shoreLayer, Assets.tycoon.village_ground, 0, 0, W, H, 1)
+        ground.Name = "BakedGround"
+    else
+        -- [F3] Malul construit: pontonul (scandurile de-a lungul apei, unde stau stalpii plaselor) si
+        -- drumurile batatorite pe care merg oamenii [D50, TycoonConfig.DECK/ROADS].
+        local function groundStrip(
+            sprite: Assets.Sprite,
+            r: { x0: number, x1: number, y0: number, y1: number },
+            z: number,
+            ragged: boolean,
+            shadow: boolean?
+        )
+            local w, h = r.x1 - r.x0, r.y1 - r.y0
+            -- Umbra dedesubt doar pentru scandurile puntii: ele chiar stau PESTE mal. [D57] Un drum de pamant e calcat IN
+            -- iarba; cu umbra, drumurile pareau fasii de carton puse pe harta (owner: "parca plutesc mereu").
+            if shadow == true then
+                local sh = frame(
+                    builtLayer,
+                    r.x0 - 2,
+                    r.y0 + 7,
+                    w + 6,
+                    h + 2,
+                    Color3.fromRGB(26, 32, 24),
+                    z
+                )
+                sh.BackgroundTransparency = 0.7
+                rounded(sh, 6)
+            end
+            local function tile(x: number, y: number, tw: number, th: number, zz: number)
+                if Assets.has(sprite) then
+                    local img = tiled(builtLayer, sprite, x, y, tw, th, zz)
+                    img.ClipsDescendants = true
+                    if ragged then
+                        -- poteca batatorita: pamant, nu caramida. Fara tinta iese prea rosie langa
+                        -- iarba si trage ochiul mai tare decat pontonul, care e piesa importanta.
+                        img.ImageColor3 = Color3.fromRGB(214, 205, 186)
+                    end
+                    return
                 end
+                -- fara arta inca: o fasie de lemn plata tine locul, ca nicio statie sa nu ramana pe
+                -- iarba goala pana apare sprite-ul [item 6]
+                local fallback = frame(builtLayer, x, y, tw, th, Color3.fromRGB(150, 115, 78), zz)
+                fallback.BackgroundTransparency = 0.15
+            end
+            if not ragged then
+                tile(r.x0, r.y0, w, h, z + 1)
                 return
             end
-            -- fara arta inca: o fasie de lemn plata tine locul, ca nicio statie sa nu ramana pe
-            -- iarba goala pana apare sprite-ul [item 6]
-            local fallback = frame(builtLayer, x, y, tw, th, Color3.fromRGB(150, 115, 78), zz)
-            fallback.BackgroundTransparency = 0.15
-        end
-        if not ragged then
-            tile(r.x0, r.y0, w, h, z + 1)
-            return
-        end
-        -- Poteca nu e un dreptunghi trasat cu rigla: e batatorita, deci latimea ei variaza si
-        -- marginile se rup. Bucati de 64px, fiecare putin altfel -- tot un tile, alta silueta. [D57] Pe aleile
-        -- verticale bucatile merg de sus in jos, ca marginile rupte sa fie cele lungi.
-        local seg = 64
-        local i = 0
-        if w >= h then
-            local x = r.x0
-            while x < r.x1 do
-                local segW = math.min(seg, r.x1 - x)
-                local wobble = math.floor(math.sin(i * 1.7) * 5 + math.sin(i * 0.6) * 4)
-                tile(x, r.y0 - wobble, segW + 1, h + wobble * 2, z + 1)
-                x += seg
-                i += 1
-            end
-        else
-            local y = r.y0
-            while y < r.y1 do
-                local segH = math.min(seg, r.y1 - y)
-                local wobble = math.floor(math.sin(i * 1.7) * 4 + math.sin(i * 0.6) * 3)
-                tile(r.x0 - wobble, y, w + wobble * 2, segH + 1, z + 1)
-                y += seg
-                i += 1
-            end
-        end
-    end
-
-    -- [D57] Iarba peste marginile pamantului (drumuri si curti): smocuri pe muchii, jumatate pe iarba, jumatate pe
-    -- pamant, ca linia dintre ele sa nu mai fie trasa cu rigla. Fara arta urcata, marginile raman drepte.
-    local EDGE = 12 -- jumatate din inaltimea fasiei (8 px de arta x3)
-    local function grassEdges(r: { x0: number, x1: number, y0: number, y1: number }, z: number)
-        if r.x1 - r.x0 >= r.y1 - r.y0 then
-            if Assets.has(Assets.grass_edge_h) then
-                for _, y in { r.y0, r.y1 } do
-                    tiled(builtLayer, Assets.grass_edge_h, r.x0, y - EDGE, r.x1 - r.x0, EDGE * 2, z)
+            -- Poteca nu e un dreptunghi trasat cu rigla: e batatorita, deci latimea ei variaza si
+            -- marginile se rup. Bucati de 64px, fiecare putin altfel -- tot un tile, alta silueta. [D57] Pe aleile
+            -- verticale bucatile merg de sus in jos, ca marginile rupte sa fie cele lungi.
+            local seg = 64
+            local i = 0
+            if w >= h then
+                local x = r.x0
+                while x < r.x1 do
+                    local segW = math.min(seg, r.x1 - x)
+                    local wobble = math.floor(math.sin(i * 1.7) * 5 + math.sin(i * 0.6) * 4)
+                    tile(x, r.y0 - wobble, segW + 1, h + wobble * 2, z + 1)
+                    x += seg
+                    i += 1
+                end
+            else
+                local y = r.y0
+                while y < r.y1 do
+                    local segH = math.min(seg, r.y1 - y)
+                    local wobble = math.floor(math.sin(i * 1.7) * 4 + math.sin(i * 0.6) * 3)
+                    tile(r.x0 - wobble, y, w + wobble * 2, segH + 1, z + 1)
+                    y += seg
+                    i += 1
                 end
             end
-        elseif Assets.has(Assets.grass_edge_v) then
-            for _, x in { r.x0, r.x1 } do
-                tiled(builtLayer, Assets.grass_edge_v, x - EDGE, r.y0, EDGE * 2, r.y1 - r.y0, z)
+        end
+
+        -- [D57] Iarba peste marginile pamantului (drumuri si curti): smocuri pe muchii, jumatate pe iarba, jumatate pe
+        -- pamant, ca linia dintre ele sa nu mai fie trasa cu rigla. Fara arta urcata, marginile raman drepte.
+        local EDGE = 12 -- jumatate din inaltimea fasiei (8 px de arta x3)
+        local function grassEdges(r: { x0: number, x1: number, y0: number, y1: number }, z: number)
+            if r.x1 - r.x0 >= r.y1 - r.y0 then
+                if Assets.has(Assets.grass_edge_h) then
+                    for _, y in { r.y0, r.y1 } do
+                        tiled(
+                            builtLayer,
+                            Assets.grass_edge_h,
+                            r.x0,
+                            y - EDGE,
+                            r.x1 - r.x0,
+                            EDGE * 2,
+                            z
+                        )
+                    end
+                end
+            elseif Assets.has(Assets.grass_edge_v) then
+                for _, x in { r.x0, r.x1 } do
+                    tiled(builtLayer, Assets.grass_edge_v, x - EDGE, r.y0, EDGE * 2, r.y1 - r.y0, z)
+                end
             end
         end
-    end
 
-    groundStrip(Assets.tycoon.deck_tile, TycoonConfig.DECK, 1, false, true)
+        groundStrip(Assets.tycoon.deck_tile, TycoonConfig.DECK, 1, false, true)
 
-    -- [D57] PAMANTUL BATATORIT de sub cladiri si din jurul pietei (TycoonConfig.YARDS): aceeasi dala ca drumul, mai
-    -- deschisa, cu colturi rotunjite si iarba peste margini. Sub drumuri, ca aleile sa treaca peste curtile lor.
-    for _, yard in TycoonConfig.YARDS do
-        local w, h = yard.x1 - yard.x0, yard.y1 - yard.y0
-        if Assets.has(Assets.path_tile) then
-            local img = tiled(builtLayer, Assets.path_tile, yard.x0, yard.y0, w, h, 2)
-            img.Name = `Yard_{yard.id}`
-            img.ImageColor3 = Color3.fromRGB(228, 216, 192)
-            rounded(img, 14)
+        -- [D57] PAMANTUL BATATORIT de sub cladiri si din jurul pietei (TycoonConfig.YARDS): aceeasi dala ca drumul, mai
+        -- deschisa, cu colturi rotunjite si iarba peste margini. Sub drumuri, ca aleile sa treaca peste curtile lor.
+        for _, yard in TycoonConfig.YARDS do
+            local w, h = yard.x1 - yard.x0, yard.y1 - yard.y0
+            if Assets.has(Assets.path_tile) then
+                local img = tiled(builtLayer, Assets.path_tile, yard.x0, yard.y0, w, h, 2)
+                img.Name = `Yard_{yard.id}`
+                img.ImageColor3 = Color3.fromRGB(228, 216, 192)
+                rounded(img, 14)
+            end
+            grassEdges({ x0 = yard.x0 + 8, x1 = yard.x1 - 8, y0 = yard.y0, y1 = yard.y1 }, 3)
         end
-        grassEdges({ x0 = yard.x0 + 8, x1 = yard.x1 - 8, y0 = yard.y0, y1 = yard.y1 }, 3)
-    end
 
-    -- bucla [D50], satul [D57]: aceleasi dreptunghiuri din care RoadGraph face drumurile oamenilor si dara de
-    -- ghidaj, deci ce e desenat ca drum e exact pe unde merge lumea. Piata tavernei e de piatra, peste aleea ei.
-    for _, road in TycoonConfig.ROADS do
-        if road.id == "plaza" and Assets.has(Assets.tile_plaza) then
-            groundStrip(Assets.tile_plaza, road, 5, false)
-        else
-            groundStrip(Assets.path_tile, road, 3, true)
-            grassEdges(road, 5)
+        -- bucla [D50], satul [D57]: aceleasi dreptunghiuri din care RoadGraph face drumurile oamenilor si dara de
+        -- ghidaj, deci ce e desenat ca drum e exact pe unde merge lumea. Piata tavernei e de piatra, peste aleea ei.
+        for _, road in TycoonConfig.ROADS do
+            if road.id == "plaza" and Assets.has(Assets.tile_plaza) then
+                groundStrip(Assets.tile_plaza, road, 5, false)
+            else
+                groundStrip(Assets.path_tile, road, 3, true)
+                grassEdges(road, 5)
+            end
         end
     end
 

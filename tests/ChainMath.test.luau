@@ -619,6 +619,15 @@ return function()
             end
         )
 
+        test.case("isGrand: a doua infatisare a cladirilor vine exact la pragul 25", function()
+            check.is_false(ChainMath.isGrand(1))
+            check.is_false(ChainMath.isGrand(24))
+            check.is_true(ChainMath.isGrand(25))
+            check.is_true(ChainMath.isGrand(500))
+            -- pragul e chiar al doilea din scara nivelurilor: acolo se dubleaza debitul a doua oara
+            check.equal(StationConfig.MILESTONES[ChainMath.GRAND_RANK], 25)
+        end)
+
         test.case(
             "milestoneCrossed: pragul trecut de o cumparare, si cand sare peste el",
             function()

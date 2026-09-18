@@ -149,8 +149,36 @@ owner-ului.
 - **Și în satul vizitat** (poarta satelor) se văd rangurile plaselor, treapta și fumul.
 - **Scos din plan:** „spumă la stâlpii plaselor". Stâlpii stau pe scândurile punții, nu în apă; spuma plasei e deja în
   desenul ei.
-- **Rămâne din pasul 5,** fiindcă cer desen atent, iterat pe planșe: a doua înfățișare a gaterului, tavernei,
-  depozitului și forjei la nivelul 25, și pământul satului copt ca fundalul bâlciului (`village_ground.py`).
+
+**Pasul 5 — a doua parte (făcută pe 2026-09-19; arta desenată, neurcată; neverificată în Studio).**
+- **Pământul satului, copt într-o singură imagine** (`scripts/art/village_ground.py` → `prop_village_ground.png`,
+  960×640, un pixel = 3 pixeli de lume, cu alfa):
+  - **uscatul e opac:** iarbă în pete de lumină, pădurea de pe malul de nord cu trei feluri de copaci, plaje cu nisip
+    ud, malul amenajat din dreptul punții (zid de bârne), puntea, curțile (rumeguș la gater, zgură la forjă), drumurile
+    cu făgașe, piața de piatră, cărări roase între case;
+  - **apa e transparentă,** ca râul animat să curgă pe dedesubt. Peste ea stau doar tente: apă mică lângă maluri și
+    canalul adânc la mijloc, în trepte care urmează forma malurilor. Tentele sunt netede: puncte fixe peste un râu care
+    se mișcă ar fi arătat ca o sită;
+  - **geometria nu e copiată în Python.** O scoate `scripts/art/village_geometry.luau` din modulele jocului
+    (`Shoreline`, `TycoonConfig`, `WorldDecor`). Puntea și piața folosesc dalele aprobate deja;
+  - **în joc** (`SceneArt.BuildBackground`): când imaginea e urcată, rămân din desenul vechi doar apa, spuma și
+    obiectele așezate peste. Până atunci harta se desenează din dale, ca înainte. Satul vizitat din bâlci o primește
+    la fel, fiindcă folosește aceeași funcție;
+  - **poarta o păzește:** fiecare coacere scrie amprenta geometriei în `village_ground.lock`, iar
+    `village_ground.py --check` (în poartă și în CI) pică dacă s-a mutat un drum, o curte sau malul fără recoacere.
+    După recoacere, imaginea trebuie urcată din nou.
+- **A doua înfățișare a clădirilor lanțului, la pragul 25** (`scripts/art/d62_grand.py`): gaterul, taverna și forja.
+  Pragul 25 e al doilea din scara nivelurilor, deci clădirea se schimbă exact când debitul se dublează a doua oară
+  (`ChainMath.isGrand`, pur, testat).
+  - **Ce se adaugă:** temelie de piatră, felinare, stegulețe; la gater a doua grămadă de bușteni și stiva de scânduri;
+    la tavernă lucarna luminată, jardiniera și rama aurie a firmei; la forjă focul aprins, lingoul încins și nicovala.
+  - **Fiecare variantă pornește din desenul aprobat,** pe aceeași foaie. Pânza gaterului, hornurile și ușa tavernei
+    rămân la locul lor, deci fumul și animațiile din joc cad unde cădeau.
+  - **Alegerea desenului e una singură** (`PadArt.station`), folosită de `SawmillController`, `DockController`,
+    `PadController` (forja e o platformă) și de satul vizitat din bâlci. Forja „crește" doar când își schimbă
+    înfățișarea, nu la fiecare nivel.
+  - **Depozitul nu are variantă:** în joc nu are niveluri, deci n-ar avea după ce să se schimbe. Planul îl pomenea
+    din greșeală.
 
 ---
 
@@ -248,7 +276,8 @@ satul tău nu-l vedea nimeni: bâlciul te lăsa să te etalezi doar cu o ținut�
      permisiunile pentru game passes și developer products le pot crea eu (nume, descriere, preț, iconiță). ID-urile
      intră în `MonetizationConfig.IDS`, pe univers.
 
-**Rămâne din plan:** a doua parte din D62 pasul 5 (a doua înfățișare a clădirilor, pământul satului copt).
+**Din plan nu mai rămâne nimic de scris** (a doua parte din D62 pasul 5 s-a făcut pe 2026-09-19); rămân aprobarea și
+urcarea artei, ID-urile pentru Robux și verificarea în Studio.
 
 ---
 

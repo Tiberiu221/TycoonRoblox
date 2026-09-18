@@ -62,6 +62,7 @@ rojo build fair.project.json --output /tmp/fair.rbxl        # [D60] balciul, pla
 lune run scripts/check_requires /tmp/fair.rbxl
 python3 scripts/economy/sim_tycoon.py --robust
 python3 scripts/art/check_panel_rows.py
+python3 scripts/art/village_ground.py --check              # [D62] pamantul copt e la zi cu harta
 ```
 `rojo build` și `check_requires` **nu parsează Luau** — o eroare de sintaxă trece de ele; doar
 stylua/selene o prind. Rulează-le mereu pe toate, nu înlănțuite după o eroare.
@@ -148,12 +149,21 @@ săgeată spre avizier chiar dacă ghidajul tace. La pasul acela ai cel puțin 2
   hornurile caselor mari și al tavernei (`PadArt.CHIMNEY`, `SceneArt.AddSmoke`).
 - **După urcarea artei:** plasa pe ranguri la pragurile 10 / 25 / 50 (`ChainMath.rankOf`, `PadArt.netSprite`), insigna
   `Lv N` bronz / argint / aur (`Widgets.SetLevelBadgeRank`), păsările (`AmbientController`). Totul cade pe desenul de azi.
-- **Rămâne:** a doua înfățișare a clădirilor la nivelul 25 și pământul satului copt (`village_ground.py`).
+
+**Satul crește la vedere [D62, pasul 5, a doua parte]** (2026-09-19) — comis, **arta neurcată, neverificat în Studio.**
+- **Pământul satului copt** într-o singură imagine cu alfa (`scripts/art/village_ground.py` → `prop_village_ground`):
+  uscatul opac, apa transparentă cu tente de adâncime, râul animat curge pe dedesubt. Geometria vine din joc prin
+  `scripts/art/village_geometry.luau`. `SceneArt.BuildBackground` o folosește când e urcată; până atunci, dalele de azi.
+- **După orice mutare în `TycoonConfig` (DECK, ROADS, YARDS, DECOR) sau în malurile din `RiverConfig`:** rulează din nou
+  `python3 scripts/art/village_ground.py`, altfel pică poarta (`--check`, amprenta din `village_ground.lock`). După
+  recoacere, imaginea trebuie urcată din nou, cu acordul owner-ului.
+- **Clădirile la pragul 25:** gaterul, taverna și forja au a doua înfățișare (`scripts/art/d62_grand.py`,
+  `ChainMath.isGrand`, `PadArt.station`). Depozitul nu are niveluri, deci nici variantă.
 
 **Arta care așteaptă aprobarea owner-ului** (desenată, în `assets/sprites`, cu ID 0 în `Assets.luau`):
 `outfit_festival`, `outfit_minstrel`, `outfit_lampkeeper`, `outfit_harvest`, `outfit_supporter`, `prop_fair_shop`,
 `treasure_barrel_water`, `treasure_crate_water`, `prop_net_water_r1..r3` (+ `_full`), `ui_levelbadge_bronze/silver/gold`,
-`prop_bird`. Planșele sunt în scratchpad-ul sesiunii; urcarea: `python3 scripts/upload_assets.py <nume...>`. După urcarea
+`prop_bird`, `prop_village_ground`, `prop_sawmill_grand`, `prop_tavern_grand`, `prop_workshop_grand`. Planșele sunt în scratchpad-ul sesiunii; urcarea: `python3 scripts/upload_assets.py <nume...>`. După urcarea
 lui `prop_fair_shop`, taraba intră în `FairLayout.SPOTS` (+ `ShopController` cu `Focus`) și se recoace fundalul bâlciului.
 
 **De ce nu prinde jocul [D62]** — owner-ul: „nu te prinde deloc, nu mă atrage deloc". Auditul și cifrele sunt în
@@ -163,7 +173,8 @@ DECIZII D62; citește-l înainte de orice lucru nou pe sat. Comise și publicate
 - **Pasul 2 (5a12a14):** oamenii capitolului 1 costă 5/6/7/8/10 și vin în ~2 minute; oamenii fierului 700–1100. Era 1
   la 33m36s reali.
 - **Sunetele `sfx_levelup` și `sfx_milestone`** sunt urcate și aprobate de moderare (bb301c1).
-- **Rămâne din plan:** a doua parte a pasului 5 (clădirile la nivelul 25, pământul copt).
+- **Planul din 2026-09-18 e scris în întregime.** Rămân aprobarea și urcarea artei, ID-urile pentru Robux și
+  verificarea în Studio.
 - **Unealtă:** `python3 scripts/economy/tune_tycoon.py eval NUME=valoare` încarcă simulatorul adevărat, suprascrie
   constante în memorie și măsoară porțile de ritm. Nu schimba constante din ochi: „jucătorul e veriga slabă" a stricat
   toată curba.

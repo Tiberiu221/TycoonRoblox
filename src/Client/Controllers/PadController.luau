@@ -13,6 +13,7 @@ local TweenService = game:GetService("TweenService")
 local RiverConfig = require(ReplicatedStorage.Shared.Config.RiverConfig)
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
+local ChainMath = require(ReplicatedStorage.Shared.Modules.ChainMath)
 local Assets = require(ReplicatedStorage.Shared.Config.Assets)
 local Strings = require(ReplicatedStorage.Shared.Config.Strings)
 local HUDController = require(script.Parent.HUDController)
@@ -201,8 +202,11 @@ local function homeSprite(padId: string): (Assets.Sprite?, number)
     return PadArt.home(padId, crewCountOf(padId))
 end
 
+-- [D62, pasul 5] nivelul forjei, din randurile statiilor: de la pragul 25 forja are a doua infatisare
+local forgeLevel = 1
+
 local function boughtSprite(padId: string): (Assets.Sprite?, number)
-    return PadArt.bought(padId, crewCountOf(padId))
+    return PadArt.bought(padId, crewCountOf(padId), forgeLevel)
 end
 
 -- LOCKED: se vede OBIECTUL INSUSI, stins, exact acolo unde va sta -- nu o pancarda cu pretul.
@@ -1082,6 +1086,18 @@ function PadController.SetCrews(counts: { [string]: number }, tiers: { [string]:
             styleBought(frame, TycoonConfig.byId[crew.pad])
             growIn(frame)
         end
+    end
+end
+
+-- [D62, pasul 5] Forja isi schimba desenul la pragul 25. Se redeseneaza doar cand se schimba INFATISAREA, nu la fiecare
+-- nivel: `growIn` e o mica sarbatoare si ar obosi la fiecare cumparare.
+function PadController.SetForgeLevel(level: number)
+    local before = ChainMath.isGrand(forgeLevel)
+    forgeLevel = level
+    local frame = frames.workshop
+    if before ~= ChainMath.isGrand(level) and frame ~= nil and lastStatus.workshop == "bought" then
+        styleBought(frame, TycoonConfig.byId.workshop)
+        growIn(frame)
     end
 end
 

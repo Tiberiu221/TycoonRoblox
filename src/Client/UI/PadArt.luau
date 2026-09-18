@@ -7,6 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Assets = require(ReplicatedStorage.Shared.Config.Assets)
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
+local ChainMath = require(ReplicatedStorage.Shared.Modules.ChainMath)
 
 local PadArt = {}
 
@@ -88,9 +89,34 @@ function PadArt.home(padId: string, count: number): (Assets.Sprite?, number)
     return nil, scale
 end
 
+-- [D62, pasul 5] CLADIRILE LANTULUI, dupa nivel: `kind` e statia ("saw" gaterul, "dock" taverna, "forge" forja). De la
+-- pragul 25 (ChainMath.isGrand) au a doua infatisare; cat desenul ei nu e urcat, ramane cladirea de azi. Depozitul si
+-- magazia de scrap n-au niveluri, deci nici variante.
+local GRAND: { [string]: string } =
+    { saw = "sawmill_grand", dock = "tavern_grand", forge = "workshop_grand" }
+function PadArt.station(kind: string, level: number?): Assets.Sprite
+    local key = GRAND[kind]
+    if key ~= nil and level ~= nil and ChainMath.isGrand(level) then
+        local grand = (Assets.tycoon :: any)[key]
+        if grand ~= nil and Assets.has(grand) then
+            return grand
+        end
+    end
+    if kind == "dock" then
+        return Assets.tycoon.tavern
+    elseif kind == "forge" then
+        -- [D53] atelierul nou, in stilul tavernei; cel din era coloniei doar cat timp noul nu e urcat
+        if Assets.has(Assets.tycoon.workshop_e1) then
+            return Assets.tycoon.workshop_e1
+        end
+        return Assets.buildings.workshop
+    end
+    return Assets.tycoon.sawmill
+end
+
 -- Ce sta pe o platforma cumparata. Casele oamenilor vin din `home` [D55]; taraba a ramas a Negustorului cand Sorting
--- Crate si Dock Stall au devenit niveluri ale debarcaderului [E1.3].
-function PadArt.bought(padId: string, count: number): (Assets.Sprite?, number)
+-- Crate si Dock Stall au devenit niveluri ale debarcaderului [E1.3]. `forgeLevel`: nivelul forjei, pentru desenul ei.
+function PadArt.bought(padId: string, count: number, forgeLevel: number?): (Assets.Sprite?, number)
     if PadArt.HOME_SPRITES[padId] ~= nil then
         return PadArt.home(padId, count)
     elseif padId == "scrap_shed" then
@@ -100,11 +126,7 @@ function PadArt.bought(padId: string, count: number): (Assets.Sprite?, number)
     elseif padId == "landing_bell" then
         return Assets.tycoon.bell, Assets.PIXEL_SCALE
     elseif padId == "workshop" then
-        -- [D53] atelierul nou, in stilul tavernei; cel din era coloniei doar cat timp noul nu e urcat
-        if Assets.has(Assets.tycoon.workshop_e1) then
-            return Assets.tycoon.workshop_e1, Assets.PIXEL_SCALE
-        end
-        return Assets.buildings.workshop, Assets.PIXEL_SCALE
+        return PadArt.station("forge", forgeLevel), Assets.PIXEL_SCALE
     end
     return nil, Assets.PIXEL_SCALE
 end

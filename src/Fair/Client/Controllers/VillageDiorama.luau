@@ -258,7 +258,7 @@ local function drawBought(parent: Instance, pad: TycoonConfig.Pad, village: Vill
     local base = y + HALF + 8
     local role = TycoonConfig.CREW_OF_PAD[pad.id]
     local count = if role ~= nil then village.crews[role] or 1 else 1
-    local sprite, scale = PadArt.bought(pad.id, count)
+    local sprite, scale = PadArt.bought(pad.id, count, village.stations.forge)
     local name = PadArt.homeName(pad.id)
     if sprite ~= nil and Assets.has(sprite) then
         local house =
@@ -431,9 +431,22 @@ function VillageDiorama.Show(village: VillageLook.Snapshot)
             TycoonConfig.PIER.y + pier.height * Assets.PIXEL_SCALE / 2
         )
     end
-    station(p, Assets.tycoon.tavern, TycoonConfig.TAVERN, Strings.TAVERN_LABEL, true)
+    -- [D62, pasul 5] de la nivelul 25, gazda are taverna si gaterul in a doua infatisare, ca acasa la ea
+    station(
+        p,
+        PadArt.station("dock", village.stations.dock),
+        TycoonConfig.TAVERN,
+        Strings.TAVERN_LABEL,
+        true
+    )
     station(p, (Assets.tycoon :: any).storage, TycoonConfig.STORAGE, Strings.STORAGE_LABEL, false)
-    station(p, Assets.tycoon.sawmill, TycoonConfig.SAWMILL, Strings.SAWMILL_LABEL, false)
+    station(
+        p,
+        PadArt.station("saw", village.stations.saw),
+        TycoonConfig.SAWMILL,
+        Strings.SAWMILL_LABEL,
+        false
+    )
 
     for _, pad in TycoonConfig.PADS do
         if pad.era ~= 1 or pad.x == nil or pad.y == nil then

@@ -235,6 +235,9 @@ local Assets = {
         net_water_r3 = sprite(0, 32, 18),
         net_water_r3_full = sprite(0, 32, 18),
         deck_tile = sprite(88026317582529, 48, 48),
+        -- [D62, pasul 5] pamantul satului copt intr-o singura imagine cu alfa (scripts/art/village_ground.py): 960x640,
+        -- un pixel = 3 pixeli de lume. 0 = desenata, inca neurcata -> harta se deseneaza din dale, ca pana acum.
+        village_ground = sprite(0, 960, 640),
         platform = sprite(136060284598059, 48, 24),
         weights = sprite(116698981575799, 24, 16),
         -- pier2 (64x48) a fost respins: se citea ca o lada cu capac. pier3 e pontonul inalt,
@@ -260,6 +263,11 @@ local Assets = {
         wheel = sprite(95698712031588, 40, 40),
         -- D48: gaterul, cladirea dintre carat si vanzare (fara id -> sopron desenat in cod)
         sawmill = sprite(75182981241928, 40, 32),
+        -- [D62, pasul 5] a doua infatisare, de la nivelul 25 (scripts/art/d62_grand.py): aceeasi foaie, aceleasi locuri
+        -- pentru panza, horn si usa. Id 0 = desenate, inca neurcate: cladirea ramane cea de azi la orice nivel.
+        sawmill_grand = sprite(0, 40, 32),
+        tavern_grand = sprite(0, 64, 48),
+        workshop_grand = sprite(0, 64, 48),
         wheel_face = sprite(118757044132689, 64, 64),
         -- D49: depozitul de langa plase, unde varsa Collector-ul (fara id -> sopron desenat in cod)
         storage = sprite(100160905448383, 40, 32),

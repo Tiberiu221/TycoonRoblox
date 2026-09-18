@@ -115,6 +115,13 @@ function ChainMath.rankOf(level: number): number
     return rank
 end
 
+-- [D62, pasul 5] A doua infatisare a cladirilor lantului (gaterul, taverna, forja) vine la rangul 2, adica la pragul
+-- 25: acelasi prag la care debitul se dubleaza a doua oara, deci cladirea se schimba exact cand simti saltul.
+ChainMath.GRAND_RANK = 2
+function ChainMath.isGrand(level: number): boolean
+    return ChainMath.rankOf(level) >= ChainMath.GRAND_RANK
+end
+
 function ChainMath.levelOutput(base: number, level: number, kind: string): number
     local inc = StationConfig.LEVEL_INC[kind] or StationConfig.LEVEL_INC_DEFAULT
     return base * (1 + inc * (level - 1)) * ChainMath.milestoneMult(level)

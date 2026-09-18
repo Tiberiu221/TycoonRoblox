@@ -30,6 +30,7 @@ local PileView = require(script.Parent.Parent.UI.PileView)
 local PersonView = require(script.Parent.Parent.UI.PersonView)
 local Focus = require(script.Parent.Parent.UI.Focus)
 local GroundShadow = require(script.Parent.Parent.UI.GroundShadow)
+local PadArt = require(script.Parent.Parent.UI.PadArt)
 local SceneArt = require(script.Parent.SceneArt)
 
 export type Deps = {
@@ -71,6 +72,9 @@ local saleValueLabel: TextLabel
 local sack: Sack =
     { count = 0, capacity = 0, raw = 0, rawScrap = 0, finds = 0, iron = 0, cut = 0, cutValue = 0 }
 local boat: ImageLabel? = nil
+-- [D62, pasul 5] desenul tavernei: de la nivelul 25 are a doua infatisare (PadArt.station)
+local tavernArt: ImageLabel? = nil
+local tavernLevel = 1
 
 local DOCK = TycoonConfig.DOCK
 local TAVERN = TycoonConfig.TAVERN
@@ -255,6 +259,15 @@ end
 
 -- Starea vine din TycoonState, inlocuita la fiecare mesaj [F0 spec 4.1]; campurile sunt copiate
 -- explicit in Bootstrap [CLAUDE.md capcana 3].
+-- [D62, pasul 5] Nivelul tavernei, din randurile statiilor: la pragul 25 cladirea isi schimba desenul.
+function DockController.SetLevel(level: number)
+    tavernLevel = level
+    local art = tavernArt
+    if art ~= nil then
+        art.Image = Assets.url(PadArt.station("dock", level))
+    end
+end
+
 function DockController.Apply(
     newSack: Sack,
     dock: {
@@ -368,11 +381,12 @@ local function buildTavern()
         local art = Instance.new("ImageLabel")
         art.Name = "Art"
         art.BackgroundTransparency = 1
-        art.Image = Assets.url(Assets.tycoon.tavern)
+        art.Image = Assets.url(PadArt.station("dock", tavernLevel))
         art.ResampleMode = Enum.ResamplerMode.Pixelated
         art.Size = UDim2.fromScale(1, 1)
         art.ZIndex = 3
         art.Parent = marker
+        tavernArt = art
         -- [D62, pasul 5] fum la hornul tavernei (masurat pe desen: 47 din 64, sus): e mereu deschisa
         SceneArt.AddSmoke(marker, 0.734, 0.02)
     else
