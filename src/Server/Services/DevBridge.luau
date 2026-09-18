@@ -18,7 +18,7 @@ local DevService = require(script.Parent.DevService)
 local DevBridge = {}
 
 local POLL_SECONDS = 2
-local URL = "http://127.0.0.1:8787/cmd"
+local URL = "http://127.0.0.1:8787/cmd?who=bridge" -- coada podului; editorul si sonda au cozile lor (probe_server.py)
 
 -- Comanda vine ca text: "coins:500", "buyto:6", "fill", "sell", "collect:first_net", "state".
 -- Acelasi vocabular ca in consola din joc -- nimic in plus, ca sa nu existe doua adevaruri.

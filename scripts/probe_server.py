@@ -1,22 +1,36 @@
 #!/usr/bin/env python3
-"""Capatul care asculta raportul plugin-ului din Studio.
+"""Capatul care asculta raportul plugin-ului din Studio si ii tine cozile de comenzi.
 
 DE CE EXISTA: nu pot vedea Studio. Un screenshot ar costa mult si oricum nu-mi spune daca un
 font s-a rezolvat sau daca un controller a crapat la bootstrap. Plugin-ul citeste arborele real
 de interfata din sesiunea care ruleaza si il trimite aici, ca text. Ieftin si exact.
 
+[2026-09-19] COZI PE ROL. Pana acum era o singura coada, luata de cine intreba primul: editorul, serverul de joc si podul
+de dev (DevBridge) isi furau comenzile unul altuia. Acum fiecare are coada lui:
+  edit    -- plugin-ul din fereastra de editare: porneste Play (`play`), raporteaza
+  server  -- plugin-ul din partea de server a unui Play: opreste testul (`stop`), transmite comenzi clientului
+             (`client:<comanda>`), raporteaza erorile serverului
+  bridge  -- DevBridge din joc: comenzile consolei de dev (`coins:500`, `buyto:6`, ...). E si coada implicita, pentru
+             cine intreaba fara `who`.
+Clientul unui Play nu are voie la HTTP: raspunsurile lui vin tiparite in jurnalul Studio (vezi scripts/probe.py).
+
 Pornire:  python3 scripts/probe_server.py
-Raportul se scrie in /tmp/driftwood_probe.json si se afiseaza pe stdout.
+Rapoartele se scriu in /tmp/driftwood_probe_<rol>.json (si, ca inainte, in /tmp/driftwood_probe.json).
 """
+import datetime
 import http.server
 import json
 import os
 import sys
-import datetime
+import urllib.parse
 
 PORT = int(os.environ.get("DRIFTWOOD_PROBE_PORT", "8787"))
 OUT = "/tmp/driftwood_probe.json"
-QUEUE = "/tmp/driftwood_cmds.json"
+ROLES = ("edit", "server", "bridge")
+
+
+def queue_path(role):
+    return f"/tmp/driftwood_cmds_{role}.json"
 
 
 class Handler(http.server.BaseHTTPRequestHandler):
@@ -25,22 +39,26 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Headers", "*")
         self.send_header("Access-Control-Allow-Methods", "POST, OPTIONS")
 
+    def _role(self):
+        query = urllib.parse.urlparse(self.path).query
+        role = urllib.parse.parse_qs(query).get("who", ["bridge"])[0]
+        return role if role in ROLES else "bridge"
+
     def do_GET(self):
-        # Coada de comenzi pentru plugin: scriu un JSON cu actiuni in QUEUE, pluginul il ia si
-        # fisierul se goleste. Asa pot cere "cumpara prima plasa" si "raport" fara ca owner-ul sa
-        # apese nimic in Studio.
-        if self.path != "/cmd":
+        if urllib.parse.urlparse(self.path).path != "/cmd":
             self.send_response(404)
             self._cors()
             self.end_headers()
             return
+        role = self._role()
+        path = queue_path(role)
         payload = "[]"
-        if os.path.exists(QUEUE):
-            with open(QUEUE, encoding="utf-8") as f:
+        if os.path.exists(path):
+            with open(path, encoding="utf-8") as f:
                 payload = f.read().strip() or "[]"
-            os.remove(QUEUE)
+            os.remove(path)
         if payload != "[]":
-            print(f"-> comenzi trimise pluginului: {payload}")
+            print(f"-> comenzi pentru {role}: {payload}")
             sys.stdout.flush()
         body = payload.encode("utf-8")
         self.send_response(200)
@@ -56,6 +74,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.end_headers()
 
     def do_POST(self):
+        role = self._role()
         length = int(self.headers.get("Content-Length", "0"))
         raw = self.rfile.read(length).decode("utf-8", "replace")
         stamp = datetime.datetime.now().strftime("%H:%M:%S")
@@ -64,10 +83,11 @@ class Handler(http.server.BaseHTTPRequestHandler):
             pretty = json.dumps(data, indent=2, ensure_ascii=False)
         except json.JSONDecodeError:
             pretty = raw  # tot il pastram: un raport stricat spune si el ceva
-        with open(OUT, "w", encoding="utf-8") as f:
-            f.write(pretty)
-        print(f"\n===== raport {stamp} -> {OUT} =====")
-        print(pretty)
+        for path in (OUT, f"/tmp/driftwood_probe_{role}.json"):
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(pretty)
+        print(f"\n===== raport {stamp} ({role}) =====")
+        print(pretty[:1500])
         sys.stdout.flush()
         self.send_response(200)
         self._cors()

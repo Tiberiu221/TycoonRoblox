@@ -1,174 +1,42 @@
 --!nocheck
--- Sonda Driftwood: raporteaza din INTERIORUL Studio ce nu se vede din afara.
+-- Sonda Driftwood: raporteaza din INTERIORUL Studio ce nu se vede din afara si, din 2026-09-19, porneste singura un Play.
 --
--- DE CE EXISTA: nu pot deschide Studio si nu pot vedea ecranul. Un screenshot costa mult si
--- oricum nu raspunde la intrebarile care ma incurca cel mai des: s-a rezolvat fontul cerut sau
--- a cazut pe rezerva? a crapat vreun controller la bootstrap? ce dimensiuni are chiar elementul
--- la rezolutia reala, nu la cea de referinta? Toate astea sunt TEXT, deci ieftine.
+-- DE CE EXISTA: nu pot deschide Studio si nu pot vedea ecranul. Un screenshot costa mult si oricum nu raspunde la
+-- intrebarile care ma incurca cel mai des: a crapat vreun controller la bootstrap? ce text iese din cutia lui? ce panou e
+-- deschis? Toate astea sunt TEXT, deci ieftine.
 --
--- Instalare:  bash scripts/install_plugin.sh
--- Folosire:   porneste serverul (python3 scripts/probe_server.py), intra in Play, apasa "Probe".
+-- [2026-09-19] Owner-ul a dat Play si a vazut doar cerul: bootstrap-ul clientului murise la primul require, iar eu n-aveam
+-- cum sa aflu fara el. De atunci sonda are TREI roluri, dupa fereastra in care ruleaza:
+--   edit    -- fereastra de editare. Comenzi: `play` (porneste un test, StudioTestService), `report`.
+--   server  -- partea de server a unui Play. Comenzi: `stop` (opreste testul), `client:<comanda>` (o trimite clientului
+--              printr-un atribut replicat), `report` (erorile serverului).
+--   client  -- partea de client a unui Play. N-are voie la HTTP, deci isi TIPARESTE raspunsurile in Output, in bucati
+--              marcate `[[PROBE id i/n]]`; de acolo ajung in jurnalul Studio, pe care il citeste scripts/probe.py.
+--              Comenzi: `report`, `frames`, `texts[:radacina]`, `overlaps[:radacina]`, `ui:<actiune>` (o da mai departe
+--              jocului, care in Studio stie sa deschida un panou dupa nume).
 --
+-- Instalare:  bash scripts/install_plugin.sh      Folosire: python3 scripts/probe.py --help
 -- Fisierul asta NU face parte din joc: nu e sub src/, nu intra in rojo, nu se livreaza.
 local HttpService = game:GetService("HttpService")
 local LogService = game:GetService("LogService")
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
-local ENDPOINT = "http://127.0.0.1:8787/report"
+local BASE = "http://127.0.0.1:8787"
+local POLL_SECONDS = 2
+local CHUNK = 700 -- o linie de jurnal prea lunga risca sa fie taiata; bucatile se lipesc la citire
 
--- Elementele despre care vreau adevarul. Un dump al intregului arbore ar fi enorm si scump;
--- astea sunt cele pe care le-am construit sau modificat si pe care nu le pot vedea.
--- F0 (tycoon): HUD-ul nou, debarcaderul si primele platforme, dupa numele din controllere.
-local WATCH = {
-    "Coins",
-    "Toast",
-    "ActionButton",
-    "MenuBar",
-    "Dock",
-    "first_net",
-    "second_net",
-    "bigger_sack",
-}
-
-local toolbar = plugin:CreateToolbar("Driftwood")
-local button = toolbar:CreateButton("Probe", "Trimite un raport de interfata la serverul local", "")
-button.ClickableWhenViewportHidden = true
-
-local function describe(inst)
-    local out = {
-        name = inst.Name,
-        class = inst.ClassName,
-        visible = (inst :: any).Visible,
-    }
-    local ok = pcall(function()
-        local g = inst :: GuiObject
-        out.absPos = { math.round(g.AbsolutePosition.X), math.round(g.AbsolutePosition.Y) }
-        out.absSize = { math.round(g.AbsoluteSize.X), math.round(g.AbsoluteSize.Y) }
-        out.zindex = g.ZIndex
-    end)
-    out.measured = ok
-    if inst:IsA("TextLabel") or inst:IsA("TextButton") then
-        local t = inst :: TextLabel
-        out.text = string.sub(t.Text, 1, 80)
-        out.textSize = t.TextSize
-        -- ASTA e intrebarea centrala: fontul cerut s-a incarcat sau a cazut pe rezerva?
-        pcall(function()
-            out.fontFamily = t.FontFace.Family
-            out.fontWeight = t.FontFace.Weight.Name
-        end)
-        out.legacyFont = t.Font.Name
-        local stroke = t:FindFirstChild("Punch")
-        out.outlined = stroke ~= nil and (stroke :: UIStroke).Thickness or 0
-        -- text taiat: se vede in joc ca "..." si e cel mai des reclamat defect de interfata
-        out.truncated = t.TextFits == false
-    end
-    return out
-end
-
-local function collect()
-    local report = {
-        at = os.date("%H:%M:%S"),
-        placeId = game.PlaceId,
-        running = game:GetService("RunService"):IsRunning(),
-    }
-
-    local camera = Workspace.CurrentCamera
-    if camera ~= nil then
-        report.viewport = { math.round(camera.ViewportSize.X), math.round(camera.ViewportSize.Y) }
-    end
-
-    -- fonturile pe care le cere tema: exista familia pe clientul asta?
-    local fonts = {}
-    for _, name in { "FredokaOne", "Nunito", "Merriweather", "LuckiestGuy", "Montserrat" } do
-        local ok, value = pcall(function()
-            return (Enum.Font :: any)[name]
-        end)
-        fonts[name] = ok and value ~= nil
-    end
-    report.fontsAvailable = fonts
-
-    -- elementele urmarite
-    local found, missing = {}, {}
-    local player = Players.LocalPlayer
-    local gui = player ~= nil and player:FindFirstChild("PlayerGui") or nil
-    if gui ~= nil then
-        local roots = {}
-        for _, child in gui:GetChildren() do
-            if child:IsA("ScreenGui") then
-                table.insert(roots, {
-                    name = child.Name,
-                    displayOrder = child.DisplayOrder,
-                    insets = child.ScreenInsets.Name,
-                    enabled = child.Enabled,
-                    descendants = #child:GetDescendants(),
-                })
-            end
-        end
-        report.screenGuis = roots
-
-        for _, want in WATCH do
-            local hit = gui:FindFirstChild(want, true)
-            if hit ~= nil then
-                table.insert(found, describe(hit))
-            else
-                table.insert(missing, want)
-            end
-        end
+local role = "edit"
+if RunService:IsRunning() then
+    if RunService:IsClient() and not RunService:IsServer() then
+        role = "client"
+    elseif RunService:IsServer() and not RunService:IsClient() then
+        role = "server"
     else
-        report.note = "fara LocalPlayer: intra in Play, apoi apasa Probe din nou"
+        role = "solo" -- Play Solo vechi: o singura fereastra, si server, si client
     end
-    report.watched = found
-    report.missing = missing
-
-    -- erorile din consola: exact ce ma opreste sa vad daca bootstrap-ul a picat pe la mijloc
-    local errors = {}
-    local okLog = pcall(function()
-        for _, entry in LogService:GetLogHistory() do
-            if entry.messageType == Enum.MessageType.MessageError
-                or entry.messageType == Enum.MessageType.MessageWarning
-            then
-                table.insert(errors, {
-                    kind = entry.messageType.Name,
-                    text = string.sub(entry.message, 1, 220),
-                })
-            end
-        end
-    end)
-    if okLog then
-        -- doar ultimele: consola tine mult si raportul trebuie sa ramana ieftin
-        local tail = {}
-        local from = math.max(1, #errors - 24)
-        for i = from, #errors do
-            table.insert(tail, errors[i])
-        end
-        report.problems = tail
-        report.problemCount = #errors
-    end
-
-    return report
-end
-
-local function send()
-    local report = collect()
-    local body = HttpService:JSONEncode(report)
-    local ok, err = pcall(function()
-        HttpService:RequestAsync({
-            Url = ENDPOINT,
-            Method = "POST",
-            Headers = { ["Content-Type"] = "application/json" },
-            Body = body,
-        })
-    end)
-    if ok then
-        print(`[Driftwood] raport trimis: {#body} octeti`)
-        return
-    end
-    -- Rezerva: daca HTTP e blocat, scriem in Output ca sa se poata copia de acolo.
-    warn(`[Driftwood] HTTP a esuat ({err}). Raportul e mai jos, intre marcaje.`)
-    print("----8<---- DRIFTWOOD PROBE ----8<----")
-    print(body)
-    print("----8<---- SFARSIT ----8<----")
 end
 
 local function httpOn()
@@ -178,83 +46,302 @@ local function httpOn()
     end)
 end
 
-button.Click:Connect(function()
+-- ---- ce se vede ---------------------------------------------------------------------------------------------------
+local function playerGui(): Instance?
+    local player = Players.LocalPlayer
+    return player ~= nil and player:FindFirstChild("PlayerGui") or nil
+end
+
+-- Vizibil cu adevarat: el si toti parintii lui, pana la un ScreenGui pornit.
+local function shown(inst: Instance): boolean
+    local node: Instance? = inst
+    while node ~= nil do
+        if node:IsA("GuiObject") and not node.Visible then
+            return false
+        elseif node:IsA("LayerCollector") then
+            return node.Enabled
+        end
+        node = node.Parent
+    end
+    return false
+end
+
+local function box(g: GuiObject): { number }
+    return {
+        math.round(g.AbsolutePosition.X),
+        math.round(g.AbsolutePosition.Y),
+        math.round(g.AbsoluteSize.X),
+        math.round(g.AbsoluteSize.Y),
+    }
+end
+
+local function findRoot(name: string?): Instance?
+    local gui = playerGui()
+    if gui == nil or name == nil or name == "" then
+        return gui
+    end
+    return gui:FindFirstChild(name, true)
+end
+
+local function problems(limit: number): ({ any }, number)
+    local all = {}
+    pcall(function()
+        for _, entry in LogService:GetLogHistory() do
+            if
+                entry.messageType == Enum.MessageType.MessageError
+                or entry.messageType == Enum.MessageType.MessageWarning
+            then
+                table.insert(all, { kind = entry.messageType.Name, text = string.sub(entry.message, 1, 260) })
+            end
+        end
+    end)
+    local tail = {}
+    for i = math.max(1, #all - limit + 1), #all do
+        table.insert(tail, all[i])
+    end
+    return tail, #all
+end
+
+local function collectReport(): { [string]: any }
+    local report: { [string]: any } = {
+        role = role,
+        at = os.date("%H:%M:%S"),
+        placeId = game.PlaceId,
+        running = RunService:IsRunning(),
+    }
+    local camera = Workspace.CurrentCamera
+    if camera ~= nil then
+        report.viewport = { math.round(camera.ViewportSize.X), math.round(camera.ViewportSize.Y) }
+    end
+    local gui = playerGui()
+    if gui ~= nil then
+        local roots = {}
+        for _, child in gui:GetChildren() do
+            if child:IsA("ScreenGui") then
+                table.insert(roots, {
+                    name = child.Name,
+                    enabled = child.Enabled,
+                    order = child.DisplayOrder,
+                    descendants = #child:GetDescendants(),
+                })
+            end
+        end
+        report.screenGuis = roots
+    end
+    report.problems, report.problemCount = problems(40)
+    return report
+end
+
+-- Panourile: copiii directi ai fiecarui ScreenGui, cu steagul Visible -- ca sa stiu ce e deschis acum.
+local function collectFrames(): { any }
+    local out = {}
+    local gui = playerGui()
+    if gui == nil then
+        return out
+    end
+    for _, screen in gui:GetChildren() do
+        if screen:IsA("ScreenGui") and screen.Enabled then
+            for _, child in screen:GetChildren() do
+                if child:IsA("GuiObject") then
+                    table.insert(out, { gui = screen.Name, name = child.Name, visible = child.Visible, box = box(child) })
+                end
+            end
+        end
+    end
+    return out
+end
+
+-- Tot textul care se vede acum sub `rootName` (sau in tot PlayerGui): ce scrie, cat de mare, unde, si daca incape.
+local function collectTexts(rootName: string?): { any }
+    local out = {}
+    local root = findRoot(rootName)
+    if root == nil then
+        return out
+    end
+    for _, d in root:GetDescendants() do
+        if (d:IsA("TextLabel") or d:IsA("TextButton") or d:IsA("TextBox")) and d.Text ~= "" and shown(d) then
+            table.insert(out, {
+                name = d.Name,
+                parent = d.Parent and d.Parent.Name or "",
+                text = string.sub(d.Text, 1, 70),
+                size = d.TextSize,
+                scaled = d.TextScaled,
+                fits = d.TextFits,
+                box = box(d),
+                button = d:IsA("TextButton"),
+            })
+            if #out >= 220 then
+                break
+            end
+        end
+    end
+    return out
+end
+
+-- Texte care se calca intre ele: doua texte vizibile, niciunul parintele celuilalt, cu dreptunghiurile suprapuse.
+local function collectOverlaps(rootName: string?): { any }
+    local root = findRoot(rootName)
+    local items = {}
+    if root ~= nil then
+        for _, d in root:GetDescendants() do
+            if (d:IsA("TextLabel") or d:IsA("TextButton")) and d.Text ~= "" and shown(d) then
+                table.insert(items, d)
+            end
+        end
+    end
+    local out = {}
+    for i = 1, #items do
+        for j = i + 1, #items do
+            local a, b = items[i], items[j]
+            if a:IsDescendantOf(b) or b:IsDescendantOf(a) then
+                continue
+            end
+            local ap, as, bp, bs = a.AbsolutePosition, a.AbsoluteSize, b.AbsolutePosition, b.AbsoluteSize
+            local w = math.min(ap.X + as.X, bp.X + bs.X) - math.max(ap.X, bp.X)
+            local h = math.min(ap.Y + as.Y, bp.Y + bs.Y) - math.max(ap.Y, bp.Y)
+            if w > 2 and h > 2 then
+                table.insert(out, {
+                    a = a.Name .. ": " .. string.sub(a.Text, 1, 30),
+                    b = b.Name .. ": " .. string.sub(b.Text, 1, 30),
+                    overlap = { math.round(w), math.round(h) },
+                })
+                if #out >= 40 then
+                    return out
+                end
+            end
+        end
+    end
+    return out
+end
+
+-- ---- iesirea -------------------------------------------------------------------------------------------------------
+local function post(report: { [string]: any })
     httpOn()
-    send()
+    local body = HttpService:JSONEncode(report)
+    local ok, err = pcall(function()
+        HttpService:RequestAsync({
+            Url = `{BASE}/report?who={if role == "solo" then "server" else role}`,
+            Method = "POST",
+            Headers = { ["Content-Type"] = "application/json" },
+            Body = body,
+        })
+    end)
+    if ok then
+        print(`[Driftwood] raport trimis ({role}): {#body} octeti`)
+    else
+        warn(`[Driftwood] HTTP a esuat ({err})`)
+    end
+end
+
+-- Clientul nu are HTTP: raspunsul merge in Output, in bucati, si de acolo in jurnalul Studio.
+local function emit(id: string, payload: any)
+    local body = HttpService:JSONEncode(payload)
+    local n = math.max(1, math.ceil(#body / CHUNK))
+    for i = 1, n do
+        print(`[[PROBE {id} {i}/{n}]]{string.sub(body, (i - 1) * CHUNK + 1, i * CHUNK)}`)
+    end
+end
+
+-- ---- comenzile clientului --------------------------------------------------------------------------------------
+local function runClient(id: string, cmd: string)
+    local verb, arg = string.match(cmd, "^(%w+):?(.*)$")
+    if verb == "report" then
+        emit(id, collectReport())
+    elseif verb == "frames" then
+        emit(id, collectFrames())
+    elseif verb == "texts" then
+        emit(id, collectTexts(arg))
+    elseif verb == "overlaps" then
+        emit(id, collectOverlaps(arg))
+    elseif verb == "ui" then
+        -- jocul (doar in Studio) asculta atributul asta si deschide/inchide panoul cerut; raspunsul vine dupa un cadru
+        Workspace:SetAttribute("DevUi", `{id}|{arg}`)
+        task.wait(0.6)
+        emit(id, { ok = true, ui = arg, frames = collectFrames() })
+    else
+        emit(id, { error = "comanda necunoscuta", cmd = cmd })
+    end
+end
+
+if role == "client" then
+    local last = ReplicatedStorage:GetAttribute("ProbeCmd") -- ce era deja acolo e vechi
+    ReplicatedStorage:GetAttributeChangedSignal("ProbeCmd"):Connect(function()
+        local raw = ReplicatedStorage:GetAttribute("ProbeCmd")
+        if typeof(raw) ~= "string" or raw == last then
+            return
+        end
+        last = raw
+        local id, cmd = string.match(raw, "^([%w_]+)|(.*)$")
+        if id ~= nil then
+            local ok, err = pcall(runClient, id, cmd)
+            if not ok then
+                emit(id, { error = tostring(err) })
+            end
+        end
+    end)
+    print("[Driftwood] sonda (client) asculta")
+    return
+end
+
+-- ---- comenzile editorului si ale serverului ---------------------------------------------------------------------
+local function runHost(cmd: string)
+    local verb, arg = string.match(cmd, "^(%w+):?(.*)$")
+    if verb == "report" then
+        post(collectReport())
+    elseif verb == "play" and role == "edit" then
+        task.spawn(function()
+            print("[Driftwood] pornesc un Play (StudioTestService)")
+            local ok, result = pcall(function()
+                return game:GetService("StudioTestService"):ExecutePlayModeAsync({})
+            end)
+            print(`[Driftwood] Play incheiat: {ok} {tostring(result)}`)
+        end)
+    elseif verb == "stop" and role ~= "edit" then
+        print("[Driftwood] opresc testul")
+        pcall(function()
+            game:GetService("StudioTestService"):EndTest("probe")
+        end)
+    elseif verb == "client" and role ~= "edit" then
+        if role == "solo" then
+            local id, rest = string.match(arg, "^([%w_]+)|(.*)$")
+            if id ~= nil then
+                pcall(runClient, id, rest)
+            end
+        else
+            ReplicatedStorage:SetAttribute("ProbeCmd", arg) -- `id|comanda`, replicat catre client
+        end
+    else
+        warn(`[Driftwood] comanda nepotrivita pentru {role}: {cmd}`)
+    end
+end
+
+local toolbar = plugin:CreateToolbar("Driftwood")
+local button = toolbar:CreateButton("Probe", "Trimite un raport de interfata la serverul local", "")
+button.ClickableWhenViewportHidden = true
+button.Click:Connect(function()
+    post(collectReport())
 end)
 
--- ---- Bucla automata: raport fara sa apese nimeni, si comenzi venite din afara ---------------
--- DE CE: pana acum adevarul de pe ecran ajungea la mine doar daca owner-ul apasa butonul si imi
--- trimitea o captura. Cu bucla asta, Studio raporteaza singur cat timp jocul ruleaza, si pot cere
--- actiuni (cumpara/strange/vinde/comanda de dezvoltare) ca sa verific bucla fara sa joace el.
-local POLL_SECONDS = 2
--- semn de viata la incarcare, ca sa se vada in Output ca noua versiune a plugin-ului chiar rula
-print("[Driftwood] sonda incarcata, bucla de comenzi pornita")
-local CMD_URL = "http://127.0.0.1:8787/cmd"
-
-local function remotes(): Folder?
-    local rs = game:GetService("ReplicatedStorage")
-    local folder = rs:FindFirstChild("Remotes")
-    return if folder ~= nil and folder:IsA("Folder") then folder else nil
-end
-
-local function fire(name: string, ...)
-    local folder = remotes()
-    if folder == nil then
-        warn(`[Driftwood] fara Remotes (jocul nu ruleaza?): {name}`)
-        return
-    end
-    local remote = folder:FindFirstChild(name)
-    if remote == nil or not remote:IsA("RemoteEvent") then
-        warn(`[Driftwood] remote lipsa: {name}`)
-        return
-    end
-    remote:FireServer(...)
-    print(`[Driftwood] actiune: {name}`)
-end
-
--- O comanda e un sir: "report" | "buy:<padId>" | "collect:<padId>" | "sell" | "dev:<cmd>:<arg>"
-local function runCommand(cmd: string)
-    local verb, a, b = string.match(cmd, "^(%w+):?([^:]*):?(.*)$")
-    if verb == "report" then
-        send()
-    elseif verb == "buy" then
-        fire("BuyPad", a)
-    elseif verb == "collect" then
-        fire("CollectNet", a)
-    elseif verb == "sell" then
-        fire("SellSack")
-    elseif verb == "dev" then
-        fire("DevCommand", a, tonumber(b) or b)
-    else
-        warn(`[Driftwood] comanda necunoscuta: {cmd}`)
-    end
-end
-
+print(`[Driftwood] sonda incarcata ({role}), bucla de comenzi pornita`)
 task.spawn(function()
+    local who = if role == "solo" then "server" else role
     while true do
         task.wait(POLL_SECONDS)
         httpOn()
         local ok, response = pcall(function()
-            return HttpService:RequestAsync({ Url = CMD_URL, Method = "GET" })
+            return HttpService:RequestAsync({ Url = `{BASE}/cmd?who={who}`, Method = "GET" })
         end)
-        if ok and response ~= nil and response.Success and response.Body ~= "" then
-            local decoded
-            local okDecode = pcall(function()
-                decoded = HttpService:JSONDecode(response.Body)
+        if ok and response ~= nil and response.Success and response.Body ~= "" and response.Body ~= "[]" then
+            local okDecode, decoded = pcall(function()
+                return HttpService:JSONDecode(response.Body)
             end)
             if okDecode and typeof(decoded) == "table" then
-                local running = game:GetService("RunService"):IsRunning()
                 for _, cmd in decoded do
-                    if typeof(cmd) ~= "string" then
-                        continue
-                    end
-                    -- raportul merge si din Edit (spune ca jocul nu ruleaza, si atat); actiunile
-                    -- de joc au nevoie de o sesiune pornita, altfel n-au pe cine intreba
-                    if cmd == "report" or running then
-                        pcall(runCommand, cmd)
-                    else
-                        warn(`[Driftwood] jocul nu ruleaza, sar peste: {cmd}`)
+                    if typeof(cmd) == "string" then
+                        local okRun, err = pcall(runHost, cmd)
+                        if not okRun then
+                            warn(`[Driftwood] {cmd}: {err}`)
+                        end
                     end
                 end
             end
