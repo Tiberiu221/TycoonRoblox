@@ -480,6 +480,29 @@ return function()
         )
 
         test.case(
+            "[D62] quest-ul care arata avizierul satului isi are sageata chiar daca ghidajul tace",
+            function()
+                local board = TycoonConfig.VILLAGE_BOARD
+                local st = state({ pads = pads({ "first_net" }), crews = WOOD_CREWS })
+                st.allCrewsHired = true
+                st.quest = {
+                    key = "buy_decor",
+                    text = "Build something in your village",
+                    x = board.x,
+                    y = board.y,
+                    kind = "decor",
+                    progress = 0,
+                    goal = 1,
+                }
+                local g = GuideMath.pickGoal(st) :: GuideMath.Goal
+                check.equal(g.kind, "goto")
+                check.equal(g.x, board.x)
+                check.equal(g.y, board.y)
+                check.equal(g.text, "Build something in your village")
+            end
+        )
+
+        test.case(
             "[D59] indiciul pontonului: dupa primul peste, cat strangi bani, fara tinta",
             function()
                 local function questFourth(): GuideMath.QuestGoal

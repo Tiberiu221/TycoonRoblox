@@ -115,6 +115,30 @@ return function()
         -- urcat de la 3.000 la 4.000. De la D61 perlele vin si din iaz si din gherete, nu doar din undita de acasa;
         -- ce vinde satul (avizierul) ramane sub vechiul plafon, ca bucla de acasa sa nu se lungeasca.
         test.case(
+            "[D62] cand quest-ul te trimite la avizier, ai perle pentru primul lucru chiar cu cel mai mic peste",
+            function()
+                -- perlele quest-urilor dinaintea lui `buy_decor` (revendicate la rand) + cel mai mic prim peste:
+                -- raritatea cea mai slaba, plus bonusul primei prinderi a speciei
+                local before = 0
+                for _, q in QuestConfig.CHAPTERS[1].quests do
+                    if q.id == "buy_decor" then
+                        break
+                    end
+                    before += q.reward.pearls or 0
+                end
+                local smallest = math.huge
+                for _, species in FishConfig.SPECIES do
+                    smallest = math.min(smallest, FishMath.pearlsFor(species, true, false))
+                end
+                local cheapest = math.huge
+                for _, d in VillageConfig.DECOR do
+                    cheapest = math.min(cheapest, d.price)
+                end
+                check.is_true(before + smallest >= cheapest)
+            end
+        )
+
+        test.case(
             "tot ce se vinde costa 1.500-4.000 de perle: 2-8 ore de pescuit continuu",
             function()
                 local total, atHome = 0, 0

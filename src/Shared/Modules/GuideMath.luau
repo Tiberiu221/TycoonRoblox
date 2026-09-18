@@ -467,7 +467,8 @@ function GuideMath.pickGoal(s: State): Goal?
         -- quest, linia NEXT poate spune indiciul pontonului: text, fara tinta.
         local silentQuest = s.quest
         if silentQuest ~= nil then
-            if silentQuest.kind == "fished" then
+            -- [D62] ...si quest-ul care arata avizierul satului: tot un lucru nou, tot fara alta cale de a-l gasi
+            if silentQuest.kind == "fished" or silentQuest.kind == "decor" then
                 return questGoal(s, silentQuest)
             end
             local price = unaffordablePrice(s, silentQuest)

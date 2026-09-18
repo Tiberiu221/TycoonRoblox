@@ -22,6 +22,7 @@ export type Facts = {
     smelted: number?, -- bucati de fier topite la forja, de oricine [D55]
     ironSold: number?, -- bucati de fier predate la taverna, de oricine [D56]
     fished: number?, -- pesti scosi la undita [D59]
+    decor: number?, -- lucruri construite de la avizierul satului [D62]
     netLevels: { [string]: number },
     dockLevel: number,
     idleRate: number,
@@ -76,6 +77,8 @@ function QuestMath.progress(quest: QuestConfig.Quest, facts: Facts): number
         return facts.ironSold or 0
     elseif kind == "fished" then
         return facts.fished or 0
+    elseif kind == "decor" then
+        return facts.decor or 0
     elseif kind == "idle" then
         return facts.idleRate
     elseif kind == "level" then

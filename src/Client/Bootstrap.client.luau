@@ -854,6 +854,7 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
                     sawmill = a.sawmill,
                     forge = a.forge, -- [D56] sageata spre inelul forjei
                     fish = a.fish, -- [D59] sageata spre capatul pontonului
+                    board = a.board, -- [D62] sageata spre avizierul satului
                     kind = a.kind, -- [D51] ghidajul alege pasul dupa felul quest-ului
                     stationKind = a.stationKind,
                     stationId = a.stationId,

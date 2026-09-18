@@ -139,6 +139,10 @@ un buștean de aur; de pe punte, `Grab it (E)` dă monede cât 10 / 25 / 75 s di
 - **Nu intră în prețuri:** simulatorul doar afișează estimarea (~15% cu jumătate prinse). Amendează D59.
 - Artă neurcată: `treasure_barrel_water`, `treasure_crate_water`.
 
+**Undița și avizierul, devreme [D62, pasul 4]** — comise, **neverificate încă în Studio.** `Catch a fish` s-a mutat în
+capitolul 1, după al cincilea om; quest nou `Build something in your village` (felul `decor`, ținta `targetBoard`), cu
+săgeată spre avizier chiar dacă ghidajul tace. La pasul acela ai cel puțin 21 de perle; primul decor costă 20.
+
 **De ce nu prinde jocul [D62]** — owner-ul: „nu te prinde deloc, nu mă atrage deloc". Auditul și cifrele sunt în
 DECIZII D62; citește-l înainte de orice lucru nou pe sat. Comise și publicate pe staging, **nevăzute încă în Studio:**
 - **Pasul 1 (86e4a62):** nivelurile și treptele se simt (`StationUpgraded` / `CrewUpgraded` / `QuestClaimed`, `UI/Pop`,
@@ -146,8 +150,7 @@ DECIZII D62; citește-l înainte de orice lucru nou pe sat. Comise și publicate
 - **Pasul 2 (5a12a14):** oamenii capitolului 1 costă 5/6/7/8/10 și vin în ~2 minute; oamenii fierului 700–1100. Era 1
   la 33m36s reali.
 - **Sunetele `sfx_levelup` și `sfx_milestone`** sunt urcate și aprobate de moderare (bb301c1).
-- **Rămân din plan:** undița și avizierul mai devreme în quest-uri (pasul 4), satul care crește la vedere (pasul 5,
-  imagini noi).
+- **Rămâne din plan:** satul care crește la vedere (pasul 5, imagini noi).
 - **Unealtă:** `python3 scripts/economy/tune_tycoon.py eval NUME=valoare` încarcă simulatorul adevărat, suprascrie
   constante în memorie și măsoară porțile de ritm. Nu schimba constante din ochi: „jucătorul e veriga slabă" a stricat
   toată curba.

@@ -20,7 +20,8 @@ export type Quest = {
     text: string,
     -- ce se citeste din stare: "pad" (detii platforma) | "collected" / "sold" (bucati, D51) | "sawn" |
     -- "smelted" (fier topit la forja, D55) | "ironSold" (fier predat la taverna, D56) | "level" | "idle" |
-    -- "fished" (pesti scosi la undita, D59) (plus "collects" / "sells", gesturi, ramase doar ca feluri cunoscute)
+    -- "fished" (pesti scosi la undita, D59) | "decor" (lucruri construite de la avizierul satului, D62)
+    -- (plus "collects" / "sells", gesturi, ramase doar ca feluri cunoscute)
     kind: string,
     arg: string?, -- padId pentru "pad"; "net:<padId>" / "dock" pentru "level"
     goal: number,
@@ -31,6 +32,7 @@ export type Quest = {
     targetSawmill: boolean?, -- sageata arata gaterul [D48]
     targetForge: boolean?, -- sageata arata inelul forjei [D56]
     targetFish: boolean?, -- sageata arata capatul pontonului, unde pescuiesti [D59]
+    targetBoard: boolean?, -- sageata arata avizierul satului, de pe punte [D62]
 }
 
 export type Chapter = {
@@ -157,6 +159,31 @@ QuestConfig.CHAPTERS = {
                 targetPad = "dock_trader",
             },
             {
+                -- [D59] UNDITA. [D62, pasul 4] Mutata aici din capitolul 2: dupa al cincilea om satul merge singur si
+                -- astepti oricum ~50 s banii pentru nivelul plasei, iar ghidajul tacea exact atunci -- prima pauza a
+                -- jocului n-avea nimic in ea. Quest-ul isi are sageata spre capatul pontonului chiar daca ghidajul
+                -- tace (exceptie numita, in GuideMath). Un peste, nu zece: pescuitul doar adauga, nu se cere.
+                -- Id-ul ramane acelasi: cine l-a revendicat deja in capitolul 2 il are revendicat si aici.
+                id = "catch_fish",
+                text = "Catch a fish", -- [D61] si pestii de la iazul din balci se numara
+                kind = "fished",
+                goal = 1,
+                reward = { pearls = 3 },
+                targetFish = true,
+            },
+            {
+                -- [D62, pasul 4] AVIZIERUL SATULUI nu era aratat de niciun quest: perlele se strangeau fara ca
+                -- jucatorul sa afle pe ce se dau. Aici are destule: 12 din quest-uri + 3 de la peste + cel putin 6 pe
+                -- primul peste (1 + bonusul speciei noi) = 21, iar primul lucru de la avizier costa 20
+                -- [PearlBudget.test]. Cumperi, si il vezi aparand in sat.
+                id = "buy_decor",
+                text = "Build something in your village",
+                kind = "decor",
+                goal = 1,
+                reward = { pearls = 2 },
+                targetBoard = true,
+            },
+            {
                 -- Nivelul 2, nu 5: exact cat cere TycoonConfig.PREV_NET_LEVEL ca sa apara a doua
                 -- plasa. Cu 5, lumea deschidea plasa urmatoare la nivelul 2 in timp ce banda de
                 -- obiectiv inca cerea 5 -- owner-ul a vazut contradictia in Studio (2026-09-12).
@@ -213,18 +240,6 @@ QuestConfig.CHAPTERS = {
                 goal = 1,
                 reward = { pearls = 1 },
                 targetPad = "bigger_sack",
-            },
-            {
-                -- [D59] UNDITA SE INVATA AICI: dupa traista mare incepe prima strangere lunga de bani (plasa a patra,
-                -- al doilea Collector), iar ghidajul tace deja (cei cinci oameni sunt angajati). Quest-ul isi are
-                -- sageata spre capatul pontonului chiar si asa -- o singura exceptie numita, in GuideMath. Un peste,
-                -- nu zece: pescuitul doar adauga, nu se cere [D59].
-                id = "catch_fish",
-                text = "Catch a fish", -- [D61] si pestii de la iazul din balci se numara
-                kind = "fished",
-                goal = 1,
-                reward = { pearls = 3 },
-                targetFish = true,
             },
             {
                 -- Plasa urmatoare apare abia cand asta e la TycoonConfig.PREV_NET_LEVEL. Fara

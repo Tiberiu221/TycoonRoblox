@@ -8,6 +8,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local QuestConfig = require(ReplicatedStorage.Shared.Config.QuestConfig)
 local QuestMath = require(ReplicatedStorage.Shared.Modules.QuestMath)
+local VillageLook = require(ReplicatedStorage.Shared.Modules.VillageLook)
 
 local Analytics = require(script.Parent.Analytics)
 local DataService = require(script.Parent.DataService)
@@ -36,6 +37,7 @@ local function factsFor(player: Player): QuestMath.Facts?
         smelted = data.Stats.smelted or 0,
         ironSold = data.Stats.ironSold or 0, -- [D56]
         fished = data.Stats.fished or 0, -- [D59]
+        decor = VillageLook.decorCount(data), -- [D62] cate lucruri ai construit de la avizier (din catalog)
         netLevels = if stations ~= nil then stations.NetLevels(player) else {},
         dockLevel = data.Stations.dock.level,
         idleRate = if stations ~= nil then stations.Idle(player) else 0,
@@ -63,6 +65,7 @@ export type Snapshot = {
         sawmill: boolean?,
         forge: boolean?, -- [D56] inelul forjei
         fish: boolean?, -- [D59] capatul pontonului, unde pescuiesti
+        board: boolean?, -- [D62] avizierul satului, de pe punte
         -- [D51] felul quest-ului si, la unul de nivel, statia: ghidajul alege pasul din ele
         kind: string,
         stationKind: string?,
@@ -100,6 +103,7 @@ function QuestService.Snapshot(player: Player): Snapshot?
                 sawmill = active.targetSawmill,
                 forge = active.targetForge, -- [D56] sageata spre inelul forjei
                 fish = active.targetFish, -- [D59] sageata spre capatul pontonului
+                board = active.targetBoard, -- [D62] sageata spre avizierul satului
                 kind = active.kind,
                 stationKind = stationKind,
                 stationId = stationId,

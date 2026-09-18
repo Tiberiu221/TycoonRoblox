@@ -84,6 +84,7 @@ export type Snapshot = {
             sawmill: boolean?,
             forge: boolean?, -- [D56] sageata spre inelul forjei
             fish: boolean?, -- [D59] sageata spre capatul pontonului
+            board: boolean?, -- [D62] sageata spre avizierul satului
             kind: string?,
             stationKind: string?,
             stationId: string?,
@@ -200,6 +201,8 @@ local function toGuideState(s: Snapshot): GuideMath.State
             x, y = TycoonConfig.WORKSHOP_STAND.x, TycoonConfig.WORKSHOP_STAND.y -- [D56] inelul forjei
         elseif active.fish then
             x, y = TycoonConfig.FISH_STAND.x, TycoonConfig.FISH_STAND.y -- [D59] capatul pontonului
+        elseif active.board then
+            x, y = TycoonConfig.VILLAGE_BOARD.x, TycoonConfig.VILLAGE_BOARD.y -- [D62] avizierul satului
         end
         if x ~= nil and y ~= nil then
             local pad = if active.padId ~= nil then TycoonConfig.byId[active.padId] else nil

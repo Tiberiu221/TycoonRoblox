@@ -118,10 +118,21 @@ owner-ului.
   `treasure_crate_water` (până atunci, un butoi și o ladă din dreptunghiuri).
 - După aceea pot veni evenimentele anunțate („Log drive!").
 
-**Propuse, rămase:**
-- **Pasul 4 — undița și avizierul mai devreme în quest-uri,** cât aștepți banii pentru oameni.
-  - Primul pește dă 6–17 perle, deci primul decor se poate lua în primele minute.
-  - Amendează locul quest-ului din D59.
+**Pasul 4 — undița și avizierul, devreme (făcut pe 2026-09-18, în planul aprobat de owner; neverificat încă în Studio).**
+- **De ce:** după al cincilea om satul merge singur și aștepți ~50 s banii pentru nivelul plasei, iar ghidajul tăcea
+  exact atunci: prima pauză a jocului n-avea nimic în ea. Iar avizierul satului nu era arătat de **niciun** quest:
+  perlele se strângeau fără ca jucătorul să afle pe ce se dau.
+- **`Catch a fish` s-a mutat din capitolul 2 în capitolul 1,** imediat după `Hire an Innkeeper`, cu săgeata spre capătul
+  pontonului. Id-ul e același, deci cine l-a revendicat deja îl are revendicat și aici. Amendează locul din D59.
+- **Quest nou, `Build something in your village`** (felul `decor`, citit din stare: câte lucruri din catalog ai construit),
+  cu ținta nouă `targetBoard` spre avizierul de pe punte. Răsplată: 2 perle.
+- **Perlele ajung:** 12 din quest-urile dinainte + 3 de la quest-ul peștelui + cel puțin 6 pe primul pește (1 + bonusul
+  speciei noi) = 21, iar primul lucru de la avizier costă 20. Un test ține socoteala asta [PearlBudget].
+- **Ghidajul** dă săgeată celor două quest-uri chiar dacă tace (excepții numite, ca undița din D59). Apoi capitolul
+  continuă ca înainte: nivelul 2 al plasei, a doua plasă.
+- Capitolul 1 are acum 13 quest-uri și 25 de perle cu tot cu răsplata lui; capitolul 2 are cu 3 mai puțin.
+
+**Propus, rămas:**
 - **Pasul 5 — satul crește la vedere.** Cere imagini noi, deci urcare.
   - plasa și clădirile se schimbă la pragurile 10/25/50;
   - treapta se vede pe colibă;
@@ -224,7 +235,7 @@ satul tău nu-l vedea nimeni: bâlciul te lăsa să te etalezi doar cu o ținut�
      permisiunile pentru game passes și developer products le pot crea eu (nume, descriere, preț, iconiță). ID-urile
      intră în `MonetizationConfig.IDS`, pe univers.
 
-**Rămâne din plan:** D62 pașii 4–5 (undița și avizierul devreme, satul care crește la vedere).
+**Rămâne din plan:** D62 pasul 5 (satul care crește la vedere; cere imagini noi).
 
 ---
 

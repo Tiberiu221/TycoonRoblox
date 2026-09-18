@@ -75,7 +75,41 @@ return function()
             -- [D59] pesti scosi la undita
             check.equal(QuestMath.progress(QuestConfig.byId.catch_fish, facts({ fished = 2 })), 2)
             check.equal(QuestMath.progress(QuestConfig.byId.catch_fish, facts()), 0)
+            -- [D62] lucruri construite de la avizierul satului
+            check.equal(QuestMath.progress(QuestConfig.byId.buy_decor, facts({ decor = 3 })), 3)
+            check.equal(QuestMath.progress(QuestConfig.byId.buy_decor, facts()), 0)
         end)
+
+        test.case(
+            "[D62] dupa al cincilea om vin undita si avizierul, apoi capitolul continua ca inainte",
+            function()
+                local order: { string } = {}
+                for _, q in QuestConfig.CHAPTERS[1].quests do
+                    table.insert(order, q.id)
+                end
+                local at: { [string]: number } = {}
+                for i, id in order do
+                    at[id] = i
+                end
+                check.equal(at.catch_fish, at.hire_trader + 1)
+                check.equal(at.buy_decor, at.catch_fish + 1)
+                check.equal(at.net_two, at.buy_decor + 1)
+                check.equal(at.cast_second, at.net_two + 1)
+                -- quest-ul de pescuit s-a MUTAT, nu s-a copiat: un id apare o singura data in tot jocul
+                local seen: { [string]: number } = {}
+                for _, chapter in QuestConfig.CHAPTERS do
+                    for _, q in chapter.quests do
+                        seen[q.id] = (seen[q.id] or 0) + 1
+                    end
+                end
+                for id, n in seen do
+                    check.equal(`{id}:{n}`, `{id}:1`)
+                end
+                -- fiecare isi are sageata, chiar daca ghidajul tace atunci
+                check.is_true(QuestConfig.byId.catch_fish.targetFish == true)
+                check.is_true(QuestConfig.byId.buy_decor.targetBoard == true)
+            end
+        )
 
         test.case("Go! si bara de progres inteleg aceeasi statie din `arg`", function()
             -- Butonul Go! deschide panoul pe statia din stationTarget, iar bara citeste nivelul
@@ -222,6 +256,9 @@ return function()
                 collected = 50,
                 sawn = 50,
                 sold = 50,
+                -- [D62] un peste scos si un lucru construit de la avizier
+                fished = 1,
+                decor = 1,
                 -- si prima plasa peste nivelul 2: fara el, quest-ul `net_two` ramane deschis
                 netLevels = { first_net = 12 },
             })
@@ -239,9 +276,9 @@ return function()
 
     test.suite("QuestConfig - forma capitolului", function()
         test.case("id-uri unice in tot jocul, fiecare quest cu recompensa", function()
-            -- 11: lantul de mana (prinzi, strangi, tai, vinzi), cei cinci oameni, apoi nivelul 2 si a
-            -- doua plasa [D52]
-            check.equal(#CHAPTER.quests, 11)
+            -- 13: lantul de mana (prinzi, strangi, tai, vinzi), cei cinci oameni, [D62] undita si avizierul satului,
+            -- apoi nivelul 2 si a doua plasa [D52]
+            check.equal(#CHAPTER.quests, 13)
             local seen: { [string]: boolean } = {}
             local dupes, noReward = 0, 0
             local all = {}
