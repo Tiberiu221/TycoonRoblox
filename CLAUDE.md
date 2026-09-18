@@ -95,6 +95,22 @@ stylua/selene o prind. Rulează-le mereu pe toate, nu înlănțuite după o eroa
   bâlciul doar în 114983498774894); serverul Rojo al satului rulează detașat pe 34872 și trebuie repornit ca să citească
   o schimbare de proiect. Ce a rulat în Studio se vede în `~/Library/Logs/Roblox/*_last.log` (`CreatorOutput`, `open place`).
 
+## Stare (2026-09-18)
+
+**De ce nu prinde jocul [D62]** — owner-ul: „nu te prinde deloc, nu mă atrage deloc". Auditul și cifrele sunt în
+DECIZII D62; citește-l înainte de orice lucru nou pe sat. Comise și publicate pe staging, **nevăzute încă în Studio:**
+- **Pasul 1 (86e4a62):** nivelurile și treptele se simt (`StationUpgraded` / `CrewUpgraded` / `QuestClaimed`, `UI/Pop`,
+  banner la pragurile 10/25/50, bară până la prag în meniu). Recompensa capitolului se plătește în sfârșit.
+- **Pasul 2 (5a12a14):** oamenii capitolului 1 costă 5/6/7/8/10 și vin în ~2 minute; oamenii fierului 700–1100. Era 1
+  la 33m36s reali.
+- **Sunetele `sfx_levelup` și `sfx_milestone`** sunt sintetizate, neurcate (cer acordul owner-ului); până atunci se aud
+  `pop` și `chime`.
+- **În așteptarea owner-ului:** darurile râului (monede din ce prinzi cu mâna, amendează D59), undița și avizierul mai
+  devreme în quest-uri, satul care crește la vedere (imagini noi).
+- **Unealtă:** `python3 scripts/economy/tune_tycoon.py eval NUME=valoare` încarcă simulatorul adevărat, suprascrie
+  constante în memorie și măsoară porțile de ritm. Nu schimba constante din ochi: „jucătorul e veriga slabă" a stricat
+  toată curba.
+
 ## Stare (2026-09-17)
 
 **Iazul, gheretele, mesele [D61, partea 1]** — plan aprobat, comis pe pași (4c05c81 … fc3960b), CI verde, **publicat pe

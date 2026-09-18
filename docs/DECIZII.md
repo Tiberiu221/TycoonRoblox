@@ -11,6 +11,107 @@ Convenție: în tot proiectul, „server" înseamnă o instanță Roblox efemer�
 
 ---
 
+## D62 — De ce nu prinde jocul: auditul, și primele reparații
+**ÎN LUCRU** (2026-09-18) — owner-ul: *„verifică graficile, texturile și tot. și verifică mai ales logica jocului, am
+impresia că nu te prinde deloc, adică nu mă atrage deloc"*. Pașii 1 și 2 sunt comiși; pașii 3–5 așteaptă alegerea
+owner-ului.
+
+**Cum s-a verificat:**
+- **Jurnalele Studio:** ce a rulat și cât.
+- **Simulatorul:** cronologia completă a celor 333 de cumpărături din Era 1.
+- **Patru inventare pe cod, verificate apoi de mână:**
+  - feedback-ul fiecărei acțiuni;
+  - ce se schimbă la vedere în lume la fiecare cumpărare;
+  - primele 15 minute, pas cu pas;
+  - ce spun notele noastre de cercetare.
+- **Grafica:** planșe cu toate sprite-urile la scara din joc și capturile owner-ului din Studio.
+
+**Ce s-a găsit:**
+1. **Primele cinci minute erau o sală de așteptare.**
+   - După primul tur (22 s, cu plasa grăbită), plasa dă 12 bușteni la 36 s.
+   - Cei cinci oameni costau 90 de monede, deci ~4,5 minute, la 41 / 49 / 59 / 67 / 83 s unul de altul.
+   - Niciunul nu crește venitul: plasa e veriga slabă, iar simulatorul îi cumpăra cu forța tocmai de aceea.
+   - Jucătorul stă ~25 s din fiecare 36.
+2. **313 din 333 de cumpărături erau mute și invizibile.**
+   - Nivelurile și treptele aveau doar clicul butonului.
+   - Serverul anunța refuzul, dar niciodată reușita.
+   - Pragul 10/25/50, unde debitul se dublează, trecea ca un nivel oarecare.
+   - În lume se schimba doar textul „Lv N"; treapta unui om nu se vedea nicăieri.
+3. **Recompensele primelor minute nu cumpără nimic.**
+   - Toate sunt perle. Capitolul 1 dădea 14, iar cel mai ieftin lucru costă 20.
+   - Recompensa capitolului (`reward` în `QuestConfig`) exista, dar n-o plătea nimeni.
+   - Avizierul satului nu e arătat de niciun quest.
+4. **După al cincilea om jucătorul nu mai are ce face cu mâinile.**
+   - Rămân meniurile și undița.
+   - Undița n-are miză: jocul perfect scurtează ciclul cu 0,5 s.
+   - Colecția, adică recompensa variabilă, e parcată din D56.
+5. **Linia fierului** cerea 27K pentru +7% de venit în 14 minute (minutele 24–38).
+6. **Grafica.**
+   - **Sprite-urile** (clădiri, oameni, UI, bâlci) sunt coerente și bune.
+   - **Părțile slabe:** iarba și apa (plate, uniforme) și lipsa vieții.
+     - copacii sunt statici;
+     - fumul apare doar la forjă;
+     - nu sunt păsări;
+     - spuma e doar la maluri.
+   - **Cod mort:** `SceneArt.AddSmoke/AddDust/WorkSpark/Flourish` sunt scrise și nechemate nicăieri.
+7. **Poarta F1** din plan (playtest cu 5 oameni din afară) n-a fost trecută niciodată, iar peste ea s-au pus D53–D61. E
+   exact semnalul de alarmă din nota `anti-patterns`.
+
+**Pasul 1 — fiecare cumpărare se simte** (86e4a62):
+- **Rețea:** `StationUpgraded`, `CrewUpgraded` și `QuestClaimed`, trimise de server la reușită. Poartă nivelul, pragul
+  trecut (`ChainMath.milestoneCrossed`) și creșterea de venit.
+- **În lume:** obiectul sare (`UI/Pop`), „Level N" plutește, o rafală de monede, iar „+N/s" zboară spre venit.
+- **La prag:** banner („First Net · Level 10 / Catches twice as much now"), rafală mare, camera și sunet propriu.
+- **În meniu:** cifra sare, o bară arată cât mai e până la pragul următor, iar rândul pragului scrie „Level 10
+  reached!".
+- **Oamenii:** coliba sare, omul spune „Better tools. Thanks!", iar al doilea om are toastul lui.
+- **Sunete:** `sfx_levelup` și `sfx_milestone` sunt sintetizate, **încă neurcate**; până atunci se aud `pop` și
+  `chime`. Nivelurile cumpărate la rând urcă în înălțime, câte un semiton.
+- **Quest-urile:** perlele zboară de la Claim spre contor.
+  - Recompensa capitolului se plătește la ultima revendicare (`QuestMath.chapterClosedBy`), cu banner.
+  - Capitolul 1 dă acum 20 de perle, exact cât primul decor.
+- **Marfa dusă de mână:** lăsatul și luatul se aud.
+
+**Pasul 2 — oamenii vin în rafală** (5a12a14):
+- **Capitolul 1:** cele cinci angajări ies de pe scara deblocărilor și costă câteva secunde de venit, ca oamenii
+  fierului din D56.
+  - **Prețurile:** 5 / 6 / 7 / 8 / 10 (erau 12 / 15 / 18 / 20 / 25).
+  - **Efectul:** prima vânzare îi plătește pe primii doi, iar toți cinci sunt angajați în ~2 minute reale.
+  - **Restul prețurilor:** neschimbate, fiindcă scara pornește de unde ajunsese (`LADDER_START`).
+- **Linia fierului:** shed-ul și cei patru oameni costă 700 / 700 / 800 / 900 / 1100 (erau 2,5K–3,5K).
+- **Porți noi în simulator:**
+  - cel puțin 20 de cumpărături în primele 5 minute reale (acum 48, erau 6);
+  - echipa capitolului 1 angajată în cel mult 2m30s.
+- **Era 1:** 33m36s reali (era 41m52s); `--robust` trece.
+- **Ordinea aleasă de owner în D52** rămâne: un tur de mână, cei cinci oameni, apoi plasele.
+
+**Ce n-a mers, ca să nu se mai încerce la fel:**
+- **Încercarea:** „fiecare angajare crește venitul", făcând jucătorul veriga slabă (plasă de 3 ori mai rapidă, munca ta
+  mai mică).
+- **În model iese, fizic nu.** Un jucător atent mută 30 de bușteni în ~14 s, peste orice plasă rezonabilă. Cifra de pe
+  HUD ar fi mințit, iar restul curbei se strica (platou la 66/s între minutele 15 și 25).
+- **Concluzia:** angajările nu cresc venitul, doar te eliberează. Deci trebuie să vină repede, iar timpul eliberat
+  trebuie să aibă o folosință (pasul 3).
+
+**Propuse, în așteptarea owner-ului:**
+- **Pasul 3 — darurile râului.**
+  - La ~45–60 s trece pe lângă punte un butoi, o ladă sau, rar, un buștean de aur. Alergi în dreptul lui și apeși E.
+  - Primești monede cât 10–75 s din venitul tău, cu un minim ca să conteze și în primul minut.
+  - Scăpat, nu pierzi nimic.
+  - Amendează D59, unde râul dă doar perle. Bonusul e mărginit de program (~+30% pentru cine le prinde pe toate), deci
+    se poate modela.
+  - După aceea vin evenimentele anunțate („Log drive!").
+- **Pasul 4 — undița și avizierul mai devreme în quest-uri,** cât aștepți banii pentru oameni.
+  - Primul pește dă 6–17 perle, deci primul decor se poate lua în primele minute.
+  - Amendează locul quest-ului din D59.
+- **Pasul 5 — satul crește la vedere.** Cere imagini noi, deci urcare.
+  - plasa și clădirile se schimbă la pragurile 10/25/50;
+  - treapta se vede pe colibă;
+  - apa și iarba sunt repictate ca fundalul bâlciului;
+  - viață în sat: fum la hornuri, păsări, spumă la stâlpii plaselor.
+
+---
+
 ## D61 — Iazul de concurs, gheretele de joc, mesele cu muzicanții (partea 1)
 **DECIS** (2026-09-17) — owner-ul: *„ok, continuăm dezvoltarea"*. Dintre variante a ales **„Iazul și jocurile"**, iar
 planul a fost aprobat înainte de cod. Machetele sunt desenate peste fundalul copt: `d61_iaz.png`, `d61_jocuri.png`,

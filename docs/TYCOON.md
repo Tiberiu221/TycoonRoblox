@@ -356,6 +356,11 @@ bonusul liniar · K5 setul de obiecte deblocat de fiecare renaștere.
 
 ### L. Primele cinci minute
 
+> **[D62, 2026-09-18] Cei cinci oameni vin în rafală.** Costă 5 / 6 / 7 / 8 / 10 (secunde de venit, nu scara
+> deblocărilor): prima vânzare îi plătește pe primii doi, iar toți cinci sunt angajați în ~2 minute reale. Înainte
+> ieșeau la 41–83 s unul de altul, pe un venit care nu se mișca, deci primele cinci minute erau o sală de așteptare.
+> Primele 5 minute au acum 48 de cumpărături (erau 6), iar Era 1 ține ~34 de minute reale. Vezi D62.
+>
 > **[D52, 2026-09-13] Oamenii înaintea plaselor.** Un singur tur de mână (plasa plină → gater →
 > tavernă), apoi cei cinci oameni la rând, câte unul pe vânzare (13 / 15 / 18 / 20 / 25), abia apoi
 > nivelul 2 și a doua plasă. „Sell 40 planks" a ieșit. Compromisul, ales de owner: gaterul și taverna
@@ -481,6 +486,11 @@ Mecanismele de celebrare la praguri sunt recomandate explicit de Roblox [onboard
 
 **Sarcini:** O1 sunetele de bază · O2 efectele de număr și platformă · O3 clinchetele pe tier.
 
+> **[D62, 2026-09-18] Nivelurile și treptele se simt.** Până acum 313 din cele 333 de cumpărături ale Erei 1 aveau
+> doar clicul butonului. Acum obiectul sare, „Level N" plutește, câștigul zboară spre venit, iar nivelurile cumpărate la
+> rând urcă în înălțime. La pragurile 10/25/50 apare un banner, cu sunetul lui; meniul are o bară până la pragul
+> următor. Vezi D62.
+>
 > **[D50–D51, 2026-09-13] Amestecul.** Volum pe sunet (stropul și clinchetul sus, banii jos, gaterul
 > abia auzit); gaterul și stropii se aud doar de aproape; muzica are grupul ei și buton (M).
 > **[D54]** Nivelul îl alege jucătorul, în panoul „Sound" (M): Music implicit 4/10 (de fundal, ~11 dB sub
@@ -591,6 +601,9 @@ Fazele din §7, fiecare cu o **poartă de validare** pe oameni reali — eșecul
 
 ## 5. Economia, în cifre
 
+> **[D62, 2026-09-18]** Era 1 în **33m36s** reali: oamenii capitolului 1 și ai fierului vin în rafală (prețuri în
+> secunde de venit). Restul prețurilor sunt cele din D56.
+>
 > **[D52, 2026-09-13]** Tabelul de mai jos e istoric (dinainte de D46). Cifrele vii le tipărește
 > simulatorul: Era 1 în 33m59s reali, 9 cumpărături în primele 5 minute; poarta verigilor e acum 0,5%
 > din timp (era 5%) — compromisul ordinii „oamenii înaintea plaselor". Vezi D52.
