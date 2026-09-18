@@ -50,6 +50,9 @@ function Strings.dockPriceBonus(pct: number): string -- [A]
 end
 
 -- ---- [12] HUD --------------------------------------------------------------------------------
+-- Eticheta pastilei cu venitul care curge si fara tine. Era "IDLE", scris direct in HUDController: jargon de gen, pe care
+-- un copil nu-l stie. Quest-ul spune deja "Earn 1 coin a second while away", deci acelasi cuvant [D63].
+Strings.HUD_AWAY = "AWAY"
 function Strings.hudRateUp(
     formattedRate: string
 ): string -- [A] -- formattedRate = TycoonMath.formatRate(n)
@@ -200,15 +203,15 @@ end
 function Strings.promptSellPlanks(keyHint: string, value: string): string
     return `Sell planks{keyHint} — {value}`
 end
-Strings.PROMPT_DOCK_RAW = "Logs go to the sawmill first"
+Strings.PROMPT_DOCK_RAW = "Logs go to the Sawmill first"
 Strings.PROMPT_DOCK_SCRAP = "Scrap gets smelted at the Forge first" -- [D55, D56]
-Strings.PROMPT_DOCK_BOTH = "Logs to the sawmill, scrap to the Forge first" -- [D55, D56]
-Strings.SACK_FULL_LOGS = "Sack full — take the logs to the sawmill"
-Strings.SACK_FULL_PLANKS = "Sack full — take the planks to the tavern"
+Strings.PROMPT_DOCK_BOTH = "Logs to the Sawmill, scrap to the Forge first" -- [D55, D56]
+Strings.SACK_FULL_LOGS = "Sack full — take the logs to the Sawmill"
+Strings.SACK_FULL_PLANKS = "Sack full — take the planks to the Tavern"
 Strings.SACK_FULL_SCRAP = "Sack full — take the scrap to the Forge" -- [D55, D56]
-Strings.SACK_FULL_IRON = "Sack full — take the iron to the tavern" -- [D56]
-Strings.SACK_FULL_BOTH = "Sack full — take the planks and iron to the tavern" -- [D56]
-Strings.SACK_FULL_FINDS = "Sack full — take the finds to the tavern" -- [D56] doar gasiri: se vand si asa
+Strings.SACK_FULL_IRON = "Sack full — take the iron to the Tavern" -- [D56]
+Strings.SACK_FULL_BOTH = "Sack full — take the planks and iron to the Tavern" -- [D56]
+Strings.SACK_FULL_FINDS = "Sack full — take the finds to the Tavern" -- [D56] doar gasiri: se vand si asa
 -- Ghidajul [GuideMath]: ce scrie sageata deasupra tintei.
 Strings.GUIDE_FIRST_PAD = "Step on the glowing pad"
 function Strings.guideBuy(name: string): string
@@ -217,8 +220,8 @@ end
 -- Fara "(E)": pe telefon nu exista tasta. Tasta o arata cardul obiectului, cand esti langa el.
 Strings.GUIDE_COLLECT = "Collect from your net"
 -- [D51] PASII buclei de mana (GuideMath.loopStep): al doilea rand al liniei NEXT si eticheta sagetii.
-Strings.STEP_TAKE_PLANKS = "Take the planks at the sawmill"
-Strings.STEP_TAKE_FROM_STORAGE = "Take the logs from the storage"
+Strings.STEP_TAKE_PLANKS = "Take the planks at the Sawmill"
+Strings.STEP_TAKE_FROM_STORAGE = "Take the logs from the Storage"
 function Strings.stepStayCut(left: number): string
     return `Stay in the ring: {left} left to cut`
 end
@@ -226,7 +229,7 @@ function Strings.stepWaitNet(count: number, need: number): string
     return `Wait for your net: {count}/{need}`
 end
 Strings.STEP_NETS_CATCHING = "Your nets are catching"
-Strings.STEP_COINS_COMING = "Coins are coming in from the tavern"
+Strings.STEP_COINS_COMING = "Coins are coming in from the Tavern"
 -- [D59] Indiciul pontonului pe linia NEXT: doar dupa primul peste, doar cat strangi bani pentru quest si n-ai nimic de facut
 -- cu mana. Fara sageata: pescuitul e o alegere, nu un pas.
 Strings.HINT_FISH_WHILE_SAVING = "While you save: fish at the pier"
@@ -235,19 +238,19 @@ function Strings.hintTreasureWaiting(phrase: string): string
 end
 Strings.STEP_BUY = "Walk up to it and buy it"
 Strings.STEP_UPGRADE = "Walk up to it and press Upgrade"
-Strings.GUIDE_LOGS_TO_SAWMILL = "Take the logs to the sawmill"
+Strings.GUIDE_LOGS_TO_SAWMILL = "Take the logs to the Sawmill"
 -- acelasi text ca quest-ul `sell_once`: pe linia NEXT, al doilea rand se ascunde cand repeta primul
-Strings.GUIDE_SELL_PLANKS = "Sell the planks at the tavern"
+Strings.GUIDE_SELL_PLANKS = "Sell the planks at the Tavern"
 -- [D56] turul de mana al fierului; "Sell the iron at the tavern" = textul quest-ului `sell_iron`
 Strings.GUIDE_SCRAP_TO_FORGE = "Take the scrap to the Forge"
-Strings.GUIDE_SELL_IRON = "Sell the iron at the tavern"
-Strings.GUIDE_SELL_BOTH = "Sell the planks and iron at the tavern"
+Strings.GUIDE_SELL_IRON = "Sell the iron at the Tavern"
+Strings.GUIDE_SELL_BOTH = "Sell the planks and iron at the Tavern"
 Strings.STEP_TAKE_IRON = "Take the iron at the Forge"
 Strings.STEP_TAKE_FROM_SHED = "Take the scrap from the Scrap Shed"
 Strings.GUIDE_COLLECT_SCRAP = "Collect the scrap from the Fifth Net"
 -- [D56] doar gasiri in traista: se vand si neprelucrate
 function Strings.guideSellFinds(count: number): string
-    return if count == 1 then "Sell the find at the tavern" else "Sell the finds at the tavern"
+    return if count == 1 then "Sell the find at the Tavern" else "Sell the finds at the Tavern"
 end
 function Strings.stepStaySmelt(left: number): string
     return `Stay in the ring: {left} left to smelt`
@@ -269,11 +272,11 @@ function Strings.useResult(
         if reason == "sack_full" then
             return "Sack full"
         elseif reason == "storage_empty" then
-            return "The storage is empty"
+            return "The Storage is empty"
         elseif reason == "nothing_cut" then
             return if staffed then "Nothing cut yet" else "Nothing cut yet — stay by the saw"
         elseif reason == "raw_only" then
-            return "The tavern only buys planks and iron — logs to the sawmill, scrap to the Forge"
+            return "The Tavern buys planks and iron, not logs or scrap"
         -- [D55, D56] scrap-ul are drumul lui: locul care il refuza spune unde merge. Forja, nu shed-ul: shed-ul
         -- e doar magazia Scrap Collector-ului, iar in turul de mana scrap-ul merge direct la forja.
         elseif reason == "scrap_to_forge" then
@@ -283,7 +286,7 @@ function Strings.useResult(
         elseif reason == "shed_empty" then
             return "The Scrap Shed is empty"
         elseif reason == "nothing_smelted" then
-            return if staffed then "No iron yet" else "No iron yet — stay by the forge"
+            return if staffed then "No iron yet" else "No iron yet — stay by the Forge"
         end
         return nil
     end
@@ -802,8 +805,8 @@ end
 Strings.WELCOME_DOUBLED = "Doubled!"
 function Strings.welcomeCapped(hours: number): string
     return if hours >= 48
-        then "Your river keeps working for two days while you're away."
-        else "Your river keeps working for a day while you're away."
+        then "Your village works for 2 days while you are away."
+        else "Your village works for 1 day while you are away."
 end
 
 -- [D61, partea 2] Poarta satelor: vizitezi satul altui om din balci, ca fotografie; un like pe zi pentru fiecare sat.
@@ -915,7 +918,7 @@ function Strings.stationsAdvice(bottleneck: string): string
     elseif bottleneck == "haul" then
         return "Right now that is hauling planks — hire or upgrade Haulers."
     elseif bottleneck == "saw" then
-        return "Right now that is the sawmill — upgrade it to earn more."
+        return "Right now that is the Sawmill — upgrade it to earn more."
     elseif bottleneck == "scrapCollect" then
         return "Right now that is scrap pickup — hire or upgrade Scrap Collectors."
     elseif bottleneck == "scrapPort" then
@@ -925,7 +928,7 @@ function Strings.stationsAdvice(bottleneck: string): string
     elseif bottleneck == "ironHaul" then
         return "Right now that is hauling iron — hire or upgrade Iron Haulers."
     end
-    return "Right now that is the tavern — upgrade it to earn more."
+    return "Right now that is the Tavern — upgrade it to earn more."
 end
 Strings.STATION_UPGRADE = "Upgrade"
 -- ---- meniul unei meserii [D49] -----------------------------------------------------------------
@@ -935,24 +938,24 @@ end
 -- Pe pasii de drum si la gater, fara om, pasul e al tau; la taverna, vinde singura, incet.
 function Strings.crewNone(role: string, name: string): string
     if role == "trader" then
-        return `No {name} — the tavern sells at 35%`
+        return `No {name} — the Tavern sells slowly`
     end
     return `No {name} — you do this yourself`
 end
 -- ECHIPAJ LA MAXIM PE VERIGA SLABA: nu mai e nimic de cumparat aici in Era 1. "No gain yet" ar fi
 -- sugerat ca ceva de pe meniul asta ar ajuta [D40, D49].
 function Strings.crewMaxed(plural: string): string
-    return `{plural} are maxed on this stretch — ring the Landing Bell`
+    return `{plural} are at their best here — ring the Landing Bell`
 end
-Strings.MENU_TIER_UP = "Upgrade tier"
+Strings.MENU_TIER_UP = "Level up"
 -- De ce nu se poate apasa un buton de meserie. Acelasi cuvant pe care il intoarce serverul.
 function Strings.crewBlock(reason: string?, secondAt: number): string
     if reason == "max_tier" then
-        return "Top tier"
+        return "Top level"
     elseif reason == "max_people" then
-        return "Crew full"
+        return "All hired"
     elseif reason == "tier" then
-        return `Needs tier {secondAt}`
+        return `Needs level {secondAt}`
     elseif reason == "no_person" then
         return "Hire one at its pad"
     end
@@ -963,7 +966,7 @@ function Strings.menuUpgradeCount(count: number): string
 end
 Strings.STATION_BOTTLENECK = "← slowest link"
 Strings.STATION_CANT_AFFORD = "not enough"
-Strings.STATION_NEED_MORE = "Not enough coins for a single level"
+Strings.STATION_NEED_MORE = "Not enough coins yet"
 function Strings.stationLevel(level: number): string
     return `Level {level}`
 end
@@ -984,7 +987,7 @@ function Strings.stationNoEffect(bottleneck: string): string
     elseif bottleneck == "haul" then
         return "No gain yet — hauling planks is slowest"
     elseif bottleneck == "saw" then
-        return "No gain yet — the sawmill is slowest"
+        return "No gain yet — the Sawmill is slowest"
     elseif bottleneck == "scrapCollect" then
         return "No gain yet — collecting scrap is slowest"
     elseif bottleneck == "scrapPort" then
@@ -994,11 +997,11 @@ function Strings.stationNoEffect(bottleneck: string): string
     elseif bottleneck == "ironHaul" then
         return "No gain yet — hauling iron is slowest"
     end
-    return "No gain yet — the tavern is slowest"
+    return "No gain yet — the Tavern is slowest"
 end
 -- [D56] Forja cumparata, dar inca fara plasa de scrap: linia fierului n-are ce duce.
-Strings.STATION_NO_SCRAP = "No gain yet — no scrap until the Fifth Net"
-Strings.MENU_NO_SCRAP = "Won't earn more yet: no scrap comes in until the Fifth Net"
+Strings.STATION_NO_SCRAP = "No gain yet — cast the Fifth Net first"
+Strings.MENU_NO_SCRAP = "No gain yet — cast the Fifth Net first"
 -- ---- ruinele [D53] ----------------------------------------------------------------------------
 -- Eticheta cartonasului langa o platforma incuiata: ruina, sau avizierul unde se angajeaza un om.
 Strings.PAD_EYEBROW_RUINS = "RUINS"
@@ -1039,7 +1042,7 @@ function Strings.menuTierLine(
     count: number,
     maxPeople: number
 ): string
-    return `Tier {tier} of {maxTier} · {count} of {maxPeople} people`
+    return `Level {tier} of {maxTier} · {count} of {maxPeople} people`
 end
 -- Ce face cladirea, deasupra cifrei mari. Gaterul fara Sawyer si taverna fara Innkeeper spun si DE CE
 -- merg cum merg [D43]; 35% = StationConfig.NO_TRADER_FACTOR.
@@ -1057,13 +1060,13 @@ end
 -- Ce face omul: aceleasi cuvinte ca pe platforma lui. [D56] Fiecare linie cu oamenii ei.
 function Strings.crewDoes(role: string): string
     if role == "collector" then
-        return "Empties your nets into the storage"
+        return "Empties your nets into the Storage"
     elseif role == "porter" then
-        return "Carries logs from the storage to the sawmill"
+        return "Carries logs from the Storage to the Sawmill"
     elseif role == "sawyer" then
         return "Keeps the saw running"
     elseif role == "hauler" then
-        return "Carries planks from the sawmill to the tavern"
+        return "Carries planks from the Sawmill to the Tavern"
     elseif role == "scrapCollector" then
         return "Empties the Fifth Net into the Scrap Shed"
     elseif role == "scrapPorter" then
@@ -1071,9 +1074,9 @@ function Strings.crewDoes(role: string): string
     elseif role == "smelter" then
         return "Keeps the Forge smelting"
     elseif role == "ironHauler" then
-        return "Carries iron from the Forge to the tavern"
+        return "Carries iron from the Forge to the Tavern"
     end
-    return "Runs the tavern"
+    return "Runs the Tavern"
 end
 -- Unitatea de sub cifra mare. Bustenii pana la gater, scandurile de acolo incolo -- cuvintele pe care
 -- jocul le foloseste deja ("Store logs", "Sell planks"). [D56] Pe linia fierului: scrap pana la forja, fier de acolo.
@@ -1093,7 +1096,7 @@ function Strings.levelReached(level: number): string
     return `Level {level}`
 end
 function Strings.tierReached(tier: number): string
-    return `Tier {tier}`
+    return `Level {tier}`
 end
 -- [D62] Capitolul incheiat: bannerul si ce urmeaza.
 function Strings.chapterDone(title: string, subtitle: string): string
@@ -1146,7 +1149,7 @@ function Strings.menuEarnsLevel(amount: string?): string
     return earns("Next level", amount)
 end
 function Strings.menuEarnsTier(amount: string?): string
-    return earns("Next tier", amount)
+    return earns("Next level", amount)
 end
 function Strings.menuEarnsSecond(name: string, amount: string?): string
     return earns(`A second {name}`, amount)
@@ -1154,7 +1157,10 @@ end
 -- Cand cumparatura de aici nu aduce nimic: CINE tine venitul in loc. `tie` = veriga aia e doar la fel
 -- de lenta (egalitate): "slower" ar fi mintit tocmai atunci [D40]. [D56] `line` = pe linia fierului plasa e una.
 function Strings.menuHeldBack(link: string, tie: boolean, line: string?): string
-    local subject, verb = "the tavern", "is"
+    -- [D63] Pentru copii: aceleasi cuvinte ca in `stationNoEffect` ("No gain yet — ..."), fara contractie si fara
+    -- drumul intreg ("carrying scrap to the Forge" era jumatate de rand). Subiectul ramane ACTIUNEA, nu omul: cat n-ai
+    -- angajat pe nimeni, pasul il faci tu, iar "the Porter is slower" ar fi mintit [D40].
+    local subject, verb = "the Tavern", "is"
     if link == "nets" and line == "iron" then
         subject = "the scrap net"
     elseif link == "nets" then
@@ -1162,21 +1168,21 @@ function Strings.menuHeldBack(link: string, tie: boolean, line: string?): string
     elseif link == "collect" then
         subject = "collecting"
     elseif link == "port" then
-        subject = "carrying to the sawmill"
+        subject = "carrying logs"
     elseif link == "saw" then
-        subject = "the sawmill"
+        subject = "the Sawmill"
     elseif link == "haul" then
-        subject = "hauling to the tavern"
+        subject = "hauling planks"
     elseif link == "scrapCollect" then
         subject = "collecting scrap"
     elseif link == "scrapPort" then
-        subject = "carrying scrap to the Forge"
+        subject = "carrying scrap"
     elseif link == "forge" then
         subject = "the Forge"
     elseif link == "ironHaul" then
-        subject = "hauling iron to the tavern"
+        subject = "hauling iron"
     end
-    return `Won't earn more yet: {subject} {verb} ` .. (if tie then "just as slow" else "slower")
+    return `No gain yet — {subject} {verb} ` .. (if tie then "just as slow" else "slower")
 end
 function Strings.menuGoTo(link: string): string
     local names: { [string]: string } = {
@@ -1197,11 +1203,11 @@ end
 -- eticheta lui, stins: randul de deasupra spune deja "Hire one at its pad".
 function Strings.menuCrewButton(what: string, block: string?, secondAt: number): string
     if block == "max_tier" then
-        return "Top tier"
+        return "Top level"
     elseif block == "max_people" then
-        return "Crew full"
+        return "All hired"
     elseif block == "tier" then
-        return `Hire a second at tier {secondAt}`
+        return `Hire a second at level {secondAt}`
     end
     return if what == "tier" then Strings.MENU_TIER_UP else "Hire a second"
 end
@@ -1211,11 +1217,11 @@ function Strings.upgradeRejected(reason: string): string
     elseif reason == "locked" then
         return "Build it first"
     elseif reason == "max_tier" then
-        return "Already at the top tier"
+        return "Already at the top level"
     elseif reason == "max_people" then
         return "That crew is full"
     elseif reason == "tier" then
-        return "Upgrade the tier first"
+        return "Level up first"
     elseif reason == "no_person" then
         return "Hire the first one at its pad"
     end
@@ -1246,9 +1252,15 @@ end
 -- Cartonasul de la apropiere e o CONFIRMARE, nu un indemn: nimic nu se mai cumpara calcand pe
 -- obiect. "Step on it to build" a iesit -- ar fi mintit din clipa in care mersul nu mai cumpara.
 Strings.PAD_EYEBROW = "BUY"
-Strings.PAD_TAKE_FREE = "Take it — free"
-function Strings.padBuyFor(price: string): string
-    return `Buy for {price}`
+-- [D63] VERBUL DE PE BUTON E CEL DIN QUEST. Quest-ul spune "Cast a second net", "Hire a Porter", "Build the Forge",
+-- "Get a Bigger Sack", "Ring the Landing Bell", iar butonul spunea "Buy for 28" la toate: un copil trebuia sa faca singur
+-- legatura dintre cele doua. `verb`: "cast" | "hire" | "get" | "ring" | orice altceva = "build".
+local PAD_VERBS: { [string]: string } = { cast = "Cast", hire = "Hire", get = "Get", ring = "Ring" }
+function Strings.padTakeFree(verb: string): string
+    return `{PAD_VERBS[verb] or "Build"} it — free`
+end
+function Strings.padBuyFor(verb: string, price: string): string
+    return `{PAD_VERBS[verb] or "Build"} for {price}`
 end
 function Strings.padNeedMore(missing: string): string
     return `Need {missing} more`

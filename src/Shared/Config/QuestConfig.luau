@@ -103,7 +103,7 @@ QuestConfig.CHAPTERS = {
                 -- Id-ul ramane `sell_once` (un quest redenumit s-ar putea revendica a doua oara):
                 -- se schimba doar ce cere si unde arata. Taverna primeste doar ce e taiat.
                 id = "sell_once",
-                text = "Sell the planks at the tavern",
+                text = "Sell the planks at the Tavern",
                 kind = "sold",
                 goal = 12,
                 reward = { pearls = 2 },
@@ -332,7 +332,7 @@ QuestConfig.CHAPTERS = {
             },
             {
                 id = "sell_iron",
-                text = "Sell the iron at the tavern",
+                text = "Sell the iron at the Tavern",
                 kind = "ironSold",
                 goal = 10,
                 reward = { pearls = 2 },

@@ -1194,4 +1194,23 @@ for _, p in TycoonConfig.PADS do
 end
 TycoonConfig.byId = byId
 
+-- [D63] VERBUL unei platforme, acelasi pe butonul cartonasului si in textul quest-ului ei: o plasa se arunca ("cast"),
+-- un om se angajeaza ("hire"), traista se ia ("get"), clopotul se trage ("ring"), restul se construiesc ("build").
+-- Un test tine verbul legat de textele din QuestConfig.
+function TycoonConfig.verbOf(p: Pad): string
+    for _, effect in p.effects do
+        if effect.kind == "net" then
+            return "cast"
+        end
+    end
+    if crewOfPad[p.id] ~= nil then
+        return "hire"
+    elseif p.id == "bigger_sack" then
+        return "get"
+    elseif p.motive == "D" then
+        return "ring" -- clopotele de sfarsit de era
+    end
+    return "build"
+end
+
 return TycoonConfig

@@ -809,5 +809,32 @@ return function()
                 end
             end
         )
+
+        -- [D63] Pentru copii: butonul cartonasului spune ACELASI verb ca quest-ul care te trimite acolo. "Cast a second
+        -- net" pe linia NEXT si "Buy for 28" pe buton erau doua cuvinte pentru acelasi gest.
+        test.case("verbul platformei e primul cuvant al quest-ului care o cere", function()
+            local QuestConfig = require("../src/Shared/Config/QuestConfig")
+            local verbs =
+                { cast = "Cast", hire = "Hire", get = "Get", ring = "Ring", build = "Build" }
+            local checked = 0
+            for _, chapter in QuestConfig.CHAPTERS do
+                for _, quest in chapter.quests do
+                    -- doar quest-urile de cumparare: `arg` e chiar id-ul platformei (nu "net:<id>", care e un nivel)
+                    local pad = if quest.arg ~= nil then TycoonConfig.byId[quest.arg] else nil
+                    if pad ~= nil and quest.targetPad == pad.id then
+                        local word = verbs[TycoonConfig.verbOf(pad)]
+                        check.not_nil(word)
+                        check.equal(string.sub(quest.text, 1, #word + 1), word .. " ")
+                        checked += 1
+                    end
+                end
+            end
+            check.is_true(checked >= 15)
+            -- textele butonului, din Strings
+            check.equal(Strings.padBuyFor("cast", "28"), "Cast for 28")
+            check.equal(Strings.padBuyFor("hire", "5"), "Hire for 5")
+            check.equal(Strings.padBuyFor("orice", "5.5K"), "Build for 5.5K")
+            check.equal(Strings.padTakeFree("cast"), "Cast it — free")
+        end)
     end)
 end

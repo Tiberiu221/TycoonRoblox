@@ -281,7 +281,8 @@ function HUDController.Init(deps: {
         eyebrowX = Theme.SPACE.sm + 18 + 4
     end
 
-    local idleEyebrow = Widgets.Label(idlePill, "IDLE", Theme.TEXT.tiny, Theme.COLOR.cool, "strong")
+    local idleEyebrow =
+        Widgets.Label(idlePill, Strings.HUD_AWAY, Theme.TEXT.tiny, Theme.COLOR.cool, "strong")
     idleEyebrow.Position = UDim2.fromOffset(eyebrowX, (IDLE_H - Theme.TEXT.tiny) / 2 - 2)
     idleEyebrow.Size = UDim2.fromOffset(42, Theme.TEXT.tiny + 6)
     idleEyebrow.ZIndex = 13
@@ -846,6 +847,11 @@ function HUDController.Toast(message: string, color: Color3?)
     end)
 end
 
+-- [D63] verbul de pe buton e cel din quest-ul platformei ("Cast", "Hire", "Build", "Get", "Ring"), nu "Buy" la toate
+local function padVerb(pad: TycoonConfig.Pad): string
+    return TycoonConfig.verbOf(pad)
+end
+
 local function formatPadPrice(pad: TycoonConfig.Pad): string
     return if pad.price == 0 then "FREE" else TycoonMath.formatNumber(pad.price)
 end
@@ -998,11 +1004,12 @@ function HUDController.ShowApproachCard(
 
     -- Trei stari ale butonului, fiecare spune exact ce se intampla daca apesi [D40]:
     -- gratis, platesti (cu cat ramai), sau inca nu ajung banii (si cati lipsesc).
-    local keyHint = if UserInputService.KeyboardEnabled then "  (E)" else ""
+    local keyHint = if UserInputService.KeyboardEnabled then " (E)" else ""
+    local verb = padVerb(pad)
     if pad.price <= 0 then
         approachCanBuy = true
         approachSpend.Text = ""
-        Widgets.SetButtonText(approachBuy, Strings.PAD_TAKE_FREE .. keyHint)
+        Widgets.SetButtonText(approachBuy, Strings.padTakeFree(verb) .. keyHint)
         Widgets.SetButtonTone(approachBuy, Theme.COLOR.gold)
     elseif affordable then
         approachCanBuy = true
@@ -1012,7 +1019,7 @@ function HUDController.ShowApproachCard(
         )
         Widgets.SetButtonText(
             approachBuy,
-            Strings.padBuyFor(TycoonMath.formatNumber(pad.price)) .. keyHint
+            Strings.padBuyFor(verb, TycoonMath.formatNumber(pad.price)) .. keyHint
         )
         Widgets.SetButtonTone(approachBuy, Theme.COLOR.gold)
     else

@@ -433,7 +433,7 @@ return function()
             })) :: GuideMath.Goal
             check.equal(planks.x, TycoonConfig.DOCK.x)
             check.equal(planks.y, TycoonConfig.DOCK.y)
-            check.is_true(string.find(planks.text, "tavern", 1, true) ~= nil)
+            check.is_true(string.find(planks.text, "Tavern", 1, true) ~= nil)
         end)
 
         test.case("cu cate un om la fiecare meserie, ghidajul tace de tot [D50]", function()
@@ -582,7 +582,7 @@ return function()
             })) :: GuideMath.Goal
             check.equal(logs.kind, "deliver")
             check.equal(logs.key, "sawmill")
-            check.is_true(string.find(logs.text, "sawmill", 1, true) ~= nil)
+            check.is_true(string.find(logs.text, "Sawmill", 1, true) ~= nil)
             -- amestec: cat timp mai ai busteni, primul drum e la gater (acolo iei si scandurile)
             local mixed = GuideMath.pickGoal(state({
                 pads = pads({ "first_net" }),
