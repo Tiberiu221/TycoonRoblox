@@ -144,10 +144,13 @@ return function()
                     do
                         check.equal(string.find(text, banned, 1, true), nil)
                     end
-                    -- pictograma exista si e urcata: un rand fara desen ar arata stricat
+                    -- pictograma de rezerva exista si e urcata: un rand fara desen ar arata stricat
                     local icon = (Assets.icons :: any)[item.icon]
                     check.not_nil(icon)
                     check.is_true(Assets.has(icon))
+                    -- [D63] pictograma proprie are intrare in Assets (urcata sau nu) si e a ofertei ei, nu a alteia
+                    check.not_nil((Assets.icons :: any)[item.art])
+                    check.equal(item.art, "shop_" .. item.key)
                 end
                 -- fiecare pass are un efect in PassMath sau e doar aspect; produsele pe monede se vand doar in sat
                 check.equal(MonetizationConfig.byKey.hour.where, "village")

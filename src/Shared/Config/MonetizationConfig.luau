@@ -16,7 +16,8 @@ export type Item = {
     kind: string, -- "pass" (o data, pentru totdeauna) | "product" (de cate ori vrei)
     name: string,
     blurb: string, -- o fraza: ce face, exact
-    icon: string, -- cheia din Assets.icons
+    icon: string, -- cheia din Assets.icons: pictograma de rezerva, deja urcata
+    art: string, -- [D63] pictograma PROPRIE a ofertei (Assets.icons.shop_<cheie>); cat nu e urcata, se vede `icon`
     suggested: number, -- Robux, nota 41; doar pentru crearea lucrului
     -- unde se vinde: "shop" = panoul Shop (sat si balci); "village" = doar in sat (are nevoie de venitul tau de acum);
     -- "welcome" = doar pe fereastra "Welcome back"
@@ -30,6 +31,7 @@ MonetizationConfig.ITEMS = {
         name = "2x Flow",
         blurb = "Your village earns twice as many coins. Forever.",
         icon = "coin",
+        art = "shop_flow2x",
         suggested = 799,
         where = "shop",
     },
@@ -39,6 +41,7 @@ MonetizationConfig.ITEMS = {
         name = "Swift Boots",
         blurb = "Walk and run 1.5x faster, in the village and at the fair.",
         icon = "speed",
+        art = "shop_swift",
         suggested = 149,
         where = "shop",
     },
@@ -48,6 +51,7 @@ MonetizationConfig.ITEMS = {
         name = "Long Nights",
         blurb = "While you're away, your village works for up to 48 hours, not 24.",
         icon = "idle",
+        art = "shop_nights",
         suggested = 349,
         where = "shop",
     },
@@ -57,6 +61,7 @@ MonetizationConfig.ITEMS = {
         name = "Supporter",
         blurb = "Looks only: the Supporter title and a golden name at the fair.",
         icon = "people",
+        art = "shop_supporter",
         suggested = 199,
         where = "shop",
     },
@@ -66,6 +71,7 @@ MonetizationConfig.ITEMS = {
         name = "One Hour of Flow",
         blurb = "Coins worth one hour of your income right now.",
         icon = "clock",
+        art = "shop_hour",
         suggested = 99,
         where = "village",
     },
@@ -75,6 +81,7 @@ MonetizationConfig.ITEMS = {
         name = "Welcome Back x2",
         blurb = "Doubles what your village earned while you were away.",
         icon = "coin",
+        art = "shop_welcome2x",
         suggested = 79,
         where = "welcome",
     },

@@ -196,7 +196,11 @@ local function refresh()
             views[i] = view
         end
         view.frame.Visible = true
-        local sprite = (Assets.icons :: any)[item.icon]
+        -- [D63] pictograma proprie a ofertei; pana e urcata, cea de rezerva din restul jocului
+        local sprite = (Assets.icons :: any)[item.art]
+        if sprite == nil or not Assets.has(sprite) then
+            sprite = (Assets.icons :: any)[item.icon]
+        end
         view.icon.Image = if sprite ~= nil and Assets.has(sprite) then Assets.url(sprite) else ""
         view.name.Text = item.name
         -- One Hour of Flow spune si suma de acum: ce scrie e ce primesti [D40]

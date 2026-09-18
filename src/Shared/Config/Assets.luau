@@ -173,6 +173,14 @@ local Assets = {
         check = sprite(93089105864875, 16, 16),
         arrow = sprite(98144216396634, 16, 16),
         clock = sprite(138525428109478, 16, 16),
+        -- [D63] pictogramele magazinului, cate una pe oferta (scripts/art/d63_shop_icons.py): 20x20, ca in randul de
+        -- 40 px sa se mareasca exact de doua ori. Id 0 = inca neurcata -> randul arata pictograma de rezerva (`icon`).
+        shop_flow2x = sprite(0, 20, 20),
+        shop_swift = sprite(0, 20, 20),
+        shop_nights = sprite(0, 20, 20),
+        shop_supporter = sprite(0, 20, 20),
+        shop_hour = sprite(0, 20, 20),
+        shop_welcome2x = sprite(0, 20, 20),
         -- E1.9: monedele si randurile de statistica din panoul de niveluri.
         coin = sprite(128440453230234, 16, 16),
         music = sprite(127767294804282, 16, 16), -- [D51] butonul de muzica din bara
