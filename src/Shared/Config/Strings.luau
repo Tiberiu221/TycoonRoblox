@@ -488,6 +488,8 @@ function Strings.shopResult(what: string, name: string, ok: boolean, reason: str
         return "The tailor at the fair sells that one" -- [D61]
     elseif reason == "soon" then
         return "The tailor is still sewing that one" -- [D61] foaia tinutei inca nu e urcata
+    elseif reason == "pass" then
+        return "That one comes with the Supporter pass" -- [D61, partea 2]
     elseif reason == "not_owned" then
         return "Buy it first"
     elseif reason == "not_earned" then
@@ -501,7 +503,6 @@ Strings.WELCOME_TITLE = "Welcome back"
 -- deasupra sumei, care sta pe randul ei cu moneda: fraza intreaga nu incapea in fereastra [2026-09-15]
 Strings.WELCOME_EARNED = "Your river earned"
 Strings.WELCOME_CONTINUE = "Back to the river"
-Strings.WELCOME_CAPPED = "Your river keeps working for a day while you're away."
 -- [D59] ce a venit pe rau cat ai lipsit (cel mult trei asteapta la ponton)
 Strings.WELCOME_RIVER_TITLE = "The river brought you something"
 function Strings.welcomeArrived(n: number): string
@@ -732,6 +733,7 @@ Strings.TAILOR_SAVE = "Save look"
 Strings.TAILOR_SAVED = "Saved"
 Strings.TAILOR_ONLY_HERE = "Only at the tailor"
 Strings.TAILOR_SOON = "Still being sewn" -- foaia tinutei inca nu e urcata: nu se vinde si nu se poate proba
+Strings.OUTFIT_WITH_PASS = "Comes with the Supporter pass" -- [D61, partea 2] nu se cumpara cu perle
 Strings.TAILOR_FIELDS = { body = "Build", hair = "Hair", hairColor = "Hair color", skin = "Skin" }
 function Strings.tailorField(field: string): string
     return (Strings.TAILOR_FIELDS :: any)[field] or field
@@ -749,6 +751,46 @@ end
 function Strings.tailorWearing(name: string): string
     return `Wearing: {name}`
 end
+-- [D61, partea 2] Coltul cu Robux. Numele si frazele lucrurilor stau in MonetizationConfig; pretul vine de la Roblox.
+Strings.SHOP_TITLE = "Shop"
+Strings.SHOP_BLURB = "Speed, room and looks. Never luck. Nothing you buy is ever lost."
+Strings.SHOP_OWNED = "Owned"
+Strings.SHOP_BUY = "Buy"
+function Strings.shopPrice(robux: number): string
+    return `R$ {robux}`
+end
+function Strings.shopHourNow(amount: string): string
+    return `Coins worth one hour of your income. Right now: +{amount} coins.`
+end
+function Strings.shopGranted(name: string): string
+    return `{name} is yours. Forever.`
+end
+function Strings.shopCoins(amount: string): string
+    return `+{amount} coins`
+end
+function Strings.shopRefused(reason: string): string
+    if reason == "soon" then
+        return "Opens soon"
+    elseif reason == "owned" then
+        return "You already own it"
+    elseif reason == "nothing" then
+        return "Nothing to double right now"
+    elseif reason == "village" then
+        return "Sold in your village, where your income is known"
+    end
+    return "The purchase window didn't open. Try again."
+end
+-- fereastra "Welcome back": inca o data suma de acolo
+function Strings.welcomeDouble(price: number?): string
+    return if price ~= nil then `Double it  R${price}` else "Double it"
+end
+Strings.WELCOME_DOUBLED = "Doubled!"
+function Strings.welcomeCapped(hours: number): string
+    return if hours >= 48
+        then "Your river keeps working for two days while you're away."
+        else "Your river keeps working for a day while you're away."
+end
+
 -- [D61, partea 2] Poarta satelor: vizitezi satul altui om din balci, ca fotografie; un like pe zi pentru fiecare sat.
 Strings.VISIT_TITLE = "Village Gate"
 function Strings.visitCard(keyHint: string): string

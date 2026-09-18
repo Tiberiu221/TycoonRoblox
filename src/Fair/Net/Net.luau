@@ -53,6 +53,9 @@ local REMOTE_NAMES = {
     "VisitLike", -- C->S {userId}: un like pe zi pentru fiecare sat, doar cat esti in vizita acolo
     "VisitLikeResult", -- S->C {ok, reason, likes}
     "VisitLiked", -- S->C {visitorName, likes}: gazda afla pe loc
+    -- [D61, partea 2] coltul cu Robux: fereastra de cumparare o deschide serverul (PurchaseService.Prompt)
+    "RobuxBuy", -- C->S {key}: vreau lucrul asta din catalog (MonetizationConfig)
+    "RobuxResult", -- S->C {key, ok, reason, coins}: refuzul ("soon" | "owned" | "nothing" | ...) sau ce ai primit
 }
 
 -- [D60] Pozitiile, de zece ori pe secunda: un pachet pierdut nu conteaza, urmatorul vine imediat. Aceeasi regula ca

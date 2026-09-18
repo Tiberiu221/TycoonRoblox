@@ -360,4 +360,27 @@ function ProfileMigrate.toV13(data: { [string]: any })
     data.Meta.version = 13
 end
 
+-- [D61, partea 2] Coltul cu Robux: pass-urile tale (copia din profil: daca verificarea Roblox pica la intrare, ramai cu
+-- ce ai platit), chitantele deja onorate (tiparul ProfileStore pentru produse) si suma platita la ultima revenire
+-- (`Welcome Back x2` o mai da o data). Aditiv.
+function ProfileMigrate.toV14(data: { [string]: any })
+    local version = if data.Meta ~= nil and data.Meta.version ~= nil then data.Meta.version else 1
+    if version >= 14 then
+        return
+    end
+    if typeof(data.Purchases) ~= "table" then
+        data.Purchases = { ids = {}, passes = {} }
+    end
+    if typeof(data.Purchases.ids) ~= "table" then
+        data.Purchases.ids = {}
+    end
+    if typeof(data.Purchases.passes) ~= "table" then
+        data.Purchases.passes = {}
+    end
+    if typeof(data.Meta.lastWelcome) ~= "number" then
+        data.Meta.lastWelcome = 0
+    end
+    data.Meta.version = 14
+end
+
 return ProfileMigrate

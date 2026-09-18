@@ -282,6 +282,18 @@ VISIT_ROW = dict(
     ],
 )
 
+# [D61, partea 2] Coltul cu Robux (ShopPanel): rand de 76 in lista panoului de 640; fraza lucrului pe doua randuri.
+SHOP_ROW = dict(
+    panel="Shop (ShopPanel)", panel_w=640, row_h=76,
+    boxes=lambda w: [
+        ("icon", md, (76 - 40) // 2, 40, 40, None),
+        ("name", 64, 8, 330, 20, None),
+        ("blurb", 64, 30, 330, 38, None),
+        ("state", w - md - 150, 76 // 2 - 12, 150, 24, "owned"),
+        ("button", w - md - 150, 76 // 2 - 22, 150, 44, "buy"),
+    ],
+)
+
 # [D61, partea 2] Croitoreasa (TailorController): fereastra fixa 680x520 -> corpul 640x424. In stanga omul tau, eticheta
 # si `Save look`; in dreapta filele si, dupa fila, fie cele patru randuri de infatisare, fie lista de tinute.
 TAILOR_SIDE_X = 200 + 16
@@ -361,7 +373,8 @@ def main():
                                       WHEEL_PANEL, WHEEL_ROW, BOARD_ROW, JOURNAL_ROW,
                                       TITLE_ROW, TITLE_HEAD, MARKET_ROW, LEADERBOARD_ROW, STAGE_PANEL,
                                       PLAYER_CARD, BOOTH_PANEL,
-                                      TAILOR_PANEL, TAILOR_LOOK_ROW, TAILOR_OUTFIT_ROW, VISIT_ROW))
+                                      TAILOR_PANEL, TAILOR_LOOK_ROW, TAILOR_OUTFIT_ROW, VISIT_ROW,
+                                      SHOP_ROW))
     if bad:
         raise SystemExit(f"{bad} coliziuni de asezare")
 

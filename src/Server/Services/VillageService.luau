@@ -4,6 +4,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Assets = require(ReplicatedStorage.Shared.Config.Assets)
 local LookMath = require(ReplicatedStorage.Shared.Modules.LookMath)
+local PassMath = require(ReplicatedStorage.Shared.Modules.PassMath)
 local VillageConfig = require(ReplicatedStorage.Shared.Config.VillageConfig)
 
 local Analytics = require(script.Parent.Analytics)
@@ -12,6 +13,15 @@ local EconomyService = require(script.Parent.EconomyService)
 
 local VillageService = {}
 local deps: { PushState: ((Player) -> ())? } = { PushState = nil }
+
+-- [D61, partea 2] O tinuta e a ta daca ai cumparat-o / primit-o, sau daca vine cu un pass pe care il ai.
+local function ownsOutfit(data: any, v: any, id: string): boolean
+    if v.outfits[id] == true then
+        return true
+    end
+    local outfit = VillageConfig.outfitById[id]
+    return outfit ~= nil and outfit.pass ~= nil and PassMath.has(data, outfit.pass)
+end
 
 local function villageOf(data: any)
     if typeof(data.Village) ~= "table" then
@@ -28,7 +38,7 @@ local function villageOf(data: any)
     if
         typeof(v.outfit) ~= "string"
         or VillageConfig.outfitById[v.outfit] == nil
-        or not v.outfits[v.outfit]
+        or not ownsOutfit(data, v, v.outfit)
     then
         v.outfit = VillageConfig.DEFAULT_OUTFIT
     end
@@ -64,9 +74,16 @@ function VillageService.Snapshot(player: Player): Snapshot
         }
     end
     local v = villageOf(data)
+    local outfits = table.clone(v.outfits)
+    -- [D61, partea 2] tinutele care vin cu un pass: ale tale cat ai pass-ul (nu se scriu in profil)
+    for _, outfit in VillageConfig.OUTFITS do
+        if outfit.pass ~= nil and PassMath.has(data, outfit.pass) then
+            outfits[outfit.id] = true
+        end
+    end
     return {
         decor = table.clone(v.decor),
-        outfits = table.clone(v.outfits),
+        outfits = outfits,
         outfit = v.outfit,
         look = LookMath.clean(v.look),
     }
@@ -124,7 +141,8 @@ function VillageService.BuyOutfit(player: Player, id: string, atTailor: boolean?
     end
     local price = outfit.price
     if price == nil then
-        return false, "journal"
+        -- nu se vinde pe perle: vine din jurnalul complet, sau cu un pass [D61, partea 2]
+        return false, if outfit.pass ~= nil then "pass" else "journal"
     end
     if not EconomyService.TrySpendPearls(player, price, "outfit") then
         return false, "pearls"
@@ -149,7 +167,7 @@ function VillageService.WearOutfit(player: Player, id: string): (boolean, string
         return false, "unknown"
     end
     local v = villageOf(data)
-    if not v.outfits[id] then
+    if not ownsOutfit(data, v, id) then
         return false, "not_owned"
     end
     v.outfit = id

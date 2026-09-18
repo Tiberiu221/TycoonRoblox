@@ -9,6 +9,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local FishConfig = require(ReplicatedStorage.Shared.Config.FishConfig)
 local TitleMath = require(ReplicatedStorage.Shared.Modules.TitleMath)
+local PassMath = require(ReplicatedStorage.Shared.Modules.PassMath)
 local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
 
 local Analytics = require(script.Parent.Analytics)
@@ -85,6 +86,8 @@ function TitleService.Facts(player: Player): TitleMath.Facts?
                 and typeof(data.Fair.booth) == "table"
             then data.Fair.booth.perfect or 0
             else 0,
+        -- [D61, partea 2] pass-ul Supporter (doar aspect): titlul lui
+        supporter = PassMath.has(data, "supporter"),
     }
 end
 

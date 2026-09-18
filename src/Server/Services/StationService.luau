@@ -13,6 +13,7 @@ local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
 
 local OfflineCalc = require(ReplicatedStorage.Shared.Modules.OfflineCalc)
+local PassMath = require(ReplicatedStorage.Shared.Modules.PassMath)
 
 local DataService = require(script.Parent.DataService)
 local EconomyService = require(script.Parent.EconomyService)
@@ -22,7 +23,8 @@ local deps: {
     PushState: ((Player) -> ())?,
     Now: (() -> number)?,
     -- fereastra "cat ai lipsit"; nil = nu se arata nimic (tot se plateste). [D59] Ultimul: cate lucruri au venit pe rau.
-    OnWelcome: ((Player, number, number, boolean, number) -> ())?,
+    -- (jucatorul, monede, secunde, plafonat, lucruri venite pe rau, [D61] orele plafonului: 24 sau 48)
+    OnWelcome: ((Player, number, number, boolean, number, number) -> ())?,
     -- al doilea om al unei meserii se angajeaza tot prin HandService [D49]; primit, nu cerut (cerc)
     Hands: { Hire: (Player, string) -> boolean }?,
     -- [D59] ce a adus raul cat ai lipsit (TreasureService); se numara o singura data pe sesiune
@@ -135,7 +137,9 @@ function StationService.StateFrom(data: any, bought: { [string]: boolean }): Cha
     -- Multiplicatorii raman de unde erau: sunt efecte de platforma, nu niveluri de statie.
     local old = TycoonMath.stateFor(bought, data.Rebirths, StationService.IndexCount(data))
     s.sackBig = old.sackBig
-    s.priceMult = old.priceMult
+    -- [D61, partea 2] pass-ul 2x Flow, ca in PadService.StateFor: de aici ies TOATE cifrele afisate (venitul de pe
+    -- HUD, idle si offline, deltele platformelor, "+N coins a minute"), deci se dubleaza toate, la fel
+    s.priceMult = old.priceMult * PassMath.flowFactor(data)
     s.bells = old.bells
     s.indexFound = old.indexFound
     s.rebirths = old.rebirths
@@ -693,7 +697,10 @@ local function settleOffline(player: Player)
     end
     StationService.Invalidate(player)
     local now = os.time()
-    local result = OfflineCalc.computeIdle(now, data.Meta.lastSeenAt, StationService.Idle(player))
+    -- [D61, partea 2] cu Long Nights satul lucreaza pana la 48 de ore, nu 24
+    local capSeconds = PassMath.offlineCapSeconds(data)
+    local result =
+        OfflineCalc.computeIdle(now, data.Meta.lastSeenAt, StationService.Idle(player), capSeconds)
     data.Meta.lastSeenAt = now
     -- [D59] si ce a venit pe rau cat ai lipsit: fereastra se arata si cand monedele sunt zero, daca te asteapta ceva
     local treasures = deps.Treasures
@@ -703,10 +710,19 @@ local function settleOffline(player: Player)
     end
     if result.coins > 0 then
         EconomyService.AddCoins(player, result.coins, "offline")
+        -- [D61, partea 2] suma platita acum: `Welcome Back x2` o mai da o data (o singura data pentru fiecare revenire)
+        data.Meta.lastWelcome = math.floor(result.coins)
     end
     local onWelcome = deps.OnWelcome
     if onWelcome ~= nil then
-        onWelcome(player, result.coins, result.seconds, result.cappedByTime, arrived)
+        onWelcome(
+            player,
+            result.coins,
+            result.seconds,
+            result.cappedByTime,
+            arrived,
+            capSeconds / 3600
+        )
     end
 end
 

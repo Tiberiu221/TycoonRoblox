@@ -346,6 +346,10 @@ local function refresh()
                 -- [D61] ale croitoresei: aici se vad si, odata cumparate, se poarta; de luat, doar la cortul ei
                 view.sub.Text = Strings.BOARD_AT_TAILOR
                 view.button.Visible = false
+            elseif outfit.pass ~= nil and not owned then
+                -- [D61, partea 2] vine cu un pass: nu se cumpara cu perle
+                view.sub.Text = Strings.OUTFIT_WITH_PASS
+                view.button.Visible = false
             elseif owned then
                 view.sub.Text = ""
                 view.button.Visible = not wearing

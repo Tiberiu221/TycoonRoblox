@@ -48,6 +48,7 @@ OVERRIDE = {
     "outfit_minstrel": "minstrel",
     "outfit_lampkeeper": "lampkeeper",
     "outfit_harvest": "harvest",
+    "outfit_supporter": "supporter",  # vine cu pass-ul Supporter
     "ui_helm": "helm_face",
 }
 

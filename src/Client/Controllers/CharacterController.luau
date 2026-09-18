@@ -23,6 +23,9 @@ local wantedOutfit: string? = nil
 local setLookFn: ((LookMath.Look) -> ())? = nil
 local wantedLook: LookMath.Look? = nil
 local hiddenWanted = false
+-- [D61, partea 2] Swift Boots: mersul si alergatul, de 1,5 ori mai repede. Factorul vine din starea jocului (profil);
+-- in balci, serverul accepta pasul mai lung doar daca pass-ul chiar e al tau (FairPresence).
+local speedFactor = 1
 local body: GuiObject? = nil
 local walking = false
 local keys: { [string]: boolean } = {}
@@ -147,6 +150,11 @@ function CharacterController.Teleport(nx: number, ny: number, newFacing: string?
     end
 end
 
+-- [D61, partea 2] Cat de repede mergi (1 = ca pana acum). Marginit, ca o stare stricata sa nu te faca glont.
+function CharacterController.SetSpeedFactor(factor: number)
+    speedFactor = if factor == factor then math.clamp(factor, 1, 2) else 1
+end
+
 function CharacterController.IsSeated(): boolean
     return seat ~= nil
 end
@@ -247,7 +255,7 @@ function CharacterController.Init(deps: {
             -- Directia se normalizeaza (diagonala nu e mai rapida), dar MAGNITUDINEA se pastreaza
             -- pana la 1: o impingere pe jumatate din joystick merge pe jumatate din viteza.
             local mag = math.min(len, 1)
-            local speed = c.SPEED * (if running then c.RUN_MULTIPLIER else 1)
+            local speed = c.SPEED * (if running then c.RUN_MULTIPLIER else 1) * speedFactor
             local nx = x + dx / len * mag * speed * dt
             local ny = y + dy / len * mag * speed * dt
             if not isBlocked(nx, y) then

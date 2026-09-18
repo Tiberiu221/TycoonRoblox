@@ -44,6 +44,26 @@ return function()
             end
         )
 
+        test.case(
+            "[D61, partea 2] cu Swift Boots pasul e de 1,5 ori mai lung; factorul e marginit",
+            function()
+                local s = FairLayout.SPAWN
+                local prev = { x = s.x, y = s.y, t = 10 }
+                local base = FairPresence.maxStep(0.1)
+                local swift = FairPresence.maxStep(0.1, 1.5)
+                check.is_true(swift > base)
+                check.is_true(math.abs((swift - 8) / (base - 8) - 1.5) < 1e-9)
+                -- un pas cat alergi cu ghetele: respins fara pass, acceptat cu el
+                local step = base + 20
+                check.is_false(FairPresence.accept(prev, s.x, s.y - step, 10.1))
+                check.is_true(FairPresence.accept(prev, s.x, s.y - step, 10.1, 1.5))
+                -- factorul vine de la server, dar tot e marginit: sub 1 sau stricat = 1, peste 2 = 2
+                check.equal(FairPresence.maxStep(0.1, 0.2), base)
+                check.equal(FairPresence.maxStep(0.1, 0 / 0), base)
+                check.equal(FairPresence.maxStep(0.1, 50), FairPresence.maxStep(0.1, 2))
+            end
+        )
+
         test.case("ceilalti se misca lin intre pachete, fara sa treaca de capete", function()
             local x, y = FairPresence.lerp(0, 0, 100, 50, 0.5)
             check.equal(x, 50)

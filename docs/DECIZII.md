@@ -112,10 +112,11 @@ owner-ului.
 
 ---
 
-## D61 (partea a doua) — Croitoreasa și poarta satelor
+## D61 (partea a doua) — Croitoreasa, poarta satelor și colțul cu Robux
 **DECIS** (2026-09-18) — owner-ul, după auditul D62: *„tot ce știi sigur că funcționează, fără presupus. nu uita de
 monetizare și continuare la ce făceam deja"*, cu alegerea **„Întâi D61 partea a doua"**. Planul a fost aprobat înainte
-de cod. Comis pe pași: croitoreasa (55d9056), poarta satelor (pasul următor). **Neverificat încă în Studio.**
+de cod. Comis pe pași: croitoreasa (55d9056), poarta satelor (7abf7a6), colțul cu Robux. **Neverificat încă în
+Studio.**
 
 **Ce era de rezolvat:** două margini ale bâlciului scriau încă `Opens soon`, jucătorul avea un singur chip, fix, iar
 satul tău nu-l vedea nimeni: bâlciul te lăsa să te etalezi doar cu o ținută și un titlu.
@@ -165,7 +166,47 @@ satul tău nu-l vedea nimeni: bâlciul te lăsa să te etalezi doar cu o ținut�
    - Marginile fără firma lor au câmpul `tag` în `FairLayout.EDGES`: numele rămâne deasupra și după deschidere.
    - Pași noi în pâlnia bâlciului: `FirstLookSaved`, `FirstVillageVisit`, `FirstLikeGiven`.
 
-**Rămâne din plan:** colțul cu Robux (etapa 3), apoi D62 pașii 3–5.
+4. **Colțul cu Robux** (monetizarea). Codul e gata; **nimic nu se vinde încă**, fiindcă pass-urile și produsele nu
+   există pe Roblox (ID-urile sunt 0 și fiecare rând scrie `Opens soon`).
+   - **Ce se vinde** (`MonetizationConfig`, prețurile de pornire din nota 41):
+     - `2x Flow` (pass, ~799): venitul în monede se dublează, pentru totdeauna, peste tot unde apare;
+     - `Swift Boots` (pass, ~149): mergi și alergi de 1,5 ori mai repede, în sat și în bâlci. D60 zicea ×2; la ×2
+       traversezi bâlciul în 1,6 s și nu mai vezi nimic;
+     - `Long Nights` (pass, ~349): cât lipsești, satul lucrează până la 48 de ore, nu 24;
+     - `Supporter` (pass, ~199): doar aspect — titlul `Supporter`, numele auriu în bâlci, ținuta `Supporter`;
+     - `One Hour of Flow` (produs, ~99, doar în sat): monede cât o oră din venitul de acum; suma scrie pe rând;
+     - `Welcome Back x2` (produs, ~79): doar pe fereastra „Welcome back" (`Double it`), o dată pentru fiecare revenire.
+   - **Ce nu se vinde, niciodată** (D20, D46, nota 41): noroc, lăzi, perle, conținut doar pentru plătitori, nimic cu
+     cronometru de presiune. Un test citește catalogul și pică la cuvinte ca `luck`, `chance`, `crate`, `pearl`.
+   - **Prețurile nu stau în cod.** Jocul afișează prețul citit de la Roblox (`GetProductInfo`), deci textul nu poate
+     minți [D40], iar owner-ul îl schimbă din Creator Hub fără noi.
+   - **Unde:** în sat, intrarea `Shop` (P) din bara din dreapta, care apare **după prima vânzare** (nota 41: un magazin
+     arătat înainte de prima monedă strică și jocul, și conversia). În bâlci, aceeași intrare; taraba cu copertină aurie
+     e desenată (`prop_fair_shop`), dar intră pe hartă abia după ce owner-ul o aprobă și e urcată.
+   - **Pass-urile au o copie în profil** (`Purchases.passes`). La intrare întrebăm Roblox și trecem în copie ce ai
+     cumpărat în altă parte. Un răspuns „nu" **nu șterge nimic**: `UserOwnsGamePassAsync` ține răspunsurile în memorie
+     și poate spune „nu" despre un pass abia cumpărat, iar prima regulă a jocului e că nimic nu se pierde [P2]. Mai
+     bine un pass rambursat rămas activ decât unul plătit dispărut.
+   - **`2x Flow` stă în afara formulelor lanțului.** `TycoonMath` și `ChainMath` sunt portări bit-exacte ale
+     simulatorului, păzite de teste de aur. Factorul se pune pe `priceMult` după ce starea e făcută, în cele două
+     locuri în care se face (`PadService.StateFor` = banii adevărați, `StationService.StateFrom` = toate cifrele
+     afișate). Când un pass se schimbă, ambele cache-uri se golesc.
+   - **Produsele** trec printr-un singur `ProcessReceipt` pe place, după tiparul ProfileStore: chitanța intră în
+     `Purchases.ids` (ultimele 100), se onorează o singură dată, iar `PurchaseGranted` se întoarce abia când
+     `LastSavedData` conține chitanța. Serviciul e montat și în bâlci: Roblox retrimite o chitanță neonorată pe
+     serverul pe care intri data viitoare, iar acolo se plătește din ultima cifră de venit măsurată în sat.
+   - **Fereastra de cumpărare o deschide serverul** (`RobuxBuy` → `PurchaseService.Prompt`), nu clientul: un lucru
+     necreat (`soon`), un pass deja luat (`owned`) sau un `Welcome Back x2` fără nimic de dublat (`nothing`) nici nu
+     ajung la fereastra Roblox, iar refuzul se spune [D43].
+   - `2x Flow` bifează mai devreme quest-ul `Earn 1 coin/s while away`. E în regulă: banii cumpără viteză [D46].
+   - Profil **v14**, aditiv: `Purchases = { ids, passes }`, `Meta.lastWelcome`.
+   - **De probă, în Studio, fără Robux:** consola de dev are rândul `robux` (comută pass-urile, dă o oră de venit). În
+     `Balci.rbxl`: `workspace:SetAttribute("DevPasses", "swift,supporter")` înainte de Play.
+   - **Rămâne la owner:** cele șase lucruri se creează pe contul lui. Cheia API de azi are drept doar pe imagini; cu
+     permisiunile pentru game passes și developer products le pot crea eu (nume, descriere, preț, iconiță). ID-urile
+     intră în `MonetizationConfig.IDS`, pe univers.
+
+**Rămâne din plan:** D62 pașii 3–5 (darurile râului, undița și avizierul devreme, satul care crește la vedere).
 
 ---
 

@@ -15,11 +15,15 @@ local TweenService = game:GetService("TweenService")
 local Strings = require(ReplicatedStorage.Shared.Config.Strings)
 local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
 
+local ShopPanel = require(script.Parent.ShopPanel)
 local SoundController = require(script.Parent.SoundController)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
 
 local WelcomeController = {}
+-- [D61, partea 2] `Double it`: produsul Welcome Back x2 se vinde DOAR aici (nota 41), o data pentru fiecare revenire.
+-- Butonul apare doar daca produsul exista pe universul asta si chiar e ceva de dublat.
+local onDoubled: ((number) -> ())? = nil
 
 local WIDTH = 460
 local HEIGHT = 330 -- incape varianta cea mai lunga: suma, durata, ce a venit la ponton si nota de plafon
@@ -35,7 +39,19 @@ local function fmtDuration(seconds: number): string
     return if m > 0 then `{m} min` else "a moment"
 end
 
-function WelcomeController.Init(deps: { HudGui: Frame, WelcomeBack: RemoteEvent })
+-- Serverul a dublat suma (RobuxResult pentru `welcome2x`): fereastra, daca mai e deschisa, arata noul total.
+function WelcomeController.OnDoubled(coins: number)
+    local fn = onDoubled
+    if fn ~= nil then
+        fn(coins)
+    end
+end
+
+function WelcomeController.Init(deps: {
+    HudGui: Frame,
+    WelcomeBack: RemoteEvent,
+    RobuxBuy: RemoteEvent?,
+})
     local Z = 150
     local root, body = Widgets.Window(deps.HudGui, {
         name = "WelcomeBack",
@@ -120,6 +136,38 @@ function WelcomeController.Init(deps: { HudGui: Frame, WelcomeBack: RemoteEvent 
     button.AnchorPoint = Vector2.new(0.5, 1)
     button.Position = UDim2.fromScale(0.5, 1)
 
+    -- [D61, partea 2] `Double it`, in dreapta lui `Back to the river`: doua butoane de 200 cu 8 intre ele incap in corp
+    local shownCoins = 0
+    local double = Widgets.Button(body, {
+        text = Strings.welcomeDouble(nil),
+        width = 200,
+        height = BUTTON_H,
+        z = Z + 1,
+        onClick = function()
+            local buy = deps.RobuxBuy
+            if buy ~= nil then
+                SoundController.Play("click")
+                buy:FireServer("welcome2x")
+            end
+        end,
+    })
+    double.AnchorPoint = Vector2.new(0.5, 1)
+    double.Position = UDim2.new(0.5, 104, 1, 0)
+    double.Visible = false
+    Widgets.SetButtonTone(double, Theme.COLOR.gold)
+    local function showDouble(visible: boolean)
+        double.Visible = visible
+        button.Position = if visible then UDim2.new(0.5, -104, 1, 0) else UDim2.fromScale(0.5, 1)
+        if visible then
+            Widgets.SetButtonText(double, Strings.welcomeDouble(ShopPanel.PriceOf("welcome2x")))
+        end
+    end
+    ShopPanel.OnPrice(function()
+        if double.Visible then
+            Widgets.SetButtonText(double, Strings.welcomeDouble(ShopPanel.PriceOf("welcome2x")))
+        end
+    end)
+
     local function fit()
         local width = root.Size.X.Offset - Theme.SPACE.lg * 2
         lead.TextSize = Theme.fitSize(lead.Text, Theme.TEXT.heading, "display", width)
@@ -131,8 +179,27 @@ function WelcomeController.Init(deps: { HudGui: Frame, WelcomeBack: RemoteEvent 
     -- fereastra se strange la rotirea telefonului (Widgets.Window), iar textul odata cu ea
     root:GetPropertyChangedSignal("Size"):Connect(fit)
 
+    onDoubled = function(extra: number)
+        showDouble(false)
+        if not root.Visible then
+            return
+        end
+        shownCoins += extra
+        amount.Text = TycoonMath.formatNumber(shownCoins)
+        note.Text = Strings.WELCOME_DOUBLED
+        note.TextColor3 = Theme.COLOR.good
+        note.Visible = true
+        fit()
+    end
+
     deps.WelcomeBack.OnClientEvent:Connect(
-        function(coins: number, seconds: number, capped: boolean, arrived: number?)
+        function(
+            coins: number,
+            seconds: number,
+            capped: boolean,
+            arrived: number?,
+            capHours: number?
+        )
             local things = if typeof(arrived) == "number" then arrived else 0
             if coins <= 0 and things <= 0 then
                 return
@@ -144,8 +211,13 @@ function WelcomeController.Init(deps: { HudGui: Frame, WelcomeBack: RemoteEvent 
             away.Text = Strings.welcomeAway(fmtDuration(seconds))
             river.Text = if things > 0 then Strings.welcomeArrived(things) else ""
             river.Visible = things > 0
-            note.Text = if capped and coins > 0 then Strings.WELCOME_CAPPED else ""
+            -- [D61, partea 2] plafonul e de o zi, sau de doua cu Long Nights: nota spune care
+            local hours = if typeof(capHours) == "number" then capHours else 24
+            note.Text = if capped and coins > 0 then Strings.welcomeCapped(hours) else ""
+            note.TextColor3 = Theme.COLOR.bad
             note.Visible = note.Text ~= ""
+            shownCoins = coins
+            showDouble(deps.RobuxBuy ~= nil and coins >= 1 and ShopPanel.Exists("welcome2x"))
             fit()
             root.Visible = true
             SoundController.Play("chime")

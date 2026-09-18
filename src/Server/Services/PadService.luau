@@ -6,6 +6,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
+local PassMath = require(ReplicatedStorage.Shared.Modules.PassMath)
 local DataService = require(script.Parent.DataService)
 local EconomyService = require(script.Parent.EconomyService)
 local RiverService = require(script.Parent.RiverService)
@@ -71,6 +72,9 @@ function PadService.StateFor(player: Player): TycoonMath.State
     -- live=true: Indexul REAL (indexCount) inlocuieste proxy-ul din efectele platformelor
     -- (Workshop, Sorting Shed) -- niciuna live in F0, dar regula trebuie sa fie corecta oricum.
     local state = TycoonMath.stateFor(data.Pads, data.Rebirths, indexCount(data), true)
+    -- [D61, partea 2] pass-ul 2x Flow: pe multiplicatorul de pret, DUPA ce starea e facuta -- TycoonMath ramane
+    -- portarea bit-exacta a simulatorului. De aici ies banii adevarati (EconomyService.SellMult / ValueOf).
+    state.priceMult *= PassMath.flowFactor(data)
     cache[player] = state
     return state
 end

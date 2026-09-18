@@ -17,9 +17,17 @@ function FairPresence.isValidFacing(value: unknown): boolean
     return typeof(value) == "string" and FairPresence.FACINGS[value :: string] == true
 end
 
--- Cat de departe poate ajunge cineva in `dt` secunde, cu marja pentru pachetele intarziate.
-function FairPresence.maxStep(dt: number): number
-    return FairPresence.SPEED * math.max(dt, 1 / FairPresence.RATE) * FairPresence.SLACK + 8
+-- Cat de departe poate ajunge cineva in `dt` secunde, cu marja pentru pachetele intarziate. [D61, partea 2]
+-- `speedFactor`: cine are Swift Boots merge de 1,5 ori mai repede (PassMath.speedFactor); factorul il da serverul,
+-- din profil, niciodata clientul.
+function FairPresence.maxStep(dt: number, speedFactor: number?): number
+    local factor = if speedFactor ~= nil
+            and speedFactor == speedFactor
+            and speedFactor >= 1
+        then math.min(speedFactor, 2)
+        else 1
+    return FairPresence.SPEED * factor * math.max(dt, 1 / FairPresence.RATE) * FairPresence.SLACK
+        + 8
 end
 
 local function finite(n: unknown): boolean
@@ -30,7 +38,13 @@ export type Sample = { x: number, y: number, t: number }
 
 -- Un pachet se accepta daca are numere adevarate, cade pe un loc unde se poate merge si nu sare mai departe decat
 -- se poate alerga de la ultimul pachet bun. Un pachet respins nu se corecteaza: ramane ultimul bun.
-function FairPresence.accept(prev: Sample?, x: unknown, y: unknown, t: number): boolean
+function FairPresence.accept(
+    prev: Sample?,
+    x: unknown,
+    y: unknown,
+    t: number,
+    speedFactor: number?
+): boolean
     if not finite(x) or not finite(y) then
         return false
     end
@@ -43,7 +57,7 @@ function FairPresence.accept(prev: Sample?, x: unknown, y: unknown, t: number): 
     end
     local p = prev :: Sample
     local dist = math.sqrt((nx - p.x) ^ 2 + (ny - p.y) ^ 2)
-    return dist <= FairPresence.maxStep(t - p.t)
+    return dist <= FairPresence.maxStep(t - p.t, speedFactor)
 end
 
 -- Pozitia desenata intre doua pachete: `alpha` = cat din intervalul dintre ele a trecut (0..1, taiat la capete).

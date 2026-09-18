@@ -27,13 +27,16 @@ export type Person = {
     outfit: string,
     title: string,
     look: LookMath.Look, -- [D61] silueta, coafura, pielea, culoarea parului (croitoreasa)
+    gold: boolean, -- [D61, partea 2] numele auriu: are pass-ul Supporter (doar aspect)
 }
 export type Deps = {
     Where: UnreliableRemoteEvent,
     Crowd: UnreliableRemoteEvent,
     People: RemoteEvent,
-    -- tinuta, titlul purtat si [D61] infatisarea, din profil (VillageService, TitleService)
-    Describe: (Player) -> (string, string, LookMath.Look),
+    -- tinuta, titlul purtat, [D61] infatisarea si daca numele e auriu, din profil (VillageService, TitleService, pass)
+    Describe: (Player) -> (string, string, LookMath.Look, boolean),
+    -- [D61, partea 2] cat de repede merge omul (Swift Boots = 1,5): pasul acceptat creste cu el. Din profil, pe server.
+    SpeedFactor: ((Player) -> number)?,
     -- [D61] mesele: te asezi, te ridici, faci cu mana; raspunsul la asezare
     Sit: RemoteEvent,
     Stand: RemoteEvent,
@@ -121,7 +124,7 @@ end
 
 local function describe(player: Player, slot: number): Person
     local d = deps :: Deps
-    local outfit, title, look = d.Describe(player)
+    local outfit, title, look, gold = d.Describe(player)
     return {
         slot = slot,
         userId = player.UserId,
@@ -129,6 +132,7 @@ local function describe(player: Player, slot: number): Person
         outfit = outfit,
         title = title,
         look = look,
+        gold = gold,
     }
 end
 
@@ -201,6 +205,7 @@ function PresenceService.Touch(player: Player)
         card.outfit ~= mark.card.outfit
         or card.title ~= mark.card.title
         or card.name ~= mark.card.name
+        or card.gold ~= mark.card.gold
         or not LookMath.same(card.look, mark.card.look)
     then
         mark.card = card
@@ -298,7 +303,9 @@ function PresenceService.Init(d: Deps)
             if offSeat and now - mark.seatedAt < SEAT_GRACE then
                 return
             end
-            if not FairPresence.accept(mark.sample, x, y, now) then
+            local speedFactor = d.SpeedFactor
+            local factor = if speedFactor ~= nil then speedFactor(player) else 1
+            if not FairPresence.accept(mark.sample, x, y, now, factor) then
                 return -- un pachet respins nu muta nimic: ramane ultimul bun
             end
             mark.sample = { x = x :: number, y = y :: number, t = now }

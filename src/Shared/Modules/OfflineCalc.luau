@@ -29,16 +29,28 @@ end
 -- sa vanda. Nimic nu se pierde [P2], dar nici nu apare de nicaieri.
 export type IdleResult = { seconds: number, coins: number, cappedByTime: boolean }
 
-local function computeIdle(now: number, lastSeenAt: number, idleRate: number): IdleResult
+-- [D61, partea 2] `capSeconds`: cat lucreaza satul fara tine. Implicit 24 h; pass-ul Long Nights il duce la 48 h
+-- (PassMath.offlineCapSeconds). Un plafon stricat cade pe cel implicit, niciodata pe "fara plafon".
+local function computeIdle(
+    now: number,
+    lastSeenAt: number,
+    idleRate: number,
+    capSeconds: number?
+): IdleResult
     if lastSeenAt <= 0 or idleRate <= 0 then
         return { seconds = 0, coins = 0, cappedByTime = false }
     end
+    local cap = if capSeconds ~= nil
+            and capSeconds == capSeconds
+            and capSeconds > 0
+        then math.min(capSeconds, ABS_MAX_ELAPSED)
+        else BACKSTOP_SECONDS
     local elapsed = math.clamp(now - lastSeenAt, 0, ABS_MAX_ELAPSED)
-    local counted = math.min(elapsed, BACKSTOP_SECONDS)
+    local counted = math.min(elapsed, cap)
     return {
         seconds = counted,
         coins = counted * idleRate,
-        cappedByTime = elapsed > BACKSTOP_SECONDS,
+        cappedByTime = elapsed > cap,
     }
 end
 

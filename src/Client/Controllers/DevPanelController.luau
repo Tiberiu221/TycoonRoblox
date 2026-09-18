@@ -137,7 +137,7 @@ function DevPanelController.Init(deps: {
     panel = Instance.new("Frame")
     panel.Name = "DevPanel"
     panel.Position = UDim2.fromOffset(-520, 70)
-    panel.Size = UDim2.fromOffset(500, 540) -- [D59] +60: randul pontonului
+    panel.Size = UDim2.fromOffset(500, 600) -- [D59] +60: randul pontonului; [D61] +60: randul cu Robux de proba
     panel.BackgroundColor3 = BG
     panel.BackgroundTransparency = 0.06
     panel.Visible = false
@@ -291,8 +291,44 @@ function DevPanelController.Init(deps: {
         },
     })
 
-    groupLabel("profile", 286)
+    -- [D61, partea 2] coltul cu Robux, de proba: pass-urile se comuta, produsele se acorda fara chitanta. Grupurile de
+    -- dedesubt coboara cu 60.
+    groupLabel("robux (test, no Robux spent)", 286)
     row(306, {
+        {
+            label = "2x Flow",
+            run = function()
+                send("pass", "flow2x")
+            end,
+        },
+        {
+            label = "Swift Boots",
+            run = function()
+                send("pass", "swift")
+            end,
+        },
+        {
+            label = "Long Nights",
+            run = function()
+                send("pass", "nights")
+            end,
+        },
+        {
+            label = "Supporter",
+            run = function()
+                send("pass", "supporter")
+            end,
+        },
+        {
+            label = "+1h of flow",
+            run = function()
+                send("buy", "hour")
+            end,
+        },
+    })
+
+    groupLabel("profile", 346)
+    row(366, {
         {
             label = "reset (keeps Index)",
             run = function()
@@ -314,9 +350,9 @@ function DevPanelController.Init(deps: {
         },
     })
 
-    groupLabel("replies", 346)
+    groupLabel("replies", 406)
     local logBox = Instance.new("Frame")
-    logBox.Position = UDim2.fromOffset(16, 366)
+    logBox.Position = UDim2.fromOffset(16, 426)
     logBox.Size = UDim2.fromOffset(468, 140)
     logBox.BackgroundColor3 = Color3.fromRGB(12, 16, 20) -- paleta consolei, fara corespondent in Theme
     logBox.ZIndex = 41

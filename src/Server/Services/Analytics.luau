@@ -107,6 +107,47 @@ function Analytics.FairStep(player: Player, stepName: string)
     end)
 end
 
+-- [D61, partea 2] Coltul cu Robux, pe canalul lui: cati ajung la fereastra Roblox de cumparare, cati iau un pass, cati
+-- iau un produs. Fiecare pas o singura data pe jucator (Firsts); apelantul tine steagul.
+Analytics.SHOP_STEPS = { FirstShopPrompt = 1, FirstPassBought = 2, FirstProductBought = 3 }
+
+function Analytics.ShopStep(player: Player, stepName: string)
+    local step = Analytics.SHOP_STEPS[stepName]
+    if step == nil then
+        warn(`[Analytics] pas de magazin necunoscut: {stepName}`)
+        return
+    end
+    task.spawn(function()
+        local ok, err = pcall(function()
+            AnalyticsService:LogFunnelStepEvent(player, "Shop", nil, step, stepName)
+        end)
+        if not ok then
+            print(`[Analytics] magazin {step} {stepName} (nelivrat in Studio): {err}`)
+        end
+    end)
+end
+
+-- [D61, partea 2] Monede cumparate cu Robux (One Hour of Flow, Welcome Back x2): sursa IAP, cu soldul de DUPA. Merge
+-- doar din server si doar in jocul publicat (nota 27): in Studio esueaza in tacere, ca restul.
+function Analytics.CoinsBought(player: Player, amount: number, balance: number, sku: string)
+    task.spawn(function()
+        local ok, err = pcall(function()
+            AnalyticsService:LogEconomyEvent(
+                player,
+                Enum.AnalyticsEconomyFlowType.Source,
+                "Coins",
+                amount,
+                balance,
+                Enum.AnalyticsEconomyTransactionType.IAP.Name,
+                sku
+            )
+        end)
+        if not ok then
+            print(`[Analytics] monede cumparate {sku} (nelivrat in Studio): {err}`)
+        end
+    end)
+end
+
 function Analytics.Funnel(player: Player, stepName: string)
     local step = Analytics.STEPS[stepName]
     if step == nil then

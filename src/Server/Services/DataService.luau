@@ -54,7 +54,7 @@ export type Hand = {
 }
 
 export type ProfileData = {
-    Meta: { version: number, createdAt: number, lastSeenAt: number },
+    Meta: { version: number, createdAt: number, lastSeenAt: number, lastWelcome: number },
     Coins: number,
     -- A doua moneda [owner, 2026-09-12]. Pica din quest-uri, din roata, [D59] de la undita si din ce aduce raul.
     -- [D59] Se cheltuie DOAR pe aspect (decorul satului, tinutele): o faci cat vrei la undita, deci viteza sau spatiul
@@ -158,10 +158,13 @@ export type ProfileData = {
         weeklyFishMm: number,
         weeklyFishWeek: string,
     },
+    -- [D61, partea 2] COLTUL CU ROBUX: ultimele chitante onorate (PurchaseId) si pass-urile tale (cheia -> true)
+    Purchases: { ids: { string }, passes: { [string]: boolean } },
 }
 
 local PROFILE_TEMPLATE: ProfileData = {
-    Meta = { version = 13, createdAt = 0, lastSeenAt = 0 },
+    -- [D61, partea 2] `lastWelcome`: suma platita la ultima revenire (Welcome Back x2) -- ca ProfileMigrate.toV14
+    Meta = { version = 14, createdAt = 0, lastSeenAt = 0, lastWelcome = 0 },
     Coins = 0,
     Pearls = 0,
     Pads = {},
@@ -241,6 +244,8 @@ local PROFILE_TEMPLATE: ProfileData = {
         liked = { day = 0, ids = {} },
     },
     Records = { era1Seconds = 0, incomePerSec = 0, weeklyFishMm = 0, weeklyFishWeek = "" },
+    -- [D61, partea 2] ACELEASI campuri ca ProfileMigrate.toV14: chitantele onorate si copia pass-urilor
+    Purchases = { ids = {}, passes = {} },
 }
 
 local function deepCopy(value: any): any
@@ -283,6 +288,16 @@ end
 local loadedSignal = Instance.new("BindableEvent")
 -- Semnatura: (player: Player). Fara tabel, din motivul explicat la Fire.
 DataService.ProfileLoaded = loadedSignal.Event
+
+-- [D61, partea 2] Profilul intreg, doar pentru PurchaseService: o chitanta se confirma abia cand `LastSavedData`
+-- (ce a ajuns sigur in DataStore) o contine -- tiparul ProfileStore pentru produse. Restul lumii ia doar `Get`.
+function DataService.Profile(player: Player): any
+    local profile = profiles[player]
+    if profile ~= nil and profile:IsActive() then
+        return profile
+    end
+    return nil
+end
 
 function DataService.Get(player: Player): ProfileData?
     local profile = profiles[player]
@@ -452,6 +467,7 @@ local function onPlayerAdded(player: Player)
     ProfileMigrate.toV11(profile.Data) -- iazul si gheretele [D61]: runde, jocuri cu premiu -- aditiv
     ProfileMigrate.toV12(profile.Data) -- croitoreasa [D61]: infatisarea jucatorului -- aditiv
     ProfileMigrate.toV13(profile.Data) -- poarta satelor [D61]: like-urile primite si date -- aditiv
+    ProfileMigrate.toV14(profile.Data) -- coltul cu Robux [D61]: pass-urile, chitantele, ultima revenire -- aditiv
     profile:Reconcile()
     profile.OnSessionEnd:Connect(function()
         profiles[player] = nil

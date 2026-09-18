@@ -20,6 +20,8 @@ local FishService = require(script.Parent.FishService)
 local TreasureService = require(script.Parent.TreasureService)
 local VillageService = require(script.Parent.VillageService)
 local WheelService = require(script.Parent.WheelService)
+local PassService = require(script.Parent.PassService)
+local PurchaseService = require(script.Parent.PurchaseService)
 
 local DevService = {}
 local deps: { Remotes: { [string]: RemoteEvent }, PushState: ((Player) -> ())? }
@@ -280,6 +282,26 @@ local HANDLERS: { [string]: Handler } = {
         return if WheelService.DevReady(player)
             then "wheel ready (spin it at the fair)"
             else "no profile"
+    end,
+
+    -- [D61, partea 2] un pass de proba, fara Robux (comutator): pass flow2x | swift | nights | supporter
+    pass = function(player: Player, arg: unknown): string
+        local key = if typeof(arg) == "string" then arg else ""
+        local ok, now = PassService.DevToggle(player, key)
+        if not ok then
+            return "usage: pass flow2x | swift | nights | supporter"
+        end
+        return `pass {key}: {if now then "ON" else "off"}`
+    end,
+
+    -- [D61, partea 2] un produs de proba, fara chitanta: buy hour | welcome2x
+    buy = function(player: Player, arg: unknown): string
+        local key = if typeof(arg) == "string" then arg else ""
+        local coins = PurchaseService.DevGrant(player, key)
+        if coins == nil then
+            return "usage: buy hour | welcome2x"
+        end
+        return `{key}: +{coins} coins`
     end,
 
     village = function(player: Player, _arg: unknown): string

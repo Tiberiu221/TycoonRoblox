@@ -14,6 +14,7 @@ local Assets = require(ReplicatedStorage.Shared.Config.Assets)
 local AudioLevels = require(ReplicatedStorage.Shared.Modules.AudioLevels)
 local FairLayout = require(ReplicatedStorage.Shared.Modules.FairLayout)
 local LookMath = require(ReplicatedStorage.Shared.Modules.LookMath)
+local MonetizationConfig = require(ReplicatedStorage.Shared.Config.MonetizationConfig)
 local Net = require(ReplicatedStorage.Net.Net)
 local RiverConfig = require(ReplicatedStorage.Shared.Config.RiverConfig)
 local Strings = require(ReplicatedStorage.Shared.Config.Strings)
@@ -35,6 +36,7 @@ local MusicController = require(Controllers:WaitForChild("MusicController"))
 local PlayerCardController = require(Controllers:WaitForChild("PlayerCardController"))
 local PondController = require(Controllers:WaitForChild("PondController"))
 local PresenceController = require(Controllers:WaitForChild("PresenceController"))
+local ShopPanel = require(Controllers:WaitForChild("ShopPanel"))
 local Panels = require(Controllers:WaitForChild("Panels"))
 local SocialController = require(Controllers:WaitForChild("SocialController"))
 local SoundController = require(Controllers:WaitForChild("SoundController"))
@@ -358,6 +360,33 @@ Net.Get("ShopResult").OnClientEvent
         end
     end)
 
+-- [D61, partea 2] coltul cu Robux, in balci: doar pass-urile (produsele pe monede se vand in sat, unde serverul stie
+-- venitul tau de acum). Pana e urcata taraba aurie, se deschide din bara din dreapta.
+safeInit("ShopPanel", function()
+    ShopPanel.Init({ HudGui = hudCanvas, RobuxBuy = Net.Get("RobuxBuy"), Place = "fair" })
+end)
+Net.Get("RobuxResult").OnClientEvent
+    :Connect(function(key: unknown, ok: unknown, reason: unknown, coins: unknown)
+        local item = if typeof(key) == "string" then MonetizationConfig.byKey[key] else nil
+        if ok ~= true then
+            FairHUDController.Toast(
+                Strings.shopRefused(if typeof(reason) == "string" then reason else ""),
+                Theme.COLOR.bad
+            )
+            return
+        end
+        SoundController.Play("chime")
+        -- o chitanta retrimisa aici (cumparata in sat, neonorata la timp) aduce monede: se spune cate
+        if typeof(coins) == "number" and coins > 0 then
+            FairHUDController.Toast(
+                Strings.shopCoins(tostring(math.floor(coins))),
+                Theme.COLOR.gold
+            )
+        elseif item ~= nil then
+            FairHUDController.Toast(Strings.shopGranted(item.name), Theme.COLOR.gold)
+        end
+    end)
+
 -- [D61] melodia balciului: tare langa muzicanti, mai incet cu cat te departezi (dar niciodata stinsa)
 safeInit("MusicController", function()
     local ax, ay = FairScene.Spot("musician_1")
@@ -392,6 +421,14 @@ local menuEntries = {
         label = Strings.TITLES_TITLE,
         key = "T",
         open = TitleController.Toggle,
+    },
+    {
+        -- [D61, partea 2] coltul cu Robux (aceeasi tasta ca in sat)
+        name = "shop",
+        icon = "coin",
+        label = Strings.SHOP_TITLE,
+        key = "P",
+        open = ShopPanel.Toggle,
     },
     {
         name = "sound",
@@ -528,6 +565,9 @@ Net.Get("FairState").OnClientEvent:Connect(function(raw: { [string]: any })
     AudioPanel.Refresh()
     WheelController.Apply(wheel)
     VisitController.SetLikes(likes)
+    -- [D61, partea 2] pass-urile tale; Swift Boots se simte pe loc (serverul accepta pasul mai lung doar cu pass-ul)
+    ShopPanel.Apply(raw.robux)
+    CharacterController.SetSpeedFactor(ShopPanel.State().speed)
     MarketController.SetLook(village.look)
     TailorController.Apply(village, pearls, titles.species)
     CharacterController.SetOutfit(village.outfit)

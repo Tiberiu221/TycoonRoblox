@@ -31,6 +31,7 @@ export type Person = {
     outfit: string,
     title: string,
     look: LookMath.Look, -- [D61] infatisarea aleasa la croitoreasa
+    gold: boolean, -- [D61, partea 2] numele auriu: are pass-ul Supporter (doar aspect)
 }
 export type Deps = {
     World: Frame,
@@ -151,6 +152,8 @@ end
 
 local function setCard(tag: Tag, card: Person)
     tag.name.Text = card.name
+    -- [D61, partea 2] cine are pass-ul Supporter isi poarta numele auriu, ca titlul de dedesubt
+    tag.name.TextColor3 = if card.gold then Theme.COLOR.gold else Theme.COLOR.onDark
     tag.title.Text = card.title
 end
 
@@ -186,6 +189,7 @@ local function applyPeople(list: unknown)
             outfit = if typeof(raw.outfit) == "string" then raw.outfit else "keeper",
             title = if typeof(raw.title) == "string" then raw.title else "",
             look = LookMath.clean(raw.look), -- [D61] un camp lipsa cade pe chipul de la inceput
+            gold = raw.gold == true, -- [D61, partea 2]
         }
         if card.userId == d.LocalUserId then
             mine = card

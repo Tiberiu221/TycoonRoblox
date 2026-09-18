@@ -26,6 +26,8 @@ local TreasureService = require(Services:WaitForChild("TreasureService"))
 local VillageService = require(Services:WaitForChild("VillageService"))
 local FerryService = require(Services:WaitForChild("FerryService"))
 local LeaderboardService = require(Services:WaitForChild("LeaderboardService"))
+local PassService = require(Services:WaitForChild("PassService"))
+local PurchaseService = require(Services:WaitForChild("PurchaseService"))
 local NetServer = require(NetFolder:WaitForChild("NetServer"))
 
 RiverService.Init({
@@ -57,9 +59,11 @@ StationService.Init({
         coins: number,
         seconds: number,
         capped: boolean,
-        arrived: number
+        arrived: number,
+        capHours: number
     )
-        Net.Get("WelcomeBack"):FireClient(player, coins, seconds, capped, arrived)
+        -- [D61, partea 2] `capHours`: cat lucreaza satul fara tine (24, sau 48 cu Long Nights), pentru nota ferestrei
+        Net.Get("WelcomeBack"):FireClient(player, coins, seconds, capped, arrived, capHours)
     end,
     Treasures = TreasureService,
 })
@@ -113,6 +117,28 @@ HandService.Init({
     Remotes = { HandDelivered = Net.Get("HandDelivered") },
     PushState = NetServer.PushState,
 })
+-- [D61, partea 2] COLTUL CU ROBUX. Pass-urile: copia din profil, verificata la intrare; cand una se schimba, cele doua
+-- cache-uri de stare se golesc (altfel venitul de pe HUD s-ar dubla abia la urmatoarea cumparatura). Produsele: singurul
+-- ProcessReceipt al place-ului; aici venitul e cel viu, din lant.
+PassService.Init({
+    PushState = NetServer.PushState,
+    Invalidate = function(player: Player)
+        PadService.Invalidate(player)
+        StationService.Invalidate(player)
+    end,
+    OnGranted = function(player: Player, key: string)
+        Net.Get("RobuxResult"):FireClient(player, key, true, "ok", 0)
+    end,
+})
+PurchaseService.Init({
+    Income = StationService.Income,
+    PushState = NetServer.PushState,
+    OnGranted = function(player: Player, key: string, coins: number)
+        Net.Get("RobuxResult"):FireClient(player, key, true, "ok", coins)
+    end,
+    HasPass = PassService.Has,
+})
+
 -- Consola de dezvoltare se conecteaza doar in Studio; verificarea e in DevService
 DevService.Init({
     Remotes = { DevCommand = Net.Get("DevCommand") },
@@ -139,6 +165,16 @@ NetServer.Init({
     Workshop = WorkshopService,
     Hands = HandService,
     Ferry = FerryService,
+    Shop = {
+        Snapshot = function(player: Player): { [string]: any }
+            return {
+                passes = PassService.Snapshot(player),
+                quote = PurchaseService.Quote(player),
+                speed = PassService.SpeedFactor(player),
+            }
+        end,
+        Prompt = PurchaseService.Prompt,
+    },
 })
 DataService.Init({ Place = "village" })
 

@@ -62,6 +62,9 @@ local REMOTE_NAMES = {
     "BuyOutfit", -- C->S {outfitId}: o tinuta, pe perle (o si imbraci)
     "WearOutfit", -- C->S {outfitId}: schimbi intre tinutele pe care le ai
     "ShopResult", -- S->C {what, id, ok, reason}: raspunsul avizierului
+    -- [D61, partea 2] coltul cu Robux: fereastra de cumparare o deschide serverul (PurchaseService.Prompt)
+    "RobuxBuy", -- C->S {key}: vreau lucrul asta din catalog (MonetizationConfig)
+    "RobuxResult", -- S->C {key, ok, reason, coins}: refuzul ("soon" | "owned" | "nothing" | ...) sau ce ai primit
 
     -- Noi la D60 (balciul de seara, place-ul al doilea)
     "RowUp", -- C->S: urci in barca de la ponton (dupa drumul pictat); serverul te duce in balci

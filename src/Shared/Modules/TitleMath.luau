@@ -18,6 +18,7 @@ export type Facts = {
     bought: { [string]: boolean }, -- titlurile cumparate cu perle
     pondWins: number?, -- [D61] runde castigate la iaz (cu cel putin doi pescari)
     perfectGames: number?, -- [D61] jocuri perfecte la gherete
+    supporter: boolean?, -- [D61, partea 2] are pass-ul Supporter (doar aspect)
 }
 
 -- [D61] Pragurile titlurilor din balci: se castiga, nu se cumpara.
@@ -69,6 +70,9 @@ function TitleMath.label(id: string, facts: Facts): string?
         return if (facts.pondWins or 0) >= TitleMath.POND_WINS then "Pond Champion" else nil
     elseif id == "sharpshooter" then
         return if (facts.perfectGames or 0) >= TitleMath.PERFECT_GAMES then "Sharpshooter" else nil
+    elseif id == "supporter" then
+        -- [D61, partea 2] vine cu pass-ul Supporter: doar aspect, ca tot ce se vede in balci
+        return if facts.supporter == true then "Supporter" else nil
     end
     local decorId = string.match(id, "^decor_(%w+)$")
     if decorId ~= nil then
@@ -90,7 +94,7 @@ function TitleMath.earned(facts: Facts): { { id: string, label: string } }
         table.insert(order, `decor_{decorId}`)
     end
     table.sort(order)
-    local ordered = { "era", "legend", "record", "champion", "pond", "sharpshooter" }
+    local ordered = { "era", "legend", "record", "champion", "pond", "sharpshooter", "supporter" }
     for _, id in order do
         if string.sub(id, 1, 6) == "decor_" then
             table.insert(ordered, id)

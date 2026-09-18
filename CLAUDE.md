@@ -113,7 +113,23 @@ vedere). Owner-ul: „tot ce știi sigur că funcționează, fără presupus. nu
 - **Mutate în module comune, ca să nu existe două liste:** alegerea desenului unei platforme (`UI/PadArt`, din
   `PadController`) și lista oamenilor (`VillageLook.hands`, din `HandService.Snapshot`).
 - `CameraController.SetWorld` / `ResetWorld` și `CharacterController.Teleport` sunt noi și comune ambelor place-uri.
-- Trece poarta (471 de teste). De verificat cu doi clienți (Test → Clients and Servers) în `Balci.rbxl`.
+- De verificat cu doi clienți (Test → Clients and Servers) în `Balci.rbxl`.
+
+**Colțul cu Robux [D61, partea 2]** — codul e gata, **nimic nu se vinde încă**: ID-urile din `MonetizationConfig.IDS` sunt
+0, deci fiecare rând scrie `Opens soon`. **Neverificat încă în Studio.**
+- **Catalogul:** `2x Flow`, `Swift Boots` (×1,5), `Long Nights` (48 h), `Supporter` (titlu, nume auriu, ținută), `One Hour
+  of Flow` (doar în sat), `Welcome Back x2` (doar pe fereastra de revenire). Prețurile se citesc de la Roblox.
+- **Servicii, montate în ambele place-uri:** `PassService` (copia din profil, `Purchases.passes`; un „nu" de la Roblox nu
+  șterge nimic) și `PurchaseService` (singurul `ProcessReceipt`, tiparul ProfileStore; fereastra de cumpărare o deschide
+  serverul, prin `RobuxBuy`). Efectele se citesc din profil prin `PassMath` (pur).
+- **`2x Flow` stă pe `priceMult`, după `TycoonMath.stateFor`,** în `PadService.StateFor` și `StationService.StateFrom`.
+  Formulele pure și testele de aur rămân neatinse; la schimbarea unui pass se golesc ambele cache-uri.
+- **Client:** `ShopPanel` (comun; tasta P; în sat apare după prima vânzare), `Double it` pe `WelcomeController`,
+  `CharacterController.SetSpeedFactor`, numele auriu în `PresenceController`. Profil **v14**.
+- **De probă în Studio:** rândul `robux` din consola de dev; în `Balci.rbxl`, atributul `DevPasses` pe Workspace.
+- **Așteaptă owner-ul:** crearea celor șase lucruri (sau permisiuni pe cheia API ca să le creez eu) și aprobarea artei
+  (`prop_fair_shop`, `outfit_supporter`, cele patru ținute ale croitoresei). Taraba intră în `FairLayout` după urcare.
+- Trece poarta (485 de teste).
 
 **De ce nu prinde jocul [D62]** — owner-ul: „nu te prinde deloc, nu mă atrage deloc". Auditul și cifrele sunt în
 DECIZII D62; citește-l înainte de orice lucru nou pe sat. Comise și publicate pe staging, **nevăzute încă în Studio:**

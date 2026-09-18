@@ -51,6 +51,11 @@ export type Deps = {
         BuyOutfit: (Player, string) -> (boolean, string),
         WearOutfit: (Player, string) -> (boolean, string),
     },
+    -- [D61, partea 2] coltul cu Robux: pass-urile tale, ce ar aduce produsele acum, fereastra de cumparare
+    Shop: {
+        Snapshot: (Player) -> { [string]: any },
+        Prompt: (Player, string) -> (boolean, string),
+    },
     Nets: { Collect: (Player, string) -> (boolean, string?), Snapshot: (Player) -> { any } },
     Economy: {
         GetCoins: (Player) -> number,
@@ -160,6 +165,8 @@ local function buildTycoonState(player: Player): { [string]: any }
         settings = { musicLevel = musicLevel, soundLevel = soundLevel },
         -- [D60] de cate ori ai ajuns in balci
         fair = { visits = deps.Data.FairVisits(player) },
+        -- [D61, partea 2] pass-urile tale, ce ar aduce produsele acum, cat de repede mergi
+        robux = deps.Shop.Snapshot(player),
     }
 end
 
@@ -351,6 +358,22 @@ function NetServer.Init(d: Deps)
     Net.Get("BuyDecor").OnServerEvent:Connect(shopHandler("decor", deps.Village.BuyDecor))
     Net.Get("BuyOutfit").OnServerEvent:Connect(shopHandler("outfit", deps.Village.BuyOutfit))
     Net.Get("WearOutfit").OnServerEvent:Connect(shopHandler("wear", deps.Village.WearOutfit))
+
+    -- [D61, partea 2] COLTUL CU ROBUX. Clientul cere un lucru din catalog; fereastra Roblox o deschide serverul, daca
+    -- lucrul exista pe universul asta si are rost acum. Un refuz se spune [D43]; ce ai primit vine tot pe RobuxResult,
+    -- dupa plata (PassService / PurchaseService).
+    Net.Get("RobuxBuy").OnServerEvent:Connect(function(player: Player, key: unknown)
+        if not RateLimiter.Allow(player, "Robux") then
+            return
+        end
+        if typeof(key) ~= "string" or #(key :: string) > 24 then
+            return
+        end
+        local ok, reason = deps.Shop.Prompt(player, key :: string)
+        if not ok then
+            Net.Get("RobuxResult"):FireClient(player, key, false, reason, 0)
+        end
+    end)
 
     -- [D60] BARCA SPRE BALCI. Clientul o cere la capatul drumului pictat; raspunsul e teleportul sau FerryFailed. Si o
     -- cerere refuzata de limita primeste raspuns: clientul sta pe negru si asteapta unul.

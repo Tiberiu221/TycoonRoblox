@@ -9,6 +9,7 @@ dupa trei runde (plan, aproape, piese), cu verificarea de asezare: 41 de obiecte
     turnuri de lumina, banner cu feston
   * prop_fair_wheel (70x86) -- roata zilnica, mutata din sat in balci: obada din segmente, spite, baldachin
   * prop_fair_stall_1/2/3 (52x44) -- tarabele negustorului, in trei culori de copertina, cu marfa pe tejghea
+  * prop_fair_shop (52x44) -- [D61, partea 2] taraba `Shop`, cu copertina aurie: monede, ghete, felinar
   * prop_fair_tent (60x54) -- cortul croitoresei, cu funii, tarusi si manechin
   * prop_fair_booth (46x40) -- ghereta de joc, cu panoul de tinte
   * prop_fair_arch (76x58) -- poarta satelor, cu felinare si tablita
@@ -44,6 +45,8 @@ WOOD_D = ramp(hue=22, sat=0.50, val=0.30, val_span=0.32)
 CLOTH_RED = ramp(hue=6, sat=0.58, val=0.62, val_span=0.36)
 CLOTH_BLUE = ramp(hue=206, sat=0.50, val=0.58, val_span=0.36)
 CLOTH_GREEN = ramp(hue=138, sat=0.44, val=0.52, val_span=0.36)
+CLOTH_GOLD = ramp(hue=44, sat=0.66, val=0.78, val_span=0.34)  # [D61, partea 2] copertina tarabei `Shop`
+LEATHER = ramp(hue=18, sat=0.50, val=0.40, val_span=0.34)
 CREAM = ramp(hue=40, sat=0.22, val=0.90, val_span=0.22)
 STONE = ramp(hue=214, sat=0.12, val=0.50, val_span=0.36)
 SANDSTONE = ramp(hue=38, sat=0.26, val=0.62, val_span=0.34)  # soclurile si trofeele, ca sa prinda lumina calda
@@ -287,6 +290,37 @@ def stall(pal, w=52, h=44):
     c.rect(w - 16, h - 26, 10, 8, WOOD[2])                            # lada
     c.rect(w - 16, h - 22, 10, 1, WOOD_D[2])
     c.rect(w - 14, h - 24, 6, 2, CREAM[2])                            # eticheta
+    outline_trace(c)
+    rim(c, 0.24)
+    c.rect(w - 7, 13, 4, 5, GLASS)                                    # felinarul agatat
+    c.rect(w - 7, 12, 4, 1, IRON[3])
+    return c
+
+
+def shop_stall(w=52, h=44):
+    """[D61, partea 2] Taraba `Shop` (coltul cu Robux): copertina aurie, deci nu se confunda cu ale negustorului.
+    Pe tejghea, ce se vinde: un teanc de monede (2x Flow), o pereche de ghete (Swift Boots) si un felinar (Long Nights)."""
+    c = C(w, h)
+    for x in (6, w - 9):                                              # stalpii
+        planks_v(c, x, 10, 3, h - 18, WOOD, step=3, seed=5)
+    planks_h(c, 4, h - 16, w - 8, 14, WOOD, step=4, seed=23)          # tejgheaua
+    c.rect(4, h - 3, w - 8, 3, WOOD_D[1])
+    c.rect(2, h - 18, w - 4, 3, WOOD[3])                              # blatul
+    stripes(c, 2, 4, w - 4, 8, CLOTH_GOLD)                            # copertina
+    scallop(c, 2, 12, w - 4, CLOTH_GOLD)
+    # teancul de monede
+    for i in range(4):
+        c.rect(11, h - 20 - i * 2, 8, 2, CLOTH_GOLD[3 if i % 2 == 0 else 4])
+        c.rect(11, h - 19 - i * 2, 8, 1, CLOTH_GOLD[1])
+    # ghetele
+    for x in (23, 30):
+        c.rect(x, h - 26, 4, 7, LEATHER[3])
+        c.rect(x, h - 20, 6, 2, LEATHER[2])
+        c.rect(x, h - 26, 4, 1, CREAM[3])
+    # felinarul de pe tejghea
+    c.rect(w - 15, h - 27, 6, 8, IRON[3])
+    c.rect(w - 14, h - 26, 4, 6, GLASS)
+    c.rect(w - 14, h - 28, 4, 1, IRON[4])
     outline_trace(c)
     rim(c, 0.24)
     c.rect(w - 7, 13, 4, 5, GLASS)                                    # felinarul agatat
@@ -659,6 +693,7 @@ SPRITES = {
     "prop_fair_stall_1": lambda: stall(CLOTH_RED),
     "prop_fair_stall_2": lambda: stall(CLOTH_GREEN),
     "prop_fair_stall_3": lambda: stall(CLOTH_BLUE),
+    "prop_fair_shop": shop_stall,  # [D61, partea 2]
     "prop_fair_tent": tent,
     "prop_fair_booth": booth,
     "prop_fair_arch": arch,

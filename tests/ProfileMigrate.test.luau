@@ -785,8 +785,59 @@ return function()
                 {
                     "likes = 0,",
                     "liked = { day = 0, ids = {} },",
-                    "version = 13",
                     "ProfileMigrate.toV13(profile.Data)",
+                }
+            do
+                check.is_true(string.find(src, needle, 1, true) ~= nil)
+            end
+        end)
+    end)
+
+    test.suite("ProfileMigrate.toV14 - coltul cu Robux [D61]", function()
+        test.case(
+            "un profil v13 primeste chitantele, pass-urile si suma ultimei reveniri",
+            function()
+                local data: { [string]: any } =
+                    { Meta = { version = 13, lastSeenAt = 77 }, Coins = 500 }
+                ProfileMigrate.toV14(data)
+                check.equal(data.Meta.version, 14)
+                check.equal(data.Meta.lastWelcome, 0)
+                check.equal(data.Meta.lastSeenAt, 77)
+                check.equal(#data.Purchases.ids, 0)
+                check.equal(next(data.Purchases.passes), nil)
+                check.equal(data.Coins, 500)
+            end
+        )
+
+        test.case("ce ai platit nu se pierde; migrarea e idempotenta", function()
+            local data: { [string]: any } = {
+                Meta = { version = 13, lastWelcome = 321 },
+                Purchases = { ids = { "p1" }, passes = { flow2x = true } },
+            }
+            ProfileMigrate.toV14(data)
+            ProfileMigrate.toV14(data)
+            check.is_true(data.Purchases.passes.flow2x)
+            check.equal(data.Purchases.ids[1], "p1")
+            check.equal(data.Meta.lastWelcome, 321)
+            -- un camp pe jumatate stricat se repara fara sa stearga restul
+            local half: { [string]: any } = {
+                Meta = { version = 13 },
+                Purchases = { passes = { swift = true } },
+            }
+            ProfileMigrate.toV14(half)
+            check.is_true(half.Purchases.passes.swift)
+            check.equal(#half.Purchases.ids, 0)
+        end)
+
+        test.case("sablonul si migrarea adauga aceleasi campuri", function()
+            local fs = require("@lune/fs")
+            local src = fs.readFile("src/Server/Services/DataService.luau")
+            for _, needle in
+                {
+                    "Purchases = { ids = {}, passes = {} },",
+                    "lastWelcome = 0",
+                    "version = 14",
+                    "ProfileMigrate.toV14(profile.Data)",
                 }
             do
                 check.is_true(string.find(src, needle, 1, true) ~= nil)

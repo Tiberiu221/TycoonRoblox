@@ -12,6 +12,7 @@ local ReelMath = require("../src/Shared/Modules/ReelMath")
 local TreasureConfig = require("../src/Shared/Config/TreasureConfig")
 local WheelConfig = require("../src/Shared/Config/WheelConfig")
 local VillageConfig = require("../src/Shared/Config/VillageConfig")
+local MonetizationConfig = require("../src/Shared/Config/MonetizationConfig")
 local QuestConfig = require("../src/Shared/Config/QuestConfig")
 local PondMath = require("../src/Shared/Modules/PondMath")
 local BoothMath = require("../src/Shared/Modules/BoothMath")
@@ -143,8 +144,16 @@ return function()
                     check.is_true(d.price >= prev)
                     prev = d.price
                 end
+                -- [D61, partea 2] ...sau cu un pass: niciodata doua cai pentru aceeasi tinuta
                 for _, o in VillageConfig.OUTFITS do
-                    check.is_true((o.price ~= nil) ~= (o.journal == true))
+                    local ways = (if o.price ~= nil then 1 else 0)
+                        + (if o.journal == true then 1 else 0)
+                        + (if o.pass ~= nil then 1 else 0)
+                    check.equal(ways, 1)
+                    if o.pass ~= nil then
+                        check.not_nil(MonetizationConfig.byKey[o.pass])
+                        check.equal(MonetizationConfig.byKey[o.pass].kind, "pass")
+                    end
                 end
                 check.not_nil(VillageConfig.outfitById[VillageConfig.DEFAULT_OUTFIT])
                 check.equal(VillageConfig.outfitById[VillageConfig.DEFAULT_OUTFIT].price, 0)

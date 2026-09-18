@@ -236,8 +236,13 @@ local function refreshOutfits()
             end
             else nil
         view.sub.Size = UDim2.fromOffset(TEXT_W, 18)
-        if not sewn and not owned then
+        if not sewn then
+            -- nici cumparata, nici purtata: omul ar ramane in tinuta de la inceput
             view.sub.Text = Strings.TAILOR_SOON
+            view.sub.Size = UDim2.fromOffset(TEXT_WIDE_W, 18)
+            view.button.Visible = false
+        elseif outfit.pass ~= nil and not owned then
+            view.sub.Text = Strings.OUTFIT_WITH_PASS
             view.sub.Size = UDim2.fromOffset(TEXT_WIDE_W, 18)
             view.button.Visible = false
         elseif outfit.journal and not owned then

@@ -27,6 +27,7 @@ export type Outfit = {
     price: number?, -- nil = nu se vinde
     journal: boolean?, -- se primeste cand jurnalul pestilor e complet
     tailor: boolean?, -- [D61] se vinde doar la croitoreasa din balci
+    pass: string?, -- [D61, partea 2] vine cu pass-ul asta (MonetizationConfig): a ta cat ai pass-ul
 }
 
 -- In ordinea pretului: primul se poate lua din perlele capitolului 1 si un minut de pescuit [PearlBudget.test].
@@ -154,6 +155,8 @@ VillageConfig.OUTFITS = {
     { id = "minstrel", name = "Minstrel", price = 250, tailor = true },
     { id = "lampkeeper", name = "Lantern Keeper", price = 350, tailor = true },
     { id = "harvest", name = "Harvest Crown", price = 500, tailor = true },
+    -- [D61, partea 2] vine cu pass-ul Supporter (coltul cu Robux): e a ta cat ai pass-ul, nu se cumpara cu perle
+    { id = "supporter", name = "Supporter", pass = "supporter" },
 } :: { Outfit }
 
 VillageConfig.decorById = {} :: { [string]: Decor }

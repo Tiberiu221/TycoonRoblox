@@ -14,6 +14,7 @@ local Services = script.Parent:WaitForChild("Services")
 local NetFolder = script.Parent:WaitForChild("Net")
 
 local Net = require(ReplicatedStorage.Net.Net)
+local MonetizationConfig = require(ReplicatedStorage.Shared.Config.MonetizationConfig)
 local FairLayout = require(ReplicatedStorage.Shared.Modules.FairLayout)
 local DataService = require(Services:WaitForChild("DataService"))
 local EconomyService = require(Services:WaitForChild("EconomyService"))
@@ -30,6 +31,8 @@ local LeaderboardService = require(Services:WaitForChild("LeaderboardService"))
 local PondService = require(Services:WaitForChild("PondService"))
 local BoothService = require(Services:WaitForChild("BoothService"))
 local VisitService = require(Services:WaitForChild("VisitService"))
+local PassService = require(Services:WaitForChild("PassService"))
+local PurchaseService = require(Services:WaitForChild("PurchaseService"))
 local FairNetServer = require(NetFolder:WaitForChild("FairNetServer"))
 local RateLimiter = require(NetFolder:WaitForChild("RateLimiter"))
 
@@ -78,8 +81,10 @@ PresenceService.Init({
     Describe = function(player: Player)
         local _, title = TitleService.Worn(player)
         local village = VillageService.Snapshot(player)
-        return village.outfit, title, village.look
+        -- [D61, partea 2] numele auriu vine cu pass-ul Supporter
+        return village.outfit, title, village.look, PassService.Has(player, "supporter")
     end,
+    SpeedFactor = PassService.SpeedFactor, -- [D61, partea 2] Swift Boots: pasul acceptat e mai lung
     Sit = Net.Get("Sit"),
     Stand = Net.Get("Stand"),
     Wave = Net.Get("Wave"),
@@ -117,6 +122,30 @@ VisitService.Init({
     end,
 })
 
+-- [D61, partea 2] COLTUL CU ROBUX, in balci. Taraba vinde doar pass-urile; produsele pe monede se vand in sat, unde
+-- serverul stie venitul tau de acum. ProcessReceipt exista totusi si aici: Roblox retrimite o chitanta neonorata pe
+-- serverul pe care intri data viitoare, fie el al balciului -- atunci se plateste din ultima cifra masurata in sat.
+PassService.Init({
+    PushState = FairNetServer.PushState, -- PushState reface si lista People (numele auriu, pasul mai lung)
+    OnGranted = function(player: Player, key: string)
+        Net.Get("RobuxResult"):FireClient(player, key, true, "ok", 0)
+    end,
+})
+PurchaseService.Init({
+    Income = function(player: Player): number
+        local data = DataService.Get(player)
+        local records: any = if data ~= nil then data.Records else nil
+        return if typeof(records) == "table" and typeof(records.incomePerSec) == "number"
+            then records.incomePerSec / 100
+            else 0
+    end,
+    PushState = FairNetServer.PushState,
+    OnGranted = function(player: Player, key: string, coins: number)
+        Net.Get("RobuxResult"):FireClient(player, key, true, "ok", coins)
+    end,
+    HasPass = PassService.Has,
+})
+
 -- [D61] gheretele de joc
 BoothService.Init({ PushState = FairNetServer.PushState, PositionOf = PresenceService.PositionOf })
 
@@ -135,6 +164,22 @@ FairNetServer.Init({
     Pond = PondService,
     Booth = BoothService,
     Visits = VisitService,
+    Shop = {
+        Snapshot = function(player: Player): { [string]: any }
+            return {
+                passes = PassService.Snapshot(player),
+                quote = {}, -- produsele pe monede se vand doar in sat
+                speed = PassService.SpeedFactor(player),
+            }
+        end,
+        Prompt = function(player: Player, key: string): (boolean, string)
+            local item = MonetizationConfig.byKey[key]
+            if item ~= nil and item.where ~= "shop" then
+                return false, "village" -- se vinde doar in sat
+            end
+            return PurchaseService.Prompt(player, key)
+        end,
+    },
 })
 DataService.Init({ Place = "fair" })
 

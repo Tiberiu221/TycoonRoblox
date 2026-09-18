@@ -134,6 +134,11 @@ local JournalController = require(script.Parent.Controllers.JournalController)
 -- [D60] barca spre balci
 local FerryController = require(script.Parent.Controllers.FerryController)
 local Panels = require(script.Parent.Controllers.Panels)
+-- [D61, partea 2] coltul cu Robux
+local MonetizationConfig = require(ReplicatedStorage.Shared.Config.MonetizationConfig)
+local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
+local ShopPanel = require(script.Parent.Controllers.ShopPanel)
+local Theme = require(script.Parent.UI.Theme)
 local layers = CameraController.Init({ WorldGui = worldGui })
 
 -- Agentul F scrie Overlay.luau chiar acum, in paralel -- daca fisierul inca nu exista cand
@@ -297,7 +302,11 @@ safeInit("WheelSignpostController", function()
     WheelSignpostController.Init({ Plot = layers.Plot, OnToast = HUDController.Toast })
 end)
 safeInit("WelcomeController", function()
-    WelcomeController.Init({ HudGui = hudCanvas, WelcomeBack = Net.Get("WelcomeBack") })
+    WelcomeController.Init({
+        HudGui = hudCanvas,
+        WelcomeBack = Net.Get("WelcomeBack"),
+        RobuxBuy = Net.Get("RobuxBuy"), -- [D61, partea 2] `Double it`
+    })
 end)
 safeInit("QuestController", function()
     QuestController.Init({
@@ -364,8 +373,11 @@ end)
 
 -- Intrarile barii de meniu, intr-un loc: bara le deseneaza, iar tastele de mai jos le deschid. [D56] "Workshop" (R)
 -- si "Collection" (C) au iesit: colectia e pusa deoparte (vezi WorkshopController mai sus).
-local function isMenuUnlocked(_name: string): boolean
-    return true
+-- [D61, partea 2] `Shop` apare abia dupa prima vanzare: un magazin aratat inainte de prima moneda castigata strica si
+-- jocul, si conversia (nota 41). Restul intrarilor sunt mereu acolo.
+local shopUnlocked = false
+local function isMenuUnlocked(name: string): boolean
+    return name ~= "shop" or shopUnlocked
 end
 local menuEntries = {
     {
@@ -394,6 +406,14 @@ local menuEntries = {
     -- "Upgrades" NU mai e in bara [owner, 2026-09-12]: nivelul se urca atingand obiectul. Lista
     -- veche ramane pe tasta U, nepromovata, pana se decide ce face.
     {
+        -- [D61, partea 2] coltul cu Robux: viteza, spatiu, aspect. Dupa prima vanzare.
+        name = "shop",
+        icon = "coin",
+        label = Strings.SHOP_TITLE,
+        key = "P",
+        open = ShopPanel.Toggle,
+    },
+    {
         -- [D54] panoul "Sound": nivelul muzicii si al efectelor, tinut minte in profil. Mereu in bara:
         -- efectele exista si fara muzica (randul Music se ascunde singur cand ea lipseste).
         name = "sound",
@@ -410,6 +430,34 @@ safeInit("MenuBarController", function()
         Entries = menuEntries,
     })
 end)
+safeInit("ShopPanel", function()
+    ShopPanel.Init({ HudGui = hudCanvas, RobuxBuy = Net.Get("RobuxBuy"), Place = "village" })
+end)
+-- [D61, partea 2] ce ai primit pe Robux, sau de ce nu s-a deschis fereastra de cumparare [D43]
+Net.Get("RobuxResult").OnClientEvent
+    :Connect(function(key: unknown, ok: unknown, reason: unknown, coins: unknown)
+        local item = if typeof(key) == "string" then MonetizationConfig.byKey[key] else nil
+        if ok ~= true then
+            HUDController.Toast(
+                Strings.shopRefused(if typeof(reason) == "string" then reason else ""),
+                Theme.COLOR.bad
+            )
+            return
+        end
+        SoundController.Play("chime")
+        local amount = if typeof(coins) == "number" then coins else 0
+        if amount > 0 then
+            HUDController.Toast(
+                Strings.shopCoins(TycoonMath.formatNumber(amount)),
+                Theme.COLOR.gold
+            )
+            if key == "welcome2x" then
+                WelcomeController.OnDoubled(amount)
+            end
+        elseif item ~= nil then
+            HUDController.Toast(Strings.shopGranted(item.name), Theme.COLOR.gold)
+        end
+    end)
 safeInit("MusicController", function()
     MusicController.Init()
 end)
@@ -1047,6 +1095,13 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
         JournalController.SpeciesCaught(snapshot.fishing)
     )
     FerryController.Apply(snapshot.village.outfit, snapshot.fair.visits, snapshot.village.look)
+    -- [D61, partea 2] pass-urile tale si ce ar aduce produsele acum; Swift Boots se simte pe loc
+    ShopPanel.Apply(raw.robux)
+    CharacterController.SetSpeedFactor(ShopPanel.State().speed)
+    if shopUnlocked ~= (snapshot.firsts.sell == true) then
+        shopUnlocked = snapshot.firsts.sell == true
+        MenuBarController.Refresh()
+    end
     if snapshot.quests ~= nil then
         HUDController.SetQuest(snapshot.quests.active, snapshot.quests.claimable)
         QuestController.Apply(snapshot.quests)

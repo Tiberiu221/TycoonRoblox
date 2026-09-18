@@ -66,6 +66,11 @@ export type Deps = {
         Like: (Player, number) -> (boolean, string, number?),
         LikesOf: (Player) -> number,
     },
+    -- [D61, partea 2] coltul cu Robux (in balci: doar pass-urile)
+    Shop: {
+        Snapshot: (Player) -> { [string]: any },
+        Prompt: (Player, string) -> (boolean, string),
+    },
 }
 
 local function isInteger(value: unknown): boolean
@@ -90,6 +95,7 @@ local function buildState(player: Player): { [string]: any }
         market = deps.Market.Snapshot(player),
         booth = deps.Booth.Snapshot(player),
         likes = deps.Visits.LikesOf(player), -- [D61, partea 2] cate like-uri are satul tau
+        robux = deps.Shop.Snapshot(player), -- [D61, partea 2] pass-urile tale, cat de repede mergi
         settings = { musicLevel = musicLevel, soundLevel = soundLevel },
     }
 end
@@ -208,6 +214,22 @@ function FairNetServer.Init(d: Deps)
         end
         local card = deps.Cards.Of(userId :: number)
         Net.Get("LookAtResult"):FireClient(player, card, userId)
+    end)
+
+    -- [D61, partea 2] COLTUL CU ROBUX. Clientul cere un lucru din catalog; fereastra Roblox o deschide serverul, daca
+    -- lucrul exista pe universul asta si are rost acum. Un refuz se spune [D43]; ce ai primit vine tot pe RobuxResult,
+    -- dupa plata (PassService / PurchaseService).
+    Net.Get("RobuxBuy").OnServerEvent:Connect(function(player: Player, key: unknown)
+        if not RateLimiter.Allow(player, "Robux") then
+            return
+        end
+        if typeof(key) ~= "string" or #(key :: string) > 24 then
+            return
+        end
+        local ok, reason = deps.Shop.Prompt(player, key :: string)
+        if not ok then
+            Net.Get("RobuxResult"):FireClient(player, key, false, reason, 0)
+        end
     end)
 
     -- [D61, partea 2] POARTA SATELOR. Lista celor din balci, fotografia unui sat, intoarcerea si like-ul. Toate pe

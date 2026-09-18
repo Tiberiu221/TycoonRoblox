@@ -76,6 +76,12 @@
         "LeaderboardService": {
           "$path": "src/Server/Services/LeaderboardService.luau"
         },
+        "PassService": {
+          "$path": "src/Server/Services/PassService.luau"
+        },
+        "PurchaseService": {
+          "$path": "src/Server/Services/PurchaseService.luau"
+        },
         "PondService": {
           "$path": "src/Fair/Server/Services/PondService.luau"
         },
@@ -152,6 +158,9 @@
           },
           "AudioPanel": {
             "$path": "src/Client/Controllers/AudioPanel.luau"
+          },
+          "ShopPanel": {
+            "$path": "src/Client/Controllers/ShopPanel.luau"
           }
         }
       }

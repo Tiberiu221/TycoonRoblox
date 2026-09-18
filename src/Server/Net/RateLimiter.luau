@@ -32,6 +32,8 @@ local LIMITS: { [string]: { capacity: number, refillPerSecond: number } } = {
     Seat = { capacity = 4, refillPerSecond = 1 },
     -- [D61, partea 2] poarta satelor: lista, fotografia unui sat, like-ul
     Visit = { capacity = 4, refillPerSecond = 1 },
+    -- [D61, partea 2] coltul cu Robux: cererea ferestrei de cumparare
+    Robux = { capacity = 3, refillPerSecond = 0.5 },
 }
 RateLimiter.LIMITS = LIMITS
 

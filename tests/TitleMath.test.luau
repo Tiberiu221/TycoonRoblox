@@ -50,6 +50,20 @@ return function()
             check.is_false(TitleMath.canWear("sharpshooter", facts()))
         end)
 
+        test.case("[D61, partea 2] Supporter vine cu pass-ul si pleaca fara el", function()
+            check.equal(TitleMath.label("supporter", facts()), nil)
+            check.equal(TitleMath.label("supporter", facts({ supporter = true })), "Supporter")
+            check.is_true(TitleMath.canWear("supporter", facts({ supporter = true })))
+            check.is_false(TitleMath.canWear("supporter", facts({ supporter = false })))
+            local ids = {}
+            for _, entry in TitleMath.earned(facts({ supporter = true })) do
+                ids[entry.id] = true
+            end
+            check.is_true(ids.supporter == true)
+            -- nu se cumpara cu perle: e al pass-ului
+            check.equal(TitleMath.priceOf("supporter"), nil)
+        end)
+
         test.case("jurnalul complet da River Legend, jurnalul pe jumatate nu da nimic", function()
             check.equal(TitleMath.label("legend", facts({ species = 12 })), "River Legend")
             check.equal(TitleMath.label("legend", facts({ species = 11 })), nil)

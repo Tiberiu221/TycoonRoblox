@@ -108,6 +108,10 @@ OUTFITS = {
     "harvest":   dict(shirt=hexc("d9b45a"), shirt_l=hexc("ecd083"), shirt_d=hexc("a98a3c"),
                        hat=hexc("e6c35c"), hat_d=hexc("5f8f3a"), hat_l=hexc("c8463c"),
                        hat_kind="wreath", coat=False, player=True),
+    # [D61, partea 2] vine cu pass-ul Supporter: haina verde-inchis cu cerc de aur pe frunte
+    "supporter": dict(shirt=hexc("1f5a5c"), shirt_l=hexc("2f7a7a"), shirt_d=hexc("143c3e"),
+                       hat=hexc("e8b23c"), hat_d=hexc("a87a1e"), hat_l=hexc("f5f0e0"),
+                       hat_kind="wreath", coat=True, player=True),
 }
 _CUR = dict(OUTFITS["fisher"])
 
@@ -1012,7 +1016,7 @@ if __name__ == "__main__":
 
     for outfit in ("fisher", "crafter", "builder", "gardener", "innkeeper", "keeper", "townsfolk", "traveler",
                    "scrapper", "carter", "smith", "ironmonger", "angler", "captain", "legend",
-                   "festival", "minstrel", "lampkeeper", "harvest"):
+                   "festival", "minstrel", "lampkeeper", "harvest", "supporter"):
         s_outfit = build_sheet("outfit", outfit=outfit)
         png(f"outfit_{outfit}.png", s_outfit.w, s_outfit.h, s_outfit.px)
 

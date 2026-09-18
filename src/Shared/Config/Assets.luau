@@ -61,6 +61,7 @@ local Assets = {
             minstrel = sprite(0, 64, 480),
             lampkeeper = sprite(0, 64, 480),
             harvest = sprite(0, 64, 480),
+            supporter = sprite(0, 64, 480), -- [D61, partea 2] vine cu pass-ul Supporter
         },
     },
     path_tile = sprite(124285357370417, 64, 64),
@@ -338,6 +339,9 @@ local Assets = {
         stall_1 = sprite(98566174055056, 52, 44),
         stall_2 = sprite(128622133404661, 52, 44),
         stall_3 = sprite(94824509060723, 52, 44),
+        -- [D61, partea 2] taraba `Shop`, cu copertina aurie (scripts/art/d60.py). Id 0 = inca neurcata: pana atunci
+        -- magazinul se deschide din bara din dreapta si taraba nu e pe harta (FairLayout cere desenul urcat).
+        shop = sprite(0, 52, 44),
         tent = sprite(103727982758295, 60, 54),
         booth = sprite(90436942055073, 46, 40),
         arch = sprite(125405145209167, 76, 58),
