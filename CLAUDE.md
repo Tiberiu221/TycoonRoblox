@@ -102,6 +102,25 @@ stylua/selene o prind. Rulează-le mereu pe toate, nu înlănțuite după o eroa
   bâlciul doar în 114983498774894); serverul Rojo al satului rulează detașat pe 34872 și trebuie repornit ca să citească
   o schimbare de proiect. Ce a rulat în Studio se vede în `~/Library/Logs/Roblox/*_last.log` (`CreatorOutput`, `open place`).
 
+## Stare (2026-09-19, noaptea) [D63]
+
+Owner-ul a lăsat lucrul peste noapte: logica și monetizarea, „să vrei să joci", meniuri pentru copii, Era 2 dacă Era 1
+e gata. Detaliile și sursele sunt în DECIZII D63. **Nimic din ce urmează n-a fost văzut în Studio.**
+- **Făcute:** scriptul de pornire al clientului așteaptă folderele de lângă el (ecranul gol de la Play); cuvintele
+  jocului pentru copii („tier" → „level", verbul din quest pe butonul cartonașului, fraze scurte); linia NEXT nu mai
+  dispare după ultimul quest (`AmbitionMath`); pe „Welcome back" butonul auriu e cel gratuit; pictograme proprii
+  pentru ofertele din Shop (`scripts/art/d63_shop_icons.py`, **neurcate**, plus iconițele de 512 px din `assets/store/`).
+- **Sonda din Studio** (`plugins/DriftwoodProbe.lua`, `scripts/probe.py`, `scripts/probe_server.py`) pornește și
+  oprește singură un Play și citește clientul prin jurnalul Studio. Fereastra de editare o încarcă abia după o
+  repornire a Studio-ului. Cu ea se verifică tot ce e nevăzut: `python3 scripts/probe.py play`, `wait-boot`, `errors`,
+  `client texts`.
+- **De făcut cu sonda, nu pe nevăzute:** textul e prea mic pe telefon (interfața e la 62%: 13 px → ~8 px).
+- **Era 2 e doar propunere** (D63, punctul 7): motorul lanțului e scris pentru exact două linii. Varianta A (Roata de
+  apă, plase noi, Moara cu Morar, Piața, Mill Bell) merge pe motorul de azi; o a treia marfă cere întâi generalizarea
+  la N linii. Așteaptă alegerea owner-ului.
+- **Așteaptă owner-ul:** permisiunile de game pass și developer product pe cheia API (azi: 403) sau cele șase create
+  de mână; aprobarea pictogramelor; alegerea pentru Era 2; verificarea în Studio a lui D61–D63.
+
 ## Stare (2026-09-18)
 
 **Planul aprobat pe 2026-09-18** (`~/.claude/plans/lexical-percolating-bunny.md`): D61 partea a doua (croitoreasa, poarta

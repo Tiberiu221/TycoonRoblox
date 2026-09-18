@@ -11,6 +11,87 @@ Convenție: în tot proiectul, „server" înseamnă o instanță Roblox efemer�
 
 ---
 
+## D63 — Jocul pornește sigur, cuvinte pentru copii, o țintă care nu se termină; propunerea pentru Era 2
+**ÎN LUCRU** (noaptea de 2026-09-19) — owner-ul, înainte de culcare: *„poți continua logica jocului și monetizarea, să nu
+fie prea enervantă (dar să ne facă bani); fă jocul să te facă să VREI să joci (psihologic, gândește-te de două ori la ce
+este mai bine); dacă tu consideri că Era 1 este gata, poți începe să copiezi schemele și pentru Era 2 (se continuă harta
+în dreapta). Aspectul general al meniurilor și tot ce vede jucătorul, revizuiește să aibă logică și să fie maxim de
+ușor de înțeles pentru copii."*
+
+**Cum s-a lucrat:** patru sinteze făcute de agenți și verificate în cod: notele noastre despre retenție (18, 19, 20,
+21, 24, 11, 16) și despre monetizare (26, 27, 28, 41), un inventar al tuturor textelor și panourilor satului, și o
+căutare pe web despre interfețe pentru copii (NN/g, documentația Roblox, codul britanic ICO pentru copii, FTC).
+
+**1. Ecranul gol de la Play (f41c4aa).** Owner-ul a dat Play și a văzut doar cerul. Cauza, din jurnalul Studio:
+`Controllers is not a valid member of PlayerScripts`, la primul `require` al scriptului de pornire. Roblox copiază
+copiii lui StarterPlayerScripts în PlayerScripts pe rând, iar scriptul poate porni înaintea folderelor de lângă el.
+- Satul și bâlciul așteaptă acum `Controllers` și `UI` (`WaitForChild`) înainte de primul `require`.
+- `check_requires` pică la `script.Parent.X` într-un LocalScript din StarterPlayerScripts.
+- `scripts/check_compile` (în poartă și în CI) compilează fiecare fișier: stylua și selene nu prind limitele
+  compilatorului, iar un fișier care nu se compilează dă același ecran gol.
+- Următorul Play al owner-ului a pornit curat: ambele bootstrap-uri complete, nicio eroare și niciun avertisment.
+
+**2. Sonda din Studio pornește singură un Play (022e6f3).** `plugins/DriftwoodProbe.lua` are trei roluri: `edit`
+pornește un test (StudioTestService), `server` îl oprește și transmite comenzi clientului printr-un atribut replicat,
+iar `client`, care n-are HTTP, își tipărește răspunsurile în Output; `scripts/probe.py` le citește din jurnalul
+Studio (panourile deschise, tot textul vizibil cu mărimea lui, texte care se calcă, erorile). Serverul local ține câte
+o coadă de comenzi pe rol. **Fereastra de editare încarcă sonda nouă abia după o repornire a Studio-ului.**
+
+**3. Cuvintele jocului, pentru copii (dfe4bae).** Din inventar; regula „textul nu minte" [D40] rămâne peste tot.
+- **Un cuvânt pentru un lucru:** „tier" → „level" peste tot; „Crew full" → „All hired".
+- **Verbul de pe buton e cel din quest:** „Cast for 28", „Hire for 5", „Build for 5.5K", „Get", „Ring", nu „Buy" la
+  toate (`TycoonConfig.verbOf`; un test leagă verbul de primul cuvânt al quest-ului platformei).
+- **Veriga slabă, spusă scurt și la fel în ambele meniuri:** „No gain yet — carrying scrap is slower". Subiectul
+  rămâne acțiunea, nu omul: cât n-ai angajat pe nimeni, pasul îl faci tu.
+- „IDLE" (scris direct în HUD) → „AWAY", în Strings; numele clădirilor cu majusculă, ca eticheta lor din lume.
+- Au ieșit „maxed", „35%", „for a single level", contracțiile și fraza de 15 cuvinte a tavernei.
+
+**4. Linia NEXT nu mai dispare (3b9a1ee).** Când se terminau quest-urile și ghidajul tăcea, linia NEXT dispărea: după
+capitolul 3 HUD-ul nu mai spunea „ce urmează", deși P3 cere ca următorul pas să fie mereu vizibil, iar nota 18 leagă
+retenția din ziua 7 de „obiective clare". `AmbitionMath` (pur, testat) alege o țintă care există mereu și care e
+adevărată: pragul următor (10 / 25 / 50 …) al clădirii sau al plasei care ține venitul în loc, nivelul următor al
+meseriei slabe sau al doilea om, iar altfel cel mai apropiat prag. Bara pornește de la ultimul prag; apăsarea deschide
+meniul obiectului.
+
+**5. Monetizarea, fără presiune.**
+- **Fiecare ofertă are pictograma ei** (d88a5d4; desenate, neurcate): două monede cu „x2", gheata cu aripă, luna peste
+  casa luminată, inima cu stea, clepsidra, sacul cu „x2". Până la urcare se văd cele de rezervă. Generatorul scrie și
+  iconițele de 512 px pentru Creator Hub (`assets/store/`).
+- **Pe „Welcome back" butonul auriu e cel gratuit,** nu „Double it". Documentația Roblox de monetizare interzice
+  urgența falsă și cere text neutru pentru minori, iar codul ICO interzice împinsul copiilor spre calea plătită prin
+  culoare și frecare. Oferta rămâne la vedere, cu prețul pe ea.
+- **Nu am adăugat** oferte la momentul în care copilul nu-și permite ceva: e exact tiparul pe care sursele de mai sus
+  îl numesc presiune.
+- **Banii care nu vin din cumpărături** (nota 26): Roblox plătește 5 Robux pe zi pentru fiecare jucător plătitor care
+  stă cel puțin 10 minute în joc. Un motiv sănătos de a reveni zilnic e, deci, venit.
+- **Cheia API** primește 403 „Scope not authorized" pe API-urile de pass-uri și produse (verificat cu o citire).
+  Rămâne pasul owner-ului: permisiunile de game pass și developer product pe cheie, sau crearea celor șase de mână.
+
+**6. Găsit, nerezolvat în noaptea asta, ca să nu schimb orbește:**
+- **Textul e prea mic pe telefon și pe tabletă.** Interfața se desenează la cel mult 62% din mărimea de proiectare
+  (`hudScale`, Bootstrap), deci textul „tiny" de 13 px iese la ~8 px, iar „small" la ~9 px; NN/g recomandă ~12–14 pt
+  pentru copii. Se repară cu sonda, măsurând fiecare text pe un ecran de telefon, nu mărind fonturile pe nevăzute.
+- Panoul „Upgrades" (tasta U) n-are buton pe ecran, deci pe telefon nu se ajunge la el. E ascuns la cererea
+  owner-ului (2026-09-12); meniul obiectului îl acoperă.
+
+**7. Era 2 — propunere, nu cod.** Era 1 e scrisă, dar nejucată cap-coadă, deci n-o consider gata. Totuși Era 2 e ce
+lipsește cel mai tare: la ~34 de minute jucătorul trage Landing Bell, cea mai scumpă cumpărare, iar zona care se
+deschide scrie „coming soon". Prima sesiune se termină exact în punctul ei cel mai slab.
+- **Ce am aflat despre cod:** motorul lanțului e scris de mână pentru exact două linii. O a treia marfă atinge ~17
+  fișiere (`ChainMath` și simulatorul, cu testele de aur; `EconomyService`; o pereche nouă de controllere; o migrare
+  de profil; artă). E muncă de zile și se face cu testele de aur alături, nu peste noapte.
+- **Varianta A — „The Mill, actul întâi", pe motorul de azi (2–3 zile, cu artă).** Tragi clopotul, gardul cade,
+  puntea și strada continuă spre est. Construiești **Roata de apă** în râu: gaterul și forja lucrează de două ori
+  mai repede. Arunci **a șasea și a șaptea plasă** și a doua plasă de scrap. Ridici **Moara** și angajezi un
+  **Morar** (nivel 1–5), care îngrijește roata. Deschizi **Piața**: tot ce vinzi aduce +25%. La capăt, **Mill Bell**.
+- **Varianta B — a treia marfă, cu oamenii ei (1–2 săptămâni):** de pildă in → pânză la război, cu patru meserii noi.
+  Cere întâi generalizarea motorului la N linii, utilă oricum pentru Erele 3–4.
+- **Recomandarea mea: A acum, B după.** A dă primei sesiuni un final care deschide ceva, în câteva zile; B se face pe
+  îndelete, cu testele de aur. Schița hărții pentru A e în mesajul de dimineață.
+- **Rămâne la owner:** alegerea, și arta nouă pe planșe, ca de obicei.
+
+---
+
 ## D62 — De ce nu prinde jocul: auditul, și primele reparații
 **SCRIS ÎN ÎNTREGIME, NEJUCAT ÎNCĂ** (2026-09-18 → 2026-09-19) — owner-ul: *„verifică graficile, texturile și tot. și
 verifică mai ales logica jocului, am impresia că nu te prinde deloc, adică nu mă atrage deloc"*. Cei cinci pași sunt
