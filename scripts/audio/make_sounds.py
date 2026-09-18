@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Sintetizeaza cele 8 efecte sonore [F1 spec 5.6, O1] cu numpy, apoi converteste WAV -> OGG
+"""Sintetizeaza efectele sonore [F1 spec 5.6, O1] cu numpy, apoi converteste WAV -> OGG
 Vorbis cu oggenc. Muzical si moale -- un joc de rau pentru copii, nu blipuri de arcade. 44.1 kHz
 mono, 0.1-2.5 s, varf <= -3 dBFS, fade de 5 ms la capete ca sa nu pocneasca nimic la taiere.
 
@@ -262,7 +262,44 @@ def make_reel():
     return fade_edges(normalize(out, -6.0), ms=3)
 
 
+def make_levelup():
+    # [D62] StationUpgraded/CrewUpgraded -> levelup: o lovitura mica de lemn si o nota de marimba deasupra ei. Scurt, ca
+    # se aude des (x1 apasat la rand); jocul ii urca inaltimea la fiecare nivel din aceeasi rafala.
+    dur = 0.22
+    tok = band_noise(0.05, 300, 2400, seed=11) * exp_decay(0.05, 0.012)
+    note = sine(1318, dur) * exp_decay(dur, 0.07)  # E6
+    octave = sine(2637, dur) * exp_decay(dur, 0.035) * 0.3
+    sig = mix(note * 0.7, octave)
+    sig[: len(tok)] += tok * 0.5
+    return fade_edges(normalize(sig))
+
+
+def make_milestone():
+    # [D62] pragul 10/25/50 (debitul se dubleaza) -> milestone: arpegiu major in urcare, ultima nota tinuta, cu o
+    # cvinta peste ea si un fosnet luminos la sfarsit. Intre "chime" (o gasire) si "bell" (sfarsitul erei).
+    notes = [784, 988, 1175, 1568]  # G5 B5 D6 G6
+    step = 0.085
+    total = step * len(notes) + 0.9
+    sig = np.zeros(int(SR * total))
+    for i, f in enumerate(notes):
+        last = i == len(notes) - 1
+        d = 0.9 if last else 0.3
+        tone = sine(f, d) * exp_decay(d, 0.32 if last else 0.12)
+        over = sine(f * 2, d) * exp_decay(d, 0.12) * 0.25
+        part = (tone + over) * 0.5
+        if last:
+            part = part + sine(f * 1.5, d) * exp_decay(d, 0.3) * 0.22  # cvinta
+        start = int(SR * i * step)
+        sig[start : start + len(part)] += part
+    shimmer = band_noise(0.5, 5000, 11000, seed=12) * exp_decay(0.5, 0.16) * 0.12
+    start = int(SR * step * (len(notes) - 1))
+    sig[start : start + len(shimmer)] += shimmer
+    return fade_edges(normalize(sig))
+
+
 SOUNDS = {
+    "levelup": make_levelup,
+    "milestone": make_milestone,
     "cast": make_cast,
     "bite": make_bite,
     "reel": make_reel,

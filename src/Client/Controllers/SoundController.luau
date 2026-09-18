@@ -78,7 +78,17 @@ local VOLUME: { [string]: number } = {
     cast = 0.45,
     bite = 0.6,
     reel = 0.25,
+    -- [D62] nivelul urcat se aude des (x1 apasat la rand), deci incet; pragul e rar si se aude
+    levelup = 0.4,
+    milestone = 0.65,
 }
+
+-- [D62] NIVELURILE CUMPARATE LA RAND URCA IN INALTIME, ca o scara: fiecare apasare suna putin mai sus decat cea
+-- dinainte, iar dupa o pauza scara o ia de jos. Un semiton pe treapta, cel mult o octava.
+local STREAK_GAP = 1.4
+local STREAK_MAX = 12
+local streak = 0
+local lastLevelUpAt = -math.huge
 
 -- [D54] Nivelul efectelor (0..10), ales in panoul "Sound", sta pe grupul "Effects": tabelul VOLUME ramane
 -- amestecul dintre ele, iar grupul le urca sau le coboara pe toate deodata.
@@ -138,6 +148,28 @@ function SoundController.Play(key: string, pitch: number?, gain: number?)
     sound.Parent = SoundService
     sound:Play()
     Debris:AddItem(sound, 4) -- curatenie fara sa tinem evidenta manuala a fiecarui Sound
+end
+
+-- [D62] Un nivel (sau o treapta) cumparat. Pana se urca sunetul lui, "pop"-ul de azi tine locul.
+function SoundController.PlayLevelUp()
+    local now = os.clock()
+    streak = if now - lastLevelUpAt <= STREAK_GAP then math.min(streak + 1, STREAK_MAX) else 0
+    lastLevelUpAt = now
+    local pitch = 2 ^ (streak / 12)
+    if Assets.sounds.levelup ~= 0 then
+        SoundController.Play("levelup", pitch)
+    else
+        SoundController.Play("pop", pitch)
+    end
+end
+
+-- [D62] Un prag trecut (debitul se dubleaza): mai mare decat un nivel, mai mic decat clopotul erei.
+function SoundController.PlayMilestone()
+    if Assets.sounds.milestone ~= 0 then
+        SoundController.Play("milestone")
+    else
+        SoundController.Play("chime", 1.3)
+    end
 end
 
 -- Sunetul de constructie, cu inaltimea dupa banda de pret a platformei [F2, note 38 pct.3] --

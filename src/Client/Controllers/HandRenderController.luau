@@ -17,6 +17,7 @@ local Workspace = game:GetService("Workspace")
 
 local HandMath = require(ReplicatedStorage.Shared.Modules.HandMath)
 local HandRoutes = require(ReplicatedStorage.Shared.Modules.HandRoutes)
+local Strings = require(ReplicatedStorage.Shared.Config.Strings)
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
@@ -117,19 +118,19 @@ local function hello(snap: HandSnap): string?
 end
 
 -- [I4] O singura replica, ~5s, cand omul asta apare prima data in sesiune. Neblocant: personajul se
--- misca liber in tot acest timp.
-local function showBubble(rec: Hand, text: string)
+-- misca liber in tot acest timp. [D62] `seconds` si `width`: replica scurta de la o treapta noua.
+local function showBubble(rec: Hand, text: string, seconds: number?, width: number?)
     if rec.bubble ~= nil then
         return
     end
     local bubble = Widgets.PlateLabel(deps.Plot, text, Theme.TEXT.small, "strong")
     bubble.AnchorPoint = Vector2.new(0.5, 1)
-    bubble.Size = UDim2.fromOffset(280, 48)
+    bubble.Size = UDim2.fromOffset(width or 280, if width ~= nil then 30 else 48)
     bubble.TextWrapped = true
     bubble.TextXAlignment = Enum.TextXAlignment.Center
     bubble.ZIndex = 9
     rec.bubble = bubble
-    rec.bubbleUntil = os.clock() + 5
+    rec.bubbleUntil = os.clock() + (seconds or 5)
 end
 
 -- Numele meseriei, cum il spune meniul ei ("Scrap Porter"); rolul brut doar daca ar lipsi din config.
@@ -323,6 +324,16 @@ function HandRenderController.Apply(hands: { HandSnap })
     for id, rec in tracked do
         if not seen[id] and rec.frame.Visible then
             rec.frame.Visible = false
+        end
+    end
+end
+
+-- [D62] Oamenii unei meserii spun ceva cand le cumperi o treapta: treapta nu le schimba infatisarea, deci altfel
+-- cumparatura nu s-ar vedea nicaieri in lume.
+function HandRenderController.Cheer(role: string)
+    for _, rec in tracked do
+        if rec.snap.role == role and rec.frame.Visible then
+            showBubble(rec, Strings.CREW_TIER_THANKS, 2.5, 200)
         end
     end
 end

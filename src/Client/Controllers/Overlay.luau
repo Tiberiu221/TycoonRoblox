@@ -17,6 +17,7 @@ local RunService = game:GetService("RunService")
 local Net = require(ReplicatedStorage.Net.Net)
 local ItemConfig = require(ReplicatedStorage.Shared.Config.ItemConfig)
 local RiverConfig = require(ReplicatedStorage.Shared.Config.RiverConfig)
+local StationConfig = require(ReplicatedStorage.Shared.Config.StationConfig)
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 local Strings = require(ReplicatedStorage.Shared.Config.Strings)
 local GuideMath = require(ReplicatedStorage.Shared.Modules.GuideMath)
@@ -27,8 +28,10 @@ local GuideController = require(script.Parent.GuideController)
 local HUDController = require(script.Parent.HUDController)
 local InteractController = require(script.Parent.InteractController)
 local JuiceController = require(script.Parent.JuiceController)
+local NetController = require(script.Parent.NetController)
 local PadController = require(script.Parent.PadController)
 local SoundController = require(script.Parent.SoundController)
+local Pop = require(script.Parent.Parent.UI.Pop)
 local Theme = require(script.Parent.Parent.UI.Theme)
 
 -- ---- contractul cu Bootstrap [F1 spec 2.1] --------------------------------------------------
@@ -127,7 +130,11 @@ export type Deps = {
         HandDelivered: RemoteEvent,
         PadBought: RemoteEvent,
         PadRejected: RemoteEvent,
+        StationUpgraded: RemoteEvent, -- [D62] un nivel cumparat
+        CrewUpgraded: RemoteEvent, -- [D62] o treapta sau al doilea om
     },
+    -- [D62] omul unei meserii se bucura cand ii cumperi o treapta (HandRenderController)
+    CheerCrew: ((string) -> ())?,
 }
 
 local Overlay = {}
@@ -279,6 +286,37 @@ local function padScreenPos(padId: string): (number?, number?)
         plotX, plotY = pad.x :: number, pad.y :: number
     end
     return deps.WorldToHud(plotX, plotY)
+end
+
+-- [D62] UNDE SE VEDE UN NIVEL CUMPARAT: obiectul din lume (sare) si locul de deasupra lui, pe HUD (cifra, rafala,
+-- "+N/s"). Plasele si forja sunt platforme; gaterul si taverna sunt cladiri fixe, cu numele lor in stratul terenului.
+local STATION_MARKER: { [string]: string } = { saw = "Sawmill", dock = "Tavern" }
+
+local function stationSpot(kind: string, id: string?): (number?, number?, string)
+    if kind == "net" and id ~= nil then
+        local pad = TycoonConfig.byId[id]
+        local x, y = padScreenPos(id)
+        return x, y, if pad ~= nil then pad.name else ""
+    elseif kind == "forge" then
+        local x, y = padScreenPos("workshop")
+        return x, y, Strings.FORGE_LABEL
+    end
+    local at = if kind == "saw" then TycoonConfig.SAWMILL else TycoonConfig.TAVERN
+    local x, y = deps.WorldToHud(at.x, at.y - at.h / 2)
+    return x, y, if kind == "saw" then Strings.SAWMILL_LABEL else Strings.TAVERN_LABEL
+end
+
+local function popStation(kind: string, id: string?)
+    if kind == "net" and id ~= nil then
+        NetController.Celebrate(id)
+    elseif kind == "forge" then
+        PadController.Pop("workshop")
+    else
+        local marker = deps.Plot:FindFirstChild(STATION_MARKER[kind] or "")
+        if marker ~= nil and marker:IsA("GuiObject") then
+            Pop.play(marker, 1.1)
+        end
+    end
 end
 
 -- A cata plasa e cea tocmai cumparata: numaram platformele cu efect de plasa marcate "bought" in
@@ -597,6 +635,71 @@ function Overlay.Init(d: Deps)
             end
         end
     end)
+
+    -- [D62] UN NIVEL CUMPARAT SE VEDE SI SE AUDE. Pana acum doar refuzul era anuntat: din 333 de cumparaturi ale
+    -- Erei 1, 313 (nivelurile si treptele) treceau cu un clic de buton si atat, iar pragul la care debitul se
+    -- dubleaza nu se deosebea de un nivel oarecare [D43]. Meniul are efectul lui (StationMenu.OnUpgraded); aici e
+    -- lumea: obiectul sare, cifra pluteste, castigul zboara spre venit. La prag: banner, rafala mare, camera.
+    deps.Remotes.StationUpgraded.OnClientEvent:Connect(
+        function(
+            kind: string,
+            id: string?,
+            level: number,
+            _count: number,
+            milestone: number?,
+            incomeDelta: number
+        )
+            popStation(kind, id)
+            local x, y, name = stationSpot(kind, id)
+            if x ~= nil and y ~= nil then
+                JuiceController.BurstAt(x, y, if milestone ~= nil then 12 else 3)
+                JuiceController.FloatAt(x, y - 20, Strings.levelReached(level), Theme.COLOR.gold)
+                if incomeDelta > 0 then
+                    JuiceController.RateFly(x, y, incomeDelta)
+                end
+            end
+            if milestone ~= nil then
+                SoundController.PlayMilestone()
+                JuiceController.CameraPunch()
+                CeremonyController.PlayMoment(
+                    Strings.milestoneTitle(name, milestone),
+                    Strings.milestoneNow(kind, StationConfig.MILESTONE_MULT)
+                )
+            else
+                SoundController.PlayLevelUp()
+            end
+        end
+    )
+
+    deps.Remotes.CrewUpgraded.OnClientEvent:Connect(
+        function(role: string, what: string, value: number, incomeDelta: number)
+            local crew = TycoonConfig.CREWS[role]
+            if crew == nil then
+                return
+            end
+            PadController.Pop(crew.pad)
+            local x, y = padScreenPos(crew.pad)
+            if x ~= nil and y ~= nil then
+                JuiceController.BurstAt(x, y, 3)
+                if what == "tier" then
+                    JuiceController.FloatAt(x, y - 20, Strings.tierReached(value), Theme.COLOR.gold)
+                end
+                if incomeDelta > 0 then
+                    JuiceController.RateFly(x, y, incomeDelta)
+                end
+            end
+            SoundController.PlayLevelUp()
+            if what == "tier" then
+                local cheer = deps.CheerCrew
+                if cheer ~= nil then
+                    cheer(role)
+                end
+            else
+                -- al doilea om: prima angajare are toastul ei ("Porter hired"); a doua tacea
+                HUDController.Toast(Strings.secondHired(crew.name))
+            end
+        end
+    )
 
     -- [39, Refuz] "Need N more coins" langa platforma, in loc de "Not enough coins" -- un calcul
     -- din pretul real si ultimele monede cunoscute, niciodata un text ghicit [D40]. Doar motivul

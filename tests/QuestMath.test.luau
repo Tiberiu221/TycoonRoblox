@@ -390,5 +390,33 @@ return function()
             end
             check.equal(left, 0)
         end)
+
+        test.case(
+            "chapterClosedBy: capitolul se incheie la ULTIMA revendicare, oricare ar fi ea [D62]",
+            function()
+                local first = QuestConfig.CHAPTERS[1]
+                local claimed: { [string]: boolean } = {}
+                -- toate, mai putin doua: nicio revendicare din cele doua nu-l incheie singura
+                for i, q in first.quests do
+                    if i > 2 then
+                        claimed[q.id] = true
+                    end
+                end
+                check.is_true(QuestMath.chapterClosedBy(first.quests[1].id, claimed) == nil)
+                -- a doua ramasa il incheie, chiar daca nu e ultimul quest din lista
+                claimed[first.quests[2].id] = true
+                check.equal(QuestMath.chapterClosedBy(first.quests[1].id, claimed), first)
+                -- un quest din alt capitol nu incheie capitolul 1
+                local second = QuestConfig.CHAPTERS[2]
+                check.is_true(QuestMath.chapterClosedBy(second.quests[1].id, claimed) == nil)
+                check.is_true(QuestMath.chapterClosedBy("nu_exista", claimed) == nil)
+            end
+        )
+
+        test.case("fiecare capitol are o recompensa de platit la incheiere [D62]", function()
+            for _, ch in QuestConfig.CHAPTERS do
+                check.is_true((ch.reward.pearls or 0) + (ch.reward.coins or 0) > 0)
+            end
+        end)
     end)
 end

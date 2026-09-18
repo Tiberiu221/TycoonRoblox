@@ -96,8 +96,10 @@ return function()
     end)
 
     test.suite("PearlBudget - cat costa ce cumperi", function()
-        test.case("primul decor se ia din perlele capitolului 1 si un minut la undita", function()
-            local chapterOne = 0
+        test.case("primul decor se ia chiar din perlele capitolului 1 [D62]", function()
+            -- quest-urile si recompensa capitolului (platita de la D62): la sfarsitul capitolului 1 ai exact cat
+            -- costa primul lucru de la avizier, fara sa fi pescuit
+            local chapterOne = QuestConfig.CHAPTERS[1].reward.pearls or 0
             for _, q in QuestConfig.CHAPTERS[1].quests do
                 chapterOne += q.reward.pearls or 0
             end
@@ -105,7 +107,7 @@ return function()
             for _, d in VillageConfig.DECOR do
                 cheapest = math.min(cheapest, d.price)
             end
-            check.is_true(cheapest <= chapterOne + fishingPerMinute())
+            check.is_true(cheapest <= chapterOne)
         end)
 
         test.case(

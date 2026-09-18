@@ -533,12 +533,17 @@ end
 
 -- O cumparatura de nivel pe o cladire. Intoarce (reusit, motiv). Motivul ajunge la client ca text,
 -- deci nu minte niciodata: "coins" chiar inseamna ca n-au ajuns banii, nu altceva [D40].
+-- Ce s-a intamplat la o cumparare reusita, pentru efectul de pe client [D62]: nivelul (sau treapta, sau cati oameni),
+-- pragul trecut (acolo se dubleaza debitul) si cu cat a crescut venitul pe secunda. Venitul e cel al lantului, deci
+-- poate fi zero: un nivel pe o veriga care nu tine venitul nu aduce nimic pe loc, iar clientul nu inventeaza o cifra.
+export type Upgraded = { level: number, count: number, milestone: number?, incomeDelta: number }
+
 function StationService.Upgrade(
     player: Player,
     kind: string,
     id: string?,
     count: number
-): (boolean, string)
+): (boolean, string, Upgraded?)
     local data = DataService.Get(player)
     if data == nil then
         return false, "no_profile"
@@ -560,6 +565,7 @@ function StationService.Upgrade(
     local n = math.clamp(math.floor(count), 1, MAX_BULK)
     local level = StationService.LevelOf(player, kind, id)
     local cost = ChainMath.bulkCost(StationService.UpgradeBase(kind, id), level, n)
+    local incomeBefore = StationService.Income(player)
     if not EconomyService.TrySpend(player, cost, "upgrade") then
         return false, "coins"
     end
@@ -589,12 +595,24 @@ function StationService.Upgrade(
     if deps.PushState ~= nil then
         (deps.PushState :: (Player) -> ())(player)
     end
-    return true, "ok"
+    return true,
+        "ok",
+        {
+            level = level + n,
+            count = n,
+            milestone = ChainMath.milestoneCrossed(level, level + n),
+            incomeDelta = math.max(0, StationService.Income(player) - incomeBefore),
+        }
 end
 
 -- O cumparatura pe o meserie [D49]: o treapta ("tier") sau al doilea om ("hire"). Regulile sunt cele
--- din CrewMath, aceleasi pe care le arata meniul. Intoarce (reusit, motiv).
-function StationService.UpgradeCrew(player: Player, role: string, what: string): (boolean, string)
+-- din CrewMath, aceleasi pe care le arata meniul. Intoarce (reusit, motiv, ce s-a intamplat): `level` e treapta noua
+-- (la "tier") sau cati oameni sunt acum (la "hire").
+function StationService.UpgradeCrew(
+    player: Player,
+    role: string,
+    what: string
+): (boolean, string, Upgraded?)
     local data = DataService.Get(player)
     if data == nil then
         return false, "no_profile"
@@ -604,6 +622,8 @@ function StationService.UpgradeCrew(player: Player, role: string, what: string):
     end
     local crews = CrewMath.fromProfile(data.Hands, data.Crews)
     local crew = crews[role]
+    local incomeBefore = StationService.Income(player)
+    local reached: number
     if what == "tier" then
         local ok, why = CrewMath.canUpgradeTier(crew)
         if not ok then
@@ -618,6 +638,7 @@ function StationService.UpgradeCrew(player: Player, role: string, what: string):
             data.Crews[role] = saved
         end
         saved.tier = crew.tier + 1
+        reached = crew.tier + 1
     else
         local ok, why = CrewMath.canHireSecond(crew)
         if not ok then
@@ -634,12 +655,20 @@ function StationService.UpgradeCrew(player: Player, role: string, what: string):
             EconomyService.AddCoins(player, price, "crew_hire_refund")
             return false, "unknown"
         end
+        reached = crew.count + 1
     end
     StationService.Invalidate(player)
     if deps.PushState ~= nil then
         (deps.PushState :: (Player) -> ())(player)
     end
-    return true, "ok"
+    return true,
+        "ok",
+        {
+            level = reached,
+            count = 1,
+            milestone = nil,
+            incomeDelta = math.max(0, StationService.Income(player) - incomeBefore),
+        }
 end
 
 -- Cand se cumpara o plasa noua, ea porneste de la nivelul 1 si starea se reface.

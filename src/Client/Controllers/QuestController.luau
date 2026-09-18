@@ -39,7 +39,11 @@ export type Snapshot = {
 
 export type Deps = {
     HudGui: Frame,
-    Remotes: { ClaimQuest: RemoteEvent, QuestRejected: RemoteEvent },
+    Remotes: { ClaimQuest: RemoteEvent, QuestRejected: RemoteEvent, QuestClaimed: RemoteEvent },
+    -- [D62] perlele revendicate zboara de la butonul Claim spre contor (JuiceController.PearlFly, in coordonatele
+    -- panzei HUD); capitolul incheiat are bannerul lui (CeremonyController.PlayMoment)
+    PearlFly: ((number, number, number) -> ())?,
+    OnChapterDone: ((string, string) -> ())?,
     OnToast: (string, Color3?) -> (),
     -- Go! la un quest de nivel deschide panoul de niveluri pe statia lui; dat din Bootstrap
     OpenStation: ((string, string?) -> ())?,
@@ -47,6 +51,8 @@ export type Deps = {
 
 local QuestController = {}
 local deps: Deps
+-- [D62] de pe ce rand s-a apasat Claim pentru fiecare quest: de acolo pleaca perlele cand serverul confirma
+local claimedFrom: { [string]: number } = {}
 local window: Frame
 local open = false
 local lastSnapshot: Snapshot? = nil
@@ -136,6 +142,7 @@ local function buildRow(index: number): RowView
             end
             if row.state == "done" then
                 SoundController.Play("register")
+                claimedFrom[row.id] = index
                 deps.Remotes.ClaimQuest:FireServer(row.id)
             else
                 SoundController.Play("click")
@@ -319,6 +326,41 @@ function QuestController.Init(d: Deps)
     local listHolder = list.Parent :: Frame
     listHolder.Position = UDim2.fromOffset(0, 52)
     listHolder.Size = UDim2.new(1, 0, 1, -52)
+
+    -- [D62] Serverul a platit: perlele zboara de la butonul apasat (sau din mijlocul ferestrei) spre contor. Pozitia
+    -- butonului e pe ecran; panza HUD e scalata (UIScale), deci se imparte la scara ei.
+    deps.Remotes.QuestClaimed.OnClientEvent:Connect(
+        function(questId: string, paid: { [string]: any })
+            local pearls = if typeof(paid.pearls) == "number" then paid.pearls else 0
+            local chapterPearls = if typeof(paid.chapterPearls) == "number"
+                then paid.chapterPearls
+                else 0
+            local fly = deps.PearlFly
+            local index = claimedFrom[questId]
+            claimedFrom[questId] = nil
+            if fly ~= nil and pearls + chapterPearls > 0 then
+                local view = if index ~= nil then views[index] else nil
+                local source: GuiObject = if view ~= nil and open then view.button else window
+                local uiScale = deps.HudGui:FindFirstChildOfClass("UIScale")
+                local s = if uiScale ~= nil then uiScale.Scale else 1
+                local center = source.AbsolutePosition
+                    + source.AbsoluteSize / 2
+                    - deps.HudGui.AbsolutePosition
+                fly(center.X / s, center.Y / s, pearls + chapterPearls)
+            end
+            local title, subtitle = paid.chapterTitle, paid.chapterSubtitle
+            local onChapter = deps.OnChapterDone
+            if onChapter ~= nil and typeof(title) == "string" and typeof(subtitle) == "string" then
+                local nextSubtitle = if typeof(paid.nextSubtitle) == "string"
+                    then paid.nextSubtitle
+                    else nil
+                onChapter(
+                    Strings.chapterDone(title, subtitle),
+                    Strings.chapterDoneReward(chapterPearls, nextSubtitle)
+                )
+            end
+        end
+    )
 
     deps.Remotes.QuestRejected.OnClientEvent:Connect(function(reason: string)
         deps.OnToast(Strings.questRejected(reason), Theme.COLOR.bad)

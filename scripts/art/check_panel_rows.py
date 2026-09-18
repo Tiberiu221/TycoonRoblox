@@ -87,6 +87,7 @@ STATION_MENU = dict(
         ("rate", 16, 36 + 32, w - 32, 38, None),
         ("unit", 16, 36 + 74, w - 32, 20, None),
         ("sub", 0, 148, w, 20, None),
+        ("milestoneBar", 0, 169, w, 5, "building"),  # [D62] drumul pana la pragul urmator
         ("status", 0, 176, w - 200 - 12, 44, None),
         ("goButton", w - 200, 176, 200, 44, None),
         ("bulk1", 0, 232, 84, 36, "building"),

@@ -948,6 +948,43 @@ function Strings.menuUnit(what: string): string
     end
     return "planks a minute"
 end
+-- [D62] Un nivel cumparat se vede in lume: cifra lui pluteste deasupra obiectului. La un prag (10/25/50...) un
+-- banner spune ce s-a dublat, cu aceleasi cuvinte ca randul "Level 10: catches twice as much" din meniu [D40].
+function Strings.levelReached(level: number): string
+    return `Level {level}`
+end
+function Strings.tierReached(tier: number): string
+    return `Tier {tier}`
+end
+-- [D62] Capitolul incheiat: bannerul si ce urmeaza.
+function Strings.chapterDone(title: string, subtitle: string): string
+    return `{title} complete · {subtitle}`
+end
+function Strings.chapterDoneReward(pearls: number, nextSubtitle: string?): string
+    local reward = if pearls == 1 then "+1 pearl" else `+{pearls} pearls`
+    return if nextSubtitle ~= nil then `{reward} · Next: {nextSubtitle}` else reward
+end
+Strings.CREW_TIER_THANKS = "Better tools. Thanks!"
+function Strings.secondHired(name: string): string
+    return `Second {name} hired`
+end
+function Strings.milestoneTitle(name: string, level: number): string
+    return `{name} · Level {level}`
+end
+function Strings.milestoneNow(kind: string, mult: number): string
+    local how = if mult == 2 then "twice" else `{mult}x`
+    if kind == "net" then
+        return `Catches {how} as much now`
+    elseif kind == "saw" then
+        return `Cuts {how} as fast now`
+    elseif kind == "forge" then
+        return `Smelts {how} as fast now`
+    end
+    return `Sells {how} as fast now`
+end
+function Strings.menuMilestoneDone(kind: string, level: number, mult: number): string
+    return `Level {level} reached! {Strings.milestoneNow(kind, mult)}`
+end
 function Strings.menuMilestone(kind: string, level: number, mult: number): string
     local how = if mult == 2 then "twice" else `{mult}x`
     if kind == "net" then

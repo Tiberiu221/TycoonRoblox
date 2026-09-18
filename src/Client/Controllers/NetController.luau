@@ -29,6 +29,7 @@ local SceneArt = require(script.Parent.SceneArt)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Focus = require(script.Parent.Parent.UI.Focus)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
+local Pop = require(script.Parent.Parent.UI.Pop)
 
 export type NetSnap = {
     padId: string,
@@ -759,6 +760,20 @@ end
 -- apoi oglindim local caught/nextCatchAt/contents ca urmatoarea plutire sa porneasca si gramada sa
 -- ramana la zi fara sa astepte urmatorul TycoonState [F1 spec 4.2, research 42 pct.2] -- calea
 -- rapida (NetCaught) nu duce `contents`, doar server-ul il calculeaza pe deplin.
+-- [D62] Plasei i s-a cumparat un nivel: insigna "Lv N" de pe stalp sare (acolo se citeste nivelul), iar plasa
+-- stropeste. Textul insignei vine cu starea, imediat dupa.
+function NetController.Celebrate(padId: string)
+    local assembly = assemblies[padId]
+    if assembly == nil then
+        return
+    end
+    local pill = assembly.root:FindFirstChild("Level")
+    if pill ~= nil and pill:IsA("GuiObject") then
+        Pop.play(pill, 1.6, 0.4)
+    end
+    SceneArt.Splash(assembly.body, 0.5, 0.5)
+end
+
 function NetController.OnCaught(
     padId: string,
     count: number,

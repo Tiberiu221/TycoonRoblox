@@ -599,6 +599,19 @@ return function()
             check.is_true(worst > 1.15)
         end)
 
+        test.case(
+            "milestoneCrossed: pragul trecut de o cumparare, si cand sare peste el",
+            function()
+                check.is_true(ChainMath.milestoneCrossed(1, 2) == nil)
+                check.is_true(ChainMath.milestoneCrossed(8, 9) == nil)
+                check.equal(ChainMath.milestoneCrossed(9, 10), 10)
+                check.is_true(ChainMath.milestoneCrossed(10, 11) == nil) -- pragul se sarbatoreste o singura data
+                check.equal(ChainMath.milestoneCrossed(5, 15), 10) -- x10 sare peste prag
+                check.equal(ChainMath.milestoneCrossed(9, 30), 25) -- doua praguri: cel mai mare
+                check.is_true(ChainMath.milestoneCrossed(500, 600) == nil)
+            end
+        )
+
         test.case("nextMilestone arata unde e urmatorul salt", function()
             check.equal(ChainMath.nextMilestone(1), 10)
             check.equal(ChainMath.nextMilestone(10), 25)

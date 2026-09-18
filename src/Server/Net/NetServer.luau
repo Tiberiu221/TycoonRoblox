@@ -29,12 +29,12 @@ export type Deps = {
     },
     Stations: {
         Snapshot: (Player) -> { [string]: any },
-        Upgrade: (Player, string, string?, number) -> (boolean, string),
-        UpgradeCrew: (Player, string, string) -> (boolean, string),
+        Upgrade: (Player, string, string?, number) -> (boolean, string, { [string]: any }?),
+        UpgradeCrew: (Player, string, string) -> (boolean, string, { [string]: any }?),
     },
     Quests: {
         Snapshot: (Player) -> { [string]: any }?,
-        Claim: (Player, string) -> (boolean, string),
+        Claim: (Player, string) -> (boolean, string, { [string]: any }?),
     },
     -- [D60] roata se invarte in balci; aici doar ceasul ei, pentru indicatorul de pe punte
     Wheel: { Snapshot: (Player) -> { [string]: any } },
@@ -285,9 +285,12 @@ function NetServer.Init(d: Deps)
         if typeof(questId) ~= "string" or #(questId :: string) > 40 then
             return
         end
-        local ok, reason = deps.Quests.Claim(player, questId :: string)
+        local ok, reason, paid = deps.Quests.Claim(player, questId :: string)
         if not ok then
             Net.Get("QuestRejected"):FireClient(player, reason)
+        elseif paid ~= nil then
+            -- [D62] ce s-a platit, ca perlele sa zboare spre contor si capitolul incheiat sa se vada
+            Net.Get("QuestClaimed"):FireClient(player, questId, paid)
         end
     end)
 
@@ -373,10 +376,21 @@ function NetServer.Init(d: Deps)
             if not isInteger(count) or (count :: number) < 1 then
                 return
             end
-            local ok, reason =
+            local ok, reason, done =
                 deps.Stations.Upgrade(player, kind :: string, id :: string?, count :: number)
             if not ok then
                 Net.Get("UpgradeRejected"):FireClient(player, reason)
+            elseif done ~= nil then
+                -- [D62] reusita se anunta si ea: pana acum un nivel cumparat trecea in tacere [D43]
+                Net.Get("StationUpgraded"):FireClient(
+                    player,
+                    kind,
+                    id,
+                    done.level,
+                    done.count,
+                    done.milestone,
+                    done.incomeDelta
+                )
             end
         end)
 
@@ -393,9 +407,12 @@ function NetServer.Init(d: Deps)
             if what ~= "tier" and what ~= "hire" then
                 return
             end
-            local ok, reason = deps.Stations.UpgradeCrew(player, role :: string, what :: string)
+            local ok, reason, done =
+                deps.Stations.UpgradeCrew(player, role :: string, what :: string)
             if not ok then
                 Net.Get("UpgradeRejected"):FireClient(player, reason)
+            elseif done ~= nil then
+                Net.Get("CrewUpgraded"):FireClient(player, role, what, done.level, done.incomeDelta)
             end
         end)
 

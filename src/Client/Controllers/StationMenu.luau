@@ -16,6 +16,7 @@
 --                     "veriga slaba": la egalitate intre doua verigi, aia ar fi mintit [D40]
 --   butonul        -- cat costa, scris chiar pe el
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
 
 local ChainMath = require(ReplicatedStorage.Shared.Modules.ChainMath)
 local StationConfig = require(ReplicatedStorage.Shared.Config.StationConfig)
@@ -23,6 +24,7 @@ local Strings = require(ReplicatedStorage.Shared.Config.Strings)
 local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
 local Panels = require(script.Parent.Panels)
 local SoundController = require(script.Parent.SoundController)
+local Pop = require(script.Parent.Parent.UI.Pop)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
 
@@ -101,6 +103,8 @@ local Z = 62
 local BODY_W = PANEL_W - Theme.SPACE.lg * 2
 local BOX_Y, BOX_H = 36, 104
 local SUB_Y = 148
+-- [D62] bara spre pragul urmator, in golul dintre randul pragului (148-168) si randul colorat (176)
+local BAR_Y, BAR_H = 169, 5
 local STATUS_Y, STATUS_H = 176, 44
 local GO_W = 200
 local GREY = Color3.fromRGB(150, 144, 136)
@@ -145,6 +149,12 @@ local captionLabel: TextLabel
 local rateLabel: TextLabel
 local unitLabel: TextLabel
 local subLabel: TextLabel
+-- [D62] Drumul pana la pragul urmator (10, 25, 50...), unde debitul se dubleaza: o tinta apropiata, care se vede
+-- umplandu-se la fiecare nivel cumparat. `milestoneFlashUntil`: cat randul pragului spune ca tocmai l-ai trecut.
+local milestoneTrack: Frame
+local milestoneFill: Frame
+local milestoneFlashUntil = 0
+local milestoneFlashText = ""
 local statusLabel: TextLabel
 local goButton: TextButton
 local goLink: Link? = nil
@@ -381,10 +391,31 @@ local function renderBuilding(row: Row, snap: Snapshot)
         Strings.menuUnit(if row.kind == "net" and row.line == "iron" then "scrapNet" else row.kind)
 
     local milestone = row.nextMilestone
-    subLabel.Text = if milestone ~= nil
-        then Strings.menuMilestone(row.kind, milestone, StationConfig.MILESTONE_MULT)
-        else ""
-    subLabel.TextColor3 = Theme.COLOR.inkSoft
+    if os.clock() < milestoneFlashUntil then
+        subLabel.Text = milestoneFlashText
+        subLabel.TextColor3 = Theme.COLOR.goodInk
+    else
+        subLabel.Text = if milestone ~= nil
+            then Strings.menuMilestone(row.kind, milestone, StationConfig.MILESTONE_MULT)
+            else ""
+        subLabel.TextColor3 = Theme.COLOR.inkSoft
+    end
+    -- bara: de la pragul dinainte (sau nivelul 1) pana la urmatorul
+    milestoneTrack.Visible = milestone ~= nil
+    if milestone ~= nil then
+        local from = 1
+        for _, m in StationConfig.MILESTONES do
+            if m <= row.level then
+                from = m
+            end
+        end
+        local share = math.clamp((row.level - from) / math.max(1, milestone - from), 0, 1)
+        TweenService:Create(
+            milestoneFill,
+            TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+            { Size = UDim2.fromScale(share, 1) }
+        ):Play()
+    end
 
     if row.gain > 0 then
         showStatus(Strings.menuEarnsLevel(perMinuteGain(row.gain)), Theme.COLOR.goodInk)
@@ -502,6 +533,7 @@ end
 -- arata (o plasa necumparata).
 local function retarget(kind: string, id: string?): boolean
     local previous = target
+    milestoneFlashUntil = 0 -- "Level 10 reached!" e al obiectului de dinainte
     target = { kind = kind, id = id }
     if not targetExists() then
         target = previous
@@ -523,6 +555,7 @@ function StationMenu.OpenAt(kind: string, id: string?)
         return
     end
     local previous = target
+    milestoneFlashUntil = 0
     target = { kind = kind, id = id }
     if not targetExists() then
         target = previous
@@ -533,6 +566,37 @@ function StationMenu.OpenAt(kind: string, id: string?)
     window.Visible = true
     SoundController.Play("click")
     render()
+end
+
+-- [D62] Serverul a confirmat un nivel (sau o treapta) pe obiectul deschis: cifra de sus sare, iar la un prag randul
+-- lui spune cateva secunde ce s-a dublat. Lumea are efectul ei (Overlay); meniul sta de obicei peste obiect, deci
+-- fara asta cumparatura nu s-ar vedea deloc cat e deschis.
+function StationMenu.OnUpgraded(kind: string, id: string?, milestone: number?)
+    local t = target
+    if not open or t == nil or t.kind ~= kind or (kind == "net" and t.id ~= id) then
+        return
+    end
+    Pop.play(levelLabel, 1.12, 0.3)
+    Pop.play(rateLabel, 1.08, 0.3)
+    if milestone ~= nil then
+        milestoneFlashText =
+            Strings.menuMilestoneDone(kind, milestone, StationConfig.MILESTONE_MULT)
+        milestoneFlashUntil = os.clock() + 3
+        render()
+        task.delay(3.1, function()
+            if open then
+                render()
+            end
+        end)
+    end
+end
+
+function StationMenu.OnCrewUpgraded(role: string)
+    local t = target
+    if open and t ~= nil and t.kind == "crew" and t.id == role then
+        Pop.play(levelLabel, 1.12, 0.3)
+        Pop.play(rateLabel, 1.08, 0.3)
+    end
 end
 
 function StationMenu.Apply(snap: Snapshot?)
@@ -605,8 +669,10 @@ function StationMenu.Init(d: Deps)
     window.Visible = false
 
     -- 1. nivelul (la meserie: treapta si oamenii)
+    -- ancorate la mijlocul inaltimii: saltul de la un nivel cumparat (Pop) creste din locul textului, nu din colt
     levelLabel = label(body, "", Theme.TEXT.heading, Theme.COLOR.ink, "display")
-    levelLabel.Position = UDim2.fromOffset(0, 0)
+    levelLabel.AnchorPoint = Vector2.new(0, 0.5)
+    levelLabel.Position = UDim2.fromOffset(0, 14)
     levelLabel.Size = UDim2.fromOffset(BODY_W, 28)
 
     -- 2. caseta: ce face si cat, pe minut
@@ -618,7 +684,8 @@ function StationMenu.Init(d: Deps)
     captionLabel.Position = UDim2.fromOffset(16, 10)
     captionLabel.Size = UDim2.fromOffset(BODY_W - 32, 20)
     rateLabel = label(box, "", Theme.TEXT.title, Theme.COLOR.ink, "display")
-    rateLabel.Position = UDim2.fromOffset(16, 32)
+    rateLabel.AnchorPoint = Vector2.new(0, 0.5)
+    rateLabel.Position = UDim2.fromOffset(16, 32 + 19)
     rateLabel.Size = UDim2.fromOffset(BODY_W - 32, 38)
     unitLabel = label(box, "", Theme.TEXT.small, Theme.COLOR.inkSoft, "body")
     unitLabel.Position = UDim2.fromOffset(16, 74)
@@ -628,6 +695,11 @@ function StationMenu.Init(d: Deps)
     subLabel = label(body, "", Theme.TEXT.small, Theme.COLOR.inkSoft, "body")
     subLabel.Position = UDim2.fromOffset(0, SUB_Y)
     subLabel.Size = UDim2.fromOffset(BODY_W, 20)
+
+    milestoneTrack, milestoneFill = Widgets.Bar(body, BODY_W, BAR_H, Theme.COLOR.gold, Z + 3)
+    milestoneTrack.Position = UDim2.fromOffset(0, BAR_Y)
+    milestoneFill.Size = UDim2.fromScale(0, 1)
+    table.insert(buildingGroup, milestoneTrack)
 
     -- 4. randul colorat si "Go to"
     statusLabel = label(body, "", Theme.TEXT.body, Theme.COLOR.ink, "body")

@@ -383,6 +383,10 @@ local Assets = {
         cast = 125225061548722,
         bite = 112435773204646,
         reel = 127909885590038,
+        -- [D62] un nivel cumparat si un prag trecut (scripts/audio/make_sounds.py); 0 = inca neurcate, iar pana
+        -- atunci SoundController foloseste "pop" si "chime"
+        levelup = 0,
+        milestone = 0,
     },
 }
 

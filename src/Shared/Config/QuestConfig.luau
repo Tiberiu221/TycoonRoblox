@@ -63,7 +63,9 @@ QuestConfig.CHAPTERS = {
         id = "landing",
         title = "Chapter 1",
         subtitle = "The Landing",
-        reward = { pearls = 5 },
+        -- [D62] platita la ultima revendicare din capitol (pana atunci campul exista, dar nu-l platea nimeni). 6, nu 5:
+        -- cu cele 14 perle ale quest-urilor fac 20, exact cat costa primul lucru de la avizierul satului.
+        reward = { pearls = 6 },
         quests = {
             {
                 id = "cast_first",

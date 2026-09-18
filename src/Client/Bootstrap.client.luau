@@ -28,6 +28,8 @@ local PadController = require(script.Parent.Controllers.PadController)
 local InteractController = require(script.Parent.Controllers.InteractController)
 local MusicController = require(script.Parent.Controllers.MusicController)
 local SoundController = require(script.Parent.Controllers.SoundController)
+local CeremonyController = require(script.Parent.Controllers.CeremonyController)
+local JuiceController = require(script.Parent.Controllers.JuiceController)
 local AudioPanel = require(script.Parent.Controllers.AudioPanel)
 local HandRenderController = require(script.Parent.Controllers.HandRenderController)
 local ZoneController = require(script.Parent.Controllers.ZoneController)
@@ -302,9 +304,15 @@ safeInit("QuestController", function()
         Remotes = {
             ClaimQuest = Net.Get("ClaimQuest"),
             QuestRejected = Net.Get("QuestRejected"),
+            QuestClaimed = Net.Get("QuestClaimed"),
         },
         OnToast = HUDController.Toast,
         OpenStation = openStation,
+        PearlFly = JuiceController.PearlFly,
+        OnChapterDone = function(title: string, subtitle: string)
+            SoundController.PlayMilestone()
+            CeremonyController.PlayMoment(title, subtitle)
+        end,
     })
 end)
 -- Meniul de niveluri al unui singur obiect. Refuzurile de nivel se anunta de aici, o singura data.
@@ -480,6 +488,10 @@ Net.Get("UseResult").OnClientEvent
         if text ~= nil then
             HUDController.Toast(text)
         end
+        -- [D62] lasatul si luatul marfii se aud: pana acum gestul de la depozit, gater, forja si taverna era mut
+        if ok and dropped + taken > 0 then
+            SoundController.Play("pop", if dropped > 0 then 0.8 else 1.15)
+        end
     end)
 
 -- UNDE INCEPE FIECARE STRAT. HUD-ul sta in zona sigura a interfetei (CoreUISafeInsets); lumea si stratul
@@ -627,8 +639,20 @@ if Overlay ~= nil then
                 HandDelivered = Net.Get("HandDelivered"),
                 PadBought = Net.Get("PadBought"),
                 PadRejected = Net.Get("PadRejected"),
+                StationUpgraded = Net.Get("StationUpgraded"),
+                CrewUpgraded = Net.Get("CrewUpgraded"),
             },
+            CheerCrew = HandRenderController.Cheer,
         })
+        -- [D62] meniul deschis isi arata si el nivelul cumparat (sta de obicei peste obiectul din lume)
+        Net.Get("StationUpgraded").OnClientEvent:Connect(
+            function(kind: string, id: string?, _level: number, _count: number, milestone: number?)
+                StationMenu.OnUpgraded(kind, id, milestone)
+            end
+        )
+        Net.Get("CrewUpgraded").OnClientEvent:Connect(function(role: string)
+            StationMenu.OnCrewUpgraded(role)
+        end)
     end)
 end
 

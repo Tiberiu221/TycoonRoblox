@@ -26,8 +26,11 @@ local REMOTE_NAMES = {
     -- [D60] SpinWheel/WheelResult s-au mutat in balci (src/Fair/Net), odata cu roata
     "ClaimQuest", -- C->S: {questId} -- ia recompensa unui quest terminat
     "QuestRejected", -- S->C: {reason}
+    "QuestClaimed", -- S->C {questId, paid}: ce s-a platit (quest + capitolul, daca l-a incheiat) [D62]
     "UpgradeStation", -- C->S: {kind, id, count} -- urca nivelul unei statii
     "UpgradeRejected", -- S->C: {reason} -- de ce n-a mers (coins/locked/unknown)
+    "StationUpgraded", -- S->C {kind, id, level, count, milestone?, incomeDelta}: nivelul cumparat, pentru efect [D62]
+    "CrewUpgraded", -- S->C {role, what, value, incomeDelta}: treapta noua ("tier") sau cati oameni ("hire") [D62]
     "BuyPad", -- C->S {padId}
     "PadRejected", -- S->C {padId, reason}: "locked" | "owned" | "coins" | "no_profile"
     "PadBought", -- S->C {padId}: doar semnalul pentru efectul de constructie; starea vine separat

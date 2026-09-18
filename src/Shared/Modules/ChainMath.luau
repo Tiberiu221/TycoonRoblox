@@ -88,6 +88,18 @@ function ChainMath.nextMilestone(level: number): number?
     return nil
 end
 
+-- Cel mai mare prag trecut urcand de la `from` la `to` (from < prag <= to), sau nil. O cumparare x10 poate sari peste
+-- un prag fara sa se opreasca pe el: tot acolo s-a dublat debitul, deci tot acolo se sarbatoreste.
+function ChainMath.milestoneCrossed(from: number, to: number): number?
+    local crossed: number? = nil
+    for _, t in StationConfig.MILESTONES do
+        if t > from and t <= to then
+            crossed = t
+        end
+    end
+    return crossed
+end
+
 function ChainMath.levelOutput(base: number, level: number, kind: string): number
     local inc = StationConfig.LEVEL_INC[kind] or StationConfig.LEVEL_INC_DEFAULT
     return base * (1 + inc * (level - 1)) * ChainMath.milestoneMult(level)

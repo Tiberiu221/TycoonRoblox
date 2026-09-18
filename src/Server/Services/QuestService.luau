@@ -107,9 +107,22 @@ function QuestService.Snapshot(player: Player): Snapshot?
     }
 end
 
--- Revendicarea unei recompense. Intoarce (reusit, motiv) -- motivul ajunge la client ca text, deci
+-- Ce s-a platit la o revendicare reusita [D62]: recompensa quest-ului si, daca revendicarea a incheiat capitolul,
+-- recompensa capitolului (`chapter*`). Pana la D62 campul `reward` al capitolului exista in config, dar nu-l platea
+-- nimeni: capitolul 1 dadea 15 perle, iar cel mai ieftin lucru de la avizier costa 20.
+export type Claimed = {
+    pearls: number,
+    coins: number,
+    chapterTitle: string?,
+    chapterSubtitle: string?,
+    chapterPearls: number,
+    chapterCoins: number,
+    nextSubtitle: string?,
+}
+
+-- Revendicarea unei recompense. Intoarce (reusit, motiv, ce s-a platit) -- motivul ajunge la client ca text, deci
 -- nu minte: "not_done" chiar inseamna ca nu e gata, nu altceva [D40].
-function QuestService.Claim(player: Player, questId: string): (boolean, string)
+function QuestService.Claim(player: Player, questId: string): (boolean, string, Claimed?)
     local data = DataService.Get(player)
     local facts = factsFor(player)
     if data == nil or facts == nil then
@@ -134,6 +147,34 @@ function QuestService.Claim(player: Player, questId: string): (boolean, string)
     if quest.reward.pearls ~= nil then
         EconomyService.AddPearls(player, quest.reward.pearls, "quest")
     end
+    local paid: Claimed = {
+        pearls = quest.reward.pearls or 0,
+        coins = quest.reward.coins or 0,
+        chapterTitle = nil,
+        chapterSubtitle = nil,
+        chapterPearls = 0,
+        chapterCoins = 0,
+        nextSubtitle = nil,
+    }
+    -- [D62] ultimul quest al capitolului: se plateste si capitolul
+    local closed = QuestMath.chapterClosedBy(questId, data.Quests.claimed)
+    if closed ~= nil then
+        paid.chapterTitle = closed.title
+        paid.chapterSubtitle = closed.subtitle
+        paid.chapterPearls = closed.reward.pearls or 0
+        paid.chapterCoins = closed.reward.coins or 0
+        if paid.chapterCoins > 0 then
+            EconomyService.AddCoins(player, paid.chapterCoins, "chapter")
+        end
+        if paid.chapterPearls > 0 then
+            EconomyService.AddPearls(player, paid.chapterPearls, "chapter")
+        end
+        for i, chapter in QuestConfig.CHAPTERS do
+            if chapter == closed and QuestConfig.CHAPTERS[i + 1] ~= nil then
+                paid.nextSubtitle = QuestConfig.CHAPTERS[i + 1].subtitle
+            end
+        end
+    end
     -- Canalul quest-urilor: fara el, la playtest vom sti CATI au renuntat, dar nu si UNDE. Un pas per
     -- quest revendicat, pe capitolul lui -- exact granularitatea la care se vede blocajul [D51].
     for _, chapter in QuestConfig.CHAPTERS do
@@ -147,7 +188,7 @@ function QuestService.Claim(player: Player, questId: string): (boolean, string)
     if deps.PushState ~= nil then
         (deps.PushState :: (Player) -> ())(player)
     end
-    return true, "ok"
+    return true, "ok", paid
 end
 
 function QuestService.Init(d: typeof(deps))

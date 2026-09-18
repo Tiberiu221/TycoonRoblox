@@ -180,6 +180,30 @@ function QuestMath.completed(chapter: QuestConfig.Chapter, facts: Facts): number
 end
 
 -- Capitolul la care se afla jucatorul: primul care nu e terminat si revendicat in intregime.
+-- [D62] Capitolul pe care il INCHEIE revendicarea lui `questId`: toate quest-urile lui sunt acum revendicate (cu
+-- `questId` cu tot). nil daca mai e ceva de luat in capitol. Un quest se revendica o singura data, deci si
+-- recompensa capitolului se plateste o singura data, fara un camp nou in profil.
+function QuestMath.chapterClosedBy(
+    questId: string,
+    claimed: { [string]: boolean }
+): QuestConfig.Chapter?
+    for _, chapter in QuestConfig.CHAPTERS do
+        local mine = false
+        local all = true
+        for _, quest in chapter.quests do
+            if quest.id == questId then
+                mine = true
+            elseif not claimed[quest.id] then
+                all = false
+            end
+        end
+        if mine then
+            return if all then chapter else nil
+        end
+    end
+    return nil
+end
+
 function QuestMath.currentChapter(facts: Facts): QuestConfig.Chapter
     for _, chapter in QuestConfig.CHAPTERS do
         for _, quest in chapter.quests do

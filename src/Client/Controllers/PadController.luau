@@ -20,6 +20,7 @@ local Theme = require(script.Parent.Parent.UI.Theme)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
 local Focus = require(script.Parent.Parent.UI.Focus)
 local GroundShadow = require(script.Parent.Parent.UI.GroundShadow)
+local Pop = require(script.Parent.Parent.UI.Pop)
 
 export type Deps = {
     Plot: Frame,
@@ -1164,6 +1165,14 @@ function PadController.PadScreenPos(padId: string): (number, number)
         return 0, 0
     end
     return pad.x :: number, pad.y :: number
+end
+
+-- [D62] O cladire de pe o platforma (forja, coliba unei meserii) sare scurt: i s-a cumparat un nivel sau o treapta.
+function PadController.Pop(padId: string)
+    local frame = frames[padId]
+    if frame ~= nil then
+        Pop.play(frame, 1.12)
+    end
 end
 
 -- Fulger alb de 120ms pe placuta platformei, la cumparare [F2 spec Agent U pct.5]. Tinta e placuta
