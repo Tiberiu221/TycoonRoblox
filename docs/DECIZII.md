@@ -132,12 +132,25 @@ owner-ului.
   continuă ca înainte: nivelul 2 al plasei, a doua plasă.
 - Capitolul 1 are acum 13 quest-uri și 25 de perle cu tot cu răsplata lui; capitolul 2 are cu 3 mai puțin.
 
-**Propus, rămas:**
-- **Pasul 5 — satul crește la vedere.** Cere imagini noi, deci urcare.
-  - plasa și clădirile se schimbă la pragurile 10/25/50;
-  - treapta se vede pe colibă;
-  - apa și iarba sunt repictate ca fundalul bâlciului;
-  - viață în sat: fum la hornuri, păsări, spumă la stâlpii plaselor.
+**Pasul 5 — satul crește la vedere (prima parte, făcută pe 2026-09-18; neverificată încă în Studio).**
+- **Ce se vede fără imagini noi, de acum:**
+  - **treapta meseriei** (1–5), ca cinci pătrățele deasupra acoperișului casei, cele câștigate aurii. Treapta nu schimbă
+    înfățișarea omului, deci până acum o treaptă cumpărată nu se vedea nicăieri în lume. Deasupra acoperișului, nu sub
+    nume: acolo stau straturile de flori de la avizier (testul de așezare a prins suprapunerea);
+  - **fum la hornuri:** casele mari (doi oameni pe meserie) au horn, deci fumul e și un semn că meseria a crescut;
+    taverna fumegă mereu. Hornurile sunt măsurate pe foile de sprite (`PadArt.CHIMNEY`). `SceneArt.AddSmoke` exista,
+    nefolosit.
+- **Ce se vede după ce arta e aprobată și urcată** (codul cade pe desenul de azi până atunci):
+  - **plasa pe ranguri,** la pragurile 10 / 25 / 50 (`ChainMath.rankOf`, pur): flotoare roșii pe ramă, apoi mai multe și
+    ață mai deasă, apoi flotoare și ramă aurii (`prop_net_water_r1..r3`, cu varianta plină);
+  - **insigna `Lv N`** trece din albastru în bronz / argint / aur (`ui_levelbadge_*`), cu textul închis pe argint și aur;
+  - **păsări** care trec peste sat la 22–48 s, singure sau în șir, cu umbra lor pe pământ (`AmbientController`,
+    `prop_bird`). Doar desen: nu se ating, nu dau nimic.
+- **Și în satul vizitat** (poarta satelor) se văd rangurile plaselor, treapta și fumul.
+- **Scos din plan:** „spumă la stâlpii plaselor". Stâlpii stau pe scândurile punții, nu în apă; spuma plasei e deja în
+  desenul ei.
+- **Rămâne din pasul 5,** fiindcă cer desen atent, iterat pe planșe: a doua înfățișare a gaterului, tavernei,
+  depozitului și forjei la nivelul 25, și pământul satului copt ca fundalul bâlciului (`village_ground.py`).
 
 ---
 
@@ -235,7 +248,7 @@ satul tău nu-l vedea nimeni: bâlciul te lăsa să te etalezi doar cu o ținut�
      permisiunile pentru game passes și developer products le pot crea eu (nume, descriere, preț, iconiță). ID-urile
      intră în `MonetizationConfig.IDS`, pe univers.
 
-**Rămâne din plan:** D62 pasul 5 (satul care crește la vedere; cere imagini noi).
+**Rămâne din plan:** a doua parte din D62 pasul 5 (a doua înfățișare a clădirilor, pământul satului copt).
 
 ---
 

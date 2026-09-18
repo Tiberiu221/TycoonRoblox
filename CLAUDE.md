@@ -143,6 +143,19 @@ un buștean de aur; de pe punte, `Grab it (E)` dă monede cât 10 / 25 / 75 s di
 capitolul 1, după al cincilea om; quest nou `Build something in your village` (felul `decor`, ținta `targetBoard`), cu
 săgeată spre avizier chiar dacă ghidajul tace. La pasul acela ai cel puțin 21 de perle; primul decor costă 20.
 
+**Satul crește la vedere [D62, pasul 5, prima parte]** — comis, **neverificat încă în Studio.**
+- **De acum:** treapta meseriei ca cinci pătrățele deasupra acoperișului (`PadController`, din `crewTiers`) și fum la
+  hornurile caselor mari și al tavernei (`PadArt.CHIMNEY`, `SceneArt.AddSmoke`).
+- **După urcarea artei:** plasa pe ranguri la pragurile 10 / 25 / 50 (`ChainMath.rankOf`, `PadArt.netSprite`), insigna
+  `Lv N` bronz / argint / aur (`Widgets.SetLevelBadgeRank`), păsările (`AmbientController`). Totul cade pe desenul de azi.
+- **Rămâne:** a doua înfățișare a clădirilor la nivelul 25 și pământul satului copt (`village_ground.py`).
+
+**Arta care așteaptă aprobarea owner-ului** (desenată, în `assets/sprites`, cu ID 0 în `Assets.luau`):
+`outfit_festival`, `outfit_minstrel`, `outfit_lampkeeper`, `outfit_harvest`, `outfit_supporter`, `prop_fair_shop`,
+`treasure_barrel_water`, `treasure_crate_water`, `prop_net_water_r1..r3` (+ `_full`), `ui_levelbadge_bronze/silver/gold`,
+`prop_bird`. Planșele sunt în scratchpad-ul sesiunii; urcarea: `python3 scripts/upload_assets.py <nume...>`. După urcarea
+lui `prop_fair_shop`, taraba intră în `FairLayout.SPOTS` (+ `ShopController` cu `Focus`) și se recoace fundalul bâlciului.
+
 **De ce nu prinde jocul [D62]** — owner-ul: „nu te prinde deloc, nu mă atrage deloc". Auditul și cifrele sunt în
 DECIZII D62; citește-l înainte de orice lucru nou pe sat. Comise și publicate pe staging, **nevăzute încă în Studio:**
 - **Pasul 1 (86e4a62):** nivelurile și treptele se simt (`StationUpgraded` / `CrewUpgraded` / `QuestClaimed`, `UI/Pop`,
@@ -150,7 +163,7 @@ DECIZII D62; citește-l înainte de orice lucru nou pe sat. Comise și publicate
 - **Pasul 2 (5a12a14):** oamenii capitolului 1 costă 5/6/7/8/10 și vin în ~2 minute; oamenii fierului 700–1100. Era 1
   la 33m36s reali.
 - **Sunetele `sfx_levelup` și `sfx_milestone`** sunt urcate și aprobate de moderare (bb301c1).
-- **Rămâne din plan:** satul care crește la vedere (pasul 5, imagini noi).
+- **Rămâne din plan:** a doua parte a pasului 5 (clădirile la nivelul 25, pământul copt).
 - **Unealtă:** `python3 scripts/economy/tune_tycoon.py eval NUME=valoare` încarcă simulatorul adevărat, suprascrie
   constante în memorie și măsoară porțile de ritm. Nu schimba constante din ochi: „jucătorul e veriga slabă" a stricat
   toată curba.

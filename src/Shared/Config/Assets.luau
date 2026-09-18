@@ -89,6 +89,8 @@ local Assets = {
     foam_south = sprite(110190084089357, 128, 16),
     -- Recuzita de decor: se imprastie determinist din seed, vezi WorldDecor
     props = {
+        -- [D62, pasul 5] pasarea care trece peste sat: doua cadre de 8x8, aripile sus si jos. Id 0 = fara pasari.
+        bird = sprite(0, 16, 8),
         tree_round = sprite(96799483152033, 48, 64),
         tree_pine = sprite(117060864160137, 40, 76),
         bush = sprite(134096272864735, 32, 28),
@@ -117,6 +119,11 @@ local Assets = {
         book = sprite(127191973761273, 28, 28), -- butonul cu jurnalul de quest-uri
         badge = sprite(113965013124745, 16, 16), -- bulina rosie cu cifra; se INTINDE, nu are 9 felii (e patrata)
         levelbadge = sprite(105967142732738, 20, 20), -- pastila albastra `Level N` de pe obiecte, 9 felii
+        -- [D62, pasul 5] insigna pe rangul nivelului (pragurile 10 / 25 / 50): aceeasi forma, alta culoare
+        -- (scripts/art/d62_growth.py). Id 0 = inca neurcata: ramane cea albastra.
+        levelbadge_bronze = sprite(0, 20, 20),
+        levelbadge_silver = sprite(0, 20, 20),
+        levelbadge_gold = sprite(0, 20, 20),
         hand = sprite(86879688969102, 24, 28), -- mana care arata, in tutorial
         glow = sprite(126803264537609, 32, 32), -- inelul reflectorului, 9 felii, mijloc transparent
         -- [D50] dara de ghidaj (sageata spre dreapta, rotita in cod) si inelul de pe jos (alb, colorat
@@ -219,6 +226,14 @@ local Assets = {
         -- scandurile pontonului; platforma pe care sta o statie; greutatile de la Weighted Nets
         net_water = sprite(84222071706088, 32, 18),
         net_water_full = sprite(94489644287184, 32, 18),
+        -- [D62, pasul 5] plasa pe ranguri: flotoare rosii (10), mai multe si ata mai deasa (25), aurii (50). Id 0 =
+        -- inca neurcate: plasa ramane cea de azi, la orice nivel.
+        net_water_r1 = sprite(0, 32, 18),
+        net_water_r1_full = sprite(0, 32, 18),
+        net_water_r2 = sprite(0, 32, 18),
+        net_water_r2_full = sprite(0, 32, 18),
+        net_water_r3 = sprite(0, 32, 18),
+        net_water_r3_full = sprite(0, 32, 18),
         deck_tile = sprite(88026317582529, 48, 48),
         platform = sprite(136060284598059, 48, 24),
         weights = sprite(116698981575799, 24, 16),

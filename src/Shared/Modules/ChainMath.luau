@@ -100,6 +100,21 @@ function ChainMath.milestoneCrossed(from: number, to: number): number?
     return crossed
 end
 
+-- [D62, pasul 5] RANGUL unui nivel, pentru ce se VEDE: 0 sub primul prag, apoi 1 / 2 / 3 la pragurile 10 / 25 / 50.
+-- Plasa isi schimba desenul si insigna `Lv N` culoarea (bronz, argint, aur). Pragurile de dincolo de 50 dubleaza in
+-- continuare debitul, dar nu mai au desen: rangul ramane 3.
+ChainMath.RANK_MAX = 3
+function ChainMath.rankOf(level: number): number
+    local rank = 0
+    for i = 1, ChainMath.RANK_MAX do
+        local threshold = StationConfig.MILESTONES[i]
+        if threshold ~= nil and level >= threshold then
+            rank = i
+        end
+    end
+    return rank
+end
+
 function ChainMath.levelOutput(base: number, level: number, kind: string): number
     local inc = StationConfig.LEVEL_INC[kind] or StationConfig.LEVEL_INC_DEFAULT
     return base * (1 + inc * (level - 1)) * ChainMath.milestoneMult(level)

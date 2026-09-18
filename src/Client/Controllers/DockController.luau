@@ -30,6 +30,7 @@ local PileView = require(script.Parent.Parent.UI.PileView)
 local PersonView = require(script.Parent.Parent.UI.PersonView)
 local Focus = require(script.Parent.Parent.UI.Focus)
 local GroundShadow = require(script.Parent.Parent.UI.GroundShadow)
+local SceneArt = require(script.Parent.SceneArt)
 
 export type Deps = {
     Plot: Frame,
@@ -372,6 +373,8 @@ local function buildTavern()
         art.Size = UDim2.fromScale(1, 1)
         art.ZIndex = 3
         art.Parent = marker
+        -- [D62, pasul 5] fum la hornul tavernei (masurat pe desen: 47 din 64, sus): e mereu deschisa
+        SceneArt.AddSmoke(marker, 0.734, 0.02)
     else
         -- arta inca neurcata: o casa de lemn simpla, cat sa se vada unde e taverna [regula 6]
         marker.BackgroundTransparency = 0.15

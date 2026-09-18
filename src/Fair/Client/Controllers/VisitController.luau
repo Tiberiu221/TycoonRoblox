@@ -587,6 +587,7 @@ function VisitController.Init(d: Deps)
                     forge = if typeof(rawStations.forge) == "number" then rawStations.forge else 1,
                 },
                 crews = tableOr(v.crews),
+                tiers = tableOr(v.tiers), -- [D62] treapta meseriilor, pentru bulinele de sub case
                 hands = hands,
                 decor = tableOr(v.decor),
                 decorCount = host.decor,

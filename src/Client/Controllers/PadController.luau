@@ -21,6 +21,7 @@ local Widgets = require(script.Parent.Parent.UI.Widgets)
 local Focus = require(script.Parent.Parent.UI.Focus)
 local GroundShadow = require(script.Parent.Parent.UI.GroundShadow)
 local PadArt = require(script.Parent.Parent.UI.PadArt)
+local SceneArt = require(script.Parent.SceneArt)
 local Pop = require(script.Parent.Parent.UI.Pop)
 
 export type Deps = {
@@ -105,6 +106,10 @@ local ruinCandidateSince = 0
 -- casa omului, mica pentru unul si mare pentru doi; la schimbare rasare de la baza. Cati oameni are fiecare
 -- meserie vine din TycoonState (SetCrews). Fara arta urcata, avizierul curat de dinainte.
 local crewCounts: { [string]: number } = {}
+-- [D62, pasul 5] treapta fiecarei meserii (1-5), din TycoonState: se vede ca buline sub numele casei
+local crewTiers: { [string]: number } = {}
+local TIER_MAX = 5
+local PIP, PIP_GAP = 6, 3
 -- [D61, partea 2] Listele (casele, avizierele, ruinele) stau in UI/PadArt, comune cu satul vizitat din balci.
 local HOME_SPRITES = PadArt.HOME_SPRITES
 
@@ -619,6 +624,57 @@ end
 
 local homeName = PadArt.homeName
 
+-- [D62, pasul 5] TREAPTA MESERIEI, deasupra acoperisului casei: cinci patratele, cele castigate aurii. Treapta nu
+-- schimba infatisarea omului, deci fara ele o treapta cumparata nu se vedea nicaieri in lume. Nu sub nume: acolo stau
+-- straturile de flori cumparate de la avizier (testul de asezare a prins suprapunerea). `y` = varful randului, fata de
+-- baza cadrului platformei (negativ = deasupra). Se redeseneaza doar randul, nu casa.
+local function drawTierPips(frame: GuiObject, tier: number, y: number)
+    local old = frame:FindFirstChild("TierPips")
+    if old ~= nil then
+        old:Destroy()
+    end
+    local holder = Instance.new("Frame")
+    holder.Name = "TierPips"
+    holder.BackgroundTransparency = 1
+    holder.AnchorPoint = Vector2.new(0.5, 0)
+    holder.Position = UDim2.new(0.5, 0, 1, y)
+    holder.Size = UDim2.fromOffset(TIER_MAX * PIP + (TIER_MAX - 1) * PIP_GAP, PIP)
+    holder.ZIndex = Z + 2
+    holder.Parent = frame
+    for i = 1, TIER_MAX do
+        local pip = Instance.new("Frame")
+        pip.Name = `Pip{i}`
+        pip.Position = UDim2.fromOffset((i - 1) * (PIP + PIP_GAP), 0)
+        pip.Size = UDim2.fromOffset(PIP, PIP)
+        pip.BorderSizePixel = 0
+        pip.BackgroundColor3 = if i <= tier then Theme.COLOR.gold else Theme.COLOR.woodDark
+        pip.BackgroundTransparency = if i <= tier then 0 else 0.45
+        pip.ZIndex = Z + 2
+        local stroke = Instance.new("UIStroke")
+        stroke.Color = Color3.fromRGB(24, 18, 12)
+        stroke.Thickness = 1
+        stroke.Parent = pip
+        pip.Parent = holder
+    end
+end
+
+-- Randul de buline al platformei unei meserii (daca ii stim treapta). `artHeight` = inaltimea desenului de pe
+-- platforma (casa sau avizierul), a carui baza sta la 8 sub cadrul platformei; se tine minte, ca o treapta noua sa
+-- poata redesena randul fara sa refaca si casa.
+local TIER_PIPS_GAP = 10 -- intre varful acoperisului si patratele
+local pipsTop: { [string]: number } = {}
+local function refreshTierPips(frame: GuiObject, padId: string, artHeight: number?)
+    if artHeight ~= nil then
+        pipsTop[padId] = 8 - artHeight - TIER_PIPS_GAP - PIP
+    end
+    local role = TycoonConfig.CREW_OF_PAD[padId]
+    local tier = if role ~= nil then crewTiers[role] else nil
+    local y = pipsTop[padId]
+    if tier ~= nil and y ~= nil then
+        drawTierPips(frame, math.clamp(math.floor(tier), 1, TIER_MAX), y)
+    end
+end
+
 -- "bought": stalp pe mal pentru platformele de plasa (plasa insasi o deseneaza NetController in
 -- apa); pentru rest, o platforma [item 2] cu cladirea dedicata deasupra cand exista sprite-ul ei,
 -- altfel o bifa. Fara stralucire -- nu mai e de vanzare, si nicio placuta -- platforma insasi
@@ -665,6 +721,8 @@ local function styleBought(frame: TextButton, pad: TycoonConfig.Pad)
         local name = homeName(pad.id)
         if name ~= nil then
             worldName(frame, name, 8 + HOME_NAME_GAP) -- [D58]
+            -- [D62, pasul 5] treapta, deasupra avizierului
+            refreshTierPips(frame, pad.id, Assets.tycoon.board.height * TycoonConfig.PROP_SCALE)
         end
         return
     end
@@ -693,6 +751,12 @@ local function styleBought(frame: TextButton, pad: TycoonConfig.Pad)
         local name = homeName(pad.id)
         if name ~= nil then
             worldName(frame, name, 8 + HOME_NAME_GAP)
+            refreshTierPips(frame, pad.id, sprite.height * scale) -- [D62, pasul 5] deasupra acoperisului
+            -- [D62, pasul 5] fum la hornul casei (casele mari au horn): satul se vede locuit
+            local chimney = PadArt.chimneyOf(pad.id, crewCountOf(pad.id))
+            if chimney ~= nil then
+                SceneArt.AddSmoke(img, chimney[1], chimney[2])
+            end
         elseif pad.id == "workshop" then
             worldName(frame, Strings.FORGE_LABEL, 8 - sprite.height * scale + FORGE_SIGN_Y)
         end
@@ -993,7 +1057,19 @@ end
 
 -- [D55] Cati oameni are fiecare meserie, din TycoonState -- INAINTE de Apply, ca prima desenare sa aleaga
 -- deja casa potrivita. Cand numarul se schimba pe o meserie cumparata, casa ei creste pe loc.
-function PadController.SetCrews(counts: { [string]: number })
+function PadController.SetCrews(counts: { [string]: number }, tiers: { [string]: number }?)
+    -- [D62, pasul 5] treapta: doar randul de buline se redeseneaza, casa ramane cum e
+    for role, tier in tiers or {} do
+        local before = crewTiers[role]
+        crewTiers[role] = tier
+        local crew = TycoonConfig.CREWS[role]
+        if before ~= tier and crew ~= nil then
+            local frame = frames[crew.pad]
+            if frame ~= nil and lastStatus[crew.pad] == "bought" then
+                refreshTierPips(frame, crew.pad)
+            end
+        end
+    end
     for role, count in counts do
         local before = crewCounts[role]
         crewCounts[role] = count

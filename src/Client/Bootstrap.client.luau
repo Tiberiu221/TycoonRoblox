@@ -139,6 +139,7 @@ local MonetizationConfig = require(ReplicatedStorage.Shared.Config.MonetizationC
 local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
 local ShopPanel = require(script.Parent.Controllers.ShopPanel)
 local DriftController = require(script.Parent.Controllers.DriftController) -- [D62, pasul 3]
+local AmbientController = require(script.Parent.Controllers.AmbientController) -- [D62, pasul 5]
 local Theme = require(script.Parent.UI.Theme)
 local layers = CameraController.Init({ WorldGui = worldGui })
 
@@ -178,6 +179,10 @@ safeInit("RiverRenderController", function()
         Layers = layers,
         RiverConfig = Net.Get("RiverConfig"),
     })
+end)
+-- [D62, pasul 5] pasarile care trec peste sat (doar desen)
+safeInit("AmbientController", function()
+    AmbientController.Init({ Scroll = layers.Scroll })
 end)
 -- [D62, pasul 3] darurile raului: devreme, ca sa prinda configul raului (samanta); zborul monedelor se leaga mai jos
 safeInit("DriftController", function()
@@ -1002,8 +1007,10 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
     staffedAt.forge = forge.staffed
     -- [D55] cati oameni are fiecare meserie: casa lor din lume creste cu ei
     local crewCounts: { [string]: number } = {}
+    local crewTiers: { [string]: number } = {} -- [D62, pasul 5] treapta se vede ca buline sub numele casei
     for _, c in crewRows do
         crewCounts[c.role] = c.count or 0
+        crewTiers[c.role] = c.tier or 1
     end
 
     -- [D59] Pontonul, camp cu camp [CLAUDE.md capcana 3]: undita (momeala, cati pesti, jurnalul), ce asteapta la ponton,
@@ -1121,7 +1128,7 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
         QuestController.Apply(snapshot.quests)
     end
     HUDController.SetSack(sackCount, sackCapacity)
-    PadController.SetCrews(crewCounts) -- [D55] inainte de Apply: prima desenare alege deja casa potrivita
+    PadController.SetCrews(crewCounts, crewTiers) -- [D55] inainte de Apply: prima desenare alege deja casa potrivita
     PadController.Apply(
         snapshot.pads,
         snapshot.coins,

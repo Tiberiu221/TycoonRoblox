@@ -113,15 +113,40 @@ end
 -- valoarea de la debarcader sunt toate acelasi lemn inchis): daca nivelul arata la fel ca restul,
 -- nu se mai vede din priviri care statie a ramas in urma -- si exact asta trebuie sa se vada fara
 -- sa deschizi vreun panou.
-function Widgets.LevelBadge(parent: GuiObject, z: number)
+-- [D62, pasul 5] Insigna pe rangul nivelului (ChainMath.rankOf): albastra sub pragul 10, apoi bronz, argint, aur. O
+-- varianta inca neurcata cade pe cea albastra.
+local RANK_BADGE = { "levelbadge_bronze", "levelbadge_silver", "levelbadge_gold" }
+-- pe argint si pe aur, textul deschis nu se mai citeste
+local RANK_TEXT = { Theme.COLOR.onDark, Theme.COLOR.ink, Theme.COLOR.ink }
+
+local function badgeSprite(rank: number?): Assets.Sprite
+    local key = if rank ~= nil then RANK_BADGE[rank] else nil
+    local sprite = if key ~= nil then (Assets.ui :: any)[key] else nil
+    return if sprite ~= nil and Assets.has(sprite) then sprite else Assets.ui.levelbadge
+end
+
+function Widgets.LevelBadge(parent: GuiObject, z: number, rank: number?)
     if Assets.has(Assets.ui.levelbadge) then
         parent.BackgroundTransparency = 1
-        local skin = sliced(parent, Assets.ui.levelbadge, Assets.UI_SLICE.levelbadge)
+        local skin = sliced(parent, badgeSprite(rank), Assets.UI_SLICE.levelbadge)
         skin.Name = "LevelSkin"
         skin.ZIndex = z
     else
         Widgets.PillBackground(parent, z)
     end
+end
+
+-- Insigna deja desenata trece pe alt rang (plasa a urcat peste un prag). Intoarce culoarea textului de pe ea.
+function Widgets.SetLevelBadgeRank(parent: GuiObject, rank: number): Color3
+    local skin = parent:FindFirstChild("LevelSkin")
+    local sprite = badgeSprite(rank)
+    if skin ~= nil and skin:IsA("ImageLabel") then
+        skin.Image = Assets.url(sprite)
+    end
+    -- culoarea textului urmeaza insigna care chiar se vede: fara varianta urcata, insigna e tot albastra
+    return if sprite ~= Assets.ui.levelbadge
+        then (RANK_TEXT[rank] or Theme.COLOR.onDark)
+        else Theme.COLOR.onDark
 end
 
 -- Fundalul comun al unei "pastile" (pastilele din HUD, eticheta plasei, valoarea la debarcader):

@@ -100,6 +100,10 @@ return function()
             check.equal(snap.crews.collector, 2)
             check.equal(snap.crews.porter, 1)
             check.equal(snap.crews.hauler, nil)
+            -- [D62] treapta meseriei, pentru bulinele de sub numele casei: doar meseriile care au oameni
+            check.equal(snap.tiers.collector, 3)
+            check.equal(snap.tiers.porter, 1)
+            check.equal(snap.tiers.hauler, nil)
             check.equal(#snap.hands, 3)
             local byId: { [string]: VillageLook.HandSnap } = {}
             for _, h in snap.hands do

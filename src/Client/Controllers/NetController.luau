@@ -30,6 +30,8 @@ local Theme = require(script.Parent.Parent.UI.Theme)
 local Focus = require(script.Parent.Parent.UI.Focus)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
 local Pop = require(script.Parent.Parent.UI.Pop)
+local PadArt = require(script.Parent.Parent.UI.PadArt)
+local ChainMath = require(ReplicatedStorage.Shared.Modules.ChainMath)
 
 export type NetSnap = {
     padId: string,
@@ -88,6 +90,8 @@ type Assembly = {
     padX: number,
     padY: number, -- pozitia stalpului (mal) -- originea fata de care se calculeaza tot restul
     lastFull: boolean,
+    lastRank: number, -- [D62] rangul desenat acum (ChainMath.rankOf): plasa si insigna se schimba la praguri
+    levelPill: GuiObject?,
     levelLabel: TextLabel?, -- insigna "Lv 7" de pe stalp
     boostTag: TextLabel, -- [D51] "Fast first catch", sub pastila cu numarul
 }
@@ -400,6 +404,8 @@ local function ensureAssembly(padId: string, x: number, y: number): Assembly
         padX = padX,
         padY = padY,
         lastFull = false,
+        lastRank = -1, -- niciun rang desenat inca: prima trecere alege desenul
+        levelPill = levelPill,
         levelLabel = levelLabel,
         boostTag = boostTag,
     }
@@ -548,7 +554,14 @@ function NetController.Apply(
         seen[snap.padId] = true
         local rec = assemblies[snap.padId]
         if rec ~= nil and rec.levelLabel ~= nil then
-            (rec.levelLabel :: TextLabel).Text = `Lv {netLevels[snap.padId] or 1}`
+            local level = netLevels[snap.padId] or 1
+            local label = rec.levelLabel :: TextLabel
+            label.Text = `Lv {level}`
+            -- [D62, pasul 5] insigna pe rangul nivelului: albastra, apoi bronz / argint / aur la pragurile 10 / 25 / 50
+            local pill = rec.levelPill
+            if pill ~= nil then
+                label.TextColor3 = Widgets.SetLevelBadgeRank(pill, ChainMath.rankOf(level))
+            end
         end
         local assembly = ensureAssembly(snap.padId, snap.x, snap.y)
         if not assembly.root.Visible then
@@ -673,11 +686,12 @@ local function updateNetMotion(now: number)
 
         -- pline: sprite intunecat + schimbat pe net_water_full -- doar la TRANZITIE, nu in fiecare
         -- cadru (Image/ImageColor3 nu costa nimic la citire, dar scrierea repetata tot n-are rost).
-        if assembly.art ~= nil and assembly.lastFull ~= full then
+        -- [D62, pasul 5] ...si la trecerea unui prag (10 / 25 / 50): plasa isi schimba desenul
+        local rank = ChainMath.rankOf(netLevels[padId] or 1)
+        if assembly.art ~= nil and (assembly.lastFull ~= full or assembly.lastRank ~= rank) then
             assembly.lastFull = full
-            local sprite = if full and Assets.has(Assets.tycoon.net_water_full)
-                then Assets.tycoon.net_water_full
-                else Assets.tycoon.net_water
+            assembly.lastRank = rank
+            local sprite = PadArt.netSprite(rank, full)
             assembly.art.Image = Assets.url(sprite)
             assembly.art.ImageColor3 = if full
                 then Color3.fromRGB(140, 140, 150)

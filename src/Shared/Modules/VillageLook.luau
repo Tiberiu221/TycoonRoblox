@@ -42,6 +42,7 @@ export type Snapshot = {
     netLevels: { [string]: number },
     stations: { saw: number, dock: number, forge: number },
     crews: { [string]: number }, -- meseria -> cati oameni (coliba mica sau mare)
+    tiers: { [string]: number }, -- [D62] meseria -> treapta (bulinele de sub numele casei)
     hands: { HandSnap },
     decor: { [string]: boolean },
     decorCount: number,
@@ -172,10 +173,12 @@ function VillageLook.of(data: { [string]: any }): Snapshot
         end
     end
     local crews: { [string]: number } = {}
+    local tiers: { [string]: number } = {}
     if typeof(data.Hands) == "table" then
         for role, crew in CrewMath.fromProfile(data.Hands, data.Crews) do
             if crew.count > 0 then
                 crews[role] = crew.count
+                tiers[role] = crew.tier
             end
         end
     end
@@ -199,6 +202,7 @@ function VillageLook.of(data: { [string]: any }): Snapshot
             forge = levelOf(stations.forge),
         },
         crews = crews,
+        tiers = tiers,
         hands = VillageLook.hands(data),
         decor = decor,
         decorCount = VillageLook.decorCount(data),

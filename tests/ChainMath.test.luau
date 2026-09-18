@@ -600,6 +600,26 @@ return function()
         end)
 
         test.case(
+            "[D62] rangul unui nivel, pentru ce se vede: 0 sub 10, apoi 1 / 2 / 3 la 10 / 25 / 50",
+            function()
+                check.equal(ChainMath.rankOf(1), 0)
+                check.equal(ChainMath.rankOf(9), 0)
+                check.equal(ChainMath.rankOf(10), 1)
+                check.equal(ChainMath.rankOf(24), 1)
+                check.equal(ChainMath.rankOf(25), 2)
+                check.equal(ChainMath.rankOf(49), 2)
+                check.equal(ChainMath.rankOf(50), 3)
+                -- pragurile de dincolo de 50 dubleaza mai departe debitul, dar nu mai au desen
+                check.equal(ChainMath.rankOf(500), ChainMath.RANK_MAX)
+                -- rangurile sunt chiar primele praguri ale scarii nivelurilor
+                for rank = 1, ChainMath.RANK_MAX do
+                    check.equal(ChainMath.rankOf(StationConfig.MILESTONES[rank]), rank)
+                    check.equal(ChainMath.rankOf(StationConfig.MILESTONES[rank] - 1), rank - 1)
+                end
+            end
+        )
+
+        test.case(
             "milestoneCrossed: pragul trecut de o cumparare, si cand sare peste el",
             function()
                 check.is_true(ChainMath.milestoneCrossed(1, 2) == nil)

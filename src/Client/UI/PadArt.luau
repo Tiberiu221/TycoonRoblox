@@ -138,6 +138,49 @@ function PadArt.ruinReady(pad: TycoonConfig.Pad): boolean
     return sprite ~= nil and Assets.has(sprite :: Assets.Sprite)
 end
 
+-- [D62, pasul 5] PLASA PE RANGURI (ChainMath.rankOf: pragurile 10 / 25 / 50): flotoare rosii, apoi mai multe si ata mai
+-- deasa, apoi aurii. `full` = varianta plina. O varianta inca neurcata cade pe rangul de sub ea, pana la plasa de azi.
+function PadArt.netSprite(rank: number, full: boolean): Assets.Sprite
+    for r = math.clamp(rank, 0, 3), 1, -1 do
+        local key = if full then `net_water_r{r}_full` else `net_water_r{r}`
+        local sprite = (Assets.tycoon :: any)[key]
+        if sprite ~= nil and Assets.has(sprite) then
+            return sprite
+        end
+    end
+    if full and Assets.has(Assets.tycoon.net_water_full) then
+        return Assets.tycoon.net_water_full
+    end
+    return Assets.tycoon.net_water
+end
+
+-- [D62, pasul 5] HORNURILE: unde iese fumul din casa unei meserii (fractiuni din desen), masurate pe foile de sprite.
+-- Casele mici n-au horn; cele mari (doi oameni) au, deci fumul e si el un semn ca meseria a crescut.
+PadArt.CHIMNEY = {
+    hut_porter_2 = { 0.675, 0.03 },
+    hut_sawyer_2 = { 0.25, 0.03 },
+    hut_hauler_2 = { 0.75, 0.03 },
+    hut_scrap_porter_2 = { 0.75, 0.03 },
+    hut_smelter_1 = { 0.688, 0.04 },
+    hut_smelter_2 = { 0.688, 0.03 },
+    hut_iron_hauler_2 = { 0.275, 0.03 },
+} :: { [string]: { number } }
+
+-- Hornul casei desenate acum pentru platforma asta (dupa cati oameni are meseria), sau nil.
+function PadArt.chimneyOf(padId: string, count: number): { number }?
+    local names = PadArt.HOME_SPRITES[padId]
+    if names == nil then
+        return nil
+    end
+    for i = math.clamp(count, 1, #names), 1, -1 do
+        local sprite = (Assets.tycoon :: any)[names[i]]
+        if sprite ~= nil and Assets.has(sprite) then
+            return PadArt.CHIMNEY[names[i]]
+        end
+    end
+    return nil
+end
+
 -- [D58] Numele de sub casa unei meserii, sau nil daca platforma nu e a unei meserii.
 function PadArt.homeName(padId: string): string?
     local role = TycoonConfig.CREW_OF_PAD[padId]

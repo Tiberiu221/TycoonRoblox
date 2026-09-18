@@ -635,6 +635,53 @@ return function()
                 end
                 check.equal(table.concat(covered, ", "), "")
 
+                -- [D62, pasul 5] treapta meseriei sta DEASUPRA acoperisului casei (cinci patratele, 42 px late). Casa
+                -- mica are 28 px de desen, cea mare 34, la x3, cu baza la pad.y + 56: banda in care pot aparea
+                -- patratelele, pentru oricare din ele, nu are voie sa fie acoperita de un decor cumparat.
+                local overPips = {}
+                for _, p in TycoonConfig.PADS do
+                    local role = TycoonConfig.CREW_OF_PAD[p.id]
+                    if p.live and role ~= nil and p.x ~= nil and p.y ~= nil then
+                        local base = (p.y :: number) + 56
+                        -- cea mai inalta si cea mai scunda casa a meseriei, pe ecran (taraba Innkeeper-ului e la x2,
+                        -- coliba Collector-ului e mai inalta decat restul)
+                        local tall, short = 34 * 3, 28 * 3
+                        if p.id == "dock_trader" then
+                            tall = Assets.tycoon.stall_2.height * TycoonConfig.PROP_SCALE
+                            short = Assets.tycoon.stall.height * TycoonConfig.PROP_SCALE
+                        elseif p.id == "first_runner" then
+                            tall = Assets.tycoon.runner_hut_2.height * 3
+                            short = Assets.tycoon.runner_hut.height * 3
+                        end
+                        local band: Box = {
+                            x0 = (p.x :: number) - 23,
+                            x1 = (p.x :: number) + 23,
+                            y0 = base - tall - 16 - 2,
+                            y1 = base - short - 10 + 2,
+                        }
+                        for _, d in VillageConfig.DECOR do
+                            if d.ground == "land" then
+                                local art = (Assets.decor :: any)[d.sprite]
+                                for i, spot in d.spots do
+                                    local b = box(
+                                        spot.x,
+                                        spot.y,
+                                        art.width * d.scale,
+                                        art.height * d.scale
+                                    )
+                                    if hit(b, band) then
+                                        table.insert(
+                                            overPips,
+                                            `decor_{d.id}_{i} peste treapta {p.id}`
+                                        )
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+                check.equal(table.concat(overPips, ", "), "")
+
                 -- sub indicatorul rotii si sub avizier (baza + 2): cele doua etichete de pe punte
                 local wheel = textBox(
                     TycoonConfig.WHEEL_STAND.x,

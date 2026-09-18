@@ -17,6 +17,7 @@ local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
 local Assets = require(ReplicatedStorage.Shared.Config.Assets)
+local ChainMath = require(ReplicatedStorage.Shared.Modules.ChainMath)
 local HandMath = require(ReplicatedStorage.Shared.Modules.HandMath)
 local HandRoutes = require(ReplicatedStorage.Shared.Modules.HandRoutes)
 local RiverConfig = require(ReplicatedStorage.Shared.Config.RiverConfig)
@@ -104,6 +105,26 @@ local function worldName(parent: Instance, text: string, x: number, y: number, w
     Theme.punch(l, 2)
 end
 
+-- [D62, pasul 5] Treapta meseriei (1-5), sub numele casei: aceleasi patratele ca in PadController.
+local function tierPips(parent: Instance, x: number, y: number, tier: number)
+    local PIP, GAP, MAX = 6, 3, 5
+    local width = MAX * PIP + (MAX - 1) * GAP
+    for i = 1, MAX do
+        local pip = Instance.new("Frame")
+        pip.Position = UDim2.fromOffset(x - width / 2 + (i - 1) * (PIP + GAP), y)
+        pip.Size = UDim2.fromOffset(PIP, PIP)
+        pip.BorderSizePixel = 0
+        pip.BackgroundColor3 = if i <= tier then Theme.COLOR.gold else Theme.COLOR.woodDark
+        pip.BackgroundTransparency = if i <= tier then 0 else 0.45
+        pip.ZIndex = 8
+        local stroke = Instance.new("UIStroke")
+        stroke.Color = Color3.fromRGB(24, 18, 12)
+        stroke.Thickness = 1
+        stroke.Parent = pip
+        pip.Parent = parent
+    end
+end
+
 -- O cladire prefabricata (taverna, depozitul, gaterul): desenul intins pe cutia ei din TycoonConfig.
 local function station(
     parent: Instance,
@@ -156,10 +177,12 @@ local function drawNet(parent: Instance, pad: TycoonConfig.Pad, level: number)
     rope.BorderSizePixel = 0
     rope.ZIndex = 4
     rope.Parent = parent
+    -- [D62, pasul 5] plasa si insigna pe rangul nivelului (pragurile 10 / 25 / 50), ca acasa
+    local rank = ChainMath.rankOf(level)
     if Assets.has(Assets.tycoon.net_water) then
         local net = image(
             parent,
-            Assets.tycoon.net_water,
+            PadArt.netSprite(rank, false),
             TycoonConfig.NET_DRAW.w,
             TycoonConfig.NET_DRAW.h,
             5
@@ -174,8 +197,9 @@ local function drawNet(parent: Instance, pad: TycoonConfig.Pad, level: number)
     pill.BackgroundTransparency = 1
     pill.ZIndex = 6
     pill.Parent = parent
-    Widgets.LevelBadge(pill, 6)
+    Widgets.LevelBadge(pill, 6, rank)
     local text = Widgets.Label(pill, `Lv {level}`, Theme.TEXT.tiny, Theme.COLOR.onDark, "display")
+    text.TextColor3 = Widgets.SetLevelBadgeRank(pill, rank)
     text.AnchorPoint = Vector2.new(0.5, 0.5)
     text.Position = UDim2.fromScale(0.5, 0.5)
     text.Size = UDim2.fromOffset(52, 18)
@@ -237,9 +261,19 @@ local function drawBought(parent: Instance, pad: TycoonConfig.Pad, village: Vill
     local sprite, scale = PadArt.bought(pad.id, count)
     local name = PadArt.homeName(pad.id)
     if sprite ~= nil and Assets.has(sprite) then
-        standing(parent, sprite, x, base, sprite.width * scale, sprite.height * scale, 3, 0.55)
+        local house =
+            standing(parent, sprite, x, base, sprite.width * scale, sprite.height * scale, 3, 0.55)
         if name ~= nil then
             worldName(parent, name, x, base + 2)
+            -- [D62, pasul 5] treapta meseriei si fumul de la horn, ca acasa
+            local tier = if role ~= nil then village.tiers[role] else nil
+            if tier ~= nil then
+                tierPips(parent, x, base - sprite.height * scale - 16, tier) -- deasupra acoperisului, ca acasa
+            end
+            local chimney = PadArt.chimneyOf(pad.id, count)
+            if chimney ~= nil then
+                SceneArt.AddSmoke(house, chimney[1], chimney[2])
+            end
         elseif pad.id == "workshop" then
             worldName(parent, Strings.FORGE_LABEL, x, base - sprite.height * scale + 30)
         end
