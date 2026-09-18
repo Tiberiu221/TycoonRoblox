@@ -1,9 +1,9 @@
-run: 35369753823
-sha: 7abf7a696cf94af16a97da0b2b6ef75ee5ffdfed
-finished: 2026-09-18T16:40:38Z
+run: 35371530724
+sha: f1019ca19634ef995881d9a2eaa9d0335fa1eb4d
+finished: 2026-09-18T16:58:43Z
 lint-format-test: success
-publish-staging: success
-smoke-test-staging: success
+publish-staging: failure
+smoke-test-staging: skipped
 steps:
   lint-format-test / Set up job: success
   lint-format-test / Run actions/checkout@v4: success
@@ -25,19 +25,14 @@ steps:
   lint-format-test / Complete job: success
   publish-staging / Set up job: success
   publish-staging / Run actions/checkout@v4: success
-  publish-staging / Install Rokit: success
-  publish-staging / Run echo "$HOME/.rokit/bin" >> "$GITHUB_PATH": success
-  publish-staging / Run rokit install --no-trust-check: success
-  publish-staging / Run wally install: success
-  publish-staging / Build place: success
-  publish-staging / Build fair place: success
-  publish-staging / Publish to Driftwood-Staging (Open Cloud): success
-  publish-staging / Publish fair place to Driftwood-Staging (Open Cloud): success
-  publish-staging / Upload artifact tagged with versionNumber: success
+  publish-staging / Install Rokit: failure
+  publish-staging / Run echo "$HOME/.rokit/bin" >> "$GITHUB_PATH": skipped
+  publish-staging / Run rokit install --no-trust-check: skipped
+  publish-staging / Run wally install: skipped
+  publish-staging / Build place: skipped
+  publish-staging / Build fair place: skipped
+  publish-staging / Publish to Driftwood-Staging (Open Cloud): skipped
+  publish-staging / Publish fair place to Driftwood-Staging (Open Cloud): failure
+  publish-staging / Upload artifact tagged with versionNumber: skipped
   publish-staging / Post Run actions/checkout@v4: success
   publish-staging / Complete job: success
-  smoke-test-staging / Set up job: success
-  smoke-test-staging / Run actions/checkout@v4: success
-  smoke-test-staging / Run smoke tests via Open Cloud Luau Execution: success
-  smoke-test-staging / Post Run actions/checkout@v4: success
-  smoke-test-staging / Complete job: success
