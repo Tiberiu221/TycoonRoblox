@@ -217,6 +217,20 @@ function PresenceService.PositionOf(player: Player): (number?, number?)
     return mark.sample.x, mark.sample.y
 end
 
+-- [D61, partea 2] Serverul te pune undeva (in fata arcadei, cat esti in vizita in satul altcuiva): te ridica de pe loc
+-- si urmatorul pachet de pozitie se masoara de aici.
+function PresenceService.PlaceAt(player: Player, x: number, y: number)
+    local mark = marks[player]
+    if mark == nil or not FairLayout.isWalkable(x, y) then
+        return
+    end
+    freeSeat(player)
+    mark.sample = { x = x, y = y, t = os.clock() }
+    mark.facing = "up"
+    mark.moving = false
+    mark.fishing = false
+end
+
 -- Cartea de vizita a unui om de pe server (numele, tinuta, titlul), pentru cardul lui.
 function PresenceService.CardOf(userId: number): Person?
     for _, mark in marks do

@@ -678,6 +678,7 @@ Strings.CARD_INCOME_UNKNOWN = "Not measured yet"
 Strings.CARD_FISH = "Biggest fish"
 Strings.CARD_NO_FISH = "None yet"
 Strings.CARD_TREASURES = "Pulled from the river"
+Strings.CARD_LIKES = "Village likes" -- [D61, partea 2]
 Strings.CARD_DECOR = "Village decor"
 Strings.CARD_JOURNAL = "Journal"
 Strings.CARD_ADD_FRIEND = "Add friend"
@@ -747,6 +748,54 @@ function Strings.tailorTrying(name: string): string
 end
 function Strings.tailorWearing(name: string): string
     return `Wearing: {name}`
+end
+-- [D61, partea 2] Poarta satelor: vizitezi satul altui om din balci, ca fotografie; un like pe zi pentru fiecare sat.
+Strings.VISIT_TITLE = "Village Gate"
+function Strings.visitCard(keyHint: string): string
+    return `Village Gate{keyHint}`
+end
+Strings.VISIT_BLURB = "Visit the village of anyone at the fair. Look around; nothing can be taken."
+Strings.VISIT_EMPTY = "Nobody else is at the fair right now."
+function Strings.visitMyLikes(likes: number): string
+    return if likes == 1 then "Your village has 1 like" else `Your village has {likes} likes`
+end
+Strings.VISIT_BUTTON = "Visit"
+Strings.VISIT_CARD_BUTTON = "Visit village"
+function Strings.visitRowSub(era: number, decor: number, likes: number): string
+    return `Era {era} · {decor} decorations · {likes} likes`
+end
+function Strings.visitMiniCard(name: string, keyHint: string): string
+    return `Visit {name}'s village{keyHint}`
+end
+function Strings.visitBannerTop(name: string): string
+    return `{name}'s village`
+end
+function Strings.visitBannerBottom(era: number, decor: number, likes: number): string
+    return `Era {era} · {decor} decorations · {likes} likes`
+end
+Strings.VISIT_GUEST_BOOK = "Guest Book"
+function Strings.visitLikeCard(keyHint: string): string
+    return `Leave a like{keyHint}`
+end
+Strings.VISIT_LIKED_TODAY = "Liked today"
+function Strings.visitBack(keyHint: string): string
+    return `Back to the fair{keyHint}`
+end
+function Strings.visitLikedToast(name: string): string
+    return `{name} liked your village`
+end
+function Strings.visitLikeGiven(name: string): string
+    return `You liked {name}'s village`
+end
+function Strings.visitRefused(reason: string): string
+    if reason == "gone" then
+        return "They just left the fair"
+    elseif reason == "already" then
+        return "You already liked this village today"
+    elseif reason == "self" then
+        return "That's your own village"
+    end
+    return "Can't do that right now"
 end
 -- marginile balciului care se deschid in D61: placuta lor spune asta, ca nimeni sa nu astepte degeaba [D43]
 Strings.FAIR_OPENS_SOON = "Opens soon"

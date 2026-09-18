@@ -20,6 +20,7 @@ local ChainMath = require(ReplicatedStorage.Shared.Modules.ChainMath)
 local CrewMath = require(ReplicatedStorage.Shared.Modules.CrewMath)
 local HandMath = require(ReplicatedStorage.Shared.Modules.HandMath)
 local HandRoutes = require(ReplicatedStorage.Shared.Modules.HandRoutes)
+local VillageLook = require(ReplicatedStorage.Shared.Modules.VillageLook)
 local DataService = require(script.Parent.DataService)
 local EconomyService = require(script.Parent.EconomyService)
 local RiverService = require(script.Parent.RiverService)
@@ -48,54 +49,15 @@ local function push(player: Player)
     end
 end
 
--- Oglinda lui netEffectOf din PadService/NetService: rata plasei acestei platforme.
-local function netEffectOf(pad: TycoonConfig.Pad): number?
-    for _, e in pad.effects do
-        if e.kind == "net" then
-            return e.rate
-        end
-    end
-    return nil
-end
-
--- Plasele DETINUTE, in ordinea platformelor -- intrarea pe care o cere HandRoutes.
+-- Plasele DETINUTE, in ordinea platformelor -- intrarea pe care o cere HandRoutes. [D61] Lista traieste in
+-- VillageLook (modul pur), ca fotografia satului vizitat din balci sa foloseasca exact aceeasi.
 local function ownedNetIds(data: DataService.ProfileData): { string }
-    local ids: { string } = {}
-    for _, p in TycoonConfig.PADS do
-        if data.Pads[p.id] and netEffectOf(p) ~= nil then
-            table.insert(ids, p.id)
-        end
-    end
-    return ids
+    return VillageLook.ownedNets(data.Pads)
 end
 
 local function routeKey(hand: Hand, index: number, count: number, nets: { string }): string
     local netsPart = if HandRoutes.netKindOf(hand.role) ~= nil then table.concat(nets, ",") else ""
     return `{hand.role}|{index}|{count}|{netsPart}`
-end
-
--- [D55] Ce se vede in roaba: felul cu cele mai multe bucati, la egalitate cel dinainte in GOODS.
-local GOOD_ORDER: { [string]: number } = {}
-for i, g in TycoonConfig.GOODS do
-    GOOD_ORDER[g.id] = i
-end
-local function carryKind(items: { Catch }): string?
-    local counts: { [string]: number } = {}
-    local best: string? = nil
-    for _, item in items do
-        counts[item.g] = (counts[item.g] or 0) + 1
-    end
-    for good, n in counts do
-        local b = best
-        if
-            b == nil
-            or n > counts[b]
-            or (n == counts[b] and (GOOD_ORDER[good] or 99) < (GOOD_ORDER[b] or 99))
-        then
-            best = good
-        end
-    end
-    return best
 end
 
 -- ANGAJAREA [D49], una singura pentru toate meseriile (apelata de PadService la platforma meseriei si
@@ -210,40 +172,11 @@ end
 -- HandRoutes cu exact aceleasi argumente (`role`, `index`, `count`, `nets`), deci il deseneaza unde e.
 function HandService.Snapshot(player: Player): { any }
     local data = DataService.Get(player)
-    local result = {}
     if data == nil then
-        return result
+        return {}
     end
-    local nets = ownedNetIds(data)
-    local crews = CrewMath.fromProfile(data.Hands, data.Crews)
-    for id, hand in data.Hands do
-        local crew = crews[hand.role] or { count = 0, tier = 1 }
-        local index = CrewMath.indexOf(id)
-        local walker = HandRoutes.isWalker(hand.role)
-        local stand = HandRoutes.standFor(hand.role, index)
-        local capacity = 0
-        if walker then
-            local cycle = HandRoutes.cycleFor(hand.role, index, crew.count, nets)
-            capacity = HandRoutes.loadFor(ChainMath.walkerRate(hand.role, crew), cycle.duration)
-        end
-        table.insert(result, {
-            id = id,
-            role = hand.role,
-            name = hand.name,
-            index = index,
-            count = crew.count,
-            tier = crew.tier,
-            nets = if walker then nets else {},
-            cycleStartAt = hand.cycleStartAt,
-            carrying = #hand.carry,
-            carryKind = carryKind(hand.carry), -- [D55] ce se vede in roaba
-            capacity = capacity,
-            appearance = hand.appearance,
-            x = if stand ~= nil then stand.x else nil,
-            y = if stand ~= nil then stand.y else nil,
-        })
-    end
-    return result
+    -- [D61] lista se face in VillageLook (modul pur, testat): aceeasi pentru satul tau si pentru cine te viziteaza
+    return VillageLook.hands(data)
 end
 
 local function tick(at: number)

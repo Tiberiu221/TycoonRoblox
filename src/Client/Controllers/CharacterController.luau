@@ -137,6 +137,16 @@ function CharacterController.StandUp()
     end
 end
 
+-- [D61, partea 2] Omul apare in alt loc (intri in satul vizitat, te intorci la arcada). Te ridica de pe loc; fata o
+-- alegi tu, ca sa nu apari cu spatele la ce ai venit sa vezi.
+function CharacterController.Teleport(nx: number, ny: number, newFacing: string?)
+    CharacterController.StandUp()
+    x, y = nx, ny
+    if newFacing ~= nil then
+        facing = newFacing
+    end
+end
+
 function CharacterController.IsSeated(): boolean
     return seat ~= nil
 end

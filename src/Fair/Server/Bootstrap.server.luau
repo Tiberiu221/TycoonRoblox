@@ -29,6 +29,7 @@ local MarketService = require(Services:WaitForChild("MarketService"))
 local LeaderboardService = require(Services:WaitForChild("LeaderboardService"))
 local PondService = require(Services:WaitForChild("PondService"))
 local BoothService = require(Services:WaitForChild("BoothService"))
+local VisitService = require(Services:WaitForChild("VisitService"))
 local FairNetServer = require(NetFolder:WaitForChild("FairNetServer"))
 local RateLimiter = require(NetFolder:WaitForChild("RateLimiter"))
 
@@ -104,6 +105,18 @@ PondService.Init({
     PositionOf = PresenceService.PositionOf,
 })
 
+-- [D61, partea 2] poarta satelor: fotografia satului altui om din balci, si like-urile
+VisitService.Init({
+    PlaceAt = PresenceService.PlaceAt,
+    OnLiked = function(host: Player, visitorName: string, likes: number)
+        Net.Get("VisitLiked"):FireClient(host, visitorName, likes)
+        FairNetServer.PushState(host)
+    end,
+    Now = function(): number
+        return os.time()
+    end,
+})
+
 -- [D61] gheretele de joc
 BoothService.Init({ PushState = FairNetServer.PushState, PositionOf = PresenceService.PositionOf })
 
@@ -121,6 +134,7 @@ FairNetServer.Init({
     Fish = FishService,
     Pond = PondService,
     Booth = BoothService,
+    Visits = VisitService,
 })
 DataService.Init({ Place = "fair" })
 

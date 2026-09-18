@@ -30,6 +30,8 @@ local LIMITS: { [string]: { capacity: number, refillPerSecond: number } } = {
     Booth = { capacity = 4, refillPerSecond = 1 },
     -- [D61] mesele: te asezi, te ridici, faci cu mana (Wave are si pauza lui de 2 s pe server)
     Seat = { capacity = 4, refillPerSecond = 1 },
+    -- [D61, partea 2] poarta satelor: lista, fotografia unui sat, like-ul
+    Visit = { capacity = 4, refillPerSecond = 1 },
 }
 RateLimiter.LIMITS = LIMITS
 

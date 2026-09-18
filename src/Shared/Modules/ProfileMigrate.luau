@@ -341,4 +341,23 @@ function ProfileMigrate.toV12(data: { [string]: any })
     data.Meta.version = 12
 end
 
+-- [D61, partea 2] Poarta satelor: like-urile primite de satul tau si cele date de tine azi (un like pe zi pentru
+-- fiecare sat, vezi VisitMath). Aditiv, in tabela Fair (pe care o face toV10 daca lipseste).
+function ProfileMigrate.toV13(data: { [string]: any })
+    local version = if data.Meta ~= nil and data.Meta.version ~= nil then data.Meta.version else 1
+    if version >= 13 then
+        return
+    end
+    if typeof(data.Fair) ~= "table" then
+        data.Fair = { firstVisit = 0, visits = 0 }
+    end
+    if typeof(data.Fair.likes) ~= "number" then
+        data.Fair.likes = 0
+    end
+    if typeof(data.Fair.liked) ~= "table" then
+        data.Fair.liked = { day = 0, ids = {} }
+    end
+    data.Meta.version = 13
+end
+
 return ProfileMigrate

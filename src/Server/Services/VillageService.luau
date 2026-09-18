@@ -169,6 +169,10 @@ function VillageService.SetLook(player: Player, look: unknown): (boolean, string
     end
     local v = villageOf(data)
     v.look = LookMath.clean(look)
+    if not data.Firsts.FirstLookSaved then
+        data.Firsts.FirstLookSaved = true
+        Analytics.FairStep(player, "FirstLookSaved")
+    end
     push(player)
     return true, "ok"
 end

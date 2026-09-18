@@ -58,6 +58,14 @@ export type Deps = {
         Start: (Player, string) -> (boolean, string, number?, number?),
         Finish: (Player, unknown) -> (boolean, string, { [string]: any }?),
     },
+    -- [D61, partea 2] poarta satelor
+    Visits: {
+        List: (Player) -> { { [string]: any } },
+        Look: (Player, number) -> (boolean, string, { [string]: any }?),
+        Leave: (Player) -> (),
+        Like: (Player, number) -> (boolean, string, number?),
+        LikesOf: (Player) -> number,
+    },
 }
 
 local function isInteger(value: unknown): boolean
@@ -81,6 +89,7 @@ local function buildState(player: Player): { [string]: any }
         titles = deps.Titles.Snapshot(player),
         market = deps.Market.Snapshot(player),
         booth = deps.Booth.Snapshot(player),
+        likes = deps.Visits.LikesOf(player), -- [D61, partea 2] cate like-uri are satul tau
         settings = { musicLevel = musicLevel, soundLevel = soundLevel },
     }
 end
@@ -199,6 +208,35 @@ function FairNetServer.Init(d: Deps)
         end
         local card = deps.Cards.Of(userId :: number)
         Net.Get("LookAtResult"):FireClient(player, card, userId)
+    end)
+
+    -- [D61, partea 2] POARTA SATELOR. Lista celor din balci, fotografia unui sat, intoarcerea si like-ul. Toate pe
+    -- aceeasi limita; userId-ul e verificat ca la cardul altui om (intreg finit), restul il hotaraste VisitService.
+    Net.Get("VisitList").OnServerEvent:Connect(function(player: Player)
+        if not RateLimiter.Allow(player, "Visit") then
+            return
+        end
+        Net.Get("VisitList"):FireClient(player, deps.Visits.List(player))
+    end)
+    Net.Get("VisitLook").OnServerEvent:Connect(function(player: Player, userId: unknown)
+        if not RateLimiter.Allow(player, "Visit") or not isInteger(userId) then
+            return
+        end
+        local ok, reason, payload = deps.Visits.Look(player, userId :: number)
+        Net.Get("VisitLookResult"):FireClient(player, ok, reason, payload)
+    end)
+    Net.Get("VisitLeave").OnServerEvent:Connect(function(player: Player)
+        if not RateLimiter.Allow(player, "Visit") then
+            return
+        end
+        deps.Visits.Leave(player)
+    end)
+    Net.Get("VisitLike").OnServerEvent:Connect(function(player: Player, userId: unknown)
+        if not RateLimiter.Allow(player, "Visit") or not isInteger(userId) then
+            return
+        end
+        local ok, reason, likes = deps.Visits.Like(player, userId :: number)
+        Net.Get("VisitLikeResult"):FireClient(player, ok, reason, likes)
     end)
 
     -- [D61] Iazul: aceeasi undita ca in sat. Se arunca doar de pe jetiu (pozitia o stie PresenceService); raspunsul are

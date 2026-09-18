@@ -20,6 +20,8 @@ export type Deps = {
     HudGui: Frame,
     Remotes: { LookAt: RemoteEvent, LookAtResult: RemoteEvent },
     OnToast: (string, Color3?) -> (),
+    -- [D61, partea 2] `Visit village`: fotografia satului lui, prin poarta satelor (VisitController.Visit)
+    OnVisit: ((userId: number) -> ())?,
 }
 
 local PlayerCardController = {}
@@ -33,10 +35,13 @@ local titleLabel: TextLabel
 local eraLabel: TextLabel
 local values: { [string]: TextLabel } = {}
 local friendButton: TextButton
+local visitButton: TextButton
 
 local PANEL_W, PANEL_H = 480, 460
 local Z = 72
-local ROWS = { "income", "fish", "treasures", "decor", "journal" }
+local ROWS = { "income", "fish", "treasures", "decor", "likes", "journal" }
+local ROW_STEP = 32 -- sase randuri intre portret si butoane (cutiile: check_panel_rows.py, PLAYER_CARD)
+local BUTTON_W = 210
 
 -- Portretul: omul in tinuta lui si [D61] cu chipul lui, cadrul idle spre tine (UI/Portrait, comun cu avizierul).
 local function drawPortrait(outfit: string, look: LookMath.Look)
@@ -57,9 +62,12 @@ local function show(card: { [string]: any })
         else Strings.CARD_NO_FISH
     values.treasures.Text = tostring(card.treasures)
     values.decor.Text = tostring(card.decor)
+    values.likes.Text = tostring(card.likes)
     values.journal.Text = Strings.cardOf(card.species, card.speciesTotal)
     drawPortrait(card.outfit, card.look)
-    friendButton.Visible = card.userId ~= Players.LocalPlayer.UserId
+    local other = card.userId ~= Players.LocalPlayer.UserId
+    friendButton.Visible = other
+    visitButton.Visible = other and (deps :: Deps).OnVisit ~= nil
     Panels.CloseOthers("card")
     open = true
     window.Visible = true
@@ -129,10 +137,11 @@ function PlayerCardController.Init(d: Deps)
         fish = Strings.CARD_FISH,
         treasures = Strings.CARD_TREASURES,
         decor = Strings.CARD_DECOR,
+        likes = Strings.CARD_LIKES,
         journal = Strings.CARD_JOURNAL,
     }
     for i, key in ROWS do
-        local y = 120 + (i - 1) * 34
+        local y = 116 + (i - 1) * ROW_STEP
         local label =
             Widgets.Label(body, labels[key], Theme.TEXT.small, Theme.COLOR.inkSoft, "body")
         label.Position = UDim2.fromOffset(0, y)
@@ -151,7 +160,7 @@ function PlayerCardController.Init(d: Deps)
     friendButton = Widgets.Button(body, {
         text = Strings.CARD_ADD_FRIEND,
         icon = "people",
-        width = 220,
+        width = BUTTON_W,
         height = 48,
         z = Z + 2,
         onClick = function()
@@ -166,8 +175,26 @@ function PlayerCardController.Init(d: Deps)
             end)
         end,
     })
-    friendButton.AnchorPoint = Vector2.new(0.5, 1)
-    friendButton.Position = UDim2.fromScale(0.5, 1)
+    friendButton.AnchorPoint = Vector2.new(0, 1)
+    friendButton.Position = UDim2.fromScale(0, 1)
+
+    -- [D61, partea 2] satul lui, ca fotografie: acelasi drum ca de la poarta satelor
+    visitButton = Widgets.Button(body, {
+        text = Strings.VISIT_CARD_BUTTON,
+        width = BUTTON_W,
+        height = 48,
+        z = Z + 2,
+        onClick = function()
+            local visit = d.OnVisit
+            if visit ~= nil and shownUserId ~= 0 then
+                PlayerCardController.Close()
+                visit(shownUserId)
+            end
+        end,
+    })
+    visitButton.AnchorPoint = Vector2.new(1, 1)
+    visitButton.Position = UDim2.fromScale(1, 1)
+    Widgets.SetButtonTone(visitButton, Theme.COLOR.gold)
 
     d.Remotes.LookAtResult.OnClientEvent:Connect(function(card: any, _userId: unknown)
         if typeof(card) ~= "table" then
@@ -182,6 +209,7 @@ function PlayerCardController.Init(d: Deps)
             outfit = if typeof(card.outfit) == "string" then card.outfit else "keeper",
             look = LookMath.clean(card.look), -- [D61]
             era = if typeof(card.era) == "number" then card.era else 1,
+            likes = if typeof(card.likes) == "number" then card.likes else 0, -- [D61, partea 2]
             incomePerSec = if typeof(card.incomePerSec) == "number" then card.incomePerSec else 0,
             fish = if typeof(card.fish) == "string" then card.fish else nil,
             fishCm = if typeof(card.fishCm) == "number" then card.fishCm else 0,

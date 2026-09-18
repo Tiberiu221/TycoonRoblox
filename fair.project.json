@@ -94,6 +94,9 @@
         "TitleService": {
           "$path": "src/Fair/Server/Services/TitleService.luau"
         },
+        "VisitService": {
+          "$path": "src/Fair/Server/Services/VisitService.luau"
+        },
         "TreasureService": {
           "$path": "src/Server/Services/TreasureService.luau"
         },

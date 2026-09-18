@@ -41,6 +41,8 @@ export type Deps = {
     Facing: () -> string,
     IsMoving: () -> boolean,
     Remotes: { Where: UnreliableRemoteEvent, Crowd: UnreliableRemoteEvent, People: RemoteEvent },
+    -- [D61, partea 2] esti in vizita in satul altcuiva: pozitia ta e pe alta harta, deci nu se trimite
+    IsAway: (() -> boolean)?,
     -- "Look at Mara (E)": cardul altui om (PlayerCardController)
     OnLookAt: (Person) -> (),
     LookAtText: (string, string) -> string,
@@ -388,6 +390,10 @@ function PresenceController.Init(d: Deps)
         draw(dt)
         local now = os.clock()
         if now - lastSent < SEND_EVERY then
+            return
+        end
+        local isAway = d.IsAway
+        if isAway ~= nil and isAway() then
             return
         end
         local x, y = d.CharacterPos()

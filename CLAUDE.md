@@ -97,14 +97,31 @@ stylua/selene o prind. Rulează-le mereu pe toate, nu înlănțuite după o eroa
 
 ## Stare (2026-09-18)
 
+**Planul aprobat pe 2026-09-18** (`~/.claude/plans/lexical-percolating-bunny.md`): D61 partea a doua (croitoreasa, poarta
+satelor, colțul cu Robux), apoi D62 pașii 3–5 (darurile râului, undița și avizierul devreme, satul care crește la
+vedere). Owner-ul: „tot ce știi sigur că funcționează, fără presupus. nu uita de monetizare".
+
+**Croitoreasa și poarta satelor [D61, partea 2]** — comise, **neverificate încă în Studio.** Detaliile în DECIZII.
+- **Croitoreasa (55d9056):** `Tailor (E)` la cort; `Look` gratuit (`LookMath`, profil **v12** `Village.look`) și ținutele
+  (`TailorController`, remote-uri `BuyOutfit` / `WearOutfit` / `SetLook`). `UI/Portrait` e singurul desen de portret.
+- **Patru ținute noi** (`festival`, `minstrel`, `lampkeeper`, `harvest`), **cu foile neurcate**: cer acordul owner-ului
+  pe planșa `croitoreasa_tinute.png`. Până atunci scriu `Still being sewn` și serverul refuză cumpărarea (`"soon"`).
+  Urcarea: `python3 scripts/upload_assets.py outfit_festival outfit_minstrel outfit_lampkeeper outfit_harvest`.
+- **Poarta satelor:** vizita e o **fotografie** a satului gazdei, desenată în bâlci (`VillageLook` pur → `VisitService` →
+  `VillageDiorama`), nu un teleport. `VisitController`: panoul porții, machetele, întunericul, `Back to the fair` (Q),
+  cartea de oaspeți cu un like pe zi (`VisitMath`, profil **v13** `Fair.likes` / `Fair.liked`).
+- **Mutate în module comune, ca să nu existe două liste:** alegerea desenului unei platforme (`UI/PadArt`, din
+  `PadController`) și lista oamenilor (`VillageLook.hands`, din `HandService.Snapshot`).
+- `CameraController.SetWorld` / `ResetWorld` și `CharacterController.Teleport` sunt noi și comune ambelor place-uri.
+- Trece poarta (471 de teste). De verificat cu doi clienți (Test → Clients and Servers) în `Balci.rbxl`.
+
 **De ce nu prinde jocul [D62]** — owner-ul: „nu te prinde deloc, nu mă atrage deloc". Auditul și cifrele sunt în
 DECIZII D62; citește-l înainte de orice lucru nou pe sat. Comise și publicate pe staging, **nevăzute încă în Studio:**
 - **Pasul 1 (86e4a62):** nivelurile și treptele se simt (`StationUpgraded` / `CrewUpgraded` / `QuestClaimed`, `UI/Pop`,
   banner la pragurile 10/25/50, bară până la prag în meniu). Recompensa capitolului se plătește în sfârșit.
 - **Pasul 2 (5a12a14):** oamenii capitolului 1 costă 5/6/7/8/10 și vin în ~2 minute; oamenii fierului 700–1100. Era 1
   la 33m36s reali.
-- **Sunetele `sfx_levelup` și `sfx_milestone`** sunt sintetizate, neurcate (cer acordul owner-ului); până atunci se aud
-  `pop` și `chime`.
+- **Sunetele `sfx_levelup` și `sfx_milestone`** sunt urcate și aprobate de moderare (bb301c1).
 - **În așteptarea owner-ului:** darurile râului (monede din ce prinzi cu mâna, amendează D59), undița și avizierul mai
   devreme în quest-uri, satul care crește la vedere (imagini noi).
 - **Unealtă:** `python3 scripts/economy/tune_tycoon.py eval NUME=valoare` încarcă simulatorul adevărat, suprascrie

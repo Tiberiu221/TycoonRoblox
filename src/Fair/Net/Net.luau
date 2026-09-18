@@ -45,6 +45,14 @@ local REMOTE_NAMES = {
     "Stand", -- C->S: te-ai ridicat
     "Wave", -- C->S: faci cu mana (2 s)
     "SeatResult", -- S->C {seatId, ok, reason}: clientul s-a asezat deja; la refuz ("taken" | "too_far") se ridica
+    -- [D61, partea 2] poarta satelor (VisitService): satul altui om din balci, ca fotografie
+    "VisitList", -- C->S: cine e acum in balci; S->C {hosts}: numele, titlul, Era, decoruri, like-uri, liked
+    "VisitLook", -- C->S {userId}: vreau sa-i vad satul
+    "VisitLookResult", -- S->C {ok, reason, payload}: {host, village = VillageLook.Snapshot}
+    "VisitLeave", -- C->S: m-am intors in balci
+    "VisitLike", -- C->S {userId}: un like pe zi pentru fiecare sat, doar cat esti in vizita acolo
+    "VisitLikeResult", -- S->C {ok, reason, likes}
+    "VisitLiked", -- S->C {visitorName, likes}: gazda afla pe loc
 }
 
 -- [D60] Pozitiile, de zece ori pe secunda: un pachet pierdut nu conteaza, urmatorul vine imediat. Aceeasi regula ca

@@ -20,6 +20,7 @@ local Theme = require(script.Parent.Parent.UI.Theme)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
 local Focus = require(script.Parent.Parent.UI.Focus)
 local GroundShadow = require(script.Parent.Parent.UI.GroundShadow)
+local PadArt = require(script.Parent.Parent.UI.PadArt)
 local Pop = require(script.Parent.Parent.UI.Pop)
 
 export type Deps = {
@@ -104,20 +105,8 @@ local ruinCandidateSince = 0
 -- casa omului, mica pentru unul si mare pentru doi; la schimbare rasare de la baza. Cati oameni are fiecare
 -- meserie vine din TycoonState (SetCrews). Fara arta urcata, avizierul curat de dinainte.
 local crewCounts: { [string]: number } = {}
-local HOME_SPRITES: { [string]: { string } } = {
-    first_runner = { "runner_hut", "runner_hut_2" },
-    hire_porter = { "hut_porter_1", "hut_porter_2" },
-    hire_sawyer = { "hut_sawyer_1", "hut_sawyer_2" },
-    hire_hauler = { "hut_hauler_1", "hut_hauler_2" },
-    dock_trader = { "stall", "stall_2" },
-    -- [D56] oamenii fierului, fiecare langa locul lui
-    hire_scrap_collector = { "hut_scrap_collector_1", "hut_scrap_collector_2" },
-    hire_scrap_porter = { "hut_scrap_porter_1", "hut_scrap_porter_2" },
-    hire_smelter = { "hut_smelter_1", "hut_smelter_2" },
-    hire_iron_hauler = { "hut_iron_hauler_1", "hut_iron_hauler_2" },
-}
--- taraba ramane recuzita mica (x2); colibele sunt cladiri (x3)
-local HOME_SCALE: { [string]: number } = { dock_trader = TycoonConfig.PROP_SCALE }
+-- [D61, partea 2] Listele (casele, avizierele, ruinele) stau in UI/PadArt, comune cu satul vizitat din balci.
+local HOME_SPRITES = PadArt.HOME_SPRITES
 
 -- [D58] NUMELE PE CASE. Owner-ul, pe randul de colibe: "as vrea sa apara numele a cui casuta este (pentru upgrade)".
 -- Sub casa fiecarei meserii, numele ei, cum il scrie meniul care se deschide de acolo; ca "Lucky Wheel" sub roata:
@@ -125,40 +114,8 @@ local HOME_SCALE: { [string]: number } = { dock_trader = TycoonConfig.PROP_SCALE
 local HOME_NAME_GAP = 2 -- px sub baza cladirii
 local FORGE_SIGN_Y = 30 -- px de la varful cladirii: pe acoperis, ca firma tavernei (DockController)
 
--- Avizierele: pe oameni ii angajezi, nu ii reconstruiesti. Pictograma meseriei pe avizierul curat.
-local BOARD_ICON: { [string]: () -> Assets.Sprite } = {
-    hire_porter = function()
-        return Assets.goods.driftwood
-    end,
-    hire_sawyer = function()
-        return Assets.icons.saw
-    end,
-    hire_hauler = function()
-        return Assets.goods.planks
-    end,
-    -- [D56] linia fierului: plasa, scrap-ul, ciocanul, fierul
-    hire_scrap_collector = function()
-        return Assets.icons.net
-    end,
-    hire_scrap_porter = function()
-        return Assets.goods.scrap
-    end,
-    hire_smelter = function()
-        return Assets.icons.hammer
-    end,
-    hire_iron_hauler = function()
-        return Assets.goods.iron
-    end,
-}
-
-local function isNetPad(pad: TycoonConfig.Pad): boolean
-    for _, e in pad.effects do
-        if e.kind == "net" then
-            return true
-        end
-    end
-    return false
-end
+local BOARD_ICON = PadArt.BOARD_ICON
+local isNetPad = PadArt.isNet
 
 local function clearContent(frame: Frame)
     for _, child in frame:GetChildren() do
@@ -229,43 +186,18 @@ local function startPulse(stroke: UIStroke, padId: string)
     end)
 end
 
--- [D55] Casa omului, dupa cati sunt pe meserie: a doua treapta cand sunt doi. Arta lipsa cade pe prima.
-local function homeSprite(padId: string): (Assets.Sprite?, number)
-    local names = HOME_SPRITES[padId]
-    if names == nil then
-        return nil, Assets.PIXEL_SCALE
-    end
+-- [D55] Cati oameni are meseria platformei (1 daca nu e a unei meserii sau inca nu stim).
+local function crewCountOf(padId: string): number
     local role = TycoonConfig.CREW_OF_PAD[padId]
-    local count = if role ~= nil then crewCounts[role] or 1 else 1
-    local scale = HOME_SCALE[padId] or Assets.PIXEL_SCALE
-    for i = math.clamp(count, 1, #names), 1, -1 do
-        local sprite = (Assets.tycoon :: any)[names[i]]
-        if sprite ~= nil and Assets.has(sprite) then
-            return sprite, scale
-        end
-    end
-    return nil, scale
+    return if role ~= nil then crewCounts[role] or 1 else 1
 end
 
--- Casele oamenilor (Collector, Porter, Sawyer, Hauler, taraba Innkeeper-ului) vin din homeSprite [D55]; taraba
--- a ramas a Negustorului cand Sorting Crate si Dock Stall au devenit niveluri ale debarcaderului [E1.3].
+local function homeSprite(padId: string): (Assets.Sprite?, number)
+    return PadArt.home(padId, crewCountOf(padId))
+end
+
 local function boughtSprite(padId: string): (Assets.Sprite?, number)
-    if HOME_SPRITES[padId] ~= nil then
-        return homeSprite(padId)
-    elseif padId == "scrap_shed" then
-        return Assets.tycoon.scrap_shed, Assets.PIXEL_SCALE -- [D55]
-    elseif padId == "bigger_sack" then
-        return Assets.tycoon.sack, TycoonConfig.PROP_SCALE
-    elseif padId == "landing_bell" then
-        return Assets.tycoon.bell, Assets.PIXEL_SCALE
-    elseif padId == "workshop" then
-        -- [D53] atelierul nou, in stilul tavernei; cel din era coloniei doar cat timp noul nu e urcat
-        if Assets.has(Assets.tycoon.workshop_e1) then
-            return Assets.tycoon.workshop_e1, Assets.PIXEL_SCALE
-        end
-        return Assets.buildings.workshop, Assets.PIXEL_SCALE
-    end
-    return nil, Assets.PIXEL_SCALE
+    return PadArt.bought(padId, crewCountOf(padId))
 end
 
 -- LOCKED: se vede OBIECTUL INSUSI, stins, exact acolo unde va sta -- nu o pancarda cu pretul.
@@ -392,33 +324,8 @@ local function buildGhost(
 end
 
 -- [D53] Ruina fiecarei platforme (fara plase: stalpul si plasa rupte au functia lor, mai jos) si scara ei.
-local function ruinSprite(padId: string): (Assets.Sprite?, number)
-    if BOARD_ICON[padId] ~= nil then
-        return Assets.tycoon.board_old, TycoonConfig.PROP_SCALE
-    elseif padId == "first_runner" then
-        return Assets.tycoon.ruin_hut, Assets.PIXEL_SCALE
-    elseif padId == "dock_trader" then
-        return Assets.tycoon.ruin_stall, TycoonConfig.PROP_SCALE
-    elseif padId == "bigger_sack" then
-        return Assets.tycoon.ruin_sack, TycoonConfig.PROP_SCALE
-    elseif padId == "landing_bell" then
-        return Assets.tycoon.ruin_bell, Assets.PIXEL_SCALE
-    elseif padId == "workshop" then
-        return Assets.tycoon.ruin_workshop, Assets.PIXEL_SCALE
-    elseif padId == "scrap_shed" then
-        return Assets.tycoon.ruin_scrap_shed, Assets.PIXEL_SCALE -- [D55]
-    end
-    return nil, 1
-end
-
--- Are platforma asta arta de ruina urcata? Fara ea, raman siluetele de dinainte.
-local function ruinReady(pad: TycoonConfig.Pad): boolean
-    if isNetPad(pad) then
-        return Assets.has(Assets.tycoon.ruin_netpost) and Assets.has(Assets.tycoon.ruin_net)
-    end
-    local sprite = ruinSprite(pad.id)
-    return sprite ~= nil and Assets.has(sprite :: Assets.Sprite)
-end
+local ruinSprite = PadArt.ruin
+local ruinReady = PadArt.ruinReady
 
 local function worldImage(
     parent: Instance,
@@ -710,12 +617,7 @@ local function worldName(frame: GuiObject, text: string, y: number)
     Theme.punch(l, 2)
 end
 
--- [D58] Numele de sub casa unei meserii, sau nil daca platforma nu e a unei meserii.
-local function homeName(padId: string): string?
-    local role = TycoonConfig.CREW_OF_PAD[padId]
-    local crew = if role ~= nil then TycoonConfig.CREWS[role] else nil
-    return if crew ~= nil then crew.name else nil
-end
+local homeName = PadArt.homeName
 
 -- "bought": stalp pe mal pentru platformele de plasa (plasa insasi o deseneaza NetController in
 -- apa); pentru rest, o platforma [item 2] cu cladirea dedicata deasupra cand exista sprite-ul ei,

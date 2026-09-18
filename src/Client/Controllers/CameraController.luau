@@ -26,6 +26,10 @@ local onScaleChanged: { (number) -> () } = {}
 -- ecranul, sta in mijlocul lui; harta satului ramane cum a fost (lipita de colt).
 local worldW, worldH = RiverConfig.WORLD_WIDTH, RiverConfig.WORLD_HEIGHT
 local centerSmall = false
+-- [D61, partea 2] coltul lumii in care se plimba camera. Satul vizitat din balci e desenat in acelasi strat, departe
+-- in dreapta hartii balciului: cat esti in vizita, camera sta intre marginile LUI (SetWorld), apoi se intoarce.
+local worldX0, worldY0 = 0, 0
+local homeW, homeH = worldW, worldH
 
 local function recompute()
     local vp = camera.ViewportSize
@@ -66,6 +70,7 @@ function CameraController.Init(deps: {
 }): { Fixed: Frame, Parallax: Frame, Scroll: Frame, Plot: Frame }
     worldW = deps.WorldWidth or RiverConfig.WORLD_WIDTH
     worldH = deps.WorldHeight or RiverConfig.WORLD_HEIGHT
+    homeW, homeH = worldW, worldH
     centerSmall = deps.WorldWidth ~= nil or deps.WorldHeight ~= nil
     local origin = deps.PlotOrigin or TycoonConfig.PLOT_ORIGIN
     local viewport = Instance.new("Frame")
@@ -118,6 +123,16 @@ function CameraController.Init(deps: {
     return { Fixed = fixed, Parallax = parallax, Scroll = scroll, Plot = plot }
 end
 
+-- [D61, partea 2] Camera trece pe alta lume din acelasi strat (dreptunghiul ei, in coordonatele stratului).
+function CameraController.SetWorld(x0: number, y0: number, w: number, h: number)
+    worldX0, worldY0, worldW, worldH = x0, y0, w, h
+end
+
+-- ...si inapoi pe lumea data la Init.
+function CameraController.ResetWorld()
+    worldX0, worldY0, worldW, worldH = 0, 0, homeW, homeH
+end
+
 local focus: (() -> (number?, number?))? = nil
 -- Smucitura de la o cumparare mare: un decalaj mic care se stinge, aplicat LUMII, nu HUD-ului.
 -- (Prima varianta misca panza HUD: sareau monedele si butoanele, iar malul statea pe loc --
@@ -156,11 +171,11 @@ function CameraController.Follow(worldX: number, worldY: number)
     local maxX = math.max(0, worldW - visibleW)
     local maxY = math.max(0, worldH - visibleH)
     camX = if centerSmall and worldW < visibleW
-        then (worldW - visibleW) / 2
-        else math.clamp(worldX - visibleW / 2, 0, maxX)
+        then worldX0 + (worldW - visibleW) / 2
+        else worldX0 + math.clamp(worldX - worldX0 - visibleW / 2, 0, maxX)
     camY = if centerSmall and worldH < visibleH
-        then (worldH - visibleH) / 2
-        else math.clamp(worldY - visibleH / 2, 0, maxY)
+        then worldY0 + (worldH - visibleH) / 2
+        else worldY0 + math.clamp(worldY - worldY0 - visibleH / 2, 0, maxY)
     -- smucitura se stinge liniar; `camX/camY` raman curate, ca IsVisible/WorldOrigin sa nu
     -- tresara si ele odata cu efectul
     local ox, oy = 0, 0

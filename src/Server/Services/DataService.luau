@@ -161,7 +161,7 @@ export type ProfileData = {
 }
 
 local PROFILE_TEMPLATE: ProfileData = {
-    Meta = { version = 12, createdAt = 0, lastSeenAt = 0 },
+    Meta = { version = 13, createdAt = 0, lastSeenAt = 0 },
     Coins = 0,
     Pearls = 0,
     Pads = {},
@@ -236,6 +236,9 @@ local PROFILE_TEMPLATE: ProfileData = {
         -- [D61] ACELEASI campuri ca ProfileMigrate.toV11
         pond = { wins = 0, rounds = 0 },
         booth = { day = 0, prizeGames = 0, perfect = 0 },
+        -- [D61, partea 2] ACELEASI campuri ca ProfileMigrate.toV13: like-urile primite si cele date azi
+        likes = 0,
+        liked = { day = 0, ids = {} },
     },
     Records = { era1Seconds = 0, incomePerSec = 0, weeklyFishMm = 0, weeklyFishWeek = "" },
 }
@@ -448,6 +451,7 @@ local function onPlayerAdded(player: Player)
     ProfileMigrate.toV10(profile.Data) -- balciul [D60]: titluri, vizite, recorduri, timpul jucat -- aditiv
     ProfileMigrate.toV11(profile.Data) -- iazul si gheretele [D61]: runde, jocuri cu premiu -- aditiv
     ProfileMigrate.toV12(profile.Data) -- croitoreasa [D61]: infatisarea jucatorului -- aditiv
+    ProfileMigrate.toV13(profile.Data) -- poarta satelor [D61]: like-urile primite si date -- aditiv
     profile:Reconcile()
     profile.OnSessionEnd:Connect(function()
         profiles[player] = nil

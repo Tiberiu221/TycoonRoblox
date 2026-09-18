@@ -528,6 +528,12 @@ P4 panoul Shop.
 
 ### Q. Retenția pe termen lung
 
+> **[D61 partea a doua, 2026-09-18] Satul tău îl văd și alții.** La croitoreasa din bâlci îți alegi înfățișarea
+> (gratuit: silueta, coafura, părul, pielea) și cumperi ținute pe perle, patru dintre ele doar acolo. La poarta satelor
+> vizitezi satul oricui e în bâlci, ca fotografie: te plimbi prin ce a construit, lași un like pe zi la cartea de
+> oaspeți și te întorci. Nimic din economia nimănui nu trece pe acolo. Decorul cumpărat cu perle are în sfârșit
+> public: cele trei machete din fața porții arată satele cu cele mai multe decoruri. Vezi D61 (partea a doua).
+>
 > **[D61, 2026-09-17] De ce te întorci în bâlci.** Iazul de concurs are runde de 6 minute după ceas, aceleași pe toate
 > serverele. Câștigă peștele cel mai mare, cu premii mici în perle și titlul `Pond Champion`. Gheretele (`Ring Toss`,
 > `Hook a Duck`) sunt jocuri de îndemânare gratuite: premiu dau doar primele 5 jocuri din zi, iar titlul lor e

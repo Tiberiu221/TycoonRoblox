@@ -85,6 +85,10 @@ Analytics.FAIR_STEPS = {
     FirstBoothGame = 8,
     FirstSit = 9,
     FirstWave = 10,
+    -- [D61, partea 2] croitoreasa si poarta satelor
+    FirstLookSaved = 11,
+    FirstVillageVisit = 12,
+    FirstLikeGiven = 13,
 }
 
 function Analytics.FairStep(player: Player, stepName: string)

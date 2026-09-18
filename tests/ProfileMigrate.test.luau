@@ -731,8 +731,62 @@ return function()
             for _, needle in
                 {
                     "look = { body = 2, hair = 2, skin = 2, hairColor = 2 }",
-                    "version = 12",
                     "ProfileMigrate.toV12(profile.Data)",
+                }
+            do
+                check.is_true(string.find(src, needle, 1, true) ~= nil)
+            end
+        end)
+    end)
+
+    test.suite("ProfileMigrate.toV13 - like-urile satului [D61]", function()
+        test.case("un profil v12 primeste like-urile; vizitele si iazul raman neatinse", function()
+            local data: { [string]: any } = {
+                Meta = { version = 12 },
+                Fair = { firstVisit = 5, visits = 3, pond = { wins = 2, rounds = 4 } },
+            }
+            ProfileMigrate.toV13(data)
+            check.equal(data.Meta.version, 13)
+            check.equal(data.Fair.likes, 0)
+            check.equal(data.Fair.liked.day, 0)
+            check.equal(data.Fair.visits, 3)
+            check.equal(data.Fair.pond.wins, 2)
+        end)
+
+        test.case("like-urile stranse nu se pierd; migrarea e idempotenta", function()
+            local data: { [string]: any } = {
+                Meta = { version = 12 },
+                Fair = {
+                    firstVisit = 0,
+                    visits = 1,
+                    likes = 7,
+                    liked = { day = 9, ids = { a = true } },
+                },
+            }
+            ProfileMigrate.toV13(data)
+            ProfileMigrate.toV13(data)
+            check.equal(data.Fair.likes, 7)
+            check.equal(data.Fair.liked.day, 9)
+            check.is_true(data.Fair.liked.ids.a)
+            local bare: { [string]: any } = { Meta = { version = 8 } }
+            ProfileMigrate.toV9(bare)
+            ProfileMigrate.toV10(bare)
+            ProfileMigrate.toV11(bare)
+            ProfileMigrate.toV12(bare)
+            ProfileMigrate.toV13(bare)
+            check.equal(bare.Meta.version, 13)
+            check.equal(bare.Fair.likes, 0)
+        end)
+
+        test.case("sablonul si migrarea adauga aceleasi campuri", function()
+            local fs = require("@lune/fs")
+            local src = fs.readFile("src/Server/Services/DataService.luau")
+            for _, needle in
+                {
+                    "likes = 0,",
+                    "liked = { day = 0, ids = {} },",
+                    "version = 13",
+                    "ProfileMigrate.toV13(profile.Data)",
                 }
             do
                 check.is_true(string.find(src, needle, 1, true) ~= nil)

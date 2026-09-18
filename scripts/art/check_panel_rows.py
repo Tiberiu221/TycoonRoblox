@@ -260,12 +260,26 @@ PLAYER_CARD = dict(
         ("era", 112, 70, w - 112, 20, None),
     ] + [
         box
-        for i in range(5)
+        for i in range(6)  # [D61, partea 2] si like-urile satului: sase randuri, din 32 in 32
         for box in (
-            (f"label{i}", 0, 120 + i * 34, 200, 24, None),
-            (f"value{i}", w - 220, 120 + i * 34, 220, 24, None),
+            (f"label{i}", 0, 116 + i * 32, 200, 24, None),
+            (f"value{i}", w - 220, 116 + i * 32, 220, 24, None),
         )
-    ] + [("friend", w // 2 - 110, (460 - SPACE["lg"] * 2 - 56) - 48, 220, 48, None)],
+    ] + [
+        ("friend", 0, (460 - SPACE["lg"] * 2 - 56) - 48, 210, 48, None),
+        ("visit", w - 210, (460 - SPACE["lg"] * 2 - 56) - 48, 210, 48, None),
+    ],
+)
+
+# [D61, partea 2] Poarta satelor (VisitController): rand de 64 in lista panoului de 600.
+VISIT_ROW = dict(
+    panel="Village Gate (VisitController)", panel_w=600, row_h=64,
+    boxes=lambda w: [
+        ("name", md, 6, 330, 20, None),
+        ("title", md, 26, 330, 16, None),
+        ("sub", md, 43, 330, 16, None),
+        ("button", w - md - 130, 64 // 2 - 22, 130, 44, None),
+    ],
 )
 
 # [D61, partea 2] Croitoreasa (TailorController): fereastra fixa 680x520 -> corpul 640x424. In stanga omul tau, eticheta
@@ -347,7 +361,7 @@ def main():
                                       WHEEL_PANEL, WHEEL_ROW, BOARD_ROW, JOURNAL_ROW,
                                       TITLE_ROW, TITLE_HEAD, MARKET_ROW, LEADERBOARD_ROW, STAGE_PANEL,
                                       PLAYER_CARD, BOOTH_PANEL,
-                                      TAILOR_PANEL, TAILOR_LOOK_ROW, TAILOR_OUTFIT_ROW))
+                                      TAILOR_PANEL, TAILOR_LOOK_ROW, TAILOR_OUTFIT_ROW, VISIT_ROW))
     if bad:
         raise SystemExit(f"{bad} coliziuni de asezare")
 

@@ -26,6 +26,7 @@ export type Card = {
     fishCm: number,
     treasures: number,
     decor: number,
+    likes: number, -- [D61, partea 2] like-urile primite de satul lui
     species: number,
     speciesTotal: number,
 }
@@ -65,6 +66,9 @@ function PlayerCardService.Of(userId: number): Card?
         fishCm = if record ~= nil then record.cm else 0,
         treasures = data.Stats.treasures or 0,
         decor = decor,
+        likes = if typeof((data.Fair :: any).likes) == "number"
+            then math.floor((data.Fair :: any).likes)
+            else 0,
         species = facts.species,
         speciesTotal = #FishConfig.SPECIES,
     }

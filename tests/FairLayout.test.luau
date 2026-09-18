@@ -161,6 +161,20 @@ return function()
             check.is_false(FairLayout.isWalkable(500, -1))
         end)
 
+        test.case(
+            "locul din fata portii satelor: se poate sta acolo, pe niciun obiect [D61]",
+            function()
+                local g = FairLayout.GATE_STAND
+                check.is_true(FairLayout.isWalkable(g.x, g.y))
+                local feet = { x0 = g.x - 12, x1 = g.x + 12, y0 = g.y - 4, y1 = g.y + 4 }
+                for _, spot in FairLayout.SPOTS do
+                    check.is_false(FairLayout.overlap(feet, spotBox(spot.id)))
+                end
+                -- in fata arcadei, deasupra machetelor
+                check.is_true(g.y > spotBox("arch").y1 and g.y < spotBox("mini_2").y0)
+            end
+        )
+
         test.case("etichetele din lume nu intra peste obiecte care nu sunt ale lor", function()
             -- Aceleasi socoteli ca in controllere: BoardController (trofeele, campionul), MarketController (firma),
             -- FairScene (barca spre casa, placutele marginilor inchise). O placuta a unei margini sta pe obiectul ei.
@@ -241,6 +255,11 @@ return function()
                     local w = math.ceil(textWidth(edge.label, SMALL)) + 12
                     centered(`plaque_{edge.id}`, edge.x, edge.y - 9, w, 18, hosts[edge.id])
                 end
+            end
+            -- [D61, partea 2] numele satelor scoase in fata portii, sub machete (VisitController.buildMinis)
+            for i = 1, 3 do
+                local m = spotBox(`mini_{i}`)
+                centered(`mini_tag_{i}`, (m.x0 + m.x1) / 2, m.y1 + 2, 110, 16, `mini_{i}`)
             end
 
             local hits = {}

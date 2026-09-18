@@ -36,7 +36,7 @@ FairLayout.EDGES = {
     { id = "tables", label = "Tables & Music", x = 1300, y = 330, open = true },
     { id = "market", label = "Market", x = 1390, y = 520, open = true },
     { id = "tailor", label = "Tailor", x = 1234, y = 1140, open = true, tag = true }, -- [D61, partea 2]
-    { id = "gate", label = "Village Gate", x = 386, y = 1140, open = false, tag = true },
+    { id = "gate", label = "Village Gate", x = 386, y = 1140, open = true, tag = true }, -- [D61, partea 2]
     { id = "pond", label = "Contest Pond", x = 210, y = 640, open = true },
     { id = "games", label = "Games", x = 379, y = 250, open = true },
 } :: { Edge }
@@ -111,6 +111,10 @@ FairLayout.TOUCHING = {
     pond_dock_reeds_1 = true,
     pond_dock_reeds_2 = true,
 }
+
+-- [D61, partea 2] Poarta satelor: unde stai in fata arcadei. De aici pleci in vizita si aici te intorci; cat esti
+-- plecat, ceilalti te vad aici (coordonatele din vizita sunt ale altei harti).
+FairLayout.GATE_STAND = { x = 386, y = 1262 }
 
 -- [D61] Jetiul iazului: scandurile desenului (40x64 la x3, x 7..32), de pe malul de sud pana in mijlocul apei.
 FairLayout.JETTY = { x0 = 231, x1 = 309, y0 = 772, y1 = 962 } :: Rect

@@ -112,12 +112,69 @@ owner-ului.
 
 ---
 
+## D61 (partea a doua) — Croitoreasa și poarta satelor
+**DECIS** (2026-09-18) — owner-ul, după auditul D62: *„tot ce știi sigur că funcționează, fără presupus. nu uita de
+monetizare și continuare la ce făceam deja"*, cu alegerea **„Întâi D61 partea a doua"**. Planul a fost aprobat înainte
+de cod. Comis pe pași: croitoreasa (55d9056), poarta satelor (pasul următor). **Neverificat încă în Studio.**
+
+**Ce era de rezolvat:** două margini ale bâlciului scriau încă `Opens soon`, jucătorul avea un singur chip, fix, iar
+satul tău nu-l vedea nimeni: bâlciul te lăsa să te etalezi doar cu o ținută și un titlu.
+
+1. **Croitoreasa** (cortul vărgat din sud-est, `Tailor (E)`).
+   - Panoul are omul tău desenat mare, întors pe rând: față, profil, spate.
+   - **`Look`, gratuit, oricând:** silueta (2), coafura (4), culoarea părului (6), culoarea pielii (6). Sunt straturile
+     și paletele pe care le aveau deja oamenii din sat [D44]; nu s-a desenat nimic nou. Înfățișarea e patru indici în
+     paletele din `SettlerConfig` (`LookMath`), deci o paletă reglată mai târziu se vede la toată lumea. Implicit =
+     chipul de dinainte, ca nimeni să nu se trezească schimbat. `Save look` trimite o singură cerere.
+   - **`Outfits`:** atingi un rând ca să probezi ținuta, apoi `Buy` (perle) sau `Wear`. Patru ținute noi, doar aici:
+     `Festival Coat` 200, `Minstrel` 250, `Lantern Keeper` 350, `Harvest Crown` 500. Nu intră în vitrina negustorului,
+     iar avizierul satului scrie despre ele `Sold by the tailor at the fair`.
+   - **Cât foaia unei ținute nu e urcată,** rândul ei scrie `Still being sewn` și serverul refuză cumpărarea
+     (`"soon"`): nu se iau perle pe ceva ce nu se vede [D40].
+   - Ce alegi văd toți cei din bâlci pe loc (lista `People`, cardul tău) și rămâne la fel în sat și pe barcă.
+   - **Bugetul de perle:** catalogul a urcat de la 2.010 la 3.310, deci plafonul testului a urcat la 4.000; ce vinde
+     satul rămâne sub 3.000. De la D61 perlele vin și din iaz și din gherete, nu doar din undița de acasă.
+   - Profil **v12**, aditiv: `Village.look`.
+2. **Poarta satelor** (arcada din sud-vest, `Village Gate (E)`).
+   - Panoul arată cine e acum în bâlci: numele, titlul, Era, câte decoruri și câte like-uri are satul, cu butonul
+     `Visit`. Sus scrie câte like-uri a strâns satul tău. Același drum pornește de pe cardul unui om (`Visit village`)
+     și de la cele trei machete din fața porții, care poartă numele primelor trei sate după decoruri.
+   - **Vizita e o fotografie, în bâlci, nu un teleport în satul celuilalt.** Satul adevărat rulează economia pe server;
+     un „mod vizită" acolo ar fi însemnat porți în exact codul care ține banii. Gazda e în bâlci, deci profilul ei e
+     deja încărcat pe serverul bâlciului: `VillageLook` (modul pur) scoate din el doar ce se VEDE. Nicio monedă, nicio
+     grămadă, niciun quest nu trece pe aici.
+   - **Ce vezi:** pământul, râul și drumurile satului, pontonul, taverna, depozitul, gaterul, fiecare platformă a Erei 1
+     (cumpărată = clădirea ei, cu coliba mică sau mare; necumpărată = ruina), plasele cu insigna nivelului, decorul
+     cumpărat, oamenii mergând pe drumurile lor cu roabele. Te plimbi liber; nu poți lua sau strica nimic, fiindcă
+     nimic de acolo n-are remote.
+   - **`Leave a like (E)`** la cartea de oaspeți (`Guest Book`), lângă locul în care apari: un like pe zi (UTC) pentru
+     fiecare sat, doar cât ești în vizită acolo. Gazda află pe loc (`Dan liked your village`), iar numărul apare pe
+     cardul ei și în panoul porții.
+   - **Întoarcerea** e un buton mereu la vedere, sub banda cu numele satului (`Back to the fair`), și tasta Q. Planul
+     zicea „la poartă"; pe telefon nu există Q, iar cine s-a rătăcit prin sat n-are de ce să caute un obiect.
+   - Cât ești în vizită, ceilalți te văd stând în fața arcadei (`PresenceService.PlaceAt`), iar poziția ta nu se mai
+     trimite: e pe altă hartă.
+   - Se pot vizita doar oamenii care sunt acum în bâlci. Satele celor plecați vin mai târziu, dacă vizitele prind.
+   - Profil **v13**, aditiv: `Fair.likes`, `Fair.liked`.
+3. **Tehnic.**
+   - Satul vizitat stă în același strat cu bâlciul, departe în dreapta hărții (`VillageDiorama.ORIGIN`): camera trece pe
+     dreptunghiul lui (`CameraController.SetWorld`), omul e mutat acolo (`CharacterController.Teleport`), iar mersul
+     ascultă de harta satului (`WorldMap`, ca acasă). Ca acasă, omul tău stă mereu deasupra a tot ce e pe teren.
+   - Alegerea desenului unei platforme s-a mutat din `PadController` în `UI/PadArt`, comun cu fotografia: două liste ar
+     fi ajuns să spună lucruri diferite. La fel lista oamenilor: `HandService.Snapshot` o ia acum din `VillageLook`.
+   - Marginile fără firma lor au câmpul `tag` în `FairLayout.EDGES`: numele rămâne deasupra și după deschidere.
+   - Pași noi în pâlnia bâlciului: `FirstLookSaved`, `FirstVillageVisit`, `FirstLikeGiven`.
+
+**Rămâne din plan:** colțul cu Robux (etapa 3), apoi D62 pașii 3–5.
+
+---
+
 ## D61 — Iazul de concurs, gheretele de joc, mesele cu muzicanții (partea 1)
 **DECIS** (2026-09-17) — owner-ul: *„ok, continuăm dezvoltarea"*. Dintre variante a ales **„Iazul și jocurile"**, iar
 planul a fost aprobat înainte de cod. Machetele sunt desenate peste fundalul copt: `d61_iaz.png`, `d61_jocuri.png`,
 `d61_mese.png`.
-- **Partea a doua din D61:** croitoreasa și poarta satelor.
-- **Mai târziu:** colțul cu Robux, după ce vedem bâlciul jucat (D60).
+- **Partea a doua din D61:** croitoreasa și poarta satelor — făcute pe 2026-09-18, vezi intrarea de mai sus.
+- **Mai târziu:** colțul cu Robux (etapa 3 din planul aprobat pe 2026-09-18).
 
 **Ce era de rezolvat:** în bâlci nu aveai ce face în afară de roată, tabelă și negustor. Trei margini ale hărții scriau
 `Opens soon`, iar pescuitul, activitatea de așteptare din sat, nu avea unde să se întreacă cu alții.

@@ -40,6 +40,8 @@ local SocialController = require(Controllers:WaitForChild("SocialController"))
 local SoundController = require(Controllers:WaitForChild("SoundController"))
 local TailorController = require(Controllers:WaitForChild("TailorController"))
 local TitleController = require(Controllers:WaitForChild("TitleController"))
+local VillageDiorama = require(Controllers:WaitForChild("VillageDiorama"))
+local VisitController = require(Controllers:WaitForChild("VisitController"))
 local WheelController = require(Controllers:WaitForChild("WheelController"))
 local Theme = require(script.Parent:WaitForChild("UI"):WaitForChild("Theme"))
 
@@ -128,6 +130,10 @@ safeInit("CharacterController", function()
         Scroll = layers.Scroll,
         OnMove = CameraController.Follow,
         IsBlocked = function(x: number, y: number): boolean
+            -- [D61, partea 2] in vizita mergi pe harta satului desenat (ca acasa: doar raul opreste pasul)
+            if VisitController.IsVisiting() then
+                return VillageDiorama.IsBlocked(x, y)
+            end
             return not FairLayout.isWalkable(x, y)
         end,
         Spawn = FairLayout.SPAWN,
@@ -221,6 +227,7 @@ safeInit("PlayerCardController", function()
         HudGui = hudCanvas,
         Remotes = { LookAt = Net.Get("LookAt"), LookAtResult = Net.Get("LookAtResult") },
         OnToast = FairHUDController.Toast,
+        OnVisit = VisitController.Visit, -- [D61, partea 2]
     })
 end)
 safeInit("PresenceController", function()
@@ -241,6 +248,8 @@ safeInit("PresenceController", function()
             PlayerCardController.Open(person.userId)
         end,
         LookAtText = Strings.lookAtCard,
+        -- [D61, partea 2] in vizita, coordonatele tale sunt ale altei harti: nu se trimit (serverul te tine la arcada)
+        IsAway = VisitController.IsVisiting,
     })
     FairInteractController.AddSource(PresenceController.Focus)
 end)
@@ -263,7 +272,12 @@ safeInit("PondController", function()
         IsActionHeld = FairHUDController.IsActionHeld,
         PearlFly = FairHUDController.PearlFly,
         OnToast = FairHUDController.Toast,
-        SetBanner = FairHUDController.SetBanner,
+        -- [D61, partea 2] in vizita, banda de sus e a satului vizitat: iazul n-o sterge cat esti departe de el
+        SetBanner = function(top: string?, bottom: string?)
+            if not VisitController.IsVisiting() then
+                FairHUDController.SetBanner(top, bottom)
+            end
+        end,
         SetFishing = PresenceController.SetFishing,
         SetMyTagHidden = PresenceController.SetMyTagHidden,
     })
@@ -289,6 +303,27 @@ safeInit("TitleController", function()
         HudGui = hudCanvas,
         Remotes = { BuyTitle = Net.Get("BuyTitle"), WearTitle = Net.Get("WearTitle") },
     })
+end)
+
+-- [D61, partea 2] poarta satelor: panoul, machetele din fata, vizita (satul altcuiva, ca fotografie) si like-ul
+safeInit("VisitController", function()
+    VisitController.Init({
+        World = layers.Scroll,
+        HudGui = hudCanvas,
+        ScreenGui = worldGui,
+        Remotes = {
+            VisitList = Net.Get("VisitList"),
+            VisitLook = Net.Get("VisitLook"),
+            VisitLookResult = Net.Get("VisitLookResult"),
+            VisitLeave = Net.Get("VisitLeave"),
+            VisitLike = Net.Get("VisitLike"),
+            VisitLikeResult = Net.Get("VisitLikeResult"),
+            VisitLiked = Net.Get("VisitLiked"),
+        },
+        OnToast = FairHUDController.Toast,
+        SetBanner = FairHUDController.SetBanner,
+    })
+    FairInteractController.AddSource(VisitController.Focus)
 end)
 
 -- [D61] croitoreasa: infatisarea (gratuita) si tinutele, la cortul vargat din sud-est
@@ -398,6 +433,15 @@ do
             return
         end
         if input.KeyCode == Enum.KeyCode.Q or input.KeyCode == Enum.KeyCode.Escape then
+            -- [D61, partea 2] Q te intoarce din vizita, daca nu e niciun panou de inchis
+            if
+                input.KeyCode == Enum.KeyCode.Q
+                and VisitController.IsVisiting()
+                and not Panels.AnyOpen()
+            then
+                VisitController.Leave()
+                return
+            end
             Panels.CloseAll()
             return
         end
@@ -460,6 +504,7 @@ Net.Get("FairState").OnClientEvent:Connect(function(raw: { [string]: any })
         perfect = if typeof(rawBooth.perfect) == "number" then rawBooth.perfect else 0,
     }
     local pearls = if typeof(raw.pearls) == "number" then raw.pearls :: number else 0
+    local likes = if typeof(raw.likes) == "number" then raw.likes :: number else 0 -- [D61, partea 2]
     local rawMarket: any = raw.market or {}
     local marketItems = {}
     for i, e in (rawMarket.items or {}) do
@@ -482,6 +527,7 @@ Net.Get("FairState").OnClientEvent:Connect(function(raw: { [string]: any })
     SoundController.Apply(soundLevel)
     AudioPanel.Refresh()
     WheelController.Apply(wheel)
+    VisitController.SetLikes(likes)
     MarketController.SetLook(village.look)
     TailorController.Apply(village, pearls, titles.species)
     CharacterController.SetOutfit(village.outfit)
