@@ -16,6 +16,7 @@ local Assets = require(ReplicatedStorage.Shared.Config.Assets)
 local CrowdCodec = require(ReplicatedStorage.Shared.Modules.CrowdCodec)
 local FairLayout = require(ReplicatedStorage.Shared.Modules.FairLayout)
 local FairPresence = require(ReplicatedStorage.Shared.Modules.FairPresence)
+local LookMath = require(ReplicatedStorage.Shared.Modules.LookMath)
 local RiverConfig = require(ReplicatedStorage.Shared.Config.RiverConfig)
 
 local SceneArt = require(script.Parent.SceneArt)
@@ -23,7 +24,14 @@ local Focus = require(script.Parent.Parent.UI.Focus)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
 
-export type Person = { slot: number, userId: number, name: string, outfit: string, title: string }
+export type Person = {
+    slot: number,
+    userId: number,
+    name: string,
+    outfit: string,
+    title: string,
+    look: LookMath.Look, -- [D61] infatisarea aleasa la croitoreasa
+}
 export type Deps = {
     World: Frame,
     ZIndexFor: (number) -> number,
@@ -45,6 +53,7 @@ type Other = {
     sprite: GuiObject,
     pose: SceneArt.Pose,
     setOutfit: SceneArt.SetOutfit,
+    setLook: SceneArt.SetLook,
     tag: Tag,
     older: Sample?,
     newer: Sample?,
@@ -174,6 +183,7 @@ local function applyPeople(list: unknown)
             name = if typeof(raw.name) == "string" then raw.name else "",
             outfit = if typeof(raw.outfit) == "string" then raw.outfit else "keeper",
             title = if typeof(raw.title) == "string" then raw.title else "",
+            look = LookMath.clean(raw.look), -- [D61] un camp lipsa cade pe chipul de la inceput
         }
         if card.userId == d.LocalUserId then
             mine = card
@@ -190,7 +200,7 @@ local function applyPeople(list: unknown)
             o = nil
         end
         if o == nil then
-            local sprite, pose, setOutfit = SceneArt.MakeCharacter(d.World)
+            local sprite, pose, setOutfit, setLook = SceneArt.MakeCharacter(d.World)
             sprite.Visible = false -- pana la prima pozitie
             local tag = makeTag(d.World, d.LabelZ)
             tag.host.Visible = false
@@ -199,6 +209,7 @@ local function applyPeople(list: unknown)
                 sprite = sprite,
                 pose = pose,
                 setOutfit = setOutfit,
+                setLook = setLook,
                 tag = tag,
                 older = nil,
                 newer = nil,
@@ -216,6 +227,7 @@ local function applyPeople(list: unknown)
         local other = o :: Other
         other.card = card
         other.setOutfit(card.outfit)
+        other.setLook(card.look)
         setCard(other.tag, card)
     end
     for slot in others do

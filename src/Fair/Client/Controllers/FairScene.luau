@@ -442,6 +442,8 @@ function FairScene.Build(layer: Frame)
     for _, edge in FairLayout.EDGES do
         if not edge.open then
             tag(edge.x, edge.y, edge.label, Strings.FAIR_OPENS_SOON)
+        elseif edge.tag then
+            tag(edge.x, edge.y, edge.label, nil) -- deschisa, dar fara firma ei: numele ramane deasupra
         end
     end
     local fx, fy, _, fh = FairScene.Spot("ferry")

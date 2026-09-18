@@ -26,6 +26,7 @@ export type Outfit = {
     name: string,
     price: number?, -- nil = nu se vinde
     journal: boolean?, -- se primeste cand jurnalul pestilor e complet
+    tailor: boolean?, -- [D61] se vinde doar la croitoreasa din balci
 }
 
 -- In ordinea pretului: primul se poate lua din perlele capitolului 1 si un minut de pescuit [PearlBudget.test].
@@ -147,6 +148,12 @@ VillageConfig.OUTFITS = {
     { id = "angler", name = "Angler", price = 150 },
     { id = "captain", name = "Captain", price = 400 },
     { id = "legend", name = "River Legend", journal = true },
+    -- [D61] ale croitoresei din balci: se cumpara doar la cortul ei (`tailor`), nu la avizier si nu in vitrina
+    -- negustorului. Siluete de cap pe care nu le poarta nimeni altcineva (scripts/art/settlers.py).
+    { id = "festival", name = "Festival Coat", price = 200, tailor = true },
+    { id = "minstrel", name = "Minstrel", price = 250, tailor = true },
+    { id = "lampkeeper", name = "Lantern Keeper", price = 350, tailor = true },
+    { id = "harvest", name = "Harvest Crown", price = 500, tailor = true },
 } :: { Outfit }
 
 VillageConfig.decorById = {} :: { [string]: Decor }

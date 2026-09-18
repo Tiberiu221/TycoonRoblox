@@ -110,18 +110,26 @@ return function()
             check.is_true(cheapest <= chapterOne)
         end)
 
+        -- [D61, partea 2] Cele patru tinute ale croitoresei au urcat catalogul de la 2.010 la 3.310, deci plafonul a
+        -- urcat de la 3.000 la 4.000. De la D61 perlele vin si din iaz si din gherete, nu doar din undita de acasa;
+        -- ce vinde satul (avizierul) ramane sub vechiul plafon, ca bucla de acasa sa nu se lungeasca.
         test.case(
-            "tot ce se vinde costa 1.500-3.000 de perle: 2-8 ore de pescuit continuu",
+            "tot ce se vinde costa 1.500-4.000 de perle: 2-8 ore de pescuit continuu",
             function()
-                local total = 0
+                local total, atHome = 0, 0
                 for _, d in VillageConfig.DECOR do
                     check.is_true(d.price > 0)
                     total += d.price
+                    atHome += d.price
                 end
                 for _, o in VillageConfig.OUTFITS do
                     total += o.price or 0
+                    if not o.tailor then
+                        atHome += o.price or 0
+                    end
                 end
-                check.is_true(total >= 1500 and total <= 3000)
+                check.is_true(total >= 1500 and total <= 4000)
+                check.is_true(atHome <= 3000)
                 local hours = total / (fishingPerMinute() * 60)
                 check.is_true(hours >= 2 and hours <= 8)
             end

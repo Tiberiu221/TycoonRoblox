@@ -7,6 +7,7 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
 local Assets = require(ReplicatedStorage.Shared.Config.Assets)
+local LookMath = require(ReplicatedStorage.Shared.Modules.LookMath)
 local Strings = require(ReplicatedStorage.Shared.Config.Strings)
 local VillageConfig = require(ReplicatedStorage.Shared.Config.VillageConfig)
 
@@ -14,6 +15,7 @@ local FairScene = require(script.Parent.FairScene)
 local Panels = require(script.Parent.Panels)
 local SoundController = require(script.Parent.SoundController)
 local Focus = require(script.Parent.Parent.UI.Focus)
+local Portrait = require(script.Parent.Parent.UI.Portrait)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
 
@@ -35,6 +37,7 @@ export type Deps = {
 
 local MarketController = {}
 local deps: Deps? = nil
+local myLook: LookMath.Look? = nil -- [D61] infatisarea ta, pentru portretele din vitrina
 local snapshot: Snapshot = { secondsLeft = 0, items = {} }
 local pearls = 0
 local restockAt = 0 -- os.clock() la care se schimba vitrina (din secondsLeft)
@@ -51,7 +54,7 @@ local function drawItem(holder: GuiObject, item: Item, px: number, z: number)
             child:Destroy()
         end
     end
-    local function image(s: Assets.Sprite, w: number, h: number, tint: Color3?, rect: boolean)
+    local function image(s: Assets.Sprite, w: number, h: number, tint: Color3?)
         local img = Instance.new("ImageLabel")
         img.BackgroundTransparency = 1
         img.Image = Assets.url(s)
@@ -60,10 +63,6 @@ local function drawItem(holder: GuiObject, item: Item, px: number, z: number)
         img.Position = UDim2.fromScale(0.5, 0.5)
         img.Size = UDim2.fromOffset(w, h)
         img.ImageColor3 = tint or Color3.new(1, 1, 1)
-        if rect then
-            img.ImageRectOffset = Vector2.new(0, 24 * 3) -- randul idle_down, cadrul 0
-            img.ImageRectSize = Vector2.new(16, 24)
-        end
         img.ZIndex = z
         img.Parent = holder
     end
@@ -72,20 +71,13 @@ local function drawItem(holder: GuiObject, item: Item, px: number, z: number)
         local sprite = if def ~= nil then (Assets.decor :: any)[def.sprite] else nil
         if sprite ~= nil and Assets.has(sprite) then
             local s = math.min(px / sprite.width, px / sprite.height)
-            image(sprite, sprite.width * s, sprite.height * s, nil, false)
+            image(sprite, sprite.width * s, sprite.height * s, nil)
         end
     elseif item.kind == "outfit" then
-        local sheet = (Assets.people.outfit :: any)[item.id]
-        if sheet ~= nil and Assets.has(sheet) and Assets.has(Assets.people.body.b) then
-            local w, h = px * 2 / 3, px
-            image(Assets.people.body.b, w, h, Color3.fromRGB(231, 188, 150), true)
-            if Assets.has(Assets.people.hair.long) then
-                image(Assets.people.hair.long, w, h, Color3.fromRGB(92, 62, 40), true)
-            end
-            image(sheet, w, h, nil, true)
-        end
+        -- [D61] tu, cu chipul tau, in tinuta aceea (UI/Portrait, comun cu avizierul satului si cu croitoreasa)
+        Portrait.draw(holder, item.id, myLook, px * 2 / 3, px, z)
     elseif Assets.has(Assets.icons.pearl) then
-        image(Assets.icons.pearl, px * 0.8, px * 0.8, Theme.COLOR.gold, false)
+        image(Assets.icons.pearl, px * 0.8, px * 0.8, Theme.COLOR.gold)
     end
 end
 
@@ -305,6 +297,20 @@ function MarketController.Apply(snap: Snapshot, pearlsNow: number)
     snapshot = snap
     pearls = math.floor(pearlsNow)
     restockAt = os.clock() + snap.secondsLeft
+    if deps ~= nil then
+        drawWorld()
+        if open then
+            refreshPanel()
+        end
+    end
+end
+
+-- [D61] Infatisarea ta s-a schimbat (croitoreasa): portretele din vitrina se redeseneaza cu ea.
+function MarketController.SetLook(look: LookMath.Look)
+    if myLook ~= nil and LookMath.same(myLook, look) then
+        return
+    end
+    myLook = look
     if deps ~= nil then
         drawWorld()
         if open then

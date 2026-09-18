@@ -6,6 +6,7 @@ local TweenService = game:GetService("TweenService")
 local AnimConfig = require(ReplicatedStorage.Shared.Config.AnimConfig)
 local RiverConfig = require(ReplicatedStorage.Shared.Config.RiverConfig)
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
+local LookMath = require(ReplicatedStorage.Shared.Modules.LookMath)
 local Prng = require(ReplicatedStorage.Shared.Modules.Prng)
 local Shoreline = require(ReplicatedStorage.Shared.Modules.Shoreline)
 local WorldDecor = require(ReplicatedStorage.Shared.Modules.WorldDecor)
@@ -568,8 +569,11 @@ export type Pose = (
 ) -> ()
 -- [D59] Tinuta jucatorului (cheia din Assets.people.outfit), schimbata de la avizierul satului.
 export type SetOutfit = (outfit: string) -> ()
+-- [D61] Infatisarea jucatorului (silueta, coafura, pielea, culoarea parului), aleasa la croitoreasa din balci:
+-- aceleasi straturi si palete ca la oamenii din sat (LookMath, SettlerConfig). Primeste indicii din profil.
+export type SetLook = (look: LookMath.Look) -> ()
 
-function SceneArt.MakeCharacter(parent: Instance): (GuiObject, Pose, SetOutfit)
+function SceneArt.MakeCharacter(parent: Instance): (GuiObject, Pose, SetOutfit, SetLook)
     local c = RiverConfig.CHARACTER
     if Assets.has(Assets.character_anim) then
         local img = image(parent, Assets.character_anim, 0, 0, c.WIDTH, c.HEIGHT, 6)
@@ -583,6 +587,7 @@ function SceneArt.MakeCharacter(parent: Instance): (GuiObject, Pose, SetOutfit)
             and Assets.has(Assets.people.outfit.keeper)
         local extra: { ImageLabel } = {}
         local outfitLayer: ImageLabel? = nil
+        local hairLayer: ImageLabel? = nil
         if playerLayered then
             img.Image = Assets.url(Assets.people.body.b)
             img.ImageColor3 = Color3.fromRGB(231, 188, 150)
@@ -601,7 +606,33 @@ function SceneArt.MakeCharacter(parent: Instance): (GuiObject, Pose, SetOutfit)
                 table.insert(extra, l)
                 if i == 2 then
                     outfitLayer = l
+                else
+                    hairLayer = l
                 end
+            end
+        end
+        -- [D61] Pana aici omul are chipul de dinainte (LookMath.DEFAULT); `setLook` il schimba cu cel din profil.
+        -- O foaie de par neurcata ("bald" n-are foaie) ascunde stratul, ca la oamenii din sat (UI/PersonView).
+        local function setLook(look: LookMath.Look)
+            if not playerLayered then
+                return
+            end
+            local r = LookMath.resolve(look)
+            local bodySheet = (Assets.people.body :: any)[r.body]
+            if bodySheet ~= nil and Assets.has(bodySheet) then
+                img.Image = Assets.url(bodySheet)
+            end
+            img.ImageColor3 = Color3.fromRGB(r.skin[1], r.skin[2], r.skin[3])
+            local hair = hairLayer
+            if hair ~= nil then
+                local hairSheet = (Assets.people.hair :: any)[r.hair]
+                if hairSheet ~= nil and Assets.has(hairSheet) then
+                    hair.Image = Assets.url(hairSheet)
+                    hair.ImageTransparency = 0
+                else
+                    hair.ImageTransparency = 1
+                end
+                hair.ImageColor3 = Color3.fromRGB(r.hairColor[1], r.hairColor[2], r.hairColor[3])
             end
         end
         local function setOutfit(outfit: string)
@@ -682,7 +713,8 @@ function SceneArt.MakeCharacter(parent: Instance): (GuiObject, Pose, SetOutfit)
                     l.ImageRectSize = size
                 end
             end,
-            setOutfit
+            setOutfit,
+            setLook
     end
     local body = frame(parent, 0, 0, c.WIDTH, c.HEIGHT, Color3.fromRGB(63, 127, 191), 6)
     body.AnchorPoint = Vector2.new(0.5, 1)
@@ -695,7 +727,8 @@ function SceneArt.MakeCharacter(parent: Instance): (GuiObject, Pose, SetOutfit)
             bobT = if moving then bobT + dt * 8 else 0
             head.Position = UDim2.fromOffset(8, if math.floor(bobT) % 2 == 1 then 6 else 4)
         end,
-        function(_outfit: string) end
+        function(_outfit: string) end,
+        function(_look: LookMath.Look) end
 end
 
 -- Particule (fum de cos, flacara, praf de santier). Toate sunt actualizate de o singura bucla:

@@ -2,6 +2,8 @@
 -- [D59] SATUL: ce cumperi cu perle la avizier -- decorul (fiecare lucru cu locul lui) si tinutele jucatorului. Doar aspect:
 -- nimic de aici nu atinge venitul, deci nu trece prin simulator. Serverul e singurul care scade perle [D13].
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Assets = require(ReplicatedStorage.Shared.Config.Assets)
+local LookMath = require(ReplicatedStorage.Shared.Modules.LookMath)
 local VillageConfig = require(ReplicatedStorage.Shared.Config.VillageConfig)
 
 local Analytics = require(script.Parent.Analytics)
@@ -30,6 +32,10 @@ local function villageOf(data: any)
     then
         v.outfit = VillageConfig.DEFAULT_OUTFIT
     end
+    -- [D61] infatisarea: mereu patru indici valizi (un camp stricat cade pe chipul de la inceput)
+    if not LookMath.valid(v.look) then
+        v.look = LookMath.clean(v.look)
+    end
     return v
 end
 
@@ -44,6 +50,7 @@ export type Snapshot = {
     decor: { [string]: boolean },
     outfits: { [string]: boolean },
     outfit: string,
+    look: LookMath.Look, -- [D61]
 }
 
 function VillageService.Snapshot(player: Player): Snapshot
@@ -53,10 +60,16 @@ function VillageService.Snapshot(player: Player): Snapshot
             decor = {},
             outfits = { [VillageConfig.DEFAULT_OUTFIT] = true },
             outfit = VillageConfig.DEFAULT_OUTFIT,
+            look = table.clone(LookMath.DEFAULT),
         }
     end
     local v = villageOf(data)
-    return { decor = table.clone(v.decor), outfits = table.clone(v.outfits), outfit = v.outfit }
+    return {
+        decor = table.clone(v.decor),
+        outfits = table.clone(v.outfits),
+        outfit = v.outfit,
+        look = LookMath.clean(v.look),
+    }
 end
 
 -- Intoarce (reusit, motiv). Motivele ajung la client ca text [D40]: "unknown" | "already" | "pearls" | "no_profile".
@@ -87,7 +100,9 @@ function VillageService.BuyDecor(player: Player, id: string): (boolean, string)
 end
 
 -- Cumperi o tinuta si o si imbraci. "journal" = River Legend: nu se vinde, vine din jurnalul complet.
-function VillageService.BuyOutfit(player: Player, id: string): (boolean, string)
+-- [D61] "tailor" = se vinde doar la croitoreasa din balci: `atTailor` e adevarat doar pe drumul ei (FairNetServer).
+-- "soon" = foaia tinutei inca nu e urcata: n-ai avea ce vedea pe om, deci nu se iau perle pe ea [D40].
+function VillageService.BuyOutfit(player: Player, id: string, atTailor: boolean?): (boolean, string)
     local data = DataService.Get(player)
     if data == nil then
         return false, "no_profile"
@@ -95,6 +110,13 @@ function VillageService.BuyOutfit(player: Player, id: string): (boolean, string)
     local outfit = VillageConfig.outfitById[id]
     if outfit == nil then
         return false, "unknown"
+    end
+    if outfit.tailor and atTailor ~= true then
+        return false, "tailor"
+    end
+    local sheet = (Assets.people.outfit :: any)[id]
+    if sheet == nil or not Assets.has(sheet) then
+        return false, "soon"
     end
     local v = villageOf(data)
     if v.outfits[id] then
@@ -135,6 +157,22 @@ function VillageService.WearOutfit(player: Player, id: string): (boolean, string
     return true, "ok"
 end
 
+-- [D61] Infatisarea aleasa la croitoreasa: gratuita, oricand. Ce vine de la client se valideaza intreg (patru indici
+-- din palete); o infatisare pe jumatate buna se refuza, nu se carpeste. "invalid" | "no_profile".
+function VillageService.SetLook(player: Player, look: unknown): (boolean, string)
+    local data = DataService.Get(player)
+    if data == nil then
+        return false, "no_profile"
+    end
+    if not LookMath.valid(look) then
+        return false, "invalid"
+    end
+    local v = villageOf(data)
+    v.look = LookMath.clean(look)
+    push(player)
+    return true, "ok"
+end
+
 -- O tinuta primita, nu cumparata (River Legend, la jurnalul complet). O si imbraci. True doar prima data.
 function VillageService.GrantOutfit(player: Player, id: string): boolean
     local data = DataService.Get(player)
@@ -160,6 +198,7 @@ function VillageService.DevReset(player: Player): boolean
         decor = {},
         outfits = { [VillageConfig.DEFAULT_OUTFIT] = true },
         outfit = VillageConfig.DEFAULT_OUTFIT,
+        look = table.clone(LookMath.DEFAULT),
     }
     push(player)
     return true

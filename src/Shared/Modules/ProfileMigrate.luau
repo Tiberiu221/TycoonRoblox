@@ -325,4 +325,20 @@ function ProfileMigrate.toV11(data: { [string]: any })
     data.Meta.version = 11
 end
 
+-- [D61] Croitoreasa: infatisarea jucatorului (patru indici in paletele oamenilor, vezi LookMath). Aditiv: cine n-a
+-- ales nimic ramane cu chipul de dinainte (corpul b, parul lung, pielea a doua, satenul = toate 2).
+function ProfileMigrate.toV12(data: { [string]: any })
+    local version = if data.Meta ~= nil and data.Meta.version ~= nil then data.Meta.version else 1
+    if version >= 12 then
+        return
+    end
+    if typeof(data.Village) ~= "table" then
+        data.Village = { decor = {}, outfits = { keeper = true }, outfit = "keeper" }
+    end
+    if typeof(data.Village.look) ~= "table" then
+        data.Village.look = { body = 2, hair = 2, skin = 2, hairColor = 2 }
+    end
+    data.Meta.version = 12
+end
+
 return ProfileMigrate

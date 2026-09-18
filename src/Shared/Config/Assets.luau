@@ -55,6 +55,12 @@ local Assets = {
             angler = sprite(77086694802414, 64, 480),
             captain = sprite(96665945822082, 64, 480),
             legend = sprite(117264524949067, 64, 480),
+            -- [D61, partea 2] tinutele croitoresei din balci (scripts/art/settlers.py). Id 0 = inca neurcat: randul
+            -- ei din panou ramane fara portret, iar omul imbracat asa ramane in `keeper`.
+            festival = sprite(0, 64, 480),
+            minstrel = sprite(0, 64, 480),
+            lampkeeper = sprite(0, 64, 480),
+            harvest = sprite(0, 64, 480),
         },
     },
     path_tile = sprite(124285357370417, 64, 64),

@@ -68,10 +68,11 @@ def read_layout():
     ):
         spots.append(dict(id=sid, sprite=sprite, x=int(x), y=int(y), scale=int(scale)))
     edges = []
-    for eid, label, x, y, open_ in re.findall(
-        r'\{ id = "(\w+)", label = "([^"]+)", x = (-?\d+), y = (-?\d+), open = (true|false) \}', src
+    # [D61, partea 2] `tag = true` = marginea n-are firma ei, deci scena ii scrie numele si dupa ce se deschide
+    for eid, label, x, y, open_, tag in re.findall(
+        r'\{ id = "(\w+)", label = "([^"]+)", x = (-?\d+), y = (-?\d+), open = (true|false)(, tag = true)? \}', src
     ):
-        edges.append(dict(id=eid, label=label, x=int(x), y=int(y), open=open_ == "true"))
+        edges.append(dict(id=eid, label=label, x=int(x), y=int(y), open=open_ == "true", tag=tag != ""))
     water = float(re.search(r"FairLayout\.WATER_Y = (\d+)", src).group(1))
     return dict(
         size=rect("SIZE"), center=rect("CENTER"), floor=rect("FLOOR"), pond=rect("POND"),
@@ -254,6 +255,9 @@ def label_boxes(L, sizes):
         if not e["open"]:
             w = max(len(e["label"]), len("Opens soon")) * em * 13 + 12
             out.append((e["x"] - w / 2, e["x"] + w / 2, e["y"] - 24, e["y"] + 24))
+        elif e["tag"]:
+            w = len(e["label"]) * em * 15 + 12  # doar numele, fara randul mic (FairScene.tag)
+            out.append((e["x"] - w / 2, e["x"] + w / 2, e["y"] - 12, e["y"] + 12))
     # [D61] numele gheretelor, deasupra lor (BoothController), la fel ca firma negustorului
     for spot_id, label in (("booth_1", "Ring Toss"), ("booth_2", "Hook a Duck")):
         s = next(x for x in L["spots"] if x["id"] == spot_id)

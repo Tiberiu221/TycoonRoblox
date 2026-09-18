@@ -13,6 +13,7 @@ local Workspace = game:GetService("Workspace")
 local Assets = require(ReplicatedStorage.Shared.Config.Assets)
 local AudioLevels = require(ReplicatedStorage.Shared.Modules.AudioLevels)
 local FairLayout = require(ReplicatedStorage.Shared.Modules.FairLayout)
+local LookMath = require(ReplicatedStorage.Shared.Modules.LookMath)
 local Net = require(ReplicatedStorage.Net.Net)
 local RiverConfig = require(ReplicatedStorage.Shared.Config.RiverConfig)
 local Strings = require(ReplicatedStorage.Shared.Config.Strings)
@@ -37,6 +38,7 @@ local PresenceController = require(Controllers:WaitForChild("PresenceController"
 local Panels = require(Controllers:WaitForChild("Panels"))
 local SocialController = require(Controllers:WaitForChild("SocialController"))
 local SoundController = require(Controllers:WaitForChild("SoundController"))
+local TailorController = require(Controllers:WaitForChild("TailorController"))
 local TitleController = require(Controllers:WaitForChild("TitleController"))
 local WheelController = require(Controllers:WaitForChild("WheelController"))
 local Theme = require(script.Parent:WaitForChild("UI"):WaitForChild("Theme"))
@@ -289,14 +291,28 @@ safeInit("TitleController", function()
     })
 end)
 
--- raspunsul cumparaturilor din balci: titlurile si vitrina negustorului
+-- [D61] croitoreasa: infatisarea (gratuita) si tinutele, la cortul vargat din sud-est
+safeInit("TailorController", function()
+    TailorController.Init({
+        HudGui = hudCanvas,
+        Remotes = {
+            BuyOutfit = Net.Get("BuyOutfit"),
+            WearOutfit = Net.Get("WearOutfit"),
+            SetLook = Net.Get("SetLook"),
+        },
+    })
+    FairInteractController.AddSource(TailorController.Focus)
+end)
+
+-- raspunsul cumparaturilor din balci: titlurile, vitrina negustorului si croitoreasa
 Net.Get("ShopResult").OnClientEvent
     :Connect(function(what: string, id: string, ok: boolean, reason: string)
         local decor = VillageConfig.decorById[id]
         local outfit = VillageConfig.outfitById[id]
+        -- "wear" e tinuta imbracata la croitoreasa; "wear_title" e titlul (numele lui il stie TitleController)
         local name = if what == "decor" and decor ~= nil
             then decor.name
-            elseif what == "outfit" and outfit ~= nil then outfit.name
+            elseif (what == "outfit" or what == "wear") and outfit ~= nil then outfit.name
             else TitleController.LabelOf(id)
         FairHUDController.Toast(
             Strings.shopResult(what, name, ok, reason),
@@ -399,6 +415,7 @@ Net.Get("FairState").OnClientEvent:Connect(function(raw: { [string]: any })
         decor = table.clone(rawVillage.decor or {}),
         outfits = table.clone(rawVillage.outfits or {}),
         outfit = rawVillage.outfit or "keeper",
+        look = LookMath.clean(rawVillage.look), -- [D61]
     }
     local rawWheel: any = raw.wheel or {}
     local wheel = {
@@ -465,8 +482,11 @@ Net.Get("FairState").OnClientEvent:Connect(function(raw: { [string]: any })
     SoundController.Apply(soundLevel)
     AudioPanel.Refresh()
     WheelController.Apply(wheel)
+    MarketController.SetLook(village.look)
+    TailorController.Apply(village, pearls, titles.species)
     CharacterController.SetOutfit(village.outfit)
-    FairFerryController.Apply(village.outfit, visits)
+    CharacterController.SetLook(village.look)
+    FairFerryController.Apply(village.outfit, visits, village.look)
 end)
 
 -- cerem starea de cateva ori: primul mesaj se poate pierde daca serverul nu e gata

@@ -15,6 +15,7 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
 local Assets = require(ReplicatedStorage.Shared.Config.Assets)
+local LookMath = require(ReplicatedStorage.Shared.Modules.LookMath)
 local Strings = require(ReplicatedStorage.Shared.Config.Strings)
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 
@@ -48,6 +49,7 @@ local WAIT_LIMIT = 35 -- fara teleport si fara raspuns, ecranul se deschide inap
 
 local visits = 0
 local outfit = "keeper"
+local look: LookMath.Look? = nil -- [D61]
 local worldBoat: ImageLabel
 local worldTag: TextLabel
 
@@ -98,6 +100,7 @@ function FerryController.Board()
     end
     local started = RideScene.Start({
         Outfit = outfit,
+        Look = look,
         CanSkip = visits > 0,
         OnPushOff = function(k: number)
             -- barca se desprinde de ponton si iese in rau
@@ -120,9 +123,10 @@ function FerryController.Board()
 end
 
 -- Din TycoonState: tinuta cu care stai in barca si de cate ori ai ajuns in balci (Skip apare de la al doilea drum).
-function FerryController.Apply(newOutfit: string, fairVisits: number)
+function FerryController.Apply(newOutfit: string, fairVisits: number, newLook: LookMath.Look?)
     outfit = newOutfit
     visits = fairVisits
+    look = newLook
 end
 
 function FerryController.Init(d: Deps)

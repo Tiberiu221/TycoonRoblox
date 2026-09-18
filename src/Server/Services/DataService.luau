@@ -141,7 +141,13 @@ export type ProfileData = {
         notes: number,
     },
     -- [D59] SATUL: decorul cumparat (id -> true), tinutele avute si cea purtata
-    Village: { decor: { [string]: boolean }, outfits: { [string]: boolean }, outfit: string },
+    Village: {
+        decor: { [string]: boolean },
+        outfits: { [string]: boolean },
+        outfit: string,
+        -- [D61] infatisarea aleasa la croitoreasa: indici in paletele din SettlerConfig (LookMath)
+        look: { body: number, hair: number, skin: number, hairColor: number },
+    },
     -- [D60] BALCIUL: titlurile cumparate si cel purtat (TitleMath), cate vizite, si recordurile de pe tabela.
     -- `incomePerSec` e ultimul venit masurat in sat (sutimi): balciul n-are lantul, dar cardul jucatorului il arata.
     Titles: { bought: { [string]: boolean }, worn: string },
@@ -155,7 +161,7 @@ export type ProfileData = {
 }
 
 local PROFILE_TEMPLATE: ProfileData = {
-    Meta = { version = 11, createdAt = 0, lastSeenAt = 0 },
+    Meta = { version = 12, createdAt = 0, lastSeenAt = 0 },
     Coins = 0,
     Pearls = 0,
     Pads = {},
@@ -216,7 +222,12 @@ local PROFILE_TEMPLATE: ProfileData = {
     -- [D59] ACELEASI campuri ca ProfileMigrate.toV9: un profil nou nu trece prin migrare
     Fishing = { seed = 0, casts = 0, bait = 0, species = {} },
     River = { started = false, waiting = {}, nextAt = 0, seed = 0, total = 0, notes = 0 },
-    Village = { decor = {}, outfits = { keeper = true }, outfit = "keeper" },
+    Village = {
+        decor = {},
+        outfits = { keeper = true },
+        outfit = "keeper",
+        look = { body = 2, hair = 2, skin = 2, hairColor = 2 },
+    },
     -- [D60] ACELEASI campuri ca ProfileMigrate.toV10
     Titles = { bought = {}, worn = "era" },
     Fair = {
@@ -436,6 +447,7 @@ local function onPlayerAdded(player: Player)
     ProfileMigrate.toV9(profile.Data) -- pontonul [D59]: undita, ce aduce raul, satul -- aditiv
     ProfileMigrate.toV10(profile.Data) -- balciul [D60]: titluri, vizite, recorduri, timpul jucat -- aditiv
     ProfileMigrate.toV11(profile.Data) -- iazul si gheretele [D61]: runde, jocuri cu premiu -- aditiv
+    ProfileMigrate.toV12(profile.Data) -- croitoreasa [D61]: infatisarea jucatorului -- aditiv
     profile:Reconcile()
     profile.OnSessionEnd:Connect(function()
         profiles[player] = nil

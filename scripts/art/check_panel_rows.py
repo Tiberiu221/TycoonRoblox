@@ -268,6 +268,48 @@ PLAYER_CARD = dict(
     ] + [("friend", w // 2 - 110, (460 - SPACE["lg"] * 2 - 56) - 48, 220, 48, None)],
 )
 
+# [D61, partea 2] Croitoreasa (TailorController): fereastra fixa 680x520 -> corpul 640x424. In stanga omul tau, eticheta
+# si `Save look`; in dreapta filele si, dupa fila, fie cele patru randuri de infatisare, fie lista de tinute.
+TAILOR_SIDE_X = 200 + 16
+TAILOR_SIDE_W = 680 - SPACE["lg"] * 2 - TAILOR_SIDE_X
+TAILOR_PANEL = dict(
+    panel="Tailor (TailorController)", width=680 - SPACE["lg"] * 2, row_h=520 - SPACE["lg"] * 2 - 56,
+    boxes=lambda w: [
+        ("preview", 0, 0, 200, 300, None),
+        ("trying", 0, 308, 200, 20, None),
+        ("save", 0, 336, 200, 44, "look"),
+        ("tabLook", TAILOR_SIDE_X, 0, 150, 40, None),
+        ("tabOutfits", TAILOR_SIDE_X + 158, 0, 150, 40, None),
+        ("outfits", TAILOR_SIDE_X, 52, TAILOR_SIDE_W, (520 - SPACE["lg"] * 2 - 56) - 52, "outfits"),
+    ] + [
+        (f"lookRow{i}", TAILOR_SIDE_X, 52 + i * 68, TAILOR_SIDE_W, 60, "look")
+        for i in range(4)
+    ],
+)
+# un rand de infatisare: numele campului, sageata, valoarea, pata de culoare, sageata
+TAILOR_LOOK_ROW = dict(
+    panel="Tailor, un rand de infatisare (TailorController)", width=TAILOR_SIDE_W, row_h=60,
+    boxes=lambda w: [
+        ("label", 14, 0, 140, 60, None),
+        ("prev", 160, 8, 44, 44, None),
+        ("value", 210, 0, w - 58 - 8 - 210 - 40, 60, None),
+        ("swatch", w - 58 - 12 - 28, 16, 28, 28, None),
+        ("next", w - 58, 8, 44, 44, None),
+    ],
+)
+# un rand de tinuta, in lista din dreapta (Widgets.List: +8/-16, randul -10)
+TAILOR_OUTFIT_ROW = dict(
+    panel="Tailor, un rand de tinuta (TailorController)", width=TAILOR_SIDE_W - 16 - 10, row_h=64,
+    boxes=lambda w: [
+        ("art", 10, 4, 40, 56, None),
+        ("name", 60, 10, 186, 22, None),
+        ("sub", 60, 36, 186, 18, "buy"),
+        ("subJournal", 60, 36, 326, 18, "journal"),
+        ("state", w - md - 130, 64 // 2 - 12, 130, 24, "wearing"),
+        ("button", w - md - 130, 64 // 2 - 22, 130, 44, "buy"),
+    ],
+)
+
 
 def overlap(a, b):
     if a[5] is not None and b[5] is not None and a[5] != b[5]:
@@ -304,7 +346,8 @@ def main():
     bad = sum(check(spec) for spec in (STATION_ROW, QUEST_ROW, APPROACH_CARD, STATION_MENU, INTERACT_CARD, AUDIO_PANEL,
                                       WHEEL_PANEL, WHEEL_ROW, BOARD_ROW, JOURNAL_ROW,
                                       TITLE_ROW, TITLE_HEAD, MARKET_ROW, LEADERBOARD_ROW, STAGE_PANEL,
-                                      PLAYER_CARD, BOOTH_PANEL))
+                                      PLAYER_CARD, BOOTH_PANEL,
+                                      TAILOR_PANEL, TAILOR_LOOK_ROW, TAILOR_OUTFIT_ROW))
     if bad:
         raise SystemExit(f"{bad} coliziuni de asezare")
 

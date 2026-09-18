@@ -17,6 +17,7 @@ local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 
 local Assets = require(ReplicatedStorage.Shared.Config.Assets)
+local LookMath = require(ReplicatedStorage.Shared.Modules.LookMath)
 local Prng = require(ReplicatedStorage.Shared.Modules.Prng)
 local RideMath = require(ReplicatedStorage.Shared.Modules.RideMath)
 local Strings = require(ReplicatedStorage.Shared.Config.Strings)
@@ -34,6 +35,7 @@ export type Options = {
 
 export type Ride = {
     Outfit: string,
+    Look: LookMath.Look?, -- [D61] infatisarea aleasa la croitoreasa; nil = chipul de la inceput
     CanSkip: boolean, -- Skip apare de la al doilea drum
     OnPushOff: (number) -> (), -- 0..1: barca din lume se desprinde de mal
     OnLeft: () -> (), -- drumul a acoperit lumea: barca din lume se ascunde
@@ -83,6 +85,7 @@ local boatLantern: Frame
 local tint: Frame
 local setRiderPose: SceneArt.Pose
 local setRiderOutfit: SceneArt.SetOutfit
+local setRiderLook: SceneArt.SetLook
 local strips: { Strip } = {}
 local props: { Prop } = {}
 local lights: { Light } = {}
@@ -380,6 +383,7 @@ function RideScene.Start(r: Ride): boolean
     wakeClock = 0
     left = false
     setRiderOutfit(r.Outfit)
+    setRiderLook(r.Look or LookMath.DEFAULT)
     rowingLabel.Visible = false
     stage.Visible = false
     cover.BackgroundTransparency = 1
@@ -485,11 +489,12 @@ function RideScene.Init(o: Options)
     vessel.Size = UDim2.fromOffset(ferry.width * ART, ferry.height * ART + 60)
     vessel.ZIndex = 6
     vessel.Parent = canvas
-    local rider, pose, setOutfit = SceneArt.MakeCharacter(vessel)
+    local rider, pose, setOutfit, setLook = SceneArt.MakeCharacter(vessel)
     rider.Position = UDim2.new(0.5, -dir * 18, 1, -44)
     rider.ZIndex = 1
     setRiderPose = pose
     setRiderOutfit = setOutfit
+    setRiderLook = setLook
     local boat = spriteImage(vessel, ferry, 2)
     boat.Position = UDim2.fromScale(0.5, 1)
     if dir < 0 and Assets.has(ferry) then

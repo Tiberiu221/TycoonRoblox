@@ -17,7 +17,13 @@ export type Deps = {
         SetAudioLevel: (Player, string, number) -> (),
     },
     Economy: { GetPearls: (Player) -> number },
-    Village: { Snapshot: (Player) -> { [string]: any } },
+    Village: {
+        Snapshot: (Player) -> { [string]: any },
+        -- [D61] croitoreasa: cumperi (al treilea argument = "la cortul ei"), porti, iti alegi infatisarea
+        BuyOutfit: (Player, string, boolean?) -> (boolean, string),
+        WearOutfit: (Player, string) -> (boolean, string),
+        SetLook: (Player, unknown) -> (boolean, string),
+    },
     Wheel: {
         Snapshot: (Player) -> { [string]: any },
         Spin: (Player) -> (boolean, string, string?, number?, boolean?),
@@ -160,6 +166,24 @@ function FairNetServer.Init(d: Deps)
         Net.Get("ShopResult"):FireClient(player, what, id, ok, reason)
     end)
     Net.Get("WearTitle").OnServerEvent:Connect(titleHandler("wear_title", deps.Titles.Wear))
+
+    -- [D61] CROITOREASA. Tinutele trec prin aceiasi validatori ca la avizierul satului (VillageService); `true` spune
+    -- ca esti la cortul ei, singurul loc unde se vand ale ei. Infatisarea e gratuita; forma ei o verifica LookMath.
+    Net.Get("BuyOutfit").OnServerEvent
+        :Connect(titleHandler("outfit", function(player: Player, id: string)
+            return deps.Village.BuyOutfit(player, id, true)
+        end))
+    Net.Get("WearOutfit").OnServerEvent:Connect(titleHandler("wear", deps.Village.WearOutfit))
+    Net.Get("SetLook").OnServerEvent:Connect(function(player: Player, look: unknown)
+        if not RateLimiter.Allow(player, "Shop") then
+            return
+        end
+        local ok, reason = deps.Village.SetLook(player, look)
+        if not ok then
+            -- reusita se vede pe om; doar refuzul are nevoie de cuvinte [D43]
+            Net.Get("ShopResult"):FireClient(player, "look", "", false, reason)
+        end
+    end)
 
     -- Cardul altui om: doar cineva de pe server, cu limita (un E tinut apasat nu cere de zece ori pe secunda).
     Net.Get("LookAt").OnServerEvent:Connect(function(player: Player, userId: unknown)

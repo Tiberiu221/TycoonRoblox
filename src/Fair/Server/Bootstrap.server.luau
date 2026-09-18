@@ -74,9 +74,10 @@ PresenceService.Init({
     Where = Net.GetUnreliable("Where"),
     Crowd = Net.GetUnreliable("Crowd"),
     People = Net.Get("People"),
-    Describe = function(player: Player): (string, string)
+    Describe = function(player: Player)
         local _, title = TitleService.Worn(player)
-        return VillageService.Snapshot(player).outfit, title
+        local village = VillageService.Snapshot(player)
+        return village.outfit, title, village.look
     end,
     Sit = Net.Get("Sit"),
     Stand = Net.Get("Stand"),

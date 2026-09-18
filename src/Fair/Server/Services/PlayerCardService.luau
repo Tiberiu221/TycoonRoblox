@@ -7,6 +7,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local FishConfig = require(ReplicatedStorage.Shared.Config.FishConfig)
+local LookMath = require(ReplicatedStorage.Shared.Modules.LookMath)
 
 local DataService = require(script.Parent.DataService)
 local TitleService = require(script.Parent.TitleService)
@@ -18,6 +19,7 @@ export type Card = {
     name: string,
     title: string,
     outfit: string,
+    look: { [string]: number }, -- [D61] infatisarea aleasa la croitoreasa (LookMath)
     era: number,
     incomePerSec: number, -- monede pe secunda; 0 = inca nemasurat
     fish: string?, -- specia celui mai mare peste
@@ -56,6 +58,7 @@ function PlayerCardService.Of(userId: number): Card?
         name = target.DisplayName,
         title = title,
         outfit = data.Village.outfit,
+        look = LookMath.clean(data.Village.look),
         era = facts.era,
         incomePerSec = income,
         fish = if record ~= nil then record.fish else nil,

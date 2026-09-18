@@ -30,7 +30,8 @@ for _, d in VillageConfig.DECOR do
 end
 for _, o in VillageConfig.OUTFITS do
     local price = o.price
-    if price ~= nil and price > 0 then
+    -- [D61] tinutele croitoresei raman "doar la ea": nu intra in vitrina zilei
+    if price ~= nil and price > 0 and not o.tailor then
         table.insert(
             POOL,
             { key = `outfit:{o.id}`, kind = "outfit", id = o.id, name = o.name, price = price }

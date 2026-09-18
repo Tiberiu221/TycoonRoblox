@@ -236,6 +236,10 @@ return function()
                         math.ceil(textWidth(Strings.FAIR_OPENS_SOON, TINY)) + 12
                     )
                     centered(`plaque_{edge.id}`, edge.x, edge.y - 17, w, 35, hosts[edge.id])
+                elseif edge.tag then
+                    -- [D61] deschisa, dar fara firma ei: ramane doar numele (FairScene.tag fara randul mic)
+                    local w = math.ceil(textWidth(edge.label, SMALL)) + 12
+                    centered(`plaque_{edge.id}`, edge.x, edge.y - 9, w, 18, hosts[edge.id])
                 end
             end
 

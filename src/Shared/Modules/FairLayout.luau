@@ -12,7 +12,8 @@ local FairLayout = {}
 
 export type Spot = { id: string, sprite: string, x: number, y: number, scale: number }
 export type Rect = { x0: number, x1: number, y0: number, y1: number }
-export type Edge = { id: string, label: string, x: number, y: number, open: boolean }
+-- `tag` = marginea n-are firma ei (ca negustorul sau gheretele), deci scena ii scrie numele si dupa ce se deschide
+export type Edge = { id: string, label: string, x: number, y: number, open: boolean, tag: boolean? }
 
 FairLayout.SIZE = { w = 1620, h = 1680 }
 FairLayout.CENTER = { x = 810, y = 800 }
@@ -34,8 +35,8 @@ FairLayout.EDGES = {
     { id = "stage", label = "Stage & Leaderboards", x = 810, y = 250, open = true },
     { id = "tables", label = "Tables & Music", x = 1300, y = 330, open = true },
     { id = "market", label = "Market", x = 1390, y = 520, open = true },
-    { id = "tailor", label = "Tailor", x = 1234, y = 1140, open = false },
-    { id = "gate", label = "Village Gate", x = 386, y = 1140, open = false },
+    { id = "tailor", label = "Tailor", x = 1234, y = 1140, open = true, tag = true }, -- [D61, partea 2]
+    { id = "gate", label = "Village Gate", x = 386, y = 1140, open = false, tag = true },
     { id = "pond", label = "Contest Pond", x = 210, y = 640, open = true },
     { id = "games", label = "Games", x = 379, y = 250, open = true },
 } :: { Edge }

@@ -15,6 +15,7 @@ local RiverConfig = require(ReplicatedStorage.Shared.Config.RiverConfig)
 local Strings = require(ReplicatedStorage.Shared.Config.Strings)
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 local VillageConfig = require(ReplicatedStorage.Shared.Config.VillageConfig)
+local LookMath = require(ReplicatedStorage.Shared.Modules.LookMath)
 
 local CharacterController = require(script.Parent.CharacterController)
 local Panels = require(script.Parent.Panels)
@@ -22,6 +23,7 @@ local SceneArt = require(script.Parent.SceneArt)
 local SoundController = require(script.Parent.SoundController)
 local Focus = require(script.Parent.Parent.UI.Focus)
 local GroundShadow = require(script.Parent.Parent.UI.GroundShadow)
+local Portrait = require(script.Parent.Parent.UI.Portrait)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
 
@@ -29,6 +31,7 @@ export type Snapshot = {
     decor: { [string]: boolean },
     outfits: { [string]: boolean },
     outfit: string,
+    look: LookMath.Look, -- [D61] infatisarea aleasa la croitoreasa
 }
 
 export type Deps = {
@@ -51,8 +54,12 @@ local tab = "village"
 local list: ScrollingFrame
 local tabButtons: { [string]: TextButton } = {}
 
-local village: Snapshot =
-    { decor = {}, outfits = { keeper = true }, outfit = VillageConfig.DEFAULT_OUTFIT }
+local village: Snapshot = {
+    decor = {},
+    outfits = { keeper = true },
+    outfit = VillageConfig.DEFAULT_OUTFIT,
+    look = table.clone(LookMath.DEFAULT),
+}
 local pearls = 0
 local caught = 0 -- specii prinse, pentru randul River Legend
 local applied = false
@@ -200,29 +207,8 @@ local function fillArt(holder: Frame, sprite: Assets.Sprite?, outfit: string?)
             child:Destroy()
         end
     end
-    local function layer(sheet: Assets.Sprite, tint: Color3?, z: number)
-        local img = Instance.new("ImageLabel")
-        img.BackgroundTransparency = 1
-        img.Image = Assets.url(sheet)
-        img.ResampleMode = Enum.ResamplerMode.Pixelated
-        img.ImageRectOffset = Vector2.new(0, 24 * 3) -- randul idle_down, cadrul 0
-        img.ImageRectSize = Vector2.new(16, 24)
-        img.AnchorPoint = Vector2.new(0.5, 1)
-        img.Position = UDim2.fromScale(0.5, 1)
-        img.Size = UDim2.fromOffset(32, 48)
-        img.ImageColor3 = tint or Color3.new(1, 1, 1)
-        img.ZIndex = z
-        img.Parent = holder
-    end
     if outfit ~= nil then
-        local sheet = (Assets.people.outfit :: any)[outfit]
-        if sheet ~= nil and Assets.has(sheet) and Assets.has(Assets.people.body.b) then
-            layer(Assets.people.body.b, Color3.fromRGB(231, 188, 150), Z + 4)
-            if Assets.has(Assets.people.hair.long) then
-                layer(Assets.people.hair.long, Color3.fromRGB(92, 62, 40), Z + 5)
-            end
-            layer(sheet, nil, Z + 6)
-        end
+        Portrait.draw(holder, outfit, village.look, 32, 48, Z + 4) -- [D61] tu, cu chipul tau, in tinuta aceea
         return
     end
     if sprite ~= nil and Assets.has(sprite) then
@@ -356,6 +342,10 @@ local function refresh()
             if outfit.journal and not owned then
                 view.sub.Text = Strings.boardJournal(caught, #FishConfig.SPECIES)
                 view.button.Visible = false
+            elseif outfit.tailor and not owned then
+                -- [D61] ale croitoresei: aici se vad si, odata cumparate, se poarta; de luat, doar la cortul ei
+                view.sub.Text = Strings.BOARD_AT_TAILOR
+                view.button.Visible = false
             elseif owned then
                 view.sub.Text = ""
                 view.button.Visible = not wearing
@@ -405,6 +395,7 @@ function VillageController.Apply(snap: Snapshot, pearlsNow: number, speciesCaugh
         applied = true
     end
     CharacterController.SetOutfit(village.outfit)
+    CharacterController.SetLook(village.look)
     if open then
         refresh()
     end

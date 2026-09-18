@@ -36,6 +36,10 @@ local REMOTE_NAMES = {
     "BoothStarted", -- S->C {game, seed, left} sau {game, nil, reason}
     "BoothFinish", -- C->S {presses}: secundele de la inceputul jocului
     "BoothResult", -- S->C {ok, reason, result}
+    -- [D61] croitoreasa: tinutele (aceiasi validatori ca la avizierul satului) si infatisarea jucatorului
+    "BuyOutfit", -- C->S {outfitId}; raspunsul vine pe ShopResult
+    "WearOutfit", -- C->S {outfitId}
+    "SetLook", -- C->S {look}: patru indici in paletele oamenilor (LookMath); doar refuzul raspunde
     -- [D61] mesele: statul jos si facutul cu mana (PresenceService)
     "Sit", -- C->S {seatId}
     "Stand", -- C->S: te-ai ridicat

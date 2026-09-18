@@ -5,6 +5,7 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local RiverConfig = require(ReplicatedStorage.Shared.Config.RiverConfig)
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
+local LookMath = require(ReplicatedStorage.Shared.Modules.LookMath)
 local WorldMap = require(ReplicatedStorage.Shared.Modules.WorldMap)
 local SceneArt = require(script.Parent.SceneArt)
 
@@ -18,6 +19,9 @@ local activity: string? = nil
 local activityFacing: string? = nil
 local setOutfitFn: ((string) -> ())? = nil
 local wantedOutfit: string? = nil
+-- [D61] infatisarea aleasa la croitoreasa (LookMath); ca tinuta: tinuta minte daca vine inainte de Init
+local setLookFn: ((LookMath.Look) -> ())? = nil
+local wantedLook: LookMath.Look? = nil
 local hiddenWanted = false
 local body: GuiObject? = nil
 local walking = false
@@ -94,6 +98,15 @@ function CharacterController.SetOutfit(outfit: string)
     end
 end
 
+-- [D61] Silueta, coafura, pielea si culoarea parului, din profil (VillageService.Snapshot().look).
+function CharacterController.SetLook(look: LookMath.Look)
+    wantedLook = look
+    local fn = setLookFn
+    if fn ~= nil then
+        fn(look)
+    end
+end
+
 -- [D60] Personajul nu se vede: a urcat in barca (drumul il deseneaza FerryController). Pozitia ramane pe loc.
 function CharacterController.SetHidden(hidden: boolean)
     hiddenWanted = hidden
@@ -161,12 +174,16 @@ function CharacterController.Init(deps: {
             return WorldMap.isBlocked(rects, RiverConfig, px, py)
         end
     local zIndexFor = deps.ZIndexFor
-    local sprite, setPose, setOutfit = SceneArt.MakeCharacter(deps.Scroll)
+    local sprite, setPose, setOutfit, setLook = SceneArt.MakeCharacter(deps.Scroll)
     body = sprite
     sprite.Visible = not hiddenWanted
     setOutfitFn = setOutfit
     if wantedOutfit ~= nil then
         setOutfit(wantedOutfit :: string)
+    end
+    setLookFn = setLook
+    if wantedLook ~= nil then
+        setLook(wantedLook :: LookMath.Look)
     end
     local c = RiverConfig.CHARACTER
     sprite.Position = UDim2.fromOffset(x, y)

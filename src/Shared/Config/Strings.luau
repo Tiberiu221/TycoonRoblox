@@ -465,6 +465,7 @@ Strings.BOARD_WEARING = "Wearing"
 function Strings.boardJournal(n: number, total: number): string
     return `Complete the Journal ({n}/{total})`
 end
+Strings.BOARD_AT_TAILOR = "Sold by the tailor at the fair" -- [D61]
 Strings.BOARD_BLURB = "Pearls buy looks for your village and for you."
 function Strings.shopResult(what: string, name: string, ok: boolean, reason: string): string
     if ok then
@@ -483,6 +484,10 @@ function Strings.shopResult(what: string, name: string, ok: boolean, reason: str
         return "You already have it"
     elseif reason == "journal" then
         return "Complete the Journal to earn it"
+    elseif reason == "tailor" then
+        return "The tailor at the fair sells that one" -- [D61]
+    elseif reason == "soon" then
+        return "The tailor is still sewing that one" -- [D61] foaia tinutei inca nu e urcata
     elseif reason == "not_owned" then
         return "Buy it first"
     elseif reason == "not_earned" then
@@ -715,6 +720,34 @@ function Strings.marketRestock(duration: string): string
 end
 Strings.MARKET_KIND = { decor = "For your village", outfit = "Outfit", title = "Title" }
 Strings.MARKET_OWNED = "Owned"
+-- [D61] Croitoreasa: infatisarea (gratuita) si tinutele. Panoul arata omul tau mare, intors pe rand.
+Strings.TAILOR_TITLE = "Tailor"
+function Strings.tailorCard(keyHint: string): string
+    return `Tailor{keyHint}`
+end
+Strings.TAILOR_TAB_LOOK = "Look"
+Strings.TAILOR_TAB_OUTFITS = "Outfits"
+Strings.TAILOR_SAVE = "Save look"
+Strings.TAILOR_SAVED = "Saved"
+Strings.TAILOR_ONLY_HERE = "Only at the tailor"
+Strings.TAILOR_SOON = "Still being sewn" -- foaia tinutei inca nu e urcata: nu se vinde si nu se poate proba
+Strings.TAILOR_FIELDS = { body = "Build", hair = "Hair", hairColor = "Hair color", skin = "Skin" }
+function Strings.tailorField(field: string): string
+    return (Strings.TAILOR_FIELDS :: any)[field] or field
+end
+Strings.TAILOR_HAIR = { short = "Short", long = "Long", bun = "Bun", bald = "None" }
+function Strings.tailorHair(style: string): string
+    return (Strings.TAILOR_HAIR :: any)[style] or style
+end
+function Strings.tailorChoice(index: number, total: number): string
+    return `{index} of {total}`
+end
+function Strings.tailorTrying(name: string): string
+    return `Trying on: {name}`
+end
+function Strings.tailorWearing(name: string): string
+    return `Wearing: {name}`
+end
 -- marginile balciului care se deschid in D61: placuta lor spune asta, ca nimeni sa nu astepte degeaba [D43]
 Strings.FAIR_OPENS_SOON = "Opens soon"
 -- Barca de la ponton, in amonte, spre balci. Eticheta de pe apa, cardul si drumul.

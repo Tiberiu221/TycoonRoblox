@@ -13,19 +13,27 @@ local RunService = game:GetService("RunService")
 local CrowdCodec = require(ReplicatedStorage.Shared.Modules.CrowdCodec)
 local FairLayout = require(ReplicatedStorage.Shared.Modules.FairLayout)
 local FairPresence = require(ReplicatedStorage.Shared.Modules.FairPresence)
+local LookMath = require(ReplicatedStorage.Shared.Modules.LookMath)
 
 local Analytics = require(script.Parent.Analytics)
 local DataService = require(script.Parent.DataService)
 
 local PresenceService = {}
 
-export type Person = { slot: number, userId: number, name: string, outfit: string, title: string }
+export type Person = {
+    slot: number,
+    userId: number,
+    name: string,
+    outfit: string,
+    title: string,
+    look: LookMath.Look, -- [D61] silueta, coafura, pielea, culoarea parului (croitoreasa)
+}
 export type Deps = {
     Where: UnreliableRemoteEvent,
     Crowd: UnreliableRemoteEvent,
     People: RemoteEvent,
-    -- tinuta si titlul purtat, din profil (VillageService, TitleService)
-    Describe: (Player) -> (string, string),
+    -- tinuta, titlul purtat si [D61] infatisarea, din profil (VillageService, TitleService)
+    Describe: (Player) -> (string, string, LookMath.Look),
     -- [D61] mesele: te asezi, te ridici, faci cu mana; raspunsul la asezare
     Sit: RemoteEvent,
     Stand: RemoteEvent,
@@ -113,13 +121,14 @@ end
 
 local function describe(player: Player, slot: number): Person
     local d = deps :: Deps
-    local outfit, title = d.Describe(player)
+    local outfit, title, look = d.Describe(player)
     return {
         slot = slot,
         userId = player.UserId,
         name = player.DisplayName,
         outfit = outfit,
         title = title,
+        look = look,
     }
 end
 
@@ -192,6 +201,7 @@ function PresenceService.Touch(player: Player)
         card.outfit ~= mark.card.outfit
         or card.title ~= mark.card.title
         or card.name ~= mark.card.name
+        or not LookMath.same(card.look, mark.card.look)
     then
         mark.card = card
         sendRoster()

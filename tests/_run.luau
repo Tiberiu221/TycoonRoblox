@@ -40,6 +40,7 @@ require("./FishMath.test")()
 require("./ReelMath.test")()
 require("./TreasureMath.test")()
 require("./PearlBudget.test")()
+require("./LookMath.test")()
 
 local frktest = require("@frktest/frktest")
 local console_reporter = require("@frktest/reporters/console_reporter")

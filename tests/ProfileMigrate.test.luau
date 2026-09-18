@@ -550,7 +550,9 @@ return function()
                     "treasures = 0",
                     "Fishing = { seed = 0, casts = 0, bait = 0, species = {} }",
                     "River = { started = false, waiting = {}, nextAt = 0, seed = 0, total = 0, notes = 0 }",
-                    'Village = { decor = {}, outfits = { keeper = true }, outfit = "keeper" }',
+                    -- [D61] satul a primit si infatisarea (toV12), deci sablonul lui sta pe mai multe randuri
+                    "outfits = { keeper = true },",
+                    'outfit = "keeper",',
                 }
             do
                 check.is_true(string.find(src, needle, 1, true) ~= nil)
@@ -667,8 +669,70 @@ return function()
                 {
                     "pond = { wins = 0, rounds = 0 }",
                     "booth = { day = 0, prizeGames = 0, perfect = 0 }",
-                    "version = 11",
                     "ProfileMigrate.toV11(profile.Data)",
+                }
+            do
+                check.is_true(string.find(src, needle, 1, true) ~= nil)
+            end
+        end)
+    end)
+
+    test.suite("ProfileMigrate.toV12 - infatisarea jucatorului [D61]", function()
+        local LookMath = require("../src/Shared/Modules/LookMath")
+
+        test.case(
+            "cine n-a ales nimic ramane cu chipul de dinainte; restul satului neatins",
+            function()
+                local data: { [string]: any } = {
+                    Meta = { version = 11 },
+                    Village = {
+                        decor = { well = true },
+                        outfits = { keeper = true, angler = true },
+                        outfit = "angler",
+                    },
+                }
+                ProfileMigrate.toV12(data)
+                check.equal(data.Meta.version, 12)
+                check.is_true(LookMath.same(data.Village.look, LookMath.DEFAULT))
+                check.equal(data.Village.outfit, "angler")
+                check.is_true(data.Village.decor.well)
+            end
+        )
+
+        test.case(
+            "o infatisare aleasa nu se pierde; migrarea e idempotenta; un profil fara sat primeste tot",
+            function()
+                local data: { [string]: any } = {
+                    Meta = { version = 11 },
+                    Village = {
+                        decor = {},
+                        outfits = { keeper = true },
+                        outfit = "keeper",
+                        look = { body = 1, hair = 4, skin = 6, hairColor = 3 },
+                    },
+                }
+                ProfileMigrate.toV12(data)
+                check.equal(data.Village.look.hair, 4)
+                ProfileMigrate.toV12(data)
+                check.equal(data.Village.look.skin, 6)
+                local bare: { [string]: any } = { Meta = { version = 8 } }
+                ProfileMigrate.toV9(bare)
+                ProfileMigrate.toV10(bare)
+                ProfileMigrate.toV11(bare)
+                ProfileMigrate.toV12(bare)
+                check.equal(bare.Meta.version, 12)
+                check.is_true(LookMath.valid(bare.Village.look))
+            end
+        )
+
+        test.case("sablonul si migrarea adauga aceleasi campuri", function()
+            local fs = require("@lune/fs")
+            local src = fs.readFile("src/Server/Services/DataService.luau")
+            for _, needle in
+                {
+                    "look = { body = 2, hair = 2, skin = 2, hairColor = 2 }",
+                    "version = 12",
+                    "ProfileMigrate.toV12(profile.Data)",
                 }
             do
                 check.is_true(string.find(src, needle, 1, true) ~= nil)

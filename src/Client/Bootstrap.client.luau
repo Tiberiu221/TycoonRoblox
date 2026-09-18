@@ -15,6 +15,7 @@ local RiverConfig = require(ReplicatedStorage.Shared.Config.RiverConfig)
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 local Strings = require(ReplicatedStorage.Shared.Config.Strings)
 local AudioLevels = require(ReplicatedStorage.Shared.Modules.AudioLevels)
+local LookMath = require(ReplicatedStorage.Shared.Modules.LookMath)
 local HUDController = require(script.Parent.Controllers.HUDController)
 local IndexController = require(script.Parent.Controllers.IndexController)
 local RiverRenderController = require(script.Parent.Controllers.RiverRenderController)
@@ -964,6 +965,8 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
         decor = table.clone(rawVillage.decor or {}),
         outfits = table.clone(rawVillage.outfits or {}),
         outfit = rawVillage.outfit or "keeper",
+        -- [D61] infatisarea aleasa la croitoreasa; curatata aici, ca un camp lipsa sa cada pe chipul de la inceput
+        look = LookMath.clean(rawVillage.look),
     }
 
     local rawFair: any = raw.fair or {}
@@ -1043,7 +1046,7 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
         snapshot.pearls,
         JournalController.SpeciesCaught(snapshot.fishing)
     )
-    FerryController.Apply(snapshot.village.outfit, snapshot.fair.visits)
+    FerryController.Apply(snapshot.village.outfit, snapshot.fair.visits, snapshot.village.look)
     if snapshot.quests ~= nil then
         HUDController.SetQuest(snapshot.quests.active, snapshot.quests.claimable)
         QuestController.Apply(snapshot.quests)

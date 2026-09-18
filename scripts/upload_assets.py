@@ -43,6 +43,11 @@ OVERRIDE = {
     "outfit_angler": "angler",
     "outfit_captain": "captain",
     "outfit_legend": "legend",
+    # [D61, partea 2] tinutele croitoresei (`lampkeeper`, nu `lantern`: felinarul de decor are deja cheia aceea)
+    "outfit_festival": "festival",
+    "outfit_minstrel": "minstrel",
+    "outfit_lampkeeper": "lampkeeper",
+    "outfit_harvest": "harvest",
     "ui_helm": "helm_face",
 }
 

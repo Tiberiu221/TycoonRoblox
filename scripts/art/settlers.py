@@ -94,6 +94,20 @@ OUTFITS = {
     "legend":    dict(shirt=hexc("2d7f98"), shirt_l=hexc("46a2bd"), shirt_d=hexc("1d596c"),
                        hat=hexc("d6a53a"), hat_d=hexc("a2791f"), hat_l=hexc("f1cd6a"),
                        hat_kind="tricorn", coat=True, player=True),
+    # [D61] TINUTELE CROITORESEI, doar in balci, pe perle. Patru siluete de cap pe care nu le poarta nimeni altcineva
+    # (joben, bereta cu pana, gluga, cununa), ca in multimea din balci sa se vada dintr-o privire cine si-a luat-o.
+    "festival":  dict(shirt=hexc("a8323a"), shirt_l=hexc("c94a50"), shirt_d=hexc("7a2028"),
+                       hat=hexc("2e2833"), hat_d=hexc("1c1820"), hat_l=hexc("e2b64a"),
+                       hat_kind="tophat", coat=True, player=True),
+    "minstrel":  dict(shirt=hexc("c9a03a"), shirt_l=hexc("e0bb58"), shirt_d=hexc("96752a"),
+                       hat=hexc("3f7a3a"), hat_d=hexc("2c5829"), hat_l=hexc("c8463c"),
+                       hat_kind="feathercap", coat=False, player=True),
+    "lampkeeper": dict(shirt=hexc("2f3560"), shirt_l=hexc("454c84"), shirt_d=hexc("20243f"),
+                       hat=hexc("3a4174"), hat_d=hexc("262b4e"), hat_l=hexc("e8a03c"),
+                       hat_kind="hood", coat=True, player=True),
+    "harvest":   dict(shirt=hexc("d9b45a"), shirt_l=hexc("ecd083"), shirt_d=hexc("a98a3c"),
+                       hat=hexc("e6c35c"), hat_d=hexc("5f8f3a"), hat_l=hexc("c8463c"),
+                       hat_kind="wreath", coat=False, player=True),
 }
 _CUR = dict(OUTFITS["fisher"])
 
@@ -223,6 +237,39 @@ def draw_hat(c, ox, y, facing, layer):
             c.rect(ox + 7, y + 2, 2, 1, hexc("e2b64a"))
         else:
             c.rect(ox + 4, y + 4, 8, 1, hat)
+    elif k == "tophat":                                  # [D61] jobenul de sarbatoare: calota inalta, banda aurie
+        c.rect(ox + 5, y, 6, 4, hat); c.rect(ox + 5, y, 1, 3, hat_d)
+        c.rect(ox + 5, y + 3, 6, 1, hat_l)               # banda
+        if facing == "side":
+            c.rect(ox + 3, y + 4, 11, 1, hat_d)
+        else:
+            c.rect(ox + 3, y + 4, 10, 1, hat_d)
+    elif k == "feathercap":                              # [D61] bereta menestrelului, cu pana rosie
+        c.rect(ox + 4, y + 2, 8, 3, hat); c.rect(ox + 5, y + 1, 5, 1, hat)
+        c.rect(ox + 5, y + 2, 3, 1, hexc("58994f"))
+        c.rect(ox + 4, y + 4, 8, 1, hat_d)
+        if facing == "side":
+            c.put(ox + 5, y + 1, hat_l); c.put(ox + 4, y, hat_l); c.put(ox + 3, y, hat_l)   # pana, spre ceafa
+        else:
+            c.put(ox + 11, y + 1, hat_l); c.put(ox + 12, y, hat_l)
+    elif k == "hood":                                    # [D61] gluga paznicului de felinare, cu tiv de chihlimbar
+        c.rect(ox + 4, y + 1, 8, 4, hat); c.rect(ox + 6, y, 4, 1, hat)
+        c.rect(ox + 5, y + 1, 3, 1, hexc("4f5790"))
+        if facing == "up":
+            c.rect(ox + 4, y + 4, 8, 1, hat_d)
+        elif facing == "side":
+            c.rect(ox + 4, y + 4, 8, 1, hat_d); c.rect(ox + 10, y + 4, 2, 1, hat_l)
+        else:
+            c.rect(ox + 4, y + 4, 8, 1, hat_d); c.rect(ox + 6, y + 4, 4, 1, hat_l)
+    elif k == "wreath":                                  # [D61] cununa de spice: crestetul ramane descoperit
+        x0 = ox + 3 if facing == "side" else ox + 4
+        w = 9 if facing == "side" else 8
+        for i in range(w):
+            c.put(x0 + i, y + 4, hat if i % 2 == 0 else hat_d)
+        for i in (1, 4, w - 2):                           # spicele ridicate deasupra cununii
+            c.put(x0 + i, y + 3, hat)
+        if facing != "up":
+            c.put(x0 + 2, y + 4, hat_l); c.put(x0 + w - 3, y + 4, hat_l)   # macii din cununa
     elif k == "tricorn":                                 # bor lat + pana - doar jucatorul
         if facing == "side":
             c.rect(ox + 2, y + 1, 12, 3, hat); c.rect(ox + 5, y, 6, 2, hat)
@@ -245,7 +292,7 @@ def draw_hair(c, ox, y, facing, layer):
     sub ea nu se deseneaza, palaria oricum il acopera. "bald" nu deseneaza nimic."""
     if not L(layer, "hair") or _HAIR == "bald":
         return
-    open_top = _CUR["hat_kind"] in ("none", "band")     # nimic nu acopera crestetul
+    open_top = _CUR["hat_kind"] in ("none", "band", "wreath")     # nimic nu acopera crestetul
     fw, fdx = _BODY["face_w"], _BODY["face_dx"]
     fx = ox + 5 + fdx
     if facing == "up":                                  # din spate: tot capul e par
@@ -964,7 +1011,8 @@ if __name__ == "__main__":
         png(f"hair_{hair}.png", s_hair.w, s_hair.h, s_hair.px)
 
     for outfit in ("fisher", "crafter", "builder", "gardener", "innkeeper", "keeper", "townsfolk", "traveler",
-                   "scrapper", "carter", "smith", "ironmonger", "angler", "captain", "legend"):
+                   "scrapper", "carter", "smith", "ironmonger", "angler", "captain", "legend",
+                   "festival", "minstrel", "lampkeeper", "harvest"):
         s_outfit = build_sheet("outfit", outfit=outfit)
         png(f"outfit_{outfit}.png", s_outfit.w, s_outfit.h, s_outfit.px)
 

@@ -6,12 +6,13 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local StarterGui = game:GetService("StarterGui")
 
-local Assets = require(ReplicatedStorage.Shared.Config.Assets)
+local LookMath = require(ReplicatedStorage.Shared.Modules.LookMath)
 local Strings = require(ReplicatedStorage.Shared.Config.Strings)
 local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
 
 local Panels = require(script.Parent.Panels)
 local SoundController = require(script.Parent.SoundController)
+local Portrait = require(script.Parent.Parent.UI.Portrait)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
 
@@ -37,36 +38,9 @@ local PANEL_W, PANEL_H = 480, 460
 local Z = 72
 local ROWS = { "income", "fish", "treasures", "decor", "journal" }
 
--- Portretul: omul in tinuta lui, cadrul idle spre tine (aceleasi straturi ca avizierul satului).
-local function drawPortrait(outfit: string)
-    for _, child in portrait:GetChildren() do
-        if child:IsA("ImageLabel") then
-            child:Destroy()
-        end
-    end
-    local sheet = (Assets.people.outfit :: any)[outfit]
-    if sheet == nil or not Assets.has(sheet) or not Assets.has(Assets.people.body.b) then
-        return
-    end
-    local function layer(s: Assets.Sprite, tint: Color3?, z: number)
-        local img = Instance.new("ImageLabel")
-        img.BackgroundTransparency = 1
-        img.Image = Assets.url(s)
-        img.ResampleMode = Enum.ResamplerMode.Pixelated
-        img.ImageRectOffset = Vector2.new(0, 24 * 3) -- randul idle_down, cadrul 0
-        img.ImageRectSize = Vector2.new(16, 24)
-        img.AnchorPoint = Vector2.new(0.5, 1)
-        img.Position = UDim2.fromScale(0.5, 1)
-        img.Size = UDim2.fromOffset(64, 96)
-        img.ImageColor3 = tint or Color3.new(1, 1, 1)
-        img.ZIndex = z
-        img.Parent = portrait
-    end
-    layer(Assets.people.body.b, Color3.fromRGB(231, 188, 150), Z + 3)
-    if Assets.has(Assets.people.hair.long) then
-        layer(Assets.people.hair.long, Color3.fromRGB(92, 62, 40), Z + 4)
-    end
-    layer(sheet, nil, Z + 5)
+-- Portretul: omul in tinuta lui si [D61] cu chipul lui, cadrul idle spre tine (UI/Portrait, comun cu avizierul).
+local function drawPortrait(outfit: string, look: LookMath.Look)
+    Portrait.draw(portrait, outfit, look, 64, 96, Z + 3)
 end
 
 local function show(card: { [string]: any })
@@ -84,7 +58,7 @@ local function show(card: { [string]: any })
     values.treasures.Text = tostring(card.treasures)
     values.decor.Text = tostring(card.decor)
     values.journal.Text = Strings.cardOf(card.species, card.speciesTotal)
-    drawPortrait(card.outfit)
+    drawPortrait(card.outfit, card.look)
     friendButton.Visible = card.userId ~= Players.LocalPlayer.UserId
     Panels.CloseOthers("card")
     open = true
@@ -206,6 +180,7 @@ function PlayerCardController.Init(d: Deps)
             name = if typeof(card.name) == "string" then card.name else "",
             title = if typeof(card.title) == "string" then card.title else "",
             outfit = if typeof(card.outfit) == "string" then card.outfit else "keeper",
+            look = LookMath.clean(card.look), -- [D61]
             era = if typeof(card.era) == "number" then card.era else 1,
             incomePerSec = if typeof(card.incomePerSec) == "number" then card.incomePerSec else 0,
             fish = if typeof(card.fish) == "string" then card.fish else nil,

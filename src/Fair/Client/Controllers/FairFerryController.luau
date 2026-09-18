@@ -7,6 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
+local LookMath = require(ReplicatedStorage.Shared.Modules.LookMath)
 local Strings = require(ReplicatedStorage.Shared.Config.Strings)
 
 local CharacterController = require(script.Parent.CharacterController)
@@ -32,6 +33,7 @@ local BOARD_DISTANCE = 90
 local WAIT_LIMIT = 35
 local visits = 0
 local outfit = "keeper"
+local look: LookMath.Look? = nil -- [D61]
 local ferryX, ferryY, _, ferryH = 0, 0, 0, 0
 
 local function boat(): ImageLabel?
@@ -85,6 +87,7 @@ function FairFerryController.Board()
     end
     local started = RideScene.Start({
         Outfit = outfit,
+        Look = look,
         CanSkip = visits > 1, -- prima vizita e si primul drum inapoi
         OnPushOff = function(k: number)
             place(ferryX + 24 * k, ferryY + 12 * k, true)
@@ -106,9 +109,10 @@ function FairFerryController.Board()
 end
 
 -- Din FairState: tinuta cu care stai in barca si de cate ori ai ajuns in balci.
-function FairFerryController.Apply(newOutfit: string, fairVisits: number)
+function FairFerryController.Apply(newOutfit: string, fairVisits: number, newLook: LookMath.Look?)
     outfit = newOutfit
     visits = fairVisits
+    look = newLook
 end
 
 function FairFerryController.Init(d: Deps)
