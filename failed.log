@@ -1,148 +1,151 @@
-=== job 105686580899
-﻿2026-09-18T16:58:30.1600628Z Current runner version: '2.337.0'
-2026-09-18T16:58:30.1636225Z ##[group]Runner Image Provisioner
-2026-09-18T16:58:30.1637784Z Hosted Compute Agent
-2026-09-18T16:58:30.1639067Z Version: 20260828.587
-2026-09-18T16:58:30.1640383Z Commit: abac92662cab4cc7352de4f9f9d2e2419aad9c29
-2026-09-18T16:58:30.1641734Z Build Date: 2026-08-28T16:44:25Z
-2026-09-18T16:58:30.1643175Z Worker ID: {9f786a9d-aa2b-4bcb-8bf9-1e167e8353c6}
-2026-09-18T16:58:30.1644557Z Azure Region: westus
-2026-09-18T16:58:30.1646025Z ##[endgroup]
-2026-09-18T16:58:30.1648908Z ##[group]Operating System
-2026-09-18T16:58:30.1650014Z Ubuntu
-2026-09-18T16:58:30.1651536Z 24.04.5
-2026-09-18T16:58:30.1652510Z LTS
-2026-09-18T16:58:30.1653499Z ##[endgroup]
-2026-09-18T16:58:30.1655144Z ##[group]Runner Image
-2026-09-18T16:58:30.1656380Z Image: ubuntu-24.04
-2026-09-18T16:58:30.1657518Z Version: 20260907.300.1
-2026-09-18T16:58:30.1659708Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260907.300/images/ubuntu/Ubuntu2404-Readme.md
-2026-09-18T16:58:30.1662768Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260907.300
-2026-09-18T16:58:30.1665036Z ##[endgroup]
-2026-09-18T16:58:30.1667437Z ##[group]GITHUB_TOKEN Permissions
-2026-09-18T16:58:30.1670457Z Contents: read
-2026-09-18T16:58:30.1671799Z Metadata: read
-2026-09-18T16:58:30.1672856Z Packages: read
-2026-09-18T16:58:30.1674018Z ##[endgroup]
-2026-09-18T16:58:30.1677527Z Secret source: Actions
-2026-09-18T16:58:30.1679381Z Cache mode: write
-2026-09-18T16:58:30.1716466Z Prepare workflow directory
-2026-09-18T16:58:30.2171445Z Prepare all required actions
-2026-09-18T16:58:30.2218588Z Getting action download info
-2026-09-18T16:58:30.5774492Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
-2026-09-18T16:58:30.6927250Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
-2026-09-18T16:58:30.9166395Z Complete job name: publish-staging
-2026-09-18T16:58:30.9956341Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
-2026-09-18T16:58:30.9965420Z ##[group]Run actions/checkout@v4
-2026-09-18T16:58:30.9966419Z with:
-2026-09-18T16:58:30.9967000Z   repository: Tiberiu221/TycoonRoblox
-2026-09-18T16:58:30.9971110Z   token: ***
-2026-09-18T16:58:30.9971664Z   ssh-strict: true
-2026-09-18T16:58:30.9972229Z   ssh-user: git
-2026-09-18T16:58:30.9972809Z   persist-credentials: true
-2026-09-18T16:58:30.9973425Z   clean: true
-2026-09-18T16:58:30.9973995Z   sparse-checkout-cone-mode: true
-2026-09-18T16:58:30.9974639Z   fetch-depth: 1
-2026-09-18T16:58:30.9975519Z   fetch-tags: false
-2026-09-18T16:58:30.9976089Z   show-progress: true
-2026-09-18T16:58:30.9976654Z   lfs: false
-2026-09-18T16:58:30.9977223Z   submodules: false
-2026-09-18T16:58:30.9977804Z   set-safe-directory: true
-2026-09-18T16:58:30.9978426Z   allow-unsafe-pr-checkout: false
-2026-09-18T16:58:30.9979391Z ##[endgroup]
-2026-09-18T16:58:31.1195723Z Syncing repository: Tiberiu221/TycoonRoblox
-2026-09-18T16:58:31.1315992Z ##[group]Getting Git version info
-2026-09-18T16:58:31.1317579Z Working directory is '/home/runner/work/TycoonRoblox/TycoonRoblox'
-2026-09-18T16:58:31.1319851Z [command]/usr/bin/git version
-2026-09-18T16:58:31.1335561Z git version 2.55.0
-2026-09-18T16:58:31.1376303Z ##[endgroup]
-2026-09-18T16:58:31.1383335Z Temporarily overriding HOME='/home/runner/work/_temp/5057e284-8132-4f63-99af-d7e4400507be' before making global git config changes
-2026-09-18T16:58:31.1386456Z Adding repository directory to the temporary git global config as a safe directory
-2026-09-18T16:58:31.1391221Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/TycoonRoblox/TycoonRoblox
-2026-09-18T16:58:31.1502061Z Deleting the contents of '/home/runner/work/TycoonRoblox/TycoonRoblox'
-2026-09-18T16:58:31.1507517Z ##[group]Initializing the repository
-2026-09-18T16:58:31.1509456Z [command]/usr/bin/git init /home/runner/work/TycoonRoblox/TycoonRoblox
-2026-09-18T16:58:31.1595534Z hint: Using 'master' as the name for the initial branch. This default branch name
-2026-09-18T16:58:31.1602260Z hint: will change to "main" in Git 3.0. To configure the initial branch name
-2026-09-18T16:58:31.1604221Z hint: to use in all of your new repositories, which will suppress this warning,
-2026-09-18T16:58:31.1606388Z hint: call:
-2026-09-18T16:58:31.1607343Z hint:
-2026-09-18T16:58:31.1608520Z hint: 	git config --global init.defaultBranch <name>
-2026-09-18T16:58:31.1609919Z hint:
-2026-09-18T16:58:31.1611139Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
-2026-09-18T16:58:31.1612934Z hint: 'development'. The just-created branch can be renamed via this command:
-2026-09-18T16:58:31.1614289Z hint:
-2026-09-18T16:58:31.1615476Z hint: 	git branch -m <name>
-2026-09-18T16:58:31.1616407Z hint:
-2026-09-18T16:58:31.1617665Z hint: Disable this message with "git config set advice.defaultBranchName false"
-2026-09-18T16:58:31.1619693Z Initialized empty Git repository in /home/runner/work/TycoonRoblox/TycoonRoblox/.git/
-2026-09-18T16:58:31.1646818Z [command]/usr/bin/git remote add origin https://github.com/Tiberiu221/TycoonRoblox
-2026-09-18T16:58:31.1707382Z ##[endgroup]
-2026-09-18T16:58:31.1708872Z ##[group]Disabling automatic garbage collection
-2026-09-18T16:58:31.1710125Z [command]/usr/bin/git config --local gc.auto 0
-2026-09-18T16:58:31.1786526Z ##[endgroup]
-2026-09-18T16:58:31.1796543Z ##[group]Setting up auth
-2026-09-18T16:58:31.1798910Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
-2026-09-18T16:58:31.1846986Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
-2026-09-18T16:58:31.3194837Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
-2026-09-18T16:58:31.3199824Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
-2026-09-18T16:58:31.3204467Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
-2026-09-18T16:58:31.3215498Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
-2026-09-18T16:58:31.3430785Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
-2026-09-18T16:58:31.3472812Z ##[endgroup]
-2026-09-18T16:58:31.3475084Z ##[group]Fetching the repository
-2026-09-18T16:58:31.3486841Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +f1019ca19634ef995881d9a2eaa9d0335fa1eb4d:refs/remotes/origin/main
-2026-09-18T16:58:32.8451184Z From https://github.com/Tiberiu221/TycoonRoblox
-2026-09-18T16:58:32.8477967Z  * [new ref]         f1019ca19634ef995881d9a2eaa9d0335fa1eb4d -> origin/main
-2026-09-18T16:58:32.8489013Z ##[endgroup]
-2026-09-18T16:58:32.8490883Z ##[group]Determining the checkout info
-2026-09-18T16:58:32.8492978Z ##[endgroup]
-2026-09-18T16:58:32.8494367Z [command]/usr/bin/git sparse-checkout disable
-2026-09-18T16:58:32.8575739Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
-2026-09-18T16:58:32.8637834Z ##[group]Checking out the ref
-2026-09-18T16:58:32.8653476Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
-2026-09-18T16:58:32.9494544Z Switched to a new branch 'main'
-2026-09-18T16:58:32.9501432Z branch 'main' set up to track 'origin/main'.
-2026-09-18T16:58:32.9512118Z ##[endgroup]
-2026-09-18T16:58:32.9560789Z [command]/usr/bin/git log -1 --format=%H
-2026-09-18T16:58:32.9587871Z f1019ca19634ef995881d9a2eaa9d0335fa1eb4d
-2026-09-18T16:58:32.9921325Z ##[group]Run curl -sSf https://raw.githubusercontent.com/rojo-rbx/rokit/main/scripts/install.sh | bash
-2026-09-18T16:58:32.9924569Z curl -sSf https://raw.githubusercontent.com/rojo-rbx/rokit/main/scripts/install.sh | bash
-2026-09-18T16:58:32.9969675Z shell: /usr/bin/bash -e {0}
-2026-09-18T16:58:32.9970905Z ##[endgroup]
-2026-09-18T16:58:33.2865875Z 
-2026-09-18T16:58:33.2885609Z [1 / 3] Looking for latest rokit release
-2026-09-18T16:58:33.3565207Z curl: (22) The requested URL returned error: 403
-2026-09-18T16:58:33.3600293Z ##[error]Process completed with exit code 22.
-2026-09-18T16:58:33.3781266Z ##[group]Run bash scripts/ci_publish.sh 114983498774894 DriftwoodFair.rbxl
-2026-09-18T16:58:33.3781891Z bash scripts/ci_publish.sh 114983498774894 DriftwoodFair.rbxl
-2026-09-18T16:58:33.3818181Z shell: /usr/bin/bash -e {0}
-2026-09-18T16:58:33.3818500Z env:
-2026-09-18T16:58:33.3829252Z   ROBLOX_API_KEY: ***
-2026-09-18T16:58:33.3829568Z   UNIVERSE_ID: 10765888327
-2026-09-18T16:58:33.3829859Z ##[endgroup]
-2026-09-18T16:58:33.3906593Z scripts/ci_publish.sh: line 19: DriftwoodFair.rbxl: No such file or directory
-2026-09-18T16:58:33.3915847Z universe=10765888327 place=114983498774894 key_length=968 fisier=DriftwoodFair.rbxl ( octeti)
-2026-09-18T16:58:33.5978355Z sesiunea colaborativa: {"errors":[{"code":0,"message":"Forbidden"}]} [HTTP 403]
-2026-09-18T16:58:33.6064056Z curl: option --data-binary: error encountered when reading a file
-2026-09-18T16:58:33.6065620Z curl: try 'curl --help' or 'curl --manual' for more information
-2026-09-18T16:58:33.6086855Z HTTP 000: 
-2026-09-18T16:58:33.6099123Z ##[error]publicarea place-ului 114983498774894 a picat (HTTP 000)
-2026-09-18T16:58:33.6102324Z ##[error]Process completed with exit code 1.
-2026-09-18T16:58:33.6231330Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
-2026-09-18T16:58:33.6233044Z Post job cleanup.
-2026-09-18T16:58:33.7173403Z [command]/usr/bin/git version
-2026-09-18T16:58:33.7255748Z git version 2.55.0
-2026-09-18T16:58:33.7355485Z Temporarily overriding HOME='/home/runner/work/_temp/7e7bfae3-cb4a-4aa2-8b9f-22f38acb4e82' before making global git config changes
-2026-09-18T16:58:33.7378385Z Adding repository directory to the temporary git global config as a safe directory
-2026-09-18T16:58:33.7380045Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/TycoonRoblox/TycoonRoblox
-2026-09-18T16:58:33.7382471Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
-2026-09-18T16:58:33.7463438Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
-2026-09-18T16:58:33.7778588Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
-2026-09-18T16:58:33.7811370Z http.https://github.com/.extraheader
-2026-09-18T16:58:33.7838665Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
-2026-09-18T16:58:33.7882759Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
-2026-09-18T16:58:33.8420387Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
-2026-09-18T16:58:33.8560317Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
-2026-09-18T16:58:33.9297059Z Cleaning up orphan processes
-2026-09-18T16:58:33.9582231Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+=== job 105687132264
+2026-09-18T17:00:13.8048262Z Hosted Compute Agent
+2026-09-18T17:00:13.8049526Z Version: 20260828.587
+2026-09-18T17:00:13.8050721Z Commit: abac92662cab4cc7352de4f9f9d2e2419aad9c29
+2026-09-18T17:00:13.8052041Z Build Date: 2026-08-28T16:44:25Z
+2026-09-18T17:00:13.8053505Z Worker ID: {e9532cec-b7e7-441a-8fc3-4fa40e7c271c}
+2026-09-18T17:00:13.8054755Z Azure Region: eastus
+2026-09-18T17:00:13.8055822Z ##[endgroup]
+2026-09-18T17:00:13.8058087Z ##[group]Operating System
+2026-09-18T17:00:13.8059714Z Ubuntu
+2026-09-18T17:00:13.8060736Z 24.04.5
+2026-09-18T17:00:13.8061671Z LTS
+2026-09-18T17:00:13.8062771Z ##[endgroup]
+2026-09-18T17:00:13.8084401Z ##[group]Runner Image
+2026-09-18T17:00:13.8085603Z Image: ubuntu-24.04
+2026-09-18T17:00:13.8086710Z Version: 20260907.300.1
+2026-09-18T17:00:13.8089102Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260907.300/images/ubuntu/Ubuntu2404-Readme.md
+2026-09-18T17:00:13.8092016Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260907.300
+2026-09-18T17:00:13.8094245Z ##[endgroup]
+2026-09-18T17:00:13.8096473Z ##[group]GITHUB_TOKEN Permissions
+2026-09-18T17:00:13.8099549Z Contents: read
+2026-09-18T17:00:13.8100540Z Metadata: read
+2026-09-18T17:00:13.8101458Z Packages: read
+2026-09-18T17:00:13.8102539Z ##[endgroup]
+2026-09-18T17:00:13.8126420Z Secret source: Actions
+2026-09-18T17:00:13.8128095Z Cache mode: write
+2026-09-18T17:00:13.8129684Z Prepare workflow directory
+2026-09-18T17:00:13.9118862Z Prepare all required actions
+2026-09-18T17:00:13.9284971Z Getting action download info
+2026-09-18T17:00:14.1804369Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+2026-09-18T17:00:14.3023162Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2026-09-18T17:00:14.5320330Z Complete job name: lint-format-test
+2026-09-18T17:00:14.6115703Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+2026-09-18T17:00:14.6124604Z ##[group]Run actions/checkout@v4
+2026-09-18T17:00:14.6125346Z with:
+2026-09-18T17:00:14.6125801Z   repository: Tiberiu221/TycoonRoblox
+2026-09-18T17:00:14.6129807Z   token: ***
+2026-09-18T17:00:14.6130257Z   ssh-strict: true
+2026-09-18T17:00:14.6130706Z   ssh-user: git
+2026-09-18T17:00:14.6131160Z   persist-credentials: true
+2026-09-18T17:00:14.6131690Z   clean: true
+2026-09-18T17:00:14.6132139Z   sparse-checkout-cone-mode: true
+2026-09-18T17:00:14.6132667Z   fetch-depth: 1
+2026-09-18T17:00:14.6133303Z   fetch-tags: false
+2026-09-18T17:00:14.6133751Z   show-progress: true
+2026-09-18T17:00:14.6134203Z   lfs: false
+2026-09-18T17:00:14.6134671Z   submodules: false
+2026-09-18T17:00:14.6135131Z   set-safe-directory: true
+2026-09-18T17:00:14.6135637Z   allow-unsafe-pr-checkout: false
+2026-09-18T17:00:14.6136420Z ##[endgroup]
+2026-09-18T17:00:14.7566974Z Syncing repository: Tiberiu221/TycoonRoblox
+2026-09-18T17:00:14.7569911Z ##[group]Getting Git version info
+2026-09-18T17:00:14.7571540Z Working directory is '/home/runner/work/TycoonRoblox/TycoonRoblox'
+2026-09-18T17:00:14.7574225Z [command]/usr/bin/git version
+2026-09-18T17:00:14.7575317Z git version 2.55.0
+2026-09-18T17:00:14.7578929Z ##[endgroup]
+2026-09-18T17:00:14.7585822Z Temporarily overriding HOME='/home/runner/work/_temp/303253f8-a2dd-45fa-8748-a0120a7b41ef' before making global git config changes
+2026-09-18T17:00:14.7588388Z Adding repository directory to the temporary git global config as a safe directory
+2026-09-18T17:00:14.7590787Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/TycoonRoblox/TycoonRoblox
+2026-09-18T17:00:14.8669491Z Deleting the contents of '/home/runner/work/TycoonRoblox/TycoonRoblox'
+2026-09-18T17:00:14.8672614Z ##[group]Initializing the repository
+2026-09-18T17:00:14.8674638Z [command]/usr/bin/git init /home/runner/work/TycoonRoblox/TycoonRoblox
+2026-09-18T17:00:14.8676548Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-09-18T17:00:14.8678510Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-09-18T17:00:14.8687098Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-09-18T17:00:14.8688945Z hint: call:
+2026-09-18T17:00:14.8689720Z hint:
+2026-09-18T17:00:14.8690622Z hint: 	git config --global init.defaultBranch <name>
+2026-09-18T17:00:14.8691731Z hint:
+2026-09-18T17:00:14.8692994Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-09-18T17:00:14.8695585Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-09-18T17:00:14.8697214Z hint:
+2026-09-18T17:00:14.8698231Z hint: 	git branch -m <name>
+2026-09-18T17:00:14.8701523Z hint:
+2026-09-18T17:00:14.8703226Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-09-18T17:00:14.8705366Z Initialized empty Git repository in /home/runner/work/TycoonRoblox/TycoonRoblox/.git/
+2026-09-18T17:00:14.8708492Z [command]/usr/bin/git remote add origin https://github.com/Tiberiu221/TycoonRoblox
+2026-09-18T17:00:14.8711417Z ##[endgroup]
+2026-09-18T17:00:14.8712741Z ##[group]Disabling automatic garbage collection
+2026-09-18T17:00:14.8714261Z [command]/usr/bin/git config --local gc.auto 0
+2026-09-18T17:00:14.8716851Z ##[endgroup]
+2026-09-18T17:00:14.8718384Z ##[group]Setting up auth
+2026-09-18T17:00:14.8720062Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-09-18T17:00:14.8724545Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-09-18T17:00:14.9152581Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-09-18T17:00:14.9218441Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-09-18T17:00:14.9538970Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-09-18T17:00:14.9581357Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-09-18T17:00:14.9824803Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-09-18T17:00:14.9866976Z ##[endgroup]
+2026-09-18T17:00:14.9868823Z ##[group]Fetching the repository
+2026-09-18T17:00:14.9879953Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +abb93a42e8f2e0c69654543007fbeab5564e2de4:refs/remotes/origin/main
+2026-09-18T17:00:15.6522493Z From https://github.com/Tiberiu221/TycoonRoblox
+2026-09-18T17:00:15.6524863Z  * [new ref]         abb93a42e8f2e0c69654543007fbeab5564e2de4 -> origin/main
+2026-09-18T17:00:15.6529926Z ##[endgroup]
+2026-09-18T17:00:15.6531599Z ##[group]Determining the checkout info
+2026-09-18T17:00:15.6533627Z ##[endgroup]
+2026-09-18T17:00:15.6534598Z [command]/usr/bin/git sparse-checkout disable
+2026-09-18T17:00:15.6586267Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-09-18T17:00:15.6622017Z ##[group]Checking out the ref
+2026-09-18T17:00:15.6627005Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+2026-09-18T17:00:15.7341111Z Switched to a new branch 'main'
+2026-09-18T17:00:15.7444233Z branch 'main' set up to track 'origin/main'.
+2026-09-18T17:00:15.7448298Z ##[endgroup]
+2026-09-18T17:00:15.7495471Z [command]/usr/bin/git log -1 --format=%H
+2026-09-18T17:00:15.7526213Z abb93a42e8f2e0c69654543007fbeab5564e2de4
+2026-09-18T17:00:15.7769122Z ##[group]Run bash scripts/ci_install_rokit.sh
+2026-09-18T17:00:15.7769904Z bash scripts/ci_install_rokit.sh
+2026-09-18T17:00:15.7809796Z shell: /usr/bin/bash -e {0}
+2026-09-18T17:00:15.7810336Z env:
+2026-09-18T17:00:15.7814990Z   GITHUB_PAT: ***
+2026-09-18T17:00:15.7815475Z ##[endgroup]
+2026-09-18T17:00:15.8304820Z NOTE: Using provided GITHUB_PAT for authentication
+2026-09-18T17:00:15.8343937Z 
+2026-09-18T17:00:15.8344696Z [1 / 3] Looking for latest rokit release
+2026-09-18T17:00:16.1698870Z [2 / 3] Downloading 'rokit-1.2.0-linux-x86_64.zip'
+2026-09-18T17:00:16.4819708Z [3 / 3] Running rokit installation
+2026-09-18T17:00:16.4821773Z 
+2026-09-18T17:00:16.5201919Z ##[group]Run echo "$HOME/.rokit/bin" >> "$GITHUB_PATH"
+2026-09-18T17:00:16.5204265Z echo "$HOME/.rokit/bin" >> "$GITHUB_PATH"
+2026-09-18T17:00:16.5242924Z shell: /usr/bin/bash -e {0}
+2026-09-18T17:00:16.5244277Z ##[endgroup]
+2026-09-18T17:00:16.5396408Z ##[group]Run rokit install --no-trust-check
+2026-09-18T17:00:16.5397881Z rokit install --no-trust-check
+2026-09-18T17:00:16.5434407Z shell: /usr/bin/bash -e {0}
+2026-09-18T17:00:16.5435552Z ##[endgroup]
+2026-09-18T17:00:16.8486667Z  WARN Retry attempt #0. Sleeping 171.823949ms before the next attempt
+2026-09-18T17:00:17.0196011Z  WARN Retry attempt #1. Sleeping 22.062325ms before the next attempt
+2026-09-18T17:00:17.0453188Z  WARN Retry attempt #2. Sleeping 914.584794ms before the next attempt
+2026-09-18T17:00:17.9650400Z ERROR Failed to download contents for lune-org/lune@0.10.5
+2026-09-18T17:00:17.9674394Z 
+2026-09-18T17:00:17.9689511Z Caused by:
+2026-09-18T17:00:17.9691345Z     GitHub error: reqwest error: HTTP status server error (500 Internal Server Error) for url (https://api.github.com/repos/lune-org/lune/releases/assets/464503129)
+2026-09-18T17:00:17.9713927Z ##[error]Process completed with exit code 1.
+2026-09-18T17:00:17.9912663Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+2026-09-18T17:00:17.9914514Z Post job cleanup.
+2026-09-18T17:00:18.0863737Z [command]/usr/bin/git version
+2026-09-18T17:00:18.0922166Z git version 2.55.0
+2026-09-18T17:00:18.0991817Z Temporarily overriding HOME='/home/runner/work/_temp/7667d46e-336e-4f2b-be29-e0b67984c84d' before making global git config changes
+2026-09-18T17:00:18.0993756Z Adding repository directory to the temporary git global config as a safe directory
+2026-09-18T17:00:18.0995237Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/TycoonRoblox/TycoonRoblox
+2026-09-18T17:00:18.1043329Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-09-18T17:00:18.1132571Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-09-18T17:00:18.1508038Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-09-18T17:00:18.1553549Z http.https://github.com/.extraheader
+2026-09-18T17:00:18.1576272Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-09-18T17:00:18.1606623Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-09-18T17:00:18.2025805Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-09-18T17:00:18.2116480Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-09-18T17:00:18.2968663Z Cleaning up orphan processes
+2026-09-18T17:00:18.3237360Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
