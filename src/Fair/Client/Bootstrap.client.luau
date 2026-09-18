@@ -21,6 +21,9 @@ local Strings = require(ReplicatedStorage.Shared.Config.Strings)
 local VillageConfig = require(ReplicatedStorage.Shared.Config.VillageConfig)
 
 local Controllers = script.Parent:WaitForChild("Controllers")
+-- si `UI`, INAINTE de primul require: controllerele cer module din `UI` chiar la incarcare, iar folderele de langa
+-- script ajung in PlayerScripts pe rand (vezi bootstrap-ul satului, 2026-09-19)
+local UI = script.Parent:WaitForChild("UI")
 local AudioPanel = require(Controllers:WaitForChild("AudioPanel"))
 local BoardController = require(Controllers:WaitForChild("BoardController"))
 local BoothController = require(Controllers:WaitForChild("BoothController"))
@@ -46,7 +49,7 @@ local TitleController = require(Controllers:WaitForChild("TitleController"))
 local VillageDiorama = require(Controllers:WaitForChild("VillageDiorama"))
 local VisitController = require(Controllers:WaitForChild("VisitController"))
 local WheelController = require(Controllers:WaitForChild("WheelController"))
-local Theme = require(script.Parent:WaitForChild("UI"):WaitForChild("Theme"))
+local Theme = require(UI:WaitForChild("Theme"))
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui") :: PlayerGui

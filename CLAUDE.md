@@ -43,7 +43,11 @@ clientul trimite intenții pe RemoteEvent (niciodată RemoteFunction), cu valida
 ownership și limitare de rată. Module pure în `src/Shared/Modules` (primesc `now`, fără `game`).
 Timp absolut (`finishAt`), niciodată „timp rămas". Râul e determinist pe seed [D13].
 
-**Capcane cunoscute:** stylua șterge punctul-și-virgula din fața unei instrucțiuni care începe cu `(` —
+**Capcane cunoscute:** Scriptul de pornire al clientului (`Bootstrap.client.luau`) **așteaptă folderele de lângă el**
+(`script.Parent:WaitForChild("Controllers")`, la fel `UI`) înainte de primul `require`: Roblox le copiază în PlayerScripts
+pe rând, iar pe 2026-09-19 satul a pornit cu cer albastru și atât („Controllers is not a valid member of
+PlayerScripts"). `check_requires` pică acum la `script.Parent.X` într-un asemenea script. Ceasul jurnalului Studio
+(`~/Library/Logs/Roblox`) rămâne în urmă cât doarme Mac-ul: caută după text, nu după oră. stylua șterge punctul-și-virgula din fața unei instrucțiuni care începe cu `(` —
 restructurează cu un `local`. `BindableEvent` copiază tabelele — trimite identități. Câmpurile trimise de
 server trebuie **copiate explicit** pe client (am pierdut de două ori nume/meserie/înfățișare așa).
 Și invers: când serverul scoate sau redenumește un câmp, caută **toți** cititorii din client — în F0,
@@ -56,6 +60,7 @@ rânduri cu înălțimea din `Theme.textHeight`.
 
 ```
 stylua --check src/ tests/ && selene src/ && lune run tests/_run.luau
+lune run scripts/check_compile                             # fiecare fisier chiar se compileaza (limitele Luau)
 rojo build default.project.json --output /tmp/check.rbxl
 lune run scripts/check_requires /tmp/check.rbxl
 rojo build fair.project.json --output /tmp/fair.rbxl        # [D60] balciul, place-ul al doilea

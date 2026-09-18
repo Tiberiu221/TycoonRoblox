@@ -36,6 +36,7 @@ GATE = [
     ["stylua", "--check", "src/", "tests/"],
     ["selene", "src/"],
     ["lune", "run", "tests/_run.luau"],
+    ["lune", "run", "scripts/check_compile"],
     ["python3", "scripts/economy/sim_tycoon.py", "--robust"],
     ["python3", "scripts/art/check_panel_rows.py"],
     ["python3", "scripts/art/village_ground.py", "--check"],

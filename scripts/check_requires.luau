@@ -213,6 +213,18 @@ local BAD_PATTERNS: { Rule } = {
     },
 }
 
+-- Tipare interzise DOAR in scripturile care pornesc singure pe client (LocalScript in StarterPlayerScripts).
+-- [2026-09-19] Roblox copiaza copiii lui StarterPlayerScripts in PlayerScripts pe rand, iar scriptul de pornire poate
+-- rula inainte ca folderele de langa el sa fi sosit: "Controllers is not a valid member of PlayerScripts", niciun
+-- controller pornit, doar cerul albastru pe ecran. Nicio alta verificare nu prinde asta: calea e buna, doar ca prea devreme.
+local CLIENT_ENTRY_PATTERNS: { Rule } = {
+    {
+        pattern = "script%.Parent%.[%a_]",
+        why = "scriptul de pornire al clientului atinge direct un frate (`script.Parent.X`): folderele de langa el "
+            .. 'ajung in PlayerScripts pe rand. Asteapta-le o data, sus: `script.Parent:WaitForChild("X")`.',
+    },
+}
+
 local function checkPatterns(inst: Instance, source: string)
     for _, rule in BAD_PATTERNS do
         if string.find(source, rule.pattern) ~= nil then
@@ -221,6 +233,21 @@ local function checkPatterns(inst: Instance, source: string)
                 path = "tipar interzis",
                 reason = rule.why,
             })
+        end
+    end
+    local isClientEntry = inst.ClassName == "LocalScript"
+        and string.find(fullName(inst), "StarterPlayerScripts", 1, true) ~= nil
+    if isClientEntry then
+        -- comentariile pot cita tiparul (chiar explicatia de mai sus o face); se verifica doar codul
+        local code = string.gsub(source, "%-%-[^\n]*", "")
+        for _, rule in CLIENT_ENTRY_PATTERNS do
+            if string.find(code, rule.pattern) ~= nil then
+                table.insert(problems, {
+                    script = fullName(inst),
+                    path = "tipar interzis",
+                    reason = rule.why,
+                })
+            end
         end
     end
 end
@@ -299,7 +326,9 @@ local function scan(inst: Instance)
             end
         end
         checkModuleApi(inst, source, aliases)
-        checkPatterns(inst, source)
+        -- sursa BRUTA: `normalize` a facut deja din `:WaitForChild("X")` un `.X`, iar regula scripturilor de pornire
+        -- tocmai diferenta asta o cauta
+        checkPatterns(inst, (inst :: any).Source :: string)
         noteRemotes(inst, source)
         collectRemoteNames(inst, source)
     end

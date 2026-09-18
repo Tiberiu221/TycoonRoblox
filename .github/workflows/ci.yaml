@@ -36,6 +36,11 @@ jobs:
       - name: Unit tests (Lune + frktest)
         run: lune run tests/_run.luau
 
+      # stylua si selene parseaza sintaxa, dar nu prind limitele compilatorului (peste 200 de variabile locale intr-o
+      # functie, registre epuizate): un asemenea fisier ar trece toata poarta si n-ar porni deloc in Roblox.
+      - name: Every source file compiles
+        run: lune run scripts/check_compile
+
       # Iese cu eroare daca vreo cumparatura scade venitul, daca o veriga e decor sau daca preturile
       # din config s-au despartit; --robust: aceleasi porti cu fiecare constanta a oamenilor +-15% [D49]
       - name: Economy simulator

@@ -16,25 +16,33 @@ local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 local Strings = require(ReplicatedStorage.Shared.Config.Strings)
 local AudioLevels = require(ReplicatedStorage.Shared.Modules.AudioLevels)
 local LookMath = require(ReplicatedStorage.Shared.Modules.LookMath)
-local HUDController = require(script.Parent.Controllers.HUDController)
-local IndexController = require(script.Parent.Controllers.IndexController)
-local RiverRenderController = require(script.Parent.Controllers.RiverRenderController)
-local NetController = require(script.Parent.Controllers.NetController)
-local DockController = require(script.Parent.Controllers.DockController)
-local SawmillController = require(script.Parent.Controllers.SawmillController)
-local StorageController = require(script.Parent.Controllers.StorageController)
-local ShedController = require(script.Parent.Controllers.ShedController)
-local ForgeController = require(script.Parent.Controllers.ForgeController)
-local PadController = require(script.Parent.Controllers.PadController)
-local InteractController = require(script.Parent.Controllers.InteractController)
-local MusicController = require(script.Parent.Controllers.MusicController)
-local SoundController = require(script.Parent.Controllers.SoundController)
-local CeremonyController = require(script.Parent.Controllers.CeremonyController)
-local JuiceController = require(script.Parent.Controllers.JuiceController)
-local AudioPanel = require(script.Parent.Controllers.AudioPanel)
-local HandRenderController = require(script.Parent.Controllers.HandRenderController)
-local ZoneController = require(script.Parent.Controllers.ZoneController)
-local WorkshopController = require(script.Parent.Controllers.WorkshopController)
+-- FOLDERELE DE LANGA SCRIPT SE ASTEAPTA. Roblox copiaza copiii lui StarterPlayerScripts in PlayerScripts pe rand, iar
+-- scriptul asta poate porni inainte ca `Controllers` si `UI` sa fi ajuns langa el. In Studio, pe 2026-09-19:
+-- "Controllers is not a valid member of PlayerScripts" la primul require, deci niciun controller pornit si doar cerul
+-- albastru pe ecran. Fiecare folder se copiaza intreg, deci dupa ce au sosit amandoua, modulele din ele se gasesc
+-- intre ele cu `script.Parent` ca pana acum. Se asteapta AMANDOUA inainte de primul require: controllerele cer
+-- module din `UI` chiar la incarcare.
+local Controllers = script.Parent:WaitForChild("Controllers")
+local UI = script.Parent:WaitForChild("UI")
+local HUDController = require(Controllers.HUDController)
+local IndexController = require(Controllers.IndexController)
+local RiverRenderController = require(Controllers.RiverRenderController)
+local NetController = require(Controllers.NetController)
+local DockController = require(Controllers.DockController)
+local SawmillController = require(Controllers.SawmillController)
+local StorageController = require(Controllers.StorageController)
+local ShedController = require(Controllers.ShedController)
+local ForgeController = require(Controllers.ForgeController)
+local PadController = require(Controllers.PadController)
+local InteractController = require(Controllers.InteractController)
+local MusicController = require(Controllers.MusicController)
+local SoundController = require(Controllers.SoundController)
+local CeremonyController = require(Controllers.CeremonyController)
+local JuiceController = require(Controllers.JuiceController)
+local AudioPanel = require(Controllers.AudioPanel)
+local HandRenderController = require(Controllers.HandRenderController)
+local ZoneController = require(Controllers.ZoneController)
+local WorkshopController = require(Controllers.WorkshopController)
 local UserInputService = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
@@ -103,12 +111,12 @@ backdrop.Parent = worldGui
 
 local hudCanvas = attachHudScale(hudGui)
 
-local CameraController = require(script.Parent.Controllers.CameraController)
-local CharacterController = require(script.Parent.Controllers.CharacterController)
-local DevPanelController = require(script.Parent.Controllers.DevPanelController)
-local MenuBarController = require(script.Parent.Controllers.MenuBarController)
-local StationPanel = require(script.Parent.Controllers.StationPanel)
-local StationMenu = require(script.Parent.Controllers.StationMenu)
+local CameraController = require(Controllers.CameraController)
+local CharacterController = require(Controllers.CharacterController)
+local DevPanelController = require(Controllers.DevPanelController)
+local MenuBarController = require(Controllers.MenuBarController)
+local StationPanel = require(Controllers.StationPanel)
+local StationMenu = require(Controllers.StationMenu)
 -- Deschide panoul de niveluri direct pe o statie. Un singur loc, dat ca functie celor care au
 -- obiecte in lume (plase, debarcader, platforme cumparate) si listei de quest-uri -- nimeni nu cere
 -- StationPanel direct, deci nu apar require-uri incrucisate intre controllere (vezi Panels).
@@ -121,31 +129,31 @@ end
 local function openCrew(role: string)
     StationMenu.OpenAt("crew", role)
 end
-local QuestController = require(script.Parent.Controllers.QuestController)
-local TutorialController = require(script.Parent.Controllers.TutorialController)
-local WelcomeController = require(script.Parent.Controllers.WelcomeController)
+local QuestController = require(Controllers.QuestController)
+local TutorialController = require(Controllers.TutorialController)
+local WelcomeController = require(Controllers.WelcomeController)
 -- [D60] roata s-a mutat in balci; pe punte ramane indicatorul
-local WheelSignpostController = require(script.Parent.Controllers.WheelSignpostController)
+local WheelSignpostController = require(Controllers.WheelSignpostController)
 -- [D59] pontonul: undita, ce aduce raul, avizierul satului, jurnalul
-local PierController = require(script.Parent.Controllers.PierController)
-local TreasureController = require(script.Parent.Controllers.TreasureController)
-local VillageController = require(script.Parent.Controllers.VillageController)
-local JournalController = require(script.Parent.Controllers.JournalController)
+local PierController = require(Controllers.PierController)
+local TreasureController = require(Controllers.TreasureController)
+local VillageController = require(Controllers.VillageController)
+local JournalController = require(Controllers.JournalController)
 -- [D60] barca spre balci
-local FerryController = require(script.Parent.Controllers.FerryController)
-local Panels = require(script.Parent.Controllers.Panels)
+local FerryController = require(Controllers.FerryController)
+local Panels = require(Controllers.Panels)
 -- [D61, partea 2] coltul cu Robux
 local MonetizationConfig = require(ReplicatedStorage.Shared.Config.MonetizationConfig)
 local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
-local ShopPanel = require(script.Parent.Controllers.ShopPanel)
-local DriftController = require(script.Parent.Controllers.DriftController) -- [D62, pasul 3]
-local AmbientController = require(script.Parent.Controllers.AmbientController) -- [D62, pasul 5]
-local Theme = require(script.Parent.UI.Theme)
+local ShopPanel = require(Controllers.ShopPanel)
+local DriftController = require(Controllers.DriftController) -- [D62, pasul 3]
+local AmbientController = require(Controllers.AmbientController) -- [D62, pasul 5]
+local Theme = require(UI.Theme)
 local layers = CameraController.Init({ WorldGui = worldGui })
 
 -- Agentul F scrie Overlay.luau chiar acum, in paralel -- daca fisierul inca nu exista cand
 -- rulez poarta, ramanem fara el in loc sa picam tot bootstrap-ul [F1 spec 4.9].
-local OverlayModule = script.Parent.Controllers:FindFirstChild("Overlay")
+local OverlayModule = Controllers:FindFirstChild("Overlay")
 local Overlay: any = nil
 if OverlayModule ~= nil then
     local ok, mod = pcall(require, OverlayModule :: any)
