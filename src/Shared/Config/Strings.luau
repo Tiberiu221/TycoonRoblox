@@ -1230,6 +1230,14 @@ end
 
 -- linia "NEXT" din HUD, cand banii au ajuns: nu mai lipseste nimic, doar du-te si calca
 Strings.OBJ_READY = "ready!"
+-- [D63] Tinta fara sfarsit de pe linia NEXT (AmbitionMath), cand nu mai e niciun quest si ghidajul tace: pragul urmator
+-- al cladirii sau al plasei care tine venitul in loc, nivelul urmator al meseriei, sau al doilea om.
+function Strings.ambitionText(what: string, name: string, target: number): string
+    if what == "secondHire" then
+        return `Hire a second {name}`
+    end
+    return `{name} to level {target}`
+end
 Strings.NET_FULL_LABEL = "FULL" -- eticheta de pe plasa, scurta prin definitie
 Strings.NET_FAST_FIRST = "Fast first catch" -- [D51] prima plasa, in tutorial
 function Strings.netFilling(count: number, capacity: number): string

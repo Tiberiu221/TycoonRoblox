@@ -13,6 +13,7 @@ local UserInputService = game:GetService("UserInputService")
 local GuideMath = require(ReplicatedStorage.Shared.Modules.GuideMath)
 local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
+local AmbitionMath = require(ReplicatedStorage.Shared.Modules.AmbitionMath)
 local Assets = require(ReplicatedStorage.Shared.Config.Assets)
 local Strings = require(ReplicatedStorage.Shared.Config.Strings)
 local Theme = require(script.Parent.Parent.UI.Theme)
@@ -31,6 +32,8 @@ local objPill: TextButton
 local objBadge: Frame
 local objBadgeLabel: TextLabel
 local questActive: { text: string, progress: number, goal: number }? = nil
+local ambition: AmbitionMath.Ambition? = nil -- [D63] tinta fara sfarsit, cand nu e niciun quest
+local questClaimable = 0 -- cat timp e ceva de revendicat, apasarea pe linia NEXT duce tot la lista de quest-uri
 local objText: TextLabel
 local objNeed: TextLabel
 local objFill: Frame
@@ -174,13 +177,17 @@ local function newTicker(label: TextLabel, format: (number) -> string): (number)
     end
 end
 
-function HUDController.Init(deps: {
-    HudGui: Frame,
-    SetStick: (number, number) -> (),
-    Interact: () -> (),
-    OpenQuests: (() -> ())?,
-    PanelsOpen: (() -> boolean)?,
-})
+function HUDController.Init(
+    deps: {
+        HudGui: Frame,
+        SetStick: (number, number) -> (),
+        Interact: () -> (),
+        OpenQuests: (() -> ())?,
+        -- [D63] linia NEXT arata o tinta fara sfarsit: apasarea deschide meniul obiectului ei, nu lista de quest-uri
+        OpenAmbition: ((AmbitionMath.Ambition) -> ())?,
+        PanelsOpen: (() -> boolean)?,
+    }
+)
     -- Numarul central: monedele. Mare, cu pictograma, pe pastila proprie -- SINGURUL numar la
     -- care contribuie toata bucla [DECIZII D45]. Rata sta sub el (o completare, nu al doilea numar
     -- principal), sacul trece la DREAPTA grupului -- ierarhie clara in loc de trei randuri
@@ -375,6 +382,11 @@ function HUDController.Init(deps: {
     objBadgeLabel.ZIndex = 15
 
     objPill.Activated:Connect(function()
+        local a, openAmbition = ambition, deps.OpenAmbition
+        if questActive == nil and questClaimable == 0 and a ~= nil and openAmbition ~= nil then
+            openAmbition(a)
+            return
+        end
         local onOpen = deps.OpenQuests
         if onOpen ~= nil then
             onOpen()
@@ -902,6 +914,7 @@ function HUDController.SetQuest(
         return
     end
     questActive = active
+    questClaimable = claimable
     objBadge.Visible = claimable > 0
     if claimable > 0 then
         objBadgeLabel.Text = tostring(claimable)
@@ -923,6 +936,12 @@ end
 -- pasul, iar cand pasul are un pret (o cumparare sau un nivel), bara si cifra din dreapta masoara
 -- monedele, nu 0/1 -- "Cast a second net · 2 more". Fara quest: linia scrie chiar pasul, pe un rand.
 -- Cheamat de Overlay la fiecare stare, dupa GuideController.Apply.
+-- [D63] Tinta fara sfarsit (AmbitionMath), data de Overlay INAINTE de SetStep. Se vede doar cand linia ar fi disparut:
+-- fara quest activ si cu ghidajul tacut. Pana acum, dupa ultimul capitol HUD-ul nu mai spunea nimic despre "ce urmeaza".
+function HUDController.SetAmbition(a: AmbitionMath.Ambition?)
+    ambition = a
+end
+
 function HUDController.SetStep(goal: GuideMath.Goal?, coinsNow: number)
     if objPill == nil then
         return -- o stare sosita inaintea HUD-ului; urmatoarea o gaseste construit
@@ -938,6 +957,19 @@ function HUDController.SetStep(goal: GuideMath.Goal?, coinsNow: number)
         objText.Text = goal.text
         objTrack.Visible = false
         objNeed.Text = ""
+    elseif ambition ~= nil then
+        local a = ambition :: AmbitionMath.Ambition
+        objPill.Visible = true
+        objText.Text = Strings.ambitionText(a.what, a.name, a.target)
+        objStep.Visible = false
+        objPill.Size = UDim2.fromOffset(OBJ_W, OBJ_H)
+        objTrack.Position = UDim2.fromOffset(Theme.SPACE.md, OBJ_H - 20)
+        objNeed.Position = UDim2.fromOffset(OBJ_W - Theme.SPACE.md - 80, OBJ_H - 26)
+        objTrack.Visible = true
+        objFill.Size = UDim2.fromScale(math.clamp(a.progress / math.max(1, a.goal), 0, 1), 1)
+        objNeed.Text = `{a.level}/{a.target}`
+        objNeed.TextColor3 = Theme.COLOR.onDarkSoft
+        return
     else
         objPill.Visible = false
         return

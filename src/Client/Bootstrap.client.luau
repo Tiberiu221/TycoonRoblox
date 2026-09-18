@@ -648,6 +648,14 @@ safeInit("TutorialController", function()
         end,
         QuestsOpen = QuestController.IsOpen,
         OpenQuests = QuestController.Open,
+        -- [D63] tinta fara sfarsit de pe linia NEXT: apasarea deschide meniul cladirii, al plasei sau al meseriei ei
+        OpenAmbition = function(a)
+            if a.what == "milestone" then
+                openStation(a.kind, a.id)
+            else
+                openCrew(a.kind)
+            end
+        end,
     })
 end)
 

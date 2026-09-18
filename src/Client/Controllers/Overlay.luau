@@ -21,6 +21,7 @@ local StationConfig = require(ReplicatedStorage.Shared.Config.StationConfig)
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 local Strings = require(ReplicatedStorage.Shared.Config.Strings)
 local GuideMath = require(ReplicatedStorage.Shared.Modules.GuideMath)
+local AmbitionMath = require(ReplicatedStorage.Shared.Modules.AmbitionMath)
 local HandRoutes = require(ReplicatedStorage.Shared.Modules.HandRoutes)
 local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
 local CeremonyController = require(script.Parent.CeremonyController)
@@ -106,9 +107,10 @@ export type Snapshot = {
     firsts: Firsts,
     -- cati oameni are fiecare meserie (ghidajul tace cand toate au cel putin unul [D50]; pasii buclei
     -- sar peste ce face un om [D51]) si costul urmatorului nivel al fiecarei statii
+    -- [D63] randurile intregi, cum le copiaza bootstrap-ul: din ele alege AmbitionMath tinta fara sfarsit
     stations: {
-        crews: { { role: string, count: number } },
-        rows: { { kind: string, id: string?, costs: { number } } },
+        crews: { AmbitionMath.CrewRow },
+        rows: { AmbitionMath.StationRow & { costs: { number } } },
     }?,
     -- [D51] gramezile de la gater si depozit: pasii buclei le citesc; [D56] si ale liniei fierului
     sawmill: { count: number, out: number }?,
@@ -471,8 +473,14 @@ end
 -- TycoonState si la fiecare prindere (numarul din plasa se schimba intre doua stari).
 local function refreshGuide(snapshot: Snapshot)
     local goal = GuideController.Apply(toGuideState(snapshot))
-    HUDController.SetStep(goal, snapshot.coins)
     local stations = snapshot.stations
+    -- [D63] tinta fara sfarsit: HUD-ul o arata doar cand n-are nici quest, nici pas de ghidaj
+    HUDController.SetAmbition(
+        if stations ~= nil
+            then AmbitionMath.pick(stations.rows, stations.crews, StationConfig.MILESTONES)
+            else nil
+    )
+    HUDController.SetStep(goal, snapshot.coins)
     InteractController.SetContext(
         goal,
         snapshot.firsts.sell,

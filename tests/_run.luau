@@ -43,6 +43,7 @@ require("./PearlBudget.test")()
 require("./LookMath.test")()
 require("./VillageLook.test")()
 require("./VisitMath.test")()
+require("./AmbitionMath.test")()
 require("./PassMath.test")()
 require("./DriftMath.test")()
 

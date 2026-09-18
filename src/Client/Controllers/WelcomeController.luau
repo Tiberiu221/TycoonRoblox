@@ -154,7 +154,11 @@ function WelcomeController.Init(deps: {
     double.AnchorPoint = Vector2.new(0.5, 1)
     double.Position = UDim2.new(0.5, 104, 1, 0)
     double.Visible = false
-    Widgets.SetButtonTone(double, Theme.COLOR.gold)
+    -- [D63] Butonul GRATUIT e cel auriu, nu cel pe Robux. Pana acum era invers: `Double it` stralucea langa un
+    -- `Back to the river` sters, adica drumul platit era cel care sarea in ochi. Pentru un public de copii, regulile
+    -- Roblox de monetizare si codul britanic pentru copii (ICO, „nudge techniques") cer ca o cumparare sa fie o alegere
+    -- limpede si negrabita, nu calea pe care te impinge culoarea. Oferta ramane la vedere, cu pretul pe ea.
+    Widgets.SetButtonTone(button, Theme.COLOR.gold)
     local function showDouble(visible: boolean)
         double.Visible = visible
         button.Position = if visible then UDim2.new(0.5, -104, 1, 0) else UDim2.fromScale(0.5, 1)
