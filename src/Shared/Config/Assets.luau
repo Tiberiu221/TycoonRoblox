@@ -57,11 +57,11 @@ local Assets = {
             legend = sprite(117264524949067, 64, 480),
             -- [D61, partea 2] tinutele croitoresei din balci (scripts/art/settlers.py). Id 0 = inca neurcat: randul
             -- ei din panou ramane fara portret, iar omul imbracat asa ramane in `keeper`.
-            festival = sprite(0, 64, 480),
-            minstrel = sprite(0, 64, 480),
-            lampkeeper = sprite(0, 64, 480),
-            harvest = sprite(0, 64, 480),
-            supporter = sprite(0, 64, 480), -- [D61, partea 2] vine cu pass-ul Supporter
+            festival = sprite(78963091114550, 64, 480),
+            minstrel = sprite(138746724207136, 64, 480),
+            lampkeeper = sprite(133414341329904, 64, 480),
+            harvest = sprite(76827706740058, 64, 480),
+            supporter = sprite(125428311397229, 64, 480), -- [D61, partea 2] vine cu pass-ul Supporter
         },
     },
     path_tile = sprite(124285357370417, 64, 64),
@@ -90,7 +90,7 @@ local Assets = {
     -- Recuzita de decor: se imprastie determinist din seed, vezi WorldDecor
     props = {
         -- [D62, pasul 5] pasarea care trece peste sat: doua cadre de 8x8, aripile sus si jos. Id 0 = fara pasari.
-        bird = sprite(0, 16, 8),
+        bird = sprite(138134353949829, 16, 8),
         tree_round = sprite(96799483152033, 48, 64),
         tree_pine = sprite(117060864160137, 40, 76),
         bush = sprite(134096272864735, 32, 28),
@@ -121,9 +121,9 @@ local Assets = {
         levelbadge = sprite(105967142732738, 20, 20), -- pastila albastra `Level N` de pe obiecte, 9 felii
         -- [D62, pasul 5] insigna pe rangul nivelului (pragurile 10 / 25 / 50): aceeasi forma, alta culoare
         -- (scripts/art/d62_growth.py). Id 0 = inca neurcata: ramane cea albastra.
-        levelbadge_bronze = sprite(0, 20, 20),
-        levelbadge_silver = sprite(0, 20, 20),
-        levelbadge_gold = sprite(0, 20, 20),
+        levelbadge_bronze = sprite(121726334051629, 20, 20),
+        levelbadge_silver = sprite(88283067790683, 20, 20),
+        levelbadge_gold = sprite(93701832962961, 20, 20),
         hand = sprite(86879688969102, 24, 28), -- mana care arata, in tutorial
         glow = sprite(126803264537609, 32, 32), -- inelul reflectorului, 9 felii, mijloc transparent
         -- [D50] dara de ghidaj (sageata spre dreapta, rotita in cod) si inelul de pe jos (alb, colorat
@@ -228,16 +228,16 @@ local Assets = {
         net_water_full = sprite(94489644287184, 32, 18),
         -- [D62, pasul 5] plasa pe ranguri: flotoare rosii (10), mai multe si ata mai deasa (25), aurii (50). Id 0 =
         -- inca neurcate: plasa ramane cea de azi, la orice nivel.
-        net_water_r1 = sprite(0, 32, 18),
-        net_water_r1_full = sprite(0, 32, 18),
-        net_water_r2 = sprite(0, 32, 18),
-        net_water_r2_full = sprite(0, 32, 18),
-        net_water_r3 = sprite(0, 32, 18),
-        net_water_r3_full = sprite(0, 32, 18),
+        net_water_r1 = sprite(93795398301950, 32, 18),
+        net_water_r1_full = sprite(97205340659434, 32, 18),
+        net_water_r2 = sprite(114496081632708, 32, 18),
+        net_water_r2_full = sprite(121596010886450, 32, 18),
+        net_water_r3 = sprite(139617938523450, 32, 18),
+        net_water_r3_full = sprite(106815901346068, 32, 18),
         deck_tile = sprite(88026317582529, 48, 48),
         -- [D62, pasul 5] pamantul satului copt intr-o singura imagine cu alfa (scripts/art/village_ground.py): 960x640,
         -- un pixel = 3 pixeli de lume. 0 = desenata, inca neurcata -> harta se deseneaza din dale, ca pana acum.
-        village_ground = sprite(0, 960, 640),
+        village_ground = sprite(96228803429692, 960, 640),
         platform = sprite(136060284598059, 48, 24),
         weights = sprite(116698981575799, 24, 16),
         -- pier2 (64x48) a fost respins: se citea ca o lada cu capac. pier3 e pontonul inalt,
@@ -265,9 +265,9 @@ local Assets = {
         sawmill = sprite(75182981241928, 40, 32),
         -- [D62, pasul 5] a doua infatisare, de la nivelul 25 (scripts/art/d62_grand.py): aceeasi foaie, aceleasi locuri
         -- pentru panza, horn si usa. Id 0 = desenate, inca neurcate: cladirea ramane cea de azi la orice nivel.
-        sawmill_grand = sprite(0, 40, 32),
-        tavern_grand = sprite(0, 64, 48),
-        workshop_grand = sprite(0, 64, 48),
+        sawmill_grand = sprite(88632019254925, 40, 32),
+        tavern_grand = sprite(76031135146562, 64, 48),
+        workshop_grand = sprite(95704049513242, 64, 48),
         wheel_face = sprite(118757044132689, 64, 64),
         -- D49: depozitul de langa plase, unde varsa Collector-ul (fara id -> sopron desenat in cod)
         storage = sprite(100160905448383, 40, 32),
@@ -342,8 +342,8 @@ local Assets = {
         golden_water = sprite(114933237701252, 24, 12),
         -- [D62, pasul 3] darurile raului (scripts/art/d62.py): butoiul si lada care trec plutind. Id 0 = inca neurcate:
         -- DriftController deseneaza un butoi / o lada din dreptunghiuri, cat sa se vada ce trece.
-        barrel_water = sprite(0, 22, 16),
-        crate_water = sprite(0, 20, 16),
+        barrel_water = sprite(134729708355571, 22, 16),
+        crate_water = sprite(132442186024728, 20, 16),
     },
     -- [D59] imbunatatirile satului cumparate cu perle (VillageConfig.DECOR), decor_<id>.png
     decor = {
@@ -366,9 +366,9 @@ local Assets = {
         stall_1 = sprite(98566174055056, 52, 44),
         stall_2 = sprite(128622133404661, 52, 44),
         stall_3 = sprite(94824509060723, 52, 44),
-        -- [D61, partea 2] taraba `Shop`, cu copertina aurie (scripts/art/d60.py). Id 0 = inca neurcata: pana atunci
-        -- magazinul se deschide din bara din dreapta si taraba nu e pe harta (FairLayout cere desenul urcat).
-        shop = sprite(0, 52, 44),
+        -- [D61, partea 2] taraba `Shop`, cu copertina aurie (scripts/art/d60.py), urcata pe 2026-09-19. Sta in
+        -- FairLayout.SPOTS (`shop`), cu cardul ei (ShopController); magazinul se deschide si din bara din dreapta (P).
+        shop = sprite(103949308440277, 52, 44),
         tent = sprite(103727982758295, 60, 54),
         booth = sprite(90436942055073, 46, 40),
         arch = sprite(125405145209167, 76, 58),
@@ -387,7 +387,7 @@ local Assets = {
         reeds = sprite(83701820915406, 18, 26),
         miniature = sprite(90688181765981, 32, 26), -- satul altcuiva, pe panoul de la poarta
         -- [2026-09-17] fundalul copt al balciului (scripts/art/d60_ground.py) si lumina moale colorata de joc
-        ground = sprite(135941370631156, 740, 720),
+        ground = sprite(125388865699081, 740, 720),
         glow = sprite(122489449102404, 64, 64),
         -- [D61] tabla concursului de la iaz si muzicantii (scripts/art/d61.py); cadrele muzicantilor sunt imagini
         -- separate, cu aceeasi marime, ca sa ramana cutia unui om in FairLayout

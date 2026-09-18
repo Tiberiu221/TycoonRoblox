@@ -5,6 +5,7 @@ Cheia API se citeste din ~/.driftwood_api_key (niciodata din argumente sau din r
 Doc: https://create.roblox.com/docs/cloud/guides/usage-assets  [nota: sprites-assets]
 Folosire: python3 scripts/upload_assets.py [nume_fara_extensie ...]   (fara argumente = toate PNG-urile fara prefix _)
           python3 scripts/upload_assets.py --audio [cheie ...]          (assets/audio/sfx_<cheie>.ogg -> Assets.sounds)
+          python3 scripts/upload_assets.py --status nume ...            (starea moderarii pentru imagini deja urcate)
 """
 import json, os, re, sys, time, urllib.error, urllib.request, uuid
 
@@ -166,6 +167,43 @@ def upload(key, name, path, asset_type="Image", content_type="image/png", ext="p
     sys.exit(f"{name}: operatia nu s-a terminat in timp util ({op_path})")
 
 
+def manifest_id(name):
+    """ID-ul scris in manifest pentru un PNG, prin aceeasi mapare ca la scriere (tabelul lui, apoi cheia)."""
+    src = open(MANIFEST, encoding="utf-8").read()
+    scoped = table_key(name)
+    if scoped is not None:
+        table, field = scoped.split(".", 1)
+        m = re.search(rf"(?ms)^    {re.escape(table)} = \{{.*?^    \}},", src)
+        src = m.group(0) if m else ""
+        key = field
+    else:
+        key, _ = manifest_key(name)
+    m = re.search(rf"(?<![A-Za-z_]){re.escape(key)} = sprite\((\d+),", src)
+    return int(m.group(1)) if m else 0
+
+
+def main_status(key, names):
+    """Starea moderarii: o imagine respinsa ramane cu ID in manifest, dar in joc se vede goala -- iar jocul n-are cum
+    sa stie. Dupa o urcare, asta e singurul fel de a afla fara Creator Hub."""
+    pending = 0
+    for name in names:
+        asset_id = manifest_id(name)
+        if asset_id == 0:
+            print(f"  {name:24s} -> fara ID in manifest")
+            continue
+        req = urllib.request.Request(f"{API}/assets/{asset_id}?readMask=moderationResult", headers={"x-api-key": key})
+        try:
+            with urllib.request.urlopen(req, timeout=30) as r:
+                data = json.load(r)
+            state = data.get("moderationResult", {}).get("moderationState", "?")
+        except urllib.error.HTTPError as e:
+            state = f"HTTP {e.code}"
+        if state != "Approved":
+            pending += 1
+        print(f"  {name:24s} -> {asset_id}  ({state})")
+    print(f"{len(names) - pending} din {len(names)} aprobate")
+
+
 def png_size(path):
     # latimea si inaltimea stau in antetul IHDR, octetii 16..24 (big-endian)
     with open(path, "rb") as f:
@@ -255,6 +293,9 @@ def main():
     key = api_key()
     if sys.argv[1:2] == ["--audio"]:
         main_audio(key, sys.argv[2:])
+        return
+    if sys.argv[1:2] == ["--status"]:
+        main_status(key, sys.argv[2:])
         return
     names = sys.argv[1:] or sorted(f[:-4] for f in os.listdir(SPRITES) if f.endswith(".png") and not f.startswith("_"))
     results = {}

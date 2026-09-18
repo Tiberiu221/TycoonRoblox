@@ -136,6 +136,8 @@ LIGHT_KIND = {
     "table": [(0, -12, 140, WARM, 0.22)],
     "arch": [(0, -30, 140, WARM, 0.32)],
     "tent": [(0, -30, 120, WARM, 0.26)],
+    # [D61, partea 2] taraba cu copertina aurie: lumina putin mai aurie si mai tare decat a gheretelor, ca sa se vada
+    "shop": [(0, -40, 140, (255, 204, 110), 0.38)],
     "booth": [(0, -30, 120, WARM, 0.26)],
     "dock": [(0, -150, 150, WARM, 0.40)],
     "plinth": [(0, -20, 110, (255, 214, 160), 0.24)],
@@ -370,6 +372,13 @@ def bake(L, sizes, lights, trees, garlands):
     worn_path([(f["x"] - f["rx"] * 0.55, f["y"] + f["ry"] * 0.62), (300, 990)], 72, 0.66)
     worn_path([(f["x"], f["y"] - f["ry"] + 40), (f["x"], 372)], 120, 0.46)
     worn_path([(f["x"] + f["rx"] - 40, f["y"] - 60), (1330, 700)], 80, 0.66)
+    # [D61, partea 2] spre cortul croitoresei si, mai departe, spre taraba cu copertina aurie: ocoleste cortul prin fata
+    tent = next(s for s in L["spots"] if s["id"] == "tent")
+    shop = next((s for s in L["spots"] if s["id"] == "shop"), None)
+    route = [(f["x"] + f["rx"] * 0.6, f["y"] + f["ry"] * 0.62), (tent["x"] - 104, tent["y"] + 20), (tent["x"] + 16, tent["y"] + 42)]
+    if shop is not None:
+        route.append((shop["x"], shop["y"] + 40))
+    worn_path(route, 76, 0.66)
 
     # poiana: pamant batatorit cu marginea rupta (zgomot, nu compas) si iarba care intra peste ea
     for y in range(int(gy(f["y"] - f["ry"] - 60)), int(gy(f["y"] + f["ry"] + 60)) + 1):

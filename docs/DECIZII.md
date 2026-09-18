@@ -150,7 +150,7 @@ owner-ului.
 - **Scos din plan:** „spumă la stâlpii plaselor". Stâlpii stau pe scândurile punții, nu în apă; spuma plasei e deja în
   desenul ei.
 
-**Pasul 5 — a doua parte (făcută pe 2026-09-19; arta desenată, neurcată; neverificată în Studio).**
+**Pasul 5 — a doua parte (făcută pe 2026-09-19; arta aprobată de owner și urcată în aceeași zi; neverificată în Studio).**
 - **Pământul satului, copt într-o singură imagine** (`scripts/art/village_ground.py` → `prop_village_ground.png`,
   960×640, un pixel = 3 pixeli de lume, cu alfa):
   - **uscatul e opac:** iarbă în pete de lumină, pădurea de pe malul de nord cu trei feluri de copaci, plaje cu nisip
@@ -251,8 +251,9 @@ satul tău nu-l vedea nimeni: bâlciul te lăsa să te etalezi doar cu o ținut�
    - **Prețurile nu stau în cod.** Jocul afișează prețul citit de la Roblox (`GetProductInfo`), deci textul nu poate
      minți [D40], iar owner-ul îl schimbă din Creator Hub fără noi.
    - **Unde:** în sat, intrarea `Shop` (P) din bara din dreapta, care apare **după prima vânzare** (nota 41: un magazin
-     arătat înainte de prima monedă strică și jocul, și conversia). În bâlci, aceeași intrare; taraba cu copertină aurie
-     e desenată (`prop_fair_shop`), dar intră pe hartă abia după ce owner-ul o aprobă și e urcată.
+     arătat înainte de prima monedă strică și jocul, și conversia). În bâlci, aceeași intrare și, din 2026-09-19, taraba cu copertină
+     aurie: sub gheretele negustorului, în dreapta cortului croitoresei, cu cardul `Shop (E)` (`ShopController`) și cu
+     poteca ei coaptă în fundal.
    - **Pass-urile au o copie în profil** (`Purchases.passes`). La intrare întrebăm Roblox și trecem în copie ce ai
      cumpărat în altă parte. Un răspuns „nu" **nu șterge nimic**: `UserOwnsGamePassAsync` ține răspunsurile în memorie
      și poate spune „nu" despre un pass abia cumpărat, iar prima regulă a jocului e că nimic nu se pierde [P2]. Mai

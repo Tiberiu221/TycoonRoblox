@@ -147,7 +147,7 @@ return function()
                 end
             end
             check.equal(table.concat(bad, ", "), "")
-            check.equal(#FairLayout.EDGES, 8)
+            check.equal(#FairLayout.EDGES, 9)
         end)
 
         test.case("se merge pe mal si in poiana, nu in rau, in iaz sau in afara hartii", function()
@@ -242,7 +242,13 @@ return function()
                 local w = math.ceil(textWidth(booth.label, SMALL)) + 24
                 centered(`booth_sign_{booth.spot}`, (b.x0 + b.x1) / 2, b.y0 - 6 - 26, w, 26)
             end
-            local hosts = { tailor = "tent", gate = "arch", games = "booth_1", pond = "pond_dock" }
+            local hosts = {
+                tailor = "tent",
+                gate = "arch",
+                games = "booth_1",
+                pond = "pond_dock",
+                shop = "shop",
+            }
             for _, edge in FairLayout.EDGES do
                 if not edge.open then
                     local w = math.max(

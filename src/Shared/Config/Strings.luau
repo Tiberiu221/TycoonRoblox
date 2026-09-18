@@ -764,6 +764,10 @@ Strings.DRIFT_GOLDEN = "A golden log is drifting by!"
 
 -- [D61, partea 2] Coltul cu Robux. Numele si frazele lucrurilor stau in MonetizationConfig; pretul vine de la Roblox.
 Strings.SHOP_TITLE = "Shop"
+-- cardul tarabei cu copertina aurie din balci (ShopController)
+function Strings.shopCard(keyHint: string): string
+    return `Shop{keyHint}`
+end
 Strings.SHOP_BLURB = "Speed, room and looks. Never luck. Nothing you buy is ever lost."
 Strings.SHOP_OWNED = "Owned"
 Strings.SHOP_BUY = "Buy"

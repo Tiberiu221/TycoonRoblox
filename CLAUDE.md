@@ -105,9 +105,8 @@ vedere). Owner-ul: „tot ce știi sigur că funcționează, fără presupus. nu
 **Croitoreasa și poarta satelor [D61, partea 2]** — comise, **neverificate încă în Studio.** Detaliile în DECIZII.
 - **Croitoreasa (55d9056):** `Tailor (E)` la cort; `Look` gratuit (`LookMath`, profil **v12** `Village.look`) și ținutele
   (`TailorController`, remote-uri `BuyOutfit` / `WearOutfit` / `SetLook`). `UI/Portrait` e singurul desen de portret.
-- **Patru ținute noi** (`festival`, `minstrel`, `lampkeeper`, `harvest`), **cu foile neurcate**: cer acordul owner-ului
-  pe planșa `croitoreasa_tinute.png`. Până atunci scriu `Still being sewn` și serverul refuză cumpărarea (`"soon"`).
-  Urcarea: `python3 scripts/upload_assets.py outfit_festival outfit_minstrel outfit_lampkeeper outfit_harvest`.
+- **Patru ținute noi** (`festival`, `minstrel`, `lampkeeper`, `harvest`), urcate pe 2026-09-19, deci de vânzare. O
+  ținută a cărei foaie lipsește (ID 0) scrie `Still being sewn`, iar serverul îi refuză cumpărarea (`"soon"`).
 - **Poarta satelor:** vizita e o **fotografie** a satului gazdei, desenată în bâlci (`VillageLook` pur → `VisitService` →
   `VillageDiorama`), nu un teleport. `VisitController`: panoul porții, machetele, întunericul, `Back to the fair` (Q),
   cartea de oaspeți cu un like pe zi (`VisitMath`, profil **v13** `Fair.likes` / `Fair.liked`).
@@ -128,8 +127,9 @@ vedere). Owner-ul: „tot ce știi sigur că funcționează, fără presupus. nu
 - **Client:** `ShopPanel` (comun; tasta P; în sat apare după prima vânzare), `Double it` pe `WelcomeController`,
   `CharacterController.SetSpeedFactor`, numele auriu în `PresenceController`. Profil **v14**.
 - **De probă în Studio:** rândul `robux` din consola de dev; în `Balci.rbxl`, atributul `DevPasses` pe Workspace.
-- **Așteaptă owner-ul:** crearea celor șase lucruri (sau permisiuni pe cheia API ca să le creez eu) și aprobarea artei
-  (`prop_fair_shop`, `outfit_supporter`, cele patru ținute ale croitoresei). Taraba intră în `FairLayout` după urcare.
+- **Așteaptă owner-ul:** crearea celor șase lucruri (sau permisiuni pe cheia API ca să le creez eu).
+- **Taraba** cu copertină aurie e pe harta bâlciului din 2026-09-19 (`FairLayout.SPOTS.shop`, marginea `Shop`,
+  `ShopController` cu cardul `Shop (E)`), iar fundalul bâlciului e recopt cu poteca și lumina ei.
 - Trece poarta (485 de teste).
 
 **Darurile râului [D62, pasul 3]** — comise, **neverificate încă în Studio.** La 56 s trece pe râu un butoi, o ladă sau
@@ -138,7 +138,7 @@ un buștean de aur; de pe punte, `Grab it (E)` dă monede cât 10 / 25 / 75 s di
 - `DriftService.Grab`: verifică momentul și `Stats.lastDrift` (profil **v15**), nu poziția. `DriftController`: desenul,
   cardul, camera care se mută lin spre dar (pe telefon râul din larg iese din ecran).
 - **Nu intră în prețuri:** simulatorul doar afișează estimarea (~15% cu jumătate prinse). Amendează D59.
-- Artă neurcată: `treasure_barrel_water`, `treasure_crate_water`.
+- Butoiul și lada pe apă sunt urcate (2026-09-19).
 
 **Undița și avizierul, devreme [D62, pasul 4]** — comise, **neverificate încă în Studio.** `Catch a fish` s-a mutat în
 capitolul 1, după al cincilea om; quest nou `Build something in your village` (felul `decor`, ținta `targetBoard`), cu
@@ -147,10 +147,11 @@ săgeată spre avizier chiar dacă ghidajul tace. La pasul acela ai cel puțin 2
 **Satul crește la vedere [D62, pasul 5, prima parte]** — comis, **neverificat încă în Studio.**
 - **De acum:** treapta meseriei ca cinci pătrățele deasupra acoperișului (`PadController`, din `crewTiers`) și fum la
   hornurile caselor mari și al tavernei (`PadArt.CHIMNEY`, `SceneArt.AddSmoke`).
-- **După urcarea artei:** plasa pe ranguri la pragurile 10 / 25 / 50 (`ChainMath.rankOf`, `PadArt.netSprite`), insigna
-  `Lv N` bronz / argint / aur (`Widgets.SetLevelBadgeRank`), păsările (`AmbientController`). Totul cade pe desenul de azi.
+- **Cu arta urcată (2026-09-19):** plasa pe ranguri la pragurile 10 / 25 / 50 (`ChainMath.rankOf`,
+  `PadArt.netSprite`), insigna `Lv N` bronz / argint / aur (`Widgets.SetLevelBadgeRank`), păsările
+  (`AmbientController`). O variantă care lipsește (ID 0) cade pe desenul de bază.
 
-**Satul crește la vedere [D62, pasul 5, a doua parte]** (2026-09-19) — comis, **arta neurcată, neverificat în Studio.**
+**Satul crește la vedere [D62, pasul 5, a doua parte]** (2026-09-19) — comis, arta urcată, **neverificat în Studio.**
 - **Pământul satului copt** într-o singură imagine cu alfa (`scripts/art/village_ground.py` → `prop_village_ground`):
   uscatul opac, apa transparentă cu tente de adâncime, râul animat curge pe dedesubt. Geometria vine din joc prin
   `scripts/art/village_geometry.luau`. `SceneArt.BuildBackground` o folosește când e urcată; până atunci, dalele de azi.
@@ -160,11 +161,10 @@ săgeată spre avizier chiar dacă ghidajul tace. La pasul acela ai cel puțin 2
 - **Clădirile la pragul 25:** gaterul, taverna și forja au a doua înfățișare (`scripts/art/d62_grand.py`,
   `ChainMath.isGrand`, `PadArt.station`). Depozitul nu are niveluri, deci nici variantă.
 
-**Arta care așteaptă aprobarea owner-ului** (desenată, în `assets/sprites`, cu ID 0 în `Assets.luau`):
-`outfit_festival`, `outfit_minstrel`, `outfit_lampkeeper`, `outfit_harvest`, `outfit_supporter`, `prop_fair_shop`,
-`treasure_barrel_water`, `treasure_crate_water`, `prop_net_water_r1..r3` (+ `_full`), `ui_levelbadge_bronze/silver/gold`,
-`prop_bird`, `prop_village_ground`, `prop_sawmill_grand`, `prop_tavern_grand`, `prop_workshop_grand`. Planșele sunt în scratchpad-ul sesiunii; urcarea: `python3 scripts/upload_assets.py <nume...>`. După urcarea
-lui `prop_fair_shop`, taraba intră în `FairLayout.SPOTS` (+ `ShopController` cu `Focus`) și se recoace fundalul bâlciului.
+**Arta D61–D62, urcată pe 2026-09-19** după aprobarea owner-ului pe planșe: 22 de imagini noi și fundalul bâlciului
+recopt, toate aprobate de moderare. Nimic desenat nu mai așteaptă (doar coafura `bald` are ID 0, intenționat: n-are
+foaie). Starea moderării se citește cu `python3 scripts/upload_assets.py --status <nume...>`: o imagine respinsă rămâne
+cu ID în `Assets.luau`, dar în joc se vede goală, iar jocul n-are cum să știe.
 
 **De ce nu prinde jocul [D62]** — owner-ul: „nu te prinde deloc, nu mă atrage deloc". Auditul și cifrele sunt în
 DECIZII D62; citește-l înainte de orice lucru nou pe sat. Comise și publicate pe staging, **nevăzute încă în Studio:**

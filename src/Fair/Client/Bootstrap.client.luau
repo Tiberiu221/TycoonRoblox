@@ -37,6 +37,7 @@ local PlayerCardController = require(Controllers:WaitForChild("PlayerCardControl
 local PondController = require(Controllers:WaitForChild("PondController"))
 local PresenceController = require(Controllers:WaitForChild("PresenceController"))
 local ShopPanel = require(Controllers:WaitForChild("ShopPanel"))
+local ShopController = require(Controllers:WaitForChild("ShopController"))
 local Panels = require(Controllers:WaitForChild("Panels"))
 local SocialController = require(Controllers:WaitForChild("SocialController"))
 local SoundController = require(Controllers:WaitForChild("SoundController"))
@@ -364,6 +365,9 @@ Net.Get("ShopResult").OnClientEvent
 -- venitul tau de acum). Pana e urcata taraba aurie, se deschide din bara din dreapta.
 safeInit("ShopPanel", function()
     ShopPanel.Init({ HudGui = hudCanvas, RobuxBuy = Net.Get("RobuxBuy"), Place = "fair" })
+    -- taraba cu copertina aurie: acelasi panou, deschis de la locul lui din lume
+    ShopController.Init({ Open = ShopPanel.Open })
+    FairInteractController.AddSource(ShopController.Focus)
 end)
 Net.Get("RobuxResult").OnClientEvent
     :Connect(function(key: unknown, ok: unknown, reason: unknown, coins: unknown)

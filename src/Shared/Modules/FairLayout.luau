@@ -37,6 +37,7 @@ FairLayout.EDGES = {
     { id = "market", label = "Market", x = 1390, y = 520, open = true },
     { id = "tailor", label = "Tailor", x = 1234, y = 1140, open = true, tag = true }, -- [D61, partea 2]
     { id = "gate", label = "Village Gate", x = 386, y = 1140, open = true, tag = true }, -- [D61, partea 2]
+    { id = "shop", label = "Shop", x = 1420, y = 1060, open = true, tag = true }, -- [D61, partea 2] coltul cu Robux
     { id = "pond", label = "Contest Pond", x = 210, y = 640, open = true },
     { id = "games", label = "Games", x = 379, y = 250, open = true },
 } :: { Edge }
@@ -66,6 +67,8 @@ FairLayout.SPOTS = {
     { id = "stall_3", sprite = "stall_3", x = 1390, y = 985, scale = 3 },
     -- sud-est: cortul croitoresei [D61]
     { id = "tent", sprite = "tent", x = 1234, y = 1230, scale = 3 },
+    -- [D61, partea 2] taraba cu copertina aurie (coltul cu Robux): sub gheretele negustorului, in dreapta cortului
+    { id = "shop", sprite = "shop", x = 1420, y = 1150, scale = 3 },
     -- sud: debarcaderul si barca
     { id = "dock", sprite = "dock", x = 810, y = 1560, scale = 3 },
     { id = "ferry", sprite = "ferry", x = 1010, y = 1610, scale = 3 },
