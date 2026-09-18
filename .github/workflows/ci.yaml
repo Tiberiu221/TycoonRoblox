@@ -20,7 +20,9 @@ jobs:
         run: echo "$HOME/.rokit/bin" >> "$GITHUB_PATH"
 
       - name: Install pinned toolchain
-        run: rokit install --no-trust-check
+        run: bash scripts/ci_retry.sh rokit install --no-trust-check
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Format check (StyLua)
         run: stylua --check src/ tests/
@@ -29,7 +31,7 @@ jobs:
         run: selene src/
 
       - name: Install Wally packages
-        run: wally install
+        run: bash scripts/ci_retry.sh wally install
 
       - name: Unit tests (Lune + frktest)
         run: lune run tests/_run.luau
@@ -80,8 +82,10 @@ jobs:
         env:
           GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       - run: echo "$HOME/.rokit/bin" >> "$GITHUB_PATH"
-      - run: rokit install --no-trust-check
-      - run: wally install
+      - run: bash scripts/ci_retry.sh rokit install --no-trust-check
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: bash scripts/ci_retry.sh wally install
       - name: Build place
         run: rojo build default.project.json -o Driftwood.rbxl
 
