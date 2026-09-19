@@ -101,6 +101,12 @@ export type Goal = {
 
 local GuideMath = {}
 
+-- [D63] textul pasului de cumparare, cu verbul platformei ("cast", "hire", "build"...), ca pe butonul cartonasului
+local function buyStepText(padId: string?): string
+    local pad = if padId ~= nil then TycoonConfig.byId[padId] else nil
+    return if pad ~= nil then Strings.stepBuy(TycoonConfig.verbOf(pad)) else Strings.STEP_BUY
+end
+
 -- Unde duci ce ai in traista [D49]: bustenii la gater, [D56] scrap-ul la forja, marfa gata la taverna. Pana in D49
 -- regulile b/d trimiteau la debarcader chiar si dupa ce predarea se mutase la gater (D48) -- sageata arata locul
 -- gresit. Acum decide ce duci, nu o adresa fixa. Tinta e locul unde STAI [D50]: la gater si la forja, inelul din
@@ -426,7 +432,7 @@ local function questGoal(s: State, quest: QuestGoal): Goal
         return {
             kind = if kind == "level" then "upgrade" else "buy",
             key = `quest:{quest.key}`,
-            text = if kind == "level" then Strings.STEP_UPGRADE else Strings.STEP_BUY,
+            text = if kind == "level" then Strings.STEP_UPGRADE else buyStepText(quest.padId),
             x = quest.x,
             y = quest.y,
             immediate = true,

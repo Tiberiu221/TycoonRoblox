@@ -454,7 +454,20 @@ end
 -- prima clipa. Un asemenea Play ruleaza MEREU pe profil gol (Mock), chiar cu "keep save" pornit: comenzile de dev ale unui
 -- test automat n-au voie sa atinga salvarea adevarata a owner-ului. In afara Studio-ului atributul nu e citit deloc.
 local function probeRun(): boolean
-    return IS_STUDIO and Workspace:GetAttribute("ProbeRun") == true
+    if not IS_STUDIO then
+        return false
+    end
+    -- Decizia o ia partea de server a sondei, la incarcare (`ProbeDecided`); se asteapta cel mult doua secunde. Fara sonda
+    -- instalata, asteptarea expira si Play-ul porneste ca de obicei.
+    local deadline = os.clock() + 2
+    while
+        Workspace:GetAttribute("ProbeRun") ~= true
+        and Workspace:GetAttribute("ProbeDecided") ~= true
+        and os.clock() < deadline
+    do
+        task.wait(0.05)
+    end
+    return Workspace:GetAttribute("ProbeRun") == true
 end
 
 local function onPlayerAdded(player: Player)

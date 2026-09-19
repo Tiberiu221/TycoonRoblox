@@ -237,6 +237,20 @@ function Strings.hintTreasureWaiting(phrase: string): string
     return `{string.upper(string.sub(phrase, 1, 1))}{string.sub(phrase, 2)} is waiting at your pier`
 end
 Strings.STEP_BUY = "Walk up to it and buy it"
+-- [D63] Pasul spune ACELASI verb ca butonul cartonasului si ca quest-ul (TycoonConfig.verbOf). Vazut cu sonda in primul
+-- minut al unui joc proaspat: quest-ul zicea "Cast your first net", butonul "Cast it — free", iar pasul "buy it".
+function Strings.stepBuy(verb: string): string
+    if verb == "cast" then
+        return "Walk up to it and cast it"
+    elseif verb == "hire" then
+        return "Walk up to the sign and hire"
+    elseif verb == "get" then
+        return "Walk up to it and get it"
+    elseif verb == "ring" then
+        return "Walk up to it and ring it"
+    end
+    return "Walk up to it and build it"
+end
 Strings.STEP_UPGRADE = "Walk up to it and press Upgrade"
 Strings.GUIDE_LOGS_TO_SAWMILL = "Take the logs to the Sawmill"
 -- acelasi text ca quest-ul `sell_once`: pe linia NEXT, al doilea rand se ascunde cand repeta primul

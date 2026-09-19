@@ -96,15 +96,15 @@ end
 local function hello(snap: HandSnap): string?
     local role = snap.role
     if role == "collector" then
-        return `I'm {snap.name}. I'll empty your nets into the storage.`
+        return `I'm {snap.name}. I'll empty your nets into the Storage.`
     elseif role == "porter" then
-        return `I'm {snap.name}. I'll carry logs from the storage to the sawmill.`
+        return `I'm {snap.name}. I'll carry logs from the Storage to the Sawmill.`
     elseif role == "sawyer" then
         return `I'm {snap.name}. I'll keep the saw running, even while you're away.`
     elseif role == "hauler" then
-        return `I'm {snap.name}. I'll take the planks from the sawmill to the tavern.`
+        return `I'm {snap.name}. I'll take the planks from the Sawmill to the Tavern.`
     elseif role == "trader" then
-        return `I'm {snap.name}. I'll keep the tavern selling while you're away.`
+        return `I'm {snap.name}. I'll keep the Tavern selling while you're away.`
     elseif role == "scrapCollector" then
         return `I'm {snap.name}. I'll empty the Fifth Net into the Scrap Shed.`
     elseif role == "scrapPorter" then
@@ -112,7 +112,7 @@ local function hello(snap: HandSnap): string?
     elseif role == "smelter" then
         return `I'm {snap.name}. I'll keep the Forge smelting, even while you're away.`
     elseif role == "ironHauler" then
-        return `I'm {snap.name}. I'll take the iron from the Forge to the tavern.`
+        return `I'm {snap.name}. I'll take the iron from the Forge to the Tavern.`
     end
     return nil
 end

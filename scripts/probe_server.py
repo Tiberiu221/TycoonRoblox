@@ -22,11 +22,13 @@ import http.server
 import json
 import os
 import sys
+import time
 import urllib.parse
 
 PORT = int(os.environ.get("DRIFTWOOD_PROBE_PORT", "8787"))
 OUT = "/tmp/driftwood_probe.json"
 ROLES = ("edit", "server", "bridge")
+PROBE_FLAG = "/tmp/driftwood_probe_run"
 
 
 def queue_path(role):
@@ -45,6 +47,19 @@ class Handler(http.server.BaseHTTPRequestHandler):
         return role if role in ROLES else "bridge"
 
     def do_GET(self):
+        # [2026-09-19] "E Play de proba?": partea de server a unui Play intreaba asta chiar la incarcare. Da doar daca
+        # `probe.py play` a cerut un Play in ultimele doua minute (steagul se sterge dupa pornire), ca un Play apasat de
+        # owner sa nu ajunga niciodata pe profilul de proba.
+        if urllib.parse.urlparse(self.path).path == "/proberun":
+            fresh = os.path.exists(PROBE_FLAG) and time.time() - os.path.getmtime(PROBE_FLAG) < 120
+            body = b"1" if fresh else b"0"
+            self.send_response(200)
+            self._cors()
+            self.send_header("Content-Type", "text/plain")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
         if urllib.parse.urlparse(self.path).path != "/cmd":
             self.send_response(404)
             self._cors()

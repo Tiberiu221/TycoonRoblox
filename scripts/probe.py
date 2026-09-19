@@ -31,6 +31,7 @@ LOGS = os.path.expanduser("~/Library/Logs/Roblox")
 CREATOR = re.compile(r"\[FLog::Creator(\w+)\]\s?(.*)$")
 PROBE = re.compile(r"\[\[PROBE (\w+) (\d+)/(\d+)\]\](.*)$")
 BOOT_MARK = "sonda incarcata (server)"
+PROBE_FLAG = "/tmp/driftwood_probe_run"
 
 
 def log_path():
@@ -177,13 +178,16 @@ def main():
         return
     verb = args[0]
     if verb == "play":
+        open(PROBE_FLAG, "w").close()  # partea de server a Play-ului intreaba de el: doar asa porneste pe profil de proba
         queue("edit", "play")
-        print("cerut: play")
+        print("cerut: play (de proba)")
     elif verb == "stop":
         queue("server", "stop")
         print("cerut: stop")
     elif verb == "wait-boot":
         ok = wait_boot(float(args[1]) if len(args) > 1 else 90.0)
+        if os.path.exists(PROBE_FLAG):
+            os.remove(PROBE_FLAG)  # un Play apasat de owner imediat dupa n-are voie sa fie luat drept unul de proba
         print("pornit" if ok else "NU a pornit in timpul dat")
         sys.exit(0 if ok else 1)
     elif verb == "errors":

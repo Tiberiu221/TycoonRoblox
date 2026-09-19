@@ -18,7 +18,8 @@
 --   client  -- partea de client a unui Play. N-are voie la HTTP, deci isi TIPARESTE raspunsurile in Output, in bucati
 --              marcate `[[PROBE id i/n]]`; de acolo ajung in jurnalul Studio, pe care il citeste scripts/probe.py.
 --              Comenzi: `report`, `frames`, `texts[:radacina]`, `overlaps[:radacina]`, `find:<Nume>` (orice element cu
---              numele asta: clasa, daca se vede, cutia, imaginea, textul), `ui:<actiune>` (o da mai departe jocului, care
+--              numele asta: clasa, daca se vede, cutia, imaginea, textul), `fire:<Remote>:<arg,arg>` (aceeasi cerere pe
+--              care o trimite jocul la un buton: BuyPad, CollectNet, ClaimQuest...), `ui:<actiune>` (o da jocului, care
 --              in Studio stie sa deschida un panou dupa nume: `open:quests`, `close`, `station:net:first_net`,
 --              `crew:porter`).
 --
@@ -187,6 +188,7 @@ local function collectTexts(rootName: string?): { any }
                 size = d.TextSize,
                 scaled = d.TextScaled,
                 fits = d.TextFits,
+                auto = d.AutomaticSize ~= Enum.AutomaticSize.None, -- cu AutomaticSize, TextFits nu e de incredere
                 box = box(d),
                 button = d:IsA("TextButton"),
             })
@@ -303,6 +305,23 @@ local function runClient(id: string, cmd: string)
         emit(id, collectOverlaps(arg))
     elseif verb == "find" then
         emit(id, collectFind(arg))
+    elseif verb == "fire" then
+        -- `fire:<Remote>:<arg1>,<arg2>`: ACEEASI cerere pe care o trimite jocul cand apesi un buton (BuyPad, CollectNet,
+        -- ClaimQuest, UpgradeStation...). Serverul e singura sursa de adevar si valideaza tot, deci asta e jucat de-adevaratelea,
+        -- nu o scurtatura de dev. Clientul Roblox ignora tastele sintetice; intentiile insa pleaca la fel.
+        local remoteName, rest = string.match(arg, "^([%w_]+):?(.*)$")
+        local folder = ReplicatedStorage:FindFirstChild("Remotes")
+        local remote = folder and folder:FindFirstChild(remoteName or "")
+        if remote == nil or not remote:IsA("RemoteEvent") then
+            emit(id, { error = "remote lipsa", remote = remoteName })
+            return
+        end
+        local args = {}
+        for piece in string.gmatch(rest or "", "[^,]+") do
+            table.insert(args, tonumber(piece) or piece)
+        end
+        remote:FireServer(table.unpack(args))
+        emit(id, { ok = true, fired = remoteName, args = args })
     elseif verb == "ui" then
         -- jocul (doar in Studio) asculta atributul asta si deschide/inchide panoul cerut; raspunsul vine dupa un cadru
         Workspace:SetAttribute("DevUi", `{id}|{arg}`)
@@ -389,6 +408,23 @@ button.ClickableWhenViewportHidden = true
 button.Click:Connect(function()
     post(collectReport())
 end)
+
+-- PARTEA DE SERVER A UNUI PLAY decide daca e unul de proba, chiar la incarcare: fereastra de editare citeste sonda doar
+-- la pornirea Studio-ului, deci poate rula o versiune care nu pune `ProbeRun`; partea de server o citeste proaspata la
+-- fiecare Play. Jocul (DataService, doar in Studio) asteapta `ProbeDecided` cel mult doua secunde inainte sa aleaga profilul.
+if role == "server" or role == "solo" then
+    if Workspace:GetAttribute("ProbeRun") ~= true then
+        httpOn()
+        local ok, response = pcall(function()
+            return HttpService:RequestAsync({ Url = `{BASE}/proberun`, Method = "GET" })
+        end)
+        if ok and response ~= nil and response.Success and response.Body == "1" then
+            Workspace:SetAttribute("ProbeRun", true)
+        end
+    end
+    Workspace:SetAttribute("ProbeDecided", true)
+    print(`[Driftwood] Play de proba: {Workspace:GetAttribute("ProbeRun") == true}`)
+end
 
 if role == "edit" and Workspace:GetAttribute("ProbeRun") ~= nil then
     Workspace:SetAttribute("ProbeRun", nil) -- ramas de la un Play de proba intrerupt (Studio inchis la mijloc)
