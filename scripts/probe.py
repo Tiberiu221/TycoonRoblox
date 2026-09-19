@@ -10,13 +10,14 @@ Drumul unei comenzi (vezi plugins/DriftwoodProbe.lua si scripts/probe_server.py)
 ATENTIE: ceasul jurnalului Studio ramane in urma cat doarme Mac-ul. Nimic de aici nu se bazeaza pe ora, doar pe pozitia
 in fisier.
 
-  python3 scripts/probe.py play                 porneste un Play din fereastra de editare
+  python3 scripts/probe.py play                 porneste un Play DE PROBA (profil gol, nu salvarea owner-ului)
   python3 scripts/probe.py stop                 opreste Play-ul
   python3 scripts/probe.py wait-boot [sec]      asteapta "server bootstrap complet" si sonda clientului
   python3 scripts/probe.py errors               erorile si avertismentele jocului de la ultimul Play incoace
   python3 scripts/probe.py output [text]        tot ce a tiparit jocul de la ultimul Play (filtrat dupa text)
-  python3 scripts/probe.py client <comanda>     report | frames | texts[:radacina] | overlaps[:radacina] | ui:<actiune>
-  python3 scripts/probe.py dev <comanda>        coins:500 | buyto:6 | fill | sell | state | ...
+  python3 scripts/probe.py client <comanda>     report | frames | texts[:radacina] | overlaps[:radacina] | find:<Nume>
+                                                ui:open:quests | ui:station:net:first_net | ui:crew:porter | ui:close
+  python3 scripts/probe.py dev <comanda> ...    coins:500 | buyto:6 | fill | sell | state | ... (doar intr-un Play de proba)
   python3 scripts/probe.py report edit|server   raportul unei ferestre cu HTTP
 """
 import glob
@@ -94,11 +95,12 @@ def wait_report(role, timeout=12.0):
     return None
 
 
-def client(cmd, timeout=20.0):
-    """Trimite o comanda clientului si asteapta raspunsul lui tiparit in jurnal."""
+def roundtrip(kind, cmd, timeout=20.0):
+    """Trimite o comanda prin partea de server a Play-ului si asteapta raspunsul tiparit in jurnal.
+    `kind`: "client" (o executa sonda din client) sau "dev" (o executa consola de dev a jocului, pe server)."""
     ident = "c%d" % int(time.time() * 1000 % 100000000)
     start = log_size()
-    queue("server", f"client:{ident}|{cmd}")
+    queue("server", f"{kind}:{ident}|{cmd}")
     end = time.time() + timeout
     while time.time() < end:
         parts, total = {}, None
@@ -115,6 +117,17 @@ def client(cmd, timeout=20.0):
                 return {"raw": body}
         time.sleep(0.5)
     return None
+
+
+def client(cmd, timeout=20.0):
+    return roundtrip("client", cmd, timeout)
+
+
+def dev(cmd, timeout=20.0):
+    reply = roundtrip("dev", cmd, timeout)
+    if reply is None:
+        return None
+    return reply.get("reply") if reply.get("ok") else "EROARE: " + str(reply)
 
 
 def wait_boot(timeout=90.0):
@@ -186,8 +199,8 @@ def main():
             sys.exit("niciun raspuns de la client (ruleaza un Play? e sonda noua instalata?)")
         print(json.dumps(reply, indent=1, ensure_ascii=False))
     elif verb == "dev":
-        queue("bridge", *args[1:])
-        print("cerut:", " ".join(args[1:]))
+        for cmd in args[1:]:
+            print(f"{cmd} -> {dev(cmd)}")
     elif verb == "report":
         reply = wait_report(args[1] if len(args) > 1 else "edit")
         print(json.dumps(reply, indent=1, ensure_ascii=False) if reply else "niciun raspuns")

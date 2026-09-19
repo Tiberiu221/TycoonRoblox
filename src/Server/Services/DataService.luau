@@ -15,6 +15,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local ServerStorage = game:GetService("ServerStorage")
+local Workspace = game:GetService("Workspace")
 local ProfileStore = require(ServerStorage.ServerPackages.ProfileStore)
 local ProfileMigrate = require(ReplicatedStorage.Shared.Modules.ProfileMigrate)
 local AudioLevels = require(ReplicatedStorage.Shared.Modules.AudioLevels)
@@ -271,6 +272,7 @@ local IS_STUDIO = RunService:IsStudio()
 -- Play-ul urmator, iar in joc nu exista si nici nu se citeste.
 local STUDIO_STORE = "StudioDevSettings_v1"
 local studioFresh: { [Player]: boolean } = {}
+local studioProbe: { [Player]: boolean } = {} -- [D63] Play pornit de sonda: profil de proba
 -- [D60] cand a inceput sesiunea asta, ca la plecare sa se adune timpul jucat efectiv (Stats.playSeconds)
 local sessionStartedAt: { [Player]: number } = {}
 -- [D60] cine a urcat in barca: sesiunea lui o va lua celalalt place, deci pierderea ei nu e o eroare de aratat
@@ -429,6 +431,9 @@ function DataService.StudioSave(player: Player): string?
     if not IS_STUDIO then
         return nil
     end
+    if studioProbe[player] == true then
+        return "probe"
+    end
     return if studioFresh[player] == false then "kept" else "fresh"
 end
 
@@ -444,9 +449,19 @@ function DataService.ToggleKeepSave(player: Player): (boolean, boolean)
     return ok, keep
 end
 
+-- [D63] PLAY DE PROBA: pornit de sonda din Studio (plugins/DriftwoodProbe.lua), nu de owner. Sonda pune atributul
+-- `ProbeRun` pe Workspace in fereastra de editare inainte de start; partile de joc se cloneaza de acolo, deci il au din
+-- prima clipa. Un asemenea Play ruleaza MEREU pe profil gol (Mock), chiar cu "keep save" pornit: comenzile de dev ale unui
+-- test automat n-au voie sa atinga salvarea adevarata a owner-ului. In afara Studio-ului atributul nu e citit deloc.
+local function probeRun(): boolean
+    return IS_STUDIO and Workspace:GetAttribute("ProbeRun") == true
+end
+
 local function onPlayerAdded(player: Player)
-    local fresh = IS_STUDIO and not readKeepSave(player)
+    local probe = probeRun()
+    local fresh = IS_STUDIO and (probe or not readKeepSave(player))
     studioFresh[player] = fresh
+    studioProbe[player] = probe
     -- Mock.StartSessionAsync nu primeste `Cancel`: se incarca pe loc, iar iesirea din joc o prinde verificarea de dupa
     local source: any = if fresh then store.Mock else store
     local profile = source:StartSessionAsync(`Player_{player.UserId}`, {
@@ -528,6 +543,7 @@ function DataService.Init(deps: { Place: string? })
     end
     Players.PlayerRemoving:Connect(function(player: Player)
         studioFresh[player] = nil
+        studioProbe[player] = nil
         teleporting[player] = nil
         local profile = profiles[player]
         local started = sessionStartedAt[player]

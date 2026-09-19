@@ -527,6 +527,38 @@ do
     end)
 end
 
+-- [D63] SONDA DIN STUDIO deschide panouri dupa nume, ca sa le poata citi textul fara ca cineva sa apese ceva: clientul
+-- Roblox ignora tastele si clicurile sintetice. Sonda scrie atributul `DevUi` pe Workspace (`<id>|<actiune>`):
+--   open:<nume>          un panou din bara de meniu (journal, board, quests, shop, audio) sau `stations` (lista veche)
+--   station:<fel>:<id>   meniul unei cladiri sau al unei plase (station:net:first_net, station:saw)
+--   crew:<rol>           meniul unei meserii (crew:porter)
+--   close                inchide tot
+-- Doar in Studio: intr-un joc publicat atributul nu e ascultat deloc.
+if game:GetService("RunService"):IsStudio() then
+    Workspace:GetAttributeChangedSignal("DevUi"):Connect(function()
+        local raw = Workspace:GetAttribute("DevUi")
+        if typeof(raw) ~= "string" then
+            return
+        end
+        local action = string.match(raw, "^[%w_]+|(.*)$") or raw
+        local verb, a, b = string.match(action, "^(%w+):?([^:]*):?(.*)$")
+        Panels.CloseAll()
+        if verb == "open" and a == "stations" then
+            StationPanel.Toggle()
+        elseif verb == "open" then
+            for _, entry in menuEntries do
+                if entry.name == a then
+                    entry.open()
+                end
+            end
+        elseif verb == "station" then
+            openStation(a, if b ~= "" then b else nil)
+        elseif verb == "crew" then
+            openCrew(a)
+        end
+    end)
+end
+
 safeInit("DevPanelController", function()
     DevPanelController.Init({
         HudGui = hudCanvas,

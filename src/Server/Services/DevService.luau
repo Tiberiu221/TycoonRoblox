@@ -3,7 +3,9 @@
 -- Poarta e verificata pe SERVER, nu pe client: in productie handler-ul nici nu se conecteaza,
 -- deci un pachet trimis de mana nu are ce sa faca. Fiecare comanda intoarce o linie de raspuns,
 -- afisata in jurnalul panoului.
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerStorage = game:GetService("ServerStorage")
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
 local StationConfig = require(ReplicatedStorage.Shared.Config.StationConfig)
@@ -336,6 +338,23 @@ function DevService.Init(d: typeof(deps))
     if remote == nil then
         return
     end
+    -- [D63] Canalul sondei din Studio: aceleasi comenzi ca in consola, cerute de plugin printr-un BindableFunction, fara
+    -- HTTP din joc (podul vechi, DevBridge, depinde de "Allow HTTP requests" si n-a raspuns in sesiunea owner-ului).
+    -- REFUZA orice comanda daca Play-ul nu e unul de proba: un test automat n-are voie pe salvarea adevarata.
+    local probe = Instance.new("BindableFunction")
+    probe.Name = "DevProbe"
+    probe.OnInvoke = function(command: unknown, arg: unknown): string
+        local player = Players:GetPlayers()[1]
+        if player == nil then
+            return "no player"
+        elseif typeof(command) ~= "string" then
+            return "bad command"
+        elseif command ~= "state" and DataService.StudioSave(player) ~= "probe" then
+            return "refused: not a probe run (this Play is on a real or manual save)"
+        end
+        return DevService.Run(player, command :: string, arg)
+    end
+    probe.Parent = ServerStorage
     remote.OnServerEvent:Connect(function(player: Player, command: unknown, arg: unknown)
         if typeof(command) ~= "string" or #(command :: string) > 32 then
             return
@@ -352,6 +371,9 @@ function DevService.Init(d: typeof(deps))
         end
         local line = if mode == "kept"
             then "save: your saved game (keep save ON)"
+            elseif
+                mode == "probe"
+            then "save: probe run, fresh profile (your saved game is untouched)"
             else "save: fresh, erased at Stop (keep save OFF)"
         print(`[Driftwood] {line}`)
         remote:FireClient(player, "savemode", line)

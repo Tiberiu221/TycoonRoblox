@@ -8,12 +8,19 @@
 -- [2026-09-19] Owner-ul a dat Play si a vazut doar cerul: bootstrap-ul clientului murise la primul require, iar eu n-aveam
 -- cum sa aflu fara el. De atunci sonda are TREI roluri, dupa fereastra in care ruleaza:
 --   edit    -- fereastra de editare. Comenzi: `play` (porneste un test, StudioTestService), `report`.
+--              Un Play pornit de aici ruleaza pe un PROFIL DE PROBA, niciodata pe salvarea owner-ului: inainte de
+--              start pune atributul `ProbeRun` pe Workspace (partile de joc se cloneaza din fereastra de editare, deci
+--              il au din prima clipa), iar DataService il citeste doar in Studio. La sfarsit il sterge.
 --   server  -- partea de server a unui Play. Comenzi: `stop` (opreste testul), `client:<comanda>` (o trimite clientului
---              printr-un atribut replicat), `report` (erorile serverului).
+--              printr-un atribut replicat), `report` (erorile serverului), `dev:<id>|<comanda>:<arg>` (o comanda din
+--              consola de dev, data jocului prin BindableFunction-ul `ServerStorage.DevProbe`, fara HTTP din joc;
+--              raspunsul e tiparit ca al clientului).
 --   client  -- partea de client a unui Play. N-are voie la HTTP, deci isi TIPARESTE raspunsurile in Output, in bucati
 --              marcate `[[PROBE id i/n]]`; de acolo ajung in jurnalul Studio, pe care il citeste scripts/probe.py.
---              Comenzi: `report`, `frames`, `texts[:radacina]`, `overlaps[:radacina]`, `ui:<actiune>` (o da mai departe
---              jocului, care in Studio stie sa deschida un panou dupa nume).
+--              Comenzi: `report`, `frames`, `texts[:radacina]`, `overlaps[:radacina]`, `find:<Nume>` (orice element cu
+--              numele asta: clasa, daca se vede, cutia, imaginea, textul), `ui:<actiune>` (o da mai departe jocului, care
+--              in Studio stie sa deschida un panou dupa nume: `open:quests`, `close`, `station:net:first_net`,
+--              `crew:porter`).
 --
 -- Instalare:  bash scripts/install_plugin.sh      Folosire: python3 scripts/probe.py --help
 -- Fisierul asta NU face parte din joc: nu e sub src/, nu intra in rojo, nu se livreaza.
@@ -144,6 +151,19 @@ local function collectFrames(): { any }
             for _, child in screen:GetChildren() do
                 if child:IsA("GuiObject") then
                     table.insert(out, { gui = screen.Name, name = child.Name, visible = child.Visible, box = box(child) })
+                    -- HUD-ul sta tot intr-o panza scalata ("Canvas"): panourile sunt copiii EI
+                    if child.Name == "Canvas" then
+                        for _, panel in child:GetChildren() do
+                            if panel:IsA("GuiObject") then
+                                table.insert(out, {
+                                    gui = screen.Name,
+                                    name = panel.Name,
+                                    visible = panel.Visible,
+                                    box = box(panel),
+                                })
+                            end
+                        end
+                    end
                 end
             end
         end
@@ -214,6 +234,34 @@ local function collectOverlaps(rootName: string?): { any }
     return out
 end
 
+-- Orice element cu numele asta din PlayerGui: exista? se vede? unde? ce imagine sau text are?
+local function collectFind(name: string): { any }
+    local out = {}
+    local gui = playerGui()
+    if gui == nil or name == "" then
+        return out
+    end
+    for _, d in gui:GetDescendants() do
+        if d.Name == name then
+            local row: { [string]: any } = { class = d.ClassName, parent = d.Parent and d.Parent.Name or "" }
+            if d:IsA("GuiObject") then
+                row.shown = shown(d)
+                row.box = box(d)
+            end
+            if d:IsA("ImageLabel") or d:IsA("ImageButton") then
+                row.image = d.Image
+            elseif d:IsA("TextLabel") or d:IsA("TextButton") then
+                row.text = string.sub(d.Text, 1, 70)
+            end
+            table.insert(out, row)
+            if #out >= 24 then
+                break
+            end
+        end
+    end
+    return out
+end
+
 -- ---- iesirea -------------------------------------------------------------------------------------------------------
 local function post(report: { [string]: any })
     httpOn()
@@ -253,6 +301,8 @@ local function runClient(id: string, cmd: string)
         emit(id, collectTexts(arg))
     elseif verb == "overlaps" then
         emit(id, collectOverlaps(arg))
+    elseif verb == "find" then
+        emit(id, collectFind(arg))
     elseif verb == "ui" then
         -- jocul (doar in Studio) asculta atributul asta si deschide/inchide panoul cerut; raspunsul vine dupa un cadru
         Workspace:SetAttribute("DevUi", `{id}|{arg}`)
@@ -290,10 +340,12 @@ local function runHost(cmd: string)
         post(collectReport())
     elseif verb == "play" and role == "edit" then
         task.spawn(function()
-            print("[Driftwood] pornesc un Play (StudioTestService)")
+            print("[Driftwood] pornesc un Play de proba (StudioTestService)")
+            Workspace:SetAttribute("ProbeRun", true) -- partile de joc se cloneaza de aici: il au din prima clipa
             local ok, result = pcall(function()
-                return game:GetService("StudioTestService"):ExecutePlayModeAsync({})
+                return game:GetService("StudioTestService"):ExecutePlayModeAsync({ probe = true })
             end)
+            Workspace:SetAttribute("ProbeRun", nil)
             print(`[Driftwood] Play incheiat: {ok} {tostring(result)}`)
         end)
     elseif verb == "stop" and role ~= "edit" then
@@ -301,6 +353,22 @@ local function runHost(cmd: string)
         pcall(function()
             game:GetService("StudioTestService"):EndTest("probe")
         end)
+    elseif verb == "dev" and role ~= "edit" then
+        -- `dev:<id>|<comanda>:<arg>`: consola de dev a jocului, fara HTTP din joc
+        local id, rest = string.match(arg, "^([%w_]+)|(.*)$")
+        if id == nil then
+            return
+        end
+        local command, value = string.match(rest, "^(%w+):?(.*)$")
+        local bridge = game:GetService("ServerStorage"):FindFirstChild("DevProbe")
+        if bridge == nil or not bridge:IsA("BindableFunction") then
+            emit(id, { error = "jocul n-are ServerStorage.DevProbe (versiune veche sau nu ruleaza in Studio)" })
+            return
+        end
+        local okInvoke, reply = pcall(function()
+            return bridge:Invoke(command, tonumber(value) or (if value ~= "" then value else nil))
+        end)
+        emit(id, { ok = okInvoke, reply = tostring(reply) })
     elseif verb == "client" and role ~= "edit" then
         if role == "solo" then
             local id, rest = string.match(arg, "^([%w_]+)|(.*)$")
@@ -322,6 +390,9 @@ button.Click:Connect(function()
     post(collectReport())
 end)
 
+if role == "edit" and Workspace:GetAttribute("ProbeRun") ~= nil then
+    Workspace:SetAttribute("ProbeRun", nil) -- ramas de la un Play de proba intrerupt (Studio inchis la mijloc)
+end
 print(`[Driftwood] sonda incarcata ({role}), bucla de comenzi pornita`)
 task.spawn(function()
     local who = if role == "solo" then "server" else role
