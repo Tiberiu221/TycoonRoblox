@@ -264,6 +264,9 @@ class Net:
     base_lane: int
     level: int = 1
     kind: str = "wood"
+    # [D64] Costul de baza al nivelurilor. None = formula Erei 1, dupa locul plasei (`net_upgrade_base`). O plasa a
+    # altei ere si-l aduce: bucata ei valoreaza de zeci de ori mai mult, deci si nivelul ei.
+    upgrade_base: float = None
 
     def rate(self) -> float:
         return level_output(self.base, self.level)
@@ -301,9 +304,14 @@ def tier_mult(tier: int) -> float:
     return 1 + TIER_STEP * (tier - 1)
 
 
-def tier_cost(tier: int) -> float:
+# [D64] Treptele costa fix (25 / 75 / 225 / 675) pentru oamenii Erei 1. Oamenii unei ere noi muta marfa de zeci de ori
+# mai scumpa, deci si uneltele lor costa pe masura: rolul -> de cate ori. Gol = toti la 1 (Era 1, neschimbata).
+ROLE_COST_MULT = {}
+
+
+def tier_cost(tier: int, role: str = None) -> float:
     """Cat costa trecerea de la treapta `tier` la `tier + 1`."""
-    return TIER_COST_BASE * TIER_COST_GROWTH ** (tier - 1)
+    return TIER_COST_BASE * TIER_COST_GROWTH ** (tier - 1) * ROLE_COST_MULT.get(role, 1.0)
 
 
 def line_open(s: State, line: str) -> bool:
@@ -719,6 +727,26 @@ def target_wait(k: int) -> float:
 LADDER_START = 5
 
 
+# [D64] O ERA, CA DATE. `run` juca pana acum doar Era 1, cu listele ei batute in cuie. Acum primeste era: ce deblocari
+# are, pe care le cere capitolul la rand, pe care le cere quest-ul desi singure nu aduc nimic, care ii e clopotul, care
+# ii sunt plasele (quest-ul cere nivelul 2 pe ultima inaintea urmatoarei) si scara ei de asteptare. O era noua se joaca
+# din starea in care a lasat-o cea dinainte (`run(era=..., start=...)`): vezi scripts/economy/sim_era2.py.
+#   step(bought) = a cata deblocare de pe scara e urmatoarea; wait(k) = cate secunde de venit costa; free_first = prima
+#   e gratis (First Net). `target_wait` se cauta dupa nume la fiecare apel: tune_tycoon.py il inlocuieste in memorie.
+ERA1 = {
+    "name": "Era 1",
+    "unlocks": ERA1_UNLOCKS,
+    "chapter_hires": CHAPTER1_HIRES,
+    "quest_unlocks": QUEST_UNLOCKS,
+    "bell": "bell",
+    "first_net": 0,
+    "net_count": 5,
+    "step": lambda bought: ladder_step(bought),
+    "wait": lambda k: target_wait(k),
+    "free_first": True,
+}
+
+
 NICE = (1, 1.1, 1.2, 1.3, 1.5, 1.6, 1.8, 2, 2.2, 2.5, 2.8, 3, 3.5, 4, 4.5, 5, 5.5, 6, 7, 7.5, 8, 9)
 
 
@@ -739,19 +767,36 @@ def nice(x: float, floor: int = 0) -> int:
 # ---- optiunile de cumparare la un moment dat --------------------------------------------------
 
 
-def options(s: State, prices: dict):
-    """Tot ce poate cumpara jucatorul ACUM: deblocarile a caror conditie e implinita, un nivel pe
+# [D64] Cladirile cu niveluri, IN ORDINEA in care intra in lista de optiuni (la castig egal pe moneda, sortarea stabila
+# o pastreaza pe cea dinainte: gaterul, taverna, forja). Costul de baza se tine dupa nume (vezi LINES); `owned` e campul
+# din State fara de care cladirea nu exista inca (None = de la inceput). O era noua isi adauga cladirile la coada.
+BUILDINGS = {
+    "saw": {"label": "Saw", "cost": "SAW_UPGRADE_BASE", "level": "saw_level", "owned": None},
+    "dock": {"label": "Dock", "cost": "DOCK_UPGRADE_BASE", "level": "dock_level", "owned": None},
+    "forge": {"label": "Forge", "cost": "FORGE_UPGRADE_BASE", "level": "forge_level", "owned": "workshop"},  # [D55]
+}
+
+
+def net_upgrade_base(s: State, i: int) -> float:
+    """Costul de baza al nivelurilor plasei `i`: al ei, daca si-l aduce (o era noua), altfel formula Erei 1 dupa loc."""
+    own = s.nets[i].upgrade_base
+    return own if own is not None else NET_UPGRADE_BASE_COST * NET_BASE_GROWTH**i
+
+
+def options(s: State, prices: dict, era=None):
+    """Tot ce poate cumpara jucatorul ACUM: deblocarile erei a caror conditie e implinita, un nivel pe
     orice cladire detinuta si o treapta pe orice meserie cu oameni. Intoarce (eticheta, pret, efect,
     fel, uid)."""
+    era = era or ERA1
     out = []
-    for uid, name, _why, cond, effect in ERA1_UNLOCKS:
+    for uid, name, _why, cond, effect in era["unlocks"]:
         if uid in s.bought or not cond(s):
             continue
         if uid in prices:
             out.append((f"unlock:{name}", prices[uid], effect, "unlock", uid))
 
     for i, n in enumerate(s.nets):
-        base_cost = NET_UPGRADE_BASE_COST * NET_BASE_GROWTH**i
+        base_cost = net_upgrade_base(s, i)
 
         def up_net(st, idx=i):
             st.nets[idx].level += 1
@@ -760,22 +805,15 @@ def options(s: State, prices: dict):
             (f"Net {i + 1} lvl {n.level + 1}", level_cost(base_cost, n.level), up_net, "nets", None)
         )
 
-    def up_saw(st):
-        st.saw_level += 1
+    for kind, spec in BUILDINGS.items():
+        if spec["owned"] is not None and not getattr(s, spec["owned"]):
+            continue
+        level = getattr(s, spec["level"])
 
-    out.append((f"Saw lvl {s.saw_level + 1}", level_cost(SAW_UPGRADE_BASE, s.saw_level), up_saw, "saw", None))
+        def up_building(st, field=spec["level"]):
+            setattr(st, field, getattr(st, field) + 1)
 
-    def up_dock(st):
-        st.dock_level += 1
-
-    out.append((f"Dock lvl {s.dock_level + 1}", level_cost(DOCK_UPGRADE_BASE, s.dock_level), up_dock, "dock", None))
-
-    if s.workshop:  # [D55] forja atelierului
-
-        def up_forge(st):
-            st.forge_level += 1
-
-        out.append((f"Forge lvl {s.forge_level + 1}", level_cost(FORGE_UPGRADE_BASE, s.forge_level), up_forge, "forge", None))
+        out.append((f"{spec['label']} lvl {level + 1}", level_cost(globals()[spec["cost"]], level), up_building, kind, None))
 
     for role in ROLES:
         crew = s.crews[role]
@@ -785,13 +823,19 @@ def options(s: State, prices: dict):
         def up_tier(st, r=role):
             st.crews[r].tier += 1
 
-        out.append((f"{ROLE_NAMES[role]} tier {crew.tier + 1}", tier_cost(crew.tier), up_tier, LINK_OF[role], None))
+        out.append((f"{ROLE_NAMES[role]} tier {crew.tier + 1}", tier_cost(crew.tier, role), up_tier, LINK_OF[role], None))
     return out
 
 
 def clone(s: State) -> State:
-    c = State(**{k: v for k, v in s.__dict__.items() if k not in ("nets", "bought", "crews")})
-    c.nets = [Net(n.base, n.base_lane, n.level, n.kind) for n in s.nets]
+    # [D64] TOATE campurile, si cele pe care dataclass-ul nu le stie: o era noua isi aduce campurile ei (nivelul
+    # turnatoriei, conditia liniei), iar o clona care le-ar pierde ar face `gain_of` sa socoteasca pe o stare ciuntita.
+    known = State.__dataclass_fields__
+    c = State(**{k: v for k, v in s.__dict__.items() if k in known and k not in ("nets", "bought", "crews")})
+    for k, v in s.__dict__.items():
+        if k not in known:
+            setattr(c, k, v)
+    c.nets = [Net(n.base, n.base_lane, n.level, n.kind, n.upgrade_base) for n in s.nets]
     c.crews = {r: Crew(v.count, v.tier) for r, v in s.crews.items()}
     c.bought = set(s.bought)
     return c
@@ -819,33 +863,40 @@ banii in mana si nu apasa nimic minute intregi. Amandoua sunt false: un om apasa
 fel de bun si strange pentru ce e clar mai bun."""
 
 
-def run(rebirths=0, index_found=0, max_seconds=36000):
+def run(rebirths=0, index_found=0, max_seconds=36000, era=None, start=None):
     """Simulare pe pasi de o secunda. In fiecare secunda intra venitul, apoi jucatorul cumpara
-    tot ce merita cumparat acum. Asa ies si rafalele de apasari, si rabdarea pentru o deblocare."""
-    s = State(rebirths=rebirths, index_found=index_found)
+    tot ce merita cumparat acum. Asa ies si rafalele de apasari, si rabdarea pentru o deblocare.
+    [D64] `era` = ce era se joaca (implicit Era 1); `start` = starea din care porneste (sfarsitul erei dinainte)."""
+    era = era or ERA1
+    unlocks = era["unlocks"]
+    s = start if start is not None else State(rebirths=rebirths, index_found=index_found)
+    started_at = s.t
     rows = []
-    prices: dict = {}
+    # o era noua mosteneste preturile ramase din cea dinainte (al doilea om necumparat isi tine pretul de atunci)
+    prices: dict = dict(era.get("seed_prices") or {})
     last_price = 0
     # POARTA E TIMPUL MORT, NU GATUIREA. Prima varianta masura "cat timp a stat aceeasi veriga
     # gatuita" -- dar aia poate fi lunga si sanatoasa, daca in tot timpul ala o repari nivel cu
     # nivel. Ce chiar strica jocul e sa nu ai NIMIC de apasat. Deci masuram pauza dintre doua
     # cumparaturi.
-    last_buy_at = 0.0
+    last_buy_at = s.t
     longest_idle = 0.0
     shares = {link: 0 for link in LINKS}
-    scrap_time = 0  # [D55] secundele in care linia fierului e deschisa: verigile ei exista doar atunci
+    # [D55] secundele in care fiecare linie e deschisa: verigile ei exista doar atunci (fierul apare la coada Erei 1)
+    line_time = {line: 0 for line in LINE_ORDER}
 
     def reprice():
         # pretul unei deblocari se fixeaza cand devine PRIMA DATA accesibila, din venitul de-atunci
         nonlocal last_price
-        for uid, _name, _why, cond, _effect in ERA1_UNLOCKS:
+        for uid, _name, _why, cond, _effect in unlocks:
             if uid in s.bought or uid in prices or not cond(s):
                 continue
             if uid in BURST_WAIT:  # [D56] oamenii fierului: secunde de venit, fara scara si fara podea
                 prices[uid] = nice(income(s) * BURST_WAIT[uid])
                 continue
-            k = ladder_step(s.bought)
-            prices[uid] = 0 if k == 0 else nice(income(s) * target_wait(k), last_price)
+            k = era["step"](s.bought)
+            free = k == 0 and era["free_first"]
+            prices[uid] = 0 if free else nice(income(s) * era["wait"](k), last_price)
             last_price = max(last_price, prices[uid])
 
     def buy(label, kind, price, effect, uid):
@@ -862,7 +913,7 @@ def run(rebirths=0, index_found=0, max_seconds=36000):
         last_buy_at = s.t
         rows.append((label, kind, price, s.t, after, chain(s).bottleneck))
 
-    while "bell" not in s.bought:
+    while era["bell"] not in s.bought:
         reprice()
 
         # cumpara tot ce merita, cat timp merita
@@ -872,9 +923,9 @@ def run(rebirths=0, index_found=0, max_seconds=36000):
             # iar fara sa strangi, nivelurile de 1-2 monede ale plasei ar manca banii la nesfarsit. Deci:
             # cat lipseste un om al capitolului si conditia lui e implinita, il iei cand ai banii si nu
             # cumperi nimic altceva pana atunci. Sta inaintea nivelului 2: in quest-uri, nivelul vine dupa.
-            pending = next((uid for uid in CHAPTER1_HIRES if uid not in s.bought), None)
+            pending = next((uid for uid in era["chapter_hires"] if uid not in s.bought), None)
             if pending is not None:
-                _uid, name, _why, cond, effect = next(e for e in ERA1_UNLOCKS if e[0] == pending)
+                _uid, name, _why, cond, effect = next(e for e in unlocks if e[0] == pending)
                 if cond(s) and pending in prices:
                     if prices[pending] <= s.coins:
                         buy(f"unlock:{name}", "unlock", prices[pending], effect, pending)
@@ -884,9 +935,9 @@ def run(rebirths=0, index_found=0, max_seconds=36000):
 
             # [D55, D56] DEBLOCARILE CERUTE DE QUEST (traista, linia fierului pas cu pas). Singure aduc putin sau
             # nimic, deci lacomul nu le-ar lua; un om urmeaza quest-ul si strange pentru ele.
-            quested = next((uid for uid, ready in QUEST_UNLOCKS if uid not in s.bought and ready(s)), None)
+            quested = next((uid for uid, ready in era["quest_unlocks"] if uid not in s.bought and ready(s)), None)
             if quested is not None:
-                _uid, name, _why, cond, effect = next(e for e in ERA1_UNLOCKS if e[0] == quested)
+                _uid, name, _why, cond, effect = next(e for e in unlocks if e[0] == quested)
                 if cond(s) and quested in prices:
                     if prices[quested] <= s.coins:
                         buy(f"unlock:{name}", "unlock", prices[quested], effect, quested)
@@ -894,12 +945,32 @@ def run(rebirths=0, index_found=0, max_seconds=36000):
                         continue
                     break
 
+            # [D64] DEBLOCARILE PE CARE UN OM LE IA CUM ARE BANII, fara sa se opreasca din cumparat pana atunci (plasele
+            # unei ere noi: quest-ul le cere, iar o plasa noua e cumparatura pe care o astepti). Lacomul le amana dupa
+            # raportul castig/pret, iar durata erei sarea cu 20 de minute la o schimbare mica de cadru. Era 1 n-are
+            # asemenea lista: ramane cum a fost reglata si jucata.
+            # Si STRANGE pentru ele cand sunt aproape: daca banii care lipsesc vin in cel mult `patience` secunde de
+            # venit, nu mai cumpara nimic altceva. Fara asta, nivelurile ieftine mananca fiecare moneda si plasa nu mai
+            # vine niciodata (aceeasi capcana ca la oamenii capitolului 1 [D52]); cu o rabdare fara margine, ar sta cu
+            # banii in mana sapte minute pentru o plasa scumpa, ceea ce nici un om nu face.
+            eager = next((uid for uid in era.get("eager_unlocks", ()) if uid not in s.bought and uid in prices), None)
+            if eager is not None:
+                _uid, name, _why, cond, effect = next(e for e in unlocks if e[0] == eager)
+                if cond(s):
+                    if prices[eager] <= s.coins:
+                        buy(f"unlock:{name}", "unlock", prices[eager], effect, eager)
+                        reprice()
+                        continue
+                    if prices[eager] - s.coins <= income(s) * era.get("patience", 0.0):
+                        break
+
             # QUEST-UL CERE NIVELUL 2 PE ULTIMA PLASA, iar un om il urmeaza. Singur, nivelul 2 nu da
             # nimic cand plasele nu sunt gatuirea, deci lacomul nu-l lua niciodata -- si plasa
             # urmatoare, pe care o deschide, venea cu 32 de minute mai tarziu [D49].
-            if 1 <= len(s.nets) < 5 and s.nets[-1].level < PREV_NET_LEVEL:
+            first_net, net_count = era["first_net"], era["net_count"]
+            if first_net + 1 <= len(s.nets) < first_net + net_count and s.nets[-1].level < PREV_NET_LEVEL:
                 i = len(s.nets) - 1
-                cost = level_cost(NET_UPGRADE_BASE_COST * NET_BASE_GROWTH**i, s.nets[i].level)
+                cost = level_cost(net_upgrade_base(s, i), s.nets[i].level)
                 if cost <= s.coins:
 
                     def up_last(st, idx=i):
@@ -908,7 +979,7 @@ def run(rebirths=0, index_found=0, max_seconds=36000):
                     buy(f"Net {i + 1} lvl {PREV_NET_LEVEL} (quest)", "nets", cost, up_last, None)
                     continue
 
-            opts = options(s, prices)
+            opts = options(s, prices, era)
             scored = []
             for label, price, effect, kind, uid in opts:
                 g = gain_of(s, effect)
@@ -954,28 +1025,32 @@ def run(rebirths=0, index_found=0, max_seconds=36000):
             # o deblocare noua poate deschide alte deblocari: re-evalueaza preturile
             reprice()
 
-        if "bell" in s.bought:
+        if era["bell"] in s.bought:
             break
         now_chain = chain(s)
         shares[now_chain.bottleneck] += 1
-        if now_chain.scrap_catch > 0:
-            scrap_time += 1
+        for line in LINE_ORDER:
+            if now_chain.lines[line].catch > 0:
+                line_time[line] += 1
         inc = income(s)
         if inc <= 0:
             raise SystemExit("EROARE: venit zero, simularea nu poate avansa")
         s.coins += inc
         s.t += 1
-        if s.t > max_seconds:
-            raise SystemExit(f"EROARE: peste {max_seconds}s fara sa termine Era 1")
+        if s.t - started_at > max_seconds:
+            raise SystemExit(f"EROARE: peste {max_seconds}s fara sa termine {era['name']}")
 
     # Ce n-a devenit accesibil in rulare (un al doilea Sawyer, daca treapta 3 n-a venit) are totusi
     # nevoie de un pret in config: se deriva din starea de la final, ca si cand s-ar fi deschis atunci.
-    for uid, _name, _why, _cond, _effect in ERA1_UNLOCKS:
+    for uid, _name, _why, _cond, _effect in unlocks:
         if uid not in prices:
-            prices[uid] = nice(income(s) * target_wait(ladder_step(s.bought)), last_price)
+            prices[uid] = nice(income(s) * era["wait"](era["step"](s.bought)), last_price)
             last_price = max(last_price, prices[uid])
 
-    return s, rows, prices, longest_idle, income(s), shares, scrap_time
+    # [D64] timpul fiecarei linii ramane pe stare, pentru erele care au alte linii decat fierul; al saptelea rezultat
+    # ramane timpul fierului, cum il asteapta portile Erei 1 si tune_tycoon.py
+    s.line_time = line_time
+    return s, rows, prices, longest_idle, income(s), shares, line_time["iron"]
 
 
 def link_share(link, shares, scrap_time):
