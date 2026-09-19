@@ -19,15 +19,13 @@ local UserInputService = game:GetService("UserInputService")
 
 local RiverConfig = require(ReplicatedStorage.Shared.Config.RiverConfig)
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
-local HandConfig = require(ReplicatedStorage.Shared.Config.HandConfig)
 local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
-local TavernCrowd = require(ReplicatedStorage.Shared.Modules.TavernCrowd)
 local Assets = require(ReplicatedStorage.Shared.Config.Assets)
 local Strings = require(ReplicatedStorage.Shared.Config.Strings)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
 local PileView = require(script.Parent.Parent.UI.PileView)
-local PersonView = require(script.Parent.Parent.UI.PersonView)
+local CustomerCrowd = require(script.Parent.Parent.UI.CustomerCrowd)
 local Focus = require(script.Parent.Parent.UI.Focus)
 local GroundShadow = require(script.Parent.Parent.UI.GroundShadow)
 local PadArt = require(script.Parent.Parent.UI.PadArt)
@@ -50,18 +48,6 @@ export type Sack = {
     iron: number, -- [D55] fierul din traista: indemnul nu mai spune doar "planks"
     cut: number,
     cutValue: number,
-}
-
-type Point = { x: number, y: number }
-type Customer = {
-    view: PersonView.View,
-    state: string, -- "arriving" | "waiting" | "leaving"
-    spot: number?,
-    x: number,
-    y: number,
-    path: { Point },
-    facing: string,
-    plank: boolean,
 }
 
 local DockController = {}
@@ -97,30 +83,8 @@ local BOAT_TWEEN = TweenInfo.new(BOAT_TWEEN_SECONDS, Enum.EasingStyle.Sine, Enum
 -- Unde stau cei care asteapta (picioarele), cu fata spre cine stau: doi la fereastra-tejghea, restul
 -- pe drum si sub el, la cel putin o latime de om unul de altul, pe langa usa (unde se lasa marfa),
 -- Innkeeper (x 446..494) si gramada (x <= 293, y <= 1092).
-local SPOTS: { { x: number, y: number, facing: string } } = {
-    { x = 340, y = 1094, facing = "up" },
-    { x = 380, y = 1098, facing = "up" },
-    { x = 330, y = 1150, facing = "right" },
-    { x = 282, y = 1160, facing = "right" },
-    { x = 385, y = 1180, facing = "left" },
-    { x = 236, y = 1196, facing = "right" },
-    { x = 318, y = 1212, facing = "up" },
-    { x = 430, y = 1214, facing = "left" },
-}
--- De unde vin si pe unde pleaca: capatul de vest al drumului mare, putin dincolo de teren.
-local ENTRY: Point = { x = 150, y = 1130 }
-local CUSTOMER_SPEED = 90 -- se plimba; oamenii tai merg cu 150
-local SPAWN_GAP = 0.9 -- vin pe rand, nu toti deodata
-local LEAVE_GAP = 1.2 -- o vanzare pe secunda n-are voie sa goleasca taverna intr-o clipa
--- Samanta clientilor. HandConfig o inmulteste cu ~2.65e9 inainte de modulo, deci trebuie sa ramana
--- sub ~3.4e6, altfel produsul trece de 2^53 si bitii de jos se pierd (clienti aproape identici).
-local CUSTOMER_SEED_BASE = 900000
-
-local customers: { Customer } = {}
-local crowd = TavernCrowd.new()
-local customerCount = 0
-local lastSpawnAt = -math.huge
-local lastLeaveAt = -math.huge
+-- [D65] Multimea insasi (cum vin, cat asteapta, cum pleaca) sta in UI/CustomerCrowd, comuna cu Piata Morii.
+local customerCrowd: CustomerCrowd.Crowd? = nil
 
 -- "Pleaca pe apa": o barca scurta paraseste pontonul si se stinge -- fara asta, o vanzare era doar o
 -- cifra care sare in HUD [research 42 pct.6]. Gramada nu se goleste de mana: starea vine de la server.
@@ -136,125 +100,6 @@ local function playSaleDeparture()
     task.delay(BOAT_TWEEN_SECONDS, function()
         b.Visible = false
     end)
-end
-
-local function freeSpot(): number?
-    for i = 1, #SPOTS do
-        local taken = false
-        for _, c in customers do
-            if c.spot == i then
-                taken = true
-                break
-            end
-        end
-        if not taken then
-            return i
-        end
-    end
-    return nil
-end
-
-local function spawnCustomer()
-    local spot = freeSpot()
-    if spot == nil then
-        return
-    end
-    customerCount += 1
-    local seed = CUSTOMER_SEED_BASE + customerCount
-    local look = HandConfig.appearanceFor(seed)
-    local outfits = HandConfig.CUSTOMER_OUTFITS
-    local view = PersonView.new(deps.Plot, `Customer{customerCount}`, "plank")
-    view.SetAppearance({
-        body = look.body,
-        hair = look.hair,
-        skin = look.skin,
-        hairColor = look.hairColor,
-        outfit = outfits[(customerCount % #outfits) + 1],
-    })
-    local s = SPOTS[spot]
-    table.insert(customers, {
-        view = view,
-        state = "arriving",
-        spot = spot,
-        x = ENTRY.x,
-        y = ENTRY.y,
-        path = { { x = s.x, y = ENTRY.y }, { x = s.x, y = s.y } },
-        facing = "right",
-        plank = false,
-    })
-end
-
--- Pleaca spre vest pe drumul mare; cu o scandura in brate, daca pleaca pentru ca a cumparat.
-local function leave(c: Customer, withPlank: boolean)
-    c.state = "leaving"
-    c.spot = nil
-    c.plank = withPlank
-    c.path = { { x = c.x, y = ENTRY.y }, { x = ENTRY.x, y = ENTRY.y } }
-end
-
-local function firstWaiting(): Customer?
-    for _, c in customers do
-        if c.state == "waiting" then
-            return c
-        end
-    end
-    return nil
-end
-
-local function stepCustomers(dt: number)
-    local now = os.clock()
-    local target = TavernCrowd.count(crowd, now)
-    local present = 0
-    for _, c in customers do
-        if c.state ~= "leaving" then
-            present += 1
-        end
-    end
-    if present < target and now - lastSpawnAt >= SPAWN_GAP then
-        lastSpawnAt = now
-        spawnCustomer()
-    elseif present > target and now - lastLeaveAt >= LEAVE_GAP then
-        local c = firstWaiting()
-        if c ~= nil then
-            lastLeaveAt = now
-            leave(c, false)
-        end
-    end
-
-    for i = #customers, 1, -1 do
-        local c = customers[i]
-        local budget = CUSTOMER_SPEED * dt
-        while budget > 0 and #c.path > 0 do
-            local p = c.path[1]
-            local dx, dy = p.x - c.x, p.y - c.y
-            local d = math.sqrt(dx * dx + dy * dy)
-            if d <= budget then
-                c.x, c.y = p.x, p.y
-                budget -= d
-                table.remove(c.path, 1)
-            else
-                c.x += dx / d * budget
-                c.y += dy / d * budget
-                budget = 0
-                c.facing = if math.abs(dx) >= math.abs(dy)
-                    then (if dx >= 0 then "right" else "left")
-                    else (if dy >= 0 then "down" else "up")
-            end
-        end
-        local moving = #c.path > 0
-        if not moving then
-            if c.state == "arriving" then
-                c.state = "waiting"
-                c.facing = SPOTS[c.spot :: number].facing
-            elseif c.state == "leaving" then
-                c.view.Destroy()
-                table.remove(customers, i)
-                continue
-            end
-        end
-        c.view.Pose(c.x, c.y, "idle", c.facing, moving, dt)
-        c.view.SetHeld(if c.plank then 1 else 0)
-    end
 end
 
 -- Starea vine din TycoonState, inlocuita la fiecare mesaj [F0 spec 4.1]; campurile sunt copiate
@@ -483,22 +328,23 @@ function DockController.Init(d: Deps)
             if seller ~= nil and seller ~= "dock" then
                 return
             end
-            local now = os.clock()
-            if type(itemCount) == "number" then
-                TavernCrowd.add(crowd, now, itemCount)
-            end
             playSaleDeparture()
-            if now - lastLeaveAt >= LEAVE_GAP then
-                local c = firstWaiting()
-                if c ~= nil then
-                    lastLeaveAt = now
-                    leave(c, true)
-                end
+            if customerCrowd ~= nil then
+                customerCrowd.OnSold(itemCount)
             end
         end
     )
 
-    RunService.PreRender:Connect(stepCustomers)
+    local crowd = CustomerCrowd.new({
+        plot = deps.Plot,
+        name = "Customer",
+        spots = TycoonConfig.SELLER_PLACES.dock.customerSpots,
+        entry = TycoonConfig.SELLER_PLACES.dock.customerEntry,
+        seedBase = 900000,
+        held = "plank",
+    })
+    customerCrowd = crowd
+    RunService.PreRender:Connect(crowd.Step)
 end
 
 return DockController

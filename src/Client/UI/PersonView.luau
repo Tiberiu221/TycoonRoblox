@@ -105,7 +105,7 @@ local function layer(parent: Instance, name: string, z: number): ImageLabel
     return img
 end
 
--- `held` = "sack" | "plank" | nil
+-- `held` = "sack" | "plank" | "part" | nil
 function PersonView.new(parent: Instance, name: string, held: string?): View
     local holder = Instance.new("Frame")
     holder.Name = name
@@ -182,9 +182,13 @@ function PersonView.new(parent: Instance, name: string, held: string?): View
     -- Obiectul tinut: sacul pe spate (creste in trepte), scandura in brate.
     local item: ImageLabel? = nil
     local itemScale: UIScale? = nil
-    local sprite = if held == "sack"
+    local sprite: Assets.Sprite? = if held == "sack"
         then Assets.tycoon.sack
-        elseif held == "plank" then Assets.goods.planks
+        elseif
+            held == "plank"
+        then Assets.goods.planks -- [D65] clientul Pietei pleaca cu o piesa de masina (desenul ei cand e urcat, altfel al perechii)
+
+        elseif held == "part" then GoodArt.icon("parts")
         else nil
     if sprite ~= nil and Assets.has(sprite) then
         local s = Instance.new("ImageLabel")

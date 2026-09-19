@@ -339,6 +339,37 @@ return function()
             check.equal(#outside, 0)
         end)
 
+        test.case("[D65] clientii fiecarui vanzator au loc: nu se calca, nu stau in usa", function()
+            for seller, places in TycoonConfig.SELLER_PLACES do
+                local spots = places.customerSpots
+                check.is_true(#spots >= 4)
+                for i, a in spots do
+                    for j, b in spots do
+                        if i < j then
+                            local d = math.sqrt((a.x - b.x) ^ 2 + (a.y - b.y) ^ 2)
+                            if d < 36 then
+                                print(
+                                    `  ! {seller}: clientii {i} si {j} se calca ({math.floor(d)} px)`
+                                )
+                            end
+                            check.is_true(d >= 36)
+                        end
+                    end
+                    -- usa e locul unde lasi marfa, iar langa ea sta omul vanzatorului
+                    for _, keep in { places.door, places.stand } do
+                        check.is_true(math.sqrt((a.x - keep.x) ^ 2 + (a.y - keep.y) ^ 2) >= 30)
+                    end
+                end
+                -- Piata ii are in aceleasi locuri ca taverna, mutate cu tot cartierul
+                local dx = places.door.x - TycoonConfig.SELLER_PLACES.dock.door.x
+                check.equal(
+                    places.customerEntry.x,
+                    TycoonConfig.SELLER_PLACES.dock.customerEntry.x + dx
+                )
+                check.equal(spots[1].x, TycoonConfig.SELLER_PLACES.dock.customerSpots[1].x + dx)
+            end
+        end)
+
         test.case(
             "nimic construit nu sta pe drum, iar locurile de predare sunt langa drum",
             function()

@@ -491,9 +491,30 @@ export type SellerPlaces = {
     pile: { x: number, y: number },
     building: { x: number, y: number, w: number, h: number },
     secondOffset: { x: number, y: number },
+    -- [D50, D65] CLIENTII: unde asteapta (picioarele, cu fata spre cine stau) si de unde vin / pe unde pleaca
+    customerSpots: { { x: number, y: number, facing: string } },
+    customerEntry: { x: number, y: number },
 }
 local function shifted(p: { x: number, y: number }): { x: number, y: number }
     return { x = p.x + MILL_DX, y = p.y }
+end
+-- Clientii tavernei: doi la fereastra-tejghea, restul pe drum si sub el, la cel putin o latime de om unul de altul, pe
+-- langa usa (unde se lasa marfa), Innkeeper (x 446..494) si gramada (x <= 293, y <= 1092). Vin de la capatul de vest al
+-- drumului mare, putin dincolo de teren. Piata ii are in aceleasi locuri, mutate cu MILL_DX: ai ei vin dinspre sat.
+local TAVERN_CUSTOMER_SPOTS = {
+    { x = 340, y = 1094, facing = "up" },
+    { x = 380, y = 1098, facing = "up" },
+    { x = 330, y = 1150, facing = "right" },
+    { x = 282, y = 1160, facing = "right" },
+    { x = 385, y = 1180, facing = "left" },
+    { x = 236, y = 1196, facing = "right" },
+    { x = 318, y = 1212, facing = "up" },
+    { x = 430, y = 1214, facing = "left" },
+}
+local TAVERN_CUSTOMER_ENTRY = { x = 150, y = 1130 }
+local marketCustomerSpots: { { x: number, y: number, facing: string } } = {}
+for _, spot in TAVERN_CUSTOMER_SPOTS do
+    table.insert(marketCustomerSpots, { x = spot.x + MILL_DX, y = spot.y, facing = spot.facing })
 end
 TycoonConfig.LINE_PLACES = {
     wood = {
@@ -557,6 +578,8 @@ TycoonConfig.SELLER_PLACES = {
         pile = TycoonConfig.PILES.tavern,
         building = TycoonConfig.TAVERN,
         secondOffset = { x = 60, y = 0 },
+        customerSpots = TAVERN_CUSTOMER_SPOTS,
+        customerEntry = TAVERN_CUSTOMER_ENTRY,
     },
     market = {
         door = shifted(TycoonConfig.DOCK),
@@ -564,6 +587,8 @@ TycoonConfig.SELLER_PLACES = {
         pile = shifted(TycoonConfig.PILES.tavern),
         building = TycoonConfig.MARKET,
         secondOffset = { x = 60, y = 0 },
+        customerSpots = marketCustomerSpots,
+        customerEntry = shifted(TAVERN_CUSTOMER_ENTRY),
     },
 } :: { [string]: SellerPlaces }
 

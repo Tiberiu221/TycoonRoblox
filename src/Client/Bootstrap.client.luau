@@ -249,7 +249,11 @@ safeInit("ForgeController", function()
     -- Pana la arta lor (docs/PLAN-ERA2.md, pasul 7) poarta desenele perechii din Era 1.
     LineController.Init({
         Plot = layers.Plot,
-        Remotes = { UsePlace = Net.Get("UsePlace"), AtPlace = Net.Get("AtPlace") },
+        Remotes = {
+            UsePlace = Net.Get("UsePlace"),
+            AtPlace = Net.Get("AtPlace"),
+            Sold = Net.Get("Sold"), -- [D65] clientii Pietei vin dupa vanzarile ei
+        },
         CharacterPos = CharacterController.Position,
     })
     -- `own` = desenul cladirii (scripts/art/d65_mill.py), `borrowed` = al perechii din Era 1, purtat cat al ei nu e

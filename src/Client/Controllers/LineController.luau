@@ -14,6 +14,7 @@
 -- tot, ca pe shed si pe forja. Cele care exista de cand se deschide cartierul (magazia Morii, turnatoria, Piata) se
 -- deseneaza aici, din `building`.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
 local Assets = require(ReplicatedStorage.Shared.Config.Assets)
@@ -23,6 +24,7 @@ local StationConfig = require(ReplicatedStorage.Shared.Config.StationConfig)
 local Strings = require(ReplicatedStorage.Shared.Config.Strings)
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
+local CustomerCrowd = require(script.Parent.Parent.UI.CustomerCrowd)
 local Focus = require(script.Parent.Parent.UI.Focus)
 local GroundShadow = require(script.Parent.Parent.UI.GroundShadow)
 local PileView = require(script.Parent.Parent.UI.PileView)
@@ -32,7 +34,7 @@ local Widgets = require(script.Parent.Parent.UI.Widgets)
 
 export type Deps = {
     Plot: Frame,
-    Remotes: { UsePlace: RemoteEvent, AtPlace: RemoteEvent },
+    Remotes: { UsePlace: RemoteEvent, AtPlace: RemoteEvent, Sold: RemoteEvent },
     CharacterPos: () -> (number, number),
 }
 
@@ -366,6 +368,23 @@ function LineController.seller(seller: string, building: Building): Seller
     local pile = PileView.new(deps.Plot, places.pile.x, places.pile.y, { warnAt = 60 })
     local art, label = drawBuilding(building)
     local ruin = drawRuin(building)
+    -- [D50, D65] clientii: vin cat vinde vanzatorul chiar acum si pleaca acasa cu marfa in brate (UI/CustomerCrowd)
+    local crowd = CustomerCrowd.new({
+        plot = deps.Plot,
+        name = `{building.label}Customer`,
+        spots = places.customerSpots,
+        entry = places.customerEntry,
+        seedBase = 950000,
+        held = "part",
+    })
+    RunService.PreRender:Connect(crowd.Step)
+    deps.Remotes.Sold.OnClientEvent:Connect(
+        function(_total: number, itemCount: number, soldBy: string?)
+            if soldBy == seller then
+                crowd.OnSold(itemCount)
+            end
+        end
+    )
 
     local self = {}
 

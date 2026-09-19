@@ -126,8 +126,9 @@ a rămas: `docs/PLAN-ERA2.md`.
   `client "ui:goto:x:y"`.
 - **Capcană a sondei:** cu fereastra Studio ascunsă, Play-ul are viewport 1×1 și `PreRender` nu rulează: cardurile de
   lângă obiecte, cartonașele platformelor și „textul nu încape" nu se pot judeca atunci. Textele și starea, da.
-- **Rămâne:** aprobarea și urcarea artei Morii și a pământului recopt, clienții desenați ai Pieței, verificarea
-  owner-ului.
+- **Clienții** tavernei și ai Pieței vin din aceeași componentă (`UI/CustomerCrowd`), cu locurile din
+  `TycoonConfig.SELLER_PLACES`. Mutarea s-a făcut întocmai, dar mersul lor (pe `PreRender`) n-a putut fi văzut cu sonda.
+- **Rămâne:** aprobarea și urcarea artei Morii și a pământului recopt, verificarea owner-ului.
 
 ## Stare (2026-09-19, noaptea) [D63]
 
