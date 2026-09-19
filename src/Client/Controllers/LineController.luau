@@ -24,6 +24,7 @@ local StationConfig = require(ReplicatedStorage.Shared.Config.StationConfig)
 local Strings = require(ReplicatedStorage.Shared.Config.Strings)
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
+local SceneArt = require(script.Parent.SceneArt)
 local CustomerCrowd = require(script.Parent.Parent.UI.CustomerCrowd)
 local Focus = require(script.Parent.Parent.UI.Focus)
 local GroundShadow = require(script.Parent.Parent.UI.GroundShadow)
@@ -97,6 +98,27 @@ local LineController = {}
 local deps: Deps
 
 local EMPTY_SACK: Sack = { count = 0, capacity = 0, rawBy = {}, sellBy = {} }
+
+-- [D43, D65] UN ATELIER CARE LUCREAZA SE VEDE: fum la horn cat are marfa la intrare si cineva o prelucreaza (omul lui
+-- sau tu, in inel), ca la forja. Unde e hornul, in fractiuni din desenul cladirii: pe desenul ei (`own`) si pe cel de
+-- imprumut, purtat cat al ei nu e urcat. Cutia cladirii de pe o platforma = desenul ei, prins de baza platformei.
+local SMOKE_AT: { [string]: { own: { number }, borrowed: { number }, key: string, w: number, h: number } } =
+    {
+        foundry = {
+            own = { 0.79, 0.02 },
+            borrowed = { 0.79, 0.06 },
+            key = "foundry",
+            w = 40,
+            h = 32,
+        },
+        furnace = {
+            own = { 0.5, 0.0 },
+            borrowed = { 0.77, 0.0 },
+            key = "copper_furnace",
+            w = 64,
+            h = 48,
+        },
+    }
 
 local function keyHint(): string
     return if UserInputService.KeyboardEnabled then " (E)" else ""
@@ -239,6 +261,38 @@ function LineController.line(
         return sack.rawBy[line] or 0
     end
 
+    -- fumul atelierului: un cadru gol peste cladire, aratat doar cat atelierul chiar lucreaza
+    local smokeHost: Frame? = nil
+    local smoke = SMOKE_AT[flow.processor]
+    if smoke ~= nil then
+        local pad = if flow.processorPad ~= nil then TycoonConfig.byId[flow.processorPad] else nil
+        local box = processorBuilding
+        if box == nil and pad ~= nil and pad.x ~= nil and pad.y ~= nil then
+            box = {
+                x = pad.x :: number,
+                y = (pad.y :: number) + 8, -- cum prinde PadController desenul de platforma
+                w = smoke.w * Assets.PIXEL_SCALE,
+                h = smoke.h * Assets.PIXEL_SCALE,
+                sprite = "",
+                label = "",
+            }
+        end
+        if box ~= nil then
+            local host = Instance.new("Frame")
+            host.Name = flow.processor .. "Smoke"
+            host.BackgroundTransparency = 1
+            host.AnchorPoint = Vector2.new(0.5, 1)
+            host.Position = UDim2.fromOffset(box.x, box.y)
+            host.Size = UDim2.fromOffset(box.w, box.h)
+            host.ZIndex = 46
+            host.Visible = false
+            host.Parent = deps.Plot
+            local at = if uploaded(smoke.key) ~= nil then smoke.own else smoke.borrowed
+            SceneArt.AddSmoke(host, at[1], at[2])
+            smokeHost = host
+        end
+    end
+
     -- Meseria care conteaza acum la magazie, ca la depozit: cine aduce, daca adunatul e veriga slaba a liniei; altfel
     -- cine ia de aici.
     local steps = StationConfig.LINES[line].steps -- primul om goleste plasele la magazie, al doilea ia de aici
@@ -284,6 +338,9 @@ function LineController.line(
         end
         for _, ruin in ruins do
             ruin.Visible = not processorOpen
+        end
+        if smokeHost ~= nil then
+            smokeHost.Visible = processorOpen and state.rate > 0 and state.count > 0
         end
     end
 
