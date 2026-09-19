@@ -4,7 +4,12 @@
 local RiverConfig = {
     SCREEN_WIDTH = 1920,
     SCREEN_HEIGHT = 1080,
-    WORLD_WIDTH = 2880, -- 60 tile-uri de 48 px; orasul creste spre est la pasul 5
+    -- [D65] 80 de tile-uri de 48 px: The Landing (x 200..1860), The Mill (1860..3560) si capatul lumii, unde se vede
+    -- gardul erei urmatoare. Pana la D65 erau 2880; lumea creste spre est (aval) cu fiecare era.
+    WORLD_WIDTH = 3840,
+    -- Latimea lumii de dinainte de D65. Decorul imprastiat al partii vechi se genereaza tot pe ea, cu aceeasi samanta,
+    -- ca niciun copac al satului deja vazut de jucatori sa nu se mute (vezi WorldDecor.village).
+    ERA1_WORLD_WIDTH = 2880,
     WORLD_HEIGHT = 1920, -- 40 tile-uri
     TILE = 48,
     WINDOW_SECONDS = 60,
@@ -51,12 +56,16 @@ local RiverConfig = {
         side = 1,
         beach = 46,
         -- malul amenajat: de la marginea din stanga a pontonului pana la capatul terenului [D50]
-        calm = { x0 = 150, x1 = 1960, feather = 240, amp = 12 },
+        -- [D65] pana la capatul Morii (x 3560 + 80): malul e amenajat in fata fiecarui cartier construit
+        calm = { x0 = 150, x1 = 3640, feather = 240, amp = 12 },
     },
     -- Zona in care WorldDecor nu pune copaci/pietre: tot ce e construit in Era 1 incape in acest
     -- dreptunghi (verificat in tests/WorldDecor.test.luau) [F0 spec 4.6]. Se termina la x 1960, cu
     -- 100 px dincolo de gardul Morii, exact unde se termina si malul amenajat (SHORE_NEAR.calm) [D50].
-    PLOT = { x = 200, y = 800, w = 1760, h = 850 },
+    -- [D65] Cu Moara, terenul fara decor se intinde pana la capatul ei (x 3640). `PLOT_ERA1` e dreptunghiul de
+    -- dinainte: cu el se genereaza decorul partii vechi, ca sa ramana pe loc (WorldDecor.village).
+    PLOT = { x = 200, y = 800, w = 3440, h = 850 },
+    PLOT_ERA1 = { x = 200, y = 800, w = 1760, h = 850 },
     TIERS = {
         { id = "common", weight = 0.537, rgb = { 160, 110, 60 } },
         { id = "uncommon", weight = 0.248, rgb = { 90, 160, 90 } },

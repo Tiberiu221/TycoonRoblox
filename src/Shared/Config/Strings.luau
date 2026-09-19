@@ -130,6 +130,13 @@ Strings.REFUSE_SACK_EMPTY = "Nothing to sell yet" -- [A]
 function Strings.refuseZoneLocked(bellName: string): string -- [A]
     return `Opens after the {bellName}`
 end
+-- [D65] Panoul de la gardul unei zone: inchisa (spune ce o deschide) sau deschisa dar inca nefacuta in joc.
+function Strings.zoneLocked(zoneName: string, bellName: string): string
+    return `{zoneName} — opens with the {bellName}`
+end
+function Strings.zoneSoon(zoneName: string): string
+    return `{zoneName} — coming soon`
+end
 
 -- ---- [39] Sistem -------------------------------------------------------------------------------
 Strings.SYSTEM_LOADING = "Loading your river…" -- [F]

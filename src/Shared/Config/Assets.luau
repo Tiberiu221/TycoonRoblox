@@ -246,6 +246,11 @@ local Assets = {
         -- [D62, pasul 5] pamantul satului copt intr-o singura imagine cu alfa (scripts/art/village_ground.py): 960x640,
         -- un pixel = 3 pixeli de lume. 0 = desenata, inca neurcata -> harta se deseneaza din dale, ca pana acum.
         village_ground = sprite(96228803429692, 960, 640),
+        -- [D65] A DOUA FELIE a pamantului copt (x 2880..3840 al lumii): Roblox micsoreaza orice imagine peste 1024 px,
+        -- deci lumea latita la 3840 se coace pe felii de 2880. 0 = coapta, inca neurcata: fasia ei se deseneaza din
+        -- dale pana atunci (SceneArt). Prima felie de mai sus e inca cea de dinainte de Moara (strada Morii lipseste
+        -- din ea pana la urmatoarea urcare, cu acordul owner-ului).
+        village_ground_2 = sprite(0, 320, 640),
         platform = sprite(136060284598059, 48, 24),
         weights = sprite(116698981575799, 24, 16),
         -- pier2 (64x48) a fost respins: se citea ca o lada cu capac. pier3 e pontonul inalt,

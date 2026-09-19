@@ -227,7 +227,9 @@ TycoonConfig.NEAR_CURRENT_Y = 552
 TycoonConfig.SPAWN = { x = 660, y = 1200 }
 
 export type Rect = { x0: number, x1: number, y0: number, y1: number }
-export type Road = { id: string, x0: number, x1: number, y0: number, y1: number }
+-- `like`: drumul sau curtea din The Landing pe care o oglindeste [D65]. Pamantul copt (scripts/art/village_ground.py)
+-- isi deseneaza detaliile dupa el: piata de piatra, potecile dintre case, zgura din curtea cuptorului.
+export type Road = { id: string, x0: number, x1: number, y0: number, y1: number, like: string? }
 
 -- [F3] Malul construit. Pontonul e fasia de scanduri de-a lungul apei, pe care stau stalpii plaselor.
 -- Se termina la legatura depozitului: mai departe ar fi fost scanduri pe care nu calca nimeni [D50].
@@ -251,7 +253,7 @@ TycoonConfig.ROADS = {
 -- realul absolut al jocului"; pe previzualizarea satului: "si casele oamenilor ar trebui sa stea pe ceva pamant".
 -- Nimic construit nu mai sta direct pe iarba: curtile de lucru, piata tavernei (pamant in jurul pietrei) si fiecare
 -- casa au pamantul lor, cu iarba peste margini. Doar desen (SceneArt); nimeni nu merge altfel din cauza lor.
-export type Yard = { id: string, x0: number, x1: number, y0: number, y1: number }
+export type Yard = { id: string, x0: number, x1: number, y0: number, y1: number, like: string? }
 TycoonConfig.YARDS = {
     { id = "tavern", x0 = 222, x1 = 584, y0 = 1040, y1 = 1196 },
     { id = "stall", x0 = 280, x1 = 440, y0 = 1248, y1 = 1318 },
@@ -355,7 +357,9 @@ TycoonConfig.PLOT_ORIGIN = { x = 0, y = 0 }
 -- si ingradita, si se deschide cu clopotul erei dinainte [B, B4].
 TycoonConfig.ZONES = {
     { id = "landing", name = "The Landing", era = 1, x0 = 200, x1 = 1860 },
-    { id = "mill", name = "The Mill", era = 2, x0 = 1860, x1 = 2880 },
+    { id = "mill", name = "The Mill", era = 2, x0 = 1860, x1 = 3560 },
+    -- [D64] Era 3 e doar anuntata: gardul si ceata ei, pana la marginea lumii (RiverConfig.WORLD_WIDTH)
+    { id = "wire_works", name = "The Wire Works", era = 3, x0 = 3560, x1 = 3840 },
 }
 
 -- Unde sta Negustorul: la tejgheaua tavernei, in piata din fata ei [D57], in dreapta usii (DOCK). Picioarele la
@@ -561,7 +565,10 @@ do
     for _, yard in TycoonConfig.YARDS do
         if yard.id == pair[1] then
             local r = shiftedRect(yard)
-            table.insert(millYards, { id = pair[2], x0 = r.x0, x1 = r.x1, y0 = r.y0, y1 = r.y1 })
+            table.insert(
+                millYards,
+                { id = pair[2], like = pair[1], x0 = r.x0, x1 = r.x1, y0 = r.y0, y1 = r.y1 }
+            )
         end
     end
 end
@@ -579,10 +586,38 @@ TycoonConfig.DISTRICTS = {
         deck = shiftedRect(TycoonConfig.DECK),
         roads = {
             -- strada Morii: de unde se termina strada satului pana la capatul cartierului
-            { id = "mill_street", x0 = 1860, x1 = 1860 + MILL_DX, y0 = 1420, y1 = 1480 },
-            { id = "market_link", x0 = 525 + MILL_DX, x1 = 575 + MILL_DX, y0 = 856, y1 = 1420 },
-            { id = "market_plaza", x0 = 240 + MILL_DX, x1 = 550 + MILL_DX, y0 = 1090, y1 = 1170 },
-            { id = "copper_lane", x0 = 1260 + MILL_DX, x1 = 1300 + MILL_DX, y0 = 856, y1 = 1420 },
+            {
+                id = "mill_street",
+                like = "street",
+                x0 = 1860,
+                x1 = 1860 + MILL_DX,
+                y0 = 1420,
+                y1 = 1480,
+            },
+            {
+                id = "market_link",
+                like = "tavern_link",
+                x0 = 525 + MILL_DX,
+                x1 = 575 + MILL_DX,
+                y0 = 856,
+                y1 = 1420,
+            },
+            {
+                id = "market_plaza",
+                like = "plaza",
+                x0 = 240 + MILL_DX,
+                x1 = 550 + MILL_DX,
+                y0 = 1090,
+                y1 = 1170,
+            },
+            {
+                id = "copper_lane",
+                like = "iron_lane",
+                x0 = 1260 + MILL_DX,
+                x1 = 1300 + MILL_DX,
+                y0 = 856,
+                y1 = 1420,
+            },
         },
         yards = millYards,
     },

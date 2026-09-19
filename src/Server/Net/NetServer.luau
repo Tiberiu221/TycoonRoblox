@@ -172,9 +172,11 @@ local function buildTycoonState(player: Player): { [string]: any }
         padDeltas = padDeltas,
         hands = deps.Hands.Snapshot(player),
         -- Mill se vede mereu (estompata, ingradita) si se deschide cu Landing Bell [B4, C].
+        -- [D65] La fel zona erei urmatoare (The Wire Works), cu clopotul Morii.
         zones = {
             landing = "open",
             mill = if pads.landing_bell == "bought" then "open" else "locked",
+            wire_works = if pads.mill_bell == "bought" then "open" else "locked",
         },
         workshop = pads.workshop == "bought",
         -- [D56] parcat odata cu colectia: clientul nu-l mai citeste (insigna atelierului a iesit)

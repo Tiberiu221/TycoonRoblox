@@ -448,14 +448,25 @@ local function checkProximityRefusals()
         end
     end
 
-    if snap.zones.mill ~= "open" then
-        local mill = TycoonConfig.ZONES[2]
-        if px < mill.x0 and mill.x0 - px <= 90 then
+    -- [D65] gardul oricarei zone inca inchise: cand te apropii, spune ce clopot o deschide
+    local atFence = false
+    for _, zone in TycoonConfig.ZONES do
+        if
+            zone.era > 1
+            and snap.zones[zone.id] ~= "open"
+            and px < zone.x0
+            and zone.x0 - px <= 90
+        then
+            atFence = true
             if now - lastZoneRefusalAt > PROXIMITY_COOLDOWN then
                 lastZoneRefusalAt = now
-                local landingBell = TycoonConfig.byId["landing_bell"]
-                local bellName = if landingBell ~= nil then landingBell.name else "next Bell"
-                local x, y = deps.WorldToHud(mill.x0 - 20, py)
+                local bellName = "next Bell"
+                for _, p in TycoonConfig.PADS do
+                    if p.era == zone.era - 1 and p.motive == "D" then
+                        bellName = p.name
+                    end
+                end
+                local x, y = deps.WorldToHud(zone.x0 - 20, py)
                 JuiceController.FloatAt(
                     x,
                     y,
@@ -463,9 +474,11 @@ local function checkProximityRefusals()
                     Theme.COLOR.onDarkSoft
                 )
             end
-        else
-            lastZoneRefusalAt = -math.huge
+            break
         end
+    end
+    if not atFence then
+        lastZoneRefusalAt = -math.huge
     end
 end
 

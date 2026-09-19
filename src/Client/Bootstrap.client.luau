@@ -834,7 +834,12 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
             },
         }
     end
-    local zones = { landing = raw.zones.landing, mill = raw.zones.mill }
+    -- [D65] fiecare zona din TycoonConfig.ZONES, copiata dupa id (o zona pe care serverul n-o trimite ramane inchisa)
+    local zones: { [string]: string } = {}
+    for _, zone in TycoonConfig.ZONES do
+        local status = raw.zones[zone.id]
+        zones[zone.id] = if typeof(status) == "string" then status else "locked"
+    end
     local firsts = {
         collect = raw.firsts.collect,
         sell = raw.firsts.sell,
@@ -1221,7 +1226,7 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
     StationPanel.Apply(snapshot.stations)
     StationMenu.Apply(snapshot.stations)
     HandRenderController.Apply(snapshot.hands)
-    ZoneController.Apply(snapshot.zones.mill)
+    ZoneController.Apply(snapshot.zones)
 
     if Overlay ~= nil then
         local ok, err = pcall(Overlay.Apply, snapshot)

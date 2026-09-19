@@ -112,4 +112,52 @@ function WorldDecor.build(seed: number, b: Bounds, count: number): { Item }
     return items
 end
 
+-- [D65] DECORUL SATULUI, acelasi pentru joc (SceneArt) si pentru pamantul copt (scripts/art/village_geometry.luau).
+-- Generatorul isi alege x-ul ca `aleator x latime`, deci a lati lumea ar fi mutat FIECARE copac al satului pe care
+-- jucatorii il stiu deja. De aceea partea veche se genereaza exact ca inainte (latimea si terenul de dinainte de D65,
+-- aceeasi samanta si acelasi numar), apoi:
+--   * se scot lucrurile cazute pe terenul cartierelor noi (acolo se construieste);
+--   * fasia noua de lume isi primeste decorul ei, cu alta samanta, proportional cu latimea ei.
+-- `river` = { riverTop, riverBottom }, ca la `build`.
+function WorldDecor.village(
+    seed: number,
+    count: number,
+    world: { width: number, height: number, oldWidth: number },
+    river: { riverTop: number, riverBottom: number },
+    plot: { x: number, y: number, w: number, h: number },
+    oldPlot: { x: number, y: number, w: number, h: number }
+): { Item }
+    local items: { Item } = {}
+    local old = WorldDecor.build(seed, {
+        width = world.oldWidth,
+        height = world.height,
+        riverTop = river.riverTop,
+        riverBottom = river.riverBottom,
+        plot = oldPlot,
+    }, count)
+    for _, item in old do
+        if not inRect(item.x, item.y, plot, KEEP_CLEAR) then
+            table.insert(items, item)
+        end
+    end
+    local strip = world.width - world.oldWidth
+    if strip > 0 then
+        local extra = WorldDecor.build(seed + 1, {
+            width = strip,
+            height = world.height,
+            riverTop = river.riverTop,
+            riverBottom = river.riverBottom,
+            -- terenul, vazut din fasia noua (x-ul ei porneste de la 0)
+            plot = { x = plot.x - world.oldWidth, y = plot.y, w = plot.w, h = plot.h },
+        }, math.floor(count * strip / world.oldWidth + 0.5))
+        for _, item in extra do
+            table.insert(
+                items,
+                { kind = item.kind, x = item.x + world.oldWidth, y = item.y, z = item.z }
+            )
+        end
+    end
+    return items
+end
+
 return WorldDecor

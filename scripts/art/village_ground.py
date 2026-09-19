@@ -39,6 +39,21 @@ from preview_tycoon import load, write_png  # noqa: E402
 ROOT = os.path.dirname(os.path.dirname(HERE))
 SPRITES = os.path.join(ROOT, "assets", "sprites")
 OUT = os.path.join(SPRITES, "prop_village_ground.png")
+
+
+def tile_paths(G):
+    """[D65] Feliile pamantului copt: Roblox micsoreaza orice imagine peste 1024 px, deci lumea (3840 / 3 = 1280 px) se
+    coace pe felii de `tile` pixeli de lume (2880 -> 960 px). Prima isi tine numele de dinainte, urmatoarele primesc
+    numarul lor: prop_village_ground.png, prop_village_ground_2.png. Intoarce [(cale, x0, latime)] in pixeli de imagine."""
+    tile = G["tile"] // D
+    total = G["world"]["w"] // D
+    out, x0, k = [], 0, 1
+    while x0 < total:
+        name = "prop_village_ground.png" if k == 1 else f"prop_village_ground_{k}.png"
+        out.append((os.path.join(SPRITES, name), x0, min(tile, total - x0)))
+        x0 += tile
+        k += 1
+    return out
 LOCK = os.path.join(HERE, "village_ground.lock")
 
 D = 3
@@ -143,14 +158,16 @@ def check(G):
         )
     # Marimea se citeste direct din antetul PNG (IHDR), cu calea relativa la repo: `preview_tycoon.load` are scrisa in el
     # calea de pe Mac-ul owner-ului, iar verificarea asta ruleaza si in CI.
-    try:
-        with open(OUT, "rb") as f:
-            head = f.read(24)
-        w, h = struct.unpack(">II", head[16:24])
-        if (w, h) != (G["world"]["w"] // D, G["world"]["h"] // D):
-            problems.append(f"prop_village_ground.png are {w}x{h}, nu marimea lumii impartita la {D}")
-    except (FileNotFoundError, struct.error):
-        problems.append("lipseste assets/sprites/prop_village_ground.png")
+    for path, _x0, width in tile_paths(G):
+        name = os.path.basename(path)
+        try:
+            with open(path, "rb") as f:
+                head = f.read(24)
+            w, h = struct.unpack(">II", head[16:24])
+            if (w, h) != (width, G["world"]["h"] // D):
+                problems.append(f"{name} are {w}x{h}, nu {width}x{G['world']['h'] // D}")
+        except (FileNotFoundError, struct.error):
+            problems.append(f"lipseste assets/sprites/{name}")
     if problems:
         print("village_ground: " + "; ".join(problems))
         print("  -> ruleaza: python3 scripts/art/village_ground.py   (apoi imaginea trebuie urcata din nou)")
@@ -232,7 +249,11 @@ def bake(G):
     cv = Canvas(W, H)
     far, near = G["far"], G["near"]
     tree = G["treeLine"]
-    deck = G["deck"]
+    # [D65] LUMEA S-A LATIT, DAR SATUL VECHI NU SE MISCA. Tot ce se imprastie la intamplare (pietricele, coroanele
+    # padurii, smocuri, flori) isi alegea locul ca `aleator x latime`, deci o lume mai lata ar fi mutat fiecare pixel al
+    # partii deja aprobate si urcate. De aceea fiecare imprastiere se face in doi timpi: intai pe latimea veche, cu
+    # aceeasi samanta si acelasi numar (iese exact ca inainte), apoi pe fasia noua, cu samanta ei.
+    W_OLD = min(W, G["tile"] // D)
     n_tone, n_mid, n_fine, n_edge = Noise(11), Noise(12), Noise(13), Noise(14)
 
     def world(ix, iy):
@@ -288,17 +309,20 @@ def bake(G):
                 cv.set(ix, iy, col, MAT_SAND)
 
     # pietricele pe plaje, cu umbra lor dedesubt
-    rnd = random.Random(62)
-    for _ in range(900):
-        ix, iy = rnd.randrange(W), rnd.randrange(H)
-        if cv.mat[iy * W + ix] != MAT_SAND or not cv.inside(ix + 1, iy + 1):
-            continue
-        tone = STONE[rnd.randrange(1, 3)]
-        cv.set(ix, iy, tone)
-        if rnd.random() < 0.5 and cv.mat[iy * W + ix + 1] == MAT_SAND:
-            cv.set(ix + 1, iy, STONE[1])
-        if cv.mat[(iy + 1) * W + ix] == MAT_SAND:
-            cv.blend(ix, iy + 1, STONE[0], 0.55)
+    for rnd, x_from, x_to, tries in (
+        (random.Random(62), 0, W_OLD, 900),
+        (random.Random(6202), W_OLD, W, 900 * (W - W_OLD) // W_OLD),
+    ):
+        for _ in range(tries):
+            ix, iy = x_from + rnd.randrange(x_to - x_from), rnd.randrange(H)
+            if cv.mat[iy * W + ix] != MAT_SAND or not cv.inside(ix + 1, iy + 1):
+                continue
+            tone = STONE[rnd.randrange(1, 3)]
+            cv.set(ix, iy, tone)
+            if rnd.random() < 0.5 and cv.mat[iy * W + ix + 1] == MAT_SAND:
+                cv.set(ix + 1, iy, STONE[1])
+            if cv.mat[(iy + 1) * W + ix] == MAT_SAND:
+                cv.blend(ix, iy + 1, STONE[0], 0.55)
 
     # ---- 3. padurea de pe malul de nord: podea intunecata, apoi coroane pe randuri, cu lumina din stanga-sus ----
     for ix in range(W):
@@ -326,20 +350,34 @@ def bake(G):
                     v = 0.0  # muchia de jos, inchisa: desparte coroana de cea de sub ea
                 cv.set(ix, iy, ramp_pick(ramp, max(0.0, min(0.999, v)), ix, iy, 0.7), MAT_FOREST)
 
-    rnd = random.Random(480917)
+    # coroanele: intai toate randurile pe latimea veche, cu un singur generator (exact ca inainte de D65), tinand minte
+    # unde s-a oprit fiecare rand; apoi fiecare rand continua pe fasia noua, cu generatorul lui. Randurile se deseneaza
+    # tot de sus in jos, deci cele doua treceri se aduna in aceeasi lista si se deseneaza o data.
     rows = 9
-    for row in range(rows, -1, -1):  # de sus in jos: randul de jos se deseneaza ultimul, peste celelalte
+    planned = {row: [] for row in range(rows + 1)}
+    stopped = {}
+    rnd = random.Random(480917)
+    for row in range(rows, -1, -1):
         cx = -6.0 - (row % 2) * 5
+        while cx < W_OLD + 8:
+            planned[row].append((cx, rnd.uniform(8.0, 16.0), rnd.uniform(0, 6), rnd.random()))
+            cx += rnd.uniform(11, 19)
+        stopped[row] = cx
+    for row in range(rows, -1, -1):
+        rnd = random.Random(480917 + 1000 + row)
+        cx = stopped[row]
         while cx < W + 8:
+            planned[row].append((cx, rnd.uniform(8.0, 16.0), rnd.uniform(0, 6), rnd.random()))
+            cx += rnd.uniform(11, 19)
+    for row in range(rows, -1, -1):  # de sus in jos: randul de jos se deseneaza ultimul, peste celelalte
+        for cx, size, drop, kind in planned[row]:
             ix = max(0, min(W - 1, int(cx)))
             base = tree[ix] / D
-            r = rnd.uniform(8.0, 16.0) - row * 0.3
-            cy = base - row * 11.5 - rnd.uniform(0, 6) + 2
-            kind = rnd.random()
+            r = size - row * 0.3
+            cy = base - row * 11.5 - drop + 2
             ramp = CROWNS[0] if kind < 0.62 else (CROWNS[1] if kind < 0.88 else CROWNS[2])
             if cy > -r:
                 crown(cx, cy, r, row * 131 + int(cx), ramp)
-            cx += rnd.uniform(11, 19)
 
     # luminisuri: decorul imprastiat din seed cade si in padure, iar o piatra pe coroane n-are cum sa stea
     for item in G["scattered"]:
@@ -404,9 +442,11 @@ def bake(G):
                     col = DIRT[4]
                 cv.set(ix, iy, col, MAT_DIRT)
 
-    for yard in G["yards"]:
+    all_yards = [y for dist in G["districts"] for y in dist["yards"]]
+    all_roads = [r for dist in G["districts"] for r in dist["roads"]]
+    for yard in all_yards:
         dirt_area(yard, 16, 12, 0.0, None, yard["id"])
-    for road in G["roads"]:
+    for road in all_roads:
         wide = (road["x1"] - road["x0"]) >= (road["y1"] - road["y0"])
         if wide:
             ruts = ("h", (road["y0"] + road["y1"]) / 2, (road["y1"] - road["y0"]) * 0.24)
@@ -432,23 +472,27 @@ def bake(G):
                         if q < 1 and hash01(ix, iy, 17) < strength * (1 - q * q) * 1.9:
                             cv.set(ix, iy, ramp_pick(DIRT, 0.25 + 0.4 * n_fine.at(wx, wy, 24), ix, iy), MAT_DIRT)
 
-    yards = {y["id"]: y for y in G["yards"]}
-    street = next(r for r in G["roads"] if r["id"] == "street")
-    houses = [y for y in G["yards"] if y["id"].startswith("house_") or y["id"] == "sack"]
-    lane_y = max(h["y1"] for h in houses) + 14
-    worn([(min(h["x0"] for h in houses) - 10, lane_y), (max(h["x1"] for h in houses) + 10, lane_y)], 30, 0.62)
-    gaps = sorted(h["x0"] for h in houses)
-    left, right = min(h["x0"] for h in houses) - 24, max(h["x1"] for h in houses) + 24
-    hauler, scrap = yards["house_hauler"], yards["house_scrap_collector"]
-    for x in (left, (hauler["x1"] + scrap["x0"]) / 2, right):
-        worn([(x, street["y1"] - 4), (x, lane_y)], 26, 0.66)
-    del gaps
-    tav, stall = yards["tavern"], yards["stall"]
-    sx = (stall["x0"] + stall["x1"]) / 2
-    worn([(sx, tav["y1"] - 6), (sx, stall["y0"] + 6)], 34, 0.7)
-    worn([(sx, stall["y1"] - 6), (sx, street["y0"] + 6)], 30, 0.66)
-    shed, bell = yards["shed"], yards["bell"]
-    worn([(shed["x1"] - 8, (shed["y0"] + shed["y1"]) / 2), (bell["x0"] + 8, (bell["y0"] + bell["y1"]) / 2)], 28, 0.6)
+    # [D65] o data pe CARTIER: id-urile curtilor si ale drumurilor vin canonice (cele din The Landing), deci Moara isi
+    # primeste aceleasi poteci intre case, spre taraba negustorului si spre clopot
+    def district_paths(dist):
+        yards = {y["id"]: y for y in dist["yards"]}
+        street = next(r for r in dist["roads"] if r["id"] == "street")
+        houses = [y for y in dist["yards"] if y["id"].startswith("house_") or y["id"] == "sack"]
+        lane_y = max(h["y1"] for h in houses) + 14
+        worn([(min(h["x0"] for h in houses) - 10, lane_y), (max(h["x1"] for h in houses) + 10, lane_y)], 30, 0.62)
+        left, right = min(h["x0"] for h in houses) - 24, max(h["x1"] for h in houses) + 24
+        hauler, scrap = yards["house_hauler"], yards["house_scrap_collector"]
+        for x in (left, (hauler["x1"] + scrap["x0"]) / 2, right):
+            worn([(x, street["y1"] - 4), (x, lane_y)], 26, 0.66)
+        tav, stall = yards["tavern"], yards["stall"]
+        sx = (stall["x0"] + stall["x1"]) / 2
+        worn([(sx, tav["y1"] - 6), (sx, stall["y0"] + 6)], 34, 0.7)
+        worn([(sx, stall["y1"] - 6), (sx, street["y0"] + 6)], 30, 0.66)
+        shed, bell = yards["shed"], yards["bell"]
+        worn([(shed["x1"] - 8, (shed["y0"] + shed["y1"]) / 2), (bell["x0"] + 8, (bell["y0"] + bell["y1"]) / 2)], 28, 0.6)
+
+    for dist in G["districts"]:
+        district_paths(dist)
 
     # ---- 5. piata de piatra si puntea: dalele aprobate, la pixelul lor -------------------------------------------
     def tile_rect(sprite, r, worn_edge):
@@ -466,55 +510,69 @@ def bake(G):
                     cv.set(ix, iy, q, MAT_BUILT)
         return x0, y0, x1, y1
 
-    plaza = next(r for r in G["roads"] if r["id"] == "plaza")
-    tile_rect(Sprite("tile_plaza"), plaza, True)
+    def district_built(dist):
+        plaza = next(r for r in dist["roads"] if r["id"] == "plaza")
+        deck = dist["deck"]
+        tile_rect(Sprite("tile_plaza"), plaza, True)
 
-    # malul amenajat: intre apa si punte, un zid de barne batute in mal, cu capetele lor
-    dx0, dy0, dx1, dy1 = round(deck["x0"] / D), round(deck["y0"] / D), round(deck["x1"] / D), round(deck["y1"] / D)
-    for ix in range(dx0 - 3, dx1 + 3):
-        if not 0 <= ix < W:
-            continue
-        top = int(near["y"][ix] // D) + 1
-        for iy in range(top, dy0):
-            k = iy - top
-            pile = (ix // 2) % 2 == 0
-            col = TIMBER[0] if k == 0 else (TIMBER[2] if pile else TIMBER[1])
-            if k == 1 and ix % 8 == 0:
-                col = TIMBER[3]
-            cv.set(ix, iy, col, MAT_BUILT)
-    tile_rect(Sprite("deck_tile"), deck, False)
-    for ix in range(dx0, dx1):
-        cv.set(ix, dy1 - 1, TIMBER[0], MAT_BUILT)  # muchia scandurilor dinspre sat
-        for k, a in ((0, 0.34), (1, 0.18)):
-            if cv.inside(ix, dy1 + k) and cv.mat[(dy1 + k) * W + ix] != MAT_BUILT:
-                cv.blend(ix, dy1 + k, (20, 26, 22), a)
-    for iy in range(dy0, dy1):
-        for ix in (dx0 - 1, dx1):
-            if cv.inside(ix, iy):
-                cv.set(ix, iy, TIMBER[0], MAT_BUILT)
+        # malul amenajat: intre apa si punte, un zid de barne batute in mal, cu capetele lor
+        dx0, dy0, dx1, dy1 = round(deck["x0"] / D), round(deck["y0"] / D), round(deck["x1"] / D), round(deck["y1"] / D)
+        for ix in range(dx0 - 3, dx1 + 3):
+            if not 0 <= ix < W:
+                continue
+            top = int(near["y"][ix] // D) + 1
+            for iy in range(top, dy0):
+                k = iy - top
+                pile = (ix // 2) % 2 == 0
+                col = TIMBER[0] if k == 0 else (TIMBER[2] if pile else TIMBER[1])
+                if k == 1 and ix % 8 == 0:
+                    col = TIMBER[3]
+                cv.set(ix, iy, col, MAT_BUILT)
+        tile_rect(Sprite("deck_tile"), deck, False)
+        for ix in range(dx0, dx1):
+            cv.set(ix, dy1 - 1, TIMBER[0], MAT_BUILT)  # muchia scandurilor dinspre sat
+            for k, a in ((0, 0.34), (1, 0.18)):
+                if cv.inside(ix, dy1 + k) and cv.mat[(dy1 + k) * W + ix] != MAT_BUILT:
+                    cv.blend(ix, dy1 + k, (20, 26, 22), a)
+        for iy in range(dy0, dy1):
+            for ix in (dx0 - 1, dx1):
+                if cv.inside(ix, iy):
+                    cv.set(ix, iy, TIMBER[0], MAT_BUILT)
+
+    for dist in G["districts"]:
+        district_built(dist)
 
     # ---- 6. smocuri si flori pe iarba ramasa ----------------------------------------------------------------------
-    rnd = random.Random(5)
-    for _ in range(2400):
-        ix, iy = rnd.randrange(1, W - 1), rnd.randrange(2, H)
-        i = iy * W + ix
-        if cv.mat[i] != MAT_GRASS or cv.mat[i - 1] != MAT_GRASS or cv.mat[i + 1] != MAT_GRASS:
-            continue
-        cv.set(ix, iy, GRASS_BLADE_DARK)
-        cv.set(ix - 1, iy - 1, GRASS_BLADE_DARK)
-        cv.set(ix + 1, iy - 1, GRASS_BLADE_LIGHT if rnd.random() < 0.5 else GRASS_BLADE_DARK)
     flowers = ((244, 240, 226), (250, 214, 96), (236, 150, 170), (170, 190, 250))
-    for _ in range(260):
-        cx, cy = rnd.randrange(W), rnd.randrange(int(near["y"][0] // D) + 30, H)
-        wx, wy = world(cx, cy)
-        if n_tone.at(wx, wy, 430) < 0.52:
-            continue  # florile cresc in petele de soare
-        tone = flowers[rnd.randrange(len(flowers))]
-        for _k in range(rnd.randrange(3, 8)):
-            ix, iy = cx + rnd.randrange(-6, 7), cy + rnd.randrange(-4, 5)
-            if cv.inside(ix, iy + 1) and cv.mat[iy * W + ix] == MAT_GRASS and cv.mat[(iy + 1) * W + ix] == MAT_GRASS:
-                cv.set(ix, iy, tone)
-                cv.set(ix, iy + 1, GRASS_BLADE_DARK)
+    flower_top = int(near["y"][0] // D) + 30
+    # in doi timpi, ca la pietricele: satul vechi isi tine smocurile si florile, fasia noua le primeste pe ale ei
+    for rnd, x_from, x_to, share in (
+        (random.Random(5), 0, W_OLD, 1.0),
+        (random.Random(505), W_OLD, W, (W - W_OLD) / W_OLD),
+    ):
+        span = x_to - x_from
+        if span <= 2:
+            continue
+        for _ in range(int(2400 * share)):
+            # pe latimea veche: randrange(1, W_OLD - 1), exact apelul de dinainte de D65
+            ix, iy = x_from + rnd.randrange(1, span - 1), rnd.randrange(2, H)
+            i = iy * W + ix
+            if cv.mat[i] != MAT_GRASS or cv.mat[i - 1] != MAT_GRASS or cv.mat[i + 1] != MAT_GRASS:
+                continue
+            cv.set(ix, iy, GRASS_BLADE_DARK)
+            cv.set(ix - 1, iy - 1, GRASS_BLADE_DARK)
+            cv.set(ix + 1, iy - 1, GRASS_BLADE_LIGHT if rnd.random() < 0.5 else GRASS_BLADE_DARK)
+        for _ in range(int(260 * share)):
+            cx, cy = x_from + rnd.randrange(span), rnd.randrange(flower_top, H)
+            wx, wy = world(cx, cy)
+            if n_tone.at(wx, wy, 430) < 0.52:
+                continue  # florile cresc in petele de soare
+            tone = flowers[rnd.randrange(len(flowers))]
+            for _k in range(rnd.randrange(3, 8)):
+                ix, iy = cx + rnd.randrange(-6, 7), cy + rnd.randrange(-4, 5)
+                if cv.inside(ix, iy + 1) and cv.mat[iy * W + ix] == MAT_GRASS and cv.mat[(iy + 1) * W + ix] == MAT_GRASS:
+                    cv.set(ix, iy, tone)
+                    cv.set(ix, iy + 1, GRASS_BLADE_DARK)
 
     # umbra moale sub copacii si tufele imprastiate (desenele lor vin peste, din joc)
     for item in list(G["scattered"]) + [dict(kind=d["sprite"], x=d["x"], y=d["y"]) for d in G["decor"]]:
@@ -623,10 +681,11 @@ def main():
         return
     cv = bake(G)
     rows = cv.rows()
-    write_png(OUT, cv.w, cv.h, rows)
+    for path, x0, width in tile_paths(G):
+        write_png(path, width, cv.h, [row[x0 : x0 + width] for row in rows])
+        print(f"  {os.path.basename(path)}  {width}x{cv.h}")
     with open(LOCK, "w") as f:
         f.write(fingerprint(G) + "\n")
-    print(f"  prop_village_ground.png  {cv.w}x{cv.h}")
     if "--preview" in args or "--zoom" in args:
         full = compose(G, rows)
         if "--preview" in args:

@@ -102,16 +102,18 @@ local function decorSprite(kind: string): Assets.Sprite?
 end
 
 local function buildDecor(scroll: Frame)
-    local items = WorldDecor.build(DECOR_SEED, {
+    -- [D65] partea veche a satului isi tine copacii pe loc, fasia noua isi primeste ai ei (WorldDecor.village)
+    local items = WorldDecor.village(DECOR_SEED, DECOR_COUNT, {
         width = RiverConfig.WORLD_WIDTH,
         height = RiverConfig.WORLD_HEIGHT,
+        oldWidth = RiverConfig.ERA1_WORLD_WIDTH,
+    }, {
         -- Decorul trebuie sa stie cat de departe poate ajunge APA, nu unde e banda nominala:
         -- de cand malurile serpuiesc, raul urca pana la 392 si coboara pana la 824, iar un copac
         -- asezat dupa vechile 480/768 ar sta cu radacinile in rau.
         riverTop = RiverConfig.SHORE_FAR.baseY - RiverConfig.SHORE_FAR.amp,
         riverBottom = RiverConfig.SHORE_NEAR.baseY + RiverConfig.SHORE_NEAR.amp,
-        plot = RiverConfig.PLOT,
-    }, DECOR_COUNT)
+    }, RiverConfig.PLOT, RiverConfig.PLOT_ERA1)
 
     local layer = Instance.new("Frame")
     layer.Name = "DecorLayer"
@@ -445,9 +447,24 @@ function SceneArt.BuildBackground(layers: Layers)
     end)
 
     if baked then
-        -- deasupra apei (stratul Water), sub spuma care se leagana (stratul Trim)
-        local ground = image(shoreLayer, Assets.tycoon.village_ground, 0, 0, W, H, 1)
-        ground.Name = "BakedGround"
+        -- deasupra apei (stratul Water), sub spuma care se leagana (stratul Trim). [D65] PE FELII de 2880 px de lume
+        -- (RiverConfig.ERA1_WORLD_WIDTH): prima e imaginea de dinainte de Moara, a doua acopera fasia noua. O felie
+        -- inca neurcata isi primeste iarba din dale, ca fasia ei sa nu ramana goala.
+        local sliceW = RiverConfig.ERA1_WORLD_WIDTH
+        for k, sprite in { Assets.tycoon.village_ground, Assets.tycoon.village_ground_2 } do
+            local x0 = (k - 1) * sliceW
+            local w = math.min(sliceW, W - x0)
+            if w <= 0 then
+                break
+            end
+            if Assets.has(sprite) then
+                local ground = image(shoreLayer, sprite, x0, 0, w, H, 1)
+                ground.Name = "BakedGround" .. k
+            else
+                tiled(groundLayer, Assets.grass_tile, x0, 0, w, waterTop, 0)
+                tiled(groundLayer, Assets.grass_tile, x0, waterBottom, w, H - waterBottom, 0)
+            end
+        end
     else
         -- [F3] Malul construit: pontonul (scandurile de-a lungul apei, unde stau stalpii plaselor) si
         -- drumurile batatorite pe care merg oamenii [D50, TycoonConfig.DECK/ROADS].
