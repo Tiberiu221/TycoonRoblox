@@ -67,28 +67,52 @@ function StationService.LevelOf(player: Player, kind: string, id: string?): numb
         return 1
     end
     local st = stationsOf(data)
-    if kind == "saw" then
-        return if st.saw ~= nil then st.saw.level else 1
-    elseif kind == "dock" then
-        return st.dock.level
-    elseif kind == "forge" then
-        return if st.forge ~= nil then st.forge.level else 1
-    elseif kind == "net" and id ~= nil then
+    if kind == "net" and id ~= nil then
         local entry = st.nets[id]
         return if entry ~= nil then entry.level else 1
+    end
+    -- [D65] orice cladire a lantului (gaterul, forja, taverna, turnatoria, cuptorul, Piata): `Stations.<veriga>`
+    if ChainMath.levelField(kind) ~= nil then
+        local entry = st[kind]
+        return if typeof(entry) == "table" then entry.level or 1 else 1
     end
     return 1
 end
 
 -- Costul de baza al unui nivel. Pentru plase creste cu indexul plasei: o plasa mai buna costa mai
 -- mult sa fie urcata, altfel toata lumea ar urca doar prima.
+-- [D65] Costul de baza al nivelurilor fiecarei cladiri a lantului. Cifrele stau in StationConfig (simulatorul le
+-- verifica acolo); o cladire noua vine cu randul ei aici si cu `Stations.<veriga>` in profil.
+local UPGRADE_BASE: { [string]: number } = {
+    saw = StationConfig.SAW_UPGRADE_BASE,
+    dock = StationConfig.DOCK_UPGRADE_BASE,
+    forge = StationConfig.FORGE_UPGRADE_BASE,
+    foundry = StationConfig.FOUNDRY_UPGRADE_BASE,
+    furnace = StationConfig.FURNACE_UPGRADE_BASE,
+    market = StationConfig.MARKET_UPGRADE_BASE,
+}
+-- Platforma fara de care cladirea nu exista inca (nil = e acolo de la inceput). Aceleasi platforme ca in FlowConfig;
+-- Piata porneste, ca turnatoria, odata cu roata de apa.
+local BUILDING_PAD: { [string]: string } = {
+    forge = "workshop",
+    foundry = "water_wheel",
+    market = "water_wheel",
+    furnace = "copper_furnace",
+}
+-- Cladirile in ordinea randurilor din panou: lantul Erei 1 (gaterul, forja, taverna), apoi al Erei 2.
+local BUILDING_ROWS: { { kind: string, name: string } } = {
+    { kind = "saw", name = "Sawmill" },
+    { kind = "forge", name = "Forge" },
+    { kind = "dock", name = "Tavern" },
+    { kind = "foundry", name = "Foundry" },
+    { kind = "furnace", name = "Copper Furnace" },
+    { kind = "market", name = "Market" },
+}
+
 function StationService.UpgradeBase(kind: string, id: string?): number
-    if kind == "saw" then
-        return StationConfig.SAW_UPGRADE_BASE
-    elseif kind == "dock" then
-        return StationConfig.DOCK_UPGRADE_BASE
-    elseif kind == "forge" then
-        return StationConfig.FORGE_UPGRADE_BASE
+    local base = UPGRADE_BASE[kind]
+    if base ~= nil then
+        return base
     elseif kind == "net" and id ~= nil then
         local index = table.find(netPadIds, id)
         return ChainMath.netUpgradeBase(index or 1)
@@ -117,13 +141,21 @@ function StationService.StateFrom(data: any, bought: { [string]: boolean }): Cha
             kind = netPadKind[padId] or "wood",
         })
     end
-    -- `or 1`: o stare construita dintr-un profil necompletat nu are voie sa crape pe aritmetica cu nil.
-    s.sawLevel = if st.saw ~= nil then st.saw.level else 1
-    s.dockLevel = if st.dock ~= nil then st.dock.level else 1
-    -- [D55, D56] linia fierului: nivelul forjei si Forge (platforma `workshop`), din aceleasi platforme ca
-    -- intrebarea "daca"; plasa de scrap intra cu plasele de mai sus
-    s.forgeLevel = if st.forge ~= nil then st.forge.level else 1
+    -- Nivelul fiecarei cladiri a lantului, in campul numit de tabelul liniilor (saw -> sawLevel). `or 1`: o stare
+    -- construita dintr-un profil necompletat nu are voie sa crape pe aritmetica cu nil.
+    local fields: any = s
+    for kind in UPGRADE_BASE do
+        local field = ChainMath.levelField(kind)
+        local entry = st[kind]
+        if field ~= nil then
+            fields[field] = if typeof(entry) == "table" then entry.level or 1 else 1
+        end
+    end
+    -- [D55, D56] linia fierului: Forge (platforma `workshop`), din aceleasi platforme ca intrebarea "daca"; plasa de
+    -- scrap intra cu plasele de mai sus. [D65] La fel roata de apa (linia pieselor) si cuptorul de cupru.
     s.workshop = bought.workshop == true
+    s.wheel = bought.water_wheel == true
+    s.furnace = bought.copper_furnace == true
     -- OAMENII [D49]: cati sunt se numara din `data.Hands` (dupa rol), treapta vine din `data.Crews`.
     -- O platforma de meserie din `bought` fara om inca (intrebarea "daca as cumpara-o") numara un om:
     -- altfel cartonasul de la apropiere ar arata castig zero pe fiecare angajare.
@@ -503,12 +535,15 @@ function StationService.Snapshot(player: Player): {
             )
         end
     end
-    -- in ordinea lantului: gaterul, Forge (cat e cumparata) [D55, D56], apoi taverna
-    table.insert(rows, rowFor(s, "saw", nil, "Sawmill", s.sawLevel, coins, flow))
-    if s.workshop then
-        table.insert(rows, rowFor(s, "forge", nil, "Forge", s.forgeLevel, coins, flow))
+    -- in ordinea lantului: gaterul, Forge (cat e cumparata) [D55, D56], taverna; [D65] apoi cladirile Morii, fiecare
+    -- din clipa in care platforma ei o porneste
+    for _, building in BUILDING_ROWS do
+        local needsPad = BUILDING_PAD[building.kind]
+        if needsPad == nil or (data ~= nil and data.Pads[needsPad] == true) then
+            local level = StationService.LevelOf(player, building.kind, nil)
+            table.insert(rows, rowFor(s, building.kind, nil, building.name, level, coins, flow))
+        end
     end
-    table.insert(rows, rowFor(s, "dock", nil, "Tavern", s.dockLevel, coins, flow))
     local crews: { CrewRow } = {}
     for _, role in StationConfig.ROLES do
         table.insert(crews, crewRow(s, role, flow, coins))
@@ -545,11 +580,13 @@ function StationService.Upgrade(
     if data == nil then
         return false, "no_profile"
     end
-    if kind ~= "saw" and kind ~= "dock" and kind ~= "net" and kind ~= "forge" then
+    if kind ~= "net" and UPGRADE_BASE[kind] == nil then
         return false, "unknown"
     end
-    if kind == "forge" and data.Pads.workshop ~= true then
-        return false, "locked" -- [D55] fara Forge n-ai ce urca
+    -- [D55, D65] fara platforma care o porneste (Forge, roata de apa, cuptorul) n-ai ce urca
+    local needsPad = BUILDING_PAD[kind]
+    if needsPad ~= nil and data.Pads[needsPad] ~= true then
+        return false, "locked"
     end
     if kind == "net" then
         if id == nil or table.find(netPadIds, id) == nil then
@@ -568,18 +605,14 @@ function StationService.Upgrade(
     end
 
     local st = stationsOf(data)
-    if kind == "saw" then
-        if st.saw == nil then
-            st.saw = { level = 1 }
+    if kind ~= "net" then
+        -- orice cladire a lantului: `Stations.<veriga>` (un profil dinaintea ei o primeste aici)
+        local entry = st[kind]
+        if typeof(entry) ~= "table" then
+            entry = { level = 1 }
+            st[kind] = entry
         end
-        st.saw.level += n
-    elseif kind == "dock" then
-        st.dock.level += n
-    elseif kind == "forge" then
-        if st.forge == nil then
-            st.forge = { level = 1 }
-        end
-        st.forge.level += n
+        entry.level += n
     else
         local entry = st.nets[id :: string]
         if entry == nil then

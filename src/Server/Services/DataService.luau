@@ -80,6 +80,10 @@ export type ProfileData = {
         saw: Station,
         dock: Station,
         forge: Station,
+        -- [D65] Era 2: turnatoria, cuptorul de cupru, Piata
+        foundry: Station,
+        furnace: Station,
+        market: Station,
         nets: { [string]: Station },
     },
     -- GRAMEZILE [D49], ca numaratori (PileMath): nu se pierde nimic si n-au plafon -- cand o veriga
@@ -96,6 +100,15 @@ export type ProfileData = {
     ScrapPile: { counts: { [string]: number } },
     ForgePile: { counts: { [string]: number }, smeltedAt: number },
     IronPile: { counts: { [string]: number } },
+    -- [D65] ERA 2, campurile din Shared/Config/FlowConfig: magazia Morii, intrarea si iesirea turnatoriei; magazia de
+    -- minereu, intrarea si iesirea cuptorului de cupru; gramada Pietei.
+    MillPile: { counts: { [string]: number } },
+    FoundryPile: { counts: { [string]: number }, processedAt: number },
+    PartsPile: { counts: { [string]: number } },
+    OrePile: { counts: { [string]: number } },
+    FurnacePile: { counts: { [string]: number }, processedAt: number },
+    CopperPile: { counts: { [string]: number } },
+    MarketPile: { counts: { [string]: number }, drainedAt: number },
     -- ce recompense de quest au fost deja luate; progresul NU se salveaza, se citeste din stare
     Quests: { claimed: { [string]: boolean } },
     -- roata zilnica: cand a fost ultima rotire, samanta si cate s-au facut [D46]
@@ -113,6 +126,11 @@ export type ProfileData = {
         sold: number, -- bucati predate la taverna, de jucator sau de Hauler
         smelted: number, -- [D55] bucati de fier topite la forja
         ironSold: number, -- [D56] bucati de fier predate la taverna
+        -- [D65] Era 2: piese turnate si vandute, cupru topit si vandut (quest-urile capitolelor ei)
+        cast: number,
+        partsSold: number,
+        copperSmelted: number,
+        copperSold: number,
         fished: number, -- [D59] pesti scosi la undita (quest-ul "Catch a fish at the pier")
         treasures: number, -- [D59] lucruri scoase din rau la ponton
         playSeconds: number, -- [D60] timpul jucat efectiv (fara zilele offline), pentru "Fastest Era 1"
@@ -167,7 +185,7 @@ export type ProfileData = {
 
 local PROFILE_TEMPLATE: ProfileData = {
     -- [D61, partea 2] `lastWelcome`: suma platita la ultima revenire (Welcome Back x2) -- ca ProfileMigrate.toV14
-    Meta = { version = 15, createdAt = 0, lastSeenAt = 0, lastWelcome = 0 },
+    Meta = { version = 16, createdAt = 0, lastSeenAt = 0, lastWelcome = 0 },
     Coins = 0,
     Pearls = 0,
     Pads = {},
@@ -191,9 +209,27 @@ local PROFILE_TEMPLATE: ProfileData = {
         scrapPorter = { tier = 1 },
         smelter = { tier = 1 },
         ironHauler = { tier = 1 },
+        -- [D65] Era 2 -- ACELEASI campuri ca ProfileMigrate.toV16
+        millCollector = { tier = 1 },
+        millPorter = { tier = 1 },
+        founder = { tier = 1 },
+        partsHauler = { tier = 1 },
+        merchant = { tier = 1 },
+        oreCollector = { tier = 1 },
+        orePorter = { tier = 1 },
+        coppersmith = { tier = 1 },
+        copperHauler = { tier = 1 },
     },
     -- ACELEASI campuri ca ProfileMigrate.toV7 [D55]: sablonul la v7 nu mai trece prin migrare.
-    Stations = { saw = { level = 1 }, dock = { level = 1 }, forge = { level = 1 }, nets = {} },
+    Stations = {
+        saw = { level = 1 },
+        dock = { level = 1 },
+        forge = { level = 1 },
+        foundry = { level = 1 },
+        furnace = { level = 1 },
+        market = { level = 1 },
+        nets = {},
+    },
     StoragePile = { counts = {} },
     SawmillPile = { counts = {}, sawnAt = 0 },
     PlanksPile = { counts = {} },
@@ -201,6 +237,14 @@ local PROFILE_TEMPLATE: ProfileData = {
     ScrapPile = { counts = {} },
     ForgePile = { counts = {}, smeltedAt = 0 },
     IronPile = { counts = {} },
+    -- [D65] ACELEASI campuri ca ProfileMigrate.toV16
+    MillPile = { counts = {} },
+    FoundryPile = { counts = {}, processedAt = 0 },
+    PartsPile = { counts = {} },
+    OrePile = { counts = {} },
+    FurnacePile = { counts = {}, processedAt = 0 },
+    CopperPile = { counts = {} },
+    MarketPile = { counts = {}, drainedAt = 0 },
     Quests = { claimed = {} },
     Wheel = { lastSpinAt = 0, seed = 0, spins = 0 },
     Vault = { stored = 0, updatedAt = 0 },
@@ -215,6 +259,11 @@ local PROFILE_TEMPLATE: ProfileData = {
         sold = 0,
         smelted = 0,
         ironSold = 0, -- [D56] fier predat la taverna (quest-ul "Sell the iron at the tavern")
+        -- [D65] ACELEASI campuri ca ProfileMigrate.toV16
+        cast = 0,
+        partsSold = 0,
+        copperSmelted = 0,
+        copperSold = 0,
         fished = 0, -- [D59] ACELEASI campuri ca ProfileMigrate.toV9
         treasures = 0,
         playSeconds = 0, -- [D60] ACELEASI campuri ca ProfileMigrate.toV10
@@ -501,6 +550,7 @@ local function onPlayerAdded(player: Player)
     ProfileMigrate.toV13(profile.Data) -- poarta satelor [D61]: like-urile primite si date -- aditiv
     ProfileMigrate.toV14(profile.Data) -- coltul cu Robux [D61]: pass-urile, chitantele, ultima revenire -- aditiv
     ProfileMigrate.toV15(profile.Data) -- darurile raului [D62]: cate ai scos, care a fost ultimul -- aditiv
+    ProfileMigrate.toV16(profile.Data) -- Era 2 [D65]: cladirile, gramezile si oamenii Morii -- aditiv
     profile:Reconcile()
     profile.OnSessionEnd:Connect(function()
         profiles[player] = nil

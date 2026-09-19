@@ -403,4 +403,53 @@ function ProfileMigrate.toV15(data: { [string]: any })
     data.Meta.version = 15
 end
 
+-- [D65] ERA 2, "The Mill": nivelurile turnatoriei, ale cuptorului de cupru si ale Pietei, gramezile cartierului
+-- (magazia Morii -> turnatorie -> piese; magazia de minereu -> cuptor -> cupru; gramada Pietei), treptele celor noua
+-- meserii si numaratorii quest-urilor ei. Aditiv: nimic din Era 1 nu se muta si nu se pierde. Campurile de gramezi sunt
+-- cele din FlowConfig (Shared/Config), iar meseriile cele din StationConfig.ERA2_ROLES.
+function ProfileMigrate.toV16(data: { [string]: any })
+    local version = if data.Meta ~= nil and data.Meta.version ~= nil then data.Meta.version else 1
+    if version >= 16 then
+        return
+    end
+    if typeof(data.Stations) ~= "table" then
+        data.Stations = {}
+    end
+    for _, kind in { "foundry", "furnace", "market" } do
+        if typeof(data.Stations[kind]) ~= "table" then
+            data.Stations[kind] = { level = 1 }
+        end
+    end
+    for _, pile in { "MillPile", "PartsPile", "OrePile", "CopperPile" } do
+        if typeof(data[pile]) ~= "table" then
+            data[pile] = { counts = {} }
+        end
+    end
+    for _, pile in { "FoundryPile", "FurnacePile" } do
+        if typeof(data[pile]) ~= "table" then
+            data[pile] = { counts = {}, processedAt = 0 }
+        end
+    end
+    if typeof(data.MarketPile) ~= "table" then
+        data.MarketPile = { counts = {}, drainedAt = 0 }
+    end
+    if typeof(data.Crews) ~= "table" then
+        data.Crews = {}
+    end
+    for _, role in StationConfig.ERA2_ROLES do
+        if typeof(data.Crews[role]) ~= "table" then
+            data.Crews[role] = { tier = 1 }
+        end
+    end
+    if typeof(data.Stats) ~= "table" then
+        data.Stats = {}
+    end
+    for _, stat in { "cast", "partsSold", "copperSmelted", "copperSold" } do
+        if typeof(data.Stats[stat]) ~= "number" then
+            data.Stats[stat] = 0
+        end
+    end
+    data.Meta.version = 16
+end
+
 return ProfileMigrate

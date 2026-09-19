@@ -77,10 +77,12 @@ local function rollCatch(
     local goodId = if forced
         then "named"
         else TycoonMath.pickGood(rng:nextNumber(), TycoonMath.netKind(pad))
-    if goodId == "named" then
+    -- [D65] o gasire a oricarei ere (`named`, `named2`): aceeasi tragere de treapta si acelasi catalog; era ei ii
+    -- da doar valoarea (TycoonConfig.FIND_MULT)
+    if TycoonMath.isFind(goodId) then
         local tier = rollTier(rng)
         local picked = ItemConfig.pickFor(tier, seed)
-        return { g = "named", c = if picked ~= nil then picked.id else nil, t = tier }
+        return { g = goodId, c = if picked ~= nil then picked.id else nil, t = tier }
     end
     return { g = goodId }
 end
@@ -275,7 +277,7 @@ local function tick(now: number)
                     data.Firsts.FirstCatch = true
                     Analytics.Funnel(player, "FirstCatch")
                 end
-                if catch.g == "named" and not data.Firsts.FirstNamed then
+                if TycoonMath.isFind(catch.g) and not data.Firsts.FirstNamed then
                     data.Firsts.FirstNamed = true
                 end
                 if catchingUp then

@@ -13,23 +13,32 @@ local PileMath = {}
 export type Catch = { g: string, c: string?, t: string?, p: boolean? }
 export type Counts = { [string]: number }
 
-local NAMED = "named|"
+-- [D65] Gasirile au cate un fel pe era (`named`, `named2`, ...): toate isi tin catalogul si tier-ul in cheie, ca o
+-- gramada sa nu le amestece. Cheile Erei 1 (`named|<catalog>|<tier>`) raman exact cum erau.
+local function findGoodOf(key: string): string?
+    return string.match(key, "^(named%d*)|")
+end
+
+function PileMath.isFindGood(good: string): boolean
+    return string.match(good, "^named%d*$") ~= nil
+end
 
 -- Cheia unei bucati. Bunurile obisnuite: felul lor. Obiectele cu nume isi pastreaza catalogul si
 -- tier-ul, de care depind pretul si Atelierul: "named|<catalog>|<tier>".
 function PileMath.keyOf(item: Catch): string
-    if item.g == "named" then
-        return `{NAMED}{item.c or ""}|{item.t or ""}`
+    if PileMath.isFindGood(item.g) then
+        return `{item.g}|{item.c or ""}|{item.t or ""}`
     end
     return item.g
 end
 
 function PileMath.itemOf(key: string, cut: boolean?): Catch
     local item: Catch
-    if string.sub(key, 1, #NAMED) == NAMED then
-        local c, t = string.match(key, "^named|([^|]*)|([^|]*)$")
+    local findGood = findGoodOf(key)
+    if findGood ~= nil then
+        local c, t = string.match(key, "^named%d*|([^|]*)|([^|]*)$")
         item = {
-            g = "named",
+            g = findGood,
             c = if c ~= nil and c ~= "" then c else nil,
             t = if t ~= nil and t ~= "" then t else nil,
         }
@@ -94,7 +103,7 @@ end
 function PileMath.contents(counts: Counts): { [string]: number }
     local out: { [string]: number } = {}
     for key, v in counts do
-        local g = if string.sub(key, 1, #NAMED) == NAMED then "named" else key
+        local g = findGoodOf(key) or key
         out[g] = (out[g] or 0) + v
     end
     return out

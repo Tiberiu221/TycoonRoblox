@@ -882,10 +882,105 @@ return function()
                 {
                     "drifts = 0,",
                     "lastDrift = 0,",
-                    "version = 15",
                     "ProfileMigrate.toV15(profile.Data)",
                 }
             do
+                check.is_true(string.find(src, needle, 1, true) ~= nil)
+            end
+        end)
+    end)
+
+    test.suite("ProfileMigrate.toV16 - Era 2, The Mill [D65]", function()
+        local FlowConfig = require("../src/Shared/Config/FlowConfig")
+
+        test.case(
+            "un profil v15 primeste cladirile, gramezile, oamenii si numaratorii Morii",
+            function()
+                local data: { [string]: any } = {
+                    Meta = { version = 15 },
+                    Stations = {
+                        saw = { level = 12 },
+                        dock = { level = 9 },
+                        forge = { level = 4 },
+                        nets = {},
+                    },
+                    Crews = { collector = { tier = 5 } },
+                    Stats = { sold = 900, ironSold = 40 },
+                    DockPile = { counts = { planks = 7 }, drainedAt = 5 },
+                }
+                ProfileMigrate.toV16(data)
+                check.equal(data.Meta.version, 16)
+                for _, kind in { "foundry", "furnace", "market" } do
+                    check.equal(data.Stations[kind].level, 1)
+                end
+                -- fiecare gramada din drumul marfii (FlowConfig) exista dupa migrare
+                for _, line in { "parts", "copper" } do
+                    local spec = FlowConfig.LINES[line]
+                    check.equal(next(data[spec.storePile].counts), nil)
+                    check.equal(next(data[spec.inputPile].counts), nil)
+                    check.equal(data[spec.inputPile].processedAt, 0)
+                    check.equal(next(data[spec.outputPile].counts), nil)
+                end
+                check.equal(data.MarketPile.drainedAt, 0)
+                for _, role in StationConfig.ERA2_ROLES do
+                    check.equal(data.Crews[role].tier, 1)
+                end
+                for _, stat in { "cast", "partsSold", "copperSmelted", "copperSold" } do
+                    check.equal(data.Stats[stat], 0)
+                end
+                -- Era 1 ramane neatinsa
+                check.equal(data.Stations.saw.level, 12)
+                check.equal(data.Crews.collector.tier, 5)
+                check.equal(data.Stats.ironSold, 40)
+                check.equal(data.DockPile.counts.planks, 7)
+            end
+        )
+
+        test.case(
+            "ce ai deja nu se pierde; migrarea e idempotenta; un profil gol primeste tot",
+            function()
+                local data: { [string]: any } = {
+                    Meta = { version = 15 },
+                    Stations = { foundry = { level = 8 } },
+                    Crews = { founder = { tier = 3 } },
+                    Stats = { cast = 77 },
+                    PartsPile = { counts = { parts = 5 } },
+                }
+                ProfileMigrate.toV16(data)
+                ProfileMigrate.toV16(data)
+                check.equal(data.Stations.foundry.level, 8)
+                check.equal(data.Crews.founder.tier, 3)
+                check.equal(data.Stats.cast, 77)
+                check.equal(data.PartsPile.counts.parts, 5)
+                local bare: { [string]: any } = { Meta = { version = 15 } }
+                ProfileMigrate.toV16(bare)
+                check.equal(bare.Stations.market.level, 1)
+                check.equal(bare.Crews.merchant.tier, 1)
+            end
+        )
+
+        test.case("sablonul si migrarea adauga aceleasi campuri", function()
+            local fs = require("@lune/fs")
+            local src = fs.readFile("src/Server/Services/DataService.luau")
+            local needles = {
+                "foundry = { level = 1 },",
+                "furnace = { level = 1 },",
+                "market = { level = 1 },",
+                "MarketPile = { counts = {}, drainedAt = 0 },",
+                "FoundryPile = { counts = {}, processedAt = 0 },",
+                "FurnacePile = { counts = {}, processedAt = 0 },",
+                "cast = 0,",
+                "copperSold = 0,",
+                "version = 16",
+                "ProfileMigrate.toV16(profile.Data)",
+            }
+            for _, pile in FlowConfig.PILES do
+                table.insert(needles, pile .. " = { counts = {}")
+            end
+            for _, role in StationConfig.ERA2_ROLES do
+                table.insert(needles, role .. " = { tier = 1 },")
+            end
+            for _, needle in needles do
                 check.is_true(string.find(src, needle, 1, true) ~= nil)
             end
         end)
