@@ -113,9 +113,10 @@ a rămas: `docs/PLAN-ERA2.md`.
   (`LINE_WORDS`, `LINK_WORDS`, `NET_WORDS`, `BUILDING_WORDS`), quest-urile în `QuestConfig.ALL_CHAPTERS` (în joc intră
   doar capitolele erelor `live`). Clientul Morii e un singur controller după tabel (`LineController`); controllerele
   Erei 1 au rămas cele scrise de mână.
-- **Desenele de împrumut stau în trei tabele:** `TycoonConfig.PAD_LOOKS_LIKE`, `GOOD_LOOKS_LIKE`,
-  `HandConfig.ROLE_OUTFIT`; clădirile fixe ale Morii iau desenul depozitului, al gaterului și al tavernei (în
-  `Bootstrap.client`). Când vine arta, se schimbă doar acolo.
+- **Arta Morii e desenată și neurcată** (2026-09-20; 50 de imagini, planșe cu `python3 scripts/art/preview_d65.py`).
+  Până o aprobă owner-ul, fiecare loc poartă desenul perechii din Era 1: `TycoonConfig.PAD_LOOKS_LIKE`,
+  `GOOD_LOOKS_LIKE`, `HandConfig.OUTFIT_LOOKS_LIKE`, `borrowed` la clădirile fixe (`Bootstrap.client`). Codul încearcă
+  întâi desenul propriu (`UI/GoodArt`, `PadArt`, `LineController`), deci urcarea înseamnă doar ID-uri în `Assets`.
 - **Pământul copt:** recopt local cu Moara, **neurcat**. Până la urcare, `SceneArt` desenează pământul Morii din dale
   peste imaginea veche (`TycoonConfig.BAKED_DISTRICTS`); la urcare, `BAKED_DISTRICTS.mill = true` și ID-ul feliei 2 în
   `Assets.village_ground_2`.
@@ -125,7 +126,8 @@ a rămas: `docs/PLAN-ERA2.md`.
   `client "ui:goto:x:y"`.
 - **Capcană a sondei:** cu fereastra Studio ascunsă, Play-ul are viewport 1×1 și `PreRender` nu rulează: cardurile de
   lângă obiecte, cartonașele platformelor și „textul nu încape" nu se pot judeca atunci. Textele și starea, da.
-- **Rămâne:** arta Morii pe planșe și urcarea ei (cu acord), clienții desenați ai Pieței, verificarea owner-ului.
+- **Rămâne:** aprobarea și urcarea artei Morii și a pământului recopt, clienții desenați ai Pieței, verificarea
+  owner-ului.
 
 ## Stare (2026-09-19, noaptea) [D63]
 
