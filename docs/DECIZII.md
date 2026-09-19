@@ -11,6 +11,51 @@ Convenție: în tot proiectul, „server" înseamnă o instanță Roblox efemer�
 
 ---
 
+## D64 — Regula unei ere și roadmap-ul până la Era 8
+**PROVIZORIU** (2026-09-19) — owner-ul a respins propunerea mea pentru Era 2 din D63 (multiplicatoare pe cele două linii
+de azi): *„ar trebui să poți prinde scraps inițial și după să începi să prinzi altceva spre finalul Erei 2. Cum este la
+Era 1: prinzi lemn și după prinzi scraps. Era 3 sau 4, spre exemplu, aș vrea să poți genera curent electric, să poți
+«vinde» curentul electric."* Apoi: *„și după curent? cum putem ajunge la Era 8? Nu vreau să ne pregătim pentru toate
+erele, vreau doar să știu roadmap-ul."* A ales și **Piață nouă în Era 2**: fiecare eră își vinde marfa la clădirea ei.
+
+**Regula unei ere (a owner-ului):**
+1. **Începi cu marfa pe care o știi deja:** cea apărută la finalul erei dinainte. Lanțul ei îl cunoști, deci pornești
+   repede.
+2. **O crești:** plase, niveluri, al doilea om.
+3. **Spre final trece pe râu ceva ce plasele tale încă nu prind.** Arunci plasa nouă, ridici atelierul ei și angajezi
+   cei patru oameni ai ei. Marfa asta devine marfa principală a erei următoare.
+4. **Clopotul erei** deschide tronsonul următor de râu, spre dreapta. Fiecare eră e un cartier de sine stătător: plasele,
+   depozitul, atelierul și **clădirea lui de vânzare**.
+
+**Roadmap-ul (propunere; se construiește doar Era 2):**
+
+| Era | Locul | Începi cu | Apare spre final | Se vinde la | Ce se vede nou |
+|---|---|---|---|---|---|
+| 1 | The Landing | bușteni → scânduri | scrap → fier | Tavernă | gaterul, forja |
+| 2 | The Mill | scrap → fier, la o turnătorie mare învârtită de roata de apă | cupru vechi → bare de cupru | Piață | roata de apă: prima oară curentul râului muncește |
+| 3 | The Yard | cupru → sârmă | **prima turbină:** râul face curent, iar satul tău se luminează noaptea | Depozitul de mărfuri | felinarele satului se aprind |
+| 4 | The Dam | **curent electric:** turbinele îl fac, oamenii îl duc pe stâlpi, îl vinzi orașului de peste râu | sticle → sticlă | Biroul de curent | barajul; orașul de pe celălalt mal |
+| 5 | The Glassworks | sticlă → becuri (au nevoie de curentul tău) | lut → cărămizi | Prăvălia de lămpi | străzi luminate |
+| 6 | The Brickyard | cărămizi → orașul de pe celălalt mal crește casă cu casă | stuf → hârtie | Șantier | podul peste râu |
+| 7 | The Press | hârtie → ziare și cărți | lăzi de marfă, aduse de bărci | Tipografie | școala orașului |
+| 8 | The Harbor | lăzi → marfă trimisă în aval cu bărcile | **Farul:** „Move Downstream" | Port | farul |
+
+- **După Era 8:** renașterea din plan (TYCOON §K, „Move Downstream"): te muți în aval, pe un râu mai bogat, cu +50%
+  venit și un set nou de obiecte pe apă. Nimic plătit nu se resetează. De acolo jocul nu se mai termină.
+- **Scara tehnică are sens pentru un copil:** lemnul ridică satul, fierul face uneltele, cuprul duce curentul, curentul
+  aprinde becurile, cărămida face orașul, hârtia îl învață, portul îl leagă de lume. Totul vine pe râu sau din râu [P5].
+- **Curentul e o marfă ca oricare alta pe aceeași schemă:** turbinele sunt „plasele" lui (nivelul lor dă cât curent
+  fac), oamenii îl duc, o clădire îl pregătește, alta îl vinde. Rămâne regula owner-ului: un om vizibil pe fiecare pas.
+- **Marfa de la finalul Erei 2 e încă de confirmat.** Propun cuprul, fiindcă duce drept spre curent; owner-ul n-a ales
+  încă. Celelalte variante discutate: lut, sticle, lână.
+
+**Ce înseamnă pentru cod.** Motorul lanțului e scris de mână pentru exact două linii (harta din D63, punctul 7). Era 2
+aduce încă două (scrap-ul cartierului nou și cuprul), deci **primul pas e generalizarea la N linii**, făcută întâi în
+simulator și apoi în `ChainMath`, cu tabelul de aur neschimbat pentru Era 1. După ea, o eră nouă înseamnă mai ales
+date, artă și un capitol de quest-uri. Erele 3–8 nu se pregătesc acum.
+
+---
+
 ## D63 — Jocul pornește sigur, cuvinte pentru copii, o țintă care nu se termină; propunerea pentru Era 2
 **ÎN LUCRU** (noaptea de 2026-09-19) — owner-ul, înainte de culcare: *„poți continua logica jocului și monetizarea, să nu
 fie prea enervantă (dar să ne facă bani); fă jocul să te facă să VREI să joci (psihologic, gândește-te de două ori la ce
@@ -74,7 +119,7 @@ meniul obiectului.
 - Panoul „Upgrades" (tasta U) n-are buton pe ecran, deci pe telefon nu se ajunge la el. E ascuns la cererea
   owner-ului (2026-09-12); meniul obiectului îl acoperă.
 
-**7. Era 2 — propunere, nu cod.** Era 1 e scrisă, dar nejucată cap-coadă, deci n-o consider gata. Totuși Era 2 e ce
+**7. Era 2 — propunere, nu cod. RESPINSĂ de owner pe 2026-09-19: vezi D64.** Era 1 e scrisă, dar nejucată cap-coadă, deci n-o consider gata. Totuși Era 2 e ce
 lipsește cel mai tare: la ~34 de minute jucătorul trage Landing Bell, cea mai scumpă cumpărare, iar zona care se
 deschide scrie „coming soon". Prima sesiune se termină exact în punctul ei cel mai slab.
 - **Ce am aflat despre cod:** motorul lanțului e scris de mână pentru exact două linii. O a treia marfă atinge ~17

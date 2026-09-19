@@ -115,9 +115,12 @@ e gata. Detaliile și sursele sunt în DECIZII D63. **Nimic din ce urmează n-a 
   repornire a Studio-ului. Cu ea se verifică tot ce e nevăzut: `python3 scripts/probe.py play`, `wait-boot`, `errors`,
   `client texts`.
 - **De făcut cu sonda, nu pe nevăzute:** textul e prea mic pe telefon (interfața e la 62%: 13 px → ~8 px).
-- **Era 2 e doar propunere** (D63, punctul 7): motorul lanțului e scris pentru exact două linii. Varianta A (Roata de
-  apă, plase noi, Moara cu Morar, Piața, Mill Bell) merge pe motorul de azi; o a treia marfă cere întâi generalizarea
-  la N linii. Așteaptă alegerea owner-ului.
+- **Era 2 [D64]:** owner-ul a respins multiplicatoarele din D63. **Regula unei ere:** începi cu marfa apărută la
+  finalul erei dinainte, iar spre final apare una nouă, cu plasa, atelierul și oamenii ei; fiecare eră își vinde marfa
+  la clădirea ei (Era 2: o Piață). Roadmap-ul până la Era 8 (fier → cupru → curent electric → sticlă → cărămizi →
+  hârtie → port, apoi „Move Downstream") e în D64; **se construiește doar Era 2**. Marfa nouă de la finalul Erei 2 e de
+  confirmat (propus: cupru). Primul pas: generalizarea motorului lanțului la N linii, întâi în simulator, cu tabelul
+  de aur al Erei 1 neschimbat.
 - **Așteaptă owner-ul:** permisiunile de game pass și developer product pe cheia API (azi: 403) sau cele șase create
   de mână; aprobarea pictogramelor; alegerea pentru Era 2; verificarea în Studio a lui D61–D63.
 
