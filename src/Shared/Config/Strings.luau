@@ -224,6 +224,29 @@ export type LineWords = {
     byIt: string, -- "stay by the Foundry"
 }
 Strings.LINE_WORDS = {
+    -- Era 1: locurile ei au controllerele lor, cu textele lor; de aici se iau doar cuvintele marfii (meniuri)
+    wood = {
+        raw = "logs",
+        done = "planks",
+        doneOne = "plank",
+        store = "Storage",
+        processor = "Sawmill",
+        verb = "Cut",
+        standHere = "Stand here to cut",
+        working = "Cutting",
+        byIt = "stay by the Sawmill",
+    },
+    iron = {
+        raw = "scrap",
+        done = "iron",
+        doneOne = "iron",
+        store = "Scrap Shed",
+        processor = "Forge",
+        verb = "Smelt",
+        standHere = "Stand here to smelt",
+        working = "Smelting",
+        byIt = "stay by the Forge",
+    },
     parts = {
         raw = "scrap",
         done = "parts",
@@ -248,6 +271,175 @@ Strings.LINE_WORDS = {
     },
 } :: { [string]: LineWords }
 Strings.MARKET_LABEL = "Market"
+
+-- [D65] CUVINTELE LANTULUI, CA TABEL. Pana la D65 fiecare functie de mai jos (`menuHeldBack`, `menuGoTo`, `menuDoes`,
+-- `menuUnit`, `stationNoEffect`...) avea verigile Erei 1 insirate intr-un `if`; Era 2 ar fi dublat fiecare lista.
+-- Textele Erei 1 sunt aceleasi, litera cu litera.
+--   subject  cine tine pe loc: ACTIUNEA, nu omul -- cat n-ai angajat pe nimeni pasul il faci tu, iar "the Porter is
+--            slower" ar fi mintit [D40, D63]
+--   goTo     meniul care repara veriga ("Go to Porter")
+--   label    randul verigii din capul panoului Upgrades
+--   advice   sfatul panoului Upgrades, dupa "Right now that is " (randul are 66 de litere de pixeli)
+export type LinkWords = { subject: string, goTo: string, label: string, advice: string }
+Strings.LINK_WORDS = {
+    collect = {
+        subject = "collecting",
+        goTo = "Collector",
+        label = "Collect",
+        advice = "collecting — hire or upgrade Collectors.",
+    },
+    port = {
+        subject = "carrying logs",
+        goTo = "Porter",
+        label = "Carry",
+        advice = "carrying logs — hire or upgrade Porters.",
+    },
+    saw = {
+        subject = "the Sawmill",
+        goTo = "Sawmill",
+        label = "Sawmill",
+        advice = "the Sawmill — upgrade it to earn more.",
+    },
+    haul = {
+        subject = "hauling planks",
+        goTo = "Hauler",
+        label = "Haul",
+        advice = "hauling planks — hire or upgrade Haulers.",
+    },
+    scrapCollect = {
+        subject = "collecting scrap",
+        goTo = "Scrap Collector",
+        label = "Collect scrap",
+        advice = "scrap pickup — hire or upgrade Scrap Collectors.",
+    },
+    scrapPort = {
+        subject = "carrying scrap",
+        goTo = "Scrap Porter",
+        label = "Carry scrap",
+        advice = "carrying scrap — hire or upgrade Scrap Porters.",
+    },
+    forge = {
+        subject = "the Forge",
+        goTo = "Forge",
+        label = "Forge",
+        advice = "the Forge — upgrade it or its Smelters.",
+    },
+    ironHaul = {
+        subject = "hauling iron",
+        goTo = "Iron Hauler",
+        label = "Haul iron",
+        advice = "hauling iron — hire or upgrade Iron Haulers.",
+    },
+    dock = {
+        subject = "the Tavern",
+        goTo = "Tavern",
+        label = "Tavern",
+        advice = "the Tavern — upgrade it to earn more.",
+    },
+    -- Era 2, The Mill
+    millCollect = {
+        subject = "collecting scrap",
+        goTo = "Mill Collector",
+        label = "Collect scrap",
+        advice = "scrap pickup — hire or upgrade Mill Collectors.",
+    },
+    millPort = {
+        subject = "carrying scrap",
+        goTo = "Mill Porter",
+        label = "Carry scrap",
+        advice = "carrying scrap — hire or upgrade Mill Porters.",
+    },
+    foundry = {
+        subject = "the Foundry",
+        goTo = "Foundry",
+        label = "Foundry",
+        advice = "the Foundry — upgrade it or its Founders.",
+    },
+    partsHaul = {
+        subject = "hauling parts",
+        goTo = "Parts Hauler",
+        label = "Haul parts",
+        advice = "hauling parts — hire or upgrade Parts Haulers.",
+    },
+    oreCollect = {
+        subject = "collecting ore",
+        goTo = "Ore Collector",
+        label = "Collect ore",
+        advice = "ore pickup — hire or upgrade Ore Collectors.",
+    },
+    orePort = {
+        subject = "carrying ore",
+        goTo = "Ore Porter",
+        label = "Carry ore",
+        advice = "carrying ore — hire or upgrade Ore Porters.",
+    },
+    furnace = {
+        subject = "the Copper Furnace",
+        goTo = "Copper Furnace",
+        label = "Furnace",
+        advice = "the Furnace — upgrade it or its Coppersmiths.",
+    },
+    copperHaul = {
+        subject = "hauling copper",
+        goTo = "Copper Hauler",
+        label = "Haul copper",
+        advice = "hauling copper — hire or upgrade Copper Haulers.",
+    },
+    market = {
+        subject = "the Market",
+        goTo = "Market",
+        label = "Market",
+        advice = "the Market — upgrade it to earn more.",
+    },
+} :: { [string]: LinkWords }
+-- Plasele au cate un nume pe linie: "your nets" (mai multe) si "the scrap net" (una singura) nu se acorda la fel.
+export type NetWords = { subject: string, plural: boolean, label: string, castFirst: string }
+Strings.NET_WORDS = {
+    wood = { subject = "your nets", plural = true, label = "Nets", castFirst = "your first net" },
+    iron = {
+        subject = "the scrap net",
+        plural = false,
+        label = "Scrap net",
+        castFirst = "the Fifth Net",
+    },
+    parts = {
+        subject = "the Mill nets",
+        plural = true,
+        label = "Mill nets",
+        castFirst = "the Sixth Net",
+    },
+    copper = {
+        subject = "the ore net",
+        plural = false,
+        label = "Ore net",
+        castFirst = "the Tenth Net",
+    },
+} :: { [string]: NetWords }
+-- O cladire cu niveluri: ce face (cu om / doar cat stai tu langa ea) si verbul pragurilor ("cuts twice as fast").
+export type BuildingWords = { does: string, alone: string, verb: string, much: boolean? }
+Strings.BUILDING_WORDS = {
+    net = { does = "Catches", alone = "Catches", verb = "catches", much = true },
+    saw = { does = "Cuts", alone = "Cuts only while you stand here", verb = "cuts" },
+    -- [D56] ca gaterul: fara Smelter doar cat stai langa ea
+    forge = {
+        does = "Smelts scrap into iron",
+        alone = "Smelts only while you stand here",
+        verb = "smelts",
+    },
+    -- 35% = StationConfig.NO_TRADER_FACTOR
+    dock = { does = "Sells", alone = "Sells at 35% until you hire an Innkeeper", verb = "sells" },
+    foundry = {
+        does = "Casts scrap into machine parts",
+        alone = "Casts only while you stand here",
+        verb = "casts",
+    },
+    furnace = {
+        does = "Smelts ore into copper",
+        alone = "Smelts only while you stand here",
+        verb = "smelts",
+    },
+    market = { does = "Sells", alone = "Sells at 35% until you hire a Merchant", verb = "sells" },
+} :: { [string]: BuildingWords }
 function Strings.promptStoreRaw(words: LineWords, keyHint: string): string
     return `Store {words.raw}{keyHint}`
 end
@@ -1052,24 +1244,9 @@ Strings.STATION_BULK = "Buy levels"
 function Strings.stationsAdvice(bottleneck: string): string
     if bottleneck == "nets" then
         return "Right now that is the nets — upgrade one to earn more."
-    elseif bottleneck == "collect" then
-        return "Right now that is collecting — hire or upgrade Collectors."
-    elseif bottleneck == "port" then
-        return "Right now that is carrying logs — hire or upgrade Porters."
-    elseif bottleneck == "haul" then
-        return "Right now that is hauling planks — hire or upgrade Haulers."
-    elseif bottleneck == "saw" then
-        return "Right now that is the Sawmill — upgrade it to earn more."
-    elseif bottleneck == "scrapCollect" then
-        return "Right now that is scrap pickup — hire or upgrade Scrap Collectors."
-    elseif bottleneck == "scrapPort" then
-        return "Right now that is carrying scrap — hire or upgrade Scrap Porters."
-    elseif bottleneck == "forge" then
-        return "Right now that is the Forge — upgrade it or its Smelters."
-    elseif bottleneck == "ironHaul" then
-        return "Right now that is hauling iron — hire or upgrade Iron Haulers."
     end
-    return "Right now that is the Tavern — upgrade it to earn more."
+    local words = Strings.LINK_WORDS[bottleneck] or Strings.LINK_WORDS.dock
+    return `Right now that is {words.advice}`
 end
 Strings.STATION_UPGRADE = "Upgrade"
 -- ---- meniul unei meserii [D49] -----------------------------------------------------------------
@@ -1080,13 +1257,15 @@ end
 function Strings.crewNone(role: string, name: string): string
     if role == "trader" then
         return `No {name} — the Tavern sells slowly`
+    elseif role == "merchant" then
+        return `No {name} — the Market sells slowly`
     end
     return `No {name} — you do this yourself`
 end
 -- ECHIPAJ LA MAXIM PE VERIGA SLABA: nu mai e nimic de cumparat aici in Era 1. "No gain yet" ar fi
 -- sugerat ca ceva de pe meniul asta ar ajuta [D40, D49].
-function Strings.crewMaxed(plural: string): string
-    return `{plural} are at their best here — ring the Landing Bell`
+function Strings.crewMaxed(plural: string, bell: string): string
+    return `{plural} are at their best here — ring the {bell}`
 end
 Strings.MENU_TIER_UP = "Level up"
 -- De ce nu se poate apasa un buton de meserie. Acelasi cuvant pe care il intoarce serverul.
@@ -1121,28 +1300,16 @@ end
 function Strings.stationNoEffect(bottleneck: string): string
     if bottleneck == "nets" then
         return "No gain yet — nets are slowest"
-    elseif bottleneck == "collect" then
-        return "No gain yet — collecting is slowest"
-    elseif bottleneck == "port" then
-        return "No gain yet — carrying logs is slowest"
-    elseif bottleneck == "haul" then
-        return "No gain yet — hauling planks is slowest"
-    elseif bottleneck == "saw" then
-        return "No gain yet — the Sawmill is slowest"
-    elseif bottleneck == "scrapCollect" then
-        return "No gain yet — collecting scrap is slowest"
-    elseif bottleneck == "scrapPort" then
-        return "No gain yet — carrying scrap is slowest"
-    elseif bottleneck == "forge" then
-        return "No gain yet — the Forge is slowest"
-    elseif bottleneck == "ironHaul" then
-        return "No gain yet — hauling iron is slowest"
     end
-    return "No gain yet — the Tavern is slowest"
+    local words = Strings.LINK_WORDS[bottleneck] or Strings.LINK_WORDS.dock
+    return `No gain yet — {words.subject} is slowest`
 end
 -- [D56] Forja cumparata, dar inca fara plasa de scrap: linia fierului n-are ce duce.
-Strings.STATION_NO_SCRAP = "No gain yet — cast the Fifth Net first"
-Strings.MENU_NO_SCRAP = "No gain yet — cast the Fifth Net first"
+-- [D65] La fel orice linie care se deschide cu plasa ei: piesele cu Sixth Net, cuprul cu Tenth Net.
+function Strings.lineNotOpen(line: string?): string
+    local words = Strings.NET_WORDS[line or "iron"] or Strings.NET_WORDS.iron
+    return `No gain yet — cast {words.castFirst} first`
+end
 -- ---- ruinele [D53] ----------------------------------------------------------------------------
 -- Eticheta cartonasului langa o platforma incuiata: ruina, sau avizierul unde se angajeaza un om.
 Strings.PAD_EYEBROW_RUINS = "RUINS"
@@ -1188,15 +1355,8 @@ end
 -- Ce face cladirea, deasupra cifrei mari. Gaterul fara Sawyer si taverna fara Innkeeper spun si DE CE
 -- merg cum merg [D43]; 35% = StationConfig.NO_TRADER_FACTOR.
 function Strings.menuDoes(kind: string, staffed: boolean): string
-    if kind == "net" then
-        return "Catches"
-    elseif kind == "saw" then
-        return if staffed then "Cuts" else "Cuts only while you stand here"
-    elseif kind == "forge" then
-        -- [D56] ca gaterul: fara Smelter doar cat stai langa ea
-        return if staffed then "Smelts scrap into iron" else "Smelts only while you stand here"
-    end
-    return if staffed then "Sells" else "Sells at 35% until you hire an Innkeeper"
+    local words = Strings.BUILDING_WORDS[kind] or Strings.BUILDING_WORDS.dock
+    return if staffed then words.does else words.alone
 end
 -- Ce face omul: aceleasi cuvinte ca pe platforma lui. [D56] Fiecare linie cu oamenii ei.
 function Strings.crewDoes(role: string): string
@@ -1216,20 +1376,35 @@ function Strings.crewDoes(role: string): string
         return "Keeps the Forge smelting"
     elseif role == "ironHauler" then
         return "Carries iron from the Forge to the Tavern"
+    elseif role == "millCollector" then
+        return "Empties the Mill nets into the Mill Store"
+    elseif role == "millPorter" then
+        return "Carries scrap from the Mill Store to the Foundry"
+    elseif role == "founder" then
+        return "Keeps the Foundry casting"
+    elseif role == "partsHauler" then
+        return "Carries machine parts from the Foundry to the Market"
+    elseif role == "oreCollector" then
+        return "Empties the Tenth Net into the Ore Shed"
+    elseif role == "orePorter" then
+        return "Carries ore from the Ore Shed to the Copper Furnace"
+    elseif role == "coppersmith" then
+        return "Keeps the Copper Furnace smelting"
+    elseif role == "copperHauler" then
+        return "Carries copper from the Copper Furnace to the Market"
+    elseif role == "merchant" then
+        return "Runs the Market"
     end
     return "Runs the Tavern"
 end
 -- Unitatea de sub cifra mare. Bustenii pana la gater, scandurile de acolo incolo -- cuvintele pe care
 -- jocul le foloseste deja ("Store logs", "Sell planks"). [D56] Pe linia fierului: scrap pana la forja, fier de acolo.
-function Strings.menuUnit(what: string): string
-    if what == "net" or what == "collector" or what == "porter" then
-        return "logs a minute"
-    elseif what == "scrapNet" or what == "scrapCollector" or what == "scrapPorter" then
-        return "scrap a minute"
-    elseif what == "forge" or what == "smelter" or what == "ironHauler" then
-        return "iron a minute"
-    end
-    return "planks a minute"
+-- [D65] Dupa veriga si linia ei: plasele si pasii dinaintea atelierului numara marfa bruta, atelierul si ce vine dupa
+-- el marfa gata; un vanzator, marfa gata a primei lui linii (taverna: scanduri; Piata: piese). `beforeProcessor` il
+-- stie cine intreaba (StationConfig.LINES), ca fisierul asta sa ramana doar text.
+function Strings.menuUnit(line: string?, beforeProcessor: boolean): string
+    local words = Strings.LINE_WORDS[line or "wood"] or Strings.LINE_WORDS.wood
+    return `{if beforeProcessor then words.raw else words.done} a minute`
 end
 -- [D62] Un nivel cumparat se vede in lume: cifra lui pluteste deasupra obiectului. La un prag (10/25/50...) un
 -- banner spune ce s-a dublat, cu aceleasi cuvinte ca randul "Level 10: catches twice as much" din meniu [D40].
@@ -1256,28 +1431,17 @@ function Strings.milestoneTitle(name: string, level: number): string
 end
 function Strings.milestoneNow(kind: string, mult: number): string
     local how = if mult == 2 then "twice" else `{mult}x`
-    if kind == "net" then
-        return `Catches {how} as much now`
-    elseif kind == "saw" then
-        return `Cuts {how} as fast now`
-    elseif kind == "forge" then
-        return `Smelts {how} as fast now`
-    end
-    return `Sells {how} as fast now`
+    local words = Strings.BUILDING_WORDS[kind] or Strings.BUILDING_WORDS.dock
+    local verb = string.upper(string.sub(words.verb, 1, 1)) .. string.sub(words.verb, 2)
+    return `{verb} {how} as {if words.much then "much" else "fast"} now`
 end
 function Strings.menuMilestoneDone(kind: string, level: number, mult: number): string
     return `Level {level} reached! {Strings.milestoneNow(kind, mult)}`
 end
 function Strings.menuMilestone(kind: string, level: number, mult: number): string
     local how = if mult == 2 then "twice" else `{mult}x`
-    if kind == "net" then
-        return `Level {level}: catches {how} as much`
-    elseif kind == "saw" then
-        return `Level {level}: cuts {how} as fast`
-    elseif kind == "forge" then
-        return `Level {level}: smelts {how} as fast`
-    end
-    return `Level {level}: sells {how} as fast`
+    local words = Strings.BUILDING_WORDS[kind] or Strings.BUILDING_WORDS.dock
+    return `Level {level}: {words.verb} {how} as {if words.much then "much" else "fast"}`
 end
 -- Castigul real al cumparaturii, pe minut. `amount` nil = mai mic decat se poate scrie cu o zecimala:
 -- nu devine "+0", care ar parea ca nu aduce nimic [D40].
@@ -1302,43 +1466,17 @@ function Strings.menuHeldBack(link: string, tie: boolean, line: string?): string
     -- drumul intreg ("carrying scrap to the Forge" era jumatate de rand). Subiectul ramane ACTIUNEA, nu omul: cat n-ai
     -- angajat pe nimeni, pasul il faci tu, iar "the Porter is slower" ar fi mintit [D40].
     local subject, verb = "the Tavern", "is"
-    if link == "nets" and line == "iron" then
-        subject = "the scrap net"
-    elseif link == "nets" then
-        subject, verb = "your nets", "are"
-    elseif link == "collect" then
-        subject = "collecting"
-    elseif link == "port" then
-        subject = "carrying logs"
-    elseif link == "saw" then
-        subject = "the Sawmill"
-    elseif link == "haul" then
-        subject = "hauling planks"
-    elseif link == "scrapCollect" then
-        subject = "collecting scrap"
-    elseif link == "scrapPort" then
-        subject = "carrying scrap"
-    elseif link == "forge" then
-        subject = "the Forge"
-    elseif link == "ironHaul" then
-        subject = "hauling iron"
+    if link == "nets" then
+        local nets = Strings.NET_WORDS[line or "wood"] or Strings.NET_WORDS.wood
+        subject, verb = nets.subject, if nets.plural then "are" else "is"
+    elseif Strings.LINK_WORDS[link] ~= nil then
+        subject = Strings.LINK_WORDS[link].subject
     end
     return `No gain yet — {subject} {verb} ` .. (if tie then "just as slow" else "slower")
 end
 function Strings.menuGoTo(link: string): string
-    local names: { [string]: string } = {
-        nets = "Nets",
-        collect = "Collector",
-        port = "Porter",
-        saw = "Sawmill",
-        haul = "Hauler",
-        scrapCollect = "Scrap Collector",
-        scrapPort = "Scrap Porter",
-        forge = "Forge",
-        ironHaul = "Iron Hauler",
-        dock = "Tavern",
-    }
-    return `Go to {names[link] or "Nets"}`
+    local words = Strings.LINK_WORDS[link]
+    return `Go to {if words ~= nil then words.goTo else "Nets"}`
 end
 -- Butoanele meseriei. Blocat: motivul sta chiar pe buton, fara pret. Fara om, butonul ramane cu
 -- eticheta lui, stins: randul de deasupra spune deja "Hire one at its pad".

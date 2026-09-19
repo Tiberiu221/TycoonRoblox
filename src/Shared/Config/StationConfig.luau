@@ -272,6 +272,33 @@ for era, eraLines in StationConfig.ERA_LINES do
     eraLinks[era] = list
 end
 StationConfig.ERA_LINKS = eraLinks
+-- [D65] Era fiecarei verigi (plasele n-au una: sunt ale tuturor) si a fiecarei linii: meniurile unui cartier arata doar
+-- ce e al lui.
+local eraOfLink: { [string]: number } = {}
+local eraOfLine: { [string]: number } = {}
+for era, list in eraLinks do
+    for _, link in list do
+        if link ~= "nets" then
+            eraOfLink[link] = era
+        end
+    end
+    for _, line in StationConfig.ERA_LINES[era] do
+        eraOfLine[line] = era
+    end
+end
+StationConfig.ERA_OF_LINK = eraOfLink
+StationConfig.ERA_OF_LINE = eraOfLine
+-- Pasii dinaintea atelierului unei linii: acolo marfa e inca bruta (busteni, nu scanduri).
+local beforeProcessor: { [string]: boolean } = {}
+for _, line in StationConfig.LINE_ORDER do
+    for _, step in LINES[line].steps do
+        if step.kind == "processor" then
+            break
+        end
+        beforeProcessor[step.link] = true
+    end
+end
+StationConfig.BEFORE_PROCESSOR = beforeProcessor
 StationConfig.LINE_STEPS = lineSteps
 StationConfig.MANUAL_ROLES = manualRoles
 StationConfig.LINK_OF = linkOf

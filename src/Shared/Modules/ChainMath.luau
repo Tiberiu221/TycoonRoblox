@@ -772,6 +772,34 @@ function ChainMath.rates(s: State): Rates
     return ChainMath.ratesOf(ChainMath.flowWith(GAME, s, false))
 end
 
+-- [D65] VERIGA CARE TINE VENITUL UNUI SINGUR CARTIER. `Flow.bottleneck` e una pentru tot lantul, iar din Era 2 e mai
+-- mereu una de la Moara (o bucata de acolo face de 40 de ori mai mult): panoul deschis pe The Landing ar fi trimis la
+-- turnatorie. Liniile a doua ere nu impart nimic (fiecare vanzator e al erei lui), deci lantul unei ere socotit
+-- singur da exact debitele ei din lantul intreg; cat Era 2 e inchisa, raspunsul pentru Era 1 e chiar `Flow.bottleneck`.
+local ERA_MODELS: { Model } = {}
+for era, eraLines in StationConfig.ERA_LINES do
+    local sellerOrder: { string } = {}
+    for _, seller in StationConfig.SELLER_ORDER do
+        if table.find(eraLines, StationConfig.SELLERS[seller].priority[1]) ~= nil then
+            table.insert(sellerOrder, seller)
+        end
+    end
+    ERA_MODELS[era] = ChainMath.model(
+        eraLines,
+        StationConfig.LINES,
+        StationConfig.PROCESSORS,
+        sellerOrder,
+        StationConfig.SELLERS,
+        StationConfig.ROLE_BASE,
+        AVG
+    )
+end
+
+function ChainMath.eraBottleneck(s: State, era: number): string
+    local m = ERA_MODELS[era]
+    return if m ~= nil then ChainMath.flowWith(m, s, false).bottleneck else ""
+end
+
 -- CE MERGE FARA TINE (vezi `flowWith`). [D56] Forja are si ea omul ei: fara Smelter, fara tine, sta.
 function ChainMath.idleRates(s: State): Rates
     return ChainMath.ratesOf(ChainMath.flowWith(GAME, s, true))

@@ -22,6 +22,7 @@ local ChainMath = require(ReplicatedStorage.Shared.Modules.ChainMath)
 local HeldBack = require(ReplicatedStorage.Shared.Modules.HeldBack)
 local StationConfig = require(ReplicatedStorage.Shared.Config.StationConfig)
 local Strings = require(ReplicatedStorage.Shared.Config.Strings)
+local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
 local Panels = require(script.Parent.Panels)
 local SoundController = require(script.Parent.SoundController)
@@ -74,9 +75,9 @@ export type Snapshot = {
     rows: { Row },
     crews: { CrewRow },
     bottleneck: string,
-    woodBottleneck: string?, -- [D56] veriga slaba a fiecarei linii; "" = linia fierului inca inchisa
-    ironBottleneck: string?,
-    rates: { [string]: any },
+    -- [D65] vederea pe linii (HeldBack.View): veriga slaba a fiecarei linii ("" = inca inchisa) si debitul verigilor
+    lines: { [string]: HeldBack.LineView },
+    linkRates: { [string]: number },
     playerShare: number,
 }
 
@@ -120,29 +121,37 @@ local BULK: { Bulk } = {
     { label = "Max", step = nil },
 }
 
--- Verigile, in ordinea StationConfig.LINKS: ce meniu o repara ("Go to") si care debit e al ei. Sawyer-ul, Smelter-ul
--- si Innkeeper-ul impart veriga cu cladirea lor: "Go to" duce la cladire, al carei nivel e reparatia. [D56] Plasele
--- sunt ale amandurora liniilor (debitul lor se ia pe linie, vezi rateOf), taverna la fel.
-type Link = { key: string, kind: string, role: string?, icon: string, rate: string }
-local CHAIN: { Link } = {
-    { key = "nets", kind = "net", icon = "net", rate = "catch" },
-    { key = "collect", kind = "crew", role = "collector", icon = "capacity", rate = "collect" },
-    { key = "port", kind = "crew", role = "porter", icon = "carry", rate = "port" },
-    { key = "saw", kind = "saw", icon = "saw", rate = "sawing" },
-    { key = "haul", kind = "crew", role = "hauler", icon = "speed", rate = "haul" },
-    -- [D56] linia fierului
-    {
-        key = "scrapCollect",
-        kind = "crew",
-        role = "scrapCollector",
-        icon = "capacity",
-        rate = "scrapCollect",
-    },
-    { key = "scrapPort", kind = "crew", role = "scrapPorter", icon = "carry", rate = "scrapPort" },
-    { key = "forge", kind = "forge", icon = "hammer", rate = "forging" },
-    { key = "ironHaul", kind = "crew", role = "ironHauler", icon = "speed", rate = "ironHaul" },
-    { key = "dock", kind = "dock", icon = "crate", rate = "sales" },
-}
+-- Verigile, in ordinea StationConfig.LINKS: ce meniu o repara ("Go to"). Omul unui atelier si al unui vanzator imparte
+-- veriga cu cladirea lui: "Go to" duce la cladire, al carei nivel e reparatia. Plasele sunt ale tuturor liniilor.
+-- [D65] Din tabelul liniilor, pentru orice era: pana aici lista era scrisa de mana, cu cele zece verigi ale Erei 1.
+type Link = { key: string, kind: string, role: string?, icon: string }
+local WALK_ICONS = { "capacity", "carry", "hammer", "speed" } -- dupa locul pasului in linie: aduna, cara, (atelier), duce
+local CHAIN: { Link } = { { key = "nets", kind = "net", icon = "net" } }
+-- omul cladirii (Sawyer, Smelter, Founder...; Innkeeper, Merchant): fara el, cladirea merge doar cu tine / incet
+local ROLE_OF_BUILDING: { [string]: string } = {}
+for _, line in StationConfig.LINE_ORDER do
+    for k, step in StationConfig.LINES[line].steps do
+        if step.kind == "processor" then
+            ROLE_OF_BUILDING[step.link] = step.role
+            table.insert(CHAIN, {
+                key = step.link,
+                kind = step.link,
+                icon = if step.link == "saw" then "saw" else "hammer",
+            })
+        else
+            table.insert(CHAIN, {
+                key = step.link,
+                kind = "crew",
+                role = step.role,
+                icon = WALK_ICONS[k] or "carry",
+            })
+        end
+    end
+end
+for _, seller in StationConfig.SELLER_ORDER do
+    ROLE_OF_BUILDING[seller] = StationConfig.SELLERS[seller].role
+    table.insert(CHAIN, { key = seller, kind = seller, icon = "crate" })
+end
 local LINK_OF_ROLE: { [string]: string } = StationConfig.LINK_OF
 
 local levelLabel: TextLabel
@@ -244,6 +253,31 @@ local function linkKeyOf(kind: string): string
     return if kind == "net" then "nets" else kind
 end
 
+-- Unitatea de sub cifra mare, dupa veriga si linia ei; un vanzator numara marfa primei lui linii (taverna: scanduri).
+local function unitOf(link: string, line: string?): string
+    local seller = StationConfig.SELLERS[link]
+    if seller ~= nil then
+        for _, l in StationConfig.LINE_ORDER do
+            if StationConfig.LINES[l].seller == link then
+                return Strings.menuUnit(l, false)
+            end
+        end
+    end
+    return Strings.menuUnit(line, link == "nets" or StationConfig.BEFORE_PROCESSOR[link] == true)
+end
+
+-- Clopotul erei unei meserii: acolo trimite un echipaj ajuns la maxim ("ring the Landing Bell").
+local function bellOf(padId: string): string
+    local pad = TycoonConfig.byId[padId]
+    local era = if pad ~= nil then pad.era else 1
+    for _, p in TycoonConfig.PADS do
+        if p.era == era and p.motive == "D" then
+            return p.name
+        end
+    end
+    return "Bell"
+end
+
 -- Debitul dupa `count` niveluri. Debitul unei cladiri e proportional cu ChainMath.levelOutput (oamenii
 -- doar il inmultesc), deci raportul e exact -- si pentru x10 sau Max, nu doar pentru +1.
 local function outputAfter(row: Row, count: number): number
@@ -292,12 +326,12 @@ local function showHeldBack(snap: Snapshot, mine: string, line: string?)
     local key, tie = HeldBack.by(snap, mine, line)
     if key == nil then
         -- [D56] Forge fara plasa de scrap: nu e o veriga de reparat, doar nu vine inca nimic
-        showStatus(Strings.MENU_NO_SCRAP, Theme.COLOR.warnInk)
+        showStatus(Strings.lineNotOpen(line), Theme.COLOR.warnInk)
         return
     end
     local link = linkByKey(key)
-    -- plasele carei linii: a obiectului; de la taverna, a liniei in care plasele tin
-    local netsLine = HeldBack.netsLine(snap, line)
+    -- plasele carei linii: a obiectului; de la un vanzator, a liniei lui in care plasele tin
+    local netsLine = HeldBack.netsLine(snap, line, mine)
     statusLabel.Text = Strings.menuHeldBack(link.key, tie, netsLine)
     fitStatusText()
     statusLabel.TextColor3 = Theme.COLOR.warnInk
@@ -318,23 +352,18 @@ local function renderBuilding(row: Row, snap: Snapshot)
     local affordable = count >= 1 and row.maxCount >= count
     levelLabel.Text = Strings.menuLevelStep(row.level, row.level + shown)
 
+    -- cladirea are om? (gaterul Sawyer, forja Smelter, taverna Innkeeper; la fel cladirile Morii)
     local staffed = true
-    if row.kind == "saw" then
-        local sawyer = findCrew("sawyer")
-        staffed = sawyer ~= nil and sawyer.count > 0
-    elseif row.kind == "forge" then
-        local smelter = findCrew("smelter") -- [D56] ca gaterul
-        staffed = smelter ~= nil and smelter.count > 0
-    elseif row.kind == "dock" then
-        local trader = findCrew("trader")
-        staffed = trader ~= nil and trader.count > 0
+    local keeper = ROLE_OF_BUILDING[row.kind]
+    if keeper ~= nil then
+        local crew = findCrew(keeper)
+        staffed = crew ~= nil and crew.count > 0
     end
     captionLabel.Text = Strings.menuDoes(row.kind, staffed)
     local now = TycoonMath.formatPerMinute(row.output)
     rateLabel.Text = `{now} → {TycoonMath.formatPerMinute(outputAfter(row, shown))}`
     -- [D56] plasa de scrap prinde scrap, nu busteni
-    unitLabel.Text =
-        Strings.menuUnit(if row.kind == "net" and row.line == "iron" then "scrapNet" else row.kind)
+    unitLabel.Text = unitOf(mineKey, row.line)
 
     local milestone = row.nextMilestone
     if os.clock() < milestoneFlashUntil then
@@ -416,7 +445,7 @@ local function renderCrew(crew: CrewRow, snap: Snapshot)
     rateLabel.Text = if crew.count > 0 and after ~= nil
         then `{now} → {TycoonMath.formatPerMinute(after)}`
         else now
-    unitLabel.Text = Strings.menuUnit(crew.role)
+    unitLabel.Text = unitOf(mineKey, crew.line)
 
     -- cine face treaba: omul angajat, sau tu [D43]. Aici se vede ce ti-a luat o angajare care, cu o
     -- singura plasa, nu misca venitul [D52].
@@ -432,7 +461,7 @@ local function renderCrew(crew: CrewRow, snap: Snapshot)
         showStatus(Strings.crewBlock("no_person", StationConfig.SECOND_AT_TIER), Theme.COLOR.ink)
     elseif crew.maxed and crew.bottleneck then
         -- ECHIPAJ LA MAXIM PE VERIGA SLABA: nimic de cumparat aici -- trimite la clopot [D40, D49]
-        showStatus(Strings.crewMaxed(crew.plural), Theme.COLOR.warnInk)
+        showStatus(Strings.crewMaxed(crew.plural, bellOf(crew.pad)), Theme.COLOR.warnInk)
     elseif crew.tierGain > 0 then
         showStatus(Strings.menuEarnsTier(perMinuteGain(crew.tierGain)), Theme.COLOR.goodInk)
     elseif crew.secondGain > 0 then

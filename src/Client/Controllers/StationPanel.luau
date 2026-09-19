@@ -17,6 +17,7 @@ local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
 local HeldBack = require(ReplicatedStorage.Shared.Modules.HeldBack)
 local StationConfig = require(ReplicatedStorage.Shared.Config.StationConfig)
 local Strings = require(ReplicatedStorage.Shared.Config.Strings)
+local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 
 local Panels = require(script.Parent.Panels)
 local SoundController = require(script.Parent.SoundController)
@@ -42,9 +43,11 @@ export type Row = {
 export type Snapshot = {
     rows: { Row },
     bottleneck: string,
-    woodBottleneck: string?, -- [D56] veriga slaba a fiecarei linii; "" = linia fierului inca inchisa
-    ironBottleneck: string?,
-    rates: { [string]: any }, -- catch, collect, port, sawing, haul, sales, delivered, bottleneck [D49]
+    -- [D65] vederea pe linii (HeldBack.View): veriga slaba a fiecarei linii ("" = inca inchisa), debitul verigilor,
+    -- si veriga care tine venitul fiecarui cartier, dupa numarul erei
+    lines: { [string]: HeldBack.LineView },
+    linkRates: { [string]: number },
+    eraBottleneck: { string }?,
 }
 
 export type Deps = {
@@ -66,36 +69,68 @@ local Z = 60
 -- Capul panoului: debitele lantului [D49]. Acelasi lucru pe care Idle Miner il pune in "Mine
 -- Overview" -- si tot acolo pune semnul de avertizare, pe veriga cea mai slaba. Panoul e ascuns (U)
 -- [owner, 2026-09-12]; randurile de mai jos sunt doar cladirile -- meseriile au meniul lor.
--- [D56] Pe linii: lemnul, taverna (a amandurora), apoi fierul, ascuns cat linia lui e inchisa (ultimul, ca sa nu
--- lase o gaura la mijloc). Semnul sta pe veriga slaba a fiecarei linii; la taverna, pe cea care tine venitul.
-type ChainRow = { key: string, line: string?, icon: string, label: string, what: string }
-local CHAIN_ROWS: { ChainRow } = {
-    { key = "nets", line = "wood", icon = "net", label = "Nets", what = "woodCatch" },
-    { key = "collect", line = "wood", icon = "capacity", label = "Collect", what = "collect" },
-    { key = "port", line = "wood", icon = "carry", label = "Carry", what = "port" },
-    { key = "saw", line = "wood", icon = "saw", label = "Sawmill", what = "sawing" },
-    { key = "haul", line = "wood", icon = "speed", label = "Haul", what = "haul" },
-    { key = "dock", icon = "crate", label = "Tavern", what = "sales" },
-    { key = "nets", line = "iron", icon = "net", label = "Scrap net", what = "scrapCatch" },
-    {
-        key = "scrapCollect",
-        line = "iron",
-        icon = "capacity",
-        label = "Collect scrap",
-        what = "scrapCollect",
-    },
-    { key = "scrapPort", line = "iron", icon = "carry", label = "Carry scrap", what = "scrapPort" },
-    { key = "forge", line = "iron", icon = "hammer", label = "Forge", what = "forging" },
-    { key = "ironHaul", line = "iron", icon = "speed", label = "Haul iron", what = "ironHaul" },
-}
+-- [D56] Pe linii: prima linie, vanzatorul (al amandurora), apoi a doua linie, ascunsa cat e inchisa (ultima, ca sa nu
+-- lase o gaura la mijloc). Semnul sta pe veriga slaba a fiecarei linii; la vanzator, pe cea care tine venitul.
+-- [D65] UN CARTIER ODATA. Cu Era 2 lantul are 22 de verigi: toate intr-un cap de panou ar fi fost un perete de cifre.
+-- Panoul arata cartierul ales (The Landing / The Mill), cu verigile si cladirile lui; comutatorul apare abia cand ai
+-- ceva la Moara, deci in Era 1 panoul e exact cel de pana acum. Verigile vin din tabelul liniilor.
+type ChainRow = { key: string, line: string?, icon: string, label: string }
+local WALK_ICONS = { "capacity", "carry", "hammer", "speed" }
+local function chainRowsFor(era: number): { ChainRow }
+    local out: { ChainRow } = {}
+    local sellersSeen: { [string]: boolean } = {}
+    for _, line in StationConfig.ERA_LINES[era] do
+        table.insert(
+            out,
+            { key = "nets", line = line, icon = "net", label = Strings.NET_WORDS[line].label }
+        )
+        for k, step in StationConfig.LINES[line].steps do
+            table.insert(out, {
+                key = step.link,
+                line = line,
+                icon = if step.kind ~= "processor"
+                    then WALK_ICONS[k] or "carry"
+                    elseif step.link == "saw" then "saw"
+                    else "hammer",
+                label = Strings.LINK_WORDS[step.link].label,
+            })
+        end
+        local seller = StationConfig.LINES[line].seller
+        if not sellersSeen[seller] then
+            sellersSeen[seller] = true
+            table.insert(
+                out,
+                { key = seller, icon = "crate", label = Strings.LINK_WORDS[seller].label }
+            )
+        end
+    end
+    return out
+end
+local CHAIN_BY_ERA: { { ChainRow } } = {}
+local CHAIN_MAX = 0
+for era in StationConfig.ERA_LINES do
+    CHAIN_BY_ERA[era] = chainRowsFor(era)
+    CHAIN_MAX = math.max(CHAIN_MAX, #CHAIN_BY_ERA[era])
+end
 local CHAIN_STEP = 20 -- unsprezece verigi [D56], cate 20
-local HEAD_SHIFT = (#CHAIN_ROWS - 7) * CHAIN_STEP -- tot ce sta sub cap coboara cu verigile adaugate dupa D55
+local HEAD_SHIFT = (CHAIN_MAX - 7) * CHAIN_STEP -- tot ce sta sub cap coboara cu verigile adaugate dupa D55
+local TABS_H = 44 -- randul comutatorului de cartier; 0 cat nu exista decat The Landing
 
 local advice: TextLabel
--- pe index: "nets" apare de doua ori (plasele de lemn si plasa de scrap)
-local chainParts: { { GuiObject } } = {}
-local chainValue: { TextLabel } = {}
-local chainWarn: { TextLabel } = {}
+-- capul fiecarui cartier, pe era; in el, pe index: "nets" apare de doua ori (plasele fiecarei linii)
+type ChainHead = {
+    frame: Frame,
+    parts: { { GuiObject } },
+    value: { TextLabel },
+    warn: { TextLabel },
+}
+local heads: { ChainHead } = {}
+local shownEra = 1 -- cartierul ales
+local shownRows: { Row } = {} -- randurile lui, in ordinea de pe ecran
+local tabRow: Frame
+local tabButtons: { TextButton } = {}
+local belowTabs: { { object: GuiObject, y: number } } = {}
+local rowsFrame: Frame
 local rowHolder: ScrollingFrame
 local bulkIndex = 1 -- 1..#BULK_STEPS, apoi "Max"
 local bulkButtons: { TextButton } = {}
@@ -197,7 +232,7 @@ local function buildRow(index: number): RowView
             if snap == nil then
                 return
             end
-            local row = snap.rows[index]
+            local row = shownRows[index]
             if row == nil then
                 return
             end
@@ -249,8 +284,33 @@ local function buildRow(index: number): RowView
     }
 end
 
+-- Era unui rand: o plasa, dupa platforma ei; o cladire, dupa veriga ei.
+local function eraOfRow(row: Row): number
+    if row.kind == "net" then
+        local pad = TycoonConfig.byId[row.id or ""]
+        return if pad ~= nil then pad.era else 1
+    end
+    return StationConfig.ERA_OF_LINK[row.kind] or 1
+end
+
+-- Ai ceva la Moara? Atunci apare comutatorul de cartier; pana atunci panoul e cel al Erei 1, neschimbat.
+local function hasLaterEra(snap: Snapshot): boolean
+    for _, row in snap.rows do
+        if eraOfRow(row) > 1 then
+            return true
+        end
+    end
+    return false
+end
+
 local function refreshRows(snap: Snapshot)
-    for i, row in snap.rows do
+    table.clear(shownRows)
+    for _, row in snap.rows do
+        if eraOfRow(row) == shownEra then
+            table.insert(shownRows, row)
+        end
+    end
+    for i, row in shownRows do
         local view = views[i]
         if view == nil then
             view = buildRow(i)
@@ -300,8 +360,8 @@ local function refreshRows(snap: Snapshot)
             local mine = if row.kind == "net" then "nets" else row.kind
             local key, tie = HeldBack.by(snap, mine, row.line)
             view.warn.Text = if key == nil
-                then Strings.STATION_NO_SCRAP
-                else Strings.menuHeldBack(key, tie, HeldBack.netsLine(snap, row.line))
+                then Strings.lineNotOpen(row.line)
+                else Strings.menuHeldBack(key, tie, HeldBack.netsLine(snap, row.line, mine))
         end
         view.gain.TextColor3 = if earns then Theme.COLOR.good else Theme.COLOR.onDarkSoft
 
@@ -314,34 +374,65 @@ local function refreshRows(snap: Snapshot)
             view.cost.TextColor3 = Theme.COLOR.gold
         end
     end
-    for i = #snap.rows + 1, #views do
+    for i = #shownRows + 1, #views do
         views[i].frame.Visible = false
     end
-    rowHolder.CanvasSize = UDim2.fromOffset(0, #snap.rows * (ROW_H + Theme.SPACE.sm))
+    rowHolder.CanvasSize = UDim2.fromOffset(0, #shownRows * (ROW_H + Theme.SPACE.sm))
+end
+
+-- Comutatorul de cartier: apare cand ai ceva la Moara si impinge restul panoului in jos cu inaltimea lui.
+local function layoutTabs(snap: Snapshot)
+    local tabs = hasLaterEra(snap)
+    if not tabs then
+        shownEra = 1
+    end
+    tabRow.Visible = tabs
+    local shift = if tabs then TABS_H else 0
+    for _, entry in belowTabs do
+        entry.object.Position = UDim2.fromOffset(0, entry.y + shift)
+    end
+    rowsFrame.Size = UDim2.new(1, 0, 1, -(250 + HEAD_SHIFT + shift))
+    for era, button in tabButtons do
+        Widgets.SetButtonTone(button, if era == shownEra then Theme.COLOR.gold else nil)
+    end
+    for era, head in heads do
+        head.frame.Visible = era == shownEra
+    end
 end
 
 local function refreshChain(snap: Snapshot)
-    advice.Text = Strings.stationsAdvice(snap.bottleneck)
+    local eraBottleneck = if snap.eraBottleneck ~= nil then snap.eraBottleneck[shownEra] else nil
+    local holds = if eraBottleneck ~= nil and eraBottleneck ~= ""
+        then eraBottleneck
+        else snap.bottleneck
+    advice.Text = Strings.stationsAdvice(holds)
     -- plasa de sub frazele scurtate in Strings: pe un panou strans (telefon), randul se micsoreaza, nu iese din rama
     local width = window.Size.X.Offset - Theme.SPACE.lg * 2
     advice.TextSize = Theme.fitSize(advice.Text, Theme.TEXT.small, "strong", width)
-    local ironOpen = (snap.ironBottleneck or "") ~= ""
-    for i, entry in CHAIN_ROWS do
-        local shown = entry.line ~= "iron" or ironOpen
-        for _, part in chainParts[i] or {} do
+    local head = heads[shownEra]
+    local firstLine = StationConfig.ERA_LINES[shownEra][1]
+    for i, entry in CHAIN_BY_ERA[shownEra] do
+        local line = entry.line
+        local lineView = if line ~= nil then snap.lines[line] else nil
+        -- prima linie a cartierului se vede mereu; a doua abia cand se deschide
+        local shown = line == nil
+            or line == firstLine
+            or (lineView ~= nil and lineView.bottleneck ~= "")
+        for _, part in head.parts[i] or {} do
             part.Visible = shown
         end
-        local bottleneck = if entry.line == "iron"
-            then snap.ironBottleneck or ""
-            elseif entry.line == "wood" then snap.woodBottleneck or snap.bottleneck
-            else snap.bottleneck
+        -- semnul: pe veriga slaba a liniei; la vanzator, pe cea care tine venitul cartierului
+        local bottleneck = if line == nil
+            then holds
+            elseif lineView ~= nil then lineView.bottleneck
+            else ""
         local slowest = shown and bottleneck == entry.key
-        local label = chainValue[i]
+        local label = head.value[i]
         if label ~= nil then
-            label.Text = `{TycoonMath.formatRate(snap.rates[entry.what] or 0)}/s`
+            label.Text = `{TycoonMath.formatRate(HeldBack.rateOf(snap, entry.key, line))}/s`
             label.TextColor3 = if slowest then Theme.COLOR.bad else Theme.COLOR.ink
         end
-        local warn = chainWarn[i]
+        local warn = head.warn[i]
         if warn ~= nil then
             warn.Visible = slowest
         end
@@ -356,6 +447,7 @@ function StationPanel.Apply(snap: Snapshot?)
     if not open then
         return
     end
+    layoutTabs(snap)
     refreshChain(snap)
     refreshRows(snap)
 end
@@ -423,7 +515,17 @@ function StationPanel.OpenAt(kind: string, id: string?)
     if snap == nil then
         return
     end
-    for i, row in snap.rows do
+    -- randul cerut poate fi in celalalt cartier: intai se muta panoul acolo
+    for _, row in snap.rows do
+        if row.kind == kind and (id == nil or row.id == id) then
+            if eraOfRow(row) ~= shownEra then
+                shownEra = eraOfRow(row)
+                StationPanel.Apply(snap)
+            end
+            break
+        end
+    end
+    for i, row in shownRows do
         if row.kind == kind and (id == nil or row.id == id) then
             -- Randurile au inaltime fixa, deci pozitia se calculeaza. A doua oara dupa un cadru:
             -- abia deschisa, lista inca n-are marimea finala si Roblox ar taia pozitia la zero.
@@ -466,48 +568,87 @@ function StationPanel.Init(d: Deps)
     window.Position = UDim2.fromScale(0.5, 0.5)
     window.Visible = false
 
-    -- capul panoului: cele trei debite
-    local head = Instance.new("Frame")
-    head.Name = "Chain"
-    head.BackgroundTransparency = 1
-    head.Size = UDim2.new(1, 0, 0, #CHAIN_ROWS * CHAIN_STEP + 2) -- unsprezece verigi x 20 [D49, D56]
-    head.ZIndex = Z + 1
-    head.Parent = body
-    for i, entry in CHAIN_ROWS do
-        local y = (i - 1) * CHAIN_STEP
-        local parts: { GuiObject } = {}
-        chainParts[i] = parts
-        local icon = Widgets.Icon(head, entry.icon, 16)
-        if icon ~= nil then
-            icon.Position = UDim2.fromOffset(0, y + 2)
-            icon.ZIndex = Z + 2
-            table.insert(parts, icon)
+    -- [D65] comutatorul de cartier: ascuns cat ai doar The Landing
+    tabRow = Instance.new("Frame")
+    tabRow.Name = "Districts"
+    tabRow.BackgroundTransparency = 1
+    tabRow.Size = UDim2.new(1, 0, 0, TABS_H)
+    tabRow.ZIndex = Z + 1
+    tabRow.Visible = false
+    tabRow.Parent = body
+    for era in StationConfig.ERA_LINES do
+        local zoneName = `Era {era}`
+        for _, zone in TycoonConfig.ZONES do
+            if zone.era == era then
+                zoneName = zone.name
+            end
         end
-        local name =
-            Widgets.Label(head, entry.label, Theme.TEXT.tiny, Theme.COLOR.onDarkSoft, "body")
-        name.Position = UDim2.fromOffset(28, y)
-        name.Size = UDim2.fromOffset(120, CHAIN_STEP)
-        name.ZIndex = Z + 2
-        table.insert(parts, name)
-        local value = Widgets.Label(head, "0/s", Theme.TEXT.small, Theme.COLOR.ink, "display")
-        value.Position = UDim2.fromOffset(150, y)
-        value.Size = UDim2.fromOffset(120, CHAIN_STEP)
-        value.TextXAlignment = Enum.TextXAlignment.Right
-        value.ZIndex = Z + 2
-        table.insert(parts, value)
-        chainValue[i] = value
-        local warn = Widgets.Label(
-            head,
-            Strings.STATION_BOTTLENECK,
-            Theme.TEXT.tiny,
-            Theme.COLOR.warn,
-            "strong"
-        )
-        warn.Position = UDim2.fromOffset(282, y)
-        warn.Size = UDim2.fromOffset(200, CHAIN_STEP)
-        warn.Visible = false
-        warn.ZIndex = Z + 2
-        chainWarn[i] = warn
+        local button = Widgets.Button(tabRow, {
+            text = zoneName,
+            width = 200,
+            height = 36,
+            z = Z + 2,
+            onClick = function()
+                if shownEra ~= era then
+                    shownEra = era
+                    SoundController.Play("click")
+                    rowHolder.CanvasPosition = Vector2.zero
+                    StationPanel.Apply(lastSnapshot)
+                end
+            end,
+        })
+        button.Position = UDim2.fromOffset((era - 1) * 208, 0)
+        tabButtons[era] = button
+    end
+
+    -- capul panoului: debitele lantului, cate un cap pe cartier (se vede doar cel ales)
+    for era, rows in CHAIN_BY_ERA do
+        local head = Instance.new("Frame")
+        head.Name = `Chain{era}`
+        head.BackgroundTransparency = 1
+        head.Size = UDim2.new(1, 0, 0, CHAIN_MAX * CHAIN_STEP + 2) -- unsprezece verigi x 20 [D49, D56]
+        head.ZIndex = Z + 1
+        head.Visible = era == shownEra
+        head.Parent = body
+        table.insert(belowTabs, { object = head, y = 0 })
+        local view: ChainHead = { frame = head, parts = {}, value = {}, warn = {} }
+        heads[era] = view
+        for i, entry in rows do
+            local y = (i - 1) * CHAIN_STEP
+            local parts: { GuiObject } = {}
+            view.parts[i] = parts
+            local icon = Widgets.Icon(head, entry.icon, 16)
+            if icon ~= nil then
+                icon.Position = UDim2.fromOffset(0, y + 2)
+                icon.ZIndex = Z + 2
+                table.insert(parts, icon)
+            end
+            local name =
+                Widgets.Label(head, entry.label, Theme.TEXT.tiny, Theme.COLOR.onDarkSoft, "body")
+            name.Position = UDim2.fromOffset(28, y)
+            name.Size = UDim2.fromOffset(120, CHAIN_STEP)
+            name.ZIndex = Z + 2
+            table.insert(parts, name)
+            local value = Widgets.Label(head, "0/s", Theme.TEXT.small, Theme.COLOR.ink, "display")
+            value.Position = UDim2.fromOffset(150, y)
+            value.Size = UDim2.fromOffset(120, CHAIN_STEP)
+            value.TextXAlignment = Enum.TextXAlignment.Right
+            value.ZIndex = Z + 2
+            table.insert(parts, value)
+            view.value[i] = value
+            local warn = Widgets.Label(
+                head,
+                Strings.STATION_BOTTLENECK,
+                Theme.TEXT.tiny,
+                Theme.COLOR.warn,
+                "strong"
+            )
+            warn.Position = UDim2.fromOffset(282, y)
+            warn.Size = UDim2.fromOffset(200, CHAIN_STEP)
+            warn.Visible = false
+            warn.ZIndex = Z + 2
+            view.warn[i] = warn
+        end
     end
 
     -- DE CE conteaza cifrele de mai sus, si ce sa faci cu ele. Fara randurile astea doua, panoul
@@ -517,11 +658,13 @@ function StationPanel.Init(d: Deps)
     explain.Position = UDim2.fromOffset(0, 146 + HEAD_SHIFT)
     explain.Size = UDim2.new(1, 0, 0, 20)
     explain.ZIndex = Z + 1
+    table.insert(belowTabs, { object = explain, y = 146 + HEAD_SHIFT })
 
     advice = Widgets.Label(body, "", Theme.TEXT.small, Theme.COLOR.ink, "strong")
     advice.Position = UDim2.fromOffset(0, 168 + HEAD_SHIFT)
     advice.Size = UDim2.new(1, 0, 0, 20)
     advice.ZIndex = Z + 1
+    table.insert(belowTabs, { object = advice, y = 168 + HEAD_SHIFT })
 
     -- multiplicatorul: unul pentru tot panoul
     local bulkRow = Instance.new("Frame")
@@ -529,6 +672,7 @@ function StationPanel.Init(d: Deps)
     bulkRow.BackgroundTransparency = 1
     bulkRow.Position = UDim2.fromOffset(0, 198 + HEAD_SHIFT)
     bulkRow.Size = UDim2.new(1, 0, 0, 44)
+    table.insert(belowTabs, { object = bulkRow, y = 198 + HEAD_SHIFT })
 
     local bulkLabel =
         Widgets.Label(bulkRow, Strings.STATION_BULK, Theme.TEXT.small, Theme.COLOR.inkSoft, "body")
@@ -559,9 +703,10 @@ function StationPanel.Init(d: Deps)
     end
 
     rowHolder = Widgets.List(body, Z + 1, Theme.SPACE.sm)
-    local rowsHolder = rowHolder.Parent :: Frame
-    rowsHolder.Position = UDim2.fromOffset(0, 250 + HEAD_SHIFT)
-    rowsHolder.Size = UDim2.new(1, 0, 1, -(250 + HEAD_SHIFT))
+    rowsFrame = rowHolder.Parent :: Frame
+    rowsFrame.Position = UDim2.fromOffset(0, 250 + HEAD_SHIFT)
+    rowsFrame.Size = UDim2.new(1, 0, 1, -(250 + HEAD_SHIFT))
+    table.insert(belowTabs, { object = rowsFrame, y = 250 + HEAD_SHIFT })
 
     -- Refuzurile de nivel le anunta StationMenu: lista asta a ramas ascunsa (tasta U), iar doua
     -- ascultari ar fi dublat fiecare mesaj.

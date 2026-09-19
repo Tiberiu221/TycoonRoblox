@@ -526,6 +526,14 @@ local function linkRates(flow: ChainMath.Flow): { [string]: number }
     return out
 end
 
+local function eraBottlenecks(s: ChainMath.State): { string }
+    local out: { string } = {}
+    for era in StationConfig.ERA_LINES do
+        out[era] = ChainMath.eraBottleneck(s, era)
+    end
+    return out
+end
+
 -- Tot ce au nevoie meniurile. Se trimite intreg la fiecare TycoonState: e mic si asa clientul nu poate
 -- ramane cu un pret invechit in mana.
 function StationService.Snapshot(player: Player): {
@@ -540,6 +548,7 @@ function StationService.Snapshot(player: Player): {
     ironPlayerShare: number,
     lines: { [string]: LineView },
     linkRates: { [string]: number },
+    eraBottleneck: { string },
 }
     local s = StationService.StateFor(player)
     -- [D64] lantul se socoteste o data: randurile isi citesc veriga slaba din el, pe orice linie, iar clientul primeste
@@ -597,6 +606,8 @@ function StationService.Snapshot(player: Player): {
         -- [D65] VEDEREA PE LINII, pentru orice era: campurile de mai sus raman cele ale Erei 1 (aceleasi cifre)
         lines = lineViews(s, flow),
         linkRates = linkRates(flow),
+        -- veriga care tine venitul fiecarui cartier, dupa numarul erei (vezi ChainMath.eraBottleneck)
+        eraBottleneck = eraBottlenecks(s),
     }
 end
 

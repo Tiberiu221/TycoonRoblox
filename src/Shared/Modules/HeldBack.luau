@@ -17,98 +17,142 @@ local TycoonMath = require(script and script.Parent.TycoonMath or "./TycoonMath"
 
 local HeldBack = {}
 
--- Ce stie clientul despre lant (StationService.Snapshot, vederea plata a Erei 1).
+-- Ce stie clientul despre lant (StationService.Snapshot): VEDEREA PE LINII [D65], aceeasi pentru orice era. Pana la
+-- D65 era vederea plata a Erei 1 (`woodBottleneck`, `ironBottleneck`, `rates.sawing`...), iar regula de mai jos avea
+-- numele liniilor ei batute in cuie.
+export type LineView = { catch: number, bottleneck: string }
 export type View = {
-    bottleneck: string,
-    woodBottleneck: string?,
-    ironBottleneck: string?,
-    rates: { [string]: any },
+    bottleneck: string, -- veriga care tine TOT venitul
+    lines: { [string]: LineView }, -- pe linie: cat prind plasele ei si veriga ei slaba ("" = linia e inca inchisa)
+    linkRates: { [string]: number }, -- debitul fiecarei verigi, dupa nume (plasele nu: au cate un debit pe linie)
+    eraBottleneck: { string }?, -- veriga care tine venitul fiecarui cartier, dupa numarul erei
 }
 
--- Campul din `rates` cu debitul fiecarei verigi. Plasele au cate unul pe linie (vezi `rateOf`).
-local RATE_FIELD: { [string]: string } = {
-    collect = "collect",
-    port = "port",
-    saw = "sawing",
-    haul = "haul",
-    scrapCollect = "scrapCollect",
-    scrapPort = "scrapPort",
-    forge = "forging",
-    ironHaul = "ironHaul",
-    dock = "sales",
-}
+-- Vederea, din lantul motorului. Serverul trimite aceleasi campuri (StationService.Snapshot); testele o iau de aici.
+function HeldBack.viewOf(flow: ChainMath.Flow): View
+    local lines: { [string]: LineView } = {}
+    local linkRates: { [string]: number } = {}
+    for _, line in StationConfig.LINE_ORDER do
+        local lf = flow.lines[line]
+        lines[line] = { catch = lf.catch, bottleneck = lf.bottleneck }
+        for k, step in StationConfig.LINES[line].steps do
+            linkRates[step.link] = lf.values[k]
+        end
+    end
+    for _, seller in StationConfig.SELLER_ORDER do
+        linkRates[seller] = flow.capacity[seller]
+    end
+    return { bottleneck = flow.bottleneck, lines = lines, linkRates = linkRates }
+end
 
--- [D56] Debitul unei verigi, pe linia intrebata: plasele de lemn si plasa de scrap sunt debite diferite.
+-- Liniile unui vanzator, in ordinea in care vinde (intai marfa mai scumpa); nil = `key` nu e un vanzator.
+local function sellerLines(key: string?): { string }?
+    local seller = if key ~= nil then StationConfig.SELLERS[key] else nil
+    return if seller ~= nil then seller.priority else nil
+end
+
+local function lineIsOpen(view: View, line: string): boolean
+    local lv = view.lines[line]
+    return lv ~= nil and lv.bottleneck ~= ""
+end
+
+-- [D56] Debitul unei verigi, pe linia intrebata: plasele fiecarei linii sunt debite diferite. Fara linie, plasele
+-- inseamna tot ce se prinde.
 function HeldBack.rateOf(view: View, link: string, line: string?): number
-    local field = RATE_FIELD[link]
-    if link == "nets" then
-        field = if line == "iron"
-            then "scrapCatch"
-            elseif line == "wood" then "woodCatch"
-            else "catch"
+    if link ~= "nets" then
+        return view.linkRates[link] or 0
     end
-    local value = if field ~= nil then view.rates[field] else nil
-    return if typeof(value) == "number" then value else 0
+    if line ~= nil then
+        local lv = view.lines[line]
+        return if lv ~= nil then lv.catch else 0
+    end
+    local total = 0
+    for _, lv in view.lines do
+        total += lv.catch
+    end
+    return total
 end
 
--- [D56] O veriga intra in comparatie doar pe linia intrebata (plasele si taverna sunt ale amandurora); ale fierului
--- deloc cat linia lui e inchisa -- altfel debitul lor (0) ar iesi "cel mai lent" si ecranul ar trimite la o veriga care
--- nu tine nimic [D40].
-local function inLine(view: View, link: string, line: string?): boolean
-    local of = StationConfig.LINE_OF[link]
-    if of == "iron" and (view.ironBottleneck or "") == "" then
-        return false
+-- Veriga slaba a unei linii ("" cat e inchisa). Fara linie:
+--   * un VANZATOR (taverna, Piata): veriga slaba a primei linii deschise din randul lui. In Era 1 e exact veriga care
+--     tine venitul (o linie tinuta de o veriga a ei castiga cat bucata ei, iar randul vanzatorului e de la scump la
+--     ieftin); din Era 2, fiecare vanzator ramane astfel in cartierul lui: taverna nu trimite la turnatorie;
+--   * orice altceva (traista, clopotul): veriga care tine tot venitul.
+function HeldBack.lineBottleneck(view: View, line: string?, mine: string?): string
+    if line ~= nil then
+        local lv = view.lines[line]
+        return if lv ~= nil then lv.bottleneck else ""
     end
-    return line == nil or of == nil or of == line
-end
-
--- Veriga slaba a unei linii; pentru ce n-are linie (taverna, traista, clopotul), cea care tine venitul.
-function HeldBack.lineBottleneck(view: View, line: string?): string
-    if line == "iron" then
-        return view.ironBottleneck or ""
-    elseif line == "wood" then
-        return view.woodBottleneck or view.bottleneck
+    local mineLines = sellerLines(mine)
+    if mineLines ~= nil then
+        for _, l in mineLines do
+            if lineIsOpen(view, l) then
+                return view.lines[l].bottleneck
+            end
+        end
     end
     return view.bottleneck
 end
 
 -- Veriga care tine pe loc veriga `mine` (nil = un lucru fara veriga a lui, de pilda traista), si daca e doar la
--- egalitate cu ea. SE CHEAMA DOAR CAND CASTIGUL E ZERO: atunci exista sigur una la fel de lenta sau mai lenta. Cu doua
--- marfuri debitele nu se compara intre linii: veriga slaba o spune serverul; comparatia de debite ramane pentru
--- egalitati (eu sunt marcata slaba, dar alta merge exact la fel). Intoarce nil cand linia fierului e inca inchisa: nu e
--- o veriga de reparat, doar nu vine inca nimic.
+-- egalitate cu ea. SE CHEAMA DOAR CAND CASTIGUL E ZERO: atunci exista sigur una la fel de lenta sau mai lenta. Cu mai
+-- multe marfuri debitele nu se compara intre linii: veriga slaba o spune serverul; comparatia de debite ramane pentru
+-- egalitati (eu sunt marcata slaba, dar alta merge exact la fel). Intoarce nil cand linia intrebata e inca inchisa:
+-- nu e o veriga de reparat, doar nu vine inca nimic.
 function HeldBack.by(view: View, mine: string?, line: string?): (string?, boolean)
-    local bottleneck = HeldBack.lineBottleneck(view, line)
-    if line == "iron" and bottleneck == "" then
+    local bottleneck = HeldBack.lineBottleneck(view, line, mine)
+    if line ~= nil and bottleneck == "" then
         return nil, false
     end
     if bottleneck ~= mine and bottleneck ~= "" then
         return bottleneck, false
     end
+    -- Cu cine ma compar: plasele, pasii si vanzatorul liniei mele; de la un vanzator, liniile lui deschise. O linie
+    -- inchisa nu intra: debitul ei (0) ar iesi "cel mai lent" si ecranul ar trimite la o veriga care nu tine nimic.
+    local among: { string } = if line ~= nil
+        then { line }
+        else sellerLines(mine) or StationConfig.LINE_ORDER
     local mineRate = if mine ~= nil then HeldBack.rateOf(view, mine, line) else math.huge
-    local best, bestRate = "dock", math.huge
-    -- [D65] Vederea de aici e cea plata, a Erei 1: se compara doar verigile ei. Piata Erei 2 n-are linie (ca taverna),
-    -- deci fara marginea asta ar fi iesit "cea mai lenta" cu debit 0. Vederea pe linii vine cu docs/PLAN-ERA2.md, pasul 3.
-    for _, link in StationConfig.ERA_LINKS[1] do
-        if link ~= mine and inLine(view, link, line) then
-            local rate = HeldBack.rateOf(view, link, line)
-            if rate < bestRate then
-                best, bestRate = link, rate
+    local best: string? = nil
+    local bestRate = math.huge
+    local function consider(link: string, rate: number)
+        if link ~= mine and rate < bestRate then
+            best, bestRate = link, rate
+        end
+    end
+    for _, l in among do
+        if lineIsOpen(view, l) then
+            consider("nets", view.lines[l].catch)
+            for _, step in StationConfig.LINES[l].steps do
+                consider(step.link, view.linkRates[step.link] or 0)
             end
         end
     end
-    return best, bestRate >= mineRate - 1e-9
+    for _, l in among do
+        local seller = StationConfig.LINES[l].seller
+        consider(seller, view.linkRates[seller] or 0)
+    end
+    return best or StationConfig.LINES[among[1]].seller, bestRate >= mineRate - 1e-9
 end
 
--- Plasele carei linii, cand veriga numita e "nets": a liniei intrebate; fara linie (de la taverna), a liniei in care
--- plasele chiar tin.
-function HeldBack.netsLine(view: View, line: string?): string
+-- Plasele carei linii, cand veriga numita e "nets": a liniei intrebate; fara linie (de la un vanzator), a liniei lui in
+-- care plasele chiar tin, in ordinea liniilor.
+function HeldBack.netsLine(view: View, line: string?, mine: string?): string
     if line ~= nil then
         return line
     end
-    return if view.ironBottleneck == "nets" and view.woodBottleneck ~= "nets"
-        then "iron"
-        else "wood"
+    local mineLines = sellerLines(mine)
+    local first: string? = nil
+    for _, l in StationConfig.LINE_ORDER do
+        if mineLines == nil or table.find(mineLines, l) ~= nil then
+            first = first or l
+            local lv = view.lines[l]
+            if lv ~= nil and lv.bottleneck == "nets" then
+                return l
+            end
+        end
+    end
+    return first or StationConfig.LINE_ORDER[1]
 end
 
 -- Veriga si linia unei PLATFORME, din efectele ei: o plasa tine de linia a ce prinde, un om de linia meseriei lui

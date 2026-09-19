@@ -935,13 +935,17 @@ local function noGainText(pad: TycoonConfig.Pad): string
     end
     local link, line = HeldBack.ofPad(pad)
     if link == nil then
-        return Strings.stationNoEffect(view.bottleneck)
+        -- [D65] veriga care tine venitul CARTIERULUI ei: traista Erei 1 nu trimite la turnatorie
+        local ofEra = if view.eraBottleneck ~= nil then view.eraBottleneck[pad.era] else nil
+        return Strings.stationNoEffect(
+            if ofEra ~= nil and ofEra ~= "" then ofEra else view.bottleneck
+        )
     end
     local key, tie = HeldBack.by(view, link, line)
     if key == nil then
-        return Strings.STATION_NO_SCRAP
+        return Strings.lineNotOpen(line)
     end
-    return Strings.menuHeldBack(key, tie, HeldBack.netsLine(view, line))
+    return Strings.menuHeldBack(key, tie, HeldBack.netsLine(view, line, link))
 end
 
 -- `nearestId`: platforma "available" cea mai apropiata aflata sub 220px, sau nil. Doar geometria

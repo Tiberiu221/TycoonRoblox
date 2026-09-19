@@ -1064,6 +1064,13 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
             else nil
         stationLinkRates[link] = if typeof(rate) == "number" then rate else 0
     end
+    local stationEraBottleneck: { string } = {}
+    for era in StationConfig.ERA_LINES do
+        local link = if typeof(rawStations.eraBottleneck) == "table"
+            then rawStations.eraBottleneck[era]
+            else nil
+        stationEraBottleneck[era] = if typeof(link) == "string" then link else ""
+    end
     local stations = {
         rows = stationRows,
         netLevels = netLevels,
@@ -1099,6 +1106,7 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
         -- [D65] vederea pe linii, pentru orice era (copiata camp cu camp)
         lines = stationLines,
         linkRates = stationLinkRates,
+        eraBottleneck = stationEraBottleneck,
         -- cat faci tu pe fiecare pas fara om; meniul meseriei o spune ("you do this yourself") [D49], pe linii [D56]
         playerShare = rawStations.playerShare or 0,
         ironPlayerShare = rawStations.ironPlayerShare or 0,

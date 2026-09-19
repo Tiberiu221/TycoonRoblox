@@ -46,6 +46,7 @@ require("./VisitMath.test")()
 require("./AmbitionMath.test")()
 require("./HudLayout.test")()
 require("./HeldBack.test")()
+require("./ChainWords.test")() -- [D65]
 require("./FlowMath.test")()
 require("./PassMath.test")()
 require("./DriftMath.test")()
