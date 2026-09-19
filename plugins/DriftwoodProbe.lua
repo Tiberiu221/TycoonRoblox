@@ -318,7 +318,11 @@ local function runClient(id: string, cmd: string)
         end
         local args = {}
         for piece in string.gmatch(rest or "", "[^,]+") do
-            table.insert(args, tonumber(piece) or piece)
+            if piece == "true" or piece == "false" then
+                table.insert(args, piece == "true") -- serverul valideaza tipul: `AtSawmill` cere un boolean adevarat
+            else
+                table.insert(args, tonumber(piece) or piece)
+            end
         end
         remote:FireServer(table.unpack(args))
         emit(id, { ok = true, fired = remoteName, args = args })

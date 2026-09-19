@@ -114,7 +114,17 @@ e gata. Detaliile și sursele sunt în DECIZII D63. **Nimic din ce urmează n-a 
   oprește singură un Play și citește clientul prin jurnalul Studio. Fereastra de editare o încarcă abia după o
   repornire a Studio-ului. Cu ea se verifică tot ce e nevăzut: `python3 scripts/probe.py play`, `wait-boot`, `errors`,
   `client texts`.
-- **De făcut cu sonda, nu pe nevăzute:** textul e prea mic pe telefon (interfața e la 62%: 13 px → ~8 px).
+- **Era 1, jucată de sondă pe 2026-09-19, fără nicio eroare:** turul de mână, cele cinci angajări (36 de monede),
+  peștele (21 de perle), primul decor, niveluri până la 32, linia fierului, clopotul; toate panourile satului fără
+  text care nu încape sau se calcă (la 1704×809). Un joc de probă: `python3 scripts/probe.py play`, `wait-boot`, apoi
+  `client fire:BuyPad:first_net` (aceleași cereri ca butoanele jocului; `AtSawmill:true` se retrimite la ~7 s),
+  `dev coins:30`, `client ui:station:net:first_net`, `client texts:HUD`, `errors`, `stop`. Rulează mereu pe **profil de
+  probă** (jocul scrie `save: probe run`), iar comenzile de dev sunt refuzate pe o salvare adevărată.
+- **Ce NU vede sonda:** animațiile. Cât Studio e în fundal, clientul nu-și rulează tween-urile (contorul de monede
+  rămâne în urmă, textele plutitoare îngheață): e artefact de test, nu defect. Sărbătorirea nivelurilor, bannerele și
+  zborul monedelor le poate judeca doar owner-ul.
+- **De făcut cu sonda, nu pe nevăzute:** textul e prea mic pe telefon (interfața e la 62%: 13 px → ~8 px). Cere
+  emulatorul de dispozitiv din Studio pus pe un telefon.
 - **Era 2 [D64]:** owner-ul a respins multiplicatoarele din D63. **Regula unei ere:** începi cu marfa apărută la
   finalul erei dinainte, iar spre final apare una nouă, cu plasa, atelierul și oamenii ei; fiecare eră își vinde marfa
   la clădirea ei (Era 2: o Piață). Roadmap-ul până la Era 8 e în D64 (a treia variantă; primele două, respinse): piese de mașini → cupru →
