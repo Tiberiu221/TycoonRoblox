@@ -1,6 +1,6 @@
-run: 35462985675
-sha: 915c2fd4c580db97e01966e1010c5110781c1505
-finished: 2026-09-19T19:04:14Z
+run: 35463725506
+sha: f9fbf8a62f2a151da41b20f56f643f6a0b9e6715
+finished: 2026-09-19T19:19:42Z
 lint-format-test: success
 publish-staging: failure
 smoke-test-staging: skipped
@@ -29,12 +29,12 @@ steps:
   publish-staging / Run actions/checkout@v4: success
   publish-staging / Install Rokit: success
   publish-staging / Run echo "$HOME/.rokit/bin" >> "$GITHUB_PATH": success
-  publish-staging / Run bash scripts/ci_retry.sh rokit install --no-trust-check: failure
-  publish-staging / Run bash scripts/ci_retry.sh wally install: skipped
-  publish-staging / Build place: skipped
-  publish-staging / Build fair place: skipped
-  publish-staging / Publish to Driftwood-Staging (Open Cloud): skipped
-  publish-staging / Publish fair place to Driftwood-Staging (Open Cloud): failure
+  publish-staging / Run bash scripts/ci_retry.sh rokit install --no-trust-check: success
+  publish-staging / Run bash scripts/ci_retry.sh wally install: success
+  publish-staging / Build place: success
+  publish-staging / Build fair place: success
+  publish-staging / Publish to Driftwood-Staging (Open Cloud): failure
+  publish-staging / Publish fair place to Driftwood-Staging (Open Cloud): success
   publish-staging / Upload artifact tagged with versionNumber: skipped
   publish-staging / Post Run actions/checkout@v4: success
   publish-staging / Complete job: success
