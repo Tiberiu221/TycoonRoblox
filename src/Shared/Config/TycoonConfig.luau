@@ -489,7 +489,7 @@ TycoonConfig.PADS = {
     pad({
         id = "first_runner", -- id-ul vechi: e cheia omului in profil [D49]
         index = 2,
-        blurb = "Someone to empty your nets into the storage.",
+        blurb = "Someone to empty your nets into the Storage.",
         note = "Your nets get emptied, forever",
         name = "Collector",
         era = 1,
@@ -507,7 +507,7 @@ TycoonConfig.PADS = {
     pad({
         id = "hire_porter",
         index = 3,
-        blurb = "Someone to carry logs from the storage to the sawmill.",
+        blurb = "Someone to carry logs from the Storage to the Sawmill.",
         note = "The storage empties itself",
         name = "Porter",
         era = 1,
@@ -539,8 +539,8 @@ TycoonConfig.PADS = {
     pad({
         id = "hire_hauler",
         index = 5,
-        blurb = "Someone to take the planks from the sawmill to the tavern.",
-        note = "Planks reach the tavern on their own",
+        blurb = "Someone to take the planks from the Sawmill to the Tavern.",
+        note = "Planks reach the Tavern on their own",
         name = "Hauler",
         era = 1,
         motive = "A",
@@ -555,7 +555,7 @@ TycoonConfig.PADS = {
     pad({
         id = "dock_trader",
         index = 6,
-        blurb = "Someone to run the tavern while you walk the bank.",
+        blurb = "Someone to run the Tavern while you walk the bank.",
         note = "The tavern sells without you",
         name = "Innkeeper",
         era = 1,
@@ -724,7 +724,7 @@ TycoonConfig.PADS = {
     pad({
         id = "hire_smelter",
         index = 16,
-        blurb = "Someone to work the forge so you don't have to stand there.",
+        blurb = "Someone to work the Forge so you don't have to stand there.",
         note = "The forge runs without you",
         name = "Smelter",
         era = 1,
@@ -740,8 +740,8 @@ TycoonConfig.PADS = {
     pad({
         id = "hire_iron_hauler",
         index = 17,
-        blurb = "Someone to take the iron from the Forge to the tavern.",
-        note = "Iron reaches the tavern on its own",
+        blurb = "Someone to take the iron from the Forge to the Tavern.",
+        note = "Iron reaches the Tavern on its own",
         name = "Iron Hauler",
         era = 1,
         motive = "A",

@@ -62,7 +62,7 @@ VillageConfig.DECOR = {
     {
         id = "bench",
         name = "Bench",
-        where = "By the tavern square",
+        where = "By the Tavern square",
         price = 40,
         sprite = "bench",
         scale = 2,
