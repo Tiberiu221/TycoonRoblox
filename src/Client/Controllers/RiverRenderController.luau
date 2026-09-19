@@ -7,6 +7,7 @@ local Workspace = game:GetService("Workspace")
 local RiverSim = require(ReplicatedStorage.Shared.Modules.RiverSim)
 local RiverConfig = require(ReplicatedStorage.Shared.Config.RiverConfig)
 local Assets = require(ReplicatedStorage.Shared.Config.Assets)
+local GoodArt = require(script.Parent.Parent.UI.GoodArt)
 local CatchFloat = require(ReplicatedStorage.Shared.Modules.CatchFloat)
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 local SceneArt = require(script.Parent.SceneArt)
@@ -116,8 +117,8 @@ local function farGood(objId: number): string
 end
 
 local function styleFar(frame: Frame, good: string)
-    -- [D65] marfa Erei 2 poarta desenul perechii din Era 1 pana la arta ei
-    local sprite = (Assets.goods :: any)[TycoonConfig.lookOf(good)] or Assets.goods.driftwood
+    -- [D65] desenul marfii cand e urcat, altfel al perechii din Era 1 (UI/GoodArt)
+    local sprite = GoodArt.icon(good) or Assets.goods.driftwood
     local w = sprite.width * Assets.PIXEL_SCALE * FAR_SCALE
     local h = sprite.height * Assets.PIXEL_SCALE * FAR_SCALE
     frame.Size = UDim2.fromOffset(math.round(w), math.round(h))

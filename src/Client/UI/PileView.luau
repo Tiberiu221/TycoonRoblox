@@ -18,6 +18,7 @@ local Assets = require(ReplicatedStorage.Shared.Config.Assets)
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
 local Theme = require(script.Parent.Theme)
+local GoodArt = require(script.Parent.GoodArt)
 local Widgets = require(script.Parent.Widgets)
 
 local PileView = {}
@@ -46,6 +47,10 @@ local PILE_OF: { [string]: string } = {
     scrap = "pile_scrap",
     shards = "pile_scrap",
     iron = "pile_iron",
+    -- [D65] marfa Morii; cat fasia ei nu e urcata, gramada o poarta pe a perechii (UI/GoodArt)
+    parts = "pile_parts",
+    ore = "pile_ore",
+    copper = "pile_copper",
 }
 -- al doilea fel: la 70%, lipit in dreapta, cel mult treapta 2 -- se citeste "si asta", nu "a doua gramada"
 local SECOND_SCALE = 0.7
@@ -62,12 +67,10 @@ local function stepOf(count: number): number
 end
 
 local function pileSprite(good: string): Assets.Sprite?
-    local key = PILE_OF[TycoonConfig.lookOf(good)] -- [D65] marfa Erei 2 imprumuta desenul perechii ei
-    local sprite = if key ~= nil then (Assets.tycoon :: any)[key] else nil
-    if sprite == nil or not Assets.has(sprite) then
-        return nil
-    end
-    return sprite
+    return GoodArt.pick(good, function(g: string): Assets.Sprite?
+        local key = PILE_OF[g]
+        return if key ~= nil then (Assets.tycoon :: any)[key] else nil
+    end)
 end
 
 local function stageImage(parent: Instance, name: string, z: number): ImageLabel
@@ -97,15 +100,10 @@ local SLOTS = {
 
 -- Obiectele cu nume folosesc lada; un bun fara arta urcata cade pe bustean, nu dispare.
 local function goodSprite(raw: string): Assets.Sprite
-    local good = TycoonConfig.lookOf(raw) -- [D65]
-    if good == "named" then
+    if TycoonConfig.lookOf(raw) == "named" then
         return Assets.crate.common
     end
-    local sprite = (Assets.goods :: any)[good]
-    if sprite == nil or not Assets.has(sprite) then
-        return Assets.goods.driftwood
-    end
-    return sprite
+    return GoodArt.icon(raw) or Assets.goods.driftwood -- [D65]
 end
 
 local function flatten(contents: { [string]: number }): { string }

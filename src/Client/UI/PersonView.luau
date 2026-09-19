@@ -12,7 +12,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local AnimConfig = require(ReplicatedStorage.Shared.Config.AnimConfig)
 local Assets = require(ReplicatedStorage.Shared.Config.Assets)
-local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
+local HandConfig = require(ReplicatedStorage.Shared.Config.HandConfig)
+local GoodArt = require(script.Parent.GoodArt)
 
 export type Appearance = {
     body: string,
@@ -66,6 +67,10 @@ local LOAD_SPRITE: { [string]: string } = {
     shards = "load_scrap",
     iron = "load_iron",
     named = "load_crate",
+    -- [D65] marfa Morii; cat fasia ei nu e urcata, roaba o poarta pe a perechii (UI/GoodArt)
+    parts = "load_parts",
+    ore = "load_ore",
+    copper = "load_copper",
 }
 
 local function rgbOf(triple: { number }): Color3
@@ -262,9 +267,13 @@ function PersonView.new(parent: Instance, name: string, held: string?): View
         )
         setIfChanged(c, "ZIndex", if at.load.over then 3 else 1)
         setIfChanged(c, "ImageTransparency", if task == "tip" and frameIndex == 3 then 0.6 else 0)
-        local loadSprite = if cargoKind ~= nil
-            then (Assets.tycoon :: any)[LOAD_SPRITE[TycoonConfig.lookOf(cargoKind :: string)] or "load_logs"]
-            else nil
+        local loadSprite: Assets.Sprite? = nil
+        if cargoKind ~= nil then
+            loadSprite = GoodArt.pick(cargoKind :: string, function(g: string): Assets.Sprite?
+                local key = LOAD_SPRITE[g]
+                return if key ~= nil then (Assets.tycoon :: any)[key] else nil
+            end) or Assets.tycoon.load_logs
+        end
         local show = cargoStep > 0 and loadSprite ~= nil and Assets.has(loadSprite)
         setIfChanged(c, "Visible", show)
         if show then
@@ -362,6 +371,13 @@ function PersonView.new(parent: Instance, name: string, held: string?): View
             end
             if outfit ~= nil then
                 local outfitSheet = (Assets.people.outfit :: any)[a.outfit]
+                if outfitSheet == nil or not Assets.has(outfitSheet) then
+                    -- [D65] tinuta inca neurcata: omul o poarta pe a meseriei-pereche din Era 1
+                    local borrowed = HandConfig.OUTFIT_LOOKS_LIKE[a.outfit]
+                    if borrowed ~= nil then
+                        outfitSheet = (Assets.people.outfit :: any)[borrowed]
+                    end
+                end
                 if outfitSheet ~= nil and Assets.has(outfitSheet) then
                     setIfChanged(outfit, "Image", Assets.url(outfitSheet))
                     setIfChanged(outfit, "ImageTransparency", 0)

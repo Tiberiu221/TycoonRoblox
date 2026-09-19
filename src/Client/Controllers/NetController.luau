@@ -28,6 +28,7 @@ local Assets = require(ReplicatedStorage.Shared.Config.Assets)
 local Strings = require(ReplicatedStorage.Shared.Config.Strings)
 local SceneArt = require(script.Parent.SceneArt)
 local Theme = require(script.Parent.Parent.UI.Theme)
+local GoodArt = require(script.Parent.Parent.UI.GoodArt)
 local Focus = require(script.Parent.Parent.UI.Focus)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
 local Pop = require(script.Parent.Parent.UI.Pop)
@@ -174,11 +175,11 @@ end
 -- Sprite-ul unui bun stivuit sau care pluteste: obiectele cu nume folosesc lada (tierul nu se
 -- pastreaza in rezumatul `contents`, doar count-ul), restul sprite-ul lor propriu [F1 spec 4.2].
 local function goodSprite(raw: string): Assets.Sprite
-    local good = TycoonConfig.lookOf(raw) -- [D65] marfa Erei 2 imprumuta desenul perechii ei pana la arta ei
-    if good == "named" then
-        return Assets.crate.common
+    if TycoonConfig.lookOf(raw) == "named" then
+        return Assets.crate.common -- o gasire, din orice era
     end
-    return (Assets.goods :: any)[good] or Assets.goods.driftwood
+    -- [D65] desenul marfii cand e urcat, altfel al perechii din Era 1 (UI/GoodArt)
+    return GoodArt.icon(raw) or Assets.goods.driftwood
 end
 
 -- Marimea unui bun stivuit: incadrat in NET_ITEM_MAX pe latura mare, pastrand proportia -- altfel

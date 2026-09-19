@@ -28,18 +28,32 @@ HandConfig.ROLE_OUTFIT = {
     scrapPorter = "Carter",
     smelter = "Smith", -- sortul de piele: el e cel care lucreaza la foc
     ironHauler = "Ironmonger",
-    -- [D65] Era 2. PANA LA ARTA LOR (docs/PLAN-ERA2.md, pasul 7) poarta tinuta meseriei-pereche din Era 1, ca jocul sa se
-    -- poata juca si verifica; tinutele proprii vin pe plansa, cu acordul owner-ului.
-    millCollector = "Fisher",
-    millPorter = "Crafter",
-    founder = "Builder",
-    partsHauler = "Gardener",
-    merchant = "Innkeeper",
-    oreCollector = "Scrapper",
-    orePorter = "Carter",
-    coppersmith = "Smith",
-    copperHauler = "Ironmonger",
+    -- [D65] Era 2: tinutele oamenilor Morii (scripts/art/settlers.py). Cat foaia unei tinute nu e urcata, clientul o
+    -- deseneaza cu a meseriei-pereche din Era 1 (OUTFIT_LOOKS_LIKE, mai jos).
+    millCollector = "Gleaner",
+    millPorter = "Drayman",
+    founder = "Founder",
+    partsHauler = "Wheelwright",
+    merchant = "Merchant",
+    oreCollector = "Prospector",
+    orePorter = "Mucker",
+    coppersmith = "Coppersmith",
+    copperHauler = "Teamster",
 }
+
+-- [D65] DESENUL DE IMPRUMUT al unei tinute inca neurcate: tinuta meseriei-pereche din Era 1. Il intreaba doar cine
+-- deseneaza (PersonView), si doar cand foaia lipseste; regula "rolul isi poarta tinuta" ramane ROLE_OUTFIT.
+HandConfig.OUTFIT_LOOKS_LIKE = {
+    Gleaner = "Fisher",
+    Drayman = "Crafter",
+    Founder = "Builder",
+    Wheelwright = "Gardener",
+    Merchant = "Innkeeper",
+    Prospector = "Scrapper",
+    Mucker = "Carter",
+    Coppersmith = "Smith",
+    Teamster = "Ironmonger",
+} :: { [string]: string }
 
 -- [D56, D65] Meseriile care au cadrele "la lucru" (ciocanul in mana) pe foaia tinutei: omul forjei si, cu tinuta lui de
 -- imprumut, omul cuptorului de cupru. Bat doar cat atelierul chiar lucreaza.

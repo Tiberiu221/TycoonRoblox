@@ -16,8 +16,20 @@ local ChainMath = require(script and script.Parent.ChainMath or "./ChainMath")
 local CrewMath = require(script and script.Parent.CrewMath or "./CrewMath")
 local HandRoutes = require(script and script.Parent.HandRoutes or "./HandRoutes")
 local TycoonMath = require(script and script.Parent.TycoonMath or "./TycoonMath")
+local HandConfig =
+    require(script and script.Parent.Parent.Config.HandConfig or "../Config/HandConfig")
 
 local VillageLook = {}
+
+-- Infatisarea unui om, cu tinuta ROLULUI lui (HandConfig.ROLE_OUTFIT). O copie: profilul nu se atinge.
+local function dressed(appearance: any, role: string): any
+    if typeof(appearance) ~= "table" then
+        return appearance
+    end
+    local copy = table.clone(appearance)
+    copy.outfit = HandConfig.ROLE_OUTFIT[role] or copy.outfit
+    return copy
+end
 
 export type HandSnap = {
     id: string,
@@ -124,7 +136,9 @@ function VillageLook.hands(data: { [string]: any }): { HandSnap }
             carrying = #hand.carry,
             carryKind = VillageLook.carryKind(hand.carry), -- [D55] ce se vede in roaba
             capacity = capacity,
-            appearance = hand.appearance,
+            -- [D65] tinuta vine din ROL, nu din ce s-a salvat la angajare: cand meseria isi primeste tinuta ei (oamenii
+            -- Morii au purtat-o pe a perechii din Era 1), o poarta si cei angajati deja [D44: rolul isi poarta tinuta]
+            appearance = dressed(hand.appearance, hand.role),
             x = if stand ~= nil then stand.x else nil,
             y = if stand ~= nil then stand.y else nil,
         })

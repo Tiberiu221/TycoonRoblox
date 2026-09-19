@@ -452,9 +452,15 @@ function VillageDiorama.Show(village: VillageLook.Snapshot)
     -- din Era 1, ca in LineController)
     if village.pads.water_wheel then
         local tycoon: any = Assets.tycoon
-        station(p, tycoon.storage, TycoonConfig.MILL_STORE, Strings.LINE_WORDS.parts.store, false)
-        station(p, tycoon.sawmill, TycoonConfig.FOUNDRY, Strings.LINE_WORDS.parts.processor, false)
-        station(p, tycoon.tavern, TycoonConfig.MARKET, Strings.MARKET_LABEL, true)
+        -- desenul cladirii cand e urcat, altfel al perechii din Era 1
+        local function art(own: string, borrowed: string): Assets.Sprite?
+            local sprite = tycoon[own]
+            return if sprite ~= nil and Assets.has(sprite) then sprite else tycoon[borrowed]
+        end
+        local words = Strings.LINE_WORDS.parts
+        station(p, art("mill_store", "storage"), TycoonConfig.MILL_STORE, words.store, false)
+        station(p, art("foundry", "sawmill"), TycoonConfig.FOUNDRY, words.processor, false)
+        station(p, art("market", "tavern"), TycoonConfig.MARKET, Strings.MARKET_LABEL, true)
     end
 
     for _, pad in TycoonConfig.PADS do

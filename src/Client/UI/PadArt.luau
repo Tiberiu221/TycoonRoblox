@@ -8,6 +8,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Assets = require(ReplicatedStorage.Shared.Config.Assets)
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 local ChainMath = require(ReplicatedStorage.Shared.Modules.ChainMath)
+local GoodArt = require(script.Parent.GoodArt)
 
 local PadArt = {}
 
@@ -23,9 +24,23 @@ PadArt.HOME_SPRITES = {
     hire_scrap_porter = { "hut_scrap_porter_1", "hut_scrap_porter_2" },
     hire_smelter = { "hut_smelter_1", "hut_smelter_2" },
     hire_iron_hauler = { "hut_iron_hauler_1", "hut_iron_hauler_2" },
+    -- [D65] oamenii Morii (scripts/art/d65_crew.py). Cat casele lor nu sunt urcate, platforma o poarta pe a perechii
+    -- din Era 1 (`home` mai jos).
+    hire_mill_collector = { "hut_mill_collector_1", "hut_mill_collector_2" },
+    hire_mill_porter = { "hut_mill_porter_1", "hut_mill_porter_2" },
+    hire_founder = { "hut_founder_1", "hut_founder_2" },
+    hire_parts_hauler = { "hut_parts_hauler_1", "hut_parts_hauler_2" },
+    hire_merchant = { "stall_merchant", "stall_merchant_2" },
+    hire_ore_collector = { "hut_ore_collector_1", "hut_ore_collector_2" },
+    hire_ore_porter = { "hut_ore_porter_1", "hut_ore_porter_2" },
+    hire_coppersmith = { "hut_coppersmith_1", "hut_coppersmith_2" },
+    hire_copper_hauler = { "hut_copper_hauler_1", "hut_copper_hauler_2" },
 } :: { [string]: { string } }
 -- taraba ramane recuzita mica (x2); colibele sunt cladiri (x3)
-PadArt.HOME_SCALE = { dock_trader = TycoonConfig.PROP_SCALE } :: { [string]: number }
+PadArt.HOME_SCALE = {
+    dock_trader = TycoonConfig.PROP_SCALE,
+    hire_merchant = TycoonConfig.PROP_SCALE,
+} :: { [string]: number }
 
 -- Avizierele: pe oameni ii angajezi, nu ii reconstruiesti. Pictograma meseriei pe avizierul curat.
 PadArt.BOARD_ICON = {
@@ -50,6 +65,32 @@ PadArt.BOARD_ICON = {
     end,
     hire_iron_hauler = function()
         return Assets.goods.iron
+    end,
+    -- [D65] oamenii Morii, pe aceeasi regula: plasa, marfa bruta, ciocanul, marfa gata (GoodArt: desenul marfii cand e
+    -- urcat, altfel al perechii)
+    hire_mill_collector = function()
+        return Assets.icons.net
+    end,
+    hire_mill_porter = function()
+        return Assets.goods.scrap
+    end,
+    hire_founder = function()
+        return Assets.icons.hammer
+    end,
+    hire_parts_hauler = function()
+        return GoodArt.icon("parts") or Assets.goods.iron
+    end,
+    hire_ore_collector = function()
+        return Assets.icons.net
+    end,
+    hire_ore_porter = function()
+        return GoodArt.icon("ore") or Assets.goods.scrap
+    end,
+    hire_coppersmith = function()
+        return Assets.icons.hammer
+    end,
+    hire_copper_hauler = function()
+        return GoodArt.icon("copper") or Assets.goods.iron
     end,
 } :: { [string]: () -> Assets.Sprite }
 
@@ -83,21 +124,27 @@ function PadArt.laneOf(pad: TycoonConfig.Pad): number
     return lane
 end
 
--- [D55] Casa omului, dupa cati sunt pe meserie: a doua treapta cand sunt doi. Arta lipsa cade pe prima.
-function PadArt.home(padId: string, count: number): (Assets.Sprite?, number)
-    local look = lookOf(padId, PadArt.HOME_SPRITES)
-    local names = PadArt.HOME_SPRITES[look]
-    if names == nil then
-        return nil, Assets.PIXEL_SCALE
-    end
-    local scale = PadArt.HOME_SCALE[look] or Assets.PIXEL_SCALE
-    for i = math.clamp(count, 1, #names), 1, -1 do
-        local sprite = (Assets.tycoon :: any)[names[i]]
-        if sprite ~= nil and Assets.has(sprite) then
-            return sprite, scale
+-- Numele desenului de casa ales pentru platforma asta (si scara lui): cel mai mare urcat, pana la `count`. [D65] Intai
+-- din casele platformei insesi, apoi din ale perechii din Era 1 (cat arta Morii nu e urcata).
+local function homeSpriteName(padId: string, count: number): (string?, number)
+    for _, id in { padId, TycoonConfig.PAD_LOOKS_LIKE[padId] or padId } do
+        local names = PadArt.HOME_SPRITES[id]
+        if names ~= nil then
+            for i = math.clamp(count, 1, #names), 1, -1 do
+                local sprite = (Assets.tycoon :: any)[names[i]]
+                if sprite ~= nil and Assets.has(sprite) then
+                    return names[i], PadArt.HOME_SCALE[id] or Assets.PIXEL_SCALE
+                end
+            end
         end
     end
-    return nil, scale
+    return nil, Assets.PIXEL_SCALE
+end
+
+-- [D55] Casa omului, dupa cati sunt pe meserie: a doua treapta cand sunt doi. Arta lipsa cade pe prima.
+function PadArt.home(padId: string, count: number): (Assets.Sprite?, number)
+    local name, scale = homeSpriteName(padId, count)
+    return if name ~= nil then (Assets.tycoon :: any)[name] else nil, scale
 end
 
 -- [D62, pasul 5] CLADIRILE LANTULUI, dupa nivel: `kind` e statia ("saw" gaterul, "dock" taverna, "forge" forja). De la
@@ -127,7 +174,34 @@ end
 
 -- Ce sta pe o platforma cumparata. Casele oamenilor vin din `home` [D55]; taraba a ramas a Negustorului cand Sorting
 -- Crate si Dock Stall au devenit niveluri ale debarcaderului [E1.3]. `forgeLevel`: nivelul forjei, pentru desenul ei.
+-- [D65] Cladirile Morii care stau pe platforme, cu arta lor (scripts/art/d65_mill.py); cat nu e urcata, mai jos.
+local OWN_BUILT: { [string]: string } = {
+    water_wheel = "water_wheel",
+    copper_furnace = "copper_furnace",
+    ore_shed = "ore_shed",
+    mill_bell = "mill_bell",
+}
+local OWN_RUIN: { [string]: string } = {
+    water_wheel = "ruin_water_wheel",
+    copper_furnace = "ruin_copper_furnace",
+    ore_shed = "ruin_ore_shed",
+    mill_bell = "ruin_mill_bell",
+}
+
+local function ownSprite(tbl: { [string]: string }, padId: string): Assets.Sprite?
+    local key = tbl[padId]
+    local sprite = if key ~= nil then (Assets.tycoon :: any)[key] else nil
+    return if sprite ~= nil and Assets.has(sprite) then sprite else nil
+end
+
 function PadArt.bought(padId: string, count: number, forgeLevel: number?): (Assets.Sprite?, number)
+    local own = ownSprite(OWN_BUILT, padId)
+    if own ~= nil then
+        return own, Assets.PIXEL_SCALE
+    end
+    if PadArt.HOME_SPRITES[padId] ~= nil then
+        return PadArt.home(padId, count) -- casa ei, sau a perechii cat nu e urcata
+    end
     if padId == "water_wheel" then
         -- [D65] pana la arta ei: roata de la carma (tot o roata de lemn), ca locul sa se vada
         return Assets.tycoon.wheel, Assets.PIXEL_SCALE
@@ -149,6 +223,10 @@ end
 
 -- [D53] Ruina de pe locul unei platforme necumparate.
 function PadArt.ruin(padId: string): (Assets.Sprite?, number)
+    local own = ownSprite(OWN_RUIN, padId)
+    if own ~= nil then
+        return own, Assets.PIXEL_SCALE
+    end
     if padId == "water_wheel" then
         return Assets.tycoon.ruin_hut, Assets.PIXEL_SCALE -- [D65] de imprumut, pana la arta ei
     end
@@ -206,21 +284,22 @@ PadArt.CHIMNEY = {
     hut_smelter_1 = { 0.688, 0.04 },
     hut_smelter_2 = { 0.688, 0.03 },
     hut_iron_hauler_2 = { 0.275, 0.03 },
+    -- [D65] casele Morii (scripts/art/d65_crew.py): hornul de caramida al Founder-ului, cel incins in cupru al
+    -- Coppersmith-ului, hornurile caselor mari
+    hut_mill_porter_2 = { 0.7625, 0.03 },
+    hut_founder_1 = { 0.672, 0.03 },
+    hut_founder_2 = { 0.6875, 0.03 },
+    hut_parts_hauler_2 = { 0.275, 0.03 },
+    hut_ore_porter_2 = { 0.75, 0.03 },
+    hut_coppersmith_1 = { 0.672, 0.03 },
+    hut_coppersmith_2 = { 0.6875, 0.03 },
+    hut_copper_hauler_2 = { 0.275, 0.03 },
 } :: { [string]: { number } }
 
 -- Hornul casei desenate acum pentru platforma asta (dupa cati oameni are meseria), sau nil.
 function PadArt.chimneyOf(padId: string, count: number): { number }?
-    local names = PadArt.HOME_SPRITES[lookOf(padId, PadArt.HOME_SPRITES)]
-    if names == nil then
-        return nil
-    end
-    for i = math.clamp(count, 1, #names), 1, -1 do
-        local sprite = (Assets.tycoon :: any)[names[i]]
-        if sprite ~= nil and Assets.has(sprite) then
-            return PadArt.CHIMNEY[names[i]]
-        end
-    end
-    return nil
+    local name = homeSpriteName(padId, count)
+    return if name ~= nil then PadArt.CHIMNEY[name] else nil
 end
 
 -- [D58] Numele de sub casa unei meserii, sau nil daca platforma nu e a unei meserii.

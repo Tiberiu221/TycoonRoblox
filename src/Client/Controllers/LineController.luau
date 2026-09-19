@@ -60,8 +60,19 @@ export type SellerState = {
     contents: { [string]: number },
 }
 
--- O cladire fixa a cartierului: unde sta (mijlocul, baza), cat e de mare si ce desen are (cheia din Assets.tycoon).
-export type Building = { x: number, y: number, w: number, h: number, sprite: string, label: string }
+-- O cladire fixa a cartierului: unde sta (mijlocul, baza), cat e de mare si ce desen are (cheile din Assets.tycoon):
+-- `sprite` = desenul ei; `borrowed` = al perechii din Era 1, purtat cat al ei nu e urcat; `ruin` = ce se vede pe locul
+-- ei cat cartierul e inca inchis [D53, D65] (fara ruina urcata, locul ramane gol, ca pana acum).
+export type Building = {
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    sprite: string,
+    borrowed: string?,
+    ruin: string?,
+    label: string,
+}
 
 export type Line = {
     Apply: (
@@ -91,10 +102,34 @@ end
 
 -- Desenul unei cladiri fixe: sprite-ul ei, prins de baza, cu umbra pe pamant si numele deasupra usii. Fara arta urcata
 -- inca, o cutie de lemn ii tine locul, ca locul sa se vada si sa se poata verifica.
+local function uploaded(key: string?): Assets.Sprite?
+    local sprite = if key ~= nil then (Assets.tycoon :: any)[key] else nil
+    return if sprite ~= nil and Assets.has(sprite) then sprite else nil
+end
+
+-- Ruina de pe locul unei cladiri fixe, cat cartierul e inchis; nil daca desenul ei nu e urcat.
+local function drawRuin(b: Building): GuiObject?
+    local sprite = uploaded(b.ruin)
+    if sprite == nil then
+        return nil
+    end
+    local img = Instance.new("ImageLabel")
+    img.Name = b.label .. "Ruin"
+    img.BackgroundTransparency = 1
+    img.Image = Assets.url(sprite)
+    img.ResampleMode = Enum.ResamplerMode.Pixelated
+    img.AnchorPoint = Vector2.new(0.5, 1)
+    img.Position = UDim2.fromOffset(b.x, b.y)
+    img.Size = UDim2.fromOffset(b.w, b.h)
+    img.ZIndex = 5 + math.clamp(math.floor(b.y / 64), 0, 40)
+    img.Parent = deps.Plot
+    return img
+end
+
 local function drawBuilding(b: Building): (GuiObject, TextLabel)
-    local sprite = (Assets.tycoon :: any)[b.sprite]
+    local sprite = uploaded(b.sprite) or uploaded(b.borrowed)
     local art: GuiObject
-    if sprite ~= nil and Assets.has(sprite) then
+    if sprite ~= nil then
         local img = Instance.new("ImageLabel")
         img.BackgroundTransparency = 1
         img.Image = Assets.url(sprite)
@@ -162,12 +197,21 @@ function LineController.line(
     local outPile = PileView.new(deps.Plot, places.outPile.x, places.outPile.y, { warnAt = 40 })
 
     local storeArt: GuiObject?, storeLabel: TextLabel? = nil, nil
+    local ruins: { GuiObject } = {}
     if storeBuilding ~= nil then
         storeArt, storeLabel = drawBuilding(storeBuilding)
+        local ruin = drawRuin(storeBuilding)
+        if ruin ~= nil then
+            table.insert(ruins, ruin)
+        end
     end
     local processorArt: GuiObject?, processorLabel: TextLabel? = nil, nil
     if processorBuilding ~= nil then
         processorArt, processorLabel = drawBuilding(processorBuilding)
+        local ruin = drawRuin(processorBuilding)
+        if ruin ~= nil then
+            table.insert(ruins, ruin)
+        end
     end
 
     StandRing.new({
@@ -235,6 +279,9 @@ function LineController.line(
             if part ~= nil then
                 part.Visible = processorOpen
             end
+        end
+        for _, ruin in ruins do
+            ruin.Visible = not processorOpen
         end
     end
 
@@ -318,6 +365,7 @@ function LineController.seller(seller: string, building: Building): Seller
     local isOpen = false
     local pile = PileView.new(deps.Plot, places.pile.x, places.pile.y, { warnAt = 60 })
     local art, label = drawBuilding(building)
+    local ruin = drawRuin(building)
 
     local self = {}
 
@@ -326,6 +374,9 @@ function LineController.seller(seller: string, building: Building): Seller
         isOpen = open
         art.Visible = open
         label.Visible = open
+        if ruin ~= nil then
+            ruin.Visible = not open
+        end
         if state ~= nil then
             pile.Set(state.count, state.contents)
         end

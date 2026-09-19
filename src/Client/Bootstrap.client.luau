@@ -252,22 +252,44 @@ safeInit("ForgeController", function()
         Remotes = { UsePlace = Net.Get("UsePlace"), AtPlace = Net.Get("AtPlace") },
         CharacterPos = CharacterController.Position,
     })
+    -- `own` = desenul cladirii (scripts/art/d65_mill.py), `borrowed` = al perechii din Era 1, purtat cat al ei nu e
+    -- urcat; ruina se vede pe locul ei cat Moara e inchisa
     local function fixedBuilding(
         spot: { x: number, y: number, w: number, h: number },
-        sprite: string,
+        own: string,
+        borrowed: string,
         label: string
-    )
-        return { x = spot.x, y = spot.y, w = spot.w, h = spot.h, sprite = sprite, label = label }
+    ): LineController.Building
+        return {
+            x = spot.x,
+            y = spot.y,
+            w = spot.w,
+            h = spot.h,
+            sprite = own,
+            borrowed = borrowed,
+            ruin = "ruin_" .. own,
+            label = label,
+        }
     end
     millLines.parts = LineController.line(
         "parts",
-        fixedBuilding(TycoonConfig.MILL_STORE, "storage", Strings.LINE_WORDS.parts.store),
-        fixedBuilding(TycoonConfig.FOUNDRY, "sawmill", Strings.LINE_WORDS.parts.processor)
+        fixedBuilding(
+            TycoonConfig.MILL_STORE,
+            "mill_store",
+            "storage",
+            Strings.LINE_WORDS.parts.store
+        ),
+        fixedBuilding(
+            TycoonConfig.FOUNDRY,
+            "foundry",
+            "sawmill",
+            Strings.LINE_WORDS.parts.processor
+        )
     )
     millLines.copper = LineController.line("copper", nil, nil)
     millSellers.market = LineController.seller(
         "market",
-        fixedBuilding(TycoonConfig.MARKET, "tavern", Strings.MARKET_LABEL)
+        fixedBuilding(TycoonConfig.MARKET, "market", "tavern", Strings.MARKET_LABEL)
     )
     for _, line in millLines do
         InteractController.AddSource(line.FocusStore)
