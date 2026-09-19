@@ -59,7 +59,7 @@ MonetizationConfig.ITEMS = {
         key = "supporter",
         kind = "pass",
         name = "Supporter",
-        blurb = "Looks only: the Supporter title and a golden name at the fair.",
+        blurb = "Looks only: the Supporter title, a golden name and an outfit.",
         icon = "people",
         art = "shop_supporter",
         suggested = 199,
@@ -95,7 +95,14 @@ end
 -- ID-urile de pe Roblox, pe univers (game.GameId), ca PlaceConfig: staging si productia au lucrurile lor. 0 = necreat.
 MonetizationConfig.IDS = {
     -- staging: "Driftycoon (Staging)"
-    [10765888327] = { flow2x = 0, swift = 0, nights = 0, supporter = 0, hour = 0, welcome2x = 0 },
+    [10765888327] = {
+        flow2x = 1987136675,
+        swift = 1981917327,
+        nights = 1986296934,
+        supporter = 1985151161,
+        hour = 3713592670,
+        welcome2x = 3713592681,
+    },
     -- productia: "Driftycoon"
     [10766553412] = { flow2x = 0, swift = 0, nights = 0, supporter = 0, hour = 0, welcome2x = 0 },
 } :: { [number]: { [string]: number } }
