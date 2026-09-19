@@ -144,14 +144,11 @@ local function pick(
     if room <= 0 then
         return
     end
-    if stopId == HandRoutes.STORAGE_STOP then
-        takeInto(player, hand, "storage", room)
-    elseif stopId == HandRoutes.PLANKS_STOP then
-        takeInto(player, hand, "planks", room)
-    elseif stopId == HandRoutes.IRON_STOP then
-        takeInto(player, hand, "iron", room)
-    elseif stopId == HandRoutes.SHED_STOP then
-        takeInto(player, hand, "shed", room)
+    -- [D65] o oprire care nu e plasa poarta chiar numele locului din FlowConfig (magazia unei linii sau iesirea
+    -- atelierului ei), pe orice linie
+    local place = HandRoutes.takePlace(stopId)
+    if place ~= nil then
+        takeInto(player, hand, place, room)
     else
         collectNet(data, hand, stopId, room)
     end

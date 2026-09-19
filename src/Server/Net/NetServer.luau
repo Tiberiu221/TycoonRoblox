@@ -7,6 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Net = require(ReplicatedStorage.Net.Net)
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
+local StationConfig = require(ReplicatedStorage.Shared.Config.StationConfig)
 local RateLimiter = require(script.Parent.RateLimiter)
 local AudioLevels = require(ReplicatedStorage.Shared.Modules.AudioLevels)
 
@@ -76,6 +77,13 @@ export type Deps = {
         UseShed: (Player) -> (boolean, string, number),
         UseForge: (Player) -> (boolean, string, number, number),
         SetPresence: (Player, string, boolean) -> (),
+        -- [D65] locurile oricarei linii si instantaneele lor
+        UseStore: (Player, string) -> (boolean, string, number),
+        UseProcessor: (Player, string) -> (boolean, string, number, number),
+        Deliver: (Player, string) -> (boolean, string, number),
+        StoreSnapshotOf: (Player, string) -> { [string]: any },
+        ProcessorSnapshotOf: (Player, string) -> { [string]: any },
+        SellerSnapshotOf: (Player, string) -> { [string]: any },
     },
     Workshop: {
         Snapshot: (Player) -> { [string]: any },
@@ -108,6 +116,22 @@ end
 -- Instantaneul complet trimis clientului [F1 spec 2.1]. Fiecare camp e prezent la FIECARE push
 -- (niciodata nil) -- clientul copiaza starea asta orbeste, un camp lipsa ar insemna o coliziune cu
 -- valoarea veche ramasa de la push-ul anterior.
+-- [D65] Magazia si atelierul fiecarei linii din StationConfig.LINE_ORDER, gramada fiecarui vanzator.
+local function flowSnapshot(player: Player): { [string]: any }
+    local lines: { [string]: any } = {}
+    for _, line in StationConfig.LINE_ORDER do
+        lines[line] = {
+            store = deps.Economy.StoreSnapshotOf(player, line),
+            processor = deps.Economy.ProcessorSnapshotOf(player, line),
+        }
+    end
+    local sellers: { [string]: any } = {}
+    for _, seller in StationConfig.SELLER_ORDER do
+        sellers[seller] = deps.Economy.SellerSnapshotOf(player, seller)
+    end
+    return { lines = lines, sellers = sellers }
+end
+
 local function buildTycoonState(player: Player): { [string]: any }
     local pads = deps.Pads.Statuses(player)
     local padDeltas, bottleneck = deps.Pads.Deltas(player)
@@ -131,6 +155,9 @@ local function buildTycoonState(player: Player): { [string]: any }
         -- [D55] resturile: shed-ul de scrap si forja atelierului (scrap de topit, fier iesit, cat topeste)
         shed = deps.Economy.ShedSnapshot(player),
         forge = deps.Economy.ForgeSnapshot(player),
+        -- [D65] DRUMUL MARFII PE LINII: magazia si atelierul fiecarei linii, gramada fiecarui vanzator. Campurile de
+        -- mai sus raman vederea Erei 1 (aceleasi cifre); clientul Morii citeste de aici.
+        flow = flowSnapshot(player),
         -- statiile cu niveluri: randurile panoului, veriga slaba si cele trei debite
         stations = deps.Stations.Snapshot(player),
         -- capitolul curent, lista de quest-uri si quest-ul activ (unicul obiectiv de ghidaj)
@@ -284,7 +311,6 @@ function NetServer.Init(d: Deps)
         end
         deps.Economy.SetPresence(player, "forge", present :: boolean)
     end)
-
     -- Revendicarea unei recompense de quest. Serverul verifica el ca e chiar terminata si ca n-a
     -- fost luata deja -- e o tranzactie de moneda, deci n-are ce cauta pe client [D13].
     Net.Get("ClaimQuest").OnServerEvent:Connect(function(player: Player, questId: unknown)

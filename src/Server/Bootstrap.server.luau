@@ -47,8 +47,9 @@ EconomyService.Init({
     Now = RiverService.Now,
     Stations = StationService,
     -- casa de marcat suna cand se scurge un lot din gramada, nu cand apesi Sell
-    OnSold = function(player: Player, total: number, itemCount: number)
-        Net.Get("Sold"):FireClient(player, total, itemCount)
+    -- [D65] al patrulea argument: care vanzator a vandut ("dock" | "market"), ca monedele sa zboare de la usa lui
+    OnSold = function(player: Player, total: number, itemCount: number, seller: string)
+        Net.Get("Sold"):FireClient(player, total, itemCount, seller)
     end,
 })
 StationService.Init({

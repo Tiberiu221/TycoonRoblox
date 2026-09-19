@@ -302,14 +302,18 @@ function RoadGraph.route(g: Graph, from: Point, to: Point): { Point }
     return simplify(out)
 end
 
--- Graful din config, construit o singura data: DECK + ROADS.
+-- Graful din config, construit o singura data: puntea si drumurile FIECARUI cartier [D65]. Strada Morii atinge
+-- strada satului, deci graful e unul singur si oamenii pot trece dintr-un cartier in altul.
 local configGraph: Graph? = nil
 function RoadGraph.fromConfig(): Graph
     local g = configGraph
     if g == nil then
-        local rects: { Rect } = { TycoonConfig.DECK }
-        for _, r in TycoonConfig.ROADS do
-            table.insert(rects, { x0 = r.x0, x1 = r.x1, y0 = r.y0, y1 = r.y1 })
+        local rects: { Rect } = {}
+        for _, district in TycoonConfig.DISTRICTS do
+            table.insert(rects, district.deck)
+            for _, r in district.roads do
+                table.insert(rects, { x0 = r.x0, x1 = r.x1, y0 = r.y0, y1 = r.y1 })
+            end
         end
         g = RoadGraph.build(rects)
         configGraph = g

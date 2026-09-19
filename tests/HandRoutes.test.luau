@@ -346,7 +346,145 @@ return function()
                 check.is_true(CrewMath.maxed({ count = 2, tier = 5 }))
                 check.is_false(CrewMath.maxed({ count = 1, tier = 5 }))
                 check.equal(CrewMath.secondPrice("porter"), TycoonConfig.CREWS.porter.secondPrice)
+                -- [D65] oamenii Erei 2 platesc treptele de ERA2_MULT ori mai scump
+                check.equal(
+                    CrewMath.tierPrice({ count = 1, tier = 2 }, "founder"),
+                    75 * StationConfig.ERA2_MULT
+                )
+                check.equal(CrewMath.tierPrice({ count = 1, tier = 2 }, "sawyer"), 75)
             end
         )
+    end)
+
+    -- [D65] Drumurile oamenilor Morii ies din aceleasi tabele ca ale Erei 1: nicio ramura pe nume de meserie.
+    test.suite("HandRoutes - Era 2, The Mill [D65]", function()
+        local FlowConfig = require("../src/Shared/Config/FlowConfig")
+        local P = TycoonConfig.LINE_PLACES
+        local millNets = { "sixth_net", "seventh_net", "eighth_net", "ninth_net" }
+        local allNets = { "first_net", "second_net", "third_net", "far_lane_net", "fifth_net" }
+        for _, id in millNets do
+            table.insert(allNets, id)
+        end
+        table.insert(allNets, "tenth_net")
+
+        test.case("fiecare meserie isi stie treaba, linia si locul unde lasa", function()
+            local want = {
+                collector = { "collect", "wood", "storage" },
+                porter = { "port", "wood", "sawmill" },
+                hauler = { "haul", "wood", "dock" },
+                scrapCollector = { "collect", "iron", "shed" },
+                ironHauler = { "haul", "iron", "dock" },
+                millCollector = { "collect", "parts", "millStore" },
+                millPorter = { "port", "parts", "foundry" },
+                partsHauler = { "haul", "parts", "market" },
+                oreCollector = { "collect", "copper", "oreShed" },
+                orePorter = { "port", "copper", "furnace" },
+                copperHauler = { "haul", "copper", "market" },
+            }
+            for role, w in want do
+                local job = HandRoutes.jobOf(role)
+                check.not_nil(job)
+                check.equal((job :: any).job, w[1])
+                check.equal((job :: any).line, w[2])
+                check.equal(HandRoutes.endPlace(role), w[3])
+                check.is_true(HandRoutes.isWalker(role))
+            end
+            for _, role in { "sawyer", "smelter", "trader", "founder", "coppersmith", "merchant" } do
+                check.is_false(HandRoutes.isWalker(role))
+                check.not_nil(HandRoutes.standFor(role, 1))
+            end
+            check.equal(HandRoutes.netKindOf("millCollector"), "mill")
+            check.equal(HandRoutes.netKindOf("oreCollector"), "ore")
+            check.equal(HandRoutes.netKindOf("millPorter"), nil)
+        end)
+
+        test.case("Mill Collector-ul goleste doar plasele Morii si lasa la magazia ei", function()
+            local route = HandRoutes.routeFor("millCollector", 1, 1, allNets) :: HandRoutes.Route
+            check.equal(#route.stops, 4)
+            for i, st in route.stops do
+                check.equal(st.padId, millNets[i])
+            end
+            check.equal(route.endpoint.x, P.parts.storeStand.x)
+            check.equal(route.endpoint.y, P.parts.storeStand.y)
+            local ore = HandRoutes.routeFor("oreCollector", 1, 1, allNets) :: HandRoutes.Route
+            check.equal(#ore.stops, 1)
+            check.equal(ore.stops[1].padId, "tenth_net")
+            -- iar Collector-ul Erei 1 nu trece pe la plasele Morii
+            local wood = HandRoutes.routeFor("collector", 1, 1, allNets) :: HandRoutes.Route
+            check.equal(#wood.stops, 4)
+        end)
+
+        test.case(
+            "carausii Morii iau din locurile din FlowConfig si ajung la atelier si la Piata",
+            function()
+                local porter = HandRoutes.routeFor("millPorter", 1, 1, allNets) :: HandRoutes.Route
+                check.equal(porter.stops[1].padId, FlowConfig.LINES.parts.store)
+                check.equal(porter.endpoint.x, P.parts.processorIn.x)
+                local hauler = HandRoutes.routeFor("partsHauler", 1, 1, allNets) :: HandRoutes.Route
+                check.equal(hauler.stops[1].padId, FlowConfig.LINES.parts.output)
+                check.equal(hauler.endpoint.x, TycoonConfig.SELLER_PLACES.market.door.x)
+                local copper =
+                    HandRoutes.routeFor("copperHauler", 1, 1, allNets) :: HandRoutes.Route
+                check.equal(copper.stops[1].padId, "copper")
+                check.equal(copper.endpoint.x, TycoonConfig.SELLER_PLACES.market.door.x)
+                for _, stopId in
+                    {
+                        "millStore",
+                        "oreShed",
+                        "parts",
+                        "copper",
+                        "storage",
+                        "planks",
+                        "shed",
+                        "iron",
+                    }
+                do
+                    check.equal(HandRoutes.takePlace(stopId), stopId)
+                end
+                check.equal(HandRoutes.takePlace("sixth_net"), nil)
+            end
+        )
+
+        test.case(
+            "drumurile Morii merg pe drumurile ei, fara sa taie prin cartierul vechi",
+            function()
+                for _, role in
+                    {
+                        "millCollector",
+                        "millPorter",
+                        "partsHauler",
+                        "oreCollector",
+                        "orePorter",
+                        "copperHauler",
+                    }
+                do
+                    local cycle = HandRoutes.cycleFor(role, 1, 1, allNets)
+                    check.is_true(cycle.duration > 0)
+                    for _, leg in cycle.legs do
+                        for _, point in { leg.from, leg.to } do
+                            if point ~= nil then
+                                check.is_true(point.x >= 1860)
+                            end
+                        end
+                    end
+                end
+            end
+        )
+
+        test.case("al doilea om al unui atelier sta alaturi de primul, pe orice linie", function()
+            local first = HandRoutes.standFor("founder", 1) :: any
+            local second = HandRoutes.standFor("founder", 2) :: any
+            check.equal(second.x - first.x, P.parts.secondOffset.x)
+            local sawyer1 = HandRoutes.standFor("sawyer", 1) :: any
+            local sawyer2 = HandRoutes.standFor("sawyer", 2) :: any
+            check.equal(sawyer2.x - sawyer1.x, TycoonConfig.SECOND_STAND_OFFSET.sawyer.x)
+            local trader2 = HandRoutes.standFor("trader", 2) :: any
+            check.equal(
+                trader2.x - TycoonConfig.TRADER_STAND.x,
+                TycoonConfig.SECOND_STAND_OFFSET.trader.x
+            )
+            local merchant = HandRoutes.standFor("merchant", 1) :: any
+            check.equal(merchant.x, TycoonConfig.TRADER_STAND.x + TycoonConfig.MILL_DX)
+        end)
     end)
 end

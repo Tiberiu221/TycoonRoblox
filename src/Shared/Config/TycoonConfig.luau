@@ -185,6 +185,12 @@ TycoonConfig.SACK_CAPACITY = 30
 TycoonConfig.SACK_BIG_CAPACITY = 60
 TycoonConfig.PAD_SIZE = 96
 
+-- [D65] CARTIERUL MORII E ASEZAT CA THE LANDING [D57], mutat spre aval cu atat: fiecare lucru al Erei 2 sta fata de
+-- cartierul lui unde sta perechea lui din Era 1 fata de al ei (plasele pe punte, magazia sub ele, atelierul cu fata la
+-- strada, vanzatorul in capatul dinspre amonte, casele pe un rand peste strada). Strada Morii continua strada satului.
+local MILL_DX = 1680
+TycoonConfig.MILL_DX = MILL_DX
+
 -- [D50] Locul de VANZARE: usa tavernei, pe drumul mare. Numele `DOCK` ramane (e si id-ul statiei, al
 -- quest-urilor si al profilului), ca toti cititorii lui sa urmeze singuri locul nou. Pontonul cu barca
 -- e acum separat (PIER): pana in D50 acelasi punct era si ponton, si loc de vanzare.
@@ -422,6 +428,166 @@ TycoonConfig.WORKSHOP_STAND = { x = 1610, y = 1405 } -- [D56] locul tau la forja
 -- [D56, D57] Smelter-ul sta pe strada, in fata forjei, spre gramada de fier
 TycoonConfig.SMELTER_STAND = { x = 1690, y = 1452 }
 
+-- ---- [D65] LOCURILE, CA TABEL ------------------------------------------------------------------
+-- Pana la D65 fiecare loc era o constanta cu nume (STORAGE_STAND, SAWMILL_IN, FORGE_OUT, ...) citita de cate un
+-- `elseif` pe meserie (HandRoutes) sau de controllerul cladirii ei. Era 2 are aceleasi locuri pentru alte cladiri, deci
+-- locurile devin tabel pe LINIE (StationConfig.LINES) si pe VANZATOR; constantele Erei 1 raman si sunt chiar valorile
+-- din tabel, ca tot ce le citeste sa mearga mai departe.
+--   storeStand    unde sta omul (sau tu) la magazia liniei: cine goleste plasele lasa aici, cine cara ia de aici
+--   processorIn   unde se lasa marfa bruta la atelier;  processorOut  de unde se ia marfa gata
+--   playerStand   inelul tau la atelier, cat n-are om;   workerStand   unde sta omul atelierului
+--   storePile / inPile / outPile   unde se deseneaza gramezile (mijlocul, baza)
+--   secondOffset  unde sta al doilea om al atelierului fata de primul
+export type LinePlaces = {
+    storeStand: { x: number, y: number },
+    processorIn: { x: number, y: number },
+    processorOut: { x: number, y: number },
+    playerStand: { x: number, y: number },
+    workerStand: { x: number, y: number },
+    storePile: { x: number, y: number },
+    inPile: { x: number, y: number },
+    outPile: { x: number, y: number },
+    secondOffset: { x: number, y: number },
+}
+export type SellerPlaces = {
+    door: { x: number, y: number }, -- locul de vanzare: usa cladirii, pe drum
+    stand: { x: number, y: number }, -- unde sta omul vanzatorului
+    pile: { x: number, y: number },
+    building: { x: number, y: number, w: number, h: number },
+    secondOffset: { x: number, y: number },
+}
+local function shifted(p: { x: number, y: number }): { x: number, y: number }
+    return { x = p.x + MILL_DX, y = p.y }
+end
+TycoonConfig.LINE_PLACES = {
+    wood = {
+        storeStand = TycoonConfig.STORAGE_STAND,
+        processorIn = TycoonConfig.SAWMILL_IN,
+        processorOut = TycoonConfig.SAWMILL_OUT,
+        playerStand = TycoonConfig.SAWMILL_STAND,
+        workerStand = TycoonConfig.SAWYER_STAND,
+        storePile = TycoonConfig.PILES.storage,
+        inPile = TycoonConfig.PILES.sawmillIn,
+        outPile = TycoonConfig.PILES.sawmillOut,
+        secondOffset = { x = -60, y = 0 },
+    },
+    iron = {
+        storeStand = TycoonConfig.SCRAP_SHED_STAND,
+        processorIn = TycoonConfig.FORGE_IN,
+        processorOut = TycoonConfig.FORGE_OUT,
+        playerStand = TycoonConfig.WORKSHOP_STAND,
+        workerStand = TycoonConfig.SMELTER_STAND,
+        storePile = TycoonConfig.PILES.shed,
+        inPile = TycoonConfig.PILES.forgeIn,
+        outPile = TycoonConfig.PILES.forgeOut,
+        secondOffset = { x = 60, y = 0 },
+    },
+    -- Era 2, in oglinda: magazia Morii si turnatoria pe locul depozitului si al gaterului, magazia de minereu si
+    -- cuptorul de cupru pe locul shed-ului si al forjei
+    parts = {
+        storeStand = shifted(TycoonConfig.STORAGE_STAND),
+        processorIn = shifted(TycoonConfig.SAWMILL_IN),
+        processorOut = shifted(TycoonConfig.SAWMILL_OUT),
+        playerStand = shifted(TycoonConfig.SAWMILL_STAND),
+        workerStand = shifted(TycoonConfig.SAWYER_STAND),
+        storePile = shifted(TycoonConfig.PILES.storage),
+        inPile = shifted(TycoonConfig.PILES.sawmillIn),
+        outPile = shifted(TycoonConfig.PILES.sawmillOut),
+        secondOffset = { x = -60, y = 0 },
+    },
+    copper = {
+        storeStand = shifted(TycoonConfig.SCRAP_SHED_STAND),
+        processorIn = shifted(TycoonConfig.FORGE_IN),
+        processorOut = shifted(TycoonConfig.FORGE_OUT),
+        playerStand = shifted(TycoonConfig.WORKSHOP_STAND),
+        workerStand = shifted(TycoonConfig.SMELTER_STAND),
+        storePile = shifted(TycoonConfig.PILES.shed),
+        inPile = shifted(TycoonConfig.PILES.forgeIn),
+        outPile = shifted(TycoonConfig.PILES.forgeOut),
+        secondOffset = { x = 60, y = 0 },
+    },
+} :: { [string]: LinePlaces }
+-- Cladirile fixe ale Morii (ca depozitul si gaterul Erei 1: nu sunt platforme, sunt acolo cand se deschide cartierul)
+TycoonConfig.MILL_STORE =
+    { x = TycoonConfig.STORAGE.x + MILL_DX, y = TycoonConfig.STORAGE.y, w = 120, h = 96 }
+TycoonConfig.FOUNDRY =
+    { x = TycoonConfig.SAWMILL.x + MILL_DX, y = TycoonConfig.SAWMILL.y, w = 120, h = 96 }
+TycoonConfig.MARKET =
+    { x = TycoonConfig.TAVERN.x + MILL_DX, y = TycoonConfig.TAVERN.y, w = 192, h = 144 }
+TycoonConfig.SELLER_PLACES = {
+    dock = {
+        door = TycoonConfig.DOCK,
+        stand = TycoonConfig.TRADER_STAND,
+        pile = TycoonConfig.PILES.tavern,
+        building = TycoonConfig.TAVERN,
+        secondOffset = { x = 60, y = 0 },
+    },
+    market = {
+        door = shifted(TycoonConfig.DOCK),
+        stand = shifted(TycoonConfig.TRADER_STAND),
+        pile = shifted(TycoonConfig.PILES.tavern),
+        building = TycoonConfig.MARKET,
+        secondOffset = { x = 60, y = 0 },
+    },
+} :: { [string]: SellerPlaces }
+
+-- CARTIERELE: puntea, drumurile si curtile fiecaruia. Primul e The Landing, cu tabelele lui de mai sus (DECK, ROADS,
+-- YARDS); al doilea e Moara, aceeasi asezare mutata cu MILL_DX. Strada Morii incepe unde se termina strada satului
+-- (x 1860), deci oamenii si dara de ghidaj trec dintr-un cartier in altul pe ea. RoadGraph ia drumurile din toate.
+export type District = { id: string, era: number, deck: Rect, roads: { Road }, yards: { Yard } }
+local function shiftedRect(r: Rect): Rect
+    return { x0 = r.x0 + MILL_DX, x1 = r.x1 + MILL_DX, y0 = r.y0, y1 = r.y1 }
+end
+local millYards: { Yard } = {}
+for _, pair in
+    {
+        { "tavern", "market" },
+        { "stall", "merchant" },
+        { "storage", "mill_store" },
+        { "sawmill", "foundry" },
+        { "shed", "ore_shed" },
+        { "forge", "furnace" },
+        { "bell", "mill_bell" },
+        { "house_collector", "house_mill_collector" },
+        { "house_porter", "house_mill_porter" },
+        { "house_sawyer", "house_founder" },
+        { "house_hauler", "house_parts_hauler" },
+        { "house_scrap_collector", "house_ore_collector" },
+        { "house_scrap_porter", "house_ore_porter" },
+        { "house_smelter", "house_coppersmith" },
+        { "house_iron_hauler", "house_copper_hauler" },
+    }
+do
+    for _, yard in TycoonConfig.YARDS do
+        if yard.id == pair[1] then
+            local r = shiftedRect(yard)
+            table.insert(millYards, { id = pair[2], x0 = r.x0, x1 = r.x1, y0 = r.y0, y1 = r.y1 })
+        end
+    end
+end
+TycoonConfig.DISTRICTS = {
+    {
+        id = "landing",
+        era = 1,
+        deck = TycoonConfig.DECK,
+        roads = TycoonConfig.ROADS,
+        yards = TycoonConfig.YARDS,
+    },
+    {
+        id = "mill",
+        era = 2,
+        deck = shiftedRect(TycoonConfig.DECK),
+        roads = {
+            -- strada Morii: de unde se termina strada satului pana la capatul cartierului
+            { id = "mill_street", x0 = 1860, x1 = 1860 + MILL_DX, y0 = 1420, y1 = 1480 },
+            { id = "market_link", x0 = 525 + MILL_DX, x1 = 575 + MILL_DX, y0 = 856, y1 = 1420 },
+            { id = "market_plaza", x0 = 240 + MILL_DX, x1 = 550 + MILL_DX, y0 = 1090, y1 = 1170 },
+            { id = "copper_lane", x0 = 1260 + MILL_DX, x1 = 1300 + MILL_DX, y0 = 856, y1 = 1420 },
+        },
+        yards = millYards,
+    },
+} :: { District }
+
 -- MESERIILE [D49], pe pasii lantului. `pad` = platforma de pe care se angajeaza primul om; id-urile
 -- vechi raman (`first_runner` e acum Collector-ul, `dock_trader` Negustorul), fiindca id-ul e si
 -- cheia omului in profil si samanta numelui si a infatisarii lui. Al doilea om se cumpara din
@@ -533,12 +699,6 @@ for role, crew in TycoonConfig.CREWS do
     crewOfPad[crew.pad] = role
 end
 TycoonConfig.CREW_OF_PAD = crewOfPad
-
--- [D65] CARTIERUL MORII E ASEZAT CA THE LANDING [D57], mutat spre aval cu atat: fiecare lucru al Erei 2 sta fata de
--- cartierul lui unde sta perechea lui din Era 1 fata de al ei (plasele pe punte, magazia sub ele, atelierul cu fata la
--- strada, vanzatorul in capatul dinspre amonte, casele pe un rand peste strada). Strada Morii continua strada satului.
-local MILL_DX = 1680
-TycoonConfig.MILL_DX = MILL_DX
 
 -- Platformele, in ordine. Preturile NU se calculeaza aici -- vin exact din simulator (sim_tycoon.py, lacom), care le
 -- si verifica la fiecare rulare. Era 1 si Era 2; erele urmatoare nu exista inca [D64].
