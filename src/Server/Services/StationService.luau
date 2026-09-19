@@ -330,15 +330,15 @@ local function buildingOutput(s: ChainMath.State, kind: string, id: string?, lev
     if kind == "net" then
         local index = table.find(netPadIds, id or "") or 1
         return ChainMath.levelOutput(ChainMath.netBase(index), level, "nets")
-    elseif kind == "saw" then
-        local crew = s.crews.sawyer
-        return ChainMath.sawSpeed(level, crew, true)
-    elseif kind == "forge" then
-        return ChainMath.forgeSpeed(level, s.crews.smelter, true) -- [D56] ca gaterul
-    elseif kind == "dock" then
-        return ChainMath.dockSpeed(level, s.crews.trader)
     end
-    return 0 -- un fel necunoscut nu imprumuta cifrele altei cladiri [D40]
+    -- [D64] orice cladire a lantului, dupa tabelul liniilor: un atelier (gaterul, forja [D56]) merge cu omul lui sau
+    -- cat stai langa el, un vanzator (taverna) si singur, incet
+    local role = ChainMath.GAME.roleOfLink[kind]
+    local crew = if role ~= nil then s.crews[role] else nil
+    if crew == nil then
+        return 0 -- un fel necunoscut nu imprumuta cifrele altei cladiri [D40]
+    end
+    return ChainMath.buildingSpeed(kind, level, crew, true) or 0
 end
 
 -- Cat adauga venitului UN nivel pe cladirea asta. Meniul nu se poate sprijini pe `bottleneck`: la
@@ -353,29 +353,18 @@ local function levelGain(s: ChainMath.State, kind: string, netSlot: number?): nu
             return 0
         end
         net.level += 1
-    elseif kind == "saw" then
-        probe.sawLevel += 1
-    elseif kind == "forge" then
-        probe.forgeLevel += 1
-    elseif kind == "dock" then
-        probe.dockLevel += 1
     else
-        return 0
+        -- [D64] nivelul cladirii sta in campul numit de tabelul liniilor (saw -> sawLevel)
+        local field = ChainMath.levelField(kind)
+        if field == nil then
+            return 0
+        end
+        local fields: any = probe
+        fields[field] += 1
     end
     local gain = ChainMath.income(probe) - ChainMath.income(s)
     -- zgomotul de virgula mobila de la egalitate nu e castig
     return if gain > 1e-9 then gain else 0
-end
-
--- [D56] Veriga slaba care conteaza pentru un rand: a liniei lui (o plasa de lemn nu e tinuta de forja), iar pentru
--- taverna, a amandurora -- cea care tine venitul.
-local function lineBottleneck(rates: ChainMath.Rates, line: string?): string
-    if line == "wood" then
-        return rates.woodBottleneck
-    elseif line == "iron" then
-        return rates.ironBottleneck
-    end
-    return rates.bottleneck
 end
 
 local function rowFor(
@@ -385,7 +374,7 @@ local function rowFor(
     name: string,
     level: number,
     coins: number,
-    rates: ChainMath.Rates,
+    flow: ChainMath.Flow,
     netSlot: number?
 ): Row
     local base = StationService.UpgradeBase(kind, id)
@@ -398,7 +387,8 @@ local function rowFor(
     local line: string? = StationConfig.LINE_OF[link]
     if kind == "net" then
         local pad = TycoonConfig.byId[id or ""]
-        line = if pad ~= nil and TycoonMath.netKind(pad) == "scrap" then "iron" else "wood"
+        -- [D64] linia pe care curge ce prinde plasa, dupa tabelul liniilor (scrap -> fier)
+        line = ChainMath.lineOfNetKind(if pad ~= nil then TycoonMath.netKind(pad) else "wood")
     end
     return {
         kind = kind,
@@ -412,7 +402,7 @@ local function rowFor(
         maxCount = maxCount,
         maxCost = ChainMath.bulkCost(base, level, maxCount),
         -- felul cladirii (net/saw/forge/dock) nu e acelasi cuvant cu veriga lantului (nets/saw/forge/dock)
-        bottleneck = lineBottleneck(rates, line) == link,
+        bottleneck = ChainMath.lineBottleneck(flow, line) == link,
         gain = levelGain(s, kind, netSlot),
         line = line,
     }
@@ -421,7 +411,7 @@ end
 local function crewRow(
     s: ChainMath.State,
     role: string,
-    rates: ChainMath.Rates,
+    flow: ChainMath.Flow,
     coins: number
 ): CrewRow
     local def = TycoonConfig.CREWS[role]
@@ -467,7 +457,7 @@ local function crewRow(
         tierAffordable = tierCost ~= nil and coins >= tierCost,
         secondAffordable = secondPrice ~= nil and coins >= (secondPrice :: number),
         maxed = CrewMath.maxed(crew),
-        bottleneck = lineBottleneck(rates, line) == link,
+        bottleneck = ChainMath.lineBottleneck(flow, line) == link,
         line = line,
     }
 end
@@ -486,7 +476,10 @@ function StationService.Snapshot(player: Player): {
     ironPlayerShare: number,
 }
     local s = StationService.StateFor(player)
-    local rates = ChainMath.rates(s)
+    -- [D64] lantul se socoteste o data: randurile isi citesc veriga slaba din el, pe orice linie, iar clientul primeste
+    -- aceeasi vedere plata ca pana acum (woodCatch, sawing, sales, ...)
+    local flow = ChainMath.flow(s)
+    local rates = ChainMath.ratesOf(flow)
     local data = DataService.Get(player)
     local coins = if data ~= nil then data.Coins else 0
     local rows: { Row } = {}
@@ -504,21 +497,21 @@ function StationService.Snapshot(player: Player): {
                     padName,
                     StationService.LevelOf(player, "net", padId),
                     coins,
-                    rates,
+                    flow,
                     netSlot
                 )
             )
         end
     end
     -- in ordinea lantului: gaterul, Forge (cat e cumparata) [D55, D56], apoi taverna
-    table.insert(rows, rowFor(s, "saw", nil, "Sawmill", s.sawLevel, coins, rates))
+    table.insert(rows, rowFor(s, "saw", nil, "Sawmill", s.sawLevel, coins, flow))
     if s.workshop then
-        table.insert(rows, rowFor(s, "forge", nil, "Forge", s.forgeLevel, coins, rates))
+        table.insert(rows, rowFor(s, "forge", nil, "Forge", s.forgeLevel, coins, flow))
     end
-    table.insert(rows, rowFor(s, "dock", nil, "Tavern", s.dockLevel, coins, rates))
+    table.insert(rows, rowFor(s, "dock", nil, "Tavern", s.dockLevel, coins, flow))
     local crews: { CrewRow } = {}
     for _, role in StationConfig.ROLES do
-        table.insert(crews, crewRow(s, role, rates, coins))
+        table.insert(crews, crewRow(s, role, flow, coins))
     end
     return {
         rows = rows,

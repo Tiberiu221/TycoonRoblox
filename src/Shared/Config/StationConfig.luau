@@ -73,57 +73,99 @@ StationConfig.ROLES = {
     "smelter",
     "ironHauler",
 }
-StationConfig.LINE_STEPS = {
-    wood = { "collector", "porter", "sawyer", "hauler" },
-    iron = { "scrapCollector", "scrapPorter", "smelter", "ironHauler" },
+-- ---- liniile, ca date [D64] --------------------------------------------------------------------
+-- Pana la D64 motorul (ChainMath) era scris de mana pentru exact doua linii. Era 2 aduce linii de ACEEASI forma
+-- (plasa -> om care aduna -> magazie -> om care duce -> atelier -> om care duce -> vanzator), asa ca forma e tabel.
+-- Oglinda lui LINE_ORDER / LINES / PROCESSORS / SELLERS din scripts/economy/sim_tycoon.py.
+--   * Un pas e { role, link, kind }. `walk` = un drum: oamenii lui duc ROLE_BASE[role]; fara om, partea ta din timp
+--     pe linia aceea. `processor` = o cladire cu niveluri (PROCESSORS[link]): oamenii ei o tin pornita tot timpul;
+--     fara ei merge doar cat stai tu langa ea.
+--   * `openFlag`: campul din ChainMath.State care deschide linia (nil = deschisa de la inceput). O linie cu conditie
+--     mai cere si o plasa de felul ei.
+--   * `levelField`: campul din ChainMath.State cu nivelul cladirii.
+--   * CIFRELE NU SE COPIAZA AICI: `base` trimite la constanta de mai sus (simulatorul o citeste de acolo, cu regex).
+--   * LINE_ORDER e ordinea in care se aduna ORICE suma pe linii (virgula mobila: alta ordine ar muta ultimii biti ai
+--     venitului) si in care stau verigile in LINKS. `priority` e ALTA ordine, a vanzatorului: cine ia primul din
+--     capacitatea lui (marfa mai scumpa intai). Azi sunt una inversul celeilalte doar din intamplare.
+export type Step = { role: string, link: string, kind: string }
+export type Line = { netKind: string, openFlag: string?, seller: string, steps: { Step } }
+export type Processor = { base: number, levelField: string }
+export type Seller = { role: string, base: number, levelField: string, priority: { string } }
+
+StationConfig.LINE_ORDER = { "wood", "iron" }
+local LINES: { [string]: Line } = {
+    wood = {
+        netKind = "wood",
+        openFlag = nil,
+        seller = "dock",
+        steps = {
+            { role = "collector", link = "collect", kind = "walk" },
+            { role = "porter", link = "port", kind = "walk" },
+            { role = "sawyer", link = "saw", kind = "processor" },
+            { role = "hauler", link = "haul", kind = "walk" },
+        },
+    },
+    iron = {
+        netKind = "scrap",
+        openFlag = "workshop",
+        seller = "dock",
+        steps = {
+            { role = "scrapCollector", link = "scrapCollect", kind = "walk" },
+            { role = "scrapPorter", link = "scrapPort", kind = "walk" },
+            { role = "smelter", link = "forge", kind = "processor" },
+            { role = "ironHauler", link = "ironHaul", kind = "walk" },
+        },
+    },
 }
-StationConfig.MANUAL_ROLES = {
-    "collector",
-    "porter",
-    "sawyer",
-    "hauler",
-    "scrapCollector",
-    "scrapPorter",
-    "smelter",
-    "ironHauler",
+StationConfig.LINES = LINES
+local PROCESSORS: { [string]: Processor } = {
+    saw = { base = StationConfig.SAW_BASE_RATE, levelField = "sawLevel" },
+    forge = { base = StationConfig.FORGE_BASE_RATE, levelField = "forgeLevel" },
 }
-StationConfig.LINK_OF = {
-    collector = "collect",
-    porter = "port",
-    sawyer = "saw",
-    hauler = "haul",
-    trader = "dock",
-    scrapCollector = "scrapCollect",
-    scrapPorter = "scrapPort",
-    smelter = "forge",
-    ironHauler = "ironHaul",
+StationConfig.PROCESSORS = PROCESSORS
+-- Vanzatorii, cu ordinea lor (o harta cu chei text n-are ordine in Luau; in simulator e ordinea din dictionar).
+StationConfig.SELLER_ORDER = { "dock" }
+local SELLERS: { [string]: Seller } = {
+    dock = {
+        role = "trader",
+        base = StationConfig.DOCK_BASE_RATE,
+        levelField = "dockLevel",
+        priority = { "iron", "wood" },
+    },
 }
--- ORDINEA e contractul cu simulatorul: la egalitate castiga veriga dinainte. [D56] Plasele, linia lemnului, linia
--- fierului, taverna (a amandurora).
-StationConfig.LINKS = {
-    "nets",
-    "collect",
-    "port",
-    "saw",
-    "haul",
-    "scrapCollect",
-    "scrapPort",
-    "forge",
-    "ironHaul",
-    "dock",
-}
--- [D56] Linia fiecarei verigi de oameni si cladiri. `nets` tine de felul plasei (TycoonMath.netKind), `dock` e a
--- amandurora: ele nu stau aici.
-StationConfig.LINE_OF = {
-    collect = "wood",
-    port = "wood",
-    saw = "wood",
-    haul = "wood",
-    scrapCollect = "iron",
-    scrapPort = "iron",
-    forge = "iron",
-    ironHaul = "iron",
-}
+StationConfig.SELLERS = SELLERS
+
+-- Tabelele de mai jos se DERIVA din LINES / SELLERS, ca sa nu existe doua liste care sa se desparta.
+-- LINE_STEPS: meseriile fiecarei linii, in ordinea angajarilor. MANUAL_ROLES: toti pasii pe care ii poti face tu.
+-- LINK_OF: veriga fiecarei meserii. LINE_OF: linia fiecarei verigi de oameni si cladiri (`nets` tine de felul
+-- plasei, iar vanzatorul e al tuturor liniilor lui: ele nu stau aici).
+local lineSteps: { [string]: { string } } = {}
+local manualRoles: { string } = {}
+local linkOf: { [string]: string } = {}
+local lineOf: { [string]: string } = {}
+-- ORDINEA e contractul cu simulatorul: la egalitate castiga veriga dinainte. [D56] Plasele, apoi liniile in
+-- LINE_ORDER, apoi vanzatorii.
+local links: { string } = { "nets" }
+for _, line in StationConfig.LINE_ORDER do
+    local roles: { string } = {}
+    for _, step in LINES[line].steps do
+        table.insert(roles, step.role)
+        table.insert(manualRoles, step.role)
+        table.insert(links, step.link)
+        linkOf[step.role] = step.link
+        lineOf[step.link] = line
+    end
+    lineSteps[line] = roles
+end
+for _, seller in StationConfig.SELLER_ORDER do
+    table.insert(links, seller)
+    linkOf[SELLERS[seller].role] = seller
+end
+StationConfig.LINE_STEPS = lineSteps
+StationConfig.MANUAL_ROLES = manualRoles
+StationConfig.LINK_OF = linkOf
+StationConfig.LINKS = links
+StationConfig.LINE_OF = lineOf
 
 -- Timpul tau, impartit la pasii fara om. 3.6, nu 1.2 (caratul tau din D48): cu 1.2 impartit la
 -- patru, tu erai veriga slaba din prima secunda si 24 din 27 de cumparaturi din primele 5 minute

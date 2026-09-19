@@ -957,4 +957,347 @@ return function()
             check.equal(r.woodBottleneck, "dock")
         end)
     end)
+
+    -- [D64] MOTORUL CHIAR DUCE ORICATE LINII. Tabelul de aur dovedeste ca refactorul n-a schimbat Era 1, dar cu doua
+    -- linii un motor scris de mana si unul generic dau aceleasi cifre. Aici modelul primeste doua linii de proba cu un al
+    -- doilea vanzator, iar rezultatul se compara cu cifre socotite de mana. OGLINDA lui scripts/economy/check_lines.py:
+    -- aceleasi linii, aceleasi cifre (rotunde, ca socoteala sa fie exacta in virgula mobila). Nu e economia Erei 2.
+    test.suite("ChainMath - liniile ca date [D64]", function()
+        local GAME = ChainMath.GAME
+
+        local function probeModel(): ChainMath.Model
+            local lines: { [string]: ChainMath.Line } = table.clone(GAME.lines)
+            lines.parts = {
+                netKind = "parts",
+                openFlag = "foundryOwned",
+                seller = "market",
+                steps = {
+                    { role = "partsCollector", link = "partsCollect", kind = "walk" },
+                    { role = "partsPorter", link = "partsPort", kind = "walk" },
+                    { role = "founder", link = "foundry", kind = "processor" },
+                    { role = "partsHauler", link = "partsHaul", kind = "walk" },
+                },
+            }
+            lines.copper = {
+                netKind = "copper",
+                openFlag = "smithyOwned",
+                seller = "market",
+                steps = {
+                    { role = "copperCollector", link = "copperCollect", kind = "walk" },
+                    { role = "copperPorter", link = "copperPort", kind = "walk" },
+                    { role = "coppersmith", link = "smithy", kind = "processor" },
+                    { role = "copperHauler", link = "copperHaul", kind = "walk" },
+                },
+            }
+            local processors: { [string]: ChainMath.Processor } = table.clone(GAME.processors)
+            processors.foundry = { base = 2.0, levelField = "foundryLevel" }
+            processors.smithy = { base = 2.0, levelField = "smithyLevel" }
+            local sellers: { [string]: ChainMath.Seller } = table.clone(GAME.sellers)
+            sellers.market = {
+                role = "merchant",
+                base = 5.0,
+                levelField = "marketLevel",
+                priority = { "copper", "parts" },
+            }
+            local roleBase = table.clone(GAME.roleBase)
+            for _, role in
+                {
+                    "partsCollector",
+                    "partsPorter",
+                    "partsHauler",
+                    "copperCollector",
+                    "copperPorter",
+                    "copperHauler",
+                }
+            do
+                roleBase[role] = 3.0
+            end
+            local avg = table.clone(GAME.avg)
+            avg.parts = 8.0
+            avg.copper = 12.0
+            return ChainMath.model(
+                { "wood", "iron", "parts", "copper" },
+                lines,
+                processors,
+                { "dock", "market" },
+                sellers,
+                roleBase,
+                avg
+            )
+        end
+
+        local PARTS = { "partsCollector", "partsPorter", "founder", "partsHauler" }
+        local COPPER = { "copperCollector", "copperPorter", "coppersmith", "copperHauler" }
+
+        -- Un sat de Era 1 la jumatatea drumului, plus campurile liniilor de proba (starea e plata: o linie noua vine cu
+        -- campurile ei).
+        local function probeState(partsNet: number?, copperNet: number?): any
+            local s: any = state({ 14, 11, 9, 6, 8 }, 8, 8, true, {
+                collector = { 2, 5 },
+                porter = { 1, 3 },
+                sawyer = { 1, 2 },
+                hauler = { 1, 4 },
+                trader = { 1, 2 },
+                scrapCollector = { 1, 2 },
+                scrapPorter = { 1, 1 },
+                smelter = { 1, 1 },
+                ironHauler = { 1, 1 },
+            }, { true, 4 })
+            s.foundryOwned = partsNet ~= nil
+            s.smithyOwned = copperNet ~= nil
+            s.foundryLevel, s.smithyLevel, s.marketLevel = 1, 1, 1
+            for _, role in PARTS do
+                s.crews[role] = { count = 0, tier = 1 }
+            end
+            for _, role in COPPER do
+                s.crews[role] = { count = 0, tier = 1 }
+            end
+            s.crews.merchant = { count = 0, tier = 1 }
+            if partsNet ~= nil then
+                table.insert(s.nets, { base = partsNet, baseLane = 1, level = 1, kind = "parts" })
+            end
+            if copperNet ~= nil then
+                table.insert(s.nets, { base = copperNet, baseLane = 1, level = 1, kind = "copper" })
+            end
+            return s
+        end
+
+        local function staff(s: any, roles: { string }, count: number, tier: number)
+            for _, role in roles do
+                s.crews[role] = { count = count, tier = tier }
+            end
+        end
+
+        local function near(got: number, want: number)
+            check.is_true(math.abs(got - want) < 1e-9)
+        end
+
+        local function valueAt(
+            flow: ChainMath.LineFlow,
+            m: ChainMath.Model,
+            line: string,
+            link: string
+        ): number
+            for k, step in m.lines[line].steps do
+                if step.link == link then
+                    return flow.values[k]
+                end
+            end
+            error("veriga necunoscuta: " .. link)
+        end
+
+        test.case(
+            "modelul jocului e cel din StationConfig, cu verigile in ordinea de aur",
+            function()
+                check.table.equal(GAME.links, {
+                    "nets",
+                    "collect",
+                    "port",
+                    "saw",
+                    "haul",
+                    "scrapCollect",
+                    "scrapPort",
+                    "forge",
+                    "ironHaul",
+                    "dock",
+                })
+                check.table.equal(StationConfig.LINKS, GAME.links)
+                check.table.equal(StationConfig.MANUAL_ROLES, {
+                    "collector",
+                    "porter",
+                    "sawyer",
+                    "hauler",
+                    "scrapCollector",
+                    "scrapPorter",
+                    "smelter",
+                    "ironHauler",
+                })
+                check.equal(StationConfig.LINK_OF.trader, "dock")
+                check.equal(StationConfig.LINK_OF.smelter, "forge")
+                check.equal(StationConfig.LINE_OF.saw, "wood")
+                check.equal(StationConfig.LINE_OF.ironHaul, "iron")
+                check.equal(StationConfig.LINE_OF.dock, nil)
+                check.equal(StationConfig.LINE_OF.nets, nil)
+            end
+        )
+
+        test.case(
+            "cladirile lantului se citesc dupa tabel, cu aceleasi cifre ca functiile lor cu nume",
+            function()
+                for _, level in { 1, 9, 10, 25, 37 } do
+                    for _, crew in
+                        {
+                            { count = 0, tier = 1 },
+                            { count = 1, tier = 3 },
+                            { count = 2, tier = 5 },
+                        }
+                    do
+                        for _, present in { true, false } do
+                            check.equal(
+                                ChainMath.buildingSpeed("saw", level, crew, present),
+                                ChainMath.sawSpeed(level, crew, present)
+                            )
+                            check.equal(
+                                ChainMath.buildingSpeed("forge", level, crew, present),
+                                ChainMath.forgeSpeed(level, crew, present)
+                            )
+                            check.equal(
+                                ChainMath.buildingSpeed("dock", level, crew, present),
+                                ChainMath.dockSpeed(level, crew)
+                            )
+                        end
+                    end
+                end
+                -- un fel necunoscut nu imprumuta cifrele altei cladiri [D40]
+                check.equal(ChainMath.buildingSpeed("net", 3, { count = 1, tier = 1 }, true), nil)
+                check.equal(ChainMath.levelField("saw"), "sawLevel")
+                check.equal(ChainMath.levelField("forge"), "forgeLevel")
+                check.equal(ChainMath.levelField("dock"), "dockLevel")
+                check.equal(ChainMath.levelField("net"), nil)
+                check.equal(ChainMath.lineOfNetKind("wood"), "wood")
+                check.equal(ChainMath.lineOfNetKind("scrap"), "iron")
+                check.equal(GAME.roleOfLink.saw, "sawyer")
+                check.equal(GAME.roleOfLink.forge, "smelter")
+                check.equal(GAME.roleOfLink.dock, "trader")
+            end
+        )
+
+        test.case(
+            "veriga slaba a unui rand: a liniei lui, iar pentru taverna cea care tine venitul",
+            function()
+                local s = state({ 60, 60, 60, 60, 40 }, 60, 1, true, allCrews(2, 5), { true, 60 })
+                local f = ChainMath.flow(s)
+                local r = ChainMath.ratesOf(f)
+                check.equal(ChainMath.lineBottleneck(f, "wood"), r.woodBottleneck)
+                check.equal(ChainMath.lineBottleneck(f, "iron"), r.ironBottleneck)
+                check.equal(ChainMath.lineBottleneck(f, nil), r.bottleneck)
+                -- linia fierului inchisa: "" -- niciun rand al ei nu e marcat drept veriga slaba
+                local closed = ChainMath.flow(state({ 5, 5 }, 1, 1, false))
+                check.equal(ChainMath.lineBottleneck(closed, "iron"), "")
+            end
+        )
+
+        test.case(
+            "clona tine si campurile pe care nu le cunoaste: o linie noua vine cu ale ei",
+            function()
+                local s: any = state({ 5, 5 }, 3, 2, true)
+                s.foundryLevel = 7
+                s.foundryOwned = true
+                local copy: any = ChainMath.clone(s)
+                check.equal(copy.foundryLevel, 7)
+                check.equal(copy.foundryOwned, true)
+                check.equal(copy.sawLevel, 3)
+                -- tot clona adanca: ce schimbi in ea nu atinge originalul
+                copy.nets[1].level = 40
+                copy.crews.collector.count = 2
+                copy.foundryLevel = 8
+                check.equal(s.nets[1].level, 5)
+                check.equal(s.crews.collector.count, 0)
+                check.equal(s.foundryLevel, 7)
+            end
+        )
+
+        test.case(
+            "un model in care o linie lipseste din randul vanzatorului ei e refuzat",
+            function()
+                local lines: { [string]: ChainMath.Line } = table.clone(GAME.lines)
+                lines.parts = { netKind = "parts", openFlag = nil, seller = "dock", steps = {} }
+                local ok = pcall(function()
+                    ChainMath.model(
+                        { "wood", "iron", "parts" },
+                        lines,
+                        GAME.processors,
+                        GAME.sellerOrder,
+                        GAME.sellers,
+                        GAME.roleBase,
+                        GAME.avg
+                    )
+                end)
+                check.is_false(ok)
+            end
+        )
+
+        test.case("liniile de proba, inchise: Era 1 nu simte nimic", function()
+            local m = probeModel()
+            local s = probeState(nil, nil)
+            local f = ChainMath.flowWith(m, s)
+            check.equal(f.lines.parts.delivered, 0)
+            check.equal(f.lines.copper.delivered, 0)
+            check.equal(f.lines.parts.bottleneck, "")
+            check.equal(f.lines.copper.bottleneck, "")
+            check.equal(ChainMath.valueWith(m, s, f), ChainMath.income(s))
+            check.equal(f.bottleneck, ChainMath.rates(s).bottleneck)
+        end)
+
+        test.case("a treia linie, de mana, la vanzatorul ei fara om", function()
+            -- timpul tau intreg pe cei patru pasi ai ei: 3.6 x 1.5 (traista mare) / 4 = 1.35; turnatoria de mana
+            -- 2.0 / 4 = 0.5; plasa 1.0 -> linia duce 0.5, tinuta de turnatorie. Piata fara negustor: 5 x 0.35 = 1.75.
+            local m = probeModel()
+            local s = probeState(1.0, nil)
+            local before = ChainMath.rates(s)
+            local f = ChainMath.flowWith(m, s)
+            near(valueAt(f.lines.parts, m, "parts", "partsCollect"), 1.35)
+            near(valueAt(f.lines.parts, m, "parts", "foundry"), 0.5)
+            near(f.lines.parts.delivered, 0.5)
+            check.equal(f.lines.parts.bottleneck, "foundry")
+            near(f.capacity.market, 1.75)
+            near(ChainMath.valueWith(m, s, f) - ChainMath.income(s), 4.0)
+            check.equal(f.lines.wood.delivered, before.wood)
+            check.equal(f.lines.iron.delivered, before.scrap)
+            check.equal(f.capacity.dock, before.sales)
+            -- o bucata de piese (8.0) bate una de fier: veriga care tine venitul e acum turnatoria
+            check.equal(f.bottleneck, "foundry")
+            -- fara tine, linia de mana sta
+            local idle = ChainMath.flowWith(m, s, true)
+            check.equal(idle.lines.parts.delivered, 0)
+            check.equal(idle.capacity.market, 0)
+        end)
+
+        test.case("aceeasi linie cu oameni: plasa ei devine marginea", function()
+            -- cate doi, treapta 5: drumurile 3 x 5 x 2 = 30, turnatoria 2 x 5 x 2 = 20, negustorul 5 x 5 x 2 = 50
+            local m = probeModel()
+            local s = probeState(1.0, nil)
+            staff(s, PARTS, 2, 5)
+            staff(s, { "merchant" }, 2, 5)
+            local f = ChainMath.flowWith(m, s)
+            near(valueAt(f.lines.parts, m, "parts", "partsHaul"), 30.0)
+            near(valueAt(f.lines.parts, m, "parts", "foundry"), 20.0)
+            near(f.capacity.market, 50.0)
+            near(f.lines.parts.delivered, 1.0)
+            check.equal(f.lines.parts.bottleneck, "nets")
+            near(ChainMath.valueWith(m, s, f) - ChainMath.income(s), 8.0)
+            -- cu toti oamenii ei, linia merge si fara tine
+            near(ChainMath.flowWith(m, s, true).lines.parts.delivered, 1.0)
+        end)
+
+        test.case(
+            "doua linii la acelasi al doilea vanzator: cea scumpa intai, cealalta ia restul",
+            function()
+                -- Piata cu un negustor de treapta 1 duce 5.0. Cuprul (12) e primul: plasa lui da 3.0, raman 2.0. Piesele
+                -- ar putea 4.0, dar primesc 2.0: Piata le tine. Cupru in plus ar lua locul pieselor: 12 - 8 = 4. Piata in
+                -- plus ar vinde piese: 8. Deci veriga care tine venitul e Piata.
+                local m = probeModel()
+                local s = probeState(4.0, 3.0)
+                staff(s, PARTS, 2, 5)
+                staff(s, COPPER, 2, 5)
+                staff(s, { "merchant" }, 1, 1)
+                local before = ChainMath.rates(s)
+                local f = ChainMath.flowWith(m, s)
+                near(f.lines.copper.delivered, 3.0)
+                near(f.lines.parts.delivered, 2.0)
+                check.equal(f.lines.parts.bottleneck, "market")
+                check.equal(f.lines.copper.bottleneck, "nets")
+                check.equal(f.bottleneck, "market")
+                near(ChainMath.valueWith(m, s, f) - ChainMath.income(s), 52.0)
+                check.equal(f.lines.wood.delivered, before.wood)
+                check.equal(f.lines.iron.delivered, before.scrap)
+                -- Piata largita (negustor de treapta 2: 10.0): amandoua curg cat prind
+                staff(s, { "merchant" }, 1, 2)
+                local wide = ChainMath.flowWith(m, s)
+                near(wide.lines.parts.delivered, 4.0)
+                check.equal(wide.lines.parts.bottleneck, "nets")
+                near(ChainMath.valueWith(m, s, wide) - ChainMath.income(s), 68.0)
+            end
+        )
+    end)
 end

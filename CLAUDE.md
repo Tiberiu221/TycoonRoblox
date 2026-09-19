@@ -131,9 +131,20 @@ e gata. Detaliile și sursele sunt în DECIZII D63. **Nimic din ce urmează n-a 
   curent electric → cristale → piese de navă → roboți → barje plutitoare → rachetă. Trei reguli: reperul fiecărei ere se
   face din ce produci deja, o singură poveste (scrap-ul din Era 1 vine de la o navă prăbușită în amonte), iar marfa nouă
   apare când o poți folosi. Fiecare renaștere = o planetă nouă; **se construiește doar Era 2**. Marfa nouă de la finalul Erei 2 e de
-  confirmat (propus: cupru). Primul pas: generalizarea motorului lanțului la N linii, întâi în simulator, cu tabelul
-  de aur al Erei 1 neschimbat; planul pe pași e în `docs/PLAN-MOTOR-N-LINII.md`. **Owner-ul vrea întâi Era 1
-  închisă:** verificată cu sonda pe un profil de probă (nu pe salvarea lui), apoi jucată de el.
+  confirmat (propus: cupru). Owner-ul, 2026-09-19 seara: „dacă totul are sens și logică în Era 1, se poate trece mai
+  departe".
+- **Motorul lanțului merge pe un tabel de linii (2026-09-19, pașii a–f din `docs/PLAN-MOTOR-N-LINII.md`).** Forma
+  liniilor e dată: `LINE_ORDER` / `LINES` / `PROCESSORS` / `SELLERS`, în `sim_tycoon.py` și în `StationConfig`; restul
+  tabelelor (`LINE_STEPS`, `LINK_OF`, `LINKS`, …) se derivă din ele. În `ChainMath`, `Flow` e adevărul, iar `Rates` e
+  vederea plată a Erei 1, aceeași pe care o primește clientul. Era 1 e neschimbată la bit (tabelul de aur, 80.000 de
+  stări la întâmplare față de motorul vechi). `check_lines.py` (rulat de simulator) și suita „liniile ca date" din
+  `tests/ChainMath.test.luau` dovedesc cu linii de probă că motorul duce a treia linie și al doilea vânzător.
+  **O eră nouă = rânduri în tabele**, plus ce a rămas scris pentru două linii (lista e la sfârșitul planului):
+  deblocările și scara prețurilor din simulator, cusătura cu profilul din `StationService.StateFrom`, grămezile,
+  meniurile, ghidajul. `State` rămâne plat: o clădire nouă își aduce câmpurile, citite după numele din tabel.
+- **Cifrele din colțul HUD-ului stau pe o grilă** (`Shared/Modules/HudLayout`, cu test): monede, perle și sac pe
+  rândul de sus, rata și AWAY dedesubt, linia NEXT cât blocul. Văzut în Play-ul owner-ului cu sonda: cutiile cad pe
+  grilă. Pozițiile pastilelor nu se mai scriu de mână în `HUDController`.
 - **Colțul cu Robux e viu pe staging (2026-09-19):** owner-ul a dat cheii API (`bebe`) permisiunile `game-pass` și
   `developer-product`; `python3 scripts/create_monetization.py` a creat cele patru pass-uri și cele două produse
   (fără dubluri: întâi listează) și a scris ID-urile în `MonetizationConfig.IDS`. Prețurile se citesc de la Roblox;
