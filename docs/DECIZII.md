@@ -40,7 +40,7 @@ erele, vreau doar să știu roadmap-ul."* A ales și **Piață nouă în Era 2**
 | 7 | The Sky Dock | pietre → barje care plutesc; un al doilea „râu", în aer | **fragmente de stea**, combustibilul unei rachete | Piața din cer | platforme și bărci plutitoare |
 | 8 | The Launch Site | fragmente → combustibil; construiești racheta | **Racheta:** „Move Downstream" devine zborul spre o planetă nouă, cu râul ei | Rampa de lansare | racheta; cerul altei planete |
 
-- **[Owner, 2026-09-19, a doua zi]:** prima variantă continua după curent cu sticlă, cărămizi, hârtie și port. Respinsă:
+- **[Owner, 2026-09-19]:** prima variantă continua după curent cu sticlă, cărămizi, hârtie și port. Respinsă:
   *„după curentul electric deblocăm infinite posibilități; deci vreau să devină mai SF treaba"*. De la Era 4 încolo
   scara urcă spre SF; Erele 1–3 rămân.
 - **După Era 8:** renașterea din plan (TYCOON §K) devine **o planetă nouă la fiecare tură**: alt râu, altă culoare a
