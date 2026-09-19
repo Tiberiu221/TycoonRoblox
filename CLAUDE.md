@@ -133,6 +133,12 @@ e gata. Detaliile și sursele sunt în DECIZII D63. **Nimic din ce urmează n-a 
   apare când o poți folosi. Fiecare renaștere = o planetă nouă; **se construiește doar Era 2**. Marfa nouă de la finalul Erei 2 e de
   confirmat (propus: cupru). Owner-ul, 2026-09-19 seara: „dacă totul are sens și logică în Era 1, se poate trece mai
   departe".
+- **Era 2 e derivată în simulator, ca propunere [D65]:** `python3 scripts/economy/sim_era2.py [--table] [--robust]`
+  (nu e în poartă, nu atinge jocul). Schema Erei 1 oglindită: Water Wheel, plasele Morii (scrap → piese de mașini la
+  turnătorie → Piață), cinci oameni în rafală, apoi Copper Furnace, plasa de minereu și cei patru ai cuprului, Mill
+  Bell. Cadrul e un număr, M = 40 (monedele cartierului nou × M, bucățile pe secundă ca în Era 1): ~57 de minute reale,
+  112/s → ~5.080/s, nicio cumpărătură care scade venitul. `sim_tycoon.run` primește acum era și starea de pornire
+  (`ERA1`), cu Era 1 neschimbată la octet. **Așteaptă aprobarea owner-ului înaintea oricărui cod de joc pentru Era 2.**
 - **Motorul lanțului merge pe un tabel de linii (2026-09-19, pașii a–f din `docs/PLAN-MOTOR-N-LINII.md`).** Forma
   liniilor e dată: `LINE_ORDER` / `LINES` / `PROCESSORS` / `SELLERS`, în `sim_tycoon.py` și în `StationConfig`; restul
   tabelelor (`LINE_STEPS`, `LINK_OF`, `LINKS`, …) se derivă din ele. În `ChainMath`, `Flow` e adevărul, iar `Rates` e

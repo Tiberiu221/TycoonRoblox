@@ -11,6 +11,63 @@ Convenție: în tot proiectul, „server" înseamnă o instanță Roblox efemer�
 
 ---
 
+## D65 — Era 2, „The Mill": schema Erei 1, oglindită și derivată în simulator
+**PROVIZORIU** (2026-09-19, seara) — owner-ul: *„ok, dacă totul are sens și logică în Era 1, se poate trece mai
+departe."* E o propunere cu cifre din simulator (`scripts/economy/sim_era2.py`), nu cod de joc. Pornește de la regula
+lui din D64 și de la ce a spus în noaptea de 2026-09-19: *„poți începe să copiezi schemele și pentru Era 2 (se continuă
+harta în dreapta)"*. Era 2 e deci **schema Erei 1**, care a fost reglată și jucată, cu altă marfă pe ea.
+
+**Ce face jucătorul** (timpii sunt reali, de la Landing Bell, din simulator):
+1. **Harta continuă la dreapta.** Pe malul nou stau ruinele Morii [ca în D53]: o roată de apă căzută, o turnătorie
+   rece, o piață goală. Pe râu trece deja minereu de cupru, pe care plasele tale nu-l pot prinde încă.
+2. **Water Wheel** (5K, ~1m20s). Roata se învârte și turnătoria se aprinde: reperul erei, primul lucru cumpărat.
+3. **Sixth Net** (5,5K, ~2m50s). Prinde scrap, marfa pe care o știi. Faci o dată turul de mână: culegi, duci la
+   turnătorie, stai în inel cât se toarnă **piesele de mașini**, le duci la **Piață**.
+4. **Cei cinci oameni, în rafală** (1,2K–2,5K fiecare, toți până la ~4m50s): Mill Collector, Mill Porter, Founder,
+   Parts Hauler, Merchant. Ca în capitolul 1: lanțul îl știi, deci pornești repede.
+5. **Crești cartierul:** niveluri pe plase (primul costă 40 de monede; pragurile 10 / 25 / 50 dublează), treptele
+   oamenilor, al doilea om (50K–100K). **Seventh Net** (8K, ~9m30s), **Eighth Net** (45K, ~32m), **Ninth Net** (150K,
+   ~45m).
+6. **Copper Furnace** (280K, ~48m): cuptorul e, în sfârșit, destul de fierbinte. E „Forja" erei: deschide marfa nouă.
+7. **Tenth Net** (350K, ~52m) prinde minereul. Tur de mână, apoi **Ore Shed** și cei patru oameni ai cuprului, în
+   rafală (35K–55K): Ore Collector, Ore Porter, Coppersmith, Copper Hauler. Cuprul se vinde tot la Piață, înaintea
+   pieselor (valorează mai mult), exact cum taverna vinde întâi fierul.
+8. **Mill Bell** (400K, ~57m): +10% la tot și se deschide Era 3, unde pornești cu cuprul.
+
+**Cadrul erei e un singur număr, M = 40.** Tot ce se măsoară în monede în cartierul nou se înmulțește cu M: valoarea
+bucății (o piesă de mașină = 66 de monede, o bucată de cupru = 142), costul nivelurilor, costul treptelor. Tot ce se
+măsoară în bucăți pe secundă rămâne ca în Era 1: plasele, oamenii, turnătoria cât gaterul, Piața cât taverna. Prețurile
+deblocărilor ies ca la Era 1: venitul din clipa în care se deschid × scara de așteptare, repornită de la început.
+
+**Ce a măsurat simulatorul:**
+- **~57 de minute reale** (ținta owner-ului: cam o oră), 398 de cumpărături, venitul de la 112/s la ~5.080/s (de 45 de
+  ori). Nicio cumpărătură nu scade venitul. Cea mai lungă pauză fără nimic de apăsat: 1m55s (Era 1: 2m01s).
+- **20 de cumpărături în primele 5 minute** ale erei. La final, piesele aduc 63% din bani, cuprul 34%.
+- **De ce 40 și nu 30:** durata e stabilă pentru M între 30 și 60 (55–57 de minute), dar sare la ~1h14m sub 28, unde
+  jucătorul simulat amână a șaptea plasă. 40 stă în mijlocul zonei stabile.
+- **La ±15% pe fiecare constantă a cartierului nou:** 50–63 de minute, nicio scădere de venit.
+- **Ce rămâne ipoteză:** modelul jucătorului, mai mult decât M. Cel folosit e același care dă 33m36s la Era 1. Un om
+  care aleargă după deblocări și lasă nivelurile termină era în ~23 de minute, cu venit mai mic. Adevărul e între ele și
+  se măsoară la playtest, ca și raportul de 1,8 dintre jucătorul real și cel simulat.
+
+**Hotărâri luate de mine, de confirmat:**
+- **Roata de apă costă monede**, nu scânduri și fier: jocul are o singură monedă. Povestea ei spune din ce e făcută.
+- **Marfa nouă e cuprul**, cum scrie în roadmap-ul din D64; acolo era încă „de confirmat".
+- **Cartierul vechi rămâne în funcțiune, dar la finalul Erei 2 aduce ~3% din bani.** E firesc pentru gen: atenția se
+  mută la dreapta. Am încercat al treilea om pe fiecare meserie: nu-l ajută (3,9%) și strică pornirea erei (6
+  cumpărături în primele 5 minute, în loc de 20). Rămân doi oameni pe meserie.
+- **Numele:** plasele se numără mai departe (Sixth … Tenth Net); Foundry, Market, Copper Furnace, Ore Shed, Mill Bell.
+
+**Ordinea de construit, după aprobare** (fiecare pas cu poarta verde; arta, întâi pe planșe):
+1. Era 2 intră în simulatorul adevărat și în config (prețurile verificate, tabelul de aur cu stări de Era 2).
+2. Harta se întinde la dreapta: mal, punte, drumuri, curți; pământul copt din nou; marginile camerei.
+3. Arta: roata, turnătoria, Piața, cuptorul, magazia de minereu, nouă ținute de oameni, trei pictograme de marfă.
+4. Serverul: platformele, meseriile, grămezile cartierului nou, cusătura cu profilul (v16).
+5. Clientul: clădirile, drumurile oamenilor, meniurile, capitolele 4–6 de quest-uri, ghidajul.
+6. Era 2 jucată cu sonda, pe profil de probă, apoi de owner.
+
+---
+
 ## D64 — Regula unei ere și roadmap-ul până la Era 8
 **PROVIZORIU** (2026-09-19) — owner-ul a respins propunerea mea pentru Era 2 din D63 (multiplicatoare pe cele două linii
 de azi): *„ar trebui să poți prinde scraps inițial și după să începi să prinzi altceva spre finalul Erei 2. Cum este la
