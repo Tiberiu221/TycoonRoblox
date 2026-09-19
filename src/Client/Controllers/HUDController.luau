@@ -285,11 +285,13 @@ function HUDController.Init(
     idleEyebrow.Size = UDim2.fromOffset(42, Theme.TEXT.tiny + 6)
     idleEyebrow.ZIndex = 13
 
+    -- cifra incepe dupa cuvant, nu pe sub el: cutiile nu se calca, deci sonda tace cat nu se calca nici literele
+    local idleValueX = eyebrowX + 42 + 4
     idleValue = Widgets.Label(idlePill, "0.0/s", Theme.TEXT.body, Theme.COLOR.cool, "strong")
     idleValue.AnchorPoint = Vector2.new(1, 0)
     idleValue.Position =
         UDim2.fromOffset(IDLE_W - Theme.SPACE.sm, (IDLE_H - Theme.TEXT.body) / 2 - 2)
-    idleValue.Size = UDim2.fromOffset(IDLE_W - 58, Theme.TEXT.body + 6)
+    idleValue.Size = UDim2.fromOffset(IDLE_W - Theme.SPACE.sm - idleValueX, Theme.TEXT.body + 6)
     idleValue.TextXAlignment = Enum.TextXAlignment.Right
     idleValue.ZIndex = 13
 
@@ -307,7 +309,7 @@ function HUDController.Init(
 
     local eyebrow = Widgets.Label(objPill, "NEXT", Theme.TEXT.tiny, Theme.COLOR.gold, "strong")
     eyebrow.Position = UDim2.fromOffset(Theme.SPACE.md, 6)
-    eyebrow.Size = UDim2.fromOffset(60, 14)
+    eyebrow.Size = UDim2.fromOffset(48, 14) -- fraza incepe la +52: cutia cuvantului se opreste inaintea ei
     eyebrow.ZIndex = 13
 
     objText = Widgets.Label(objPill, "", Theme.TEXT.small, Theme.COLOR.onDark, "strong")

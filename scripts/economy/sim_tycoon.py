@@ -41,6 +41,7 @@ simulatorul le urmeaza si el acolo unde lacomia singura s-ar bloca (vezi `run`).
 
 Folosire:  python3 scripts/economy/sim_tycoon.py [--table] [--chain] [--robust]
 """
+import os
 import sys
 from dataclasses import dataclass, field
 
@@ -177,30 +178,76 @@ SECOND_AT_TIER = 3  # al doilea om pe aceeasi treaba se deschide de la treapta a
 MAX_PEOPLE = 2  # in Era 1; "progresiv cu jocul" [owner, 2026-09-13]
 
 ROLES = ("collector", "porter", "sawyer", "hauler", "trader", "scrapCollector", "scrapPorter", "smelter", "ironHauler")
-# Pasii pe care ii poate face jucatorul, PE LINII, IN ORDINEA ANGAJARILOR (conditiile de mai jos o impun, iar
-# `check_hire_order` se bazeaza pe ea). [D56] Fiecare linie are timpul tau intreg: in joc nu ai niciodata pasi de
-# mana pe amandoua odata (oamenii lemnului vin toti inaintea Forge), iar asa deschiderea fierului nu poate scadea
-# lemnul in nicio stare.
-LINE_STEPS = {
-    "wood": ("collector", "porter", "sawyer", "hauler"),
-    "iron": ("scrapCollector", "scrapPorter", "smelter", "ironHauler"),
+
+# ---- liniile, ca date [D64] --------------------------------------------------------------------
+# Pana la D64 motorul era scris de mana pentru exact doua linii, lemnul si fierul. Era 2 aduce linii de ACEEASI forma
+# (plasa -> om care aduna -> magazie -> om care duce -> atelier -> om care duce -> vanzator), asa ca forma devine
+# tabel, iar functiile de mai jos merg peste el. Planul pe pasi: docs/PLAN-MOTOR-N-LINII.md.
+#   * Un pas e (rol, veriga, fel). `walk` = un drum: oamenii lui duc ROLE_BASE[rol]; fara om, partea ta din timp pe
+#     linia aceea. `processor` = o cladire cu niveluri (PROCESSORS[veriga]): oamenii ei o tin pornita tot timpul; fara
+#     ei merge doar cat stai tu langa ea.
+#   * Pasii stau IN ORDINEA ANGAJARILOR (conditiile deblocarilor o impun, iar `check_hire_order` se bazeaza pe ea).
+#     [D56] Fiecare linie are timpul tau intreg: in joc nu ai niciodata pasi de mana pe doua linii odata (oamenii
+#     lemnului vin toti inaintea Forge), iar asa deschiderea unei linii nu poate scadea alta in nicio stare.
+#   * `openFlag`: campul din State care deschide linia (None = deschisa de la inceput). O linie cu conditie mai cere
+#     si o plasa de felul ei: fara plasa, n-are ce sa curga pe ea.
+#   * CONSTANTELE SE TIN DUPA NUME, nu dupa valoare ("SAW_BASE_RATE", nu 2.4): `--robust` si tune_tycoon.py le schimba
+#     in memorie DUPA import, iar o copie facuta aici ar ramane pe cifra veche, in tacere.
+#   * LINE_ORDER e ordinea in care se aduna ORICE suma pe linii (virgula mobila: alta ordine ar muta ultimii biti ai
+#     venitului) si in care se departajeaza verigile la egalitate. `priority` e ALTA ordine, a vanzatorului: cine ia
+#     primul din capacitatea lui (marfa mai scumpa intai, vezi verificarea de la sfarsit). Azi sunt una inversul
+#     celeilalte doar din intamplare, deci raman doua liste.
+LINE_ORDER = ("wood", "iron")
+LINES = {
+    "wood": {
+        "netKind": "wood", "openFlag": None, "seller": "dock",
+        "steps": (("collector", "collect", "walk"), ("porter", "port", "walk"),
+                  ("sawyer", "saw", "processor"), ("hauler", "haul", "walk")),
+    },
+    "iron": {
+        "netKind": "scrap", "openFlag": "workshop", "seller": "dock",
+        "steps": (("scrapCollector", "scrapCollect", "walk"), ("scrapPorter", "scrapPort", "walk"),
+                  ("smelter", "forge", "processor"), ("ironHauler", "ironHaul", "walk")),
+    },
 }
-MANUAL_ROLES = LINE_STEPS["wood"] + LINE_STEPS["iron"]
-LINE_OF_ROLE = {r: line for line, steps in LINE_STEPS.items() for r in steps}
-LINK_OF = {
-    "collector": "collect", "porter": "port", "sawyer": "saw", "hauler": "haul", "trader": "dock",
-    "scrapCollector": "scrapCollect", "scrapPorter": "scrapPort", "smelter": "forge", "ironHauler": "ironHaul",
+# Cladirile cu niveluri: numele constantei de baza si campul din State cu nivelul. Veriga e si felul din
+# LEVEL_INC_BY_KIND.
+PROCESSORS = {
+    "saw": {"base": "SAW_BASE_RATE", "level": "saw_level"},
+    "forge": {"base": "FORGE_BASE_RATE", "level": "forge_level"},
 }
+# Vanzatorii: omul lor nu are baza, inmulteste capacitatea cladirii (fara el merge la NO_TRADER_FACTOR).
+SELLERS = {
+    "dock": {"role": "trader", "base": "DOCK_BASE_RATE", "level": "dock_level", "priority": ("iron", "wood")},
+}
+
+
+
+def derive_tables(line_order, lines, sellers, roles):
+    """Tabelele de lucru, DERIVATE din LINES / SELLERS ca sa nu existe doua liste care sa se desparta. Intoarce
+    (LINE_STEPS, LINE_LINKS, LINE_OF_ROLE, LINK_OF, LINKS) si pica pe un tabel care nu se leaga. E functie, nu cod de
+    modul, pentru ca check_lines.py o cheama din nou dupa ce adauga linii de proba."""
+    line_steps = {line: tuple(role for role, _link, _kind in lines[line]["steps"]) for line in line_order}
+    line_links = {line: tuple(link for _role, link, _kind in lines[line]["steps"]) for line in line_order}
+    line_of_role = {r: line for line, steps in line_steps.items() for r in steps}
+    link_of = {role: link for line in line_order for role, link, _kind in lines[line]["steps"]}
+    link_of.update({spec["role"]: seller for seller, spec in sellers.items()})
+    # ORDINEA e contractul cu ChainMath.luau: la egalitate castiga veriga dinainte (Luau-ul compara cu `>` strict in
+    # exact aceeasi ordine). [D56] Plasele, apoi liniile in LINE_ORDER, apoi vanzatorii.
+    links = ("nets",) + tuple(link for line in line_order for link in line_links[line]) + tuple(sellers)
+    assert set(roles) == set(link_of), "ROLES si LINES/SELLERS nu au aceiasi oameni"
+    assert len(set(links)) == len(links), "o veriga apare de doua ori"
+    for line in line_order:
+        assert line in sellers[lines[line]["seller"]]["priority"], f"linia {line} lipseste din randul vanzatorului ei"
+    for seller, spec in sellers.items():
+        assert all(lines[l]["seller"] == seller for l in spec["priority"]), f"{seller}: o linie de-a altui vanzator"
+    return line_steps, line_links, line_of_role, link_of, links
+
+
+LINE_STEPS, LINE_LINKS, LINE_OF_ROLE, LINK_OF, LINKS = derive_tables(LINE_ORDER, LINES, SELLERS, ROLES)
 ROLE_NAMES = {
     "collector": "Collector", "porter": "Porter", "sawyer": "Sawyer", "hauler": "Hauler", "trader": "Innkeeper",
     "scrapCollector": "Scrap Collector", "scrapPorter": "Scrap Porter", "smelter": "Smelter", "ironHauler": "Iron Hauler",
-}
-# ORDINEA e contractul cu ChainMath.luau: la egalitate castiga veriga dinainte (Luau-ul compara cu `>` strict in
-# exact aceeasi ordine). [D56] Plasele, linia lemnului, linia fierului, taverna (a amandurora).
-LINKS = ("nets", "collect", "port", "saw", "haul", "scrapCollect", "scrapPort", "forge", "ironHaul", "dock")
-LINE_LINKS = {
-    "wood": ("collect", "port", "saw", "haul"),
-    "iron": ("scrapCollect", "scrapPort", "forge", "ironHaul"),
 }
 
 
@@ -259,15 +306,19 @@ def tier_cost(tier: int) -> float:
     return TIER_COST_BASE * TIER_COST_GROWTH ** (tier - 1)
 
 
-def iron_open(s: State) -> bool:
-    """[D56] Linia fierului e deschisa: ai Forge si plasa de scrap. Pana la shed, culesul si dusul scrap-ului sunt
-    pasii tai de mana, ca turul de lemn din capitolul 1."""
-    return s.workshop and any(n.kind == "scrap" for n in s.nets)
+def line_open(s: State, line: str) -> bool:
+    """O linie fara conditie e deschisa de la inceput. Una cu conditie cere campul ei din State si o plasa de felul
+    ei. [D56] Pana la oamenii ei, culesul si dusul sunt pasii tai de mana, ca turul de lemn din capitolul 1."""
+    flag = LINES[line]["openFlag"]
+    if flag is None:
+        return True
+    kind = LINES[line]["netKind"]
+    return bool(getattr(s, flag)) and any(n.kind == kind for n in s.nets)
 
 
 def manual_steps(s: State, line: str = "wood") -> int:
-    """Cati din pasii unei linii n-au inca om (0 cat linia fierului e inchisa)."""
-    if line == "iron" and not iron_open(s):
+    """Cati din pasii unei linii n-au inca om (0 cat linia e inchisa)."""
+    if not line_open(s, line):
         return 0
     return sum(1 for r in LINE_STEPS[line] if s.crews[r].count == 0)
 
@@ -289,138 +340,165 @@ def walk_rate(s: State, role: str) -> float:
     return player_share(s, LINE_OF_ROLE[role])
 
 
-def saw_rate(s: State) -> float:
-    """Gaterul: Sawyerii il tin pornit tot timpul; fara ei taie doar cat stai tu langa el."""
-    cap = level_output(SAW_BASE_RATE, s.saw_level, "saw")
-    crew = s.crews["sawyer"]
+def processor_rate(s: State, line: str, role: str, link: str) -> float:
+    """O cladire cu niveluri (gaterul [D48], forja [D56]): oamenii ei o tin pornita tot timpul; fara ei merge doar cat
+    stai tu langa ea. Cat linia e inchisa, nimic. Constanta de baza se citeste dupa nume, la fiecare apel."""
+    if not line_open(s, line):
+        return 0.0
+    spec = PROCESSORS[link]
+    cap = level_output(globals()[spec["base"]], getattr(s, spec["level"]), link)
+    crew = s.crews[role]
     if crew.count > 0:
         return cap * tier_mult(crew.tier) * crew.count
-    return cap / manual_steps(s, "wood")
+    return cap / manual_steps(s, line)
 
 
-def dock_rate(s: State) -> float:
-    cap = level_output(DOCK_BASE_RATE, s.dock_level, "dock")
-    crew = s.crews["trader"]
+def seller_rate(s: State, seller: str) -> float:
+    """Un vanzator (taverna): singurul pas pe care NU-l faci tu. Fara omul lui vinde si singur, incet."""
+    spec = SELLERS[seller]
+    cap = level_output(globals()[spec["base"]], getattr(s, spec["level"]), seller)
+    crew = s.crews[spec["role"]]
     if crew.count > 0:
         return cap * tier_mult(crew.tier) * crew.count
     return cap * NO_TRADER_FACTOR
 
 
-def forge_rate(s: State) -> float:
-    """Forja [D56]: Smelter-ii o tin pornita tot timpul; fara ei topeste doar cat stai tu langa ea. Cat linia
-    fierului e inchisa (fara Forge sau fara plasa de scrap), nimic."""
-    if not iron_open(s):
-        return 0.0
-    cap = level_output(FORGE_BASE_RATE, s.forge_level, "forge")
-    crew = s.crews["smelter"]
-    if crew.count > 0:
-        return cap * tier_mult(crew.tier) * crew.count
-    return cap / manual_steps(s, "iron")
+def line_avg(line: str) -> float:
+    """Cat valoreaza, in medie, o bucata livrata pe linia asta."""
+    return AVG[LINES[line]["netKind"]]
 
 
 @dataclass
+class LineFlow:
+    """Ce curge pe o linie, pe secunda."""
+    catch: float  # cat prind plasele ei (0 cat linia e inchisa)
+    rates: tuple  # ((veriga, debit), ...) in ordinea pasilor, fara plase
+    own_max: float  # marginea liniei inaintea vanzatorului: minimul dintre plase si pasi
+    active: bool  # intra in socoteala verigilor: mereu pentru o linie fara conditie, altfel doar cat prinde ceva
+    room: float = 0.0  # cat mai avea vanzatorul cand i-a venit randul
+    delivered: float = 0.0  # bucati livrate
+    by_seller: bool = False  # vanzatorul e marginea liniei
+    bottleneck: str = ""  # veriga slaba a liniei ("" cat nu e activa)
+
+    def links(self) -> tuple:
+        """Toate verigile liniei, cu plasele in fata: ordinea in care se cauta primul minim."""
+        return (("nets", self.catch),) + self.rates
+
+
 class Chain:
-    wood_catch: float
-    scrap_catch: float  # 0 cat linia fierului e inchisa
-    collect: float
-    port: float
-    sawing: float
-    haul: float
-    scrap_collect: float
-    scrap_port: float
-    forging: float
-    iron_haul: float
-    sales: float
-    wood: float  # bucati de lemn livrate pe secunda
-    scrap: float  # bucati de fier livrate pe secunda (scrap-ul topit)
-    bottleneck: str = "nets"
-    wood_bottleneck: str = "nets"
-    iron_bottleneck: str = ""  # "" cat linia fierului e inchisa
+    """Lantul intreg. `lines` si `capacity` sunt adevarul; numele plate de mai jos (wood_catch, sawing, sales, ...) sunt
+    VEDEREA Erei 1 peste ele: asa le citesc golden_chain.py (tabelul de aur din tests/ChainMath.test.luau) si raportul
+    `--chain`. O linie noua nu primeste nume plat: se citeste din `lines`."""
+
+    def __init__(self, lines: dict, capacity: dict):
+        self.lines = lines  # {linie: LineFlow}
+        self.capacity = capacity  # {vanzator: bucati pe secunda}
+        self.bottleneck = "nets"  # veriga care tine venitul
+
+    def rate(self, line: str, link: str) -> float:
+        return dict(self.lines[line].rates)[link]
+
+    wood_catch = property(lambda self: self.lines["wood"].catch)
+    scrap_catch = property(lambda self: self.lines["iron"].catch)  # 0 cat linia fierului e inchisa
+    collect = property(lambda self: self.rate("wood", "collect"))
+    port = property(lambda self: self.rate("wood", "port"))
+    sawing = property(lambda self: self.rate("wood", "saw"))
+    haul = property(lambda self: self.rate("wood", "haul"))
+    scrap_collect = property(lambda self: self.rate("iron", "scrapCollect"))
+    scrap_port = property(lambda self: self.rate("iron", "scrapPort"))
+    forging = property(lambda self: self.rate("iron", "forge"))
+    iron_haul = property(lambda self: self.rate("iron", "ironHaul"))
+    sales = property(lambda self: self.capacity["dock"])
+    wood = property(lambda self: self.lines["wood"].delivered)  # bucati de lemn livrate pe secunda
+    scrap = property(lambda self: self.lines["iron"].delivered)  # bucati de fier livrate (scrap-ul topit)
+    wood_bottleneck = property(lambda self: self.lines["wood"].bottleneck)
+    iron_bottleneck = property(lambda self: self.lines["iron"].bottleneck)  # "" cat linia fierului e inchisa
 
 
-def bottlenecks(c: Chain) -> tuple:
-    """(veriga care tine venitul, veriga slaba a lemnului, veriga slaba a fierului) [D56].
+def bottlenecks(c: Chain) -> str:
+    """Scrie veriga slaba a fiecarei linii si intoarce veriga care tine venitul [D56].
 
     Veriga care tine venitul: cea al carei pas in plus ar aduce cei mai multi bani pe bucata, in ordinea LINKS la
-    egalitate. O veriga "tine" o linie cand valoarea ei e chiar marginea liniei (min-ul exact):
-      * lemnul, tinut de o veriga a lui -> 1.65 pe bucata;
-      * fierul, tinut de o veriga a lui -> 3.55, dar cand taverna e plina o bucata de fier in plus ia locul
-        uneia de lemn, deci doar diferenta (3.55 - 1.65);
-      * taverna, cand ea e marginea: ce ar mai vinde (fier daca fierul asteapta, altfel lemn).
-    Veriga slaba a unei linii: primul minim din linie (plasele ei, oamenii, cladirea), sau taverna cand ea e
-    marginea liniei. Fara linia fierului iese PRIMUL minim din cele sase -- regula de dinainte [D49]."""
-    aw, ai = AVG["wood"], AVG["scrap"]
-    wood_links = (("nets", c.wood_catch), ("collect", c.collect), ("port", c.port), ("saw", c.sawing), ("haul", c.haul))
-    iron_links = (
-        ("nets", c.scrap_catch), ("scrapCollect", c.scrap_collect), ("scrapPort", c.scrap_port),
-        ("forge", c.forging), ("ironHaul", c.iron_haul),
-    )
-    iron_open_ = c.scrap_catch > 0.0
-    wood_max = min(v for _, v in wood_links)
-    iron_max = min(v for _, v in iron_links)
-    wood_by_dock = c.wood == c.sales - c.scrap and c.wood < wood_max  # taverna e marginea lemnului
-    iron_by_dock = iron_open_ and c.scrap == c.sales and c.scrap < iron_max
-    swap = ai - (aw if wood_by_dock else 0.0)  # o bucata de fier in plus ia locul uneia de lemn
+    egalitate. O veriga "tine" o linie cand valoarea ei e chiar ce livreaza linia (min-ul exact):
+      * o linie tinuta de o veriga a ei -> valoarea bucatii ei. Daca insa vanzatorul e plin, bucata in plus ia locul
+        uneia de pe PRIMA linie de dupa ea (in randul vanzatorului) pe care o tine vanzatorul, deci doar diferenta.
+        Cu lemnul si fierul: 1.65 pentru lemn; 3.55 pentru fier, sau 3.55 - 1.65 cand taverna e plina;
+      * vanzatorul, cand el e marginea: ce ar mai vinde, adica bucata primei linii tinute de el.
+    Veriga slaba a unei linii: primul minim din linie (plasele ei, oamenii, cladirea), sau vanzatorul cand el e
+    marginea ei. Fara linia fierului iese PRIMUL minim din cele sase -- regula de dinainte [D49].
+
+    Trei sau mai multe linii la acelasi vanzator nu exista inca nicaieri: regula "prima linie tinuta de dupa ea" e
+    exacta pentru doua. Inainte de a treia, intai teste socotite de mana (docs/PLAN-MOTOR-N-LINII.md)."""
     gains = {link: 0.0 for link in LINKS}
-    if iron_open_ and not iron_by_dock:
-        for link, value in iron_links:
-            if value == c.scrap:
-                gains[link] = max(gains[link], swap)
-    if not wood_by_dock:
-        for link, value in wood_links:
-            if value == c.wood:
-                gains[link] = max(gains[link], aw)
-    if iron_by_dock:
-        gains["dock"] = ai
-    elif wood_by_dock:
-        gains["dock"] = aw
+    for seller, spec in SELLERS.items():
+        order = spec["priority"]
+        for i, line in enumerate(order):
+            f = c.lines[line]
+            if not f.active or f.by_seller:
+                continue
+            displaced = next((other for other in order[i + 1:] if c.lines[other].by_seller), None)
+            gain = line_avg(line) if displaced is None else line_avg(line) - line_avg(displaced)
+            for link, value in f.links():
+                if value == f.delivered:
+                    gains[link] = max(gains[link], gain)
+        held = next((line for line in order if c.lines[line].by_seller), None)
+        if held is not None:
+            gains[seller] = line_avg(held)
     best = "nets"
     for link in LINKS:
         if gains[link] > gains[best]:
             best = link
-    wood_bn = "dock" if wood_by_dock else next(link for link, value in wood_links if value == wood_max)
-    iron_bn = ""
-    if iron_open_:
-        iron_bn = "dock" if iron_by_dock else next(link for link, value in iron_links if value == iron_max)
-    return best, wood_bn, iron_bn
+    for line in LINE_ORDER:
+        f = c.lines[line]
+        if not f.active:
+            f.bottleneck = ""
+        elif f.by_seller:
+            f.bottleneck = LINES[line]["seller"]
+        else:
+            f.bottleneck = next(link for link, value in f.links() if value == f.own_max)
+    return best
 
 
 def chain(s: State) -> Chain:
-    """Cele doua linii [D49, D56]: fiecare cu oamenii ei; impart doar taverna, care vinde intai fierul (bucata
-    valoreaza mai mult) cat poate linia lui aduce, iar lemnul ia restul. Orice capacitate in plus doar largeste
-    ce se poate, deci nicio cumparatura nu scade venitul."""
-    open_ = iron_open(s)
-    wood_catch = 0.0
-    scrap_catch = 0.0
-    for n in s.nets:
-        if n.kind == "scrap":
-            if open_:
-                scrap_catch += n.rate()
-        else:
-            wood_catch += n.rate()
-    collect = walk_rate(s, "collector")
-    port = walk_rate(s, "porter")
-    sawing = saw_rate(s)
-    haul = walk_rate(s, "hauler")
-    scrap_collect = walk_rate(s, "scrapCollector")
-    scrap_port = walk_rate(s, "scrapPorter")
-    forging = forge_rate(s)
-    iron_haul = walk_rate(s, "ironHauler")
-    sales = dock_rate(s)
-    iron_max = min(scrap_catch, scrap_collect, scrap_port, forging, iron_haul)
-    wood_max = min(wood_catch, collect, port, sawing, haul)
-    scrap = min(iron_max, sales)
-    wood = min(wood_max, sales - scrap)
-    c = Chain(wood_catch, scrap_catch, collect, port, sawing, haul, scrap_collect, scrap_port, forging, iron_haul,
-              sales, wood, scrap)
-    c.bottleneck, c.wood_bottleneck, c.iron_bottleneck = bottlenecks(c)
+    """Liniile [D49, D56]: fiecare cu oamenii ei; cele care au acelasi vanzator impart doar capacitatea lui. El vinde
+    in ordinea din `priority` (intai marfa mai scumpa) cat poate aduce fiecare linie, iar urmatoarea ia restul. Orice
+    capacitate in plus doar largeste ce se poate, deci nicio cumparatura nu scade venitul."""
+    lines = {}
+    for line in LINE_ORDER:
+        spec = LINES[line]
+        catch = 0.0
+        if line_open(s, line):
+            for n in s.nets:
+                if n.kind == spec["netKind"]:
+                    catch += n.rate()
+        rates = tuple(
+            (link, walk_rate(s, role) if kind == "walk" else processor_rate(s, line, role, link))
+            for role, link, kind in spec["steps"]
+        )
+        own_max = min([catch] + [value for _link, value in rates])
+        lines[line] = LineFlow(catch, rates, own_max, spec["openFlag"] is None or catch > 0.0)
+    capacity = {}
+    for seller, spec in SELLERS.items():
+        capacity[seller] = seller_rate(s, seller)
+        room = capacity[seller]
+        for line in spec["priority"]:
+            f = lines[line]
+            f.room = room
+            f.delivered = min(f.own_max, room)
+            f.by_seller = f.active and f.delivered == room and f.delivered < f.own_max
+            room = room - f.delivered
+    c = Chain(lines, capacity)
+    c.bottleneck = bottlenecks(c)
     return c
 
 
 def income(s: State) -> float:
     c = chain(s)
+    gross = 0.0
+    for line in LINE_ORDER:  # ordine fixa: aceeasi suma, bit cu bit, la fiecare rulare si in ChainMath.luau
+        gross += c.lines[line].delivered * line_avg(line)
     return (
-        (c.wood * AVG["wood"] + c.scrap * AVG["scrap"])
+        gross
         * s.price_mult
         * s.bells
         * (1 + 0.01 * s.index_found)
@@ -1134,10 +1212,20 @@ if __name__ == "__main__":
         + check_config_constants()
         + check_run(rows, longest_idle, shares, prices, scrap_time)
     )
-    if AVG["scrap"] < AVG["wood"]:
-        # lantul da capacitatea comuna intai scrap-ului; asta e cea mai buna impartire doar cat bucata lui
-        # valoreaza macar cat una de lemn [D55]
-        problems.append(f"bucata de scrap ({AVG['scrap']:.2f}) valoreaza sub una de lemn ({AVG['wood']:.2f})")
+    # [D64] motorul chiar duce oricate linii: linii de proba pe o COPIE a modulului, comparate cu cifre socotite de mana
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import check_lines
+
+    problems += check_lines.problems()
+    for _seller, _spec in SELLERS.items():
+        # vanzatorul da capacitatea comuna in ordinea din `priority`; asta e cea mai buna impartire doar cat bucata
+        # fiecarei linii valoreaza macar cat a celei de dupa ea [D55]
+        for _first, _then in zip(_spec["priority"], _spec["priority"][1:]):
+            if line_avg(_first) < line_avg(_then):
+                problems.append(
+                    f"{_seller}: bucata liniei {_first} ({line_avg(_first):.2f}) valoreaza sub a liniei {_then}"
+                    f" ({line_avg(_then):.2f}), desi se vinde inaintea ei"
+                )
     if "--robust" in sys.argv:
         problems += robust()
 
