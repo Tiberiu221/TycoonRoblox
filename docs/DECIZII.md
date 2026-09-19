@@ -27,27 +27,36 @@ erele, vreau doar să știu roadmap-ul."* A ales și **Piață nouă în Era 2**
 4. **Clopotul erei** deschide tronsonul următor de râu, spre dreapta. Fiecare eră e un cartier de sine stătător: plasele,
    depozitul, atelierul și **clădirea lui de vânzare**.
 
-**Roadmap-ul (propunere; se construiește doar Era 2):**
+**Roadmap-ul (propunere, a treia variantă; se construiește doar Era 2):**
 
-| Era | Locul | Începi cu | Apare spre final | Se vinde la | Ce se vede nou |
+Owner-ul a respins două variante în aceeași zi. Prima continua după curent cu sticlă, cărămizi, hârtie și port:
+*„după curentul electric deblocăm infinite posibilități; deci vreau să devină mai SF treaba"*. A doua urca spre SF prin
+întâmplări (un meteorit, o epavă oarecare, pietre care plutesc, fragmente de stea): *„revizuiește roadmap-ul să aibă mai
+mult sens"*. A treia ține de trei reguli:
+1. **Cauzalitate.** Clădirea-reper a fiecărei ere se face din ce produci deja. Nimic nu apare de nicăieri.
+2. **O singură poveste, anunțată din Era 1.** Scrap-ul pe care îl prinzi de la minutul 25 vine de la o navă veche,
+   prăbușită în amonte. De acolo vin, pe rând, toate lucrurile SF. Nu cade nimic din cer.
+3. **Marfa nouă apare când o poți folosi.** Jocul arată deja pe râu lucruri „pe care nu le poți prinde încă" [D53]:
+   cristalele trec pe lângă tine din Era 1. Le prinzi abia când clădirea ta nouă știe ce să facă cu ele.
+
+| Era | Locul | Începi cu | Reperul erei, făcut din ce ai | Apare spre final | De ce abia acum |
 |---|---|---|---|---|---|
-| 1 | The Landing | bușteni → scânduri | scrap → fier | Tavernă | gaterul, forja |
-| 2 | The Mill | scrap → fier, la o turnătorie mare învârtită de roata de apă | cupru vechi → bare de cupru | Piață | roata de apă: prima oară curentul râului muncește |
-| 3 | The Yard | cupru → sârmă | **prima turbină:** râul face curent, iar satul tău se luminează noaptea | Depozitul de mărfuri | felinarele satului se aprind |
-| 4 | The Dam | **curent electric:** turbinele îl fac, oamenii îl duc pe stâlpi, îl vinzi orașului de peste râu | într-o noapte cade un meteorit în amonte; pe râu încep să vină **cristale care luminează** | Biroul de curent | barajul; noaptea meteoritului |
-| 5 | The Lab | cristale → celule de energie | **piese de roboți**, dintr-o epavă pe care râul o macină în amonte | Magazinul de tehnică | laboratorul cu bobine; mașinile bâzâie |
-| 6 | The Robot Works | piese → **roboți**, care preiau căratul prin tot satul | **pietre antigravitaționale:** plutesc DEASUPRA apei | Bazarul de roboți | roboți pe străzile satului |
-| 7 | The Sky Dock | pietre → barje care plutesc; un al doilea „râu", în aer | **fragmente de stea**, combustibilul unei rachete | Piața din cer | platforme și bărci plutitoare |
-| 8 | The Launch Site | fragmente → combustibil; construiești racheta | **Racheta:** „Move Downstream" devine zborul spre o planetă nouă, cu râul ei | Rampa de lansare | racheta; cerul altei planete |
+| 1 | The Landing | bușteni → scânduri | Forja | scrap ruginit → fier | Forja știe să-l topească |
+| 2 | The Mill | scrap → fier → **piese de mașini**, la turnătorie | **Roata de apă** (scânduri + fier) învârte turnătoria | minereu de cupru → cupru | cuptorul turnătoriei e în sfârșit destul de fierbinte |
+| 3 | The Wire Works | cupru → sârmă și bobine | **Prima turbină** (bobine + roata) | **curent electric:** satul se luminează noaptea | ai sârmă |
+| 4 | The Dam | curent: turbinele barajului → stâlpi → vândut orașului de peste râu | **Barajul** și **Farul-radio** | **cristalele care luminează**, văzute pe râu încă din Era 1 | un cuptor electric le poate topi |
+| 5 | The Lab | cristale → celule de energie | **Laboratorul**; satul merge și noaptea, mașinile merg fără roată | **piese de navă** | Farul-radio primește răspuns: nava din amonte se trezește și piesele ei pornesc la vale |
+| 6 | The Robot Works | piese de navă + celule → **roboți**, care cară marfa alături de oamenii tăi | **Atelierul de roboți** | plăcile plutitoare ale navei | roboții ajung unde oamenii n-au putut și desprind plăcile |
+| 7 | The Sky Dock | plăci → barje care plutesc deasupra râului | **Docul din aer** | capsulele de combustibil ale navei | barjele ridică ce era prea greu pentru apă |
+| 8 | The Launch Site | combustibil + roboți + piese | **Racheta:** nava, reconstruită de tine | zborul | ai, în sfârșit, tot ce-i trebuie |
 
-- **[Owner, 2026-09-19]:** prima variantă continua după curent cu sticlă, cărămizi, hârtie și port. Respinsă:
-  *„după curentul electric deblocăm infinite posibilități; deci vreau să devină mai SF treaba"*. De la Era 4 încolo
-  scara urcă spre SF; Erele 1–3 rămân.
-- **După Era 8:** renașterea din plan (TYCOON §K) devine **o planetă nouă la fiecare tură**: alt râu, altă culoare a
-  apei, mărfuri noi pe el, +50% venit. Nimic plătit nu se resetează. De acolo jocul nu se mai termină.
-- **Povestea care leagă scara:** lemnul ridică satul, fierul face uneltele, cuprul duce curentul, curentul aprinde
-  luminile. Luminile se văd de departe, iar ce cade din cer în amonte vine la vale pe râu: cristale, piese, pietre care
-  plutesc. Râul rămâne banda pe care vine totul [P5], chiar și când marfa e SF.
+- **După Era 8:** lansarea e renașterea din plan (TYCOON §K, „Move Downstream"): o planetă nouă la fiecare tură, cu
+  râul ei, altă culoare a apei, mărfuri noi și +50% venit. Nimic plătit nu se resetează. De acolo jocul nu se mai
+  termină.
+- **Regula owner-ului se ține la fiecare eră:** începi cu marfa de la finalul erei dinainte, spre final apare una nouă
+  cu plasa, atelierul și oamenii ei, iar fiecare eră își vinde marfa la clădirea ei.
+- **Era 2 nu repetă Era 1:** pornește tot cu scrap, cum a cerut owner-ul, dar turnătoria face din fier **piese de
+  mașini**, o marfă nouă pentru Piață.
 - **Curentul e o marfă ca oricare alta pe aceeași schemă:** turbinele sunt „plasele" lui (nivelul lor dă cât curent
   fac), oamenii îl duc, o clădire îl pregătește, alta îl vinde. Rămâne regula owner-ului: un om vizibil pe fiecare pas.
 - **Marfa de la finalul Erei 2 e încă de confirmat.** Propun cuprul, fiindcă duce drept spre curent; owner-ul n-a ales

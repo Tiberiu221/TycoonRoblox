@@ -117,8 +117,10 @@ e gata. Detaliile și sursele sunt în DECIZII D63. **Nimic din ce urmează n-a 
 - **De făcut cu sonda, nu pe nevăzute:** textul e prea mic pe telefon (interfața e la 62%: 13 px → ~8 px).
 - **Era 2 [D64]:** owner-ul a respins multiplicatoarele din D63. **Regula unei ere:** începi cu marfa apărută la
   finalul erei dinainte, iar spre final apare una nouă, cu plasa, atelierul și oamenii ei; fiecare eră își vinde marfa
-  la clădirea ei (Era 2: o Piață). Roadmap-ul până la Era 8 e în D64: fier → cupru → curent electric, iar de acolo spre SF, la cererea
-  owner-ului (cristale → roboți → antigravitație → rachetă; fiecare renaștere = o planetă nouă); **se construiește doar Era 2**. Marfa nouă de la finalul Erei 2 e de
+  la clădirea ei (Era 2: o Piață). Roadmap-ul până la Era 8 e în D64 (a treia variantă; primele două, respinse): piese de mașini → cupru →
+  curent electric → cristale → piese de navă → roboți → barje plutitoare → rachetă. Trei reguli: reperul fiecărei ere se
+  face din ce produci deja, o singură poveste (scrap-ul din Era 1 vine de la o navă prăbușită în amonte), iar marfa nouă
+  apare când o poți folosi. Fiecare renaștere = o planetă nouă; **se construiește doar Era 2**. Marfa nouă de la finalul Erei 2 e de
   confirmat (propus: cupru). Primul pas: generalizarea motorului lanțului la N linii, întâi în simulator, cu tabelul
   de aur al Erei 1 neschimbat.
 - **Așteaptă owner-ul:** permisiunile de game pass și developer product pe cheia API (azi: 403) sau cele șase create
