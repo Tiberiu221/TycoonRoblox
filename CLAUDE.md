@@ -134,8 +134,15 @@ e gata. Detaliile și sursele sunt în DECIZII D63. **Nimic din ce urmează n-a 
   confirmat (propus: cupru). Primul pas: generalizarea motorului lanțului la N linii, întâi în simulator, cu tabelul
   de aur al Erei 1 neschimbat; planul pe pași e în `docs/PLAN-MOTOR-N-LINII.md`. **Owner-ul vrea întâi Era 1
   închisă:** verificată cu sonda pe un profil de probă (nu pe salvarea lui), apoi jucată de el.
-- **Așteaptă owner-ul:** permisiunile de game pass și developer product pe cheia API (azi: 403) sau cele șase create
-  de mână; aprobarea pictogramelor; alegerea pentru Era 2; verificarea în Studio a lui D61–D63.
+- **Colțul cu Robux e viu pe staging (2026-09-19):** owner-ul a dat cheii API (`bebe`) permisiunile `game-pass` și
+  `developer-product`; `python3 scripts/create_monetization.py` a creat cele patru pass-uri și cele două produse
+  (fără dubluri: întâi listează) și a scris ID-urile în `MonetizationConfig.IDS`. Prețurile se citesc de la Roblox;
+  magazinul arată `R$ 799 / 149 / 349 / 199 / 99`. Pe producție se creează la lansare (`--universe production`).
+  **Creatorul deține automat pass-urile lui:** în Play-urile owner-ului toate patru sunt active (venit dublu, pas iute),
+  deci ritmul pe care îl simte el nu e al unui jucător obișnuit; se sting din rândul `robux` al consolei de dev.
+  Play-urile de probă ale sondei nu întreabă Roblox ce deții.
+- **Așteaptă owner-ul:** verificarea în Studio a lui D61–D63 (animațiile le vede doar el); emulatorul de dispozitiv pe un
+  telefon, pentru textul mic; o cumpărare de test pe staging (costă Robux reali, deci doar cu acordul lui).
 
 ## Stare (2026-09-18)
 

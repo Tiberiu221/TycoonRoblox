@@ -106,6 +106,12 @@ end
 -- pass abia cumparat in alta parte, iar prima regula a jocului e ca nimic nu se pierde [P2] -- mai bine un pass
 -- rambursat ramas activ decat unul platit disparut. O intrebare picata nu atinge nimic.
 local function verify(player: Player)
+    -- [D63] Un Play de proba al sondei nu intreaba Roblox ce detii. Creatorul unui pass il detine automat, deci owner-ul
+    -- (si sonda, care joaca din contul lui) ar avea mereu venit dublu si pas iute, iar ritmul masurat n-ar mai fi al unui
+    -- jucator obisnuit. In jocurile de proba pass-urile se dau doar din consola de dev (`pass <cheie>`).
+    if DataService.StudioSave(player) == "probe" then
+        return
+    end
     local any = false
     for _, item in MonetizationConfig.ITEMS do
         if item.kind ~= "pass" then
