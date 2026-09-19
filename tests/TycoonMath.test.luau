@@ -11,28 +11,45 @@ local TycoonConfig = require("../src/Shared/Config/TycoonConfig")
 
 return function()
     test.suite("TycoonMath.stateFor", function()
-        test.case("live=true ignora efectele indexFound (Index-ul real le inlocuieste)", function()
-            -- Sorting Shed (Era 3): plus(index_found, 6). [D56] Forge nu mai adauga la colectie.
-            local bought = { sorting_shed = true }
-            local sLive = TycoonMath.stateFor(bought, 0, 100, true)
-            check.equal(sLive.indexFound, 100)
-
-            local sSim = TycoonMath.stateFor(bought, 0, 100, false)
-            check.equal(sSim.indexFound, 106)
-        end)
-
-        test.case("aplica efectele in ordinea PADS (Smelter inainte de Fine Ingots)", function()
-            -- Sawmill + Sawmill II era perechea de dinainte; gaterul a intrat in lantul Erei 1 [D48].
-            local bought = { smelter = true, fine_ingots = true }
-            local s = TycoonMath.stateFor(bought, 0, 0)
+        -- [D65] Testele de aici foloseau platforme ale erelor 3-4 de dinainte de D46 (Sorting Shed, Smelter, Fine
+        -- Ingots, Sawmill II), iesite din config odata cu rescrierea Erei 2. Efectele lor (`add`, `build`, `refine`,
+        -- `upgrade`) n-au ramas pe nicio platforma; se verifica direct, pe `applyEffect`.
+        test.case("un upgrade fara statia lui de baza nu crapa", function()
+            local s = TycoonMath.newState(0, 0)
+            TycoonMath.applyEffect(s, { kind = "upgrade", good = "driftwood", factor = 2 })
+            check.is_true(s.stations.driftwood == nil)
+            TycoonMath.applyEffect(
+                s,
+                { kind = "build", good = "scrap", mult = 3.0, cap = 1, draw = 1 }
+            )
+            TycoonMath.applyEffect(s, { kind = "refine", good = "scrap", factor = 1.5 })
             check.equal(s.stations.scrap.mult, 3.0 * 1.5) -- rafinarea dupa constructie
         end)
 
-        test.case("un upgrade fara statia lui de baza nu crapa", function()
-            -- sawmill_2 a ramas fara baza: calculul starii trebuie sa mearga mai departe
-            local s = TycoonMath.stateFor({ sawmill_2 = true }, 0, 0)
-            check.is_true(s.stations.driftwood == nil)
+        test.case("steagurile Erei 2 vin din platformele ei [D65]", function()
+            local s = TycoonMath.stateFor({ water_wheel = true, copper_furnace = true }, 0, 0)
+            check.is_true(s.wheel)
+            check.is_true(s.furnace)
+            check.is_false(s.oreShed)
+            check.is_false(TycoonMath.stateFor({}, 0, 0).wheel)
         end)
+
+        test.case(
+            "felul plasei e cel scris pe efectul ei; gasirile au cadrul erei lor [D65]",
+            function()
+                check.equal(TycoonMath.netKind(TycoonConfig.byId.first_net), "wood")
+                check.equal(TycoonMath.netKind(TycoonConfig.byId.fifth_net), "scrap")
+                check.equal(TycoonMath.netKind(TycoonConfig.byId.sixth_net), "mill")
+                check.equal(TycoonMath.netKind(TycoonConfig.byId.tenth_net), "ore")
+                local s = TycoonMath.newState(0, 0)
+                check.equal(TycoonMath.itemValue("named", "rare", s), 22)
+                check.equal(TycoonMath.itemValue("named2", "rare", s), 22 * 40)
+                check.equal(TycoonMath.itemValue("parts", nil, s), 40)
+                check.equal(TycoonMath.itemValue("copper", nil, s), 120)
+                check.is_true(TycoonMath.isFind("named2"))
+                check.is_false(TycoonMath.isFind("parts"))
+            end
+        )
     end)
 
     test.suite("TycoonMath.era [D60]", function()

@@ -87,7 +87,9 @@ function HeldBack.by(view: View, mine: string?, line: string?): (string?, boolea
     end
     local mineRate = if mine ~= nil then HeldBack.rateOf(view, mine, line) else math.huge
     local best, bestRate = "dock", math.huge
-    for _, link in StationConfig.LINKS do
+    -- [D65] Vederea de aici e cea plata, a Erei 1: se compara doar verigile ei. Piata Erei 2 n-are linie (ca taverna),
+    -- deci fara marginea asta ar fi iesit "cea mai lenta" cu debit 0. Vederea pe linii vine cu docs/PLAN-ERA2.md, pasul 3.
+    for _, link in StationConfig.ERA_LINKS[1] do
         if link ~= mine and inLine(view, link, line) then
             local rate = HeldBack.rateOf(view, link, line)
             if rate < bestRate then

@@ -28,6 +28,17 @@ HandConfig.ROLE_OUTFIT = {
     scrapPorter = "Carter",
     smelter = "Smith", -- sortul de piele: el e cel care lucreaza la foc
     ironHauler = "Ironmonger",
+    -- [D65] Era 2. PANA LA ARTA LOR (docs/PLAN-ERA2.md, pasul 7) poarta tinuta meseriei-pereche din Era 1, ca jocul sa se
+    -- poata juca si verifica; tinutele proprii vin pe plansa, cu acordul owner-ului.
+    millCollector = "Fisher",
+    millPorter = "Crafter",
+    founder = "Builder",
+    partsHauler = "Gardener",
+    merchant = "Innkeeper",
+    oreCollector = "Scrapper",
+    orePorter = "Carter",
+    coppersmith = "Smith",
+    copperHauler = "Ironmonger",
 }
 
 -- [D50] Clientii tavernei: tinute pe care nu le poarta nicio meserie (fara palarie, prun si ardezie),

@@ -10,6 +10,693 @@ local ChainMath = require("../src/Shared/Modules/ChainMath")
 
 type CrewSpec = { [string]: { number } }
 
+-- [D65] Starile Erei 2, in forma generica (pe linii): le tipareste `python3 scripts/economy/golden_chain.py --era2`.
+-- Tabelul GOLDEN de mai jos ramane contractul Erei 1 si nu se atinge.
+local GOLDEN_ERA2 = {
+    {
+        name = "Era 1 incheiata, Moara inca inchisa: liniile ei nu exista",
+        nets = { 32, 30, 28, 26, 27 },
+        saw = 30,
+        dock = 30,
+        forge = 20,
+        wheel = false,
+        furnace = false,
+        foundry = 1,
+        furnaceLevel = 1,
+        market = 1,
+        crews = {
+            collector = { 2, 5 },
+            porter = { 2, 5 },
+            sawyer = { 2, 5 },
+            hauler = { 2, 5 },
+            trader = { 2, 5 },
+            scrapCollector = { 2, 5 },
+            scrapPorter = { 2, 5 },
+            smelter = { 2, 3 },
+            ironHauler = { 2, 4 },
+        },
+        lines = {
+            wood = {
+                catch = 18.19239675,
+                values = { 40.0, 60.0, 263.04, 90.0 },
+                delivered = 18.19239675,
+                bottleneck = "nets",
+            },
+            iron = {
+                catch = 10.386421485,
+                values = { 20.0, 25.0, 30.815999999999995, 52.0 },
+                delivered = 10.386421485,
+                bottleneck = "nets",
+            },
+            parts = {
+                catch = 0.0,
+                values = { 0.0, 0.0, 0.0, 0.0 },
+                delivered = 0.0,
+                bottleneck = "",
+            },
+            copper = {
+                catch = 0.0,
+                values = { 0.0, 0.0, 0.0, 0.0 },
+                delivered = 0.0,
+                bottleneck = "",
+            },
+        },
+        capacity = { dock = 328.8, market = 1.0499999999999998 },
+        bottleneck = "nets",
+        income = 66.88925090925,
+    },
+    {
+        name = "roata de apa fara plasa a sasea: piesele nu exista",
+        nets = { 32, 30, 28, 26, 27 },
+        saw = 30,
+        dock = 30,
+        forge = 20,
+        wheel = true,
+        furnace = false,
+        foundry = 1,
+        furnaceLevel = 1,
+        market = 1,
+        crews = {
+            collector = { 2, 5 },
+            porter = { 2, 5 },
+            sawyer = { 2, 5 },
+            hauler = { 2, 5 },
+            trader = { 2, 5 },
+            scrapCollector = { 2, 5 },
+            scrapPorter = { 2, 5 },
+            smelter = { 2, 3 },
+            ironHauler = { 2, 4 },
+        },
+        lines = {
+            wood = {
+                catch = 18.19239675,
+                values = { 40.0, 60.0, 263.04, 90.0 },
+                delivered = 18.19239675,
+                bottleneck = "nets",
+            },
+            iron = {
+                catch = 10.386421485,
+                values = { 20.0, 25.0, 30.815999999999995, 52.0 },
+                delivered = 10.386421485,
+                bottleneck = "nets",
+            },
+            parts = {
+                catch = 0.0,
+                values = { 0.0, 0.0, 0.0, 0.0 },
+                delivered = 0.0,
+                bottleneck = "",
+            },
+            copper = {
+                catch = 0.0,
+                values = { 0.0, 0.0, 0.0, 0.0 },
+                delivered = 0.0,
+                bottleneck = "",
+            },
+        },
+        capacity = { dock = 328.8, market = 1.0499999999999998 },
+        bottleneck = "nets",
+        income = 66.88925090925,
+    },
+    {
+        name = "turul de mana al pieselor: patru pasi, timpul tau intreg pe ei",
+        nets = { 32, 30, 28, 26, 27, 1 },
+        saw = 30,
+        dock = 30,
+        forge = 20,
+        wheel = true,
+        furnace = false,
+        foundry = 1,
+        furnaceLevel = 1,
+        market = 1,
+        crews = {
+            collector = { 2, 5 },
+            porter = { 2, 5 },
+            sawyer = { 2, 5 },
+            hauler = { 2, 5 },
+            trader = { 2, 5 },
+            scrapCollector = { 2, 5 },
+            scrapPorter = { 2, 5 },
+            smelter = { 2, 3 },
+            ironHauler = { 2, 4 },
+        },
+        lines = {
+            wood = {
+                catch = 18.19239675,
+                values = { 40.0, 60.0, 263.04, 90.0 },
+                delivered = 18.19239675,
+                bottleneck = "nets",
+            },
+            iron = {
+                catch = 10.386421485,
+                values = { 20.0, 25.0, 30.815999999999995, 52.0 },
+                delivered = 10.386421485,
+                bottleneck = "nets",
+            },
+            parts = {
+                catch = 0.33,
+                values = { 1.35, 1.35, 0.6, 1.35 },
+                delivered = 0.33,
+                bottleneck = "nets",
+            },
+            copper = {
+                catch = 0.0,
+                values = { 0.0, 0.0, 0.0, 0.0 },
+                delivered = 0.0,
+                bottleneck = "",
+            },
+        },
+        capacity = { dock = 328.8, market = 1.0499999999999998 },
+        bottleneck = "nets",
+        income = 88.66925090925,
+    },
+    {
+        name = "Mill Collector si Mill Porter angajati: turnatoria de mana e gatuirea",
+        nets = { 32, 30, 28, 26, 27, 10 },
+        saw = 30,
+        dock = 30,
+        forge = 20,
+        wheel = true,
+        furnace = false,
+        foundry = 1,
+        furnaceLevel = 1,
+        market = 1,
+        crews = {
+            collector = { 2, 5 },
+            porter = { 2, 5 },
+            sawyer = { 2, 5 },
+            hauler = { 2, 5 },
+            trader = { 2, 5 },
+            scrapCollector = { 2, 5 },
+            scrapPorter = { 2, 5 },
+            smelter = { 2, 3 },
+            ironHauler = { 2, 4 },
+            millCollector = { 1, 3 },
+            millPorter = { 1, 3 },
+        },
+        lines = {
+            wood = {
+                catch = 18.19239675,
+                values = { 40.0, 60.0, 263.04, 90.0 },
+                delivered = 18.19239675,
+                bottleneck = "nets",
+            },
+            iron = {
+                catch = 10.386421485,
+                values = { 20.0, 25.0, 30.815999999999995, 52.0 },
+                delivered = 10.386421485,
+                bottleneck = "nets",
+            },
+            parts = {
+                catch = 0.8382000000000001,
+                values = { 12.0, 18.0, 1.2, 2.7 },
+                delivered = 0.8382000000000001,
+                bottleneck = "nets",
+            },
+            copper = {
+                catch = 0.0,
+                values = { 0.0, 0.0, 0.0, 0.0 },
+                delivered = 0.0,
+                bottleneck = "",
+            },
+        },
+        capacity = { dock = 328.8, market = 1.0499999999999998 },
+        bottleneck = "nets",
+        income = 122.21045090925,
+    },
+    {
+        name = "toti oamenii pieselor, fara Merchant: Piata merge la o treime",
+        nets = { 32, 30, 28, 26, 27, 12, 9 },
+        saw = 30,
+        dock = 30,
+        forge = 20,
+        wheel = true,
+        furnace = false,
+        foundry = 6,
+        furnaceLevel = 1,
+        market = 3,
+        crews = {
+            collector = { 2, 5 },
+            porter = { 2, 5 },
+            sawyer = { 2, 5 },
+            hauler = { 2, 5 },
+            trader = { 2, 5 },
+            scrapCollector = { 2, 5 },
+            scrapPorter = { 2, 5 },
+            smelter = { 2, 3 },
+            ironHauler = { 2, 4 },
+            millCollector = { 1, 2 },
+            millPorter = { 1, 2 },
+            founder = { 1, 1 },
+            partsHauler = { 1, 1 },
+        },
+        lines = {
+            wood = {
+                catch = 18.19239675,
+                values = { 40.0, 60.0, 263.04, 90.0 },
+                delivered = 18.19239675,
+                bottleneck = "nets",
+            },
+            iron = {
+                catch = 10.386421485,
+                values = { 20.0, 25.0, 30.815999999999995, 52.0 },
+                delivered = 10.386421485,
+                bottleneck = "nets",
+            },
+            parts = {
+                catch = 1.4711400000000001,
+                values = { 8.0, 12.0, 3.12, 9.0 },
+                delivered = 1.176,
+                bottleneck = "market",
+            },
+            copper = {
+                catch = 0.0,
+                values = { 0.0, 0.0, 0.0, 0.0 },
+                delivered = 0.0,
+                bottleneck = "",
+            },
+        },
+        capacity = { dock = 328.8, market = 1.176 },
+        bottleneck = "market",
+        income = 144.50525090924998,
+    },
+    {
+        name = "patru plase ale Morii, oameni pe trepte diferite, cuptorul fara plasa de minereu",
+        nets = { 32, 30, 28, 26, 27, 30, 28, 25, 20 },
+        saw = 30,
+        dock = 30,
+        forge = 20,
+        wheel = true,
+        furnace = true,
+        foundry = 14,
+        furnaceLevel = 1,
+        market = 12,
+        crews = {
+            collector = { 2, 5 },
+            porter = { 2, 5 },
+            sawyer = { 2, 5 },
+            hauler = { 2, 5 },
+            trader = { 2, 5 },
+            scrapCollector = { 2, 5 },
+            scrapPorter = { 2, 5 },
+            smelter = { 2, 3 },
+            ironHauler = { 2, 4 },
+            millCollector = { 2, 5 },
+            millPorter = { 1, 3 },
+            founder = { 1, 2 },
+            partsHauler = { 1, 4 },
+            merchant = { 1, 2 },
+        },
+        lines = {
+            wood = {
+                catch = 18.19239675,
+                values = { 40.0, 60.0, 263.04, 90.0 },
+                delivered = 18.19239675,
+                bottleneck = "nets",
+            },
+            iron = {
+                catch = 10.386421485,
+                values = { 20.0, 25.0, 30.815999999999995, 52.0 },
+                delivered = 10.386421485,
+                bottleneck = "nets",
+            },
+            parts = {
+                catch = 13.865241225,
+                values = { 40.0, 18.0, 17.088, 36.0 },
+                delivered = 13.865241225,
+                bottleneck = "nets",
+            },
+            copper = {
+                catch = 0.0,
+                values = { 0.0, 0.0, 0.0, 0.0 },
+                delivered = 0.0,
+                bottleneck = "",
+            },
+        },
+        capacity = { dock = 328.8, market = 19.919999999999998 },
+        bottleneck = "nets",
+        income = 981.99517175925,
+    },
+    {
+        name = "turul de mana al cuprului, langa piesele cu toti oamenii",
+        nets = { 32, 30, 28, 26, 27, 30, 28, 25, 20, 1 },
+        saw = 30,
+        dock = 30,
+        forge = 20,
+        wheel = true,
+        furnace = true,
+        foundry = 30,
+        furnaceLevel = 1,
+        market = 30,
+        crews = {
+            collector = { 2, 5 },
+            porter = { 2, 5 },
+            sawyer = { 2, 5 },
+            hauler = { 2, 5 },
+            trader = { 2, 5 },
+            scrapCollector = { 2, 5 },
+            scrapPorter = { 2, 5 },
+            smelter = { 2, 3 },
+            ironHauler = { 2, 4 },
+            millCollector = { 2, 5 },
+            millPorter = { 2, 5 },
+            founder = { 2, 5 },
+            partsHauler = { 2, 5 },
+            merchant = { 2, 5 },
+        },
+        lines = {
+            wood = {
+                catch = 18.19239675,
+                values = { 40.0, 60.0, 263.04, 90.0 },
+                delivered = 18.19239675,
+                bottleneck = "nets",
+            },
+            iron = {
+                catch = 10.386421485,
+                values = { 20.0, 25.0, 30.815999999999995, 52.0 },
+                delivered = 10.386421485,
+                bottleneck = "nets",
+            },
+            parts = {
+                catch = 13.865241225,
+                values = { 40.0, 60.0, 263.04, 90.0 },
+                delivered = 13.865241225,
+                bottleneck = "nets",
+            },
+            copper = {
+                catch = 1.4587670625,
+                values = { 1.35, 1.35, 0.3, 1.35 },
+                delivered = 0.3,
+                bottleneck = "furnace",
+            },
+        },
+        capacity = { dock = 328.8, market = 328.8 },
+        bottleneck = "furnace",
+        income = 1024.59517175925,
+    },
+    {
+        name = "Ore Collector si Ore Porter angajati: cuptorul de mana e gatuirea",
+        nets = { 32, 30, 28, 26, 27, 30, 28, 25, 20, 10 },
+        saw = 30,
+        dock = 30,
+        forge = 20,
+        wheel = true,
+        furnace = true,
+        foundry = 30,
+        furnaceLevel = 1,
+        market = 30,
+        crews = {
+            collector = { 2, 5 },
+            porter = { 2, 5 },
+            sawyer = { 2, 5 },
+            hauler = { 2, 5 },
+            trader = { 2, 5 },
+            scrapCollector = { 2, 5 },
+            scrapPorter = { 2, 5 },
+            smelter = { 2, 3 },
+            ironHauler = { 2, 4 },
+            millCollector = { 2, 5 },
+            millPorter = { 2, 5 },
+            founder = { 2, 5 },
+            partsHauler = { 2, 5 },
+            merchant = { 2, 5 },
+            oreCollector = { 1, 3 },
+            orePorter = { 1, 3 },
+        },
+        lines = {
+            wood = {
+                catch = 18.19239675,
+                values = { 40.0, 60.0, 263.04, 90.0 },
+                delivered = 18.19239675,
+                bottleneck = "nets",
+            },
+            iron = {
+                catch = 10.386421485,
+                values = { 20.0, 25.0, 30.815999999999995, 52.0 },
+                delivered = 10.386421485,
+                bottleneck = "nets",
+            },
+            parts = {
+                catch = 13.865241225,
+                values = { 40.0, 60.0, 263.04, 90.0 },
+                delivered = 13.865241225,
+                bottleneck = "nets",
+            },
+            copper = {
+                catch = 3.70526833875,
+                values = { 6.0, 7.5, 0.6, 2.7 },
+                delivered = 0.6,
+                bottleneck = "furnace",
+            },
+        },
+        capacity = { dock = 328.8, market = 328.8 },
+        bottleneck = "furnace",
+        income = 1067.19517175925,
+    },
+    {
+        name = "Piata plina: cuprul intai, piesele din ce ramane",
+        nets = { 32, 30, 28, 26, 27, 60, 60, 60, 60, 40 },
+        saw = 30,
+        dock = 30,
+        forge = 20,
+        wheel = true,
+        furnace = true,
+        foundry = 60,
+        furnaceLevel = 60,
+        market = 3,
+        crews = {
+            collector = { 2, 5 },
+            porter = { 2, 5 },
+            sawyer = { 2, 5 },
+            hauler = { 2, 5 },
+            trader = { 2, 5 },
+            scrapCollector = { 2, 5 },
+            scrapPorter = { 2, 5 },
+            smelter = { 2, 3 },
+            ironHauler = { 2, 4 },
+            millCollector = { 2, 5 },
+            millPorter = { 2, 5 },
+            founder = { 2, 5 },
+            partsHauler = { 2, 5 },
+            merchant = { 2, 5 },
+            oreCollector = { 2, 5 },
+            orePorter = { 2, 5 },
+            coppersmith = { 2, 5 },
+            copperHauler = { 2, 5 },
+        },
+        lines = {
+            wood = {
+                catch = 18.19239675,
+                values = { 40.0, 60.0, 263.04, 90.0 },
+                delivered = 18.19239675,
+                bottleneck = "nets",
+            },
+            iron = {
+                catch = 10.386421485,
+                values = { 20.0, 25.0, 30.815999999999995, 52.0 },
+                delivered = 10.386421485,
+                bottleneck = "nets",
+            },
+            parts = {
+                catch = 55.5855069,
+                values = { 40.0, 60.0, 871.68, 90.0 },
+                delivered = 20.9379018975,
+                bottleneck = "market",
+            },
+            copper = {
+                catch = 12.6620981025,
+                values = { 20.0, 25.0, 435.84, 65.0 },
+                delivered = 12.6620981025,
+                bottleneck = "nets",
+            },
+        },
+        capacity = { dock = 328.8, market = 33.6 },
+        bottleneck = "nets",
+        income = 3246.8087066992503,
+    },
+    {
+        name = "amandoi vanzatorii plini: taverna tine lemnul, Piata tine piesele",
+        nets = { 60, 60, 60, 60, 40, 60, 60, 60, 60, 40 },
+        saw = 60,
+        dock = 3,
+        forge = 60,
+        wheel = true,
+        furnace = true,
+        foundry = 60,
+        furnaceLevel = 60,
+        market = 3,
+        crews = {
+            collector = { 2, 5 },
+            porter = { 2, 5 },
+            sawyer = { 2, 5 },
+            hauler = { 2, 5 },
+            trader = { 2, 5 },
+            scrapCollector = { 2, 5 },
+            scrapPorter = { 2, 5 },
+            smelter = { 2, 3 },
+            ironHauler = { 2, 4 },
+            millCollector = { 2, 5 },
+            millPorter = { 2, 5 },
+            founder = { 2, 5 },
+            partsHauler = { 2, 5 },
+            merchant = { 2, 5 },
+            oreCollector = { 2, 5 },
+            orePorter = { 2, 5 },
+            coppersmith = { 2, 5 },
+            copperHauler = { 2, 5 },
+        },
+        lines = {
+            wood = {
+                catch = 55.5855069,
+                values = { 40.0, 60.0, 871.68, 90.0 },
+                delivered = 20.9379018975,
+                bottleneck = "dock",
+            },
+            iron = {
+                catch = 12.6620981025,
+                values = { 20.0, 25.0, 261.50399999999996, 52.0 },
+                delivered = 12.6620981025,
+                bottleneck = "nets",
+            },
+            parts = {
+                catch = 55.5855069,
+                values = { 40.0, 60.0, 871.68, 90.0 },
+                delivered = 20.9379018975,
+                bottleneck = "market",
+            },
+            copper = {
+                catch = 12.6620981025,
+                values = { 20.0, 25.0, 435.84, 65.0 },
+                delivered = 12.6620981025,
+                bottleneck = "nets",
+            },
+        },
+        capacity = { dock = 33.6, market = 33.6 },
+        bottleneck = "nets",
+        income = 3259.41744218475,
+    },
+    {
+        name = "Copper Hauler-ul de mana e gatuirea cuprului",
+        nets = { 32, 30, 28, 26, 27, 40, 40, 40, 40, 30 },
+        saw = 30,
+        dock = 30,
+        forge = 20,
+        wheel = true,
+        furnace = true,
+        foundry = 40,
+        furnaceLevel = 60,
+        market = 40,
+        crews = {
+            collector = { 2, 5 },
+            porter = { 2, 5 },
+            sawyer = { 2, 5 },
+            hauler = { 2, 5 },
+            trader = { 2, 5 },
+            scrapCollector = { 2, 5 },
+            scrapPorter = { 2, 5 },
+            smelter = { 2, 3 },
+            ironHauler = { 2, 4 },
+            millCollector = { 2, 5 },
+            millPorter = { 2, 5 },
+            founder = { 2, 5 },
+            partsHauler = { 2, 5 },
+            merchant = { 2, 5 },
+            oreCollector = { 2, 5 },
+            orePorter = { 2, 5 },
+            coppersmith = { 2, 5 },
+        },
+        lines = {
+            wood = {
+                catch = 18.19239675,
+                values = { 40.0, 60.0, 263.04, 90.0 },
+                delivered = 18.19239675,
+                bottleneck = "nets",
+            },
+            iron = {
+                catch = 10.386421485,
+                values = { 20.0, 25.0, 30.815999999999995, 52.0 },
+                delivered = 10.386421485,
+                bottleneck = "nets",
+            },
+            parts = {
+                catch = 21.77266245,
+                values = { 40.0, 60.0, 320.64, 90.0 },
+                delivered = 21.77266245,
+                bottleneck = "nets",
+            },
+            copper = {
+                catch = 10.9115776275,
+                values = { 20.0, 25.0, 435.84, 5.4 },
+                delivered = 5.4,
+                bottleneck = "copperHaul",
+            },
+        },
+        capacity = { dock = 328.8, market = 400.79999999999995 },
+        bottleneck = "copperHaul",
+        income = 2270.68497260925,
+    },
+    {
+        name = "prag 25 pe tot cartierul Morii, echipaj la maxim",
+        nets = { 32, 30, 28, 26, 27, 25, 25, 25, 25, 25 },
+        saw = 30,
+        dock = 30,
+        forge = 20,
+        wheel = true,
+        furnace = true,
+        foundry = 25,
+        furnaceLevel = 25,
+        market = 25,
+        crews = {
+            collector = { 2, 5 },
+            porter = { 2, 5 },
+            sawyer = { 2, 5 },
+            hauler = { 2, 5 },
+            trader = { 2, 5 },
+            scrapCollector = { 2, 5 },
+            scrapPorter = { 2, 5 },
+            smelter = { 2, 3 },
+            ironHauler = { 2, 4 },
+            millCollector = { 2, 5 },
+            millPorter = { 2, 5 },
+            founder = { 2, 5 },
+            partsHauler = { 2, 5 },
+            merchant = { 2, 5 },
+            oreCollector = { 2, 5 },
+            orePorter = { 2, 5 },
+            coppersmith = { 2, 5 },
+            copperHauler = { 2, 5 },
+        },
+        lines = {
+            wood = {
+                catch = 18.19239675,
+                values = { 40.0, 60.0, 263.04, 90.0 },
+                delivered = 18.19239675,
+                bottleneck = "nets",
+            },
+            iron = {
+                catch = 10.386421485,
+                values = { 20.0, 25.0, 30.815999999999995, 52.0 },
+                delivered = 10.386421485,
+                bottleneck = "nets",
+            },
+            parts = {
+                catch = 17.2575942,
+                values = { 40.0, 60.0, 234.24, 90.0 },
+                delivered = 17.2575942,
+                bottleneck = "nets",
+            },
+            copper = {
+                catch = 10.036317389999999,
+                values = { 20.0, 25.0, 117.12, 65.0 },
+                delivered = 10.036317389999999,
+                bottleneck = "nets",
+            },
+        },
+        capacity = { dock = 328.8, market = 292.8 },
+        bottleneck = "nets",
+        income = 2631.04753748925,
+    },
+}
+
 -- `forge` = {Forge cumparata, nivelul forjei} [D56]; fara el, fara Forge (lantul lemnului de dinainte)
 local function state(
     levels: { number },
@@ -577,6 +1264,56 @@ return function()
         end
     end)
 
+    -- [D65] Aceeasi paritate la bit, pe starile Erei 2: liniile Morii (piese, cupru) si Piata, langa Era 1 incheiata.
+    test.suite("ChainMath - paritate cu simulatorul, Era 2 [D65]", function()
+        for _, g in GOLDEN_ERA2 do
+            test.case(g.name, function()
+                local s = state(g.nets, g.saw, g.dock, true, g.crews :: any, { true, g.forge })
+                s.wheel, s.furnace = g.wheel, g.furnace
+                s.foundryLevel, s.furnaceLevel, s.marketLevel = g.foundry, g.furnaceLevel, g.market
+                local f = ChainMath.flow(s)
+                for line, want in g.lines :: { [string]: any } do
+                    local got = f.lines[line]
+                    check.equal(got.catch, want.catch)
+                    check.equal(got.delivered, want.delivered)
+                    check.equal(got.bottleneck, want.bottleneck)
+                    check.equal(#got.values, #want.values)
+                    for k, value in want.values do
+                        check.equal(got.values[k], value)
+                    end
+                end
+                for seller, capacity in g.capacity :: { [string]: number } do
+                    check.equal(f.capacity[seller], capacity)
+                end
+                check.equal(f.bottleneck, g.bottleneck)
+                check.equal(ChainMath.income(s), g.income)
+                -- vederea plata a Erei 1 spune acelasi lucru despre liniile ei
+                local r = ChainMath.ratesOf(f)
+                check.equal(r.wood, g.lines.wood.delivered)
+                check.equal(r.scrap, g.lines.iron.delivered)
+                check.equal(r.sales, g.capacity.dock)
+            end)
+        end
+
+        test.case(
+            "plasele Erei 2: baza celei de-a k-a plase a Erei 1, nivelurile de ERA2_MULT ori mai scumpe",
+            function()
+                for k = 1, StationConfig.NETS_PER_ERA do
+                    check.equal(ChainMath.netBase(k + 5), ChainMath.netBase(k))
+                    check.equal(
+                        ChainMath.netUpgradeBase(k + 5),
+                        ChainMath.netUpgradeBase(k) * StationConfig.ERA2_MULT
+                    )
+                end
+                check.equal(ChainMath.netUpgradeBase(6), 40)
+                check.equal(ChainMath.tierCost(1, "millCollector"), 25 * 40)
+                check.equal(ChainMath.tierCost(4, "copperHauler"), 675 * 40)
+                check.equal(ChainMath.tierCost(2, "collector"), 75)
+                check.equal(ChainMath.tierCost(2), 75)
+            end
+        )
+    end)
+
     test.suite("ChainMath - scara nivelurilor si treptele", function()
         test.case("pragurile dubleaza, restul cresc liniar", function()
             check.equal(ChainMath.milestoneMult(9), 1)
@@ -845,7 +1582,7 @@ return function()
                     end
                 end
             end
-            for _, link in StationConfig.LINKS do
+            for _, link in StationConfig.ERA_LINKS[1] do
                 check.is_true(seen[link] == true)
             end
         end)
@@ -967,67 +1704,67 @@ return function()
 
         local function probeModel(): ChainMath.Model
             local lines: { [string]: ChainMath.Line } = table.clone(GAME.lines)
-            lines.parts = {
-                netKind = "parts",
-                openFlag = "foundryOwned",
-                seller = "market",
+            lines.probeA = {
+                netKind = "probeA",
+                openFlag = "kilnAOwned",
+                seller = "stall",
                 steps = {
-                    { role = "partsCollector", link = "partsCollect", kind = "walk" },
-                    { role = "partsPorter", link = "partsPort", kind = "walk" },
-                    { role = "founder", link = "foundry", kind = "processor" },
-                    { role = "partsHauler", link = "partsHaul", kind = "walk" },
+                    { role = "probeACollector", link = "probeACollect", kind = "walk" },
+                    { role = "probeAPorter", link = "probeAPort", kind = "walk" },
+                    { role = "probeAMaker", link = "kilnA", kind = "processor" },
+                    { role = "probeAHauler", link = "probeAHaul", kind = "walk" },
                 },
             }
-            lines.copper = {
-                netKind = "copper",
-                openFlag = "smithyOwned",
-                seller = "market",
+            lines.probeB = {
+                netKind = "probeB",
+                openFlag = "kilnBOwned",
+                seller = "stall",
                 steps = {
-                    { role = "copperCollector", link = "copperCollect", kind = "walk" },
-                    { role = "copperPorter", link = "copperPort", kind = "walk" },
-                    { role = "coppersmith", link = "smithy", kind = "processor" },
-                    { role = "copperHauler", link = "copperHaul", kind = "walk" },
+                    { role = "probeBCollector", link = "probeBCollect", kind = "walk" },
+                    { role = "probeBPorter", link = "probeBPort", kind = "walk" },
+                    { role = "probeBMaker", link = "kilnB", kind = "processor" },
+                    { role = "probeBHauler", link = "probeBHaul", kind = "walk" },
                 },
             }
             local processors: { [string]: ChainMath.Processor } = table.clone(GAME.processors)
-            processors.foundry = { base = 2.0, levelField = "foundryLevel" }
-            processors.smithy = { base = 2.0, levelField = "smithyLevel" }
+            processors.kilnA = { base = 2.0, levelField = "kilnALevel" }
+            processors.kilnB = { base = 2.0, levelField = "kilnBLevel" }
             local sellers: { [string]: ChainMath.Seller } = table.clone(GAME.sellers)
-            sellers.market = {
-                role = "merchant",
+            sellers.stall = {
+                role = "stallkeeper",
                 base = 5.0,
-                levelField = "marketLevel",
-                priority = { "copper", "parts" },
+                levelField = "stallLevel",
+                priority = { "probeB", "probeA" },
             }
             local roleBase = table.clone(GAME.roleBase)
             for _, role in
                 {
-                    "partsCollector",
-                    "partsPorter",
-                    "partsHauler",
-                    "copperCollector",
-                    "copperPorter",
-                    "copperHauler",
+                    "probeACollector",
+                    "probeAPorter",
+                    "probeAHauler",
+                    "probeBCollector",
+                    "probeBPorter",
+                    "probeBHauler",
                 }
             do
                 roleBase[role] = 3.0
             end
             local avg = table.clone(GAME.avg)
-            avg.parts = 8.0
-            avg.copper = 12.0
+            avg.probeA = 8.0
+            avg.probeB = 12.0
             return ChainMath.model(
-                { "wood", "iron", "parts", "copper" },
+                { "wood", "iron", "parts", "copper", "probeA", "probeB" },
                 lines,
                 processors,
-                { "dock", "market" },
+                { "dock", "market", "stall" },
                 sellers,
                 roleBase,
                 avg
             )
         end
 
-        local PARTS = { "partsCollector", "partsPorter", "founder", "partsHauler" }
-        local COPPER = { "copperCollector", "copperPorter", "coppersmith", "copperHauler" }
+        local PARTS = { "probeACollector", "probeAPorter", "probeAMaker", "probeAHauler" }
+        local COPPER = { "probeBCollector", "probeBPorter", "probeBMaker", "probeBHauler" }
 
         -- Un sat de Era 1 la jumatatea drumului, plus campurile liniilor de proba (starea e plata: o linie noua vine cu
         -- campurile ei).
@@ -1043,21 +1780,21 @@ return function()
                 smelter = { 1, 1 },
                 ironHauler = { 1, 1 },
             }, { true, 4 })
-            s.foundryOwned = partsNet ~= nil
-            s.smithyOwned = copperNet ~= nil
-            s.foundryLevel, s.smithyLevel, s.marketLevel = 1, 1, 1
+            s.kilnAOwned = partsNet ~= nil
+            s.kilnBOwned = copperNet ~= nil
+            s.kilnALevel, s.kilnBLevel, s.stallLevel = 1, 1, 1
             for _, role in PARTS do
                 s.crews[role] = { count = 0, tier = 1 }
             end
             for _, role in COPPER do
                 s.crews[role] = { count = 0, tier = 1 }
             end
-            s.crews.merchant = { count = 0, tier = 1 }
+            s.crews.stallkeeper = { count = 0, tier = 1 }
             if partsNet ~= nil then
-                table.insert(s.nets, { base = partsNet, baseLane = 1, level = 1, kind = "parts" })
+                table.insert(s.nets, { base = partsNet, baseLane = 1, level = 1, kind = "probeA" })
             end
             if copperNet ~= nil then
-                table.insert(s.nets, { base = copperNet, baseLane = 1, level = 1, kind = "copper" })
+                table.insert(s.nets, { base = copperNet, baseLane = 1, level = 1, kind = "probeB" })
             end
             return s
         end
@@ -1099,7 +1836,40 @@ return function()
                     "scrapPort",
                     "forge",
                     "ironHaul",
+                    "millCollect",
+                    "millPort",
+                    "foundry",
+                    "partsHaul",
+                    "oreCollect",
+                    "orePort",
+                    "furnace",
+                    "copperHaul",
                     "dock",
+                    "market",
+                })
+                check.table.equal(StationConfig.ERA_LINKS[1], {
+                    "nets",
+                    "collect",
+                    "port",
+                    "saw",
+                    "haul",
+                    "scrapCollect",
+                    "scrapPort",
+                    "forge",
+                    "ironHaul",
+                    "dock",
+                })
+                check.table.equal(StationConfig.ERA_LINKS[2], {
+                    "nets",
+                    "millCollect",
+                    "millPort",
+                    "foundry",
+                    "partsHaul",
+                    "oreCollect",
+                    "orePort",
+                    "furnace",
+                    "copperHaul",
+                    "market",
                 })
                 check.table.equal(StationConfig.LINKS, GAME.links)
                 check.table.equal(StationConfig.MANUAL_ROLES, {
@@ -1111,7 +1881,18 @@ return function()
                     "scrapPorter",
                     "smelter",
                     "ironHauler",
+                    "millCollector",
+                    "millPorter",
+                    "founder",
+                    "partsHauler",
+                    "oreCollector",
+                    "orePorter",
+                    "coppersmith",
+                    "copperHauler",
                 })
+                check.equal(StationConfig.LINK_OF.merchant, "market")
+                check.equal(StationConfig.LINE_OF.foundry, "parts")
+                check.equal(StationConfig.LINE_OF.market, nil)
                 check.equal(StationConfig.LINK_OF.trader, "dock")
                 check.equal(StationConfig.LINK_OF.smelter, "forge")
                 check.equal(StationConfig.LINE_OF.saw, "wood")
@@ -1181,19 +1962,19 @@ return function()
             "clona tine si campurile pe care nu le cunoaste: o linie noua vine cu ale ei",
             function()
                 local s: any = state({ 5, 5 }, 3, 2, true)
-                s.foundryLevel = 7
-                s.foundryOwned = true
+                s.kilnALevel = 7
+                s.kilnAOwned = true
                 local copy: any = ChainMath.clone(s)
-                check.equal(copy.foundryLevel, 7)
-                check.equal(copy.foundryOwned, true)
+                check.equal(copy.kilnALevel, 7)
+                check.equal(copy.kilnAOwned, true)
                 check.equal(copy.sawLevel, 3)
                 -- tot clona adanca: ce schimbi in ea nu atinge originalul
                 copy.nets[1].level = 40
                 copy.crews.collector.count = 2
-                copy.foundryLevel = 8
+                copy.kilnALevel = 8
                 check.equal(s.nets[1].level, 5)
                 check.equal(s.crews.collector.count, 0)
-                check.equal(s.foundryLevel, 7)
+                check.equal(s.kilnALevel, 7)
             end
         )
 
@@ -1201,10 +1982,10 @@ return function()
             "un model in care o linie lipseste din randul vanzatorului ei e refuzat",
             function()
                 local lines: { [string]: ChainMath.Line } = table.clone(GAME.lines)
-                lines.parts = { netKind = "parts", openFlag = nil, seller = "dock", steps = {} }
+                lines.probeA = { netKind = "probeA", openFlag = nil, seller = "dock", steps = {} }
                 local ok = pcall(function()
                     ChainMath.model(
-                        { "wood", "iron", "parts" },
+                        { "wood", "iron", "parts", "copper", "probeA" },
                         lines,
                         GAME.processors,
                         GAME.sellerOrder,
@@ -1221,10 +2002,10 @@ return function()
             local m = probeModel()
             local s = probeState(nil, nil)
             local f = ChainMath.flowWith(m, s)
-            check.equal(f.lines.parts.delivered, 0)
-            check.equal(f.lines.copper.delivered, 0)
-            check.equal(f.lines.parts.bottleneck, "")
-            check.equal(f.lines.copper.bottleneck, "")
+            check.equal(f.lines.probeA.delivered, 0)
+            check.equal(f.lines.probeB.delivered, 0)
+            check.equal(f.lines.probeA.bottleneck, "")
+            check.equal(f.lines.probeB.bottleneck, "")
             check.equal(ChainMath.valueWith(m, s, f), ChainMath.income(s))
             check.equal(f.bottleneck, ChainMath.rates(s).bottleneck)
         end)
@@ -1236,21 +2017,21 @@ return function()
             local s = probeState(1.0, nil)
             local before = ChainMath.rates(s)
             local f = ChainMath.flowWith(m, s)
-            near(valueAt(f.lines.parts, m, "parts", "partsCollect"), 1.35)
-            near(valueAt(f.lines.parts, m, "parts", "foundry"), 0.5)
-            near(f.lines.parts.delivered, 0.5)
-            check.equal(f.lines.parts.bottleneck, "foundry")
-            near(f.capacity.market, 1.75)
+            near(valueAt(f.lines.probeA, m, "probeA", "probeACollect"), 1.35)
+            near(valueAt(f.lines.probeA, m, "probeA", "kilnA"), 0.5)
+            near(f.lines.probeA.delivered, 0.5)
+            check.equal(f.lines.probeA.bottleneck, "kilnA")
+            near(f.capacity.stall, 1.75)
             near(ChainMath.valueWith(m, s, f) - ChainMath.income(s), 4.0)
             check.equal(f.lines.wood.delivered, before.wood)
             check.equal(f.lines.iron.delivered, before.scrap)
             check.equal(f.capacity.dock, before.sales)
             -- o bucata de piese (8.0) bate una de fier: veriga care tine venitul e acum turnatoria
-            check.equal(f.bottleneck, "foundry")
+            check.equal(f.bottleneck, "kilnA")
             -- fara tine, linia de mana sta
             local idle = ChainMath.flowWith(m, s, true)
-            check.equal(idle.lines.parts.delivered, 0)
-            check.equal(idle.capacity.market, 0)
+            check.equal(idle.lines.probeA.delivered, 0)
+            check.equal(idle.capacity.stall, 0)
         end)
 
         test.case("aceeasi linie cu oameni: plasa ei devine marginea", function()
@@ -1258,16 +2039,16 @@ return function()
             local m = probeModel()
             local s = probeState(1.0, nil)
             staff(s, PARTS, 2, 5)
-            staff(s, { "merchant" }, 2, 5)
+            staff(s, { "stallkeeper" }, 2, 5)
             local f = ChainMath.flowWith(m, s)
-            near(valueAt(f.lines.parts, m, "parts", "partsHaul"), 30.0)
-            near(valueAt(f.lines.parts, m, "parts", "foundry"), 20.0)
-            near(f.capacity.market, 50.0)
-            near(f.lines.parts.delivered, 1.0)
-            check.equal(f.lines.parts.bottleneck, "nets")
+            near(valueAt(f.lines.probeA, m, "probeA", "probeAHaul"), 30.0)
+            near(valueAt(f.lines.probeA, m, "probeA", "kilnA"), 20.0)
+            near(f.capacity.stall, 50.0)
+            near(f.lines.probeA.delivered, 1.0)
+            check.equal(f.lines.probeA.bottleneck, "nets")
             near(ChainMath.valueWith(m, s, f) - ChainMath.income(s), 8.0)
             -- cu toti oamenii ei, linia merge si fara tine
-            near(ChainMath.flowWith(m, s, true).lines.parts.delivered, 1.0)
+            near(ChainMath.flowWith(m, s, true).lines.probeA.delivered, 1.0)
         end)
 
         test.case(
@@ -1280,22 +2061,22 @@ return function()
                 local s = probeState(4.0, 3.0)
                 staff(s, PARTS, 2, 5)
                 staff(s, COPPER, 2, 5)
-                staff(s, { "merchant" }, 1, 1)
+                staff(s, { "stallkeeper" }, 1, 1)
                 local before = ChainMath.rates(s)
                 local f = ChainMath.flowWith(m, s)
-                near(f.lines.copper.delivered, 3.0)
-                near(f.lines.parts.delivered, 2.0)
-                check.equal(f.lines.parts.bottleneck, "market")
-                check.equal(f.lines.copper.bottleneck, "nets")
-                check.equal(f.bottleneck, "market")
+                near(f.lines.probeB.delivered, 3.0)
+                near(f.lines.probeA.delivered, 2.0)
+                check.equal(f.lines.probeA.bottleneck, "stall")
+                check.equal(f.lines.probeB.bottleneck, "nets")
+                check.equal(f.bottleneck, "stall")
                 near(ChainMath.valueWith(m, s, f) - ChainMath.income(s), 52.0)
                 check.equal(f.lines.wood.delivered, before.wood)
                 check.equal(f.lines.iron.delivered, before.scrap)
                 -- Piata largita (negustor de treapta 2: 10.0): amandoua curg cat prind
-                staff(s, { "merchant" }, 1, 2)
+                staff(s, { "stallkeeper" }, 1, 2)
                 local wide = ChainMath.flowWith(m, s)
-                near(wide.lines.parts.delivered, 4.0)
-                check.equal(wide.lines.parts.bottleneck, "nets")
+                near(wide.lines.probeA.delivered, 4.0)
+                check.equal(wide.lines.probeA.bottleneck, "nets")
                 near(ChainMath.valueWith(m, s, wide) - ChainMath.income(s), 68.0)
             end
         )

@@ -432,7 +432,7 @@ local function crewRow(
         secondOutput = ChainMath.roleLink(probe, role)
         secondGain = ChainMath.income(probe) - ChainMath.income(s)
     end
-    local tierCost = if canTier then CrewMath.tierPrice(crew) else nil
+    local tierCost = if canTier then CrewMath.tierPrice(crew, role) else nil
     local secondPrice = if canHire then CrewMath.secondPrice(role) else nil
     local link = StationConfig.LINK_OF[role]
     local line: string? = StationConfig.LINE_OF[link]
@@ -626,7 +626,7 @@ function StationService.UpgradeCrew(
         if not ok then
             return false, why :: string
         end
-        if not EconomyService.TrySpend(player, CrewMath.tierPrice(crew), "crew_tier") then
+        if not EconomyService.TrySpend(player, CrewMath.tierPrice(crew, role), "crew_tier") then
             return false, "coins"
         end
         local saved = data.Crews[role]

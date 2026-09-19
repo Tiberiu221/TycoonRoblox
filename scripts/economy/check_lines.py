@@ -5,8 +5,10 @@ Cronologia Erei 1 si tabelul de aur dovedesc ca refactorul n-a schimbat nimic. N
 primi o linie noua: cu doua linii, un motor scris de mana si unul generic dau aceleasi cifre. Aici se adauga, pe o COPIE
 a simulatorului, doua linii de proba cu un al doilea vanzator, iar rezultatul se compara cu cifre socotite de mana.
 
-Liniile de proba NU sunt economia Erei 2 (aceea se deriva in simulator, ca la Era 1). Au doar forma ei: piese si cupru,
-vandute la o Piata. Cifrele sunt alese rotunde, ca socoteala de mana sa fie exacta in virgula mobila.
+Liniile de proba NU sunt ale jocului: `probeA` si `probeB`, vandute la o taraba (`stall`), cu nume care nu se pot
+ciocni de liniile adevarate (Era 2 are de la D65 piesele, cuprul si Piata ei in simulator). In comentariile de mai jos,
+"piesele" sunt probeA, "cuprul" e probeB, iar "Piata" e taraba. Cifrele sunt alese rotunde, ca socoteala de mana sa fie
+exacta in virgula mobila. Liniile adevarate ale Erei 2 stau inchise in starile de aici, deci nu se amesteca.
 
 Ruleaza odata cu simulatorul (`sim_tycoon.py` il cheama la sfarsit), deci e in poarta fara un rand nou. De mana:
     python3 scripts/economy/check_lines.py
@@ -27,34 +29,34 @@ def load():
 
 
 def add_probe_lines(T):
-    T.LINE_ORDER = ("wood", "iron", "parts", "copper")
-    T.LINES["parts"] = {
-        "netKind": "parts", "openFlag": "foundry_owned", "seller": "market",
-        "steps": (("partsCollector", "partsCollect", "walk"), ("partsPorter", "partsPort", "walk"),
-                  ("founder", "foundry", "processor"), ("partsHauler", "partsHaul", "walk")),
+    T.LINE_ORDER = T.LINE_ORDER + ("probeA", "probeB")
+    T.LINES["probeA"] = {
+        "netKind": "probeA", "openFlag": "kiln_a_owned", "seller": "stall",
+        "steps": (("probeACollector", "probeACollect", "walk"), ("probeAPorter", "probeAPort", "walk"),
+                  ("probeAMaker", "kilnA", "processor"), ("probeAHauler", "probeAHaul", "walk")),
     }
-    T.LINES["copper"] = {
-        "netKind": "copper", "openFlag": "smithy_owned", "seller": "market",
-        "steps": (("copperCollector", "copperCollect", "walk"), ("copperPorter", "copperPort", "walk"),
-                  ("coppersmith", "smithy", "processor"), ("copperHauler", "copperHaul", "walk")),
+    T.LINES["probeB"] = {
+        "netKind": "probeB", "openFlag": "kiln_b_owned", "seller": "stall",
+        "steps": (("probeBCollector", "probeBCollect", "walk"), ("probeBPorter", "probeBPort", "walk"),
+                  ("probeBMaker", "kilnB", "processor"), ("probeBHauler", "probeBHaul", "walk")),
     }
-    T.PROCESSORS["foundry"] = {"base": "FOUNDRY_BASE_RATE", "level": "foundry_level"}
-    T.PROCESSORS["smithy"] = {"base": "SMITHY_BASE_RATE", "level": "smithy_level"}
-    T.SELLERS["market"] = {
-        "role": "merchant", "base": "MARKET_BASE_RATE", "level": "market_level", "priority": ("copper", "parts"),
+    T.PROCESSORS["kilnA"] = {"base": "KILN_A_BASE_RATE", "level": "kiln_a_level"}
+    T.PROCESSORS["kilnB"] = {"base": "KILN_B_BASE_RATE", "level": "kiln_b_level"}
+    T.SELLERS["stall"] = {
+        "role": "stallkeeper", "base": "STALL_BASE_RATE", "level": "stall_level", "priority": ("probeB", "probeA"),
     }
-    T.FOUNDRY_BASE_RATE = 2.0
-    T.SMITHY_BASE_RATE = 2.0
-    T.MARKET_BASE_RATE = 5.0
-    for kind in ("foundry", "smithy", "market"):
+    T.KILN_A_BASE_RATE = 2.0
+    T.KILN_B_BASE_RATE = 2.0
+    T.STALL_BASE_RATE = 5.0
+    for kind in ("kilnA", "kilnB", "stall"):
         T.LEVEL_INC_BY_KIND[kind] = 0.06
-    for role in ("partsCollector", "partsPorter", "partsHauler", "copperCollector", "copperPorter", "copperHauler"):
+    for role in ("probeACollector", "probeAPorter", "probeAHauler", "probeBCollector", "probeBPorter", "probeBHauler"):
         T.ROLE_BASE[role] = 3.0
-    T.AVG["parts"] = 8.0
-    T.AVG["copper"] = 12.0
+    T.AVG["probeA"] = 8.0
+    T.AVG["probeB"] = 12.0
     T.ROLES = T.ROLES + (
-        "partsCollector", "partsPorter", "founder", "partsHauler",
-        "copperCollector", "copperPorter", "coppersmith", "copperHauler", "merchant",
+        "probeACollector", "probeAPorter", "probeAMaker", "probeAHauler",
+        "probeBCollector", "probeBPorter", "probeBMaker", "probeBHauler", "stallkeeper",
     )
     T.LINE_STEPS, T.LINE_LINKS, T.LINE_OF_ROLE, T.LINK_OF, T.LINKS = T.derive_tables(
         T.LINE_ORDER, T.LINES, T.SELLERS, T.ROLES
@@ -78,13 +80,13 @@ def era1_state(T):
 
 
 def with_probe_fields(s, parts_net, copper_net, T):
-    s.foundry_owned = parts_net is not None
-    s.smithy_owned = copper_net is not None
-    s.foundry_level = s.smithy_level = s.market_level = 1
+    s.kiln_a_owned = parts_net is not None
+    s.kiln_b_owned = copper_net is not None
+    s.kiln_a_level = s.kiln_b_level = s.stall_level = 1
     if parts_net is not None:
-        s.nets.append(T.Net(parts_net, 1, 1, "parts"))
+        s.nets.append(T.Net(parts_net, 1, 1, "probeA"))
     if copper_net is not None:
-        s.nets.append(T.Net(copper_net, 1, 1, "copper"))
+        s.nets.append(T.Net(copper_net, 1, 1, "probeB"))
     return s
 
 
@@ -93,8 +95,8 @@ def staff(s, T, roles, count, tier):
         s.crews[role] = T.Crew(count, tier)
 
 
-PARTS_ROLES = ("partsCollector", "partsPorter", "founder", "partsHauler")
-COPPER_ROLES = ("copperCollector", "copperPorter", "coppersmith", "copperHauler")
+PARTS_ROLES = ("probeACollector", "probeAPorter", "probeAMaker", "probeAHauler")
+COPPER_ROLES = ("probeBCollector", "probeBPorter", "probeBMaker", "probeBHauler")
 
 
 def problems():
@@ -118,8 +120,8 @@ def problems():
     # 0. Liniile noi, inchise: Era 1 nu simte nimic
     s = with_probe_fields(era1_state(T), None, None, T)
     c = T.chain(s)
-    expect("liniile de proba inchise nu livreaza", (c.lines["parts"].delivered, c.lines["copper"].delivered), (0.0, 0.0))
-    expect("liniile de proba inchise n-au veriga slaba", (c.lines["parts"].bottleneck, c.lines["copper"].bottleneck), ("", ""))
+    expect("liniile de proba inchise nu livreaza", (c.lines["probeA"].delivered, c.lines["probeB"].delivered), (0.0, 0.0))
+    expect("liniile de proba inchise n-au veriga slaba", (c.lines["probeA"].bottleneck, c.lines["probeB"].bottleneck), ("", ""))
     expect("venitul Erei 1 cu liniile de proba inchise", T.income(s), before_income)
     expect("veriga care tine venitul, cu liniile de proba inchise", c.bottleneck, before.bottleneck)
 
@@ -128,28 +130,28 @@ def problems():
     #    turnatorie. Piata fara negustor: 5.0 x 0.35 = 1.75, deci nu ea e marginea.
     s = with_probe_fields(era1_state(T), 1.0, None, T)
     c = T.chain(s)
-    parts = c.lines["parts"]
-    expect("piese de mana: pasii de drum", dict(parts.rates)["partsCollect"], 1.35)
-    expect("piese de mana: turnatoria", dict(parts.rates)["foundry"], 0.5)
+    parts = c.lines["probeA"]
+    expect("piese de mana: pasii de drum", dict(parts.rates)["probeACollect"], 1.35)
+    expect("piese de mana: turnatoria", dict(parts.rates)["kilnA"], 0.5)
     expect("piese de mana: livrat", parts.delivered, 0.5)
-    expect("piese de mana: veriga slaba", parts.bottleneck, "foundry")
-    expect("piese de mana: Piata", c.capacity["market"], 1.75)
+    expect("piese de mana: veriga slaba", parts.bottleneck, "kilnA")
+    expect("piese de mana: Piata", c.capacity["stall"], 1.75)
     expect("piese de mana: venitul creste cu 0.5 x 8", T.income(s) - before_income, 4.0)
     expect("piese de mana: lemnul neatins", c.lines["wood"].delivered, before.wood)
     expect("piese de mana: fierul neatins", c.lines["iron"].delivered, before.scrap)
     expect("piese de mana: taverna neatinsa", c.capacity["dock"], before.sales)
     # o bucata de piese (8.0) bate una de fier (3.55): veriga care tine venitul e acum turnatoria
-    expect("piese de mana: veriga care tine venitul", c.bottleneck, "foundry")
+    expect("piese de mana: veriga care tine venitul", c.bottleneck, "kilnA")
 
     # 2. Aceeasi linie cu oameni (cate doi, treapta 5): drumurile 3 x 5 x 2 = 30, turnatoria 2 x 5 x 2 = 20, negustorul
     #    5 x 5 x 2 = 50 -> plasa (1.0) e marginea.
-    staff(s, T, PARTS_ROLES + ("merchant",), 2, 5)
+    staff(s, T, PARTS_ROLES + ("stallkeeper",), 2, 5)
     c = T.chain(s)
-    expect("piese cu oameni: drum", dict(c.lines["parts"].rates)["partsHaul"], 30.0)
-    expect("piese cu oameni: turnatoria", dict(c.lines["parts"].rates)["foundry"], 20.0)
-    expect("piese cu oameni: Piata", c.capacity["market"], 50.0)
-    expect("piese cu oameni: livrat", c.lines["parts"].delivered, 1.0)
-    expect("piese cu oameni: veriga slaba", c.lines["parts"].bottleneck, "nets")
+    expect("piese cu oameni: drum", dict(c.lines["probeA"].rates)["probeAHaul"], 30.0)
+    expect("piese cu oameni: turnatoria", dict(c.lines["probeA"].rates)["kilnA"], 20.0)
+    expect("piese cu oameni: Piata", c.capacity["stall"], 50.0)
+    expect("piese cu oameni: livrat", c.lines["probeA"].delivered, 1.0)
+    expect("piese cu oameni: veriga slaba", c.lines["probeA"].bottleneck, "nets")
     expect("piese cu oameni: venitul creste cu 1 x 8", T.income(s) - before_income, 8.0)
 
     # 3. Doua linii la ACELASI al doilea vanzator, el fiind marginea. Piata cu un negustor de treapta 1 duce 5.0.
@@ -158,21 +160,21 @@ def problems():
     #    ar vinde piese: 8. Deci veriga care tine venitul e Piata (8 > 4 > 3.55 > 1.65).
     s = with_probe_fields(era1_state(T), 4.0, 3.0, T)
     staff(s, T, PARTS_ROLES + COPPER_ROLES, 2, 5)
-    staff(s, T, ("merchant",), 1, 1)
+    staff(s, T, ("stallkeeper",), 1, 1)
     c = T.chain(s)
-    expect("doua linii la Piata: cuprul livrat", c.lines["copper"].delivered, 3.0)
-    expect("doua linii la Piata: piesele livrate", c.lines["parts"].delivered, 2.0)
-    expect("doua linii la Piata: piesele tinute de Piata", c.lines["parts"].bottleneck, "market")
-    expect("doua linii la Piata: cuprul tinut de plasa lui", c.lines["copper"].bottleneck, "nets")
-    expect("doua linii la Piata: veriga care tine venitul", c.bottleneck, "market")
+    expect("doua linii la Piata: cuprul livrat", c.lines["probeB"].delivered, 3.0)
+    expect("doua linii la Piata: piesele livrate", c.lines["probeA"].delivered, 2.0)
+    expect("doua linii la Piata: piesele tinute de Piata", c.lines["probeA"].bottleneck, "stall")
+    expect("doua linii la Piata: cuprul tinut de plasa lui", c.lines["probeB"].bottleneck, "nets")
+    expect("doua linii la Piata: veriga care tine venitul", c.bottleneck, "stall")
     expect("doua linii la Piata: venitul creste cu 3 x 12 + 2 x 8", T.income(s) - before_income, 52.0)
     expect("doua linii la Piata: taverna neatinsa", (c.lines["wood"].delivered, c.lines["iron"].delivered), (before.wood, before.scrap))
 
     # 4. Piata largita (negustor de treapta 2: 10.0): amandoua liniile curg cat prind, nimeni nu mai e tinut de ea.
-    staff(s, T, ("merchant",), 1, 2)
+    staff(s, T, ("stallkeeper",), 1, 2)
     c = T.chain(s)
-    expect("Piata largita: piesele livrate", c.lines["parts"].delivered, 4.0)
-    expect("Piata largita: piesele tinute de plasa lor", c.lines["parts"].bottleneck, "nets")
+    expect("Piata largita: piesele livrate", c.lines["probeA"].delivered, 4.0)
+    expect("Piata largita: piesele tinute de plasa lor", c.lines["probeA"].bottleneck, "nets")
     expect("Piata largita: venitul creste cu 3 x 12 + 4 x 8", T.income(s) - before_income, 68.0)
     return bad
 

@@ -14,6 +14,10 @@ export type State = {
     sackBig: boolean,
     scrapShed: boolean, -- [D55] shed-ul de scrap (steagul platformei lui)
     forge: boolean, -- [D56] Forge (platforma `workshop`): fara ea nu se topeste nimic
+    -- [D65] Era 2: roata de apa (porneste turnatoria si Piata), cuptorul de cupru, magazia de minereu
+    wheel: boolean,
+    furnace: boolean,
+    oreShed: boolean,
     flume: boolean,
     rateMult: number,
     priceMult: number,
@@ -47,6 +51,9 @@ function TycoonMath.newState(rebirths: number?, indexFound: number?): State
         sackBig = false,
         scrapShed = false,
         forge = false,
+        wheel = false,
+        furnace = false,
+        oreShed = false,
         flume = false,
         rateMult = 1.0,
         priceMult = 1.0,
@@ -150,8 +157,9 @@ end
 -- "wood" pentru restul. Un singur loc, citit si de server (NetService), si de client (NetController).
 function TycoonMath.netKind(pad: TycoonConfig.Pad): string
     for _, e in pad.effects do
-        if e.kind == "net" and e.good == "scrap" then
-            return "scrap"
+        -- [D65] felul e chiar `good`-ul efectului: "scrap" (Fifth Net), "mill" (plasele Morii), "ore" (minereul)
+        if e.kind == "net" and e.good ~= nil then
+            return e.good
         end
     end
     return "wood"
@@ -222,10 +230,17 @@ function TycoonMath.sellMultiplier(s: State, indexCount: number, rebirths: numbe
 end
 
 -- Valoarea unui obiect din gramada. "named": pretul tine de tier, nu de bunul brut.
+-- [D65] O gasire cu nume, a oricarei ere (`named`, `named2`): are treapta ei si merge cu marfa [D56].
+function TycoonMath.isFind(good: string): boolean
+    return TycoonConfig.FIND_MULT[good] ~= nil
+end
+
 function TycoonMath.itemValue(good: string, tier: string?, s: State): number
-    if good == "named" then
+    -- [D65] gasirile, pe ere: aceleasi trepte, inmultite cu cadrul erei (FIND_MULT: named = 1, named2 = 40)
+    local findMult = TycoonConfig.FIND_MULT[good]
+    if findMult ~= nil then
         local base = if tier ~= nil then TycoonConfig.NAMED_VALUE[tier] else nil
-        return (base or 14) * s.namedMult
+        return (base or 14) * findMult * s.namedMult
     end
     local g = goodsById[good]
     if g == nil then

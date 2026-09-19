@@ -46,7 +46,9 @@ end
 
 local pads: { { id: string, x: number, y: number, net: boolean } } = {}
 for _, p in TycoonConfig.PADS do
-    if p.x ~= nil and p.y ~= nil then
+    -- doar platformele care se deseneaza (`live`): ale unei ere inca inchise au deja locul lor in config, dar pamantul
+    -- lor se coace odata cu harta cartierului [D65, docs/PLAN-ERA2.md]
+    if p.x ~= nil and p.y ~= nil and p.live then
         local net = false
         for _, e in p.effects do
             if e.kind == "net" then

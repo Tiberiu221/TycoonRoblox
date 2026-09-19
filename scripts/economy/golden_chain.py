@@ -5,6 +5,7 @@ Pana la D55 tabelul GOLDEN din test era copiat de mana din repr-urile simulatoru
 multe campuri, copiatul de mana devenea locul in care se strecoara o greseala; acum se regenereaza:
 
     python3 scripts/economy/golden_chain.py > /tmp/golden.luau
+    python3 scripts/economy/golden_chain.py --era2 > /tmp/golden_era2.luau     # [D65] blocul `local GOLDEN_ERA2`
 
 si blocul `local GOLDEN = { ... }` din test se inlocuieste cu iesirea. Starile sunt construite exact ca
 `state()` din test: plasa i are baza NET_BASE_RATE * NET_BASE_GROWTH^(i-1), banda si felul din NET_LANES /
@@ -32,7 +33,7 @@ CASES = [
     ("gaterul de mana e gatuirea", [10, 10], 1, 10, False, {"collector": (1, 1), "porter": (1, 1), "hauler": (1, 1)},
      False, 1),
     ("prag 25 pe toate, echipaj la maxim, fara Forge", [25, 25, 25, 25, 25], 25, 25, True,
-     {r: (2, 5) for r in T.ROLES}, False, 1),
+     {r: (2, 5) for r in T.ERA1_ROLES}, False, 1),
     # ---- [D56] linia fierului ----
     ("Forge fara plasa de scrap: fierul nu exista", [30, 30, 25, 20], 30, 30, True, dict(ALL_WOOD), True, 1),
     ("turul de mana al fierului: patru pasi, timpul tau intreg pe ei", [30, 30, 25, 20, 1], 30, 30, True,
@@ -67,7 +68,86 @@ def lua(v):
     return repr(float(v))
 
 
+# ---- [D65] Era 2: stari cu liniile Morii, in forma generica (pe linii), pentru `ChainMath.flow` ----
+ERA1_DONE = dict(ALL_WOOD, scrapCollector=(2, 5), scrapPorter=(2, 5), smelter=(2, 3), ironHauler=(2, 4))
+ALL_PARTS = {"millCollector": (2, 5), "millPorter": (2, 5), "founder": (2, 5), "partsHauler": (2, 5), "merchant": (2, 5)}
+ALL_COPPER = {"oreCollector": (2, 5), "orePorter": (2, 5), "coppersmith": (2, 5), "copperHauler": (2, 5)}
+E1 = [32, 30, 28, 26, 27]  # plasele Erei 1 la finalul ei
+
+# (nume, niveluri plase 1..n, gater, taverna, forja, oameni, roata, cuptor, nivel turnatorie, nivel cuptor, nivel Piata)
+CASES_ERA2 = [
+    ("Era 1 incheiata, Moara inca inchisa: liniile ei nu exista", E1, 30, 30, 20, dict(ERA1_DONE), False, False, 1, 1, 1),
+    ("roata de apa fara plasa a sasea: piesele nu exista", E1, 30, 30, 20, dict(ERA1_DONE), True, False, 1, 1, 1),
+    ("turul de mana al pieselor: patru pasi, timpul tau intreg pe ei", E1 + [1], 30, 30, 20, dict(ERA1_DONE), True, False, 1, 1, 1),
+    ("Mill Collector si Mill Porter angajati: turnatoria de mana e gatuirea", E1 + [10], 30, 30, 20,
+     dict(ERA1_DONE, millCollector=(1, 3), millPorter=(1, 3)), True, False, 1, 1, 1),
+    ("toti oamenii pieselor, fara Merchant: Piata merge la o treime", E1 + [12, 9], 30, 30, 20,
+     dict(ERA1_DONE, millCollector=(1, 2), millPorter=(1, 2), founder=(1, 1), partsHauler=(1, 1)), True, False, 6, 1, 3),
+    ("patru plase ale Morii, oameni pe trepte diferite, cuptorul fara plasa de minereu", E1 + [30, 28, 25, 20], 30, 30, 20,
+     dict(ERA1_DONE, millCollector=(2, 5), millPorter=(1, 3), founder=(1, 2), partsHauler=(1, 4), merchant=(1, 2)),
+     True, True, 14, 1, 12),
+    ("turul de mana al cuprului, langa piesele cu toti oamenii", E1 + [30, 28, 25, 20, 1], 30, 30, 20,
+     dict(ERA1_DONE, **ALL_PARTS), True, True, 30, 1, 30),
+    ("Ore Collector si Ore Porter angajati: cuptorul de mana e gatuirea", E1 + [30, 28, 25, 20, 10], 30, 30, 20,
+     dict(ERA1_DONE, **ALL_PARTS, oreCollector=(1, 3), orePorter=(1, 3)), True, True, 30, 1, 30),
+    ("Piata plina: cuprul intai, piesele din ce ramane", E1 + [60, 60, 60, 60, 40], 30, 30, 20,
+     dict(ERA1_DONE, **ALL_PARTS, **ALL_COPPER), True, True, 60, 60, 3),
+    ("amandoi vanzatorii plini: taverna tine lemnul, Piata tine piesele", [60, 60, 60, 60, 40, 60, 60, 60, 60, 40], 60, 3, 60,
+     dict(ERA1_DONE, **ALL_PARTS, **ALL_COPPER), True, True, 60, 60, 3),
+    ("Copper Hauler-ul de mana e gatuirea cuprului", E1 + [40, 40, 40, 40, 30], 30, 30, 20,
+     dict(ERA1_DONE, **ALL_PARTS, oreCollector=(2, 5), orePorter=(2, 5), coppersmith=(2, 5)), True, True, 40, 60, 40),
+    ("prag 25 pe tot cartierul Morii, echipaj la maxim", E1 + [25, 25, 25, 25, 25], 30, 30, 20,
+     dict(ERA1_DONE, **ALL_PARTS, **ALL_COPPER), True, True, 25, 25, 25),
+]
+
+
+def build_era2(levels, saw, dock, forge, crews, wheel, furnace, foundry, furnace_level, market):
+    s = T.State()
+    for i, lv in enumerate(levels):
+        s.nets.append(T.Net(T.net_base(i + 1), T.NET_LANES[i], lv, T.NET_KINDS[i]))
+    s.saw_level, s.dock_level, s.forge_level, s.sack_big, s.workshop = saw, dock, forge, True, True
+    s.wheel, s.furnace = wheel, furnace
+    s.foundry_level, s.furnace_level, s.market_level = foundry, furnace_level, market
+    for role, (count, tier) in crews.items():
+        s.crews[role] = T.Crew(count, tier)
+    return s
+
+
+def main_era2():
+    print("local GOLDEN_ERA2 = {")
+    for name, levels, saw, dock, forge, crews, wheel, furnace, foundry, furnace_level, market in CASES_ERA2:
+        s = build_era2(levels, saw, dock, forge, crews, wheel, furnace, foundry, furnace_level, market)
+        c = T.chain(s)
+        crews_lua = ", ".join(f"{r} = {{ {n}, {t} }}" for r, (n, t) in crews.items())
+        print("    {")
+        print(f'        name = "{name}",')
+        print(f"        nets = {{ {', '.join(str(x) for x in levels)} }},")
+        print(f"        saw = {saw},")
+        print(f"        dock = {dock},")
+        print(f"        forge = {forge},")
+        print(f"        wheel = {lua(wheel)},")
+        print(f"        furnace = {lua(furnace)},")
+        print(f"        foundry = {foundry},")
+        print(f"        furnaceLevel = {furnace_level},")
+        print(f"        market = {market},")
+        print(f"        crews = {{ {crews_lua} }},")
+        print("        lines = {")
+        for line in T.LINE_ORDER:
+            f = c.lines[line]
+            values = ", ".join(lua(v) for _link, v in f.rates)
+            print(f"            {line} = {{ catch = {lua(f.catch)}, values = {{ {values} }}, delivered = {lua(f.delivered)},"
+                  f' bottleneck = "{f.bottleneck}" }},')
+        print("        },")
+        print(f"        capacity = {{ {', '.join(f'{k} = {lua(v)}' for k, v in c.capacity.items())} }},")
+        print(f'        bottleneck = "{c.bottleneck}",')
+        print(f"        income = {lua(T.income(s))},")
+        print("    },")
+    print("}")
+
+
 def main():
+    if "--era2" in sys.argv:
+        return main_era2()
     print("local GOLDEN = {")
     for name, levels, saw, dock, sack, crews, forge_owned, forge in CASES:
         s = build(levels, saw, dock, sack, crews, forge_owned, forge)

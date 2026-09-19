@@ -12,8 +12,8 @@ Convenție: în tot proiectul, „server" înseamnă o instanță Roblox efemer�
 ---
 
 ## D65 — Era 2, „The Mill": schema Erei 1, oglindită și derivată în simulator
-**PROVIZORIU** (2026-09-19, seara) — owner-ul: *„ok, dacă totul are sens și logică în Era 1, se poate trece mai
-departe."* E o propunere cu cifre din simulator (`scripts/economy/sim_era2.py`), nu cod de joc. Pornește de la regula
+**APROBAT de owner pe 2026-09-19** (*„confirm. poți să te apuci"*), cu cele patru hotărâri de mai jos. Înainte:
+*„ok, dacă totul are sens și logică în Era 1, se poate trece mai departe."* A pornit ca propunere cu cifre din simulator (`scripts/economy/sim_era2.py`), nu cod de joc. Pornește de la regula
 lui din D64 și de la ce a spus în noaptea de 2026-09-19: *„poți începe să copiezi schemele și pentru Era 2 (se continuă
 harta în dreapta)"*. Era 2 e deci **schema Erei 1**, care a fost reglată și jucată, cu altă marfă pe ea.
 
@@ -50,7 +50,7 @@ deblocărilor ies ca la Era 1: venitul din clipa în care se deschid × scara de
   care aleargă după deblocări și lasă nivelurile termină era în ~23 de minute, cu venit mai mic. Adevărul e între ele și
   se măsoară la playtest, ca și raportul de 1,8 dintre jucătorul real și cel simulat.
 
-**Hotărâri luate de mine, de confirmat:**
+**Hotărâri luate de mine, confirmate de owner odată cu schema:**
 - **Roata de apă costă monede**, nu scânduri și fier: jocul are o singură monedă. Povestea ei spune din ce e făcută.
 - **Marfa nouă e cuprul**, cum scrie în roadmap-ul din D64; acolo era încă „de confirmat".
 - **Cartierul vechi rămâne în funcțiune, dar la finalul Erei 2 aduce ~3% din bani.** E firesc pentru gen: atenția se

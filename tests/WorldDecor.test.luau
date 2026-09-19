@@ -94,7 +94,10 @@ return function()
             local half = TycoonConfig.PAD_SIZE / 2
             local items = WorldDecor.build(2026091101, realBounds, 220)
             for _, p in TycoonConfig.PADS do
-                if p.x == nil or p.y == nil then
+                -- [D65] doar platformele care se deseneaza: ale Erei 2 au deja locul lor, dar cartierul Morii primeste
+                -- terenul lui fara decor (RiverConfig.PLOT) odata cu harta (docs/PLAN-ERA2.md); cand devin `live`,
+                -- testul asta le pazeste si pe ele.
+                if p.x == nil or p.y == nil or not p.live then
                     continue
                 end
                 local px, py = p.x :: number, p.y :: number

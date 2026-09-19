@@ -76,8 +76,9 @@ function CrewMath.canHireSecond(crew: ChainMath.Crew): (boolean, string?)
     return true, nil
 end
 
-function CrewMath.tierPrice(crew: ChainMath.Crew): number
-    return ChainMath.tierCost(crew.tier)
+-- [D65] `role`: oamenii Erei 2 platesc treptele de ERA2_MULT ori mai scump; fara el, pretul Erei 1.
+function CrewMath.tierPrice(crew: ChainMath.Crew, role: string?): number
+    return ChainMath.tierCost(crew.tier, role)
 end
 
 function CrewMath.secondPrice(role: string): number?

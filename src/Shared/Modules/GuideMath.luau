@@ -191,7 +191,8 @@ end
 -- pana la cei patru oameni ai fierului -- owner-ul: jucatorul "se pierde cand ajunge la scraps".
 function GuideMath.guidedRoles(forgeOwned: boolean): { string }
     local roles: { string } = {}
-    for _, role in StationConfig.ROLES do
+    -- [D65] oamenii Erei 1: ghidajul Erei 2 vine cu capitolele ei (docs/PLAN-ERA2.md, pasul 6)
+    for _, role in StationConfig.ERA1_ROLES do
         if forgeOwned or StationConfig.LINE_OF[StationConfig.LINK_OF[role]] ~= "iron" then
             table.insert(roles, role)
         end

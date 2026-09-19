@@ -61,12 +61,25 @@ def drift_bonus(share=DRIFT_SHARE):
     seconds = sum(w * sec for w, sec in DRIFT_KINDS) / total
     return share * seconds / DRIFT_WINDOW
 
+# [D65] CADRUL EREI 2 E UN SINGUR NUMAR: de cate ori valoreaza marfa ei mai mult decat a Erei 1. Tot ce se masoara in
+# monede in cartierul nou se inmulteste cu el (valoarea bucatii, costul nivelurilor, costul treptelor); tot ce se
+# masoara in bucati pe secunda ramane ca in Era 1. 40 sta in mijlocul zonei stabile: durata erei e 55-57 de minute
+# pentru 30..60, dar sare la ~1h14m sub 28 (vezi scripts/economy/sim_era2.py, unealta de "ce-ar fi daca").
+ERA2_MULT = 40.0
+
 GOODS = {  # valoarea de baza a unei bucati, in monede
     "driftwood": 1.0,
     "scrap": 3.0,  # [D55] se vinde doar topit: fierul valoreaza cat scrap-ul din care iese
     "named": 14.0,
     "planks": 1.0,
     "iron": 3.0,
+    # [D65] Era 2. Plasele Morii prind tot scrap, dar turnatoria face din el PIESE DE MASINI: se vinde doar turnat,
+    # piesa valoreaza cat scrap-ul din care iese. La fel minereul si cuprul. Gasirile cartierului nou: de ERA2_MULT ori.
+    "mill_scrap": 1.0 * ERA2_MULT,
+    "parts": 1.0 * ERA2_MULT,
+    "ore": 3.0 * ERA2_MULT,
+    "copper": 3.0 * ERA2_MULT,
+    "named2": 14.0 * ERA2_MULT,
 }
 # CE PRINDE O PLASA, dupa felul ei [D55]. Pana la D55 toate plasele prindeau acelasi amestec, iar banda cea
 # mai departata decidea ce marfuri exista: dupa plasa a patra, si a doua prindea scrap, care trecea prin
@@ -75,6 +88,8 @@ GOODS = {  # valoarea de baza a unei bucati, in monede
 CATCH = {
     "wood": (("driftwood", 0.95), ("named", 0.05)),
     "scrap": (("scrap", 0.95), ("named", 0.05)),
+    "mill": (("mill_scrap", 0.95), ("named2", 0.05)),  # [D65] plasele Morii
+    "ore": (("ore", 0.95), ("named2", 0.05)),  # [D65] plasa de minereu
 }
 # Valoarea medie a unei bucati prinse, pe fel de plasa. Aceeasi ordine a sumei ca in ChainMath.luau.
 AVG = {kind: sum(share * GOODS[good] for good, share in parts) for kind, parts in CATCH.items()}
@@ -89,7 +104,7 @@ AVG = {kind: sum(share * GOODS[good] for good, share in parts) for kind, parts i
 # cinci. Cu acelasi increment peste tot, debarcaderul ramanea gatuire zeci de niveluri la rand si
 # jocul se transforma in macinat.
 LEVEL_INC = 0.03  # implicit (plasele)
-LEVEL_INC_BY_KIND = {"nets": 0.03, "saw": 0.06, "dock": 0.06}
+LEVEL_INC_BY_KIND = {"nets": 0.03, "saw": 0.06, "dock": 0.06, "foundry": 0.06, "market": 0.06, "furnace": 0.06}
 LEVEL_GROWTH = 1.09  # cat se scumpeste fiecare nivel
 MILESTONES = (10, 25, 50, 100, 200, 300, 400, 500)
 MILESTONE_MULT = 2.0
@@ -125,8 +140,12 @@ def level_cost(base_cost: float, level: int) -> float:
 # veche, si n-ar mai avea rost sa deblochezi nimic.
 NET_BASE_RATE = 0.33  # prima plasa, nivel 1 -- aceeasi cifra ca azi, ca senzatia de start sa nu se schimbe
 NET_BASE_GROWTH = 1.45
-NET_LANES = (1, 1, 2, 2, 3)  # pe ce banda sta fiecare din cele 5 plase ale Erei 1
-NET_KINDS = ("wood", "wood", "wood", "wood", "scrap")  # [D55] ultima plasa, cea din larg, prinde scrap
+# [D65] CINCI PLASE PE ERA, in aceeasi schema: patru pentru marfa cu care pornesti era si una, in larg, pentru marfa
+# noua. A k-a plasa a unei ere are baza celei de-a k-a plase a Erei 1; nivelurile ei costa de `net_era_mult` ori.
+NETS_PER_ERA = 5
+NET_LANES = (1, 1, 2, 2, 3, 1, 1, 2, 2, 3)  # pe ce banda sta fiecare plasa: Era 1, apoi Era 2
+# [D55] ultima plasa a Erei 1, cea din larg, prinde scrap; [D65] plasele Morii prind scrap pentru turnatorie, ultima minereu
+NET_KINDS = ("wood", "wood", "wood", "wood", "scrap", "mill", "mill", "mill", "mill", "ore")
 
 NET_UPGRADE_BASE_COST = 1.0  # nivelul 2 al primei plase; se scaleaza cu baza plasei
 
@@ -154,6 +173,15 @@ FORGE_BASE_RATE = 1.2
 FORGE_UPGRADE_BASE = 60.0
 LEVEL_INC_BY_KIND["forge"] = 0.06
 
+# [D65] CLADIRILE EREI 2, in oglinda: turnatoria cat gaterul, cuptorul de cupru cat forja, Piata cat taverna (bucati pe
+# secunda), iar nivelurile lor de ERA2_MULT ori mai scumpe.
+FOUNDRY_BASE_RATE = 2.4
+FOUNDRY_UPGRADE_BASE = 7.0 * ERA2_MULT
+FURNACE_BASE_RATE = 1.2
+FURNACE_UPGRADE_BASE = 60.0 * ERA2_MULT
+MARKET_BASE_RATE = 3.0
+MARKET_UPGRADE_BASE = 9.0 * ERA2_MULT
+
 # ---- oamenii [D49] ---------------------------------------------------------------------------
 # FIECARE PAS E MUNCA DE OM. La inceput le faci tu pe toate; fiecare angajare iti ia un drum sau o
 # statie de pe umeri, iar timpul tau se imparte intre ce a ramas. De-aici senzatia ca fiecare
@@ -169,7 +197,11 @@ PLAYER_LABOR = 3.6
 # rotesc gatuirea intre ele. Sawyer-ul si Negustorul n-au baza: inmultesc capacitatea cladirii lor.
 # [D56] Oamenii de drum ai fierului au baze mai mici: plasa de scrap e una singura. Ultimul (Iron Hauler) trebuie
 # sa duca macar cat tot timpul tau cu traista mare (5.4), altfel angajarea lui ar putea scadea venitul.
-ROLE_BASE = {"collector": 4.0, "porter": 6.0, "hauler": 9.0, "scrapCollector": 2.0, "scrapPorter": 2.5, "ironHauler": 6.5}
+ROLE_BASE = {
+    "collector": 4.0, "porter": 6.0, "hauler": 9.0, "scrapCollector": 2.0, "scrapPorter": 2.5, "ironHauler": 6.5,
+    # [D65] oamenii de drum ai Erei 2, in oglinda cu ai Erei 1 (aceleasi bucati pe secunda)
+    "millCollector": 4.0, "millPorter": 6.0, "partsHauler": 9.0, "oreCollector": 2.0, "orePorter": 2.5, "copperHauler": 6.5,
+}
 TIER_STEP = 1.0  # fiecare treapta adauga inca o data baza: treapta 5 = de 5 ori
 TIER_MAX = 5
 TIER_COST_BASE = 25.0  # 25 / 75 / 225 / 675 -- fix, ca la ei uneltele unui om
@@ -177,7 +209,10 @@ TIER_COST_GROWTH = 3.0
 SECOND_AT_TIER = 3  # al doilea om pe aceeasi treaba se deschide de la treapta asta
 MAX_PEOPLE = 2  # in Era 1; "progresiv cu jocul" [owner, 2026-09-13]
 
-ROLES = ("collector", "porter", "sawyer", "hauler", "trader", "scrapCollector", "scrapPorter", "smelter", "ironHauler")
+ERA1_ROLES = ("collector", "porter", "sawyer", "hauler", "trader", "scrapCollector", "scrapPorter", "smelter", "ironHauler")
+# [D65] Era 2, in aceeasi ordine: cei patru ai pieselor, negustorul Pietei, cei patru ai cuprului
+ERA2_ROLES = ("millCollector", "millPorter", "founder", "partsHauler", "merchant", "oreCollector", "orePorter", "coppersmith", "copperHauler")
+ROLES = ERA1_ROLES + ERA2_ROLES
 
 # ---- liniile, ca date [D64] --------------------------------------------------------------------
 # Pana la D64 motorul era scris de mana pentru exact doua linii, lemnul si fierul. Era 2 aduce linii de ACEEASI forma
@@ -197,7 +232,8 @@ ROLES = ("collector", "porter", "sawyer", "hauler", "trader", "scrapCollector", 
 #     venitului) si in care se departajeaza verigile la egalitate. `priority` e ALTA ordine, a vanzatorului: cine ia
 #     primul din capacitatea lui (marfa mai scumpa intai, vezi verificarea de la sfarsit). Azi sunt una inversul
 #     celeilalte doar din intamplare, deci raman doua liste.
-LINE_ORDER = ("wood", "iron")
+LINE_ORDER = ("wood", "iron", "parts", "copper")
+ERA_LINES = {1: ("wood", "iron"), 2: ("parts", "copper")}
 LINES = {
     "wood": {
         "netKind": "wood", "openFlag": None, "seller": "dock",
@@ -209,16 +245,30 @@ LINES = {
         "steps": (("scrapCollector", "scrapCollect", "walk"), ("scrapPorter", "scrapPort", "walk"),
                   ("smelter", "forge", "processor"), ("ironHauler", "ironHaul", "walk")),
     },
+    # [D65] Era 2: piesele de masini (roata de apa porneste turnatoria) si cuprul (cuptorul de cupru), la Piata
+    "parts": {
+        "netKind": "mill", "openFlag": "wheel", "seller": "market",
+        "steps": (("millCollector", "millCollect", "walk"), ("millPorter", "millPort", "walk"),
+                  ("founder", "foundry", "processor"), ("partsHauler", "partsHaul", "walk")),
+    },
+    "copper": {
+        "netKind": "ore", "openFlag": "furnace", "seller": "market",
+        "steps": (("oreCollector", "oreCollect", "walk"), ("orePorter", "orePort", "walk"),
+                  ("coppersmith", "furnace", "processor"), ("copperHauler", "copperHaul", "walk")),
+    },
 }
 # Cladirile cu niveluri: numele constantei de baza si campul din State cu nivelul. Veriga e si felul din
 # LEVEL_INC_BY_KIND.
 PROCESSORS = {
     "saw": {"base": "SAW_BASE_RATE", "level": "saw_level"},
     "forge": {"base": "FORGE_BASE_RATE", "level": "forge_level"},
+    "foundry": {"base": "FOUNDRY_BASE_RATE", "level": "foundry_level"},
+    "furnace": {"base": "FURNACE_BASE_RATE", "level": "furnace_level"},
 }
 # Vanzatorii: omul lor nu are baza, inmulteste capacitatea cladirii (fara el merge la NO_TRADER_FACTOR).
 SELLERS = {
     "dock": {"role": "trader", "base": "DOCK_BASE_RATE", "level": "dock_level", "priority": ("iron", "wood")},
+    "market": {"role": "merchant", "base": "MARKET_BASE_RATE", "level": "market_level", "priority": ("copper", "parts")},
 }
 
 
@@ -248,6 +298,15 @@ LINE_STEPS, LINE_LINKS, LINE_OF_ROLE, LINK_OF, LINKS = derive_tables(LINE_ORDER,
 ROLE_NAMES = {
     "collector": "Collector", "porter": "Porter", "sawyer": "Sawyer", "hauler": "Hauler", "trader": "Innkeeper",
     "scrapCollector": "Scrap Collector", "scrapPorter": "Scrap Porter", "smelter": "Smelter", "ironHauler": "Iron Hauler",
+    "millCollector": "Mill Collector", "millPorter": "Mill Porter", "founder": "Founder", "partsHauler": "Parts Hauler",
+    "merchant": "Merchant", "oreCollector": "Ore Collector", "orePorter": "Ore Porter", "coppersmith": "Coppersmith",
+    "copperHauler": "Copper Hauler",
+}
+# Verigile fiecarei ere (plasele sunt ale tuturor): portile si rapoartele unei ere se uita doar la ale ei.
+ERA_LINKS = {
+    era: ("nets",) + tuple(link for line in lines for link in LINE_LINKS[line])
+    + tuple(seller for seller in SELLERS if any(LINES[line]["seller"] == seller for line in lines))
+    for era, lines in ERA_LINES.items()
 }
 
 
@@ -264,8 +323,8 @@ class Net:
     base_lane: int
     level: int = 1
     kind: str = "wood"
-    # [D64] Costul de baza al nivelurilor. None = formula Erei 1, dupa locul plasei (`net_upgrade_base`). O plasa a
-    # altei ere si-l aduce: bucata ei valoreaza de zeci de ori mai mult, deci si nivelul ei.
+    # [D64] Costul de baza al nivelurilor, daca plasa si-l aduce singura (liniile de proba din check_lines.py). None =
+    # regula jocului, dupa locul plasei: `net_upgrade_base`.
     upgrade_base: float = None
 
     def rate(self) -> float:
@@ -293,6 +352,13 @@ class State:
     workshop: bool = False
     scrap_shed: bool = False
     forge_level: int = 1
+    # [D65] Era 2: roata de apa (porneste turnatoria), cuptorul de cupru, magazia de minereu, nivelurile cladirilor ei
+    wheel: bool = False
+    furnace: bool = False
+    ore_shed: bool = False
+    foundry_level: int = 1
+    furnace_level: int = 1
+    market_level: int = 1
     price_mult: float = 1.0
     bells: float = 1.0
     index_found: int = 0
@@ -306,7 +372,7 @@ def tier_mult(tier: int) -> float:
 
 # [D64] Treptele costa fix (25 / 75 / 225 / 675) pentru oamenii Erei 1. Oamenii unei ere noi muta marfa de zeci de ori
 # mai scumpa, deci si uneltele lor costa pe masura: rolul -> de cate ori. Gol = toti la 1 (Era 1, neschimbata).
-ROLE_COST_MULT = {}
+ROLE_COST_MULT = {role: ERA2_MULT for role in ERA2_ROLES}
 
 
 def tier_cost(tier: int, role: str = None) -> float:
@@ -518,9 +584,19 @@ def income(s: State) -> float:
 # Fiecare are un MOTIV: C=prinzi mai mult, V=vinzi mai scump, A=scapi de o corvoada, D=deschizi.
 
 
+def net_base(k: int) -> float:
+    """Baza plasei k (de la 1): a k-a plasa a unei ere are baza celei de-a k-a plase a Erei 1 [D65]."""
+    return NET_BASE_RATE * NET_BASE_GROWTH ** ((k - 1) % NETS_PER_ERA)
+
+
+def net_era_mult(k: int) -> float:
+    """De cate ori costa mai mult nivelurile plasei k (de la 1): 1 in Era 1, ERA2_MULT in Era 2."""
+    return 1.0 if k <= NETS_PER_ERA else ERA2_MULT
+
+
 def unlock_net(k: int):
     def f(s: State):
-        s.nets.append(Net(NET_BASE_RATE * NET_BASE_GROWTH ** (k - 1), NET_LANES[k - 1], kind=NET_KINDS[k - 1]))
+        s.nets.append(Net(net_base(k), NET_LANES[k - 1], kind=NET_KINDS[k - 1]))
 
     return f
 
@@ -622,7 +698,7 @@ ERA1_UNLOCKS = [
     ),
 ]
 # Al doilea om pe fiecare meserie: se cumpara din meniul omului, nu de pe o platforma.
-for _role in ROLES:
+for _role in ERA1_ROLES:
     ERA1_UNLOCKS.append(
         (
             f"{_role}2",
@@ -639,7 +715,7 @@ ERA1_UNLOCKS.append(
         "Landing Bell",
         "D",
         lambda s: len(s.nets) == 5
-        and all(people(s, r) >= 1 for r in ROLES)
+        and all(people(s, r) >= 1 for r in ERA1_ROLES)
         and s.sack_big
         and s.workshop
         and s.scrap_shed,
@@ -695,6 +771,11 @@ UNLOCK_STAGE = {
 }
 for _role in ROLES:
     UNLOCK_STAGE[f"{_role}2"] = LINK_OF[_role]
+UNLOCK_STAGE.update({
+    "wheel": "foundry", "net6": "nets", "net7": "nets", "net8": "nets", "net9": "nets", "net10": "nets",
+    "furnace": "furnace", "oreShed": "oreCollect", "bell2": "market",
+    **{_role: LINK_OF[_role] for _role in ERA2_ROLES},
+})
 
 
 # CE NU URCA SCARA DE ASTEPTARE. `target_wait(k)` a fost calibrat pe deblocarile Erei 1: fiecare
@@ -702,6 +783,10 @@ for _role in ROLES:
 # care facea sa mearga o veriga existenta. In D49 angajarile SUNT deblocarile erei (cinci din cele
 # treisprezece), deci urca scara: scutite, Era 1 scadea la 21 de minute reale. Al doilea om ramane
 # scutit -- e o marire a unei meserii pe care o ai deja, nu o extindere.
+# [D65] Oamenii Erei 2 vin in aceeasi rafala ca oglinda lor din Era 1 (aceleasi secunde de venit), si magazia la fel.
+ERA2_MIRROR = dict(zip(ERA2_ROLES, ERA1_ROLES))
+BURST_WAIT.update({_role: BURST_WAIT[ERA2_MIRROR[_role]] for _role in ERA2_ROLES})
+BURST_WAIT["oreShed"] = BURST_WAIT["shed"]
 LADDER_EXEMPT = {f"{r}2" for r in ROLES} | set(BURST_WAIT)
 # [D55, D56] Shed-ul si oamenii fierului au pretul lor (BURST_WAIT), deci nu urca scara.
 
@@ -727,6 +812,70 @@ def target_wait(k: int) -> float:
 LADDER_START = 5
 
 
+# ---- ERA 2, "THE MILL" [D64, D65] ------------------------------------------------------------------
+# Regula owner-ului: incepi cu marfa aparuta la finalul erei dinainte (scrap), o cresti, iar spre final apare una noua
+# (minereul de cupru) cu plasa, atelierul si oamenii ei; era isi vinde marfa la cladirea ei (Piata). Si: "poti incepe sa
+# copiezi schemele si pentru era 2". Deci ERA2_UNLOCKS e ERA1_UNLOCKS in oglinda, platforma cu platforma:
+#     First Net, cei cinci oameni, plasele 2-4 (fara traista: o ai deja)   ->  Sixth Net, cei cinci, plasele 7-9
+#     Forge -> Fifth Net -> Scrap Shed -> cei patru ai fierului               ->  Copper Furnace -> Tenth Net -> Ore Shed -> cei patru
+#     Landing Bell                                                            ->  Mill Bell
+# plus reperul erei, la inceput: Water Wheel, care porneste turnatoria (costa monede: jocul are o singura moneda).
+
+
+def era2_nets(s) -> int:
+    return len(s.nets) - NETS_PER_ERA
+
+
+def set_flag(name: str):
+    def f(s: State):
+        setattr(s, name, True)
+
+    return f
+
+
+ERA2_UNLOCKS = [
+    ("wheel", "Water Wheel", "V", lambda s: not s.wheel, set_flag("wheel")),  # nu "D": D e clopotul erei
+    ("net6", "Sixth Net", "C", lambda s: s.wheel and era2_nets(s) == 0, unlock_net(6)),
+    ("millCollector", "Mill Collector", "A", lambda s: era2_nets(s) >= 1 and people(s, "millCollector") == 0, hire("millCollector")),
+    ("millPorter", "Mill Porter", "A", lambda s: people(s, "millCollector") >= 1 and people(s, "millPorter") == 0, hire("millPorter")),
+    ("founder", "Founder", "A", lambda s: people(s, "millPorter") >= 1 and people(s, "founder") == 0, hire("founder")),
+    ("partsHauler", "Parts Hauler", "A", lambda s: people(s, "founder") >= 1 and people(s, "partsHauler") == 0, hire("partsHauler")),
+    ("merchant", "Merchant", "A", lambda s: people(s, "partsHauler") >= 1 and people(s, "merchant") == 0, hire("merchant")),
+    ("net7", "Seventh Net", "C", lambda s: era2_nets(s) == 1 and prev_net_ready(s) and people(s, "merchant") >= 1, unlock_net(7)),
+    ("net8", "Eighth Net", "C", lambda s: era2_nets(s) == 2 and prev_net_ready(s), unlock_net(8)),
+    ("net9", "Ninth Net", "C", lambda s: era2_nets(s) == 3 and prev_net_ready(s), unlock_net(9)),
+    ("furnace", "Copper Furnace", "V", lambda s: era2_nets(s) >= 4 and not s.furnace, set_flag("furnace")),
+    ("net10", "Tenth Net", "C", lambda s: era2_nets(s) == 4 and prev_net_ready(s) and s.furnace, unlock_net(10)),
+    ("oreShed", "Ore Shed", "V", lambda s: era2_nets(s) == 5 and not s.ore_shed, set_flag("ore_shed")),
+    ("oreCollector", "Ore Collector", "A", lambda s: s.ore_shed and people(s, "oreCollector") == 0, hire("oreCollector")),
+    ("orePorter", "Ore Porter", "A", lambda s: people(s, "oreCollector") >= 1 and people(s, "orePorter") == 0, hire("orePorter")),
+    ("coppersmith", "Coppersmith", "A", lambda s: people(s, "orePorter") >= 1 and people(s, "coppersmith") == 0, hire("coppersmith")),
+    ("copperHauler", "Copper Hauler", "A", lambda s: people(s, "coppersmith") >= 1 and people(s, "copperHauler") == 0, hire("copperHauler")),
+]
+for _role in ERA2_ROLES:
+    ERA2_UNLOCKS.append(
+        (
+            f"{_role}2",
+            f"Second {ROLE_NAMES[_role]}",
+            "A",
+            (lambda s, r=_role: people(s, r) == 1 and s.crews[r].tier >= SECOND_AT_TIER),
+            hire(_role),
+        )
+    )
+# Al doilea om al Erei 1, ramas necumparat, se poate lua si acum, la pretul lui de atunci (`seed_prices`).
+ERA2_UNLOCKS += [u for u in ERA1_UNLOCKS if u[0] in {f"{r}2" for r in ERA1_ROLES}]
+ERA2_UNLOCKS.append(
+    (
+        "bell2",
+        "Mill Bell",
+        "D",
+        lambda s: era2_nets(s) == 5 and all(people(s, r) >= 1 for r in ERA2_ROLES) and s.furnace and s.ore_shed,
+        unlock_bell,
+    )
+)
+ERA2_OWN = {u[0] for u in ERA2_UNLOCKS} - {f"{r}2" for r in ERA1_ROLES}
+
+
 # [D64] O ERA, CA DATE. `run` juca pana acum doar Era 1, cu listele ei batute in cuie. Acum primeste era: ce deblocari
 # are, pe care le cere capitolul la rand, pe care le cere quest-ul desi singure nu aduc nimic, care ii e clopotul, care
 # ii sunt plasele (quest-ul cere nivelul 2 pe ultima inaintea urmatoarei) si scara ei de asteptare. O era noua se joaca
@@ -745,6 +894,38 @@ ERA1 = {
     "wait": lambda k: target_wait(k),
     "free_first": True,
 }
+# [D65] Era 2 se joaca din starea in care a lasat-o Era 1. Scara ei de asteptare e ACEEASI (`target_wait`), repornita:
+# numara doar deblocarile erei. Roata si prima plasa le cere quest-ul pe rand, apoi linia cuprului pas cu pas, ca
+# linia fierului in capitolul 3.
+ERA2 = {
+    "name": "Era 2",
+    "unlocks": ERA2_UNLOCKS,
+    "chapter_hires": ("millCollector", "millPorter", "founder", "partsHauler", "merchant"),
+    "quest_unlocks": (
+        ("wheel", lambda s: True),
+        ("net6", lambda s: True),
+        ("furnace", lambda s: era2_nets(s) >= 4 and s.nets[NETS_PER_ERA + 3].level >= PREV_NET_LEVEL),
+        ("net10", lambda s: True),
+        ("oreShed", lambda s: True),
+        ("oreCollector", lambda s: True),
+        ("orePorter", lambda s: True),
+        ("coppersmith", lambda s: True),
+        ("copperHauler", lambda s: True),
+    ),
+    "bell": "bell2",
+    "first_net": NETS_PER_ERA,
+    "net_count": NETS_PER_ERA,
+    "step": lambda bought: len((bought & ERA2_OWN) - LADDER_EXEMPT),
+    "wait": lambda k: target_wait(k),
+    "free_first": False,
+}
+
+
+def run_era2(start: State, era1_prices: dict, max_seconds=200000):
+    """Joaca Era 2 din starea in care s-a terminat Era 1. Al doilea om al Erei 1, ramas necumparat, isi tine pretul."""
+    era = dict(ERA2)
+    era["seed_prices"] = {uid: price for uid, price in era1_prices.items() if uid not in start.bought and uid in {f"{r}2" for r in ERA1_ROLES}}
+    return run(era=era, start=start, max_seconds=max_seconds)
 
 
 NICE = (1, 1.1, 1.2, 1.3, 1.5, 1.6, 1.8, 2, 2.2, 2.5, 2.8, 3, 3.5, 4, 4.5, 5, 5.5, 6, 7, 7.5, 8, 9)
@@ -774,13 +955,20 @@ BUILDINGS = {
     "saw": {"label": "Saw", "cost": "SAW_UPGRADE_BASE", "level": "saw_level", "owned": None},
     "dock": {"label": "Dock", "cost": "DOCK_UPGRADE_BASE", "level": "dock_level", "owned": None},
     "forge": {"label": "Forge", "cost": "FORGE_UPGRADE_BASE", "level": "forge_level", "owned": "workshop"},  # [D55]
+    # [D65] Era 2: turnatoria si Piata pornesc odata cu roata de apa, cuptorul cand il cumperi
+    "foundry": {"label": "Foundry", "cost": "FOUNDRY_UPGRADE_BASE", "level": "foundry_level", "owned": "wheel"},
+    "market": {"label": "Market", "cost": "MARKET_UPGRADE_BASE", "level": "market_level", "owned": "wheel"},
+    "furnace": {"label": "Furnace", "cost": "FURNACE_UPGRADE_BASE", "level": "furnace_level", "owned": "furnace"},
 }
 
 
 def net_upgrade_base(s: State, i: int) -> float:
-    """Costul de baza al nivelurilor plasei `i`: al ei, daca si-l aduce (o era noua), altfel formula Erei 1 dupa loc."""
+    """Costul de baza al nivelurilor plasei de pe locul `i` (de la 0): creste cu locul ei in era, de `net_era_mult` ori
+    in erele noi. Plasele se cumpara in ordine, deci locul in `s.nets` e si numarul plasei."""
     own = s.nets[i].upgrade_base
-    return own if own is not None else NET_UPGRADE_BASE_COST * NET_BASE_GROWTH**i
+    if own is not None:
+        return own
+    return NET_UPGRADE_BASE_COST * NET_BASE_GROWTH ** (i % NETS_PER_ERA) * net_era_mult(i + 1)
 
 
 def options(s: State, prices: dict, era=None):
@@ -841,10 +1029,12 @@ def clone(s: State) -> State:
     return c
 
 
-def gain_of(s: State, effect) -> float:
+def gain_of(s: State, effect, before: float = None) -> float:
     """Cat adauga o cumparatura la venit. Poate fi ZERO: un upgrade pe o veriga care nu e
-    gatuirea nu schimba nimic. Vezi regula B din antet."""
-    before = income(s)
+    gatuirea nu schimba nimic. Vezi regula B din antet. `before` = venitul de acum, daca apelantul il are deja
+    (bucla de cumparare intreaba pentru zeci de optiuni pe aceeasi stare; e aceeasi cifra, socotita o data)."""
+    if before is None:
+        before = income(s)
     probe = clone(s)
     effect(probe)
     return income(probe) - before
@@ -981,8 +1171,9 @@ def run(rebirths=0, index_found=0, max_seconds=36000, era=None, start=None):
 
             opts = options(s, prices, era)
             scored = []
+            income_now = income(s)
             for label, price, effect, kind, uid in opts:
-                g = gain_of(s, effect)
+                g = gain_of(s, effect, income_now)
                 if price <= 0:
                     scored.append((float("inf"), label, price, effect, kind, uid, g))
                 elif g > 1e-9:
@@ -1053,11 +1244,15 @@ def run(rebirths=0, index_found=0, max_seconds=36000, era=None, start=None):
     return s, rows, prices, longest_idle, income(s), shares, line_time["iron"]
 
 
-def link_share(link, shares, scrap_time):
-    """Cat din timp a fost `link` gatuirea. Verigile fierului [D55, D56] se masoara pe timpul in care linia lui
-    e deschisa: ea apare abia la coada erei, iar pe toata era ar parea decor chiar daca tine venitul cand exista."""
-    if link in LINE_LINKS["iron"]:
-        return shares[link] / scrap_time if scrap_time else 0.0
+# Linia care apare la coada fiecarei ere (fierul, cuprul): verigile ei se masoara doar pe timpul in care e deschisa.
+LATE_LINE = {1: "iron", 2: "copper"}
+
+
+def link_share(link, shares, late_time, era=1):
+    """Cat din timp a fost `link` gatuirea. Verigile liniei tarzii a erei [D55, D56, D65] se masoara pe timpul in care
+    linia e deschisa: ea apare abia la coada erei, iar pe toata era ar parea decor chiar daca tine venitul cand exista."""
+    if link in LINE_LINKS[LATE_LINE[era]]:
+        return shares[link] / late_time if late_time else 0.0
     total = sum(shares.values())
     return shares[link] / total if total else 0.0
 
@@ -1117,7 +1312,8 @@ CREW_BURST_REAL = 150
 # din timp, iar Scrap Porter-ul la egalitate cu Scrap Collector-ul pierde alegerea. Treptele lor rar aduc ceva in
 # Era 1 (meniul spune de ce). Owner-ul: "fierul este intr-adevar ceva care se face mai greu la inceput dar care
 # aduce mai multi bani". Poarta de 0.5% ramane pentru toate celelalte verigi.
-BOTTLENECK_EXEMPT = {"scrapPort", "ironHaul"}
+# [D65] Era 2 e in oglinda, deci si scutirile: Ore Porter si Copper Hauler.
+BOTTLENECK_EXEMPT = {"scrapPort", "ironHaul", "orePort", "copperHaul"}
 
 
 def check_run(rows, longest_idle, shares, prices, scrap_time):
@@ -1136,7 +1332,7 @@ def check_run(rows, longest_idle, shares, prices, scrap_time):
     # O veriga care e rar cea mai slaba e decor: jucatorul n-are de ce s-o urce, iar meniul ei ar
     # scrie "No gain yet" toata era [D48]. "Macar o data" nu ajungea: o veriga gatuire 1% din timp
     # trecea poarta si tot decor era.
-    for link in LINKS:
+    for link in ERA_LINKS[1]:
         if link in BOTTLENECK_EXEMPT:
             continue
         part = link_share(link, shares, scrap_time)
@@ -1144,6 +1340,39 @@ def check_run(rows, longest_idle, shares, prices, scrap_time):
             problems.append(f"veriga `{link}` e gatuirea doar {part * 100:.1f}% din timp (minim {MIN_BOTTLENECK_SHARE * 100:.1f}%) -- e decor")
     if prices.get("collector", 0) <= 0:
         problems.append("Collector-ul iese gratis: conditia lui e adevarata inainte de prima cumparatura")
+    return problems
+
+
+# [D65] PORTILE EREI 2, in oglinda cu ale Erei 1. Tinta owner-ului: cam o ora. Roata si a sasea plasa vin inaintea
+# oamenilor, deci rafala celor cinci se masoara de la clopotul Erei 1 cu loc pentru ele.
+ERA2_MIN_REAL, ERA2_MAX_REAL = 40 * 60, 75 * 60
+ERA2_MIN_FIRST_FIVE = 15
+ERA2_CREW_BURST_REAL = 360
+
+
+def check_run_era2(rows, longest_idle, shares, late_time, started_at, ended_at, min_share=None):
+    """Portile Erei 2 pe o rulare. `rows` sunt doar cumparaturile erei; timpii se numara de la clopotul Erei 1.
+    `min_share`: cat din timp trebuie sa fie fiecare veriga gatuirea (implicit MIN_BOTTLENECK_SHARE)."""
+    min_share = MIN_BOTTLENECK_SHARE if min_share is None else min_share
+    problems = []
+    real = (ended_at - started_at) * REAL
+    if not ERA2_MIN_REAL <= real <= ERA2_MAX_REAL:
+        problems.append(f"Era 2 dureaza {fmt(real)} reali (intre {fmt(ERA2_MIN_REAL)} si {fmt(ERA2_MAX_REAL)})")
+    five_min = [r for r in rows if (r[3] - started_at) * REAL <= 300]
+    if len(five_min) < ERA2_MIN_FIRST_FIVE:
+        problems.append(f"Era 2: primele 5 minute reale au doar {len(five_min)} cumparaturi (minim {ERA2_MIN_FIRST_FIVE})")
+    hired = [(r[3] - started_at) * REAL for r in rows if r[0] == "unlock:Merchant"]
+    if not hired or hired[0] > ERA2_CREW_BURST_REAL:
+        when = fmt(hired[0]) if hired else "niciodata"
+        problems.append(f"Era 2: cei cinci oameni sunt angajati abia la {when} real (maxim {fmt(ERA2_CREW_BURST_REAL)})")
+    if longest_idle > 180:
+        problems.append(f"Era 2: {fmt(longest_idle)} fara nimic de apasat (maxim 3 min)")
+    for link in ERA_LINKS[2]:
+        if link in BOTTLENECK_EXEMPT or link == "nets":
+            continue
+        part = link_share(link, shares, late_time, era=2)
+        if part < min_share:
+            problems.append(f"Era 2: veriga `{link}` e gatuirea doar {part * 100:.1f}% din timp (minim {min_share * 100:.2f}%) -- e decor")
     return problems
 
 
@@ -1158,6 +1387,15 @@ PAD_IDS = {
     "scrapCollector": "hire_scrap_collector", "scrapPorter": "hire_scrap_porter", "smelter": "hire_smelter",
     "ironHauler": "hire_iron_hauler",
 }
+# [D65] platformele Erei 2
+PAD_IDS_ERA2 = {
+    "wheel": "water_wheel", "net6": "sixth_net", "millCollector": "hire_mill_collector",
+    "millPorter": "hire_mill_porter", "founder": "hire_founder", "partsHauler": "hire_parts_hauler",
+    "merchant": "hire_merchant", "net7": "seventh_net", "net8": "eighth_net", "net9": "ninth_net",
+    "furnace": "copper_furnace", "net10": "tenth_net", "oreShed": "ore_shed",
+    "oreCollector": "hire_ore_collector", "orePorter": "hire_ore_porter", "coppersmith": "hire_coppersmith",
+    "copperHauler": "hire_copper_hauler", "bell2": "mill_bell",
+}
 
 
 def _config_source(name: str) -> str:
@@ -1167,8 +1405,9 @@ def _config_source(name: str) -> str:
     return open(path, encoding="utf-8").read()
 
 
-def check_config_prices(prices):
-    """Preturile din TycoonConfig.luau trebuie sa fie EXACT cele derivate aici.
+def check_config_prices(prices, pad_ids=None, roles=None):
+    """Preturile din TycoonConfig.luau trebuie sa fie EXACT cele derivate aici. Implicit Era 1; Era 2 vine cu
+    platformele si oamenii ei (`PAD_IDS_ERA2`, `ERA2_ROLES`).
 
     Pana la verificarea asta, testul Luau "preturile sunt exact cele din simulator" compara config-ul
     cu o lista scrisa de mana -- si pe 2026-09-12 config-ul avea Fifth Net 2500, Workshop 2800 si
@@ -1180,7 +1419,7 @@ def check_config_prices(prices):
 
     src = _config_source("TycoonConfig.luau")
     bad = []
-    for uid, pad_id in PAD_IDS.items():
+    for uid, pad_id in (pad_ids or PAD_IDS).items():
         m = re.search(r'id = "' + re.escape(pad_id) + r'",.*?price = (\d+),', src, re.S)
         if m is None:
             bad.append(f"TycoonConfig: nu gasesc pretul lui {pad_id}")
@@ -1189,7 +1428,7 @@ def check_config_prices(prices):
         if have != want:
             bad.append(f"TycoonConfig: {pad_id} costa {have}, simulatorul deriva {want}")
     crews = re.search(r"TycoonConfig\.CREWS = \{(.*?)\n\}", src, re.S)
-    for role in ROLES:
+    for role in roles or ERA1_ROLES:
         m = re.search(r"\b" + role + r" = \{[^}]*?secondPrice = (\d+)", crews.group(1)) if crews else None
         if m is None:
             bad.append(f"TycoonConfig.CREWS: nu gasesc secondPrice pentru {role}")
@@ -1216,6 +1455,11 @@ def check_config_constants():
         "DOCK_BASE_RATE": DOCK_BASE_RATE, "DOCK_UPGRADE_BASE": DOCK_UPGRADE_BASE,
         "NO_TRADER_FACTOR": NO_TRADER_FACTOR,
         "FORGE_BASE_RATE": FORGE_BASE_RATE, "FORGE_UPGRADE_BASE": FORGE_UPGRADE_BASE,
+        # [D65] Era 2
+        "ERA2_MULT": ERA2_MULT, "NETS_PER_ERA": NETS_PER_ERA,
+        "FOUNDRY_BASE_RATE": FOUNDRY_BASE_RATE, "FOUNDRY_UPGRADE_BASE": FOUNDRY_UPGRADE_BASE,
+        "FURNACE_BASE_RATE": FURNACE_BASE_RATE, "FURNACE_UPGRADE_BASE": FURNACE_UPGRADE_BASE,
+        "MARKET_BASE_RATE": MARKET_BASE_RATE, "MARKET_UPGRADE_BASE": MARKET_UPGRADE_BASE,
     }
     for name, want in scalars.items():
         m = re.search(r"StationConfig\." + name + r" = ([0-9.]+)", src)
@@ -1261,7 +1505,7 @@ def robust():
                 real = rows[-1][3] * REAL
                 if real > ROBUST_MAX_REAL:
                     problems.append(f"Era 1 dureaza {fmt(real)} reali (maxim {fmt(ROBUST_MAX_REAL)})")
-                low = min(link_share(link, shares, scrap_time) for link in LINKS if link not in BOTTLENECK_EXEMPT)
+                low = min(link_share(link, shares, scrap_time) for link in ERA_LINKS[1] if link not in BOTTLENECK_EXEMPT)
                 print(f"  {tag:<24} {fmt(real):>7} real, cea mai slaba veriga {low * 100:4.1f}% din timp, pauza {fmt(idle)}")
             except SystemExit as e:
                 problems = [str(e)]
@@ -1276,6 +1520,85 @@ def robust():
     return failures
 
 
+# [D65] Constantele cartierului nou, cu 15% in jos si in sus, pe Era 2 jucata din finalul (neschimbat) al Erei 1:
+# preturile Erei 1 sunt deja in joc, deci ea nu se mai misca odata cu ele.
+ROBUST_KNOBS_ERA2 = (
+    "FOUNDRY_BASE_RATE", "FURNACE_BASE_RATE", "MARKET_BASE_RATE", "ROLE_BASE.millCollector", "ROLE_BASE.millPorter",
+    "ROLE_BASE.partsHauler", "ROLE_BASE.oreCollector", "ROLE_BASE.orePorter", "ROLE_BASE.copperHauler",
+)
+
+
+def robust_era2(s1: State, prices1: dict):
+    failures = []
+    module = sys.modules[__name__]
+    print("\n--robust, Era 2: fiecare constanta a cartierului nou x0.85 si x1.15")
+    for knob in ROBUST_KNOBS_ERA2:
+        for factor in ROBUST_FACTORS:
+            if knob.startswith("ROLE_BASE."):
+                role = knob.split(".")[1]
+                original = ROLE_BASE[role]
+                ROLE_BASE[role] = original * factor
+            else:
+                original = getattr(module, knob)
+                setattr(module, knob, original * factor)
+            VIOLATIONS.clear()
+            tag = f"{knob} x{factor}"
+            try:
+                s2, rows, _prices, idle, _final, shares, _ = run_era2(clone(s1), prices1)
+                problems = list(VIOLATIONS) + check_hire_order()
+                # LA +-15% PRAGUL E PE JUMATATE. Poarta prinde o veriga care nu e NICIODATA gatuirea. Parts Hauler-ul e
+                # ultimul om de drum (baza 9.0, ca Hauler-ul Erei 1, care la +15% tine venitul 0.6% din timp): cu 15% mai
+                # iute il tine 0.4%. Rar, dar nu niciodata: meniul lui spune de ce, ca la gater si taverna in Era 1 [D52].
+                problems += check_run_era2(
+                    rows, idle, shares, s2.line_time[LATE_LINE[2]], s1.t, s2.t, MIN_BOTTLENECK_SHARE / 2
+                )
+                print(f"  {tag:<28} {fmt((s2.t - s1.t) * REAL):>7} real, {len(rows)} cumparaturi, pauza {fmt(idle)}")
+            except SystemExit as e:
+                problems = [str(e)]
+                print(f"  {tag:<28} {e}")
+            finally:
+                if knob.startswith("ROLE_BASE."):
+                    ROLE_BASE[knob.split(".")[1]] = original
+                else:
+                    setattr(module, knob, original)
+            failures += [f"{tag}: {p}" for p in problems]
+    VIOLATIONS.clear()
+    return failures
+
+
+def report_era2(s1, s2, rows, prices, longest_idle, final_income, shares, income1):
+    started = s1.t
+    late = s2.line_time[LATE_LINE[2]]
+    unlocks = [r for r in rows if r[1] == "unlock"]
+    five_min = [r for r in rows if (r[3] - started) * REAL <= 300]
+    c = chain(s2)
+    money = {line: c.lines[line].delivered * line_avg(line) for line in LINE_ORDER}
+    total = sum(money.values())
+    old = sum(money[line] for line in ERA_LINES[1])
+    print(f"\nEra 2: {len(rows)} cumparaturi ({len(unlocks)} deblocari, {len(rows) - len(unlocks)} niveluri si trepte)")
+    print(f"  terminata in {fmt(s2.t - started)} lacom  ->  {fmt((s2.t - started) * REAL)} real, de la clopotul Erei 1")
+    print(f"  venit: {income1:.2f}/s -> {final_income:.2f}/s  (x{final_income / income1:.1f})")
+    print(f"  primele 5 minute reale: {len(five_min)} cumparaturi (minim {ERA2_MIN_FIRST_FIVE})")
+    print(f"  cea mai lunga pauza fara nimic de apasat: {fmt(longest_idle)}")
+    print(
+        "  gatuirea, ca parte din timp: "
+        + " | ".join(f"{link} {link_share(link, shares, late, era=2) * 100:.1f}%" for link in ERA_LINKS[2])
+        + f"  (cuprul: din {fmt(late)} cu minereu)"
+    )
+    print(
+        f"  la final: cartierul vechi {old / total * 100:.1f}% din bani, piesele {money['parts'] / total * 100:.1f}%,"
+        f" cuprul {money['copper'] / total * 100:.1f}%"
+    )
+    print("  oamenii la final: " + ", ".join(f"{ROLE_NAMES[r]} {s2.crews[r].count}x treapta {s2.crews[r].tier}" for r in ERA2_ROLES))
+    print("\npreturile deblocarilor Erei 2, in ordinea cumpararii (timpul: de la clopotul Erei 1):")
+    for label, kind, price, t, inc, bn in rows:
+        if kind == "unlock":
+            print(f"  {label[7:]:<22} {big(price):>9}   la {fmt(t - started):>7} lacom / {fmt((t - started) * REAL):>7} real   venit {inc:>8.2f}/s")
+    never = [uid for uid, *_ in ERA2_UNLOCKS if uid not in s2.bought]
+    if never:
+        print("  necumparate in Era 2 (pret din starea de la final): " + ", ".join(f"{uid} {big(prices[uid])}" for uid in never))
+
+
 if __name__ == "__main__":
     s1, rows, prices, longest_idle, final_income, shares, scrap_time = run()
 
@@ -1287,6 +1610,12 @@ if __name__ == "__main__":
         + check_config_constants()
         + check_run(rows, longest_idle, shares, prices, scrap_time)
     )
+    # [D65] Era 2, jucata din finalul Erei 1 (pe o clona: rapoartele Erei 1 de mai jos se uita tot la `s1`)
+    era1_violations = len(VIOLATIONS)
+    s2, rows2, prices2, idle2, final2, shares2, _ = run_era2(clone(s1), prices)
+    problems += list(VIOLATIONS[era1_violations:])
+    problems += check_run_era2(rows2, idle2, shares2, s2.line_time[LATE_LINE[2]], s1.t, s2.t)
+    problems += check_config_prices({**prices, **prices2}, PAD_IDS_ERA2, ERA2_ROLES)
     # [D64] motorul chiar duce oricate linii: linii de proba pe o COPIE a modulului, comparate cu cifre socotite de mana
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     import check_lines
@@ -1303,6 +1632,7 @@ if __name__ == "__main__":
                 )
     if "--robust" in sys.argv:
         problems += robust()
+        problems += robust_era2(s1, prices)
 
     if problems:
         print("EROARE -- economia nu trece portile:")
@@ -1349,10 +1679,10 @@ if __name__ == "__main__":
     print(f"  cea mai lunga pauza fara nimic de apasat: {fmt(longest_idle)}")
     print(
         "  gatuirea, ca parte din timp: "
-        + " | ".join(f"{link} {link_share(link, shares, scrap_time) * 100:.1f}%" for link in LINKS)
+        + " | ".join(f"{link} {link_share(link, shares, scrap_time) * 100:.1f}%" for link in ERA_LINKS[1])
         + f"  (forja: din {fmt(scrap_time)} cu scrap)"
     )
-    print("  oamenii la final: " + ", ".join(f"{ROLE_NAMES[r]} {c.count}x treapta {c.tier}" for r, c in s1.crews.items()))
+    print("  oamenii la final: " + ", ".join(f"{ROLE_NAMES[r]} {s1.crews[r].count}x treapta {s1.crews[r].tier}" for r in ERA1_ROLES))
     print(f"  venit final: {final_income:.2f}/s")
     print("\npreturile deblocarilor, in ordinea cumpararii:")
     for label, kind, price, t, inc, bn in rows:
@@ -1361,3 +1691,9 @@ if __name__ == "__main__":
     never = [uid for uid, *_ in ERA1_UNLOCKS if uid not in s1.bought]
     if never:
         print("  necumparate in Era 1 (pret din starea de la final): " + ", ".join(f"{uid} {big(prices[uid])}" for uid in never))
+
+    if "--table" in sys.argv:
+        print(f"\n{'#':>3} {'cumparatura (Era 2)':<30} {'fel':>8} {'pret':>8} {'real~':>8} {'venit/s':>10} {'gatuire':>12}")
+        for i, (label, kind, price, t, inc, bn) in enumerate(rows2, 1):
+            print(f"{i:>3} {label:<30} {kind:>8} {big(price):>8} {fmt((t - s1.t) * REAL):>8} {inc:>10.2f} {bn:>12}")
+    report_era2(s1, s2, rows2, prices2, idle2, final2, shares2, final_income)

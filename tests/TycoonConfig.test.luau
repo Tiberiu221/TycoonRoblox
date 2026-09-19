@@ -91,31 +91,31 @@ end
 
 return function()
     test.suite("TycoonConfig", function()
-        test.case("53 de platforme, index = pozitia in lista", function()
+        test.case("36 de platforme, index = pozitia in lista", function()
             -- Bugul pe care il apara testul: daca `index` se dezalinieaza de pozitia reala,
             -- padStatuses (care merge prin PADS in ordine) si greedyRun (care citeste PRICES[k])
             -- ar arata/cumpara platforma gresita fara nicio eroare.
-            check.equal(#TycoonConfig.PADS, 53) -- [D56] +4: oamenii fierului
+            -- [D56] +4: oamenii fierului. [D65] 18 + 18: Era 2 e Era 1 in oglinda, platforma cu platforma, iar
+            -- ramasitele erelor 2-4 de dinainte de D46 (35 de platforme, niciodata `live`) au iesit.
+            check.equal(#TycoonConfig.PADS, 36)
             for i, p in TycoonConfig.PADS do
                 check.equal(p.index, i)
             end
         end)
 
-        test.case("Era 1 are 18 deblocari, Era 2 are 11, erele 3-4 cate 12", function()
+        test.case("Era 1 are 18 deblocari, Era 2 la fel: e Era 1 in oglinda [D65]", function()
             -- Era 1 a scazut de la 12 la 10 cand Sorting Crate si Dock Stall au devenit niveluri
             -- ale debarcaderului, iar Weighted Nets pragul de nivel 10 al plaselor. Apoi 11 cu
-            -- Sawyer-ul [D48], iar Era 2 a pierdut gaterul, mutat in lantul Erei 1. Apoi 13 cu
-            -- Porter-ul si Hauler-ul [D49]. Erele 2-4 sunt inca in forma veche: se rescriu cand
-            -- devin live.
-            local perEra = { [1] = 0, [2] = 0, [3] = 0, [4] = 0 }
+            -- Sawyer-ul [D48], 13 cu Porter-ul si Hauler-ul [D49], 14 cu shed-ul de scrap [D55],
+            -- 18 cu cei patru oameni ai fierului [D56]. Era 2: aceeasi schema, fara traista (o ai
+            -- deja), cu roata de apa in fata. Erele urmatoare nu exista inca [D64].
+            local perEra: { [number]: number } = {}
             for _, p in TycoonConfig.PADS do
                 perEra[p.era] = (perEra[p.era] or 0) + 1
             end
-            -- [D55] 14 cu shed-ul de scrap; [D56] 18 cu cei patru oameni ai fierului
             check.equal(perEra[1], 18)
-            check.equal(perEra[2], 11)
-            check.equal(perEra[3], 12)
-            check.equal(perEra[4], 12)
+            check.equal(perEra[2], 18)
+            check.equal(perEra[3], nil)
         end)
 
         test.case("id-urile sunt unice", function()
@@ -751,7 +751,7 @@ return function()
             end
         end)
 
-        test.case("fiecare meserie are o platforma de angajare in Era 1, si invers", function()
+        test.case("fiecare meserie are o platforma de angajare in era ei, si invers", function()
             -- CREWS e singura legatura dintre o platforma si omul pe care il aduce [D49]: PadService
             -- angajeaza prin ea, meniul o citeste, simulatorul ii verifica pretul celui de-al doilea.
             local StationConfig = require("../src/Shared/Config/StationConfig")
@@ -760,7 +760,9 @@ return function()
                 check.not_nil(crew)
                 local p = TycoonConfig.byId[crew.pad]
                 check.not_nil(p)
-                check.equal(p.era, 1)
+                -- [D65] oamenii Erei 2 se angajeaza in cartierul lor
+                local era = if table.find(StationConfig.ERA2_ROLES, role) ~= nil then 2 else 1
+                check.equal(p.era, era)
                 check.equal(TycoonConfig.CREW_OF_PAD[crew.pad], role)
                 check.equal(p.effects[1].kind, "hire")
                 check.equal(p.effects[1].field, role)

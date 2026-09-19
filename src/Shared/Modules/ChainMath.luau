@@ -40,6 +40,12 @@ export type State = {
     dockLevel: number,
     forgeLevel: number, -- [D55] forja
     workshop: boolean, -- Forge (platforma `workshop`) e cumparata: fara ea forja nu exista
+    -- [D65] Era 2: roata de apa porneste turnatoria (linia pieselor), cuptorul de cupru linia cuprului
+    wheel: boolean,
+    furnace: boolean,
+    foundryLevel: number,
+    furnaceLevel: number,
+    marketLevel: number,
     sackBig: boolean,
     -- cheile: toate meseriile din StationConfig.ROLES, mereu toate
     crews: { [string]: Crew },
@@ -217,12 +223,23 @@ function ChainMath.netLane(baseLane: number, level: number): number
     return math.min(3, baseLane + extra)
 end
 
+-- [D65] CINCI PLASE PE ERA: a k-a plasa a unei ere are baza celei de-a k-a plase a Erei 1 (`index` numara toate
+-- plasele, de la 1: a sasea e prima a Erei 2).
 function ChainMath.netBase(index: number): number
-    return StationConfig.NET_BASE_RATE * StationConfig.NET_BASE_GROWTH ^ (index - 1)
+    local inEra = (index - 1) % StationConfig.NETS_PER_ERA
+    return StationConfig.NET_BASE_RATE * StationConfig.NET_BASE_GROWTH ^ inEra
+end
+
+-- De cate ori costa mai mult nivelurile plasei `index`: 1 in Era 1, ERA2_MULT in Era 2.
+function ChainMath.netEraMult(index: number): number
+    return if index <= StationConfig.NETS_PER_ERA then 1.0 else StationConfig.ERA2_MULT
 end
 
 function ChainMath.netUpgradeBase(index: number): number
-    return StationConfig.NET_UPGRADE_BASE_COST * StationConfig.NET_BASE_GROWTH ^ (index - 1)
+    local inEra = (index - 1) % StationConfig.NETS_PER_ERA
+    return StationConfig.NET_UPGRADE_BASE_COST
+        * StationConfig.NET_BASE_GROWTH ^ inEra
+        * ChainMath.netEraMult(index)
 end
 
 function ChainMath.netRate(net: Net): number
@@ -259,9 +276,11 @@ function ChainMath.tierMult(tier: number): number
     return 1 + StationConfig.TIER_STEP * (tier - 1)
 end
 
--- Cat costa trecerea de la treapta `tier` la `tier + 1` (25 / 75 / 225 / 675).
-function ChainMath.tierCost(tier: number): number
-    return StationConfig.TIER_COST_BASE * StationConfig.TIER_COST_GROWTH ^ (tier - 1)
+-- Cat costa trecerea de la treapta `tier` la `tier + 1` (25 / 75 / 225 / 675). [D65] Oamenii unei ere noi muta marfa
+-- de zeci de ori mai scumpa, deci si uneltele lor costa pe masura (StationConfig.ROLE_COST_MULT); fara `role`, Era 1.
+function ChainMath.tierCost(tier: number, role: string?): number
+    local mult = if role ~= nil then StationConfig.ROLE_COST_MULT[role] or 1.0 else 1.0
+    return StationConfig.TIER_COST_BASE * StationConfig.TIER_COST_GROWTH ^ (tier - 1) * mult
 end
 
 -- Valoarea medie a unei bucati prinse, pe fel de plasa [D55]. ORDINEA SUMEI e cea din simulator
@@ -807,6 +826,11 @@ function ChainMath.empty(): State
         dockLevel = 1,
         forgeLevel = 1,
         workshop = false,
+        wheel = false,
+        furnace = false,
+        foundryLevel = 1,
+        furnaceLevel = 1,
+        marketLevel = 1,
         sackBig = false,
         crews = ChainMath.emptyCrews(),
         priceMult = 1.0,

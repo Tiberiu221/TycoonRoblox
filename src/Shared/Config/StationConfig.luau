@@ -21,7 +21,15 @@
 -- debarcaderul ramanea gatuire zeci de niveluri la rand si jocul se transforma in macinat.
 local StationConfig = {}
 
-StationConfig.LEVEL_INC = { nets = 0.03, saw = 0.06, dock = 0.06, forge = 0.06 }
+StationConfig.LEVEL_INC = {
+    nets = 0.03,
+    saw = 0.06,
+    dock = 0.06,
+    forge = 0.06,
+    foundry = 0.06,
+    market = 0.06,
+    furnace = 0.06,
+}
 StationConfig.LEVEL_INC_DEFAULT = 0.03
 StationConfig.LEVEL_GROWTH = 1.09 -- cat se scumpeste fiecare nivel
 
@@ -35,9 +43,18 @@ StationConfig.MILESTONE_MULT = 2.0
 StationConfig.NET_BASE_RATE = 0.33 -- prima plasa, nivel 1 (aceeasi cifra ca inainte de rescriere)
 StationConfig.NET_BASE_GROWTH = 1.45
 StationConfig.NET_UPGRADE_BASE_COST = 1.0
-StationConfig.NET_LANES = { 1, 1, 2, 2, 3 } -- pe ce banda sta fiecare din cele 5 plase ale Erei 1
--- [D55] ce prinde fiecare: ultima plasa, cea din larg, prinde scrap (TycoonConfig.CATCH)
-StationConfig.NET_KINDS = { "wood", "wood", "wood", "wood", "scrap" }
+-- [D65] CADRUL EREI 2 E UN SINGUR NUMAR: de cate ori valoreaza marfa ei mai mult decat a Erei 1. Tot ce se masoara in
+-- monede in cartierul nou se inmulteste cu el (valoarea bucatii, costul nivelurilor, costul treptelor); tot ce se
+-- masoara in bucati pe secunda ramane ca in Era 1. 40 sta in mijlocul zonei stabile a simulatorului (30..60).
+StationConfig.ERA2_MULT = 40.0
+-- [D65] CINCI PLASE PE ERA, in aceeasi schema: patru pentru marfa cu care pornesti era si una, in larg, pentru marfa
+-- noua. A k-a plasa a unei ere are baza celei de-a k-a plase a Erei 1; nivelurile ei costa de ERA2_MULT ori in Era 2.
+StationConfig.NETS_PER_ERA = 5
+StationConfig.NET_LANES = { 1, 1, 2, 2, 3, 1, 1, 2, 2, 3 } -- pe ce banda sta fiecare plasa: Era 1, apoi Era 2
+-- [D55] ce prinde fiecare: ultima plasa a Erei 1, cea din larg, prinde scrap (TycoonConfig.CATCH). [D65] Plasele Morii
+-- prind scrap pentru turnatorie (`mill`), iar ultima, minereu de cupru (`ore`).
+StationConfig.NET_KINDS =
+    { "wood", "wood", "wood", "wood", "scrap", "mill", "mill", "mill", "mill", "ore" }
 
 StationConfig.SACK_BONUS = 1.5 -- traista mare: mai putine drumuri, pe tot ce duci tu
 
@@ -54,6 +71,16 @@ StationConfig.FORGE_UPGRADE_BASE = 60.0
 -- Debarcaderul. Baza e mult peste productia de inceput, deci prima vanzare se scurge repede.
 StationConfig.DOCK_BASE_RATE = 3.0
 StationConfig.DOCK_UPGRADE_BASE = 9.0
+
+-- [D65] CLADIRILE EREI 2, in oglinda: turnatoria cat gaterul, cuptorul de cupru cat forja, Piata cat taverna (bucati pe
+-- secunda), iar nivelurile lor de ERA2_MULT ori mai scumpe (7 / 60 / 9 x 40). Cifre scrise, nu socotite: simulatorul
+-- le citeste de aici cu regex.
+StationConfig.FOUNDRY_BASE_RATE = 2.4
+StationConfig.FOUNDRY_UPGRADE_BASE = 280.0
+StationConfig.FURNACE_BASE_RATE = 1.2
+StationConfig.FURNACE_UPGRADE_BASE = 2400.0
+StationConfig.MARKET_BASE_RATE = 3.0
+StationConfig.MARKET_UPGRADE_BASE = 360.0
 -- NEGUSTORUL FACE DEBARCADERUL SA MEARGA, NU SA PLATEASCA MAI BINE. Fara el, debarcaderul vinde
 -- singur la o treime; cu el, merge tot timpul. E singurul pas pe care nu-l faci tu.
 StationConfig.NO_TRADER_FACTOR = 0.35
@@ -62,7 +89,7 @@ StationConfig.NO_TRADER_FACTOR = 0.35
 -- Ordinea din LINE_STEPS e si ordinea angajarilor (conditiile platformelor o impun). [D56] Fiecare linie are
 -- timpul tau intreg: in joc nu ai niciodata pasi de mana pe amandoua odata (oamenii lemnului vin toti inaintea
 -- Forge), iar asa deschiderea fierului nu poate scadea lemnul in nicio stare.
-StationConfig.ROLES = {
+StationConfig.ERA1_ROLES = {
     "collector",
     "porter",
     "sawyer",
@@ -73,6 +100,35 @@ StationConfig.ROLES = {
     "smelter",
     "ironHauler",
 }
+-- [D65] Era 2, in aceeasi ordine: cei patru ai pieselor, negustorul Pietei, cei patru ai cuprului. Fiecare e oglinda
+-- celui de pe acelasi loc din Era 1 (aceleasi bucati pe secunda, aceleasi secunde de venit la angajare).
+StationConfig.ERA2_ROLES = {
+    "millCollector",
+    "millPorter",
+    "founder",
+    "partsHauler",
+    "merchant",
+    "oreCollector",
+    "orePorter",
+    "coppersmith",
+    "copperHauler",
+}
+-- Toate meseriile, in ordinea erelor.
+local allRoles: { string } = {}
+for _, role in StationConfig.ERA1_ROLES do
+    table.insert(allRoles, role)
+end
+for _, role in StationConfig.ERA2_ROLES do
+    table.insert(allRoles, role)
+end
+StationConfig.ROLES = allRoles
+-- [D65] Treptele costa fix (25 / 75 / 225 / 675) pentru oamenii Erei 1; ai Erei 2 muta marfa de ERA2_MULT ori mai
+-- scumpa, deci si uneltele lor costa pe masura.
+local roleCostMult: { [string]: number } = {}
+for _, role in StationConfig.ERA2_ROLES do
+    roleCostMult[role] = StationConfig.ERA2_MULT
+end
+StationConfig.ROLE_COST_MULT = roleCostMult
 -- ---- liniile, ca date [D64] --------------------------------------------------------------------
 -- Pana la D64 motorul (ChainMath) era scris de mana pentru exact doua linii. Era 2 aduce linii de ACEEASI forma
 -- (plasa -> om care aduna -> magazie -> om care duce -> atelier -> om care duce -> vanzator), asa ca forma e tabel.
@@ -92,7 +148,9 @@ export type Line = { netKind: string, openFlag: string?, seller: string, steps: 
 export type Processor = { base: number, levelField: string }
 export type Seller = { role: string, base: number, levelField: string, priority: { string } }
 
-StationConfig.LINE_ORDER = { "wood", "iron" }
+StationConfig.LINE_ORDER = { "wood", "iron", "parts", "copper" }
+-- Liniile fiecarei ere: in fiecare, a doua apare spre final, cu plasa, atelierul si oamenii ei [D64].
+StationConfig.ERA_LINES = { { "wood", "iron" }, { "parts", "copper" } }
 local LINES: { [string]: Line } = {
     wood = {
         netKind = "wood",
@@ -116,21 +174,53 @@ local LINES: { [string]: Line } = {
             { role = "ironHauler", link = "ironHaul", kind = "walk" },
         },
     },
+    -- [D65] Era 2: piesele de masini (roata de apa porneste turnatoria) si cuprul (cuptorul de cupru), la Piata
+    parts = {
+        netKind = "mill",
+        openFlag = "wheel",
+        seller = "market",
+        steps = {
+            { role = "millCollector", link = "millCollect", kind = "walk" },
+            { role = "millPorter", link = "millPort", kind = "walk" },
+            { role = "founder", link = "foundry", kind = "processor" },
+            { role = "partsHauler", link = "partsHaul", kind = "walk" },
+        },
+    },
+    copper = {
+        netKind = "ore",
+        openFlag = "furnace",
+        seller = "market",
+        steps = {
+            { role = "oreCollector", link = "oreCollect", kind = "walk" },
+            { role = "orePorter", link = "orePort", kind = "walk" },
+            { role = "coppersmith", link = "furnace", kind = "processor" },
+            { role = "copperHauler", link = "copperHaul", kind = "walk" },
+        },
+    },
 }
 StationConfig.LINES = LINES
 local PROCESSORS: { [string]: Processor } = {
     saw = { base = StationConfig.SAW_BASE_RATE, levelField = "sawLevel" },
     forge = { base = StationConfig.FORGE_BASE_RATE, levelField = "forgeLevel" },
+    foundry = { base = StationConfig.FOUNDRY_BASE_RATE, levelField = "foundryLevel" },
+    furnace = { base = StationConfig.FURNACE_BASE_RATE, levelField = "furnaceLevel" },
 }
 StationConfig.PROCESSORS = PROCESSORS
 -- Vanzatorii, cu ordinea lor (o harta cu chei text n-are ordine in Luau; in simulator e ordinea din dictionar).
-StationConfig.SELLER_ORDER = { "dock" }
+StationConfig.SELLER_ORDER = { "dock", "market" }
 local SELLERS: { [string]: Seller } = {
     dock = {
         role = "trader",
         base = StationConfig.DOCK_BASE_RATE,
         levelField = "dockLevel",
         priority = { "iron", "wood" },
+    },
+    -- [D65] Piata Erei 2: vinde intai cuprul (bucata valoreaza mai mult), piesele iau restul
+    market = {
+        role = "merchant",
+        base = StationConfig.MARKET_BASE_RATE,
+        levelField = "marketLevel",
+        priority = { "copper", "parts" },
     },
 }
 StationConfig.SELLERS = SELLERS
@@ -161,6 +251,27 @@ for _, seller in StationConfig.SELLER_ORDER do
     table.insert(links, seller)
     linkOf[SELLERS[seller].role] = seller
 end
+-- Verigile fiecarei ere (plasele sunt ale tuturor), in ordinea LINKS: plasele, liniile erei, vanzatorul lor. Portile
+-- si ecranele unei ere se uita doar la ale ei.
+local eraLinks: { { string } } = {}
+for era, eraLines in StationConfig.ERA_LINES do
+    local list: { string } = { "nets" }
+    local sellersSeen: { [string]: boolean } = {}
+    for _, line in eraLines do
+        for _, step in LINES[line].steps do
+            table.insert(list, step.link)
+        end
+    end
+    for _, line in eraLines do
+        local seller = LINES[line].seller
+        if not sellersSeen[seller] then
+            sellersSeen[seller] = true
+            table.insert(list, seller)
+        end
+    end
+    eraLinks[era] = list
+end
+StationConfig.ERA_LINKS = eraLinks
 StationConfig.LINE_STEPS = lineSteps
 StationConfig.MANUAL_ROLES = manualRoles
 StationConfig.LINK_OF = linkOf
@@ -182,6 +293,12 @@ StationConfig.ROLE_BASE = {
     scrapCollector = 2.0,
     scrapPorter = 2.5,
     ironHauler = 6.5,
+    millCollector = 4.0,
+    millPorter = 6.0,
+    partsHauler = 9.0,
+    oreCollector = 2.0,
+    orePorter = 2.5,
+    copperHauler = 6.5,
 }
 StationConfig.TIER_STEP = 1.0 -- fiecare treapta adauga inca o data baza: treapta 5 = de 5 ori
 StationConfig.TIER_MAX = 5
