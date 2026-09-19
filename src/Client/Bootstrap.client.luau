@@ -319,7 +319,13 @@ safeInit("HandRenderController", function()
         CharacterPos = CharacterController.Position, -- [D58] meseria scrisa sub om, cand treci pe langa el
         -- [D56] Smelter-ul bate cu ciocanul doar cat forja chiar topeste
         IsWorking = function(role: string): boolean
-            return role == "smelter" and ForgeController.Working()
+            if role == "smelter" then
+                return ForgeController.Working()
+            end
+            -- [D65] omul unui atelier al Morii: cat atelierul liniei lui chiar lucreaza
+            local line = StationConfig.LINE_OF[StationConfig.LINK_OF[role] or ""]
+            local controller = if line ~= nil then millLines[line] else nil
+            return controller ~= nil and controller.Working()
         end,
     })
 end)
@@ -979,6 +985,8 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
                     forge = a.forge, -- [D56] sageata spre inelul forjei
                     fish = a.fish, -- [D59] sageata spre capatul pontonului
                     board = a.board, -- [D62] sageata spre avizierul satului
+                    place = a.place, -- [D65] un loc al Morii (inelul unui atelier, usa Pietei)
+                    always = a.always == true, -- [D65] sageata si cand ghidajul tace
                     kind = a.kind, -- [D51] ghidajul alege pasul dupa felul quest-ului
                     stationKind = a.stationKind,
                     stationId = a.stationId,
@@ -1274,6 +1282,9 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
             finds = sackState.finds,
             cut = sackState.cut,
             cutValue = sackState.cutValue,
+            -- [D65] pe linii si pe vanzatori: bucla de mana a Morii (GuideMath) citeste de aici
+            rawBy = sackState.rawBy,
+            sellBy = sackState.sellBy,
         },
     }
 
@@ -1322,7 +1333,9 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
         elseif row.kind == "dock" then
             DockController.SetLevel(row.level)
         elseif row.kind == "forge" then
-            PadController.SetForgeLevel(row.level)
+            PadController.SetBuildingLevel("workshop", row.level)
+        elseif row.kind == "furnace" then
+            PadController.SetBuildingLevel("copper_furnace", row.level) -- [D65]
         end
     end
     PadController.SetCrews(crewCounts, crewTiers) -- [D55] inainte de Apply: prima desenare alege deja casa potrivita
@@ -1334,7 +1347,17 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
         snapshot.bottleneck,
         snapshot.stations.netLevels
     )
-    RiverRenderController.SetScrapNet(snapshot.pads.fifth_net == "bought")
+    -- [D55, D65] ce pluteste in larg: marfa pe care plasele tale inca n-o prind. Scrap-ul pana la Fifth Net; minereul
+    -- de cand porneste Moara pana la Tenth Net (marfa noua apare cand o poti folosi [D64]).
+    RiverRenderController.SetPromise(
+        if snapshot.pads.fifth_net ~= "bought"
+            then "scrap"
+            elseif
+                snapshot.pads.water_wheel == "bought" and snapshot.pads.tenth_net ~= "bought"
+            then "ore"
+            else nil
+    )
+    NetController.SetSack(sackState.rawBy, sackState.sellBy) -- [D65]
     NetController.Apply(
         snapshot.nets,
         sackCount,

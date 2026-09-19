@@ -504,6 +504,26 @@ return function()
             check.equal(seen, 18)
         end)
 
+        test.case("[D65] Era 2: clopotul se trage, iar cartierul isi spune numele", function()
+            local era1: { [string]: boolean } = {}
+            for _, p in TycoonConfig.PADS do
+                if p.era == 1 and p.id ~= "landing_bell" then
+                    era1[p.id] = true
+                end
+            end
+            -- roata de apa cere clopotul Erei 1: un clopot se trage, nu se construieste
+            check.equal(needs("water_wheel", era1, {}), "Ring the Landing Bell first")
+            era1.landing_bell = true
+            check.equal(needs("water_wheel", era1, {}), nil)
+            check.equal(needs("mill_bell", era1, {}), "Rebuild everything else on The Mill first")
+            -- fiecare platforma a Erei 2 are ce spune cat e incuiata (sau e chiar de luat)
+            for _, p in TycoonConfig.PADS do
+                if p.era == 2 and p.id ~= "water_wheel" then
+                    check.is_true(needs(p.id, era1, {}) ~= nil)
+                end
+            end
+        end)
+
         test.case("doua conditii: intai omul, apoi nivelul plasei", function()
             local crew = {
                 first_net = true,

@@ -23,6 +23,7 @@ local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 local Strings = require(ReplicatedStorage.Shared.Config.Strings)
 local GuideMath = require(ReplicatedStorage.Shared.Modules.GuideMath)
 local AmbitionMath = require(ReplicatedStorage.Shared.Modules.AmbitionMath)
+local ChainMath = require(ReplicatedStorage.Shared.Modules.ChainMath)
 local HandRoutes = require(ReplicatedStorage.Shared.Modules.HandRoutes)
 local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
 local CeremonyController = require(script.Parent.CeremonyController)
@@ -87,6 +88,8 @@ export type Snapshot = {
             forge: boolean?, -- [D56] sageata spre inelul forjei
             fish: boolean?, -- [D59] sageata spre capatul pontonului
             board: boolean?, -- [D62] sageata spre avizierul satului
+            place: string?, -- [D65] un loc al Morii, dupa numele lui din FlowConfig
+            always: boolean?, -- [D65] sageata si cand ghidajul tace
             kind: string?,
             stationKind: string?,
             stationId: string?,
@@ -100,7 +103,19 @@ export type Snapshot = {
         cut: number?,
         rawScrap: number?,
         finds: number?,
+        -- [D65] pe linii si pe vanzatori
+        rawBy: { [string]: number }?,
+        sellBy: { [string]: { count: number, value: number } }?,
     },
+    -- [D65] gramezile fiecarei linii (magazia, atelierul) si ale fiecarui vanzator, dupa nume
+    flow: {
+        lines: {
+            [string]: {
+                store: { count: number },
+                processor: { count: number, out: number },
+            },
+        },
+    }?,
     lanes: number,
     hands: { HandSnap },
     zones: { [string]: string },
@@ -153,6 +168,42 @@ for _, t in RiverConfig.TIERS do
     tierColor[t.id] = Color3.fromRGB(t.rgb[1], t.rgb[2], t.rgb[3])
 end
 
+-- [D65] Platformele cumparate, ca multime: `guidedRoles` intreaba de cele care pornesc cate o linie.
+local function openedPads(s: Snapshot): { [string]: boolean }
+    local out: { [string]: boolean } = {}
+    for id, status in s.pads do
+        out[id] = status == "bought"
+    end
+    return out
+end
+
+-- [D65] Liniile Morii pentru bucla de mana: marfa lor bruta din traista si gramezile lor (TycoonState.flow).
+local function millLines(s: Snapshot): { [string]: GuideMath.LineInfo }
+    local out: { [string]: GuideMath.LineInfo } = {}
+    local flow = s.flow
+    for _, line in StationConfig.LINE_ORDER do
+        local entry = if flow ~= nil then flow.lines[line] else nil
+        if line ~= "wood" and line ~= "iron" and entry ~= nil then
+            out[line] = {
+                raw = if s.sack.rawBy ~= nil then s.sack.rawBy[line] or 0 else 0,
+                store = entry.store.count,
+                input = entry.processor.count,
+                output = entry.processor.out,
+            }
+        end
+    end
+    return out
+end
+
+-- Cate bucati din traista cumpara fiecare vanzator.
+local function sellAt(s: Snapshot): { [string]: number }
+    local out: { [string]: number } = {}
+    for seller, entry in s.sack.sellBy or {} do
+        out[seller] = entry.count
+    end
+    return out
+end
+
 -- Taie snapshot-ul mare la campurile de care are nevoie GuideMath, copiate explicit
 -- [CLAUDE.md capcana 3] -- GuideMath ramane pur si nu stie de forma completa a lui Snapshot.
 local function toGuideState(s: Snapshot): GuideMath.State
@@ -169,6 +220,8 @@ local function toGuideState(s: Snapshot): GuideMath.State
             count = n.count,
             capacity = n.capacity,
             scrap = pad ~= nil and TycoonMath.netKind(pad) == "scrap", -- [D56] o goleste Scrap Collector-ul
+            -- [D65] linia pe care curge ce prinde: plasele Morii le goleste culegatorul liniei lor
+            line = if pad ~= nil then ChainMath.lineOfNetKind(TycoonMath.netKind(pad)) else nil,
         }
     end
     -- Doar culegatorii golesc plasele [D49]: Porter-ul si Hauler-ul primesc si ei lista plaselor (ca
@@ -206,6 +259,16 @@ local function toGuideState(s: Snapshot): GuideMath.State
             x, y = TycoonConfig.FISH_STAND.x, TycoonConfig.FISH_STAND.y -- [D59] capatul pontonului
         elseif active.board then
             x, y = TycoonConfig.VILLAGE_BOARD.x, TycoonConfig.VILLAGE_BOARD.y -- [D62] avizierul satului
+        elseif active.place ~= nil then
+            -- [D65] un loc al Morii, dupa numele lui din FlowConfig: inelul atelierului sau usa vanzatorului
+            local spec = FlowConfig.BY_PROCESSOR[active.place]
+            local seller = TycoonConfig.SELLER_PLACES[active.place]
+            if spec ~= nil then
+                local stand = TycoonConfig.LINE_PLACES[spec.line].playerStand
+                x, y = stand.x, stand.y
+            elseif seller ~= nil then
+                x, y = seller.door.x, seller.door.y
+            end
         end
         if x ~= nil and y ~= nil then
             local pad = if active.padId ~= nil then TycoonConfig.byId[active.padId] else nil
@@ -234,6 +297,7 @@ local function toGuideState(s: Snapshot): GuideMath.State
                 levelCost = levelCost,
                 upgradeKind = active.stationKind,
                 upgradeId = active.stationId,
+                always = active.always == true, -- [D65] sageata si cand ghidajul tace
             }
         end
     end
@@ -246,8 +310,9 @@ local function toGuideState(s: Snapshot): GuideMath.State
     end
     local contents = s.sack.contents or {}
     return {
-        -- [D56] ale fierului conteaza doar din clipa in care ai Forge (GuideMath.guidedRoles)
-        allCrewsHired = GuideMath.allCrewsHired(counts, GuideMath.guidedRoles(s.workshop == true)),
+        -- [D56, D65] oamenii unei linii conteaza doar din clipa in care ai platforma care o porneste (Forge, roata de
+        -- apa, cuptorul de cupru): GuideMath.guidedRoles
+        allCrewsHired = GuideMath.allCrewsHired(counts, GuideMath.guidedRoles(openedPads(s))),
         crews = counts,
         sawIn = if s.sawmill ~= nil then s.sawmill.count else 0,
         sawOut = if s.sawmill ~= nil then s.sawmill.out else 0,
@@ -272,6 +337,8 @@ local function toGuideState(s: Snapshot): GuideMath.State
         -- [D59] indiciul pontonului de pe linia NEXT: dupa primul peste; un lucru care asteapta la ponton il bate
         hasFished = s.fishing ~= nil and s.fishing.fished > 0,
         treasureWaiting = if s.river ~= nil then s.river.waiting[1] else nil,
+        lines = millLines(s),
+        sellAt = sellAt(s),
     }
 end
 

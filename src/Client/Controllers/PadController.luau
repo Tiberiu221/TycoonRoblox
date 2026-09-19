@@ -207,11 +207,22 @@ local function homeSprite(padId: string): (Assets.Sprite?, number)
     return PadArt.home(padId, crewCountOf(padId))
 end
 
--- [D62, pasul 5] nivelul forjei, din randurile statiilor: de la pragul 25 forja are a doua infatisare
-local forgeLevel = 1
+-- [D62, pasul 5] nivelul cladirii de pe o platforma, din randurile statiilor: de la pragul 25 forja are a doua
+-- infatisare. [D65] Pe platforma, nu o singura cifra: cuptorul de cupru e si el o cladire cu niveluri.
+local buildingLevels: { [string]: number } = {}
+
+-- Cartierul erei are pamantul lui (drumuri si curti)? Atunci cladirile stau direct pe el.
+local function hasGround(era: number): boolean
+    for _, district in TycoonConfig.DISTRICTS do
+        if district.era == era then
+            return true
+        end
+    end
+    return false
+end
 
 local function boughtSprite(padId: string): (Assets.Sprite?, number)
-    return PadArt.bought(padId, crewCountOf(padId), forgeLevel)
+    return PadArt.bought(padId, crewCountOf(padId), buildingLevels[padId] or 1)
 end
 
 -- LOCKED: se vede OBIECTUL INSUSI, stins, exact acolo unde va sta -- nu o pancarda cu pretul.
@@ -704,7 +715,7 @@ local function styleBought(frame: TextButton, pad: TycoonConfig.Pad)
 
     -- [D53] avizierul curat, cu pictograma meseriei, in locul platformei cu bifa. [D55] Doar cat casa omului
     -- nu e urcata: altfel mai jos, ca orice cladire.
-    local iconFor = BOARD_ICON[pad.id]
+    local iconFor = BOARD_ICON[PadArt.lookOf(pad.id, BOARD_ICON)]
     if iconFor ~= nil and homeSprite(pad.id) == nil and Assets.has(Assets.tycoon.board) then
         local board = worldImage(
             frame,
@@ -736,9 +747,10 @@ local function styleBought(frame: TextButton, pad: TycoonConfig.Pad)
         return
     end
 
-    -- orice statie non-plasa sta pe-o platforma, ca nimic sa nu ramana pe iarba goala [item 2]. [D57] In Era 1 sta pe
-    -- pamantul ei (TycoonConfig.YARDS, desenat de SceneArt): o dala in plus peste pamant ar fi arata lipita.
-    if pad.era ~= 1 then
+    -- orice statie non-plasa sta pe-o platforma, ca nimic sa nu ramana pe iarba goala [item 2]. [D57] Intr-un cartier
+    -- asezat sta pe pamantul lui (curtile din TycoonConfig.DISTRICTS, desenate de SceneArt): o dala in plus peste
+    -- pamant ar fi aratat lipita.
+    if not hasGround(pad.era) then
         drawPlatform(frame)
     end
 
@@ -1038,8 +1050,9 @@ function PadController.Apply(
             continue -- erele 2-4 n-au inca lume construita
         end
         local status = pads[pad.id]
-        -- [D53] incuiata (ascunsa sau doar conturata) si cu arta de ruina: ruina se vede mereu
-        if pad.era == 1 and (status == nil or status == "outline") and ruinReady(pad) then
+        -- [D53] incuiata (ascunsa sau doar conturata) si cu arta de ruina: ruina se vede mereu. [D65] Pentru orice
+        -- platforma care e in joc (`live`): ruinele Morii se vad de dincolo de gard, din prima zi.
+        if pad.live and (status == nil or status == "outline") and ruinReady(pad) then
             local frame = ensureFrame(pad)
             frame.Visible = true
             if lastStatus[pad.id] ~= "locked" then
@@ -1083,7 +1096,10 @@ function PadController.Apply(
             elseif status == "bought" then
                 styleBought(frame, pad)
                 -- [D55] angajat chiar acum (nu la intrarea in joc): avizierul devine casa, vazut
-                if lastStatus[pad.id] ~= nil and HOME_SPRITES[pad.id] ~= nil then
+                if
+                    lastStatus[pad.id] ~= nil
+                    and HOME_SPRITES[PadArt.lookOf(pad.id, HOME_SPRITES)] ~= nil
+                then
                     growIn(frame)
                 end
             end
@@ -1124,12 +1140,12 @@ end
 
 -- [D62, pasul 5] Forja isi schimba desenul la pragul 25. Se redeseneaza doar cand se schimba INFATISAREA, nu la fiecare
 -- nivel: `growIn` e o mica sarbatoare si ar obosi la fiecare cumparare.
-function PadController.SetForgeLevel(level: number)
-    local before = ChainMath.isGrand(forgeLevel)
-    forgeLevel = level
-    local frame = frames.workshop
-    if before ~= ChainMath.isGrand(level) and frame ~= nil and lastStatus.workshop == "bought" then
-        styleBought(frame, TycoonConfig.byId.workshop)
+function PadController.SetBuildingLevel(padId: string, level: number)
+    local before = ChainMath.isGrand(buildingLevels[padId] or 1)
+    buildingLevels[padId] = level
+    local frame = frames[padId]
+    if before ~= ChainMath.isGrand(level) and frame ~= nil and lastStatus[padId] == "bought" then
+        styleBought(frame, TycoonConfig.byId[padId])
         growIn(frame)
     end
 end
@@ -1278,7 +1294,7 @@ function PadController.Init(d: Deps)
             for _, pad in TycoonConfig.PADS do
                 local frame = frames[pad.id]
                 if
-                    pad.era ~= 1
+                    not pad.live
                     or pad.x == nil
                     or statuses[pad.id] == "bought"
                     or statuses[pad.id] == "available"
@@ -1312,7 +1328,7 @@ function PadController.Init(d: Deps)
                 local needs = ruinNeeds(pad)
                 if needs ~= nil and ruinTarget ~= ruinId then
                     ruinTarget = ruinId
-                    local eyebrow = if BOARD_ICON[pad.id] ~= nil
+                    local eyebrow = if BOARD_ICON[PadArt.lookOf(pad.id, BOARD_ICON)] ~= nil
                         then Strings.PAD_EYEBROW_WANTED
                         else Strings.PAD_EYEBROW_RUINS
                     HUDController.ShowRuinCard(pad, eyebrow, needs)

@@ -138,6 +138,24 @@ function TycoonConfig.lookOf(good: string): string
     return TycoonConfig.GOOD_LOOKS_LIKE[good] or good
 end
 
+-- [D65] La fel PLATFORMELE Morii: pana la arta lor poarta casa, ruina si avizierul perechii din Era 1 (Moara e asezata
+-- in oglinda, deci fiecare are una). Roata de apa n-are pereche; PadArt ii da un desen de imprumut. Cand o platforma isi
+-- primeste arta, randul ei iese de aici.
+TycoonConfig.PAD_LOOKS_LIKE = {
+    hire_mill_collector = "first_runner",
+    hire_mill_porter = "hire_porter",
+    hire_founder = "hire_sawyer",
+    hire_parts_hauler = "hire_hauler",
+    hire_merchant = "dock_trader",
+    copper_furnace = "workshop",
+    ore_shed = "scrap_shed",
+    hire_ore_collector = "hire_scrap_collector",
+    hire_ore_porter = "hire_scrap_porter",
+    hire_coppersmith = "hire_smelter",
+    hire_copper_hauler = "hire_iron_hauler",
+    mill_bell = "landing_bell",
+} :: { [string]: string }
+
 -- [D65] GASIRILE, pe ere: aceleasi trepte (NAMED_VALUE), inmultite cu cadrul erei. `named` e al Erei 1.
 TycoonConfig.FIND_MULT = { named = 1, named2 = 40 } :: { [string]: number }
 -- Ce iese din fiecare marfa bruta dupa atelierul ei (pentru nume si desene; valoarea e aceeasi, vezi GOODS).
@@ -1351,6 +1369,17 @@ for _, p in TycoonConfig.PADS do
     byId[p.id] = p
 end
 TycoonConfig.byId = byId
+
+-- [D65] O era e IN JOC cand platformele ei sunt `live`: de ea tin capitolele de quest-uri, ruinele si uneltele de dev.
+local liveEras: { [number]: boolean } = {}
+for _, p in TycoonConfig.PADS do
+    if p.live then
+        liveEras[p.era] = true
+    end
+end
+function TycoonConfig.eraIsLive(era: number): boolean
+    return liveEras[era] == true
+end
 
 -- [D63] VERBUL unei platforme, acelasi pe butonul cartonasului si in textul quest-ului ei: o plasa se arunca ("cast"),
 -- un om se angajeaza ("hire"), traista se ia ("get"), clopotul se trage ("ring"), restul se construiesc ("build").

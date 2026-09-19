@@ -53,6 +53,16 @@ PadArt.BOARD_ICON = {
     end,
 } :: { [string]: () -> Assets.Sprite }
 
+-- [D65] Platforma al carei desen il poarta `padId`: ea insasi cand tabelul `tbl` o are, altfel perechea din Era 1
+-- (TycoonConfig.PAD_LOOKS_LIKE), pana la arta Morii.
+local function lookOf(padId: string, tbl: { [string]: any }?): string
+    if tbl ~= nil and tbl[padId] ~= nil then
+        return padId
+    end
+    return TycoonConfig.PAD_LOOKS_LIKE[padId] or padId
+end
+PadArt.lookOf = lookOf
+
 function PadArt.isNet(pad: TycoonConfig.Pad): boolean
     for _, e in pad.effects do
         if e.kind == "net" then
@@ -75,11 +85,12 @@ end
 
 -- [D55] Casa omului, dupa cati sunt pe meserie: a doua treapta cand sunt doi. Arta lipsa cade pe prima.
 function PadArt.home(padId: string, count: number): (Assets.Sprite?, number)
-    local names = PadArt.HOME_SPRITES[padId]
+    local look = lookOf(padId, PadArt.HOME_SPRITES)
+    local names = PadArt.HOME_SPRITES[look]
     if names == nil then
         return nil, Assets.PIXEL_SCALE
     end
-    local scale = PadArt.HOME_SCALE[padId] or Assets.PIXEL_SCALE
+    local scale = PadArt.HOME_SCALE[look] or Assets.PIXEL_SCALE
     for i = math.clamp(count, 1, #names), 1, -1 do
         local sprite = (Assets.tycoon :: any)[names[i]]
         if sprite ~= nil and Assets.has(sprite) then
@@ -117,6 +128,11 @@ end
 -- Ce sta pe o platforma cumparata. Casele oamenilor vin din `home` [D55]; taraba a ramas a Negustorului cand Sorting
 -- Crate si Dock Stall au devenit niveluri ale debarcaderului [E1.3]. `forgeLevel`: nivelul forjei, pentru desenul ei.
 function PadArt.bought(padId: string, count: number, forgeLevel: number?): (Assets.Sprite?, number)
+    if padId == "water_wheel" then
+        -- [D65] pana la arta ei: roata de la carma (tot o roata de lemn), ca locul sa se vada
+        return Assets.tycoon.wheel, Assets.PIXEL_SCALE
+    end
+    padId = lookOf(padId, nil)
     if PadArt.HOME_SPRITES[padId] ~= nil then
         return PadArt.home(padId, count)
     elseif padId == "scrap_shed" then
@@ -133,6 +149,10 @@ end
 
 -- [D53] Ruina de pe locul unei platforme necumparate.
 function PadArt.ruin(padId: string): (Assets.Sprite?, number)
+    if padId == "water_wheel" then
+        return Assets.tycoon.ruin_hut, Assets.PIXEL_SCALE -- [D65] de imprumut, pana la arta ei
+    end
+    padId = lookOf(padId, nil)
     if PadArt.BOARD_ICON[padId] ~= nil then
         return Assets.tycoon.board_old, TycoonConfig.PROP_SCALE
     elseif padId == "first_runner" then
@@ -190,7 +210,7 @@ PadArt.CHIMNEY = {
 
 -- Hornul casei desenate acum pentru platforma asta (dupa cati oameni are meseria), sau nil.
 function PadArt.chimneyOf(padId: string, count: number): { number }?
-    local names = PadArt.HOME_SPRITES[padId]
+    local names = PadArt.HOME_SPRITES[lookOf(padId, PadArt.HOME_SPRITES)]
     if names == nil then
         return nil
     end

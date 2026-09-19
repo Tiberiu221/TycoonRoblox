@@ -41,6 +41,10 @@ HandConfig.ROLE_OUTFIT = {
     copperHauler = "Ironmonger",
 }
 
+-- [D56, D65] Meseriile care au cadrele "la lucru" (ciocanul in mana) pe foaia tinutei: omul forjei si, cu tinuta lui de
+-- imprumut, omul cuptorului de cupru. Bat doar cat atelierul chiar lucreaza.
+HandConfig.WORKING_POSE = { smelter = true, coppersmith = true } :: { [string]: boolean }
+
 -- [D50] Clientii tavernei: tinute pe care nu le poarta nicio meserie (fara palarie, prun si ardezie),
 -- ca un client sa nu para un om al tau care sta degeaba [D44]. Testul HandConfig le tine separate.
 HandConfig.CUSTOMER_OUTFITS = { "Townsfolk", "Traveler" }

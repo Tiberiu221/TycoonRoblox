@@ -28,7 +28,9 @@ local visibleCount = 0
 local frameByObject: { [number]: Frame } = {}
 local freeFrames: { Frame } = {}
 local styledGoodOf: { [number]: string } = {}
-local scrapNet = false -- [D55] ai plasa din larg, care prinde scrap: atunci in larg plutesc doar busteni
+-- [D55, D65] marfa pe care plasele tale inca n-o prind (scrap pana la Fifth Net, minereu pana la Tenth Net); nil = doar
+-- busteni
+local promised: string? = "scrap"
 
 local hidden: { [number]: boolean } = {}
 local scheduleCache: { [number]: { RiverSim.RiverObject } } = {}
@@ -106,14 +108,16 @@ local seenThisFrame: { [number]: boolean } = {}
 -- promis. [D55] Scrap-ul, pana ai plasa din larg care il prinde (Fifth Net); apoi busteni. Pana in D53 erau
 -- lazile coloniei, cu alte viteze, pe aceeasi banda pe care vin acum bustenii spre plase.
 local function farGood(objId: number): string
-    if not scrapNet then
-        return if objId % 3 == 0 then "driftwood" else "scrap"
+    local good = promised
+    if good ~= nil then
+        return if objId % 3 == 0 then "driftwood" else good
     end
     return "driftwood"
 end
 
 local function styleFar(frame: Frame, good: string)
-    local sprite = (Assets.goods :: any)[good] or Assets.goods.driftwood
+    -- [D65] marfa Erei 2 poarta desenul perechii din Era 1 pana la arta ei
+    local sprite = (Assets.goods :: any)[TycoonConfig.lookOf(good)] or Assets.goods.driftwood
     local w = sprite.width * Assets.PIXEL_SCALE * FAR_SCALE
     local h = sprite.height * Assets.PIXEL_SCALE * FAR_SCALE
     frame.Size = UDim2.fromOffset(math.round(w), math.round(h))
@@ -182,12 +186,12 @@ function RiverRenderController.VisibleCount(): number
     return visibleCount
 end
 
--- [D55] Ai plasa care prinde scrap? Din TycoonState: atunci scrap-ul nu mai e o promisiune in larg.
-function RiverRenderController.SetScrapNet(owned: boolean)
-    if owned == scrapNet then
+-- [D55, D65] Ce promite raul acum, din TycoonState: marfa urmatoarei linii, cat inca n-ai plasa care o prinde.
+function RiverRenderController.SetPromise(good: string?)
+    if good == promised then
         return
     end
-    scrapNet = owned
+    promised = good
     table.clear(styledGoodOf)
 end
 

@@ -49,6 +49,9 @@ local function state(over: { [string]: any }): GuideMath.State
         shed = get("shed", 0),
         crews = get("crews", {}),
         dockPileValue = get("dockPileValue", 0),
+        lines = over.lines, -- [D65] liniile Morii si ce cumpara fiecare vanzator; nil = doar Era 1
+        sellAt = over.sellAt,
+        allCrewsHired = over.allCrewsHired,
     } :: any
 end
 
@@ -381,9 +384,8 @@ return function()
         end)
 
         test.case("ghidajul tace dupa oamenii lemnului, se trezeste cu Forge", function()
-            local before = GuideMath.guidedRoles(false)
-            local after = GuideMath.guidedRoles(true)
-            -- [D65] oamenii Erei 1: ghidajul Erei 2 vine cu capitolele ei
+            local before = GuideMath.guidedRoles({})
+            local after = GuideMath.guidedRoles({ workshop = true })
             check.equal(#after, #StationConfig.ERA1_ROLES)
             check.equal(#before, #StationConfig.ERA1_ROLES - #StationConfig.LINE_STEPS.iron)
             local counts = withCrews({})
@@ -393,6 +395,27 @@ return function()
                 counts[role] = 1
             end
             check.is_true(GuideMath.allCrewsHired(counts, after))
+        end)
+
+        test.case("[D65] la fel la Moara: roata de apa si cuptorul de cupru il trezesc", function()
+            local era1 = GuideMath.guidedRoles({ workshop = true })
+            local wheel = GuideMath.guidedRoles({ workshop = true, water_wheel = true })
+            local all = GuideMath.guidedRoles({
+                workshop = true,
+                water_wheel = true,
+                copper_furnace = true,
+            })
+            -- cu roata: cei patru ai pieselor si negustorul Pietei; cu cuptorul, si cei patru ai cuprului
+            check.equal(#wheel, #era1 + #StationConfig.LINE_STEPS.parts + 1)
+            check.equal(#all, #StationConfig.ROLES)
+            check.is_true(table.find(wheel, "merchant") ~= nil)
+            check.is_true(table.find(wheel, "coppersmith") == nil)
+            local counts: { [string]: number } = {}
+            for _, role in era1 do
+                counts[role] = 1
+            end
+            check.is_true(GuideMath.allCrewsHired(counts, era1))
+            check.is_false(GuideMath.allCrewsHired(counts, wheel)) -- ghidajul se trezeste
         end)
     end)
 
@@ -822,6 +845,168 @@ return function()
                 query({ current = "below", aboveY = 320, belowY = 450, blockers = { panel } })
             )
             check.equal(back, "above")
+        end)
+    end)
+
+    test.suite("GuideMath - turul de mana al Morii [D65]", function()
+        local PARTS = TycoonConfig.LINE_PLACES.parts
+        local MARKET = TycoonConfig.SELLER_PLACES.market
+        -- toti oamenii Erei 1 sunt angajati cand ajungi la Moara
+        local ERA1: { [string]: number } = {}
+        for _, role in StationConfig.ERA1_ROLES do
+            ERA1[role] = 1
+        end
+        local function crews(extra: { [string]: number }): { [string]: number }
+            local out = table.clone(ERA1)
+            for role, n in extra do
+                out[role] = n
+            end
+            return out
+        end
+        local function line(raw: number, store: number, input: number, output: number)
+            return { parts = { raw = raw, store = store, input = input, output = output } }
+        end
+
+        test.case("scrap-ul Morii din traista merge la turnatorie, nu la gater", function()
+            local g = GuideMath.loopStep(
+                state({ sackCount = 8, lines = line(8, 0, 0, 0), crews = crews({}) }),
+                nil
+            )
+            check.equal(g.kind, "deliver")
+            check.equal(g.key, "foundry")
+            check.equal(g.text, "Take the scrap to the Foundry")
+            check.equal(g.x, PARTS.playerStand.x)
+            check.equal(g.y, PARTS.playerStand.y)
+            -- plina: aceeasi tinta, cu textul traistei pline
+            local full = GuideMath.loopStep(
+                state({
+                    sackCount = 30,
+                    sackCapacity = 30,
+                    lines = line(30, 0, 0, 0),
+                    crews = crews({}),
+                }),
+                nil
+            )
+            check.equal(full.text, "Sack full — take the scrap to the Foundry")
+        end)
+
+        test.case("cat se toarna fara Founder, pasul e inelul turnatoriei", function()
+            local g =
+                GuideMath.loopStep(state({ lines = line(0, 0, 6, 0), crews = crews({}) }), nil)
+            check.equal(g.kind, "work")
+            check.equal(g.text, "Stay in the ring: 6 left to cast")
+            check.equal(g.x, PARTS.playerStand.x)
+            -- cu Founder angajat nu mai e pasul tau
+            local hired = GuideMath.loopStep(
+                state({ lines = line(0, 0, 6, 0), crews = crews({ founder = 1 }) }),
+                nil
+            )
+            check.is_true(hired.kind ~= "work")
+        end)
+
+        test.case("piesele gata se iau, apoi se vand la Piata", function()
+            local take =
+                GuideMath.loopStep(state({ lines = line(0, 0, 0, 5), crews = crews({}) }), nil)
+            check.equal(take.kind, "take")
+            check.equal(take.text, "Take the parts at the Foundry")
+            local sell = GuideMath.loopStep(
+                state({
+                    sackCount = 5,
+                    sackCut = 5,
+                    sellAt = { market = 5, dock = 0 },
+                    lines = line(0, 0, 0, 0),
+                    crews = crews({}),
+                }),
+                nil
+            )
+            check.equal(sell.kind, "sell")
+            check.equal(sell.key, "market")
+            check.equal(sell.text, "Sell at the Market")
+            check.equal(sell.x, MARKET.door.x)
+            check.equal(sell.y, MARKET.door.y)
+        end)
+
+        test.case("scanduri si piese in aceeasi traista: intai taverna, apoi Piata", function()
+            local st = state({
+                sackCount = 9,
+                sackCut = 9,
+                sellAt = { dock = 4, market = 5 },
+                lines = line(0, 0, 0, 0),
+                crews = crews({}),
+            })
+            check.equal(GuideMath.loopStep(st, nil).key, "dock")
+            st.sackCount, st.sackCut, st.sellAt = 5, 5, { dock = 0, market = 5 }
+            check.equal(GuideMath.loopStep(st, nil).key, "market")
+        end)
+
+        test.case("magazia Morii fara Mill Porter, plasele ei fara Mill Collector", function()
+            local store =
+                GuideMath.loopStep(state({ lines = line(0, 7, 0, 0), crews = crews({}) }), nil)
+            check.equal(store.kind, "take")
+            check.equal(store.text, "Take the scrap from the Mill Store")
+            check.equal(store.x, PARTS.storeStand.x)
+            local net =
+                { padId = "sixth_net", x = 2300, y = 812, count = 4, capacity = 12, line = "parts" }
+            local collect = GuideMath.loopStep(
+                state({ nets = { net }, lines = line(0, 0, 0, 0), crews = crews({}) }),
+                nil
+            )
+            check.equal(collect.kind, "collect")
+            check.equal(collect.key, "net:sixth_net")
+            check.equal(collect.text, "Collect the scrap from your net")
+            -- cu Mill Collector, plasa nu mai e a ta
+            local hired = GuideMath.loopStep(
+                state({
+                    nets = { net },
+                    lines = line(0, 0, 0, 0),
+                    crews = crews({ millCollector = 1 }),
+                }),
+                nil
+            )
+            check.equal(hired.key, "catching")
+        end)
+
+        test.case("quest-ul care arata roata de apa are sageata si cand ghidajul tace", function()
+            local st = state({ pads = pads({ "first_net" }), coins = 9999, allCrewsHired = true })
+            st.quest = {
+                key = "build_wheel",
+                text = "Build the Water Wheel",
+                x = 2010,
+                y = 812,
+                padId = "water_wheel",
+                price = 5000,
+                kind = "pad",
+                always = true,
+            }
+            local g = GuideMath.pickGoal(st) :: GuideMath.Goal
+            check.is_true(g ~= nil)
+            check.equal(g.kind, "buy")
+            check.equal(g.padId, "water_wheel")
+            -- fara `always`, ghidajul care tace ramane tacut
+            st.quest.always = nil
+            check.is_true(GuideMath.pickGoal(st) == nil)
+        end)
+
+        test.case("fara Moara, bucla Erei 1 e cea de pana acum", function()
+            -- aceleasi stari, cu si fara campurile Morii goale: acelasi pas
+            for _, over in
+                {
+                    { sackCount = 12 },
+                    { sackCount = 12, sackCut = 12 },
+                    { sackCount = 5, sackRawScrap = 5 },
+                    { sawIn = 3 },
+                    { sawOut = 3 },
+                    { storage = 9 },
+                }
+            do
+                local plain = GuideMath.loopStep(state(over), nil)
+                local withMill = table.clone(over) :: any
+                withMill.lines = line(0, 0, 0, 0)
+                withMill.sellAt = { dock = (over :: any).sackCut or 0, market = 0 }
+                local same = GuideMath.loopStep(state(withMill), nil)
+                check.equal(same.key, plain.key)
+                check.equal(same.text, plain.text)
+            end
         end)
     end)
 end

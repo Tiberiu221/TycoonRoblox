@@ -11,6 +11,8 @@
 -- debarcaderul la nivel 5 inainte sa se deschida quest-ul care cere asta, quest-ul e gata pe loc.
 -- Asa nu exista "am facut deja, dar nu s-a bifat" -- clasa de bug care strica orice lista de
 -- sarcini, si care nu poate aparea daca nimeni nu numara nimic.
+local TycoonConfig = require(script and script.Parent.TycoonConfig or "./TycoonConfig")
+
 local QuestConfig = {}
 
 export type Reward = { coins: number?, pearls: number? }
@@ -20,7 +22,8 @@ export type Quest = {
     text: string,
     -- ce se citeste din stare: "pad" (detii platforma) | "collected" / "sold" (bucati, D51) | "sawn" |
     -- "smelted" (fier topit la forja, D55) | "ironSold" (fier predat la taverna, D56) | "level" | "idle" |
-    -- "fished" (pesti scosi la undita, D59) | "decor" (lucruri construite de la avizierul satului, D62)
+    -- "fished" (pesti scosi la undita, D59) | "decor" (lucruri construite de la avizierul satului, D62) |
+    -- [D65] "cast" / "partsSold" / "copperSmelted" / "copperSold" (numaratorile Morii, din Stats, pe numele lor)
     -- (plus "collects" / "sells", gesturi, ramase doar ca feluri cunoscute)
     kind: string,
     arg: string?, -- padId pentru "pad"; "net:<padId>" / "dock" pentru "level"
@@ -33,10 +36,15 @@ export type Quest = {
     targetForge: boolean?, -- sageata arata inelul forjei [D56]
     targetFish: boolean?, -- sageata arata capatul pontonului, unde pescuiesti [D59]
     targetBoard: boolean?, -- sageata arata avizierul satului, de pe punte [D62]
+    -- [D65] sageata arata un loc al Morii, dupa numele lui din FlowConfig: inelul unui atelier ("foundry", "furnace")
+    -- sau usa unui vanzator ("market")
+    targetPlace: string?,
+    always: boolean?, -- [D65] sageata si cand ghidajul tace: un loc nou, pe care altfel n-ai cum sa-l gasesti
 }
 
 export type Chapter = {
     id: string,
+    era: number, -- [D65] capitolele unei ere intra in joc odata cu platformele ei (vezi CHAPTERS, la sfarsit)
     title: string,
     subtitle: string,
     reward: Reward,
@@ -48,7 +56,7 @@ export type Chapter = {
 -- jucatorul ar fi ramas blocat, cu bannerul aratand spre ceva ce nu putea lua. Iar clopotul cere TOT
 -- restul erei cumparat, deci nu poate incheia un capitol in care jumatate din platforme n-au fost
 -- cerute niciodata. De aici doua capitole, si testul care le tine in ordine.
-QuestConfig.CHAPTERS = {
+local ALL_CHAPTERS: { Chapter } = {
     {
         -- CAPITOLUL 1 PREDA LANTUL IN ORDINEA LUI [D49]: prinzi, strangi, tai, vinzi -- intai tot de
         -- mana, o singura data, apoi TOTI CINCI oamenii la rand, fiecare luandu-ti de pe umeri pasul pe
@@ -63,6 +71,7 @@ QuestConfig.CHAPTERS = {
         -- din recompense, nu din lemn vandut. Acum toate recompensele sunt perle: monedele vin doar din
         -- vanzare. Ordinea urmeaza ordinea cumpararilor din simulator.
         id = "landing",
+        era = 1,
         title = "Chapter 1",
         subtitle = "The Landing",
         -- [D62] platita la ultima revendicare din capitol (pana atunci campul exista, dar nu-l platea nimeni). 6, nu 5:
@@ -208,6 +217,7 @@ QuestConfig.CHAPTERS = {
     },
     {
         id = "deeper",
+        era = 1,
         title = "Chapter 2",
         subtitle = "Deeper Water",
         reward = { pearls = 8 },
@@ -298,6 +308,7 @@ QuestConfig.CHAPTERS = {
         -- workshop, dupa cineva care prelucreaza, dupa cineva care le duce la tavern". Id-urile deja salvate in
         -- profiluri raman acolo unde sensul e acelasi (profilul tine quest-urile luate pe id).
         id = "iron",
+        era = 1,
         title = "Chapter 3",
         subtitle = "The Iron Line",
         reward = { pearls = 8 },
@@ -394,10 +405,297 @@ QuestConfig.CHAPTERS = {
             },
         },
     },
-} :: { Chapter }
+    -- ---- [D65] ERA 2 · THE MILL, in oglinda Erei 1 --------------------------------------------------------
+    -- Aceeasi lectie, a doua oara, intr-un loc nou: roata de apa porneste turnatoria si Piata, plasa a sasea aduce
+    -- scrap, faci UN tur de mana (culegi, torni stand in inel, vinzi la Piata), apoi cei cinci oameni la rand si
+    -- plasele. Ordinea urmeaza cumpararile din simulator (ERA2.quest_unlocks) si conditiile platformelor
+    -- (TycoonConfig.needs); testul QuestMath o tine.
+    {
+        id = "mill",
+        era = 2,
+        title = "Chapter 4",
+        subtitle = "The Mill",
+        reward = { pearls = 10 },
+        quests = {
+            {
+                -- dincolo de gardul abia cazut: sageata vine si daca ghidajul tace (toti oamenii Erei 1 sunt angajati)
+                id = "build_wheel",
+                text = "Build the Water Wheel",
+                kind = "pad",
+                arg = "water_wheel",
+                goal = 1,
+                reward = { pearls = 3 },
+                targetPad = "water_wheel",
+                always = true,
+            },
+            {
+                id = "cast_sixth",
+                text = "Cast a sixth net",
+                kind = "pad",
+                arg = "sixth_net",
+                goal = 1,
+                reward = { pearls = 2 },
+                targetPad = "sixth_net",
+            },
+            {
+                -- turul de mana: culegi scrap-ul din plasa a sasea, il duci la turnatorie si stai in inel cat se toarna
+                id = "cast_parts",
+                text = "Cast 10 parts at the Foundry",
+                kind = "cast",
+                goal = 10,
+                reward = { pearls = 2 },
+                targetPlace = "foundry",
+            },
+            {
+                id = "sell_parts",
+                text = "Sell the parts at the Market",
+                kind = "partsSold",
+                goal = 10,
+                reward = { pearls = 2 },
+                targetPlace = "market",
+            },
+            {
+                id = "hire_mill_collector",
+                text = "Hire a Mill Collector",
+                kind = "pad",
+                arg = "hire_mill_collector",
+                goal = 1,
+                reward = { pearls = 1 },
+                targetPad = "hire_mill_collector",
+            },
+            {
+                id = "hire_mill_porter",
+                text = "Hire a Mill Porter",
+                kind = "pad",
+                arg = "hire_mill_porter",
+                goal = 1,
+                reward = { pearls = 1 },
+                targetPad = "hire_mill_porter",
+            },
+            {
+                id = "hire_founder",
+                text = "Hire a Founder",
+                kind = "pad",
+                arg = "hire_founder",
+                goal = 1,
+                reward = { pearls = 1 },
+                targetPad = "hire_founder",
+            },
+            {
+                id = "hire_parts_hauler",
+                text = "Hire a Parts Hauler",
+                kind = "pad",
+                arg = "hire_parts_hauler",
+                goal = 1,
+                reward = { pearls = 1 },
+                targetPad = "hire_parts_hauler",
+            },
+            {
+                id = "hire_merchant",
+                text = "Hire a Merchant",
+                kind = "pad",
+                arg = "hire_merchant",
+                goal = 1,
+                reward = { pearls = 2 },
+                targetPad = "hire_merchant",
+            },
+            {
+                -- plasa urmatoare apare abia cand asta e la TycoonConfig.PREV_NET_LEVEL (ca in capitolul 1)
+                id = "sixth_two",
+                text = "Upgrade Sixth Net to level 2",
+                kind = "level",
+                arg = "net:sixth_net",
+                goal = 2,
+                reward = { pearls = 1 },
+                targetPad = "sixth_net",
+            },
+            {
+                id = "cast_seventh",
+                text = "Cast a seventh net",
+                kind = "pad",
+                arg = "seventh_net",
+                goal = 1,
+                reward = { pearls = 2 },
+                targetPad = "seventh_net",
+            },
+        },
+    },
+    {
+        id = "full_stream",
+        era = 2,
+        title = "Chapter 5",
+        subtitle = "Full Stream",
+        reward = { pearls = 12 },
+        quests = {
+            {
+                id = "seventh_two",
+                text = "Upgrade Seventh Net to level 2",
+                kind = "level",
+                arg = "net:seventh_net",
+                goal = 2,
+                reward = { pearls = 1 },
+                targetPad = "seventh_net",
+            },
+            {
+                id = "cast_eighth",
+                text = "Cast an eighth net",
+                kind = "pad",
+                arg = "eighth_net",
+                goal = 1,
+                reward = { pearls = 2 },
+                targetPad = "eighth_net",
+            },
+            {
+                id = "eighth_two",
+                text = "Upgrade Eighth Net to level 2",
+                kind = "level",
+                arg = "net:eighth_net",
+                goal = 2,
+                reward = { pearls = 1 },
+                targetPad = "eighth_net",
+            },
+            {
+                id = "cast_ninth",
+                text = "Cast a ninth net, further out",
+                kind = "pad",
+                arg = "ninth_net",
+                goal = 1,
+                reward = { pearls = 3 },
+                targetPad = "ninth_net",
+            },
+            {
+                id = "market_ten",
+                text = "Upgrade the Market to level 10",
+                kind = "level",
+                arg = "market",
+                goal = 10,
+                reward = { pearls = 3 },
+            },
+            {
+                id = "ninth_two",
+                text = "Upgrade Ninth Net to level 2",
+                kind = "level",
+                arg = "net:ninth_net",
+                goal = 2,
+                reward = { pearls = 1 },
+                targetPad = "ninth_net",
+            },
+        },
+    },
+    {
+        -- linia cuprului, ca linia fierului in capitolul 3: cuptorul, plasa care aduce minereu, un tur de mana, apoi
+        -- magazia si cei patru oameni la rand
+        id = "copper",
+        era = 2,
+        title = "Chapter 6",
+        subtitle = "The Copper Line",
+        reward = { pearls = 12 },
+        quests = {
+            {
+                id = "build_furnace",
+                text = "Build the Copper Furnace",
+                kind = "pad",
+                arg = "copper_furnace",
+                goal = 1,
+                reward = { pearls = 3 },
+                targetPad = "copper_furnace",
+            },
+            {
+                id = "cast_tenth",
+                text = "Cast a tenth net for ore",
+                kind = "pad",
+                arg = "tenth_net",
+                goal = 1,
+                reward = { pearls = 3 },
+                targetPad = "tenth_net",
+            },
+            {
+                id = "smelt_copper",
+                text = "Smelt 10 copper at the Furnace",
+                kind = "copperSmelted",
+                goal = 10,
+                reward = { pearls = 2 },
+                targetPlace = "furnace",
+            },
+            {
+                id = "sell_copper",
+                text = "Sell the copper at the Market",
+                kind = "copperSold",
+                goal = 10,
+                reward = { pearls = 2 },
+                targetPlace = "market",
+            },
+            {
+                id = "build_ore_shed",
+                text = "Build the Ore Shed",
+                kind = "pad",
+                arg = "ore_shed",
+                goal = 1,
+                reward = { pearls = 1 },
+                targetPad = "ore_shed",
+            },
+            {
+                id = "hire_ore_collector",
+                text = "Hire an Ore Collector",
+                kind = "pad",
+                arg = "hire_ore_collector",
+                goal = 1,
+                reward = { pearls = 1 },
+                targetPad = "hire_ore_collector",
+            },
+            {
+                id = "hire_ore_porter",
+                text = "Hire an Ore Porter",
+                kind = "pad",
+                arg = "hire_ore_porter",
+                goal = 1,
+                reward = { pearls = 1 },
+                targetPad = "hire_ore_porter",
+            },
+            {
+                id = "hire_coppersmith",
+                text = "Hire a Coppersmith",
+                kind = "pad",
+                arg = "hire_coppersmith",
+                goal = 1,
+                reward = { pearls = 1 },
+                targetPad = "hire_coppersmith",
+            },
+            {
+                id = "hire_copper_hauler",
+                text = "Hire a Copper Hauler",
+                kind = "pad",
+                arg = "hire_copper_hauler",
+                goal = 1,
+                reward = { pearls = 2 },
+                targetPad = "hire_copper_hauler",
+            },
+            {
+                id = "ring_mill_bell",
+                text = "Ring the Mill Bell",
+                kind = "pad",
+                arg = "mill_bell",
+                goal = 1,
+                reward = { pearls = 8 },
+                targetPad = "mill_bell",
+            },
+        },
+    },
+}
+
+-- [D65] TOATE capitolele scrise (testele le verifica pe toate) si cele DIN JOC: ale erelor cu platforme `live`. Cat
+-- Era 2 nu e in joc, capitolul 4 ar fi cerut o roata de apa pe care n-o poti construi.
+QuestConfig.ALL_CHAPTERS = ALL_CHAPTERS
+local liveChapters: { Chapter } = {}
+for _, chapter in ALL_CHAPTERS do
+    if TycoonConfig.eraIsLive(chapter.era) then
+        table.insert(liveChapters, chapter)
+    end
+end
+QuestConfig.CHAPTERS = liveChapters
 
 QuestConfig.byId = {} :: { [string]: Quest }
-for _, chapter in QuestConfig.CHAPTERS do
+for _, chapter in ALL_CHAPTERS do
     for _, quest in chapter.quests do
         QuestConfig.byId[quest.id] = quest
     end

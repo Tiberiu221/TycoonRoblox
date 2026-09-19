@@ -282,7 +282,7 @@ return function()
             local seen: { [string]: boolean } = {}
             local dupes, noReward = 0, 0
             local all = {}
-            for _, ch in QuestConfig.CHAPTERS do
+            for _, ch in QuestConfig.ALL_CHAPTERS do
                 for _, q in ch.quests do
                     table.insert(all, q)
                 end
@@ -305,7 +305,7 @@ return function()
             function()
                 -- 95 de monede in primele quest-uri cumparau plasele 2 si 3 inainte ca lemnul sa treaca
                 -- prin lant -- exact ce a vazut owner-ul
-                for _, ch in QuestConfig.CHAPTERS do
+                for _, ch in QuestConfig.ALL_CHAPTERS do
                     check.is_true(ch.reward.coins == nil)
                     for _, q in ch.quests do
                         check.is_true(q.reward.coins == nil)
@@ -316,10 +316,19 @@ return function()
 
         test.case("fiecare tinta de quest e o platforma care exista chiar in joc", function()
             local TycoonConfig = require("../src/Shared/Config/TycoonConfig")
+            local FlowConfig = require("../src/Shared/Config/FlowConfig")
             local missing = 0
-            for _, ch in QuestConfig.CHAPTERS do
+            for _, ch in QuestConfig.ALL_CHAPTERS do
                 for _, q in ch.quests do
                     if q.targetPad ~= nil and TycoonConfig.byId[q.targetPad] == nil then
+                        missing += 1
+                    end
+                    -- [D65] un loc al Morii: atelierul unei linii sau un vanzator, din tabelul drumului marfii
+                    if
+                        q.targetPlace ~= nil
+                        and FlowConfig.BY_PROCESSOR[q.targetPlace] == nil
+                        and FlowConfig.SELLERS[q.targetPlace] == nil
+                    then
                         missing += 1
                     end
                     if q.kind == "pad" and TycoonConfig.byId[q.arg :: string] == nil then
@@ -340,10 +349,19 @@ return function()
             -- `levels`, testul ar fi trecut si cu lista veche -- care cerea a treia plasa cat timp
             -- a doua era inca la nivelul 1, adica exact contradictia vazuta in Studio.
             local TycoonMath = require("../src/Shared/Modules/TycoonMath")
+            local TycoonConfig = require("../src/Shared/Config/TycoonConfig")
+            -- [D65] TOATE capitolele scrise, cu toate platformele socotite in joc: ordinea Erei 2 se verifica inainte
+            -- ca platformele ei sa devina `live`, nu dupa.
+            local livePads: { TycoonConfig.Pad } = {}
+            for _, p in TycoonConfig.PADS do
+                local copy = table.clone(p)
+                copy.live = true
+                table.insert(livePads, copy)
+            end
             local bought: { [string]: boolean } = {}
             local levels: { [string]: number } = {}
             local blocked = {}
-            for _, ch in QuestConfig.CHAPTERS do
+            for _, ch in QuestConfig.ALL_CHAPTERS do
                 for _, q in ch.quests do
                     if q.kind == "level" then
                         local station, netId = QuestMath.stationTarget(q)
@@ -355,7 +373,7 @@ return function()
                         end
                     elseif q.kind == "pad" then
                         local padId = q.arg :: string
-                        local status = TycoonMath.padStatuses(bought, nil, levels)[padId]
+                        local status = TycoonMath.padStatuses(bought, livePads, levels)[padId]
                         if status ~= "available" then
                             table.insert(
                                 blocked,
@@ -380,7 +398,7 @@ return function()
             -- [D56] quest-urile in sir, peste capitole: nivelul plasei a patra incheie capitolul 2, iar plasa a
             -- cincea vine in capitolul 3
             local all = {}
-            for _, ch in QuestConfig.CHAPTERS do
+            for _, ch in QuestConfig.ALL_CHAPTERS do
                 for _, q in ch.quests do
                     table.insert(all, q)
                 end
@@ -394,13 +412,14 @@ return function()
                     check.equal(q.goal, TycoonConfig.PREV_NET_LEVEL)
                 end
             end
-            check.equal(seen, 4) -- inaintea plasei 2, 3, 4 si a Forge (dupa ea, plasa 5)
+            -- inaintea plasei 2, 3, 4 si a Forge (dupa ea, plasa 5); [D65] la fel la Moara: 7, 8, 9 si cuptorul de cupru
+            check.equal(seen, 8)
         end)
 
         test.case("textul unui quest de nivel spune nivelul pe care il si cere", function()
             -- "Upgrade First Net to level 5" cu goal = 2 ar minti exact acolo unde jucatorul se uita
             -- cel mai des [D40]. Cifra din text trebuie sa fie chiar `goal`.
-            for _, ch in QuestConfig.CHAPTERS do
+            for _, ch in QuestConfig.ALL_CHAPTERS do
                 for _, q in ch.quests do
                     if q.kind == "level" then
                         check.is_true(string.find(q.text, `level {q.goal}`, 1, true) ~= nil)
@@ -412,20 +431,32 @@ return function()
         test.case("ultimul quest inchide chiar era: dupa el nu mai e nimic de cumparat", function()
             local TycoonConfig = require("../src/Shared/Config/TycoonConfig")
             local bought: { [string]: boolean } = {}
-            for _, ch in QuestConfig.CHAPTERS do
+            for _, ch in QuestConfig.ALL_CHAPTERS do
                 for _, q in ch.quests do
                     if q.kind == "pad" then
                         bought[q.arg :: string] = true
                     end
                 end
             end
+            -- [D65] la fel Era 2: capitolele ei cer fiecare platforma a ei, iar ultimul quest e clopotul Morii
             local left = 0
             for _, p in TycoonConfig.PADS do
-                if p.era == 1 and not bought[p.id] then
+                if not bought[p.id] then
                     left += 1
                 end
             end
             check.equal(left, 0)
+            for era = 1, 2 do
+                local last: QuestConfig.Quest? = nil
+                for _, ch in QuestConfig.ALL_CHAPTERS do
+                    if ch.era == era then
+                        last = ch.quests[#ch.quests]
+                    end
+                end
+                local pad = TycoonConfig.byId[(last :: QuestConfig.Quest).arg :: string]
+                check.equal(pad.motive, "D")
+                check.equal(pad.era, era)
+            end
         end)
 
         test.case(
@@ -451,9 +482,42 @@ return function()
         )
 
         test.case("fiecare capitol are o recompensa de platit la incheiere [D62]", function()
-            for _, ch in QuestConfig.CHAPTERS do
+            for _, ch in QuestConfig.ALL_CHAPTERS do
                 check.is_true((ch.reward.pearls or 0) + (ch.reward.coins or 0) > 0)
             end
+        end)
+
+        test.case("[D65] in joc sunt doar capitolele erelor cu platforme `live`", function()
+            local TycoonConfig = require("../src/Shared/Config/TycoonConfig")
+            local want = 0
+            for _, ch in QuestConfig.ALL_CHAPTERS do
+                if TycoonConfig.eraIsLive(ch.era) then
+                    want += 1
+                end
+            end
+            check.equal(#QuestConfig.CHAPTERS, want)
+            for _, ch in QuestConfig.CHAPTERS do
+                check.is_true(TycoonConfig.eraIsLive(ch.era))
+            end
+            -- altfel, dupa clopotul Erei 1, capitolul 4 ar cere o roata de apa pe care n-o poti construi
+            check.equal(#QuestConfig.ALL_CHAPTERS, 6)
+        end)
+
+        test.case("[D65] quest-urile Morii se citesc din numaratorile si nivelurile ei", function()
+            local function of(id: string): QuestConfig.Quest
+                return QuestConfig.byId[id]
+            end
+            local f = facts({})
+            f.stats = { cast = 4, partsSold = 12, copperSmelted = 0, copperSold = 3 }
+            f.levels = { market = 7 }
+            check.equal(QuestMath.progress(of("cast_parts"), f), 4)
+            check.is_true(QuestMath.isDone(of("sell_parts"), f))
+            check.equal(QuestMath.progress(of("smelt_copper"), f), 0)
+            check.equal(QuestMath.progress(of("sell_copper"), f), 3)
+            check.equal(QuestMath.progress(of("market_ten"), f), 7)
+            check.equal((QuestMath.stationTarget(of("market_ten"))), "market")
+            -- fara numaratori (un profil vechi, o stare de test): zero, nu eroare
+            check.equal(QuestMath.progress(of("cast_parts"), facts({})), 0)
         end)
     end)
 end

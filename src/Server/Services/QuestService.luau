@@ -38,6 +38,14 @@ local function factsFor(player: Player): QuestMath.Facts?
         ironSold = data.Stats.ironSold or 0, -- [D56]
         fished = data.Stats.fished or 0, -- [D59]
         decor = VillageLook.decorCount(data), -- [D62] cate lucruri ai construit de la avizier (din catalog)
+        -- [D65] numaratorile Morii si nivelul cladirilor ei, pe numele lor
+        stats = {
+            cast = data.Stats.cast or 0,
+            partsSold = data.Stats.partsSold or 0,
+            copperSmelted = data.Stats.copperSmelted or 0,
+            copperSold = data.Stats.copperSold or 0,
+        },
+        levels = { market = data.Stations.market.level },
         netLevels = if stations ~= nil then stations.NetLevels(player) else {},
         dockLevel = data.Stations.dock.level,
         idleRate = if stations ~= nil then stations.Idle(player) else 0,
@@ -66,6 +74,8 @@ export type Snapshot = {
         forge: boolean?, -- [D56] inelul forjei
         fish: boolean?, -- [D59] capatul pontonului, unde pescuiesti
         board: boolean?, -- [D62] avizierul satului, de pe punte
+        place: string?, -- [D65] un loc al Morii, dupa numele lui din FlowConfig ("foundry", "market"...)
+        always: boolean?, -- [D65] sageata si cand ghidajul tace (un loc nou, dincolo de gard)
         -- [D51] felul quest-ului si, la unul de nivel, statia: ghidajul alege pasul din ele
         kind: string,
         stationKind: string?,
@@ -104,6 +114,8 @@ function QuestService.Snapshot(player: Player): Snapshot?
                 forge = active.targetForge, -- [D56] sageata spre inelul forjei
                 fish = active.targetFish, -- [D59] sageata spre capatul pontonului
                 board = active.targetBoard, -- [D62] sageata spre avizierul satului
+                place = active.targetPlace, -- [D65]
+                always = active.always, -- [D65]
                 kind = active.kind,
                 stationKind = stationKind,
                 stationId = stationId,

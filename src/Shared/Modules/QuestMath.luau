@@ -23,6 +23,10 @@ export type Facts = {
     ironSold: number?, -- bucati de fier predate la taverna, de oricine [D56]
     fished: number?, -- pesti scosi la undita [D59]
     decor: number?, -- lucruri construite de la avizierul satului [D62]
+    -- [D65] numaratorile din Stats, pe numele lor: un quest al carui fel e chiar numele unei numaratori ("cast",
+    -- "partsSold", "copperSmelted", "copperSold") se citeste de aici, fara un camp si o ramura noi pentru fiecare era
+    stats: { [string]: number }?,
+    levels: { [string]: number }?, -- [D65] nivelul fiecarei cladiri, dupa felul ei ("dock", "market"...)
     netLevels: { [string]: number },
     dockLevel: number,
     idleRate: number,
@@ -47,8 +51,8 @@ function QuestMath.stationTarget(quest: QuestConfig.Quest): (string?, string?)
         return nil, nil
     end
     local arg = quest.arg or ""
-    if arg == "dock" then
-        return arg, nil
+    if arg == "dock" or arg == "market" then
+        return arg, nil -- un vanzator: taverna, [D65] Piata
     end
     local padId = string.match(arg, "^net:(.+)$")
     if padId ~= nil then
@@ -87,9 +91,13 @@ function QuestMath.progress(quest: QuestConfig.Quest, facts: Facts): number
             return facts.dockLevel
         elseif station == "net" and padId ~= nil then
             return facts.netLevels[padId] or 0
+        elseif station ~= nil then
+            return if facts.levels ~= nil then facts.levels[station] or 0 else 0
         end
     end
-    return 0
+    -- [D65] o numaratoare din Stats, pe numele ei
+    local stat = if facts.stats ~= nil then facts.stats[kind] else nil
+    return if stat ~= nil then stat else 0
 end
 
 function QuestMath.isDone(quest: QuestConfig.Quest, facts: Facts): boolean

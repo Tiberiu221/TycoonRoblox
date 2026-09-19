@@ -17,6 +17,7 @@ local Workspace = game:GetService("Workspace")
 
 local HandMath = require(ReplicatedStorage.Shared.Modules.HandMath)
 local HandRoutes = require(ReplicatedStorage.Shared.Modules.HandRoutes)
+local HandConfig = require(ReplicatedStorage.Shared.Config.HandConfig)
 local Strings = require(ReplicatedStorage.Shared.Config.Strings)
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 local Theme = require(script.Parent.Parent.UI.Theme)
@@ -92,29 +93,10 @@ local function loadStep(carrying: number, capacity: number): number
     return 1
 end
 
--- Ce spune un om cand apare prima data in sesiune: exact treaba lui, pe drumul lui [D40, D49].
+-- Ce spune un om cand apare prima data in sesiune: exact treaba lui, pe drumul lui [D40, D49]. Textele stau in
+-- Strings.crewHello, pentru toate meseriile [D65].
 local function hello(snap: HandSnap): string?
-    local role = snap.role
-    if role == "collector" then
-        return `I'm {snap.name}. I'll empty your nets into the Storage.`
-    elseif role == "porter" then
-        return `I'm {snap.name}. I'll carry logs from the Storage to the Sawmill.`
-    elseif role == "sawyer" then
-        return `I'm {snap.name}. I'll keep the saw running, even while you're away.`
-    elseif role == "hauler" then
-        return `I'm {snap.name}. I'll take the planks from the Sawmill to the Tavern.`
-    elseif role == "trader" then
-        return `I'm {snap.name}. I'll keep the Tavern selling while you're away.`
-    elseif role == "scrapCollector" then
-        return `I'm {snap.name}. I'll empty the Fifth Net into the Scrap Shed.`
-    elseif role == "scrapPorter" then
-        return `I'm {snap.name}. I'll carry scrap from the Scrap Shed to the Forge.`
-    elseif role == "smelter" then
-        return `I'm {snap.name}. I'll keep the Forge smelting, even while you're away.`
-    elseif role == "ironHauler" then
-        return `I'm {snap.name}. I'll take the iron from the Forge to the Tavern.`
-    end
-    return nil
+    return Strings.crewHello(snap.role, snap.name)
 end
 
 -- [I4] O singura replica, ~5s, cand omul asta apare prima data in sesiune. Neblocant: personajul se
@@ -264,7 +246,11 @@ local function render(dt: number)
             -- rol static: sta pe loc si respira, fata spre jucator
             x, y, state, facing = snap.x, snap.y, "idle", "down"
             local isWorking = deps.IsWorking
-            if snap.role == "smelter" and isWorking ~= nil and isWorking(snap.role) then
+            if
+                HandConfig.WORKING_POSE[snap.role] == true
+                and isWorking ~= nil
+                and isWorking(snap.role)
+            then
                 -- [D56] cu fata spre forja (cladirea e la dreapta locului lui), ciocanul in mana
                 state, facing = "working", "right"
             end

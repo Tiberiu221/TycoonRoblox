@@ -342,6 +342,8 @@ export type Blocker = {
     level: number?,
     hire: boolean?, -- platforma ceruta aduce un om (Hire a ...)
     first: boolean?, -- plasa ceruta e prima plasa (Cast your first net)
+    ring: boolean?, -- [D65] platforma ceruta e un clopot (Ring the ...)
+    zone: string?, -- [D65] la "all": cartierul platformei care intreaba ("The Mill")
 }
 
 -- Plasele, in ordinea din PADS: a N-a plasa cumparata e mereu a N-a de aici (se cumpara in lant).
@@ -358,7 +360,22 @@ local function netIds(pads: { TycoonConfig.Pad }): { string }
     return ids
 end
 
-local function blockerFor(kind: string, padId: string?, level: number?, firstNet: string?): Blocker
+local function zoneNameOf(era: number): string?
+    for _, zone in TycoonConfig.ZONES do
+        if zone.era == era then
+            return zone.name
+        end
+    end
+    return nil
+end
+
+local function blockerFor(
+    kind: string,
+    padId: string?,
+    level: number?,
+    firstNet: string?,
+    asking: TycoonConfig.Pad?
+): Blocker
     local target = if padId ~= nil then TycoonConfig.byId[padId] else nil
     return {
         kind = kind,
@@ -367,6 +384,8 @@ local function blockerFor(kind: string, padId: string?, level: number?, firstNet
         level = level,
         hire = padId ~= nil and TycoonConfig.CREW_OF_PAD[padId] ~= nil,
         first = padId ~= nil and padId == firstNet,
+        ring = target ~= nil and target.motive == "D",
+        zone = if asking ~= nil then zoneNameOf(asking.era) else nil,
     }
 end
 
@@ -401,7 +420,7 @@ function TycoonMath.padBlocker(
     if needs.all then
         for _, other in list do
             if other.era == p.era and other.id ~= p.id and not bought[other.id] then
-                return blockerFor("all", nil, nil, ids[1])
+                return blockerFor("all", nil, nil, ids[1], p)
             end
         end
     end

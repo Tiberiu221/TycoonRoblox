@@ -531,6 +531,12 @@ Strings.SACK_FULL_SCRAP = "Sack full — take the scrap to the Forge" -- [D55, D
 Strings.SACK_FULL_IRON = "Sack full — take the iron to the Tavern" -- [D56]
 Strings.SACK_FULL_BOTH = "Sack full — take the planks and iron to the Tavern" -- [D56]
 Strings.SACK_FULL_FINDS = "Sack full — take the finds to the Tavern" -- [D56] doar gasiri: se vand si asa
+-- [D65] marfa Morii: bruta la atelierul liniei ei, gata la Piata
+function Strings.sackFullRaw(line: string): string
+    local words = Strings.LINE_WORDS[line] or Strings.LINE_WORDS.wood
+    return `Sack full — take the {words.raw} to the {words.processor}`
+end
+Strings.SACK_FULL_MARKET = "Sack full — sell at the Market"
 -- Ghidajul [GuideMath]: ce scrie sageata deasupra tintei.
 Strings.GUIDE_FIRST_PAD = "Step on the glowing pad"
 function Strings.guideBuy(name: string): string
@@ -587,6 +593,25 @@ function Strings.guideSellFinds(count: number): string
 end
 function Strings.stepStaySmelt(left: number): string
     return `Stay in the ring: {left} left to smelt`
+end
+-- [D65] Aceiasi pasi pe o linie a Morii, din cuvintele liniei (LINE_WORDS): aceleasi fraze ca la lemn si la fier.
+function Strings.guideRawTo(words: LineWords): string
+    return `Take the {words.raw} to the {words.processor}`
+end
+function Strings.stepStayWork(words: LineWords, left: number): string
+    return `Stay in the ring: {left} left to {string.lower(words.verb)}`
+end
+function Strings.stepTakeDone(words: LineWords): string
+    return `Take the {words.done} at the {words.processor}`
+end
+function Strings.stepTakeFromStore(words: LineWords): string
+    return `Take the {words.raw} from the {words.store}`
+end
+function Strings.guideCollectRaw(words: LineWords): string
+    return `Collect the {words.raw} from your net`
+end
+function Strings.guideSellAt(sellerLabel: string, full: boolean): string
+    return if full then `Sack full — sell at the {sellerLabel}` else `Sell at the {sellerLabel}`
 end
 function Strings.guideSaving(name: string): string
     return `Saving for {name}`
@@ -1322,9 +1347,14 @@ function Strings.padNeeds(b: {
     level: number?,
     hire: boolean?,
     first: boolean?,
+    ring: boolean?,
+    zone: string?,
 }): string
     local name = b.name or "it"
     if b.kind == "after" then
+        if b.ring then
+            return `Ring the {name} first` -- [D65] prima platforma a unui cartier cere clopotul celui dinainte
+        end
         if b.hire then
             local article = if string.find(name, "^[AEIOUaeiou]") then "an" else "a"
             return `Hire {article} {name} first`
@@ -1335,7 +1365,7 @@ function Strings.padNeeds(b: {
     elseif b.kind == "level" then
         return `Upgrade {name} to level {b.level or 2} first`
     end
-    return "Rebuild everything else on The Landing first"
+    return `Rebuild everything else on {b.zone or "The Landing"} first`
 end
 
 -- ---- meniul obiectului, simplu [D52] ----------------------------------------------------------
@@ -1396,6 +1426,32 @@ function Strings.crewDoes(role: string): string
         return "Runs the Market"
     end
     return "Runs the Tavern"
+end
+-- Ce spune un om cand apare prima data in sesiune: exact treaba lui, pe drumul lui [D40, D49]; o singura replica.
+local CREW_HELLO: { [string]: string } = {
+    collector = "I'll empty your nets into the Storage.",
+    porter = "I'll carry logs from the Storage to the Sawmill.",
+    sawyer = "I'll keep the saw running, even while you're away.",
+    hauler = "I'll take the planks from the Sawmill to the Tavern.",
+    trader = "I'll keep the Tavern selling while you're away.",
+    scrapCollector = "I'll empty the Fifth Net into the Scrap Shed.",
+    scrapPorter = "I'll carry scrap from the Scrap Shed to the Forge.",
+    smelter = "I'll keep the Forge smelting, even while you're away.",
+    ironHauler = "I'll take the iron from the Forge to the Tavern.",
+    -- [D65] Era 2
+    millCollector = "I'll empty the Mill nets into the Mill Store.",
+    millPorter = "I'll carry scrap from the Mill Store to the Foundry.",
+    founder = "I'll keep the Foundry casting, even while you're away.",
+    partsHauler = "I'll take the machine parts from the Foundry to the Market.",
+    merchant = "I'll keep the Market selling while you're away.",
+    oreCollector = "I'll empty the Tenth Net into the Ore Shed.",
+    orePorter = "I'll carry ore from the Ore Shed to the Copper Furnace.",
+    coppersmith = "I'll keep the Copper Furnace smelting, even while you're away.",
+    copperHauler = "I'll take the copper from the Copper Furnace to the Market.",
+}
+function Strings.crewHello(role: string, name: string): string?
+    local job = CREW_HELLO[role]
+    return if job ~= nil then `I'm {name}. {job}` else nil
 end
 -- Unitatea de sub cifra mare. Bustenii pana la gater, scandurile de acolo incolo -- cuvintele pe care
 -- jocul le foloseste deja ("Store logs", "Sell planks"). [D56] Pe linia fierului: scrap pana la forja, fier de acolo.
