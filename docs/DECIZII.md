@@ -34,16 +34,20 @@ erele, vreau doar să știu roadmap-ul."* A ales și **Piață nouă în Era 2**
 | 1 | The Landing | bușteni → scânduri | scrap → fier | Tavernă | gaterul, forja |
 | 2 | The Mill | scrap → fier, la o turnătorie mare învârtită de roata de apă | cupru vechi → bare de cupru | Piață | roata de apă: prima oară curentul râului muncește |
 | 3 | The Yard | cupru → sârmă | **prima turbină:** râul face curent, iar satul tău se luminează noaptea | Depozitul de mărfuri | felinarele satului se aprind |
-| 4 | The Dam | **curent electric:** turbinele îl fac, oamenii îl duc pe stâlpi, îl vinzi orașului de peste râu | sticle → sticlă | Biroul de curent | barajul; orașul de pe celălalt mal |
-| 5 | The Glassworks | sticlă → becuri (au nevoie de curentul tău) | lut → cărămizi | Prăvălia de lămpi | străzi luminate |
-| 6 | The Brickyard | cărămizi → orașul de pe celălalt mal crește casă cu casă | stuf → hârtie | Șantier | podul peste râu |
-| 7 | The Press | hârtie → ziare și cărți | lăzi de marfă, aduse de bărci | Tipografie | școala orașului |
-| 8 | The Harbor | lăzi → marfă trimisă în aval cu bărcile | **Farul:** „Move Downstream" | Port | farul |
+| 4 | The Dam | **curent electric:** turbinele îl fac, oamenii îl duc pe stâlpi, îl vinzi orașului de peste râu | într-o noapte cade un meteorit în amonte; pe râu încep să vină **cristale care luminează** | Biroul de curent | barajul; noaptea meteoritului |
+| 5 | The Lab | cristale → celule de energie | **piese de roboți**, dintr-o epavă pe care râul o macină în amonte | Magazinul de tehnică | laboratorul cu bobine; mașinile bâzâie |
+| 6 | The Robot Works | piese → **roboți**, care preiau căratul prin tot satul | **pietre antigravitaționale:** plutesc DEASUPRA apei | Bazarul de roboți | roboți pe străzile satului |
+| 7 | The Sky Dock | pietre → barje care plutesc; un al doilea „râu", în aer | **fragmente de stea**, combustibilul unei rachete | Piața din cer | platforme și bărci plutitoare |
+| 8 | The Launch Site | fragmente → combustibil; construiești racheta | **Racheta:** „Move Downstream" devine zborul spre o planetă nouă, cu râul ei | Rampa de lansare | racheta; cerul altei planete |
 
-- **După Era 8:** renașterea din plan (TYCOON §K, „Move Downstream"): te muți în aval, pe un râu mai bogat, cu +50%
-  venit și un set nou de obiecte pe apă. Nimic plătit nu se resetează. De acolo jocul nu se mai termină.
-- **Scara tehnică are sens pentru un copil:** lemnul ridică satul, fierul face uneltele, cuprul duce curentul, curentul
-  aprinde becurile, cărămida face orașul, hârtia îl învață, portul îl leagă de lume. Totul vine pe râu sau din râu [P5].
+- **[Owner, 2026-09-19, a doua zi]:** prima variantă continua după curent cu sticlă, cărămizi, hârtie și port. Respinsă:
+  *„după curentul electric deblocăm infinite posibilități; deci vreau să devină mai SF treaba"*. De la Era 4 încolo
+  scara urcă spre SF; Erele 1–3 rămân.
+- **După Era 8:** renașterea din plan (TYCOON §K) devine **o planetă nouă la fiecare tură**: alt râu, altă culoare a
+  apei, mărfuri noi pe el, +50% venit. Nimic plătit nu se resetează. De acolo jocul nu se mai termină.
+- **Povestea care leagă scara:** lemnul ridică satul, fierul face uneltele, cuprul duce curentul, curentul aprinde
+  luminile. Luminile se văd de departe, iar ce cade din cer în amonte vine la vale pe râu: cristale, piese, pietre care
+  plutesc. Râul rămâne banda pe care vine totul [P5], chiar și când marfa e SF.
 - **Curentul e o marfă ca oricare alta pe aceeași schemă:** turbinele sunt „plasele" lui (nivelul lor dă cât curent
   fac), oamenii îl duc, o clădire îl pregătește, alta îl vinde. Rămâne regula owner-ului: un om vizibil pe fiecare pas.
 - **Marfa de la finalul Erei 2 e încă de confirmat.** Propun cuprul, fiindcă duce drept spre curent; owner-ul n-a ales
