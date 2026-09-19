@@ -122,7 +122,8 @@ e gata. Detaliile și sursele sunt în DECIZII D63. **Nimic din ce urmează n-a 
   face din ce produci deja, o singură poveste (scrap-ul din Era 1 vine de la o navă prăbușită în amonte), iar marfa nouă
   apare când o poți folosi. Fiecare renaștere = o planetă nouă; **se construiește doar Era 2**. Marfa nouă de la finalul Erei 2 e de
   confirmat (propus: cupru). Primul pas: generalizarea motorului lanțului la N linii, întâi în simulator, cu tabelul
-  de aur al Erei 1 neschimbat.
+  de aur al Erei 1 neschimbat; planul pe pași e în `docs/PLAN-MOTOR-N-LINII.md`. **Owner-ul vrea întâi Era 1
+  închisă:** verificată cu sonda pe un profil de probă (nu pe salvarea lui), apoi jucată de el.
 - **Așteaptă owner-ul:** permisiunile de game pass și developer product pe cheia API (azi: 403) sau cele șase create
   de mână; aprobarea pictogramelor; alegerea pentru Era 2; verificarea în Studio a lui D61–D63.
 
