@@ -142,6 +142,11 @@ e gata. Detaliile și sursele sunt în DECIZII D63. **Nimic din ce urmează n-a 
   **O eră nouă = rânduri în tabele**, plus ce a rămas scris pentru două linii (lista e la sfârșitul planului):
   deblocările și scara prețurilor din simulator, cusătura cu profilul din `StationService.StateFrom`, grămezile,
   meniurile, ghidajul. `State` rămâne plat: o clădire nouă își aduce câmpurile, citite după numele din tabel.
+- **„De ce nu aduce nimic" are o singură regulă: `Shared/Modules/HeldBack`** (2026-09-19). Întâi câștigul real
+  (`gain` > 0 → nu se scrie nimic), apoi veriga slabă a LINIEI lucrului, nu cea care ține tot venitul. O folosesc
+  meniul obiectului, panoul Upgrades și cartonașul platformei. Panoul și cartonașul mințeau cu amândouă liniile
+  pornite (rândul Tavernei scria „the Forge is slowest" deși un nivel la ea aducea cel mai mult). Un text nou de felul
+  ăsta întreabă tot acolo.
 - **Cifrele din colțul HUD-ului stau pe o grilă** (`Shared/Modules/HudLayout`, cu test): monede, perle și sac pe
   rândul de sus, rata și AWAY dedesubt, linia NEXT cât blocul. Văzut în Play-ul owner-ului cu sonda: cutiile cad pe
   grilă. Pozițiile pastilelor nu se mai scriu de mână în `HUDController`.

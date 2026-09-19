@@ -132,6 +132,22 @@ meniul obiectului.
 - Panoul „Upgrades" (tasta U) n-are buton pe ecran, deci pe telefon nu se ajunge la el. E ascuns la cererea
   owner-ului (2026-09-12); meniul obiectului îl acoperă.
 
+**6b. Seara de 2026-09-19, după „dacă totul are sens și logică în Era 1, se poate trece mai departe":**
+- **Cifrele din colțul HUD-ului stau pe o grilă (78e1b7a).** Owner-ul, pe emulatorul de iPhone: meniurile sunt în
+  regulă, dar cifrele din colț sunt înghesuite și strâmbe. Pozițiile vin acum din `HudLayout` (pur, cu test): monede,
+  perle și sac pe un rând, rata și AWAY dedesubt, linia NEXT cât blocul. Citit cu sonda din Play-ul lui: cutiile cad pe
+  grilă. Textul mic pe telefon l-a văzut owner-ul însuși („meniurile par în regulă"), deci punctul de mai sus rămâne
+  doar ca măsurătoare de făcut, nu ca defect raportat.
+- **Textul care mințea când merg amândouă liniile [D40].** Prins cu sonda, în starea de după deschiderea fierului
+  (lemnul ținut de Tavernă, fierul de Forjă): în panoul „Upgrades", rândul Tavernei scria „No gain yet — the Forge is
+  slowest", deși un nivel la ea aducea +0,30 monede/s, mai mult decât unul la Forjă (+0,14). Panoul se uita la steagul
+  „sunt eu veriga care ține venitul", nu la câștigul real, cum face meniul obiectului din D52. La fel cartonașul unei
+  platforme: numea veriga care ține tot venitul, deci o plasă de lemn ținută de Tavernă ar fi scris tot „the Forge".
+  Regula e acum una singură, în `Shared/Modules/HeldBack` (pur, cu teste care pornesc de la starea prinsă): întâi
+  câștigul real, apoi veriga slabă a LINIEI lucrului. O folosesc meniul obiectului, panoul și cartonașul. Văzut pe viu
+  după reparație: rândul Tavernei nu mai scrie nimic, meniul ei scrie „Next level earns +19.6 coins a minute", iar
+  plasele de lemn și gaterul trimit la Tavernă. Cartonașul n-a putut fi văzut (sonda nu mișcă omul): e acoperit de teste.
+
 **7. Era 2 — propunere, nu cod. RESPINSĂ de owner pe 2026-09-19: vezi D64.** Era 1 e scrisă, dar nejucată cap-coadă, deci n-o consider gata. Totuși Era 2 e ce
 lipsește cel mai tare: la ~34 de minute jucătorul trage Landing Bell, cea mai scumpă cumpărare, iar zona care se
 deschide scrie „coming soon". Prima sesiune se termină exact în punctul ei cel mai slab.

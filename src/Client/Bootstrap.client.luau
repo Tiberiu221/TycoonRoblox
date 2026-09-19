@@ -1188,6 +1188,7 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
         end
     end
     PadController.SetCrews(crewCounts, crewTiers) -- [D55] inainte de Apply: prima desenare alege deja casa potrivita
+    PadController.SetChain(snapshot.stations) -- [D63] cartonasul unei platforme fara castig spune cine o tine, pe linia ei
     PadController.Apply(
         snapshot.pads,
         snapshot.coins,

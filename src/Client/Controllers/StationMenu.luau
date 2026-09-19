@@ -19,6 +19,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
 local ChainMath = require(ReplicatedStorage.Shared.Modules.ChainMath)
+local HeldBack = require(ReplicatedStorage.Shared.Modules.HeldBack)
 local StationConfig = require(ReplicatedStorage.Shared.Config.StationConfig)
 local Strings = require(ReplicatedStorage.Shared.Config.Strings)
 local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
@@ -263,58 +264,6 @@ local function perMinuteGain(gain: number): string?
     return if text == "0" then nil else text
 end
 
--- [D56] Debitul unei verigi, pe linia intrebata: plasele de lemn si plasa de scrap sunt debite diferite.
-local function rateOf(snap: Snapshot, c: Link, line: string?): number
-    if c.key == "nets" then
-        local key = if line == "iron"
-            then "scrapCatch"
-            elseif line == "wood" then "woodCatch"
-            else "catch"
-        return snap.rates[key] or 0
-    end
-    return snap.rates[c.rate] or 0
-end
-
--- [D56] O veriga intra in comparatie doar pe linia obiectului (plasele si taverna sunt ale amandurora); ale fierului
--- deloc cat linia lui e inchisa -- altfel debitul lor (0) ar iesi "cel mai lent" si meniul ar trimite la o veriga care
--- nu tine nimic [D40].
-local function inLine(snap: Snapshot, key: string, line: string?): boolean
-    local of = StationConfig.LINE_OF[key]
-    if of == "iron" and (snap.ironBottleneck or "") == "" then
-        return false
-    end
-    return line == nil or of == nil or of == line
-end
-
--- Veriga care tine venitul in loc, alta decat `mine`, si daca e doar la egalitate cu ea. Se cheama
--- doar cand castigul e zero: atunci exista sigur una la fel de lenta sau mai lenta. [D55] Cu doua marfuri,
--- debitele nu se mai compara intre ele: veriga slaba o spune serverul (dupa castigul pe bucata); comparatia de
--- debite ramane doar pentru egalitati. [D56] Veriga slaba a LINIEI obiectului -- o plasa de lemn nu e tinuta de
--- forja; taverna (fara linie) se uita la cea care tine venitul. nil = linia fierului e inca inchisa.
-local function heldBackBy(snap: Snapshot, mine: string, line: string?): (Link?, boolean)
-    local bottleneck = if line == "iron"
-        then snap.ironBottleneck or ""
-        elseif line == "wood" then snap.woodBottleneck or snap.bottleneck
-        else snap.bottleneck
-    if line == "iron" and bottleneck == "" then
-        return nil, false
-    end
-    if bottleneck ~= mine and bottleneck ~= "" then
-        return linkByKey(bottleneck), false
-    end
-    local mineRate = rateOf(snap, linkByKey(mine), line)
-    local best, bestRate = linkByKey("dock"), math.huge
-    for _, c in CHAIN do
-        if c.key ~= mine and inLine(snap, c.key, line) then
-            local rate = rateOf(snap, c, line)
-            if rate < bestRate then
-                best, bestRate = c, rate
-            end
-        end
-    end
-    return best, bestRate >= mineRate - 1e-9
-end
-
 -- Randul colorat se rupe pe doua randuri; la marimea 18, doua randuri de Nunito au 49 si randul are 44, deci textul
 -- lung trecea de marginile lui [2026-09-15]. Se alege cea mai mare marime la care incape.
 local function fitStatusText()
@@ -339,19 +288,16 @@ local function showStatus(text: string, color: Color3)
 end
 
 local function showHeldBack(snap: Snapshot, mine: string, line: string?)
-    local link, tie = heldBackBy(snap, mine, line)
-    if link == nil then
+    -- [D63] cine il tine pe loc: aceeasi regula ca in panoul Upgrades si pe cartonasul platformei (HeldBack)
+    local key, tie = HeldBack.by(snap, mine, line)
+    if key == nil then
         -- [D56] Forge fara plasa de scrap: nu e o veriga de reparat, doar nu vine inca nimic
         showStatus(Strings.MENU_NO_SCRAP, Theme.COLOR.warnInk)
         return
     end
+    local link = linkByKey(key)
     -- plasele carei linii: a obiectului; de la taverna, a liniei in care plasele tin
-    local netsLine = line
-    if netsLine == nil then
-        netsLine = if snap.ironBottleneck == "nets" and snap.woodBottleneck ~= "nets"
-            then "iron"
-            else "wood"
-    end
+    local netsLine = HeldBack.netsLine(snap, line)
     statusLabel.Text = Strings.menuHeldBack(link.key, tie, netsLine)
     fitStatusText()
     statusLabel.TextColor3 = Theme.COLOR.warnInk

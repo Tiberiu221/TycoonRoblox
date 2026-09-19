@@ -986,7 +986,7 @@ function HUDController.ShowApproachCard(
     pad: TycoonConfig.Pad,
     deltaPerSec: number,
     affordable: boolean,
-    bottleneck: string?,
+    noGainText: string?, -- [D63] ce scrie cartonasul cand platforma nu aduce nimic acum (il face PadController)
     coins: number
 )
     local isNew = approachId ~= pad.id or approachRuin
@@ -1009,11 +1009,15 @@ function HUDController.ShowApproachCard(
     -- intra peste nota din dreapta -- doua texte unul peste altul, exact ce nu trebuie.
     local noGain = deltaPerSec <= 0
     if noGain then
-        approachDelta.Text = Strings.stationNoEffect(bottleneck or "nets")
+        local text = noGainText or Strings.stationNoEffect("nets")
+        local width = APPROACH_W - APPROACH_INSET_X * 2
+        approachDelta.Text = text
+        approachDelta.TextSize = Theme.fitSize(text, Theme.TEXT.small, "strong", width)
         approachDelta.TextColor3 = Theme.COLOR.bad
-        approachDelta.Size = UDim2.fromOffset(APPROACH_W - APPROACH_INSET_X * 2, 20)
+        approachDelta.Size = UDim2.fromOffset(width, 20)
     else
         approachDelta.Text = `+{TycoonMath.formatRate(deltaPerSec)}/s`
+        approachDelta.TextSize = Theme.TEXT.small -- fraza de mai sus a putut-o micsora
         approachDelta.TextColor3 = Theme.COLOR.good
         approachDelta.Size = UDim2.fromOffset(180, 20)
     end

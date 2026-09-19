@@ -14,6 +14,7 @@ local RiverConfig = require(ReplicatedStorage.Shared.Config.RiverConfig)
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
 local ChainMath = require(ReplicatedStorage.Shared.Modules.ChainMath)
+local HeldBack = require(ReplicatedStorage.Shared.Modules.HeldBack)
 local Assets = require(ReplicatedStorage.Shared.Config.Assets)
 local Strings = require(ReplicatedStorage.Shared.Config.Strings)
 local HUDController = require(script.Parent.HUDController)
@@ -61,6 +62,10 @@ local pulseGen: { [string]: number } = {} -- padId -> generatia pulsului curent,
 local coins = 0
 local padDeltas: { [string]: number } = {}
 local bottleneck = "nets" -- veriga slaba acum: cartonasul o foloseste cand delta e zero -- padId -> venit/s adaugat, calculat de server [F2 "Already done by me"]
+-- [D63] Ce stie clientul despre lant (randurile din StationService.Snapshot): din el cartonasul afla cine tine pe loc o
+-- platforma care nu aduce nimic -- veriga slaba a LINIEI ei, nu cea care tine tot venitul. O plasa de lemn tinuta de
+-- Taverna scria "the Forge is slowest" cat Forja tinea fierul.
+local chainView: HeldBack.View? = nil
 local firedAt: { [string]: number } = {} -- padId -> os.clock() la ultima tragere, pentru cooldown-ul de 1s
 local Z = 3 -- nivelul solului, sub personaj si decor
 
@@ -920,6 +925,25 @@ end
 
 -- ---- cartonasul de la apropiere [F2 spec Agent U pct.2] ----
 
+-- [D40, D63] De ce nu aduce nimic ACUM platforma asta: cine o tine pe loc, pe LINIA ei (o plasa de lemn e tinuta de
+-- Taverna, nu de Forja care tine fierul). Aceeasi regula ca in meniul obiectului si in panoul Upgrades (HeldBack). Ce
+-- n-are veriga a ei (traista, Forge, clopotul) ramane pe veriga care tine venitul. Se afiseaza doar la castig zero.
+local function noGainText(pad: TycoonConfig.Pad): string
+    local view = chainView
+    if view == nil then
+        return Strings.stationNoEffect(bottleneck)
+    end
+    local link, line = HeldBack.ofPad(pad)
+    if link == nil then
+        return Strings.stationNoEffect(view.bottleneck)
+    end
+    local key, tie = HeldBack.by(view, link, line)
+    if key == nil then
+        return Strings.STATION_NO_SCRAP
+    end
+    return Strings.menuHeldBack(key, tie, HeldBack.netsLine(view, line))
+end
+
 -- `nearestId`: platforma "available" cea mai apropiata aflata sub 220px, sau nil. Doar geometria
 -- ramane aici -- continutul si aparitia cartonasului sunt in HUDController.ShowApproachCard/
 -- HideApproachCard [F3 spec item 5]. Schimbarea tintei sau a afordabilitatii cere HUD-ului sa
@@ -954,7 +978,7 @@ local function updateApproachCard(nearestId: string?)
             pad,
             padDeltas[nearestId] or 0,
             affordable,
-            bottleneck,
+            noGainText(pad),
             coins
         )
     end
@@ -983,6 +1007,11 @@ function PadController.TryBuyFocused(): boolean
     end
     tryBuy(target)
     return true
+end
+
+-- [D63] Lantul, asa cum il stie clientul; inaintea lui `Apply`, ca prima desenare a cartonasului sa aiba deja raspunsul.
+function PadController.SetChain(view: HeldBack.View?)
+    chainView = view
 end
 
 -- Starea vine din TycoonState, inlocuita in intregime la fiecare mesaj [F0 spec 4.1]. Se

@@ -14,6 +14,7 @@
 local TweenService = game:GetService("TweenService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
+local HeldBack = require(ReplicatedStorage.Shared.Modules.HeldBack)
 local StationConfig = require(ReplicatedStorage.Shared.Config.StationConfig)
 local Strings = require(ReplicatedStorage.Shared.Config.Strings)
 
@@ -34,6 +35,7 @@ export type Row = {
     maxCount: number,
     maxCost: number,
     bottleneck: boolean,
+    gain: number?, -- [D52] castigul real al unui nivel; 0 = nu aduce nimic pe loc (randul spune de ce)
     line: string?, -- [D56] "wood" | "iron"; nil = taverna
 }
 
@@ -286,17 +288,22 @@ local function refreshRows(snap: Snapshot)
             view.milestone.Text = ""
         end
 
-        -- PANOUL NU MINTE: daca statia nu e veriga slaba, nivelul nu aduce nimic ACUM, si scrie asta. [D56] Veriga
-        -- slaba a liniei randului; forja fara plasa de scrap n-are nicio veriga care s-o tina, doar nu vine nimic.
-        local lineBottleneck = if row.line == "iron"
-            then snap.ironBottleneck or ""
-            elseif row.line == "wood" then snap.woodBottleneck or snap.bottleneck
-            else snap.bottleneck
-        view.warn.Text = if row.bottleneck
-            then ""
-            elseif lineBottleneck == "" then Strings.STATION_NO_SCRAP
-            else Strings.stationNoEffect(lineBottleneck)
-        view.gain.TextColor3 = if row.bottleneck then Theme.COLOR.good else Theme.COLOR.onDarkSoft
+        -- PANOUL NU MINTE: daca un nivel nu aduce nimic ACUM, scrie asta si spune cine il tine pe loc. [D63] Se uita
+        -- la CASTIGUL REAL al nivelului (`row.gain`, ca meniul obiectului din D52), nu la steagul "sunt eu veriga
+        -- slaba": cu amandoua liniile pornite, Taverna care tinea lemnul scria "No gain yet — the Forge is slowest"
+        -- desi un nivel la ea aducea mai mult decat unul la Forja. Forja fara plasa de scrap n-are nicio veriga care
+        -- s-o tina, doar nu vine nimic [D56].
+        local earns = (row.gain or 0) > 0
+        if earns then
+            view.warn.Text = ""
+        else
+            local mine = if row.kind == "net" then "nets" else row.kind
+            local key, tie = HeldBack.by(snap, mine, row.line)
+            view.warn.Text = if key == nil
+                then Strings.STATION_NO_SCRAP
+                else Strings.menuHeldBack(key, tie, HeldBack.netsLine(snap, row.line))
+        end
+        view.gain.TextColor3 = if earns then Theme.COLOR.good else Theme.COLOR.onDarkSoft
 
         local cost = costFor(row)
         if count < 1 then
