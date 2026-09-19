@@ -341,6 +341,17 @@ return function()
             check.equal(TycoonMath.formatNumber(1200), "1.2K")
             check.equal(TycoonMath.formatNumber(12000), "12K")
             check.equal(TycoonMath.formatNumber(1500000), "1.5M")
+            -- [D63] trei cifre, cel mult cinci caractere, taiat (nu rotunjit): contorul nu arata mai mult decat ai
+            check.equal(TycoonMath.formatNumber(1250), "1.25K")
+            check.equal(TycoonMath.formatNumber(12345), "12.3K")
+            check.equal(TycoonMath.formatNumber(232954), "232K")
+            check.equal(TycoonMath.formatNumber(999999), "999K")
+            check.equal(TycoonMath.formatNumber(1999999), "1.99M")
+            for _, n in
+                { 1000, 9999, 10000, 99999, 100000, 999999, 1e6, 5.5e7, 9.99e8, 1e9, 7.25e10 }
+            do
+                check.is_true(#TycoonMath.formatNumber(n) <= 5)
+            end
         end)
 
         test.case("formatRate: sub 10 cu o zecimala, altfel ca formatNumber", function()

@@ -488,6 +488,10 @@ function TycoonMath.era(bought: { [string]: boolean }, pads: { TycoonConfig.Pad 
     return last
 end
 
+-- TREI CIFRE, cel mult cinci caractere: "1.25K", "12.3K", "232K". [D63] Pana acum erau mereu doua zecimale, deci
+-- "232.95K" -- sapte caractere, care la marimea contorului de monede ieseau din pastila lui (vazut cu sonda in Studio, pe
+-- salvarea owner-ului). Trei cifre sunt si mai usor de citit pentru un copil. Se TAIE, nu se rotunjeste: contorul nu arata
+-- niciodata mai mult decat ai, iar "999.9K" nu sare la "1000K".
 function TycoonMath.formatNumber(n: number): string
     local v = math.floor(n)
     if v < 1000 then
@@ -497,8 +501,13 @@ function TycoonMath.formatNumber(n: number): string
     for _, u in units do
         local suffix, d = u[1] :: string, u[2] :: number
         if v >= d then
-            local s = string.format("%.2f", v / d)
-            s = s:gsub("0+$", ""):gsub("%.$", "")
+            local x = v / d
+            local decimals = if x < 10 then 2 elseif x < 100 then 1 else 0
+            local scale = 10 ^ decimals
+            local s = string.format(`%.{decimals}f`, math.floor(x * scale) / scale)
+            if decimals > 0 then
+                s = s:gsub("0+$", ""):gsub("%.$", "")
+            end
             return s .. suffix
         end
     end
