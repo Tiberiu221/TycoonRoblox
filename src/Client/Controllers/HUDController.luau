@@ -14,6 +14,7 @@ local GuideMath = require(ReplicatedStorage.Shared.Modules.GuideMath)
 local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 local AmbitionMath = require(ReplicatedStorage.Shared.Modules.AmbitionMath)
+local HudLayout = require(ReplicatedStorage.Shared.Modules.HudLayout)
 local Assets = require(ReplicatedStorage.Shared.Config.Assets)
 local Strings = require(ReplicatedStorage.Shared.Config.Strings)
 local Theme = require(script.Parent.Parent.UI.Theme)
@@ -79,16 +80,16 @@ local APPROACH_POP = TweenInfo.new(0.18, Enum.EasingStyle.Back, Enum.EasingDirec
 -- Pastila venitului pasiv. NU exista de la inceput: apare abia cand lantul poate merge fara tine
 -- (o Mana care cara si un Negustor care vinde). Momentul ala e rasplata jocului -- ai cumparat
 -- scaparea de o corvoada -- si se vede prin faptul ca in HUD apare ceva ce nu era [Idle Miner].
-local IDLE_W, IDLE_H = 176, 32
-local SACK_CHIP_W, SACK_CHIP_H = 120, 52
+-- [D63] Marimile si locurile pastilelor vin din HudLayout (o grila, un bloc drept); aici raman doar numele scurte.
+local GRID = HudLayout.rects()
+local IDLE_W, IDLE_H = GRID.away.w, GRID.away.h
 -- A doua moneda sta LANGA prima, la aceeasi inaltime: doua monede despartite de alte pastile nu se
 -- mai citesc ca pereche. Chipul traistei si pastila IDLE se muta la dreapta lor.
-local PEARL_PILL_W = 150
-local OBJ_W, OBJ_H = 340, 58
-local OBJ_H_STEP = 78 -- [D51] cu randul pasului
-local COIN_PILL_W, COIN_PILL_H = 196, 48
-local RATE_PILL_W, RATE_PILL_H = 150, 32
-local STACK_GAP = Theme.SPACE.xs
+local PEARL_PILL_W = GRID.pearl.w
+local OBJ_W, OBJ_H = GRID.objective.w, HudLayout.OBJ_H
+local OBJ_H_STEP = HudLayout.OBJ_H_STEP -- [D51] cu randul pasului
+local COIN_PILL_W, COIN_PILL_H = GRID.coin.w, GRID.coin.h
+local RATE_PILL_W, RATE_PILL_H = GRID.rate.w, GRID.rate.h
 local coinTicker: ((number) -> ())? = nil
 local rateTicker: ((number) -> ())? = nil
 -- treimea de sus, centrat: liber la orice latime, si acolo se uita ochiul
@@ -194,7 +195,7 @@ function HUDController.Init(
     -- stivuite [F2 spec Agent U pct.3].
     coinPill = Instance.new("Frame")
     coinPill.Name = "CoinPill"
-    coinPill.Position = UDim2.fromOffset(Theme.SPACE.lg, Theme.SPACE.md)
+    coinPill.Position = UDim2.fromOffset(GRID.coin.x, GRID.coin.y)
     coinPill.Size = UDim2.fromOffset(COIN_PILL_W, COIN_PILL_H)
     coinPill.ZIndex = 12
     Widgets.PillBackground(coinPill, 12)
@@ -227,8 +228,7 @@ function HUDController.Init(
     -- ajungeau la ~12 si rata abia se citea (vazut in Studio, 2026-09-11)
     pearlPill = Instance.new("Frame")
     pearlPill.Name = "PearlPill"
-    pearlPill.Position =
-        UDim2.fromOffset(Theme.SPACE.lg + COIN_PILL_W + Theme.SPACE.sm, Theme.SPACE.md)
+    pearlPill.Position = UDim2.fromOffset(GRID.pearl.x, GRID.pearl.y)
     pearlPill.Size = UDim2.fromOffset(PEARL_PILL_W, COIN_PILL_H)
     pearlPill.ZIndex = 12
     Widgets.PillBackground(pearlPill, 12)
@@ -247,7 +247,7 @@ function HUDController.Init(
 
     ratePill = Instance.new("Frame")
     ratePill.Name = "RatePill"
-    ratePill.Position = UDim2.fromOffset(Theme.SPACE.lg, Theme.SPACE.md + COIN_PILL_H + STACK_GAP)
+    ratePill.Position = UDim2.fromOffset(GRID.rate.x, GRID.rate.y)
     ratePill.Size = UDim2.fromOffset(RATE_PILL_W, RATE_PILL_H)
     ratePill.ZIndex = 12
     Widgets.PillBackground(ratePill, 12)
@@ -259,18 +259,9 @@ function HUDController.Init(
 
     idlePill = Instance.new("Frame")
     idlePill.Name = "IdlePill"
-    -- LA DREAPTA CHIPULUI DE TRAISTA, nu sub pastila de monede: acolo intra peste chip (verificat
-    -- cu aritmetica, nu cu ochiul -- cutiile se suprapuneau pe 120x16 pixeli).
-    idlePill.Position = UDim2.fromOffset(
-        Theme.SPACE.lg
-            + COIN_PILL_W
-            + Theme.SPACE.sm
-            + PEARL_PILL_W
-            + Theme.SPACE.sm
-            + SACK_CHIP_W
-            + Theme.SPACE.sm,
-        Theme.SPACE.md + (COIN_PILL_H + STACK_GAP + RATE_PILL_H - IDLE_H) / 2
-    )
+    -- [D63] Pe randul al doilea, exact sub perle si sac, langa rata: pana acum statea la coada randului de sus, la
+    -- jumatatea inaltimii, si lungea tot grupul cu ~180 de unitati.
+    idlePill.Position = UDim2.fromOffset(GRID.away.x, GRID.away.y)
     idlePill.Size = UDim2.fromOffset(IDLE_W, IDLE_H)
     idlePill.ZIndex = 12
     idlePill.Visible = false
@@ -307,10 +298,7 @@ function HUDController.Init(
     objPill.Name = "Objective"
     objPill.AutoButtonColor = false
     objPill.Text = ""
-    objPill.Position = UDim2.fromOffset(
-        Theme.SPACE.lg,
-        Theme.SPACE.md + COIN_PILL_H + STACK_GAP + RATE_PILL_H + STACK_GAP
-    )
+    objPill.Position = UDim2.fromOffset(GRID.objective.x, GRID.objective.y)
     objPill.Size = UDim2.fromOffset(OBJ_W, OBJ_H)
     objPill.ZIndex = 12
     objPill.Visible = false
@@ -402,11 +390,9 @@ function HUDController.Init(
     -- si se aprinde rosu cand se umple -- semnalul de "du-te si vinde" [DECIZII D40, D43]. La
     -- dreapta grupului monede+rata, centrata pe inaltimea lui [F2 spec Agent U pct.3].
     sackChip, sackValue = Widgets.Chip(deps.HudGui, "capacity", 12, "Sack")
-    sackChip.Position = UDim2.fromOffset(
-        Theme.SPACE.lg + COIN_PILL_W + Theme.SPACE.sm + PEARL_PILL_W + Theme.SPACE.sm,
-        Theme.SPACE.md + (COIN_PILL_H + STACK_GAP + RATE_PILL_H - SACK_CHIP_H) / 2
-    )
-    sackChip.Size = UDim2.fromOffset(SACK_CHIP_W, SACK_CHIP_H)
+    -- [D63] pe randul de sus, la aceeasi inaltime cu monedele si perlele (era mai inalt si cobora intre randuri)
+    sackChip.Position = UDim2.fromOffset(GRID.sack.x, GRID.sack.y)
+    sackChip.Size = UDim2.fromOffset(GRID.sack.w, GRID.sack.h)
 
     -- Mesajele scurte stau in TREIMEA DE SUS, centrat, si urca stingandu-se -- pozitia clasica
     -- de "Not enough gold!" din jocurile mobile de constructie.
