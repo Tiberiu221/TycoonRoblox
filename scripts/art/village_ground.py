@@ -309,11 +309,19 @@ def bake(G):
                 cv.set(ix, iy, col, MAT_SAND)
 
     # pietricele pe plaje, cu umbra lor dedesubt
-    for rnd, x_from, x_to, tries in (
-        (random.Random(62), 0, W_OLD, 900),
-        (random.Random(6202), W_OLD, W, 900 * (W - W_OLD) // W_OLD),
+    # [D65] FIECARE INCERCARE ARE ZARUL EI (`each_try`): pana acum un singur sir de numere trecea prin toate, iar o
+    # incercare respinsa tragea mai putine numere decat una primita. Un drum nou la Moara respingea cateva si muta
+    # astfel TOATE pietricelele si smocurile de dupa ele, inclusiv din satul vechi (567 de pixeli la prima coacere cu
+    # Moara). Asa, ce se schimba intr-un cartier nu mai atinge nimic din celelalte.
+    def each_try(seed, tries):
+        for k in range(tries):
+            yield random.Random(seed * 1000003 + k)
+
+    for seed, x_from, x_to, tries in (
+        (62, 0, W_OLD, 900),
+        (6202, W_OLD, W, 900 * (W - W_OLD) // W_OLD),
     ):
-        for _ in range(tries):
+        for rnd in each_try(seed, tries):
             ix, iy = x_from + rnd.randrange(x_to - x_from), rnd.randrange(H)
             if cv.mat[iy * W + ix] != MAT_SAND or not cv.inside(ix + 1, iy + 1):
                 continue
@@ -546,15 +554,14 @@ def bake(G):
     flowers = ((244, 240, 226), (250, 214, 96), (236, 150, 170), (170, 190, 250))
     flower_top = int(near["y"][0] // D) + 30
     # in doi timpi, ca la pietricele: satul vechi isi tine smocurile si florile, fasia noua le primeste pe ale ei
-    for rnd, x_from, x_to, share in (
-        (random.Random(5), 0, W_OLD, 1.0),
-        (random.Random(505), W_OLD, W, (W - W_OLD) / W_OLD),
+    for seed, x_from, x_to, share in (
+        (5, 0, W_OLD, 1.0),
+        (505, W_OLD, W, (W - W_OLD) / W_OLD),
     ):
         span = x_to - x_from
         if span <= 2:
             continue
-        for _ in range(int(2400 * share)):
-            # pe latimea veche: randrange(1, W_OLD - 1), exact apelul de dinainte de D65
+        for rnd in each_try(seed, int(2400 * share)):
             ix, iy = x_from + rnd.randrange(1, span - 1), rnd.randrange(2, H)
             i = iy * W + ix
             if cv.mat[i] != MAT_GRASS or cv.mat[i - 1] != MAT_GRASS or cv.mat[i + 1] != MAT_GRASS:
@@ -562,7 +569,7 @@ def bake(G):
             cv.set(ix, iy, GRASS_BLADE_DARK)
             cv.set(ix - 1, iy - 1, GRASS_BLADE_DARK)
             cv.set(ix + 1, iy - 1, GRASS_BLADE_LIGHT if rnd.random() < 0.5 else GRASS_BLADE_DARK)
-        for _ in range(int(260 * share)):
+        for rnd in each_try(seed + 7, int(260 * share)):
             cx, cy = x_from + rnd.randrange(span), rnd.randrange(flower_top, H)
             wx, wy = world(cx, cy)
             if n_tone.at(wx, wy, 430) < 0.52:

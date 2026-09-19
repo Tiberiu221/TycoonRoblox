@@ -59,9 +59,12 @@ end
 
 -- "The Mill is open": zona pe care clopotul asta TOCMAI a deschis-o, din TycoonConfig.ZONES --
 -- era+1. nil la clopotul final (The Charter, era 4): nu mai e nimic de deschis dupa el.
+-- [D65] Doar daca zona aia chiar are ce juca in ea (platforme `live`): la clopotul Morii bannerul scria "The Wire Works
+-- is open", iar panoul de la gard "The Wire Works — coming soon" [D40; vazut cu sonda, 2026-09-19]. Atunci ramane
+-- "The Mill is complete!".
 local function zoneOpenText(pad: TycoonConfig.Pad): string?
     local nextZone = zoneNameFor(pad.era + 1)
-    if nextZone == nil then
+    if nextZone == nil or not TycoonConfig.eraIsLive(pad.era + 1) then
         return nil
     end
     return Strings.eraZoneOpen(nextZone)
@@ -73,6 +76,9 @@ local function bonusText(pad: TycoonConfig.Pad): string
     for _, e in pad.effects do
         if e.kind == "mul" and e.field == "bells" and e.factor ~= nil then
             local pct = math.floor((e.factor :: number - 1) * 100 + 0.5)
+            if pad.era > 1 then
+                return Strings.eraBellRungAll(pct) -- [D65] de la a doua era, clopotul inmulteste tot satul
+            end
             local zone = zoneNameFor(pad.era) or (pad.name:gsub(" Bell$", ""))
             return Strings.eraBellRung(zone, pct)
         end

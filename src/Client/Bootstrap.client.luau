@@ -413,6 +413,7 @@ safeInit("StationPanel", function()
             UpgradeRejected = Net.Get("UpgradeRejected"),
         },
         OnToast = HUDController.Toast,
+        CharacterPos = CharacterController.Position, -- [D65] panoul se deschide pe cartierul in care stai
     })
 end)
 safeInit("IndexController", function()
@@ -575,7 +576,10 @@ end
 -- Roblox ignora tastele si clicurile sintetice. Sonda scrie atributul `DevUi` pe Workspace (`<id>|<actiune>`):
 --   open:<nume>          un panou din bara de meniu (journal, board, quests, shop, audio) sau `stations` (lista veche)
 --   station:<fel>:<id>   meniul unei cladiri sau al unei plase (station:net:first_net, station:saw)
+--   panel:<fel>:<id>     lista veche, deschisa pe randul unei statii (panel:foundry): trece singura pe cartierul ei
 --   crew:<rol>           meniul unei meserii (crew:porter)
+--   goto:<x>:<y>         muta omul tau intr-un loc de pe teren (coordonatele din TycoonConfig), ca sonda sa poata citi
+--                        cardul obiectului de langa el; panourile raman cum sunt
 --   close                inchide tot
 -- Doar in Studio: intr-un joc publicat atributul nu e ascultat deloc.
 if game:GetService("RunService"):IsStudio() then
@@ -586,6 +590,16 @@ if game:GetService("RunService"):IsStudio() then
         end
         local action = string.match(raw, "^[%w_]+|(.*)$") or raw
         local verb, a, b = string.match(action, "^(%w+):?([^:]*):?(.*)$")
+        if verb == "goto" then
+            local gx, gy = tonumber(a), tonumber(b)
+            if gx ~= nil and gy ~= nil then
+                CharacterController.Teleport(
+                    TycoonConfig.PLOT_ORIGIN.x + gx,
+                    TycoonConfig.PLOT_ORIGIN.y + gy
+                )
+            end
+            return
+        end
         Panels.CloseAll()
         if verb == "open" and a == "stations" then
             StationPanel.Toggle()
@@ -597,6 +611,8 @@ if game:GetService("RunService"):IsStudio() then
             end
         elseif verb == "station" then
             openStation(a, if b ~= "" then b else nil)
+        elseif verb == "panel" then
+            StationPanel.OpenAt(a, if b ~= "" then b else nil)
         elseif verb == "crew" then
             openCrew(a)
         end

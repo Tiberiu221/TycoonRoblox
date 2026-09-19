@@ -79,14 +79,22 @@ function AmbitionMath.pick(
     crews: { CrewRow },
     milestones: { number }
 ): Ambition?
-    -- 1. cladirea sau plasa care tine venitul in loc (un nivel acolo chiar aduce ceva)
+    -- 1. cladirea sau plasa care tine venitul in loc (un nivel acolo chiar aduce ceva). [D65] Fiecare linie isi are
+    -- veriga ei slaba, deci pot fi mai multe: cea al carei nivel aduce CEL MAI MULT acum (la egalitate, prima). Cu
+    -- Moara pornita, primul rand marcat era mereu unul din satul vechi, de 40 de ori mai mic.
+    local top: Ambition? = nil
+    local topGain = 0
     for _, row in rows do
-        if row.bottleneck == true and (row.gain or 0) > 0 then
+        local gain = row.gain or 0
+        if row.bottleneck == true and gain > topGain then
             local a = milestoneOf(row, milestones)
             if a ~= nil then
-                return a
+                top, topGain = a, gain
             end
         end
+    end
+    if top ~= nil then
+        return top
     end
     -- 2. meseria care tine venitul in loc
     for _, crew in crews do

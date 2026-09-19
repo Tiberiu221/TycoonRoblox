@@ -27,7 +27,10 @@ type ZoneView = {
 }
 local views: { [string]: ZoneView } = {}
 
-local Z = 1 -- sub tot ce se cumpara/alearga, deasupra fundalului
+-- [D65] PESTE tot ce sta pe teren, nu sub: de cand ruinele Morii se vad din prima zi (platformele ei sunt `live`), un
+-- val pus sub ele le-ar fi lasat luminate pe un pamant intunecat. Asa, tot ce e dincolo de gard e in aceeasi umbra --
+-- si omul tau, daca trece gardul. Pana la D65 era 1 (sub tot), fiindca dincolo de gard nu era nimic desenat.
+local Z = 200
 local SIGN_W = 280
 local EASE = TweenInfo.new(1.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 
@@ -81,8 +84,19 @@ function ZoneController.Apply(zones: { [string]: string })
         view.sign.Size = UDim2.fromOffset(SIGN_W, math.max(30, height + 12))
         -- o zona deschisa dar nefacuta ramane estompata: acolo chiar nu e nimic de facut inca
         local clear = open and built
-        TweenService:Create(view.fade, EASE, { BackgroundTransparency = if clear then 1 else 0.7 })
-            :Play()
+        -- valul sta peste tot terenul zonei: odata sters, iese de tot din drum (nu ramane un strat gol peste butoane)
+        view.fade.Visible = true
+        local fadeTween = TweenService:Create(
+            view.fade,
+            EASE,
+            { BackgroundTransparency = if clear then 1 else 0.7 }
+        )
+        fadeTween.Completed:Once(function()
+            if view.status == "open" and clear then
+                view.fade.Visible = false
+            end
+        end)
+        fadeTween:Play()
         for _, part in view.fence do
             if part:IsA("ImageLabel") then
                 TweenService:Create(part, EASE, { ImageTransparency = if clear then 1 else 0 })

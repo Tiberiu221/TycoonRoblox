@@ -17,6 +17,7 @@ in fisier.
   python3 scripts/probe.py output [text]        tot ce a tiparit jocul de la ultimul Play (filtrat dupa text)
   python3 scripts/probe.py client <comanda>     report | frames | texts[:radacina] | overlaps[:radacina] | find:<Nume>
                                                 ui:open:quests | ui:station:net:first_net | ui:crew:porter | ui:close
+                                                ui:panel:foundry (lista veche, pe randul unei statii) | ui:goto:<x>:<y> (muta omul)
   python3 scripts/probe.py dev <comanda> ...    coins:500 | buyto:6 | fill | sell | state | ... (doar intr-un Play de proba)
   python3 scripts/probe.py report edit|server   raportul unei ferestre cu HTTP
 """

@@ -76,6 +76,24 @@ return function()
         )
 
         test.case(
+            "[D65] mai multe linii, mai multe verigi slabe: cea al carei nivel aduce cel mai mult",
+            function()
+                -- gaterul tine lemnul (+0.3/s), turnatoria tine piesele (+12/s): tinta e turnatoria, desi vine a doua
+                local saw = net("saw_row", 4, true, 0.3)
+                saw.kind, saw.id = "saw", nil
+                local foundry = net("foundry_row", 6, true, 12)
+                foundry.kind, foundry.id = "foundry", nil
+                local got = AmbitionMath.pick({ saw, foundry }, {}, M) :: AmbitionMath.Ambition
+                check.equal(got.kind, "foundry")
+                check.equal(got.target, 10)
+                -- la castig egal ramane prima (ordinea randurilor), ca inainte de D65
+                foundry.gain = 0.3
+                local tie = AmbitionMath.pick({ saw, foundry }, {}, M) :: AmbitionMath.Ambition
+                check.equal(tie.kind, "saw")
+            end
+        )
+
+        test.case(
             "o cladire marcata slaba, dar fara castig, nu e o tinta adevarata [D40]",
             function()
                 -- `gain` 0 = nivelul nu aduce nimic acum (alta veriga tine venitul): cade pe cel mai apropiat prag

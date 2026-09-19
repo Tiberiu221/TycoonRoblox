@@ -81,12 +81,17 @@ function HandService.Hire(player: Player, role: string): boolean
     end
     local seed = TycoonMath.catchSeed(player.UserId, pad.index, index - 1)
     local identity = HandConfig.appearanceFor(seed)
+    -- [D65] un prenume pe care nu-l mai poarta nimeni in sat
+    local usedNames: { [string]: boolean } = {}
+    for _, other in data.Hands do
+        usedNames[other.name] = true
+    end
     local at = RiverService.Now()
     data.Hands[key] = {
         id = key,
         role = role,
         padId = pad.id,
-        name = HandConfig.nameFor(seed),
+        name = HandConfig.nameAvoiding(seed, usedNames),
         appearance = {
             body = identity.body,
             hair = identity.hair,

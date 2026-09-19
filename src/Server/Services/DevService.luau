@@ -9,6 +9,9 @@ local ServerStorage = game:GetService("ServerStorage")
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
 local StationConfig = require(ReplicatedStorage.Shared.Config.StationConfig)
+local QuestConfig = require(ReplicatedStorage.Shared.Config.QuestConfig)
+local VillageConfig = require(ReplicatedStorage.Shared.Config.VillageConfig)
+local QuestMath = require(ReplicatedStorage.Shared.Modules.QuestMath)
 local CrewMath = require(ReplicatedStorage.Shared.Modules.CrewMath)
 
 local DataService = require(script.Parent.DataService)
@@ -203,7 +206,7 @@ local HANDLERS: { [string]: Handler } = {
         local n = tonumber(amount) or 50
         local added = EconomyService.DevFillPile(player, place or "", n)
         if added == 0 then
-            return "usage: pile storage|sawmill|planks|dock|shed|forge|iron [n]"
+            return "usage: pile storage|sawmill|planks|dock|shed|forge|iron|millStore|foundry|parts|oreShed|furnace|copper|market [n]"
         end
         return `+{added} in {place}`
     end,
@@ -216,7 +219,7 @@ local HANDLERS: { [string]: Handler } = {
         local role, tierText, peopleText = string.match(text, "^(%a+)%s*(%d*)%s*(%d*)$")
         local def = if role ~= nil then TycoonConfig.CREWS[role] else nil
         if data == nil or def == nil then
-            return "usage: crew collector|porter|sawyer|hauler|trader|scrapCollector|scrapPorter|smelter|ironHauler [tier] [people]"
+            return "usage: crew <role> [tier] [people]   (roles: StationConfig.ROLES, e.g. porter, smelter, founder, merchant)"
         end
         local tier = math.clamp(tonumber(tierText) or 1, 1, StationConfig.TIER_MAX)
         local want = math.clamp(tonumber(peopleText) or 1, 1, StationConfig.MAX_PEOPLE)
@@ -310,6 +313,80 @@ local HANDLERS: { [string]: Handler } = {
         return if VillageService.DevReset(player)
             then "village decor and outfits reset"
             else "no profile"
+    end,
+
+    -- [D65] Cumpara niveluri PE DRUMUL ADEVARAT (StationService.Upgrade, cu monedele tale): `up foundry 3`,
+    -- `up net:sixth_net 2`. Sonda nu poate trimite un `nil` la mijlocul unei cereri, iar cladirile n-au id.
+    up = function(player: Player, arg: unknown): string
+        local text = if typeof(arg) == "string" then arg :: string else ""
+        local target, countText = string.match(text, "^([%a_:]+)%s*(%d*)$")
+        if target == nil then
+            return "usage: up saw|dock|forge|foundry|furnace|market|net:<padId> [count]"
+        end
+        local kind, id = string.match(target, "^(%a+):(.+)$")
+        local count = tonumber(countText) or 1
+        local ok, reason, done = StationService.Upgrade(player, kind or target, id, count)
+        if not ok then
+            return `refused: {reason}`
+        end
+        local pushState = deps.PushState
+        if pushState ~= nil then
+            pushState(player)
+        end
+        return `{target}: level {if done ~= nil then done.level else "?"}`
+    end,
+
+    -- [D65] UNEALTA ERELOR: aduce profilul la INCEPUTUL capitolului N (chapter 4 = Era 2, cu clopotul Erei 1 tras):
+    -- fiecare quest de dinainte e facut (platforma data, nivelul urcat, numaratoarea la tinta) si revendicat, fara
+    -- recompense. Altfel Era 2 s-ar putea verifica doar dupa o ora de joc. Quest-urile se citesc din stare, deci aici
+    -- se scrie STAREA, nu un steag "sarit".
+    chapter = function(player: Player, arg: unknown): string
+        local data = DataService.Get(player)
+        if data == nil then
+            return "no profile"
+        end
+        local upTo = math.clamp(math.floor(number(arg, 4)), 1, #QuestConfig.CHAPTERS + 1)
+        local stats: any = data.Stats
+        local done = 0
+        for index, chapter in QuestConfig.CHAPTERS do
+            if index >= upTo then
+                break
+            end
+            for _, quest in chapter.quests do
+                if quest.kind == "pad" then
+                    PadService.DevGrant(player, quest.arg or "")
+                elseif quest.kind == "level" then
+                    local station, padId = QuestMath.stationTarget(quest)
+                    local stations: any = data.Stations
+                    if station == "net" and padId ~= nil then
+                        local entry = stations.nets[padId] or { level = 1 }
+                        entry.level = math.max(entry.level, quest.goal)
+                        stations.nets[padId] = entry
+                    elseif station ~= nil and typeof(stations[station]) == "table" then
+                        stations[station].level = math.max(stations[station].level or 1, quest.goal)
+                    end
+                elseif quest.kind == "decor" then
+                    -- primele `goal` lucruri din catalogul avizierului
+                    local village: any = data.Village
+                    village.decor = village.decor or {}
+                    for i = 1, math.min(quest.goal, #VillageConfig.DECOR) do
+                        village.decor[VillageConfig.DECOR[i].id] = true
+                    end
+                elseif quest.kind ~= "idle" then
+                    -- o numaratoare din Stats, pe numele felului ("collected", "sold", "sawn", "fished", "cast"...)
+                    stats[quest.kind] = math.max(stats[quest.kind] or 0, quest.goal)
+                end
+                data.Quests.claimed[quest.id] = true
+                done += 1
+            end
+        end
+        PadService.Invalidate(player)
+        StationService.Invalidate(player)
+        local pushState = deps.PushState
+        if pushState ~= nil then
+            pushState(player)
+        end
+        return `{done} quests done and claimed: now at chapter {upTo}`
     end,
 }
 

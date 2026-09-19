@@ -448,9 +448,18 @@ function VillageDiorama.Show(village: VillageLook.Snapshot)
         false
     )
 
+    -- [D65] cladirile fixe ale Morii apar cu roata de apa, ca acasa la gazda (pana la arta lor: desenele perechii
+    -- din Era 1, ca in LineController)
+    if village.pads.water_wheel then
+        local tycoon: any = Assets.tycoon
+        station(p, tycoon.storage, TycoonConfig.MILL_STORE, Strings.LINE_WORDS.parts.store, false)
+        station(p, tycoon.sawmill, TycoonConfig.FOUNDRY, Strings.LINE_WORDS.parts.processor, false)
+        station(p, tycoon.tavern, TycoonConfig.MARKET, Strings.MARKET_LABEL, true)
+    end
+
     for _, pad in TycoonConfig.PADS do
-        if pad.era ~= 1 or pad.x == nil or pad.y == nil then
-            continue -- erele urmatoare n-au inca lume construita
+        if not pad.live or pad.x == nil or pad.y == nil then
+            continue -- erele care nu sunt inca in joc n-au lume construita
         end
         if village.pads[pad.id] then
             drawBought(p, pad, village)

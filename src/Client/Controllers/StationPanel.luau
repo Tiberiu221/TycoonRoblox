@@ -54,6 +54,8 @@ export type Deps = {
     HudGui: Frame,
     Remotes: { UpgradeStation: RemoteEvent, UpgradeRejected: RemoteEvent },
     OnToast: (string, Color3?) -> (),
+    -- [D65] unde esti (coordonatele lumii): panoul se deschide pe cartierul in care stai
+    CharacterPos: (() -> (number, number))?,
 }
 
 local StationPanel = {}
@@ -461,8 +463,24 @@ function StationPanel.Close()
     window.Visible = false
 end
 
+-- [D65] Cartierul in care stai acum, daca ai ceva acolo: panoul se deschide pe el, nu mereu pe The Landing.
+local function eraUnderfoot(): number?
+    local characterPos = deps.CharacterPos
+    if characterPos == nil then
+        return nil
+    end
+    local x = characterPos() - TycoonConfig.PLOT_ORIGIN.x
+    for _, zone in TycoonConfig.ZONES do
+        if x >= zone.x0 and x < zone.x1 and CHAIN_BY_ERA[zone.era] ~= nil then
+            return zone.era
+        end
+    end
+    return nil
+end
+
 function StationPanel.Open()
     Panels.CloseOthers("stations")
+    shownEra = eraUnderfoot() or shownEra -- fara nimic la Moara, `layoutTabs` il intoarce pe The Landing
     open = true
     window.Visible = true
     SoundController.Play("click")

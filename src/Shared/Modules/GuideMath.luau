@@ -192,7 +192,8 @@ local function extraRaw(s: State): number
     return n
 end
 
--- Cate bucati din traista se vand la alt vanzator decat taverna.
+-- Cate bucati din traista se vand la alt vanzator decat taverna. `sackCut` numara DOAR ce cumpara taverna (serverul:
+-- `cut = sellBy.dock.count`), deci astea nu sunt in el -- si nu sunt nici busteni.
 local function soldElsewhere(s: State): number
     local n = 0
     for seller, count in s.sellAt or {} do
@@ -248,8 +249,8 @@ end
 local function carryGoal(s: State, full: boolean): Goal
     local cut = s.sackCut or 0
     local rawScrap = s.sackRawScrap or 0
-    -- [D55] scrap-ul din traista nu merge la gater: nu intra in "busteni"; [D65] nici marfa bruta a Morii
-    if s.sackCount - cut - rawScrap - extraRaw(s) > 0 then
+    -- [D55] scrap-ul din traista nu merge la gater: nu intra in "busteni"; [D65] nici marfa Morii, bruta sau gata
+    if s.sackCount - cut - rawScrap - extraRaw(s) - soldElsewhere(s) > 0 then
         return logsGoal(full, not s.firstsSell)
     elseif rawScrap > 0 then
         return scrapGoal(full, not s.firstsSell)
@@ -259,7 +260,7 @@ local function carryGoal(s: State, full: boolean): Goal
         return mill
     end
     -- ce cumpara taverna merge la ea; restul, la vanzatorul lui
-    if cut - soldElsewhere(s) <= 0 then
+    if cut <= 0 then
         local elsewhere = extraSellGoal(s, full, not s.firstsSell)
         if elsewhere ~= nil then
             return elsewhere
@@ -335,7 +336,8 @@ function GuideMath.loopStep(s: State, quest: QuestGoal?): Goal
     local crews = s.crews or {}
     local cut = s.sackCut or 0
     local rawScrap = s.sackRawScrap or 0
-    local logs = s.sackCount - cut - rawScrap - extraRaw(s) -- [D55] scrap-ul nu e bustean; [D65] nici marfa Morii
+    -- [D55] scrap-ul nu e bustean; [D65] nici marfa Morii, bruta sau gata
+    local logs = s.sackCount - cut - rawScrap - extraRaw(s) - soldElsewhere(s)
     local full = s.sackCapacity > 0 and s.sackCount >= s.sackCapacity
     local room = s.sackCapacity - s.sackCount
     local saw = TycoonConfig.SAWMILL_STAND
@@ -433,7 +435,7 @@ function GuideMath.loopStep(s: State, quest: QuestGoal?): Goal
         end
     end
     -- 7) marfa gata in traista (scanduri, fier, gasiri) -> la taverna; [D65] ce cumpara doar Piata, la Piata
-    if cut - soldElsewhere(s) > 0 then
+    if cut > 0 then
         return sellGoal(s, full, true)
     end
     local elsewhere = extraSellGoal(s, full, true)

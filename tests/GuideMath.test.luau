@@ -909,10 +909,11 @@ return function()
                 GuideMath.loopStep(state({ lines = line(0, 0, 0, 5), crews = crews({}) }), nil)
             check.equal(take.kind, "take")
             check.equal(take.text, "Take the parts at the Foundry")
+            -- `sackCut` numara doar ce cumpara taverna (serverul: cut = sellBy.dock.count): piesele nu sunt in el
             local sell = GuideMath.loopStep(
                 state({
                     sackCount = 5,
-                    sackCut = 5,
+                    sackCut = 0,
                     sellAt = { market = 5, dock = 0 },
                     lines = line(0, 0, 0, 0),
                     crews = crews({}),
@@ -929,14 +930,26 @@ return function()
         test.case("scanduri si piese in aceeasi traista: intai taverna, apoi Piata", function()
             local st = state({
                 sackCount = 9,
-                sackCut = 9,
+                sackCut = 4,
                 sellAt = { dock = 4, market = 5 },
                 lines = line(0, 0, 0, 0),
                 crews = crews({}),
             })
             check.equal(GuideMath.loopStep(st, nil).key, "dock")
-            st.sackCount, st.sackCut, st.sellAt = 5, 5, { dock = 0, market = 5 }
+            st.sackCount, st.sackCut, st.sellAt = 5, 0, { dock = 0, market = 5 }
             check.equal(GuideMath.loopStep(st, nil).key, "market")
+            -- iar fara quest, traista plina de piese trimite tot la Piata, nu la gater
+            local full = GuideMath.pickGoal(state({
+                pads = pads({ "first_net" }),
+                sackCount = 30,
+                sackCapacity = 30,
+                sackCut = 0,
+                sellAt = { dock = 0, market = 30 },
+                lines = line(0, 0, 0, 0),
+                crews = crews({}),
+            })) :: GuideMath.Goal
+            check.equal(full.key, "market")
+            check.equal(full.text, "Sack full — sell at the Market")
         end)
 
         test.case("magazia Morii fara Mill Porter, plasele ei fara Mill Collector", function()

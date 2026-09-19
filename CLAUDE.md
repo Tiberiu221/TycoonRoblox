@@ -8,7 +8,9 @@ Tycoon 2D pe Roblox, pe malul unui râu, așezat ca un sat pe flux [D57]. **Râu
 la gater → gaterul taie → Hauler-ul duce la tavernă → taverna vinde.** Venitul e **minimul
 debitelor**; ce pas n-are om îl faci tu [D49]. Din Forge, a doua linie cu oamenii ei: **Fifth Net → Scrap
 Collector → Scrap Shed → Scrap Porter → forja (Smelter) → Iron Hauler → tavernă**; liniile împart doar taverna
-[D56]. Veriga cea mai slabă decide, iar repararea ei e decizia jucătorului [D46]. Clădirile au **niveluri fără capăt** (salt la 10/25/50), oamenii **trepte
+[D56]. După Landing Bell, **Era 2 „The Mill"** repetă schema la dreapta pe hartă: scrap → piese de mașini (turnătorie),
+apoi minereu → cupru (cuptor), vândute la **Piață** [D65]. Veriga cea mai slabă decide, iar repararea ei e decizia
+jucătorului [D46]. Clădirile au **niveluri fără capăt** (salt la 10/25/50), oamenii **trepte
 1–5** și un al doilea om.
 Fraza pentru jucător: *This stretch of river is yours. Everything that floats past is money.*
 
@@ -102,6 +104,29 @@ stylua/selene o prind. Rulează-le mereu pe toate, nu înlănțuite după o eroa
   bâlciul doar în 114983498774894); serverul Rojo al satului rulează detașat pe 34872 și trebuie repornit ca să citească
   o schimbare de proiect. Ce a rulat în Studio se vede în `~/Library/Logs/Roblox/*_last.log` (`CreatorOutput`, `open place`).
 
+## Stare (2026-09-19, seara) [D65]
+
+**Era 2 e construită și în joc (`live`), cu desene de împrumut; nevăzută încă de owner în Studio.** Planul pe pași și ce
+a rămas: `docs/PLAN-ERA2.md`.
+- **O eră nouă = rânduri în tabele.** Liniile și vânzătorii în `StationConfig`, drumul mărfii în `FlowConfig` /
+  `FlowMath`, locurile în `TycoonConfig.DISTRICTS` / `LINE_PLACES` / `SELLER_PLACES`, cuvintele în `Strings`
+  (`LINE_WORDS`, `LINK_WORDS`, `NET_WORDS`, `BUILDING_WORDS`), quest-urile în `QuestConfig.ALL_CHAPTERS` (în joc intră
+  doar capitolele erelor `live`). Clientul Morii e un singur controller după tabel (`LineController`); controllerele
+  Erei 1 au rămas cele scrise de mână.
+- **Desenele de împrumut stau în trei tabele:** `TycoonConfig.PAD_LOOKS_LIKE`, `GOOD_LOOKS_LIKE`,
+  `HandConfig.ROLE_OUTFIT`; clădirile fixe ale Morii iau desenul depozitului, al gaterului și al tavernei (în
+  `Bootstrap.client`). Când vine arta, se schimbă doar acolo.
+- **Pământul copt:** recopt local cu Moara, **neurcat**. Până la urcare, `SceneArt` desenează pământul Morii din dale
+  peste imaginea veche (`TycoonConfig.BAKED_DISTRICTS`); la urcare, `BAKED_DISTRICTS.mill = true` și ID-ul feliei 2 în
+  `Assets.village_ground_2`.
+- **Jucată cu sonda pe profil de probă, fără erori:** clopotul Erei 1, roata de apă, turul de mână al pieselor, oamenii,
+  plasele, cuptorul, turul cuprului, clopotul Morii; niveluri, trepte și al doilea om pe drumul adevărat. Unelte:
+  `dev "chapter:4"` (sare la începutul unui capitol), `dev "up:foundry 3"`, `client "ui:panel:foundry"`,
+  `client "ui:goto:x:y"`.
+- **Capcană a sondei:** cu fereastra Studio ascunsă, Play-ul are viewport 1×1 și `PreRender` nu rulează: cardurile de
+  lângă obiecte, cartonașele platformelor și „textul nu încape" nu se pot judeca atunci. Textele și starea, da.
+- **Rămâne:** arta Morii pe planșe și urcarea ei (cu acord), clienții desenați ai Pieței, verificarea owner-ului.
+
 ## Stare (2026-09-19, noaptea) [D63]
 
 Owner-ul a lăsat lucrul peste noapte: logica și monetizarea, „să vrei să joci", meniuri pentru copii, Era 2 dacă Era 1
@@ -133,13 +158,9 @@ e gata. Detaliile și sursele sunt în DECIZII D63. **Nimic din ce urmează n-a 
   apare când o poți folosi. Fiecare renaștere = o planetă nouă; **se construiește doar Era 2**. Marfa nouă de la finalul Erei 2 e de
   confirmat (propus: cupru). Owner-ul, 2026-09-19 seara: „dacă totul are sens și logică în Era 1, se poate trece mai
   departe".
-- **Era 2 e derivată în simulator, ca propunere [D65]:** `python3 scripts/economy/sim_era2.py [--table] [--robust]`
-  (nu e în poartă, nu atinge jocul). Schema Erei 1 oglindită: Water Wheel, plasele Morii (scrap → piese de mașini la
-  turnătorie → Piață), cinci oameni în rafală, apoi Copper Furnace, plasa de minereu și cei patru ai cuprului, Mill
-  Bell. Cadrul e un număr, M = 40 (monedele cartierului nou × M, bucățile pe secundă ca în Era 1): ~57 de minute reale,
-  112/s → ~5.080/s, nicio cumpărătură care scade venitul. `sim_tycoon.run` primește acum era și starea de pornire
-  (`ERA1`), cu Era 1 neschimbată la octet. **Aprobată de owner pe 2026-09-19 („confirm. poți să te apuci"): se
-  construiește în ordinea din D65.**
+- **Economia Erei 2 [D65]** iese din `sim_tycoon.py` (rulează după Era 1, din starea ei): cadrul e un număr, M = 40
+  (monedele cartierului nou × M, bucățile pe secundă ca în Era 1); ~57 de minute reale, 112/s → ~5.080/s, nicio
+  cumpărătură care scade venitul. `scripts/economy/sim_era2.py` a rămas unealta de „ce-ar fi dacă" (nu e în poartă).
 - **Motorul lanțului merge pe un tabel de linii (2026-09-19, pașii a–f din `docs/PLAN-MOTOR-N-LINII.md`).** Forma
   liniilor e dată: `LINE_ORDER` / `LINES` / `PROCESSORS` / `SELLERS`, în `sim_tycoon.py` și în `StationConfig`; restul
   tabelelor (`LINE_STEPS`, `LINK_OF`, `LINKS`, …) se derivă din ele. În `ChainMath`, `Flow` e adevărul, iar `Rates` e

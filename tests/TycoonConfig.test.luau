@@ -203,16 +203,23 @@ return function()
             end
         end)
 
-        -- F1: toata Era 1 e live (angajatul, atelierul, clopotul inclusiv); erele 2-4 inca nu.
-        test.case("live = exact cele 18 deblocari ale Erei 1", function()
-            local liveCount = 0
+        -- F1: toata Era 1 e live (angajatul, atelierul, clopotul inclusiv). [D65] O ERA INTRA IN JOC INTREAGA SAU DELOC:
+        -- cu jumatate din platforme live, clopotul ei (care cere tot restul erei) n-ar putea fi tras niciodata.
+        test.case("live = Era 1 intreaga; orice alta era, toata sau deloc", function()
+            local liveByEra: { [number]: number } = {}
+            local countByEra: { [number]: number } = {}
             for _, p in TycoonConfig.PADS do
-                check.equal(p.live, p.era == 1)
+                countByEra[p.era] = (countByEra[p.era] or 0) + 1
                 if p.live then
-                    liveCount += 1
+                    liveByEra[p.era] = (liveByEra[p.era] or 0) + 1
                 end
             end
-            check.equal(liveCount, 18)
+            check.equal(liveByEra[1], 18)
+            for era, count in countByEra do
+                local live = liveByEra[era] or 0
+                check.is_true(live == 0 or live == count)
+                check.equal(TycoonConfig.eraIsLive(era), live == count)
+            end
         end)
 
         -- Latimea de desen a plasei vine acum din config (NET_DRAW), nu din cutia veche de 144:
@@ -338,9 +345,12 @@ return function()
                 -- Platformele si cladirile stau LANGA drumuri, nu pe ele; doar plasele stau pe punte.
                 -- Oamenii si gramezile au voie pe marginea drumului: acolo lasa si iau marfa.
                 local things = placed()
+                -- [D65] drumurile tuturor cartierelor: platformele Morii stau langa ale ei
                 local roads: { Box } = {}
-                for _, r in TycoonConfig.ROADS do
-                    table.insert(roads, { x0 = r.x0, x1 = r.x1, y0 = r.y0, y1 = r.y1 })
+                for _, district in TycoonConfig.DISTRICTS do
+                    for _, r in district.roads do
+                        table.insert(roads, { x0 = r.x0, x1 = r.x1, y0 = r.y0, y1 = r.y1 })
+                    end
                 end
                 local onRoad = {}
                 local check_names = { "storage", "sawmill", "tavern", "wheel", "board", "spawn" }
@@ -403,6 +413,16 @@ return function()
                         TycoonConfig.FORGE_IN,
                         TycoonConfig.FORGE_OUT,
                         TycoonConfig.WORKSHOP_STAND,
+                        -- [D65] locurile Morii, din tabel
+                        TycoonConfig.LINE_PLACES.parts.storeStand,
+                        TycoonConfig.LINE_PLACES.parts.playerStand,
+                        TycoonConfig.LINE_PLACES.parts.processorIn,
+                        TycoonConfig.LINE_PLACES.parts.processorOut,
+                        TycoonConfig.LINE_PLACES.copper.storeStand,
+                        TycoonConfig.LINE_PLACES.copper.playerStand,
+                        TycoonConfig.LINE_PLACES.copper.processorIn,
+                        TycoonConfig.LINE_PLACES.copper.processorOut,
+                        TycoonConfig.SELLER_PLACES.market.door,
                     }
                 do
                     local nearest = math.huge
@@ -415,7 +435,13 @@ return function()
                 for _, p in TycoonConfig.PADS do
                     for _, e in p.effects do
                         if e.kind == "net" and p.live then
+                            -- puntea cartierului ei
                             local d = TycoonConfig.DECK
+                            for _, district in TycoonConfig.DISTRICTS do
+                                if district.era == p.era then
+                                    d = district.deck
+                                end
+                            end
                             check.is_true(
                                 (p.x :: number) >= d.x0
                                     and (p.x :: number) <= d.x1

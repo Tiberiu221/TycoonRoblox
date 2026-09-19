@@ -116,7 +116,7 @@ return function()
             -- aceleiasi statii. Daca ar parsa fiecare separat, Go! ar putea deschide Dock-ul in
             -- timp ce bara urmareste o plasa.
             local seen = 0
-            for _, chapter in QuestConfig.CHAPTERS do
+            for _, chapter in QuestConfig.ALL_CHAPTERS do
                 for _, q in chapter.quests do
                     if q.kind == "level" then
                         seen += 1
@@ -126,9 +126,12 @@ return function()
                         if station == "net" then
                             check.not_nil(padId)
                             over.netLevels = { [padId :: string] = 7 }
-                        else
-                            check.equal(station, "dock")
+                        elseif station == "dock" then
                             over.dockLevel = 7
+                        else
+                            -- [D65] un alt vanzator: nivelul lui vine pe numele lui
+                            check.equal(station, "market")
+                            over.levels = { market = 7 }
                         end
                         check.equal(QuestMath.progress(q, facts(over)), 7)
                     end

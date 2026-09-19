@@ -465,9 +465,13 @@ function SceneArt.BuildBackground(layers: Layers)
                 tiled(groundLayer, Assets.grass_tile, x0, waterBottom, w, H - waterBottom, 0)
             end
         end
-    else
-        -- [F3] Malul construit: pontonul (scandurile de-a lungul apei, unde stau stalpii plaselor) si
-        -- drumurile batatorite pe care merg oamenii [D50, TycoonConfig.DECK/ROADS].
+    end
+
+    -- [F3] Malul construit DIN DALE: pontonul (scandurile de-a lungul apei, unde stau stalpii plaselor), curtile si
+    -- drumurile batatorite pe care merg oamenii [D50, D57]. [D65] Pe cartiere (TycoonConfig.DISTRICTS): fara imagine
+    -- coapta, toate cartierele din joc; cu ea, doar cele pe care imaginea URCATA inca nu le contine
+    -- (TycoonConfig.BAKED_DISTRICTS) -- altfel Moara ar sta pe iarba goala pana la urcarea coacerii noi.
+    do
         local function groundStrip(
             sprite: Assets.Sprite,
             r: { x0: number, x1: number, y0: number, y1: number },
@@ -562,29 +566,36 @@ function SceneArt.BuildBackground(layers: Layers)
             end
         end
 
-        groundStrip(Assets.tycoon.deck_tile, TycoonConfig.DECK, 1, false, true)
-
-        -- [D57] PAMANTUL BATATORIT de sub cladiri si din jurul pietei (TycoonConfig.YARDS): aceeasi dala ca drumul, mai
-        -- deschisa, cu colturi rotunjite si iarba peste margini. Sub drumuri, ca aleile sa treaca peste curtile lor.
-        for _, yard in TycoonConfig.YARDS do
-            local w, h = yard.x1 - yard.x0, yard.y1 - yard.y0
-            if Assets.has(Assets.path_tile) then
-                local img = tiled(builtLayer, Assets.path_tile, yard.x0, yard.y0, w, h, 2)
-                img.Name = `Yard_{yard.id}`
-                img.ImageColor3 = Color3.fromRGB(228, 216, 192)
-                rounded(img, 14)
+        for _, district in TycoonConfig.DISTRICTS do
+            local inImage = baked and TycoonConfig.BAKED_DISTRICTS[district.id] == true
+            if inImage or not TycoonConfig.eraIsLive(district.era) then
+                continue
             end
-            grassEdges({ x0 = yard.x0 + 8, x1 = yard.x1 - 8, y0 = yard.y0, y1 = yard.y1 }, 3)
-        end
+            groundStrip(Assets.tycoon.deck_tile, district.deck, 1, false, true)
 
-        -- bucla [D50], satul [D57]: aceleasi dreptunghiuri din care RoadGraph face drumurile oamenilor si dara de
-        -- ghidaj, deci ce e desenat ca drum e exact pe unde merge lumea. Piata tavernei e de piatra, peste aleea ei.
-        for _, road in TycoonConfig.ROADS do
-            if road.id == "plaza" and Assets.has(Assets.tile_plaza) then
-                groundStrip(Assets.tile_plaza, road, 5, false)
-            else
-                groundStrip(Assets.path_tile, road, 3, true)
-                grassEdges(road, 5)
+            -- [D57] PAMANTUL BATATORIT de sub cladiri si din jurul pietei (curtile cartierului): aceeasi dala ca drumul,
+            -- mai deschisa, cu colturi rotunjite si iarba peste margini. Sub drumuri, ca aleile sa treaca peste curti.
+            for _, yard in district.yards do
+                local w, h = yard.x1 - yard.x0, yard.y1 - yard.y0
+                if Assets.has(Assets.path_tile) then
+                    local img = tiled(builtLayer, Assets.path_tile, yard.x0, yard.y0, w, h, 2)
+                    img.Name = `Yard_{yard.id}`
+                    img.ImageColor3 = Color3.fromRGB(228, 216, 192)
+                    rounded(img, 14)
+                end
+                grassEdges({ x0 = yard.x0 + 8, x1 = yard.x1 - 8, y0 = yard.y0, y1 = yard.y1 }, 3)
+            end
+
+            -- bucla [D50], satul [D57]: aceleasi dreptunghiuri din care RoadGraph face drumurile oamenilor si dara de
+            -- ghidaj, deci ce e desenat ca drum e exact pe unde merge lumea. Piata vanzatorului e de piatra, peste
+            -- aleea ei (`like`: drumul-pereche din Era 1, dupa care se alege desenul).
+            for _, road in district.roads do
+                if (road.like or road.id) == "plaza" and Assets.has(Assets.tile_plaza) then
+                    groundStrip(Assets.tile_plaza, road, 5, false)
+                else
+                    groundStrip(Assets.path_tile, road, 3, true)
+                    grassEdges(road, 5)
+                end
             end
         end
     end

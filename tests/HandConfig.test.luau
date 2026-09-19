@@ -72,6 +72,29 @@ return function()
             check.is_true(contains(SettlerConfig.FIRST, n1))
         end)
 
+        test.case("[D65] un om nou nu ia prenumele altuia din sat", function()
+            local StationConfig = require("../src/Shared/Config/StationConfig")
+            -- liber: exact prenumele de pana acum (satele existente isi pastreaza oamenii)
+            check.equal(HandConfig.nameAvoiding(777, {}), HandConfig.nameFor(777))
+            -- luat: altul, tot determinist
+            local taken = { [HandConfig.nameFor(777)] = true }
+            local other = HandConfig.nameAvoiding(777, taken)
+            check.is_true(other ~= HandConfig.nameFor(777))
+            check.equal(other, HandConfig.nameAvoiding(777, taken))
+            -- un sat intreg, cu doi oameni pe fiecare meserie: niciun prenume de doua ori
+            local used: { [string]: boolean } = {}
+            local people = #StationConfig.ROLES * StationConfig.MAX_PEOPLE
+            for i = 1, people do
+                local name = HandConfig.nameAvoiding(i * 7919, used)
+                check.is_true(used[name] == nil)
+                used[name] = true
+            end
+            -- prenumele in plus nu le dubleaza pe ale satenilor
+            for _, name in HandConfig.MORE_NAMES do
+                check.is_false(contains(SettlerConfig.FIRST, name))
+            end
+        end)
+
         test.case("nameFor nu e mereu acelasi ca primul camp tras de appearanceFor", function()
             -- garda impotriva bug-ului "acelasi rng, acelasi prim numar": corpul si numele ar fi
             -- mereu cuplate (tot angajatii cu corp "a" ar avea acelasi nume)

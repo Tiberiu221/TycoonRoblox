@@ -77,4 +77,53 @@ function HandConfig.nameFor(seed: number): string
     return SettlerConfig.FIRST[rng:nextInteger(1, #SettlerConfig.FIRST)]
 end
 
+-- [D65] Cu Moara sunt 18 meserii, cate doi oameni: bazinul de prenume al satenilor nu mai ajunge, iar in jocul de proba
+-- au iesit doi "Perrin" si doi "Brann" in acelasi sat. Prenume in plus, DOAR pentru oameni (lista satenilor nu se
+-- atinge: lungimea ei decide ce iese din fiecare samanta).
+HandConfig.MORE_NAMES = {
+    "Alder",
+    "Bryn",
+    "Cael",
+    "Doran",
+    "Edda",
+    "Finch",
+    "Garrick",
+    "Hollis",
+    "Ilse",
+    "Joss",
+    "Kestrel",
+    "Linnet",
+    "Marek",
+    "Nessa",
+    "Orla",
+    "Pike",
+    "Quill",
+    "Rowan",
+    "Tamsin",
+    "Ulric",
+    "Vesna",
+    "Wilf",
+    "Yara",
+    "Zeph",
+}
+
+-- Prenumele unui om nou, ocolindu-le pe cele deja purtate in sat (`used`). Acelasi prenume ca `nameFor` cat e liber
+-- (deci satele de pana acum isi pastreaza oamenii); altfel urmatorul liber din bazin, in ordine, pornind de la el.
+function HandConfig.nameAvoiding(seed: number, used: { [string]: boolean }): string
+    local first = HandConfig.nameFor(seed)
+    if not used[first] then
+        return first
+    end
+    local pool = table.clone(SettlerConfig.FIRST)
+    table.move(HandConfig.MORE_NAMES, 1, #HandConfig.MORE_NAMES, #pool + 1, pool)
+    local start = table.find(pool, first) or 1
+    for step = 1, #pool do
+        local candidate = pool[(start - 1 + step) % #pool + 1]
+        if not used[candidate] then
+            return candidate
+        end
+    end
+    return first -- mai multi oameni decat prenume: se repeta, nu crapa
+end
+
 return HandConfig

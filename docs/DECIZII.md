@@ -17,6 +17,14 @@ Convenție: în tot proiectul, „server" înseamnă o instanță Roblox efemer�
 lui din D64 și de la ce a spus în noaptea de 2026-09-19: *„poți începe să copiezi schemele și pentru Era 2 (se continuă
 harta în dreapta)"*. Era 2 e deci **schema Erei 1**, care a fost reglată și jucată, cu altă marfă pe ea.
 
+**STARE (2026-09-19, seara): construită și în joc, cu desene de împrumut.** Cele 18 platforme sunt `live`; Era 2 a
+fost jucată cap-coadă cu sonda pe un profil de probă, prin aceleași cereri ca butoanele jocului, fără erori. Planul pe
+pași, cu ce a rămas (arta pe planșe, recoacerea urcată, clienții Pieței), e în `docs/PLAN-ERA2.md`. Până la arta ei,
+Moara poartă desenele perechii din Era 1 (clădiri, colibe, ruine, marfă, ținute), iar pământul ei se desenează din dale
+peste imaginea coaptă veche. Ce s-a aflat jucând-o: ghidajul trimitea piesele la gater (reparat), bannerul clopotului
+Morii spunea „The Wire Works is open" deși Era 3 e doar anunțată (reparat), iar oamenii celor două cartiere își repetau
+prenumele (reparat). **Nevăzută încă de owner în Studio.**
+
 **Ce face jucătorul** (timpii sunt reali, de la Landing Bell, din simulator):
 1. **Harta continuă la dreapta.** Pe malul nou stau ruinele Morii [ca în D53]: o roată de apă căzută, o turnătorie
    rece, o piață goală. Pe râu trece deja minereu de cupru, pe care plasele tale nu-l pot prinde încă.

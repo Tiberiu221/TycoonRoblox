@@ -81,6 +81,11 @@ end
 function Strings.eraBellRung(zoneName: string, pct: number): string -- [D]
     return `{zoneName} pays {pct}% more. Forever.`
 end
+-- [D65] Clopotul unei ere de dupa prima inmulteste TOT venitul (factorul `bells` e unul singur, ca in simulator), nu doar
+-- pe al cartierului lui: "The Mill pays 10% more" ar fi spus mai putin decat face [D40].
+function Strings.eraBellRungAll(pct: number): string -- [D]
+    return `Every sale pays {pct}% more. Forever.`
+end
 function Strings.eraZoneOpen(zoneName: string): string -- [D]
     return `{zoneName} is open`
 end
