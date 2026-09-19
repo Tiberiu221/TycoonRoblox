@@ -50,6 +50,11 @@ local REMOTE_NAMES = {
     "UseResult", -- S->C {place, ok, reason, dropped, taken}: ce a facut gestul, pentru toast
     "AtSawmill", -- C->S {present}: stai langa gater (fara Sawyer, doar atunci taie)
     "AtForge", -- C->S {present}: stai langa forja (fara Smelter, doar atunci topeste) [D56]
+    -- [D65] LOCURILE ORICAREI LINII, intr-o singura cerere: magazia ("millStore", "oreShed", ...), atelierul
+    -- ("foundry", "furnace", ...) sau vanzatorul ("market"). Locurile sunt cele din Shared/Config/FlowConfig; cele ale
+    -- Erei 1 merg si pe aici, si pe cererile lor de mai sus. Raspunsul vine tot pe `UseResult`.
+    "UsePlace", -- C->S {place}: E la un loc -- magazie: lasi brutul sau iei; atelier: lasi si iei; vanzator: predai
+    "AtPlace", -- C->S {place, present}: stai langa un atelier (fara omul lui, doar atunci lucreaza)
     "UpgradeCrew", -- C->S {role, what}: "tier" sau "hire" (al doilea om)
 
     -- Noi la D59 (pontonul: undita, ce aduce raul, satul)

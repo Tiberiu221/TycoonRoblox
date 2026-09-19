@@ -22,6 +22,8 @@ export type Options = {
     name: string, -- numele instantelor ("Sawmill", "Forge")
     stand: { x: number, y: number },
     remote: RemoteEvent, -- AtSawmill / AtForge
+    -- [D65] locul din FlowConfig, cand `remote` e AtPlace (acelasi remote pentru toate atelierele): pleaca in fata
+    place: string?,
     characterPos: () -> (number, number),
     standHere: string, -- "Stand here to cut"
     working: (left: number) -> string, -- "Cutting — 12 left"
@@ -114,10 +116,18 @@ function StandRing.new(o: Options): Ring
         if wantPresent ~= toldPresent then
             toldPresent = wantPresent
             lastPresenceAt = now
-            o.remote:FireServer(wantPresent)
+            if o.place ~= nil then
+                o.remote:FireServer(o.place, wantPresent)
+            else
+                o.remote:FireServer(wantPresent)
+            end
         elseif wantPresent and now - lastPresenceAt >= PRESENCE_EVERY then
             lastPresenceAt = now
-            o.remote:FireServer(true)
+            if o.place ~= nil then
+                o.remote:FireServer(o.place, true)
+            else
+                o.remote:FireServer(true)
+            end
         end
 
         -- Inelul si placuta: doar fara om [D49].

@@ -477,20 +477,26 @@ function DockController.Init(d: Deps)
     -- "+N" la vanzare e la Overlay [F1 spec 4.8]. Aici, acelasi Sold pune barca pe apa, intra in
     -- fereastra clientilor si trimite un client acasa cu o scandura -- raspunsuri la acelasi
     -- eveniment, fara conflict.
-    deps.Remotes.Sold.OnClientEvent:Connect(function(_total: number, itemCount: number)
-        local now = os.clock()
-        if type(itemCount) == "number" then
-            TavernCrowd.add(crowd, now, itemCount)
-        end
-        playSaleDeparture()
-        if now - lastLeaveAt >= LEAVE_GAP then
-            local c = firstWaiting()
-            if c ~= nil then
-                lastLeaveAt = now
-                leave(c, true)
+    -- [D65] `Sold` vine acum de la orice vanzator; clientii tavernei raspund doar la vanzarile ei.
+    deps.Remotes.Sold.OnClientEvent:Connect(
+        function(_total: number, itemCount: number, seller: string?)
+            if seller ~= nil and seller ~= "dock" then
+                return
+            end
+            local now = os.clock()
+            if type(itemCount) == "number" then
+                TavernCrowd.add(crowd, now, itemCount)
+            end
+            playSaleDeparture()
+            if now - lastLeaveAt >= LEAVE_GAP then
+                local c = firstWaiting()
+                if c ~= nil then
+                    lastLeaveAt = now
+                    leave(c, true)
+                end
             end
         end
-    end)
+    )
 
     RunService.PreRender:Connect(stepCustomers)
 end

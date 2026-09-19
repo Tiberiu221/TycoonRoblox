@@ -7,6 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Net = require(ReplicatedStorage.Net.Net)
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
+local FlowConfig = require(ReplicatedStorage.Shared.Config.FlowConfig)
 local StationConfig = require(ReplicatedStorage.Shared.Config.StationConfig)
 local RateLimiter = require(script.Parent.RateLimiter)
 local AudioLevels = require(ReplicatedStorage.Shared.Modules.AudioLevels)
@@ -313,6 +314,42 @@ function NetServer.Init(d: Deps)
         end
         deps.Economy.SetPresence(player, "forge", present :: boolean)
     end)
+    -- [D65] LOCURILE ORICAREI LINII (FlowConfig). Un loc necunoscut e refuzat fara raspuns, ca orice cerere stricata;
+    -- unul cunoscut primeste mereu `UseResult`, reusit sau nu [D43].
+    Net.Get("UsePlace").OnServerEvent:Connect(function(player: Player, place: unknown)
+        if typeof(place) ~= "string" or #(place :: string) > 24 then
+            return
+        end
+        if not RateLimiter.Allow(player, "UsePlace") then
+            return
+        end
+        local where = place :: string
+        if FlowConfig.BY_STORE[where] ~= nil then
+            local ok, reason, n = deps.Economy.UseStore(player, where)
+            Net.Get("UseResult"):FireClient(player, where, ok, reason, n, 0)
+        elseif FlowConfig.BY_PROCESSOR[where] ~= nil then
+            local ok, reason, dropped, taken = deps.Economy.UseProcessor(player, where)
+            Net.Get("UseResult"):FireClient(player, where, ok, reason, dropped, taken)
+        elseif FlowConfig.SELLERS[where] ~= nil then
+            -- `Sold` NU se trage aici: vanzarea vine din scurgerea gramezii, lot cu lot (EconomyService)
+            local ok, reason, n = deps.Economy.Deliver(player, where)
+            Net.Get("UseResult"):FireClient(player, where, ok, reason, n, 0)
+        end
+    end)
+    Net.Get("AtPlace").OnServerEvent
+        :Connect(function(player: Player, place: unknown, present: unknown)
+            if typeof(place) ~= "string" or typeof(present) ~= "boolean" then
+                return
+            end
+            if
+                FlowConfig.BY_PROCESSOR[place :: string] == nil
+                or not RateLimiter.Allow(player, "AtPlace")
+            then
+                return
+            end
+            deps.Economy.SetPresence(player, place :: string, present :: boolean)
+        end)
+
     -- Revendicarea unei recompense de quest. Serverul verifica el ca e chiar terminata si ca n-a
     -- fost luata deja -- e o tranzactie de moneda, deci n-are ce cauta pe client [D13].
     Net.Get("ClaimQuest").OnServerEvent:Connect(function(player: Player, questId: unknown)

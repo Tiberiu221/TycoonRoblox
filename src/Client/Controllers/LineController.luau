@@ -1,0 +1,369 @@
+--!strict
+-- LOCURILE UNEI LINII, DUPA TABEL [D65]: magazia (gramada, eticheta, gestul tau pe E) si atelierul (gramezile de la
+-- intrare si de la iesire, inelul in care stai cat n-are om, gestul tau), plus VANZATORUL unui cartier (cladirea,
+-- gramada, predarea).
+--
+-- Era 1 are cate un controller scris de mana pentru fiecare cladire (Storage, Shed, Sawmill, Forge, Dock), fiecare cu
+-- locurile lui batute in cuie. Era 2 are aceleasi locuri pentru alte cladiri, asa ca aici e UN singur controller, care
+-- isi ia totul din tabele: locurile din TycoonConfig.LINE_PLACES / SELLER_PLACES, numele locurilor si platformele care
+-- le deschid din FlowConfig, cuvintele din Strings.LINE_WORDS, ce e in gramezi din `TycoonState.flow`. O era noua = o
+-- linie noua in tabele si un `LineController.line(...)` in plus. Controllerele Erei 1 raman cum sunt (desenul lor a
+-- fost reglat cu owner-ul); se pot muta aici cand va fi cazul.
+--
+-- Cladirile care sunt PLATFORME (magazia de minereu, cuptorul de cupru) le deseneaza PadController, cu ruina lor cu
+-- tot, ca pe shed si pe forja. Cele care exista de cand se deschide cartierul (magazia Morii, turnatoria, Piata) se
+-- deseneaza aici, din `building`.
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
+
+local Assets = require(ReplicatedStorage.Shared.Config.Assets)
+local FlowConfig = require(ReplicatedStorage.Shared.Config.FlowConfig)
+local RiverConfig = require(ReplicatedStorage.Shared.Config.RiverConfig)
+local StationConfig = require(ReplicatedStorage.Shared.Config.StationConfig)
+local Strings = require(ReplicatedStorage.Shared.Config.Strings)
+local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
+local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
+local Focus = require(script.Parent.Parent.UI.Focus)
+local GroundShadow = require(script.Parent.Parent.UI.GroundShadow)
+local PileView = require(script.Parent.Parent.UI.PileView)
+local StandRing = require(script.Parent.Parent.UI.StandRing)
+local Theme = require(script.Parent.Parent.UI.Theme)
+local Widgets = require(script.Parent.Parent.UI.Widgets)
+
+export type Deps = {
+    Plot: Frame,
+    Remotes: { UsePlace: RemoteEvent, AtPlace: RemoteEvent },
+    CharacterPos: () -> (number, number),
+}
+
+-- Ce stie clientul despre traista (TycoonState.sack) si despre gramezile unei linii (TycoonState.flow).
+export type Sack = {
+    count: number,
+    capacity: number,
+    rawBy: { [string]: number },
+    sellBy: { [string]: { count: number, value: number } },
+}
+export type StoreState = { count: number, contents: { [string]: number } }
+export type ProcessorState = {
+    count: number,
+    contents: { [string]: number },
+    out: number,
+    outContents: { [string]: number },
+    rate: number,
+    present: boolean?,
+    staffed: boolean?,
+}
+export type SellerState = {
+    count: number,
+    value: number,
+    rate: number,
+    contents: { [string]: number },
+}
+
+-- O cladire fixa a cartierului: unde sta (mijlocul, baza), cat e de mare si ce desen are (cheia din Assets.tycoon).
+export type Building = { x: number, y: number, w: number, h: number, sprite: string, label: string }
+
+export type Line = {
+    Apply: (
+        sack: Sack,
+        store: StoreState?,
+        processor: ProcessorState?,
+        pads: { [string]: string },
+        bottleneck: string
+    ) -> (),
+    FocusStore: (px: number, py: number) -> Focus.Focus?,
+    FocusProcessor: (px: number, py: number) -> Focus.Focus?,
+    Working: () -> boolean,
+}
+export type Seller = {
+    Apply: (sack: Sack, state: SellerState?, open: boolean) -> (),
+    Focus: (px: number, py: number) -> Focus.Focus?,
+}
+
+local LineController = {}
+local deps: Deps
+
+local EMPTY_SACK: Sack = { count = 0, capacity = 0, rawBy = {}, sellBy = {} }
+
+local function keyHint(): string
+    return if UserInputService.KeyboardEnabled then " (E)" else ""
+end
+
+-- Desenul unei cladiri fixe: sprite-ul ei, prins de baza, cu umbra pe pamant si numele deasupra usii. Fara arta urcata
+-- inca, o cutie de lemn ii tine locul, ca locul sa se vada si sa se poata verifica.
+local function drawBuilding(b: Building): (GuiObject, TextLabel)
+    local sprite = (Assets.tycoon :: any)[b.sprite]
+    local art: GuiObject
+    if sprite ~= nil and Assets.has(sprite) then
+        local img = Instance.new("ImageLabel")
+        img.BackgroundTransparency = 1
+        img.Image = Assets.url(sprite)
+        img.ResampleMode = Enum.ResamplerMode.Pixelated
+        art = img
+    else
+        local box = Instance.new("Frame")
+        box.BackgroundColor3 = Theme.COLOR.woodDark
+        box.BorderSizePixel = 0
+        art = box
+    end
+    art.Name = b.label
+    art.AnchorPoint = Vector2.new(0.5, 1)
+    art.Position = UDim2.fromOffset(b.x, b.y)
+    art.Size = UDim2.fromOffset(b.w, b.h)
+    art.ZIndex = 5 + math.clamp(math.floor(b.y / 64), 0, 40)
+    art.Visible = false
+    art.Parent = deps.Plot
+    -- umbra sta in desenul cladirii, ca sa apara si sa dispara odata cu ea
+    local shadow = GroundShadow.add(art, UDim2.fromScale(0.5, 1), b.w, art.ZIndex - 1)
+    shadow.Name = "Shadow"
+
+    local label = Widgets.Label(deps.Plot, b.label, Theme.TEXT.tiny, Theme.COLOR.onDark, "strong")
+    label.AnchorPoint = Vector2.new(0.5, 1)
+    label.Position = UDim2.fromOffset(b.x, b.y - b.h - 4)
+    label.Size = UDim2.fromOffset(math.max(b.w, 120), 18)
+    label.TextXAlignment = Enum.TextXAlignment.Center
+    label.ZIndex = 46
+    label.Visible = false
+    Theme.punch(label, 2)
+    return art, label
+end
+
+-- O linie: magazia si atelierul ei. `storeBuilding` / `processorBuilding` = cladirea fixa, cand locul nu e o platforma.
+function LineController.line(
+    line: string,
+    storeBuilding: Building?,
+    processorBuilding: Building?
+): Line
+    local flow = FlowConfig.LINES[line]
+    local places = TycoonConfig.LINE_PLACES[line]
+    local words = Strings.LINE_WORDS[line]
+    assert(
+        flow ~= nil and places ~= nil and words ~= nil,
+        `LineController: linia {line} lipseste din tabele`
+    )
+
+    local sack: Sack = EMPTY_SACK
+    local storeState: StoreState = { count = 0, contents = {} }
+    local state: ProcessorState = {
+        count = 0,
+        contents = {},
+        out = 0,
+        outContents = {},
+        rate = 0,
+        present = false,
+        staffed = false,
+    }
+    local storeOpen, processorOpen = false, false
+    local bottleneck = ""
+
+    local storePile =
+        PileView.new(deps.Plot, places.storePile.x, places.storePile.y, { warnAt = 60 })
+    local inPile = PileView.new(deps.Plot, places.inPile.x, places.inPile.y, { warnAt = 40 })
+    local outPile = PileView.new(deps.Plot, places.outPile.x, places.outPile.y, { warnAt = 40 })
+
+    local storeArt: GuiObject?, storeLabel: TextLabel? = nil, nil
+    if storeBuilding ~= nil then
+        storeArt, storeLabel = drawBuilding(storeBuilding)
+    end
+    local processorArt: GuiObject?, processorLabel: TextLabel? = nil, nil
+    if processorBuilding ~= nil then
+        processorArt, processorLabel = drawBuilding(processorBuilding)
+    end
+
+    StandRing.new({
+        plot = deps.Plot,
+        name = flow.processor,
+        stand = places.playerStand,
+        remote = deps.Remotes.AtPlace,
+        place = flow.processor,
+        characterPos = deps.CharacterPos,
+        standHere = words.standHere,
+        working = function(left: number): string
+            return Strings.lineWorking(words, left)
+        end,
+        state = function(): (number, boolean)
+            return state.count, state.staffed == true
+        end,
+        active = function(): boolean
+            return processorOpen
+        end,
+    })
+
+    local function raw(): number
+        return sack.rawBy[line] or 0
+    end
+
+    -- Meseria care conteaza acum la magazie, ca la depozit: cine aduce, daca adunatul e veriga slaba a liniei; altfel
+    -- cine ia de aici.
+    local steps = StationConfig.LINES[line].steps -- primul om goleste plasele la magazie, al doilea ia de aici
+    local function storeCrew(): string
+        return if bottleneck == steps[1].link then steps[1].role else steps[2].role
+    end
+
+    local self = {}
+
+    function self.Apply(
+        newSack: Sack,
+        store: StoreState?,
+        processor: ProcessorState?,
+        pads: { [string]: string },
+        bn: string
+    )
+        sack = newSack
+        bottleneck = bn
+        -- magazia exista cand exista platforma ei (sau, fara platforma, cand atelierul liniei e pornit)
+        processorOpen = flow.processorPad == nil or pads[flow.processorPad] == "bought"
+        storeOpen = if flow.storePad ~= nil then pads[flow.storePad] == "bought" else processorOpen
+        if store ~= nil then
+            storeState = store
+            storePile.Set(store.count, store.contents)
+        end
+        if processor ~= nil then
+            state = processor
+            inPile.Set(processor.count, processor.contents)
+            outPile.Set(processor.out, processor.outContents)
+        end
+        -- cladirile fixe se vad de cand se deschide cartierul lor (roata de apa): pana atunci sunt ruinele din desen
+        for _, part in
+            {
+                storeArt :: GuiObject?,
+                storeLabel :: GuiObject?,
+                processorArt :: GuiObject?,
+                processorLabel :: GuiObject?,
+            }
+        do
+            if part ~= nil then
+                part.Visible = processorOpen
+            end
+        end
+    end
+
+    function self.FocusStore(px: number, py: number): Focus.Focus?
+        if not storeOpen then
+            return nil
+        end
+        local stand = places.storeStand
+        local d = Focus.distance(px, py, stand.x, stand.y)
+        if d > RiverConfig.INTERACT_DISTANCE then
+            return nil
+        end
+        local text: string? = nil
+        if raw() > 0 then
+            text = Strings.promptStoreRaw(words, keyHint())
+        elseif storeState.count > 0 and sack.count < sack.capacity then
+            text = Strings.promptTakeRaw(words, keyHint())
+        end
+        return {
+            key = flow.store,
+            distance = d,
+            x = places.storePile.x + 60,
+            y = places.storePile.y - 96 - 6,
+            action = text,
+            act = if text ~= nil
+                then function()
+                    deps.Remotes.UsePlace:FireServer(flow.store)
+                end
+                else nil,
+            upgradeKind = "crew",
+            upgradeId = storeCrew(),
+        }
+    end
+
+    function self.FocusProcessor(px: number, py: number): Focus.Focus?
+        if not processorOpen then
+            return nil
+        end
+        local stand = places.playerStand
+        local d = Focus.distance(px, py, stand.x, stand.y)
+        if d > RiverConfig.INTERACT_DISTANCE then
+            return nil
+        end
+        -- cat lucrezi TU la atelier (fara omul lui), gestul nu-ti ia marfa gata de sub mana: intai se termina lotul
+        local byHand = state.staffed ~= true and state.count > 0
+        local text: string? = nil
+        if raw() > 0 then
+            text = Strings.promptProcess(words, keyHint())
+        elseif state.out > 0 and sack.count < sack.capacity and not byHand then
+            text = Strings.promptTakeDone(words, keyHint())
+        end
+        return {
+            key = flow.processor,
+            distance = d,
+            x = (places.inPile.x + places.outPile.x) / 2,
+            y = places.inPile.y - 144 - 6,
+            action = text,
+            act = if text ~= nil
+                then function()
+                    deps.Remotes.UsePlace:FireServer(flow.processor)
+                end
+                else nil,
+            upgradeKind = flow.station,
+        }
+    end
+
+    function self.Working(): boolean
+        return processorOpen and state.rate > 0
+    end
+
+    return self
+end
+
+-- Vanzatorul unui cartier: cladirea, gramada de langa ea si predarea la usa.
+function LineController.seller(seller: string, building: Building): Seller
+    local flow = FlowConfig.SELLERS[seller]
+    local places = TycoonConfig.SELLER_PLACES[seller]
+    assert(flow ~= nil and places ~= nil, `LineController: vanzatorul {seller} lipseste din tabele`)
+
+    local sack: Sack = EMPTY_SACK
+    local isOpen = false
+    local pile = PileView.new(deps.Plot, places.pile.x, places.pile.y, { warnAt = 60 })
+    local art, label = drawBuilding(building)
+
+    local self = {}
+
+    function self.Apply(newSack: Sack, state: SellerState?, open: boolean)
+        sack = newSack
+        isOpen = open
+        art.Visible = open
+        label.Visible = open
+        if state ~= nil then
+            pile.Set(state.count, state.contents)
+        end
+    end
+
+    function self.Focus(px: number, py: number): Focus.Focus?
+        if not isOpen then
+            return nil
+        end
+        local d = Focus.distance(px, py, places.door.x, places.door.y)
+        if d > RiverConfig.INTERACT_DISTANCE then
+            return nil
+        end
+        local mine = sack.sellBy[seller]
+        local text: string? = nil
+        if mine ~= nil and mine.count > 0 then
+            text = Strings.promptSellAt(keyHint(), TycoonMath.formatNumber(mine.value))
+        end
+        return {
+            key = seller,
+            distance = d,
+            x = building.x,
+            y = building.y - building.h - 6,
+            action = text,
+            act = if text ~= nil
+                then function()
+                    deps.Remotes.UsePlace:FireServer(seller)
+                end
+                else nil,
+            upgradeKind = flow.station,
+        }
+    end
+
+    return self
+end
+
+function LineController.Init(d: Deps)
+    deps = d
+end
+
+return LineController

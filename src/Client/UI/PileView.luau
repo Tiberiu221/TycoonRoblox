@@ -62,7 +62,7 @@ local function stepOf(count: number): number
 end
 
 local function pileSprite(good: string): Assets.Sprite?
-    local key = PILE_OF[good]
+    local key = PILE_OF[TycoonConfig.lookOf(good)] -- [D65] marfa Erei 2 imprumuta desenul perechii ei
     local sprite = if key ~= nil then (Assets.tycoon :: any)[key] else nil
     if sprite == nil or not Assets.has(sprite) then
         return nil
@@ -96,7 +96,8 @@ local SLOTS = {
 }
 
 -- Obiectele cu nume folosesc lada; un bun fara arta urcata cade pe bustean, nu dispare.
-local function goodSprite(good: string): Assets.Sprite
+local function goodSprite(raw: string): Assets.Sprite
+    local good = TycoonConfig.lookOf(raw) -- [D65]
     if good == "named" then
         return Assets.crate.common
     end

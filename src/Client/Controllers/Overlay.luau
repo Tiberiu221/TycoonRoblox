@@ -15,6 +15,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Net = require(ReplicatedStorage.Net.Net)
+local FlowConfig = require(ReplicatedStorage.Shared.Config.FlowConfig)
 local ItemConfig = require(ReplicatedStorage.Shared.Config.ItemConfig)
 local RiverConfig = require(ReplicatedStorage.Shared.Config.RiverConfig)
 local StationConfig = require(ReplicatedStorage.Shared.Config.StationConfig)
@@ -571,20 +572,27 @@ function Overlay.Init(d: Deps)
     -- `Sold` inseamna acum "s-a scurs un lot din gramada in monede", nu "am apasat Sell". Bannerul
     -- primei vanzari NU mai sta aici: un lot se poate scurge si din marfa adusa de o Mana, si atunci
     -- bannerul ar minti. El se trage din tranzitia lui `firsts.sell` (vezi Overlay.Apply).
-    deps.Remotes.Sold.OnClientEvent:Connect(function(total: number, _itemCount: number)
-        local fromX, fromY = deps.WorldToHud(TycoonConfig.DOCK.x, TycoonConfig.DOCK.y)
-        JuiceController.CoinFly(fromX, fromY, total)
-    end)
+    -- [D65] Monedele pleaca de la usa vanzatorului care a vandut: taverna sau Piata Morii.
+    deps.Remotes.Sold.OnClientEvent:Connect(
+        function(total: number, _itemCount: number, seller: string?)
+            local place = TycoonConfig.SELLER_PLACES[seller or "dock"]
+                or TycoonConfig.SELLER_PLACES.dock
+            local fromX, fromY = deps.WorldToHud(place.door.x, place.door.y)
+            JuiceController.CoinFly(fromX, fromY, total)
+        end
+    )
     -- Unde isi lasa un om marfa [D49]: Collector-ul la depozit, Porter-ul la intrarea gaterului,
     -- Hauler-ul la usa tavernei [D50]. "+N" apare chiar acolo, ca drumul marfii sa se vada.
-    local DROP_AT = {
-        storage = TycoonConfig.STORAGE_STAND,
-        sawmill = TycoonConfig.SAWMILL_IN,
-        dock = TycoonConfig.DOCK,
-        -- [D55, D56] scrap-ul la shed, apoi la forja
-        shed = TycoonConfig.SCRAP_SHED_STAND,
-        forge = TycoonConfig.FORGE_IN,
-    }
+    -- [D65] Din tabelele drumului marfii, pentru orice linie: magazia, intrarea atelierului, usa vanzatorului.
+    local DROP_AT: { [string]: { x: number, y: number } } = {}
+    for line, spec in FlowConfig.LINES do
+        local places = TycoonConfig.LINE_PLACES[line]
+        DROP_AT[spec.store] = places.storeStand
+        DROP_AT[spec.processor] = places.processorIn
+    end
+    for seller, places in TycoonConfig.SELLER_PLACES do
+        DROP_AT[seller] = places.door
+    end
     deps.Remotes.HandDelivered.OnClientEvent:Connect(
         function(_handId: string, itemCount: number, place: string)
             -- UN OM ADUCE MARFA, NU BANI. Monedele le arunca scurgerea gramezii de la debarcader --

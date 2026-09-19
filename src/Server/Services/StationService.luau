@@ -494,6 +494,38 @@ local function crewRow(
     }
 end
 
+-- [D65] O linie, asa cum o vede clientul: cat prinde, cat livreaza, care ii e veriga slaba ("" cat e inchisa) si cat
+-- faci tu pe fiecare pas al ei fara om.
+export type LineView = { catch: number, delivered: number, bottleneck: string, playerShare: number }
+
+local function lineViews(s: ChainMath.State, flow: ChainMath.Flow): { [string]: LineView }
+    local out: { [string]: LineView } = {}
+    for _, line in StationConfig.LINE_ORDER do
+        local lf = flow.lines[line]
+        out[line] = {
+            catch = lf.catch,
+            delivered = lf.delivered,
+            bottleneck = lf.bottleneck,
+            playerShare = ChainMath.playerShare(s, line),
+        }
+    end
+    return out
+end
+
+-- Debitul fiecarei verigi, dupa numele ei (plasele nu intra: au cate un debit pe linie, in `lines[...].catch`).
+local function linkRates(flow: ChainMath.Flow): { [string]: number }
+    local out: { [string]: number } = {}
+    for _, line in StationConfig.LINE_ORDER do
+        for k, step in StationConfig.LINES[line].steps do
+            out[step.link] = flow.lines[line].values[k]
+        end
+    end
+    for _, seller in StationConfig.SELLER_ORDER do
+        out[seller] = flow.capacity[seller]
+    end
+    return out
+end
+
 -- Tot ce au nevoie meniurile. Se trimite intreg la fiecare TycoonState: e mic si asa clientul nu poate
 -- ramane cu un pret invechit in mana.
 function StationService.Snapshot(player: Player): {
@@ -506,6 +538,8 @@ function StationService.Snapshot(player: Player): {
     idle: number,
     playerShare: number,
     ironPlayerShare: number,
+    lines: { [string]: LineView },
+    linkRates: { [string]: number },
 }
     local s = StationService.StateFor(player)
     -- [D64] lantul se socoteste o data: randurile isi citesc veriga slaba din el, pe orice linie, iar clientul primeste
@@ -560,6 +594,9 @@ function StationService.Snapshot(player: Player): {
         -- cat faci tu pe fiecare pas fara om ("No Collector — you do this yourself"), pe fiecare linie [D56]
         playerShare = ChainMath.playerShare(s, "wood"),
         ironPlayerShare = ChainMath.playerShare(s, "iron"),
+        -- [D65] VEDEREA PE LINII, pentru orice era: campurile de mai sus raman cele ale Erei 1 (aceleasi cifre)
+        lines = lineViews(s, flow),
+        linkRates = linkRates(flow),
     }
 end
 

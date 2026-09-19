@@ -248,6 +248,12 @@ function InteractController.OpenUpgrade(): boolean
     return openUpgrade()
 end
 
+-- [D65] Un loc care nu are controllerul lui cu nume (locurile unei linii din LineController) isi adauga aici sursa de
+-- `Focus`, la pornire. Lista de mai sus ramane a locurilor Erei 1.
+function InteractController.AddSource(source: (number, number) -> Focus.Focus?)
+    table.insert(SOURCES, source)
+end
+
 function InteractController.Init(d: Deps)
     deps = d
     card = Instance.new("Frame")

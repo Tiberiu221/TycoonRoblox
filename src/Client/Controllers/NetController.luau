@@ -169,7 +169,8 @@ end
 
 -- Sprite-ul unui bun stivuit sau care pluteste: obiectele cu nume folosesc lada (tierul nu se
 -- pastreaza in rezumatul `contents`, doar count-ul), restul sprite-ul lor propriu [F1 spec 4.2].
-local function goodSprite(good: string): Assets.Sprite
+local function goodSprite(raw: string): Assets.Sprite
+    local good = TycoonConfig.lookOf(raw) -- [D65] marfa Erei 2 imprumuta desenul perechii ei pana la arta ei
     if good == "named" then
         return Assets.crate.common
     end
@@ -633,7 +634,7 @@ local function applyGoodVisual(rec: Floater, good: string)
         -- placeholder cat timp lipseste sprite-ul (reeds/scrap/shards inainte de arta F1)
         rec.icon.Image = ""
         rec.icon.BackgroundTransparency = 0
-        rec.icon.BackgroundColor3 = if good == "named"
+        rec.icon.BackgroundColor3 = if TycoonMath.isFind(good)
             then Theme.COLOR.gold
             else Color3.fromRGB(150, 105, 60)
         rec.icon.Size = UDim2.fromOffset(20, 16)
@@ -641,7 +642,7 @@ local function applyGoodVisual(rec: Floater, good: string)
         iconCorner.CornerRadius = UDim.new(0, 4)
         iconCorner.Parent = rec.icon
     end
-    if good == "named" then
+    if TycoonMath.isFind(good) then
         -- luciu discret: tierul ramane secret pana la prindere, dar "e ceva special" se vede acum
         local glow = Instance.new("UIStroke")
         glow.Name = "Glow"
@@ -808,7 +809,7 @@ function NetController.OnCaught(
     local assembly = assemblies[padId]
     if assembly ~= nil then
         SceneArt.Splash(assembly.body, 0.5, 0.5)
-        if good == "named" then
+        if TycoonMath.isFind(good) then
             local item = if catalog ~= nil then ItemConfig.get(catalog) else nil
             local name = if item ~= nil then item.name else "Find"
             local color = TIER_COLORS[tier or "common"] or Theme.COLOR.gold

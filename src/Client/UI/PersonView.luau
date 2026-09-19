@@ -12,6 +12,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local AnimConfig = require(ReplicatedStorage.Shared.Config.AnimConfig)
 local Assets = require(ReplicatedStorage.Shared.Config.Assets)
+local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 
 export type Appearance = {
     body: string,
@@ -262,7 +263,7 @@ function PersonView.new(parent: Instance, name: string, held: string?): View
         setIfChanged(c, "ZIndex", if at.load.over then 3 else 1)
         setIfChanged(c, "ImageTransparency", if task == "tip" and frameIndex == 3 then 0.6 else 0)
         local loadSprite = if cargoKind ~= nil
-            then (Assets.tycoon :: any)[LOAD_SPRITE[cargoKind :: string] or "load_logs"]
+            then (Assets.tycoon :: any)[LOAD_SPRITE[TycoonConfig.lookOf(cargoKind :: string)] or "load_logs"]
             else nil
         local show = cargoStep > 0 and loadSprite ~= nil and Assets.has(loadSprite)
         setIfChanged(c, "Visible", show)

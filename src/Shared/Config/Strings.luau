@@ -210,6 +210,126 @@ end
 function Strings.promptSellPlanks(keyHint: string, value: string): string
     return `Sell planks{keyHint} — {value}`
 end
+-- [D65] CUVINTELE LOCURILOR EREI 2, pe linie (FlowConfig): aceleasi fraze ca la depozit, gater, shed si forja, cu marfa
+-- si cladirile Morii. Un loc al Erei 1 nu trece pe aici: isi are frazele lui de mai sus.
+export type LineWords = {
+    raw: string, -- marfa bruta, asa cum o numesti cand o duci ("scrap", "ore")
+    done: string, -- marfa gata ("parts", "copper")
+    doneOne: string,
+    store: string, -- numele magaziei, pe eticheta ei
+    processor: string, -- numele atelierului
+    verb: string, -- ce face atelierul: "Cast", "Smelt"
+    standHere: string,
+    working: string, -- "Casting", "Smelting"
+    byIt: string, -- "stay by the Foundry"
+}
+Strings.LINE_WORDS = {
+    parts = {
+        raw = "scrap",
+        done = "parts",
+        doneOne = "part",
+        store = "Mill Store",
+        processor = "Foundry",
+        verb = "Cast",
+        standHere = "Stand here to cast",
+        working = "Casting",
+        byIt = "stay by the Foundry",
+    },
+    copper = {
+        raw = "ore",
+        done = "copper",
+        doneOne = "copper",
+        store = "Ore Shed",
+        processor = "Copper Furnace",
+        verb = "Smelt",
+        standHere = "Stand here to smelt",
+        working = "Smelting",
+        byIt = "stay by the furnace",
+    },
+} :: { [string]: LineWords }
+Strings.MARKET_LABEL = "Market"
+function Strings.promptStoreRaw(words: LineWords, keyHint: string): string
+    return `Store {words.raw}{keyHint}`
+end
+function Strings.promptTakeRaw(words: LineWords, keyHint: string): string
+    return `Take {words.raw}{keyHint}`
+end
+function Strings.promptProcess(words: LineWords, keyHint: string): string
+    return `{words.verb} {words.raw}{keyHint}`
+end
+function Strings.promptTakeDone(words: LineWords, keyHint: string): string
+    return `Take {words.done}{keyHint}`
+end
+function Strings.lineWorking(words: LineWords, left: number): string
+    return `{words.working} — {left} left`
+end
+function Strings.promptSellAt(keyHint: string, value: string): string
+    return `Sell{keyHint} — {value}`
+end
+Strings.PROMPT_MARKET_RAW = "Scrap and ore get worked in the Mill first"
+-- Ce a facut un gest la un loc al Erei 2 (`UseResult`), ca `useResult` pentru Era 1. nil = locul nu e al ei.
+function Strings.placeResult(
+    line: string?,
+    seller: string?,
+    isStore: boolean,
+    ok: boolean,
+    reason: string,
+    dropped: number,
+    taken: number,
+    staffed: boolean
+): string?
+    if seller ~= nil then
+        if ok then
+            return nil -- vanzarea se anunta cand se scurge gramada, nu la predare
+        elseif reason == "raw_only" then
+            return "The Market buys machine parts and copper, not scrap or ore"
+        elseif reason == "other_seller" then
+            return if seller == "market"
+                then "The Tavern buys that — the Market buys parts and copper"
+                else "The Market buys that — the Tavern buys planks and iron"
+        end
+        return nil
+    end
+    local words = if line ~= nil then Strings.LINE_WORDS[line] else nil
+    if words == nil then
+        return nil
+    end
+    local function raw(n: number): string
+        return `{n} {words.raw}`
+    end
+    local function done(n: number): string
+        return if n == 1 then `1 {words.doneOne}` else `{n} {words.done}`
+    end
+    if not ok then
+        if reason == "sack_full" then
+            return "Sack full"
+        elseif reason == "mill_store_empty" or reason == "ore_shed_empty" then
+            return `The {words.store} is empty`
+        elseif reason == "nothing_cast" or reason == "nothing_smelted_copper" then
+            return if staffed then `No {words.done} yet` else `No {words.done} yet — {words.byIt}`
+        elseif reason == "no_wheel" then
+            return "Build the Water Wheel first"
+        elseif reason == "no_furnace" then
+            return "Build the Copper Furnace first"
+        elseif reason == "no_ore_shed" then
+            return "Build the Ore Shed first"
+        elseif reason == "ore_to_furnace" then
+            return "Ore goes to the Copper Furnace"
+        end
+        return nil
+    end
+    if isStore then
+        return if dropped > 0 then `Stored {raw(dropped)}` else `Took {raw(taken)}`
+    end
+    if dropped > 0 and taken > 0 then
+        return `Dropped {raw(dropped)} · took {done(taken)}`
+    elseif dropped > 0 then
+        return if staffed
+            then `Dropped {raw(dropped)}`
+            else `Dropped {raw(dropped)} — {words.byIt}`
+    end
+    return `Took {done(taken)}`
+end
 Strings.PROMPT_DOCK_RAW = "Logs go to the Sawmill first"
 Strings.PROMPT_DOCK_SCRAP = "Scrap gets smelted at the Forge first" -- [D55, D56]
 Strings.PROMPT_DOCK_BOTH = "Logs to the Sawmill, scrap to the Forge first" -- [D55, D56]

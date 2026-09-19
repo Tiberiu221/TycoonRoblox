@@ -14,6 +14,8 @@ local Net = require(ReplicatedStorage.Net.Net)
 local RiverConfig = require(ReplicatedStorage.Shared.Config.RiverConfig)
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 local Strings = require(ReplicatedStorage.Shared.Config.Strings)
+local FlowConfig = require(ReplicatedStorage.Shared.Config.FlowConfig)
+local StationConfig = require(ReplicatedStorage.Shared.Config.StationConfig)
 local AudioLevels = require(ReplicatedStorage.Shared.Modules.AudioLevels)
 local LookMath = require(ReplicatedStorage.Shared.Modules.LookMath)
 -- FOLDERELE DE LANGA SCRIPT SE ASTEAPTA. Roblox copiaza copiii lui StarterPlayerScripts in PlayerScripts pe rand, iar
@@ -33,6 +35,7 @@ local SawmillController = require(Controllers.SawmillController)
 local StorageController = require(Controllers.StorageController)
 local ShedController = require(Controllers.ShedController)
 local ForgeController = require(Controllers.ForgeController)
+local LineController = require(Controllers.LineController)
 local PadController = require(Controllers.PadController)
 local InteractController = require(Controllers.InteractController)
 local MusicController = require(Controllers.MusicController)
@@ -219,6 +222,9 @@ safeInit("PadController", function()
     })
 end)
 -- Depozitul [D49]: aici varsa Collector-ul ce strange din plase, de aici ia Porter-ul.
+-- [D65] liniile si vanzatorii Erei 2 (LineController), dupa numele liniei si al vanzatorului
+local millLines: { [string]: LineController.Line } = {}
+local millSellers: { [string]: LineController.Seller } = {}
 safeInit("StorageController", function()
     StorageController.Init({
         Plot = layers.Plot,
@@ -238,6 +244,38 @@ safeInit("ForgeController", function()
         Remotes = { UseForge = Net.Get("UseForge"), AtForge = Net.Get("AtForge") },
         CharacterPos = CharacterController.Position,
     })
+    -- [D65] ERA 2, The Mill: locurile liniilor ei, dupa tabel. Magazia Morii, turnatoria si Piata sunt cladiri fixe
+    -- (apar cu roata de apa); magazia de minereu si cuptorul de cupru sunt platforme, deci le deseneaza PadController.
+    -- Pana la arta lor (docs/PLAN-ERA2.md, pasul 7) poarta desenele perechii din Era 1.
+    LineController.Init({
+        Plot = layers.Plot,
+        Remotes = { UsePlace = Net.Get("UsePlace"), AtPlace = Net.Get("AtPlace") },
+        CharacterPos = CharacterController.Position,
+    })
+    local function fixedBuilding(
+        spot: { x: number, y: number, w: number, h: number },
+        sprite: string,
+        label: string
+    )
+        return { x = spot.x, y = spot.y, w = spot.w, h = spot.h, sprite = sprite, label = label }
+    end
+    millLines.parts = LineController.line(
+        "parts",
+        fixedBuilding(TycoonConfig.MILL_STORE, "storage", Strings.LINE_WORDS.parts.store),
+        fixedBuilding(TycoonConfig.FOUNDRY, "sawmill", Strings.LINE_WORDS.parts.processor)
+    )
+    millLines.copper = LineController.line("copper", nil, nil)
+    millSellers.market = LineController.seller(
+        "market",
+        fixedBuilding(TycoonConfig.MARKET, "tavern", Strings.MARKET_LABEL)
+    )
+    for _, line in millLines do
+        InteractController.AddSource(line.FocusStore)
+        InteractController.AddSource(line.FocusProcessor)
+    end
+    for _, seller in millSellers do
+        InteractController.AddSource(seller.Focus)
+    end
 end)
 -- Gaterul [D48, D49]: aici se taie; fara Sawyer, doar cat stai langa el.
 safeInit("SawmillController", function()
@@ -590,6 +628,21 @@ local staffedAt: { [string]: boolean } = { sawmill = false, forge = false }
 Net.Get("UseResult").OnClientEvent
     :Connect(function(place: string, ok: boolean, reason: string, dropped: number, taken: number)
         local text = Strings.useResult(place, ok, reason, dropped, taken, staffedAt[place] == true)
+        -- [D65] un loc al Erei 2 (sau un refuz pe care il stie doar ea, ca "other_seller" la taverna)
+        if text == nil then
+            local store, processor = FlowConfig.BY_STORE[place], FlowConfig.BY_PROCESSOR[place]
+            local spec = store or processor
+            text = Strings.placeResult(
+                if spec ~= nil then spec.line else nil,
+                if FlowConfig.SELLERS[place] ~= nil then place else nil,
+                store ~= nil,
+                ok,
+                reason,
+                dropped,
+                taken,
+                staffedAt[place] == true
+            )
+        end
         if text ~= nil then
             HUDController.Toast(text)
         end
@@ -864,7 +917,20 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
         iron = sackContents.iron or 0,
         cut = sack.cut or 0,
         cutValue = sack.cutValue or 0,
+        -- [D65] pe linii si pe vanzatori, copiate camp cu camp [CLAUDE.md capcana 3]
+        rawBy = {} :: { [string]: number },
+        sellBy = {} :: { [string]: { count: number, value: number } },
     }
+    for _, line in StationConfig.LINE_ORDER do
+        sackState.rawBy[line] = if typeof(sack.rawBy) == "table" then sack.rawBy[line] or 0 else 0
+    end
+    for _, seller in StationConfig.SELLER_ORDER do
+        local entry: any = if typeof(sack.sellBy) == "table" then sack.sellBy[seller] else nil
+        sackState.sellBy[seller] = {
+            count = if typeof(entry) == "table" then entry.count or 0 else 0,
+            value = if typeof(entry) == "table" then entry.value or 0 else 0,
+        }
+    end
 
     -- Quest-urile: capitolul, lista si quest-ul activ. Copiate camp cu camp [CLAUDE.md capcana 3].
     local rawWheel: any = raw.wheel or {}
@@ -978,6 +1044,26 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
             netLevels[r.id] = r.level
         end
     end
+    local stationLines: { [string]: { catch: number, delivered: number, bottleneck: string, playerShare: number } } =
+        {}
+    local stationLinkRates: { [string]: number } = {}
+    for _, line in StationConfig.LINE_ORDER do
+        local entry: any = if typeof(rawStations.lines) == "table"
+            then rawStations.lines[line] or {}
+            else {}
+        stationLines[line] = {
+            catch = entry.catch or 0,
+            delivered = entry.delivered or 0,
+            bottleneck = entry.bottleneck or "",
+            playerShare = entry.playerShare or 0,
+        }
+    end
+    for _, link in StationConfig.LINKS do
+        local rate = if typeof(rawStations.linkRates) == "table"
+            then rawStations.linkRates[link]
+            else nil
+        stationLinkRates[link] = if typeof(rate) == "number" then rate else 0
+    end
     local stations = {
         rows = stationRows,
         netLevels = netLevels,
@@ -1010,6 +1096,9 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
             ironBottleneck = rawRates.ironBottleneck or "",
         },
         crews = crewRows,
+        -- [D65] vederea pe linii, pentru orice era (copiata camp cu camp)
+        lines = stationLines,
+        linkRates = stationLinkRates,
         -- cat faci tu pe fiecare pas fara om; meniul meseriei o spune ("you do this yourself") [D49], pe linii [D56]
         playerShare = rawStations.playerShare or 0,
         ironPlayerShare = rawStations.ironPlayerShare or 0,
@@ -1058,6 +1147,41 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
         staffed = rawForge.staffed == true,
     }
     staffedAt.forge = forge.staffed
+    -- [D65] DRUMUL MARFII PE LINII (TycoonState.flow): magazia si atelierul fiecarei linii, gramada fiecarui vanzator
+    local rawFlow: any = raw.flow or {}
+    local flowLines: { [string]: { store: LineController.StoreState, processor: LineController.ProcessorState } } =
+        {}
+    for _, line in StationConfig.LINE_ORDER do
+        local entry: any = if typeof(rawFlow.lines) == "table"
+            then rawFlow.lines[line] or {}
+            else {}
+        local s: any, pr: any = entry.store or {}, entry.processor or {}
+        flowLines[line] = {
+            store = { count = s.count or 0, contents = table.clone(s.contents or {}) },
+            processor = {
+                count = pr.count or 0,
+                contents = table.clone(pr.contents or {}),
+                out = pr.out or 0,
+                outContents = table.clone(pr.outContents or {}),
+                rate = pr.rate or 0,
+                present = pr.present == true,
+                staffed = pr.staffed == true,
+            },
+        }
+        staffedAt[FlowConfig.LINES[line].processor] = pr.staffed == true
+    end
+    local flowSellers: { [string]: LineController.SellerState } = {}
+    for _, seller in StationConfig.SELLER_ORDER do
+        local entry: any = if typeof(rawFlow.sellers) == "table"
+            then rawFlow.sellers[seller] or {}
+            else {}
+        flowSellers[seller] = {
+            count = entry.count or 0,
+            value = entry.value or 0,
+            rate = entry.rate or 0,
+            contents = table.clone(entry.contents or {}),
+        }
+    end
     -- [D55] cati oameni are fiecare meserie: casa lor din lume creste cu ei
     local crewCounts: { [string]: number } = {}
     local crewTiers: { [string]: number } = {} -- [D62, pasul 5] treapta se vede ca buline sub numele casei
@@ -1120,6 +1244,7 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
         storage = storage,
         shed = shed,
         forge = forge,
+        flow = { lines = flowLines, sellers = flowSellers },
         sawmill = sawmill,
         dock = dock,
         stations = stations,
@@ -1221,6 +1346,25 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
         snapshot.stations.ironBottleneck
     )
     ForgeController.Apply(sackState, snapshot.forge, snapshot.workshop == true)
+    -- [D65] locurile Morii: fiecare linie isi ia gramezile, platformele care o deschid si veriga ei slaba
+    for line, controller in millLines do
+        local entry = snapshot.flow.lines[line]
+        local lineView = snapshot.stations.lines[line]
+        controller.Apply(
+            sackState,
+            entry.store,
+            entry.processor,
+            snapshot.pads,
+            if lineView ~= nil then lineView.bottleneck else ""
+        )
+    end
+    for seller, controller in millSellers do
+        controller.Apply(
+            sackState,
+            snapshot.flow.sellers[seller],
+            snapshot.pads.water_wheel == "bought"
+        )
+    end
     SawmillController.Apply(sackState, snapshot.sawmill)
     DockController.Apply(sackState, snapshot.dock)
     StationPanel.Apply(snapshot.stations)

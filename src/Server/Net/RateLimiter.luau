@@ -12,6 +12,8 @@ local LIMITS: { [string]: { capacity: number, refillPerSecond: number } } = {
     -- "sunt la gater": la intrarea in raza, la iesire si o data la 2 s cat stai [D49]
     AtSawmill = { capacity = 3, refillPerSecond = 1 },
     AtForge = { capacity = 3, refillPerSecond = 1 }, -- [D56] la fel ca la gater
+    -- [D65] prezenta la atelierele oricarei linii: pot fi doua ateliere in raza unul dupa altul, deci putin mai larg
+    AtPlace = { capacity = 4, refillPerSecond = 1.5 },
     SpinWheel = { capacity = 3, refillPerSecond = 1 },
     -- [D54] panoul "Sound", dupa 0.6 s de liniste pe fiecare canal; fara bucket propriu, un nume
     -- necunoscut ar fi refuzat in tacere

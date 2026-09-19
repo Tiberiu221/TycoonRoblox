@@ -124,6 +124,20 @@ TycoonConfig.CATCH = {
     ore = { { id = "ore", share = 0.95 }, { id = "named2", share = 0.05 } },
 } :: { [string]: { CatchPart } }
 
+-- [D65] CUM SE DESENEAZA MARFA EREI 2 PANA LA ARTA EI (docs/PLAN-ERA2.md, pasul 7): cu desenele perechii din Era 1.
+-- Gramezile (PileView), roabele (PersonView) si plasele (NetController) intreaba aici inainte sa-si caute desenul. Cand
+-- o marfa isi primeste arta, randul ei iese de aici. `named2` ramane: o gasire se deseneaza ca lada, in orice era.
+TycoonConfig.GOOD_LOOKS_LIKE = {
+    mill_scrap = "scrap",
+    parts = "iron",
+    ore = "scrap",
+    copper = "iron",
+    named2 = "named",
+} :: { [string]: string }
+function TycoonConfig.lookOf(good: string): string
+    return TycoonConfig.GOOD_LOOKS_LIKE[good] or good
+end
+
 -- [D65] GASIRILE, pe ere: aceleasi trepte (NAMED_VALUE), inmultite cu cadrul erei. `named` e al Erei 1.
 TycoonConfig.FIND_MULT = { named = 1, named2 = 40 } :: { [string]: number }
 -- Ce iese din fiecare marfa bruta dupa atelierul ei (pentru nume si desene; valoarea e aceeasi, vezi GOODS).
