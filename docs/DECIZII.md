@@ -11,6 +11,69 @@ Convenție: în tot proiectul, „server" înseamnă o instanță Roblox efemer�
 
 ---
 
+## D67 — Era 3, „The Wire Works": cuprul devine sârmă, iar spre final vine curentul
+**PROPUNERE, neaprobată** (2026-09-21). Owner-ul: *„continuă dezvoltarea, ce urmează?"* Urmează roadmap-ul lui din D64:
+Era 3, cu regula unei ere și cu schema Morii oglindită încă o dată. Derivată în simulator cu
+`python3 scripts/economy/sim_era3.py` (unealta de „ce-ar fi dacă", ca `sim_era2.py` la D65: nu e în poartă și nu
+schimbă nimic din joc).
+
+**În pașii jucătorului:**
+1. Tragi Mill Bell, iar râul se deschide mai departe spre dreapta: **The Wire Works**. Semnul din joc scrie deja
+   „opens with the Mill Bell".
+2. Cumperi **Steam Engine** (25M). E o mașină cu abur făcută din piese de mașini și cupru, adică din ce face Moara, și
+   învârte mașinile de tras sârmă din **Wire Works**. În Moară, roata de apă învârte turnătoria.
+3. **A unsprezecea plasă e gratis** și prinde minereu de cupru. Primul tur îl faci tu:
+   - aduni minereul în **Works Store**;
+   - îl duci la Wire Works și stai în inel cât mașina îl trage în **bobine de sârmă**;
+   - duci bobinele la **Depot**, clădirea de vânzare a erei (nume de ales, vezi mai jos).
+4. **Cei cinci oameni vin în ~2 minute** (55M–110M): Works Collector, Works Porter, Wiredrawer, Coil Hauler și Clerk,
+   vânzătorul Depoului.
+5. Plasele 12, 13 și 14 (550M, 3B, 40B), al doilea om (15B, 28B) și nivelurile.
+6. **Spre final vine curentul.** Ridici **Power House** (100B) și pui în larg **First Turbine** (120B): o roată cu
+   bobine, cum scrie în roadmap. Se învârte în curentul râului și umple **baterii**. Patru oameni noi:
+   - **Battery Collector** ia bateriile pline de la turbină și le lasă în **Battery Shed**;
+   - **Battery Porter** le duce la Power House;
+   - **Electrician** face din ele **celule de energie**, gata de vânzare, cum face turnătoria piese din scrap;
+   - **Power Hauler** duce celulele la Depot.
+
+   O celulă se vinde de 3,5 ori mai scump decât o bobină.
+7. Cu primul curent vândut, **felinarele de pe strada satului se aprind**: satul se luminează, ca în roadmap.
+8. **Works Bell** (150B) dă +10% la toate vânzările și deschide tronsonul următor, **The Dam** (Era 4, neconstruită).
+
+**Cifrele** (simulatorul adevărat; Era 1 și Moara ies bit cu bit ca în poartă):
+- Era 3 durează **53 de minute reale**. Are 398 de cumpărături, dintre care 25 în primele 5 minute. Cea mai lungă pauză
+  a jucătorului lacom e de 2m47s. Venitul crește de la 369K/s la 1,22B/s.
+- Scara e cea din D66: marfa Erei 3 valorează de 3000 de ori marfa Morii. O noapte de absență la sfârșitul Morii (10,6B)
+  plătește 8 din cele 26 de deblocări, până la a douăsprezecea plasă, adică **17% din eră**. Cu Long Nights: 21%. Cu
+  Long Nights și 2x Flow: 26%.
+- Trece toate porțile Morii, inclusiv la ±15% pe fiecare constantă nouă (între 43 de minute și 1h01m). Prețurile ajung
+  la sute de miliarde (B), deci încap în sufixele de azi.
+- La sfârșitul erei, satul și Moara aduc sub 0,1% din bani: 65% vin din bobine, 35% din curent. E același tipar ca la
+  Moară.
+
+**De hotărât de owner:**
+1. **Mă apuc de Era 3 așa?**
+2. **Numele clădirii de vânzare și al vânzătorului ei:** Tavern cu Innkeeper, Market cu Merchant, apoi pentru Era 3
+   **Depot cu Clerk** (propunerea mea), Trading Post cu Trader sau Warehouse cu Keeper.
+
+**Ce se construiește, dacă se aprobă** (ca la Moară: rânduri în tabele, apoi arta pe planșe):
+- **Simulatorul:** Era 3 intră în poartă. Funcțiile scrise anume pentru Moară (`run_era2`, porțile, raportul,
+  `--robust`, `PAD_IDS_ERA2`) devin funcții pentru orice eră, ca a patra să fie doar rânduri.
+- **Jocul:**
+  - rândurile noi din `StationConfig`, `FlowConfig`, `TycoonConfig` (cartierul, locurile, 18 platforme, cei nouă
+    oameni), `Strings` și `QuestConfig` (capitolele 7–9);
+  - profilul primește nivelurile clădirilor noi;
+  - turbina e o „plasă" care nu prinde nimic din râu, deci se desenează altfel: palete care se învârt și baterii care
+    se umplu.
+- **Harta:** cartierul al treilea stă la dreapta Morii. Lumea se lărgește, iar pământul se recoace cu a treia felie.
+- **Arta:** ~50 de imagini desenate pe planșe și urcate cu acordul owner-ului:
+  - clădirile și ruinele lor, turbina și colibele;
+  - nouă ținute;
+  - bobinele, bateriile și celulele;
+  - felinarele aprinse.
+
+---
+
 ## D66 — O singură monedă; Moara pe scara x3000; satul lucrează fără tine o noapte
 **DECIS de owner pe 2026-09-21.** A terminat Era 1, a închis jocul câteva zile, iar la întoarcere a cumpărat toată
 Era 2 dintr-odată: *„nu are sens upgrade-ul la era 2 și este o problemă pentru toate erele viitoare … trebuie regândit.

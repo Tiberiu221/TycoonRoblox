@@ -115,6 +115,8 @@ monede"*). Detaliile și cifrele sunt în DECIZII D66.
   următoare. Orice eră nouă trebuie să treacă pe aici.
 - **Numerele mari:** `TycoonMath.formatNumber` merge până la `Qi`, în cinci caractere.
 - `scripts/create_monetization.py --update <cheie>` rescrie descrierea unui pass pe Roblox.
+- **Era 3, „The Wire Works" [D67]:** propunerea e scrisă și derivată (`python3 scripts/economy/sim_era3.py`, în afara
+  porții), **neaprobată**. Cupru → bobine la Wire Works, spre final turbina și curentul în baterii, vândute la Depot.
 
 ## Stare (2026-09-19, seara) [D65]
 
