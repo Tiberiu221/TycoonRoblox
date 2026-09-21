@@ -9,6 +9,8 @@
 -- luat-o. Singurul lucru care se SALVEAZA e ce ai revendicat -- restul se recalculeaza.
 local QuestConfig =
     require(script and script.Parent.Parent.Config.QuestConfig or "../Config/QuestConfig")
+local StationConfig =
+    require(script and script.Parent.Parent.Config.StationConfig or "../Config/StationConfig")
 
 local QuestMath = {}
 
@@ -51,8 +53,8 @@ function QuestMath.stationTarget(quest: QuestConfig.Quest): (string?, string?)
         return nil, nil
     end
     local arg = quest.arg or ""
-    if arg == "dock" or arg == "market" then
-        return arg, nil -- un vanzator: taverna, [D65] Piata
+    if StationConfig.SELLERS[arg] ~= nil then
+        return arg, nil -- un vanzator: taverna, [D65] Piata, [D67] Depoul
     end
     local padId = string.match(arg, "^net:(.+)$")
     if padId ~= nil then

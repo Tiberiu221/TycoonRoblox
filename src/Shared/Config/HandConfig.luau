@@ -39,6 +39,16 @@ HandConfig.ROLE_OUTFIT = {
     orePorter = "Mucker",
     coppersmith = "Coppersmith",
     copperHauler = "Teamster",
+    -- [D67] Era 3: tinutele oamenilor Wire Works. Pana la foile lor, clientul le deseneaza cu a meseriei-pereche din Moara.
+    worksCollector = "Dredger",
+    worksPorter = "Barrowman",
+    wiredrawer = "Wiredrawer",
+    coilHauler = "Coiler",
+    clerk = "Clerk",
+    batteryCollector = "Lineman",
+    batteryPorter = "Hodman",
+    electrician = "Electrician",
+    powerHauler = "Freighter",
 }
 
 -- [D65] DESENUL DE IMPRUMUT al unei tinute inca neurcate: tinuta meseriei-pereche din Era 1. Il intreaba doar cine
@@ -53,6 +63,16 @@ HandConfig.OUTFIT_LOOKS_LIKE = {
     Mucker = "Carter",
     Coppersmith = "Smith",
     Teamster = "Ironmonger",
+    -- [D67] Era 3 -> perechea din Moara (care are foaia ei)
+    Dredger = "Gleaner",
+    Barrowman = "Drayman",
+    Wiredrawer = "Founder",
+    Coiler = "Wheelwright",
+    Clerk = "Merchant",
+    Lineman = "Prospector",
+    Hodman = "Mucker",
+    Electrician = "Coppersmith",
+    Freighter = "Teamster",
 } :: { [string]: string }
 
 -- [D56, D65] Meseriile care au cadrele "la lucru" (ciocanul in mana) pe foaia tinutei: omul forjei si, cu tinuta lui de
@@ -119,6 +139,28 @@ HandConfig.MORE_NAMES = {
     "Wilf",
     "Yara",
     "Zeph",
+    -- [D67] cu Era 3 sunt 27 de meserii, cate doi oameni: 54 de prenume. Adaugate la coada, ca sa nu mute nimic din
+    -- cele alese pana acum.
+    "Arlo",
+    "Briar",
+    "Dace",
+    "Elm",
+    "Faye",
+    "Greer",
+    "Hale",
+    "Isolde",
+    "Jory",
+    "Kit",
+    "Lark",
+    "Moss",
+    "Nia",
+    "Odo",
+    "Pell",
+    "Rook",
+    "Sorrel",
+    "Tully",
+    "Wynn",
+    "Zinnia",
 }
 
 -- Prenumele unui om nou, ocolindu-le pe cele deja purtate in sat (`used`). Acelasi prenume ca `nameFor` cat e liber

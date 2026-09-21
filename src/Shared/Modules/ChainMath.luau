@@ -46,6 +46,12 @@ export type State = {
     foundryLevel: number,
     furnaceLevel: number,
     marketLevel: number,
+    -- [D67] Era 3: masina cu abur porneste Wire Works (linia bobinelor), Power House linia curentului
+    steam: boolean,
+    powerhouse: boolean,
+    wireworksLevel: number,
+    powerhouseLevel: number,
+    depotLevel: number,
     sackBig: boolean,
     -- cheile: toate meseriile din StationConfig.ROLES, mereu toate
     crews: { [string]: Crew },
@@ -230,9 +236,10 @@ function ChainMath.netBase(index: number): number
     return StationConfig.NET_BASE_RATE * StationConfig.NET_BASE_GROWTH ^ inEra
 end
 
--- De cate ori costa mai mult nivelurile plasei `index`: 1 in Era 1, ERA2_MULT in Era 2.
+-- De cate ori costa mai mult nivelurile plasei `index`: cadrul erei in care sta plasa (1 in Era 1, ERA2_MULT in Era 2,
+-- ERA3_MULT in Era 3 [D67]).
 function ChainMath.netEraMult(index: number): number
-    return if index <= StationConfig.NETS_PER_ERA then 1.0 else StationConfig.ERA2_MULT
+    return StationConfig.ERA_MULT[(index - 1) // StationConfig.NETS_PER_ERA + 1]
 end
 
 function ChainMath.netUpgradeBase(index: number): number
@@ -859,6 +866,11 @@ function ChainMath.empty(): State
         foundryLevel = 1,
         furnaceLevel = 1,
         marketLevel = 1,
+        steam = false,
+        powerhouse = false,
+        wireworksLevel = 1,
+        powerhouseLevel = 1,
+        depotLevel = 1,
         sackBig = false,
         crews = ChainMath.emptyCrews(),
         priceMult = 1.0,

@@ -72,14 +72,43 @@ return function()
             check.equal(TycoonMath.era(bought), 1)
         end)
 
-        test.case("cu totul cumparat, ramai in ultima era", function()
+        test.case("cu totul cumparat, ramai in ultima era aflata in joc", function()
             local bought = {}
             local last = 1
             for _, p in TycoonConfig.PADS do
                 bought[p.id] = true
-                last = math.max(last, p.era)
+                if p.live then
+                    last = math.max(last, p.era)
+                end
             end
             check.equal(TycoonMath.era(bought), last)
+        end)
+
+        test.case("[D67] o era inca in constructie nu se arata ca pas urmator", function()
+            -- cine a terminat Moara n-are ce cumpara in Era 3 pana e in joc: nicio platforma a ei nu se contureaza
+            local bought: { [string]: boolean } = {}
+            for _, p in TycoonConfig.PADS do
+                if p.era <= 2 then
+                    bought[p.id] = true
+                end
+            end
+            local statuses = TycoonMath.padStatuses(bought)
+            for _, p in TycoonConfig.PADS do
+                if not p.live then
+                    check.equal(statuses[p.id], nil)
+                end
+            end
+        end)
+
+        test.case("[D67] o era inca in constructie nu te muta in ea", function()
+            -- platformele ei stau in tabel, dar nu in joc: cine a terminat era dinainte ramane acolo [D40]
+            local pads = {
+                { id = "a", era = 1, live = true },
+                { id = "b", era = 2, live = true },
+                { id = "c", era = 3, live = false },
+            } :: any
+            check.equal(TycoonMath.era({ a = true, b = true }, pads), 2)
+            check.equal(TycoonMath.era({ a = true }, pads), 2)
         end)
     end)
 

@@ -84,6 +84,10 @@ export type ProfileData = {
         foundry: Station,
         furnace: Station,
         market: Station,
+        -- [D67] Era 3: Wire Works, Power House, Depot
+        wireworks: Station,
+        powerhouse: Station,
+        depot: Station,
         nets: { [string]: Station },
     },
     -- GRAMEZILE [D49], ca numaratori (PileMath): nu se pierde nimic si n-au plafon -- cand o veriga
@@ -109,6 +113,15 @@ export type ProfileData = {
     FurnacePile: { counts: { [string]: number }, processedAt: number },
     CopperPile: { counts: { [string]: number } },
     MarketPile: { counts: { [string]: number }, drainedAt: number },
+    -- [D67] ERA 3, la fel: Works Store, intrarea si iesirea Wire Works; Battery Shed, intrarea si iesirea Power House;
+    -- gramada Depoului.
+    WorksPile: { counts: { [string]: number } },
+    WireworksPile: { counts: { [string]: number }, processedAt: number },
+    CoilsPile: { counts: { [string]: number } },
+    BatteryPile: { counts: { [string]: number } },
+    PowerhousePile: { counts: { [string]: number }, processedAt: number },
+    CellPile: { counts: { [string]: number } },
+    DepotPile: { counts: { [string]: number }, drainedAt: number },
     -- ce recompense de quest au fost deja luate; progresul NU se salveaza, se citeste din stare
     Quests: { claimed: { [string]: boolean } },
     -- roata zilnica: cand a fost ultima rotire, samanta si cate s-au facut [D46]
@@ -131,6 +144,11 @@ export type ProfileData = {
         partsSold: number,
         copperSmelted: number,
         copperSold: number,
+        -- [D67] Era 3: bobine trase si vandute, celule facute si vandute
+        drawn: number,
+        coilsSold: number,
+        cellsMade: number,
+        cellsSold: number,
         fished: number, -- [D59] pesti scosi la undita (quest-ul "Catch a fish at the pier")
         treasures: number, -- [D59] lucruri scoase din rau la ponton
         playSeconds: number, -- [D60] timpul jucat efectiv (fara zilele offline), pentru "Fastest Era 1"
@@ -185,7 +203,7 @@ export type ProfileData = {
 
 local PROFILE_TEMPLATE: ProfileData = {
     -- [D61, partea 2] `lastWelcome`: suma platita la ultima revenire (Welcome Back x2) -- ca ProfileMigrate.toV14
-    Meta = { version = 16, createdAt = 0, lastSeenAt = 0, lastWelcome = 0 },
+    Meta = { version = 17, createdAt = 0, lastSeenAt = 0, lastWelcome = 0 },
     Coins = 0,
     Pearls = 0,
     Pads = {},
@@ -219,6 +237,16 @@ local PROFILE_TEMPLATE: ProfileData = {
         orePorter = { tier = 1 },
         coppersmith = { tier = 1 },
         copperHauler = { tier = 1 },
+        -- [D67] Era 3 -- ACELEASI campuri ca ProfileMigrate.toV17
+        worksCollector = { tier = 1 },
+        worksPorter = { tier = 1 },
+        wiredrawer = { tier = 1 },
+        coilHauler = { tier = 1 },
+        clerk = { tier = 1 },
+        batteryCollector = { tier = 1 },
+        batteryPorter = { tier = 1 },
+        electrician = { tier = 1 },
+        powerHauler = { tier = 1 },
     },
     -- ACELEASI campuri ca ProfileMigrate.toV7 [D55]: sablonul la v7 nu mai trece prin migrare.
     Stations = {
@@ -228,6 +256,9 @@ local PROFILE_TEMPLATE: ProfileData = {
         foundry = { level = 1 },
         furnace = { level = 1 },
         market = { level = 1 },
+        wireworks = { level = 1 },
+        powerhouse = { level = 1 },
+        depot = { level = 1 },
         nets = {},
     },
     StoragePile = { counts = {} },
@@ -245,6 +276,14 @@ local PROFILE_TEMPLATE: ProfileData = {
     FurnacePile = { counts = {}, processedAt = 0 },
     CopperPile = { counts = {} },
     MarketPile = { counts = {}, drainedAt = 0 },
+    -- [D67] ACELEASI campuri ca ProfileMigrate.toV17
+    WorksPile = { counts = {} },
+    WireworksPile = { counts = {}, processedAt = 0 },
+    CoilsPile = { counts = {} },
+    BatteryPile = { counts = {} },
+    PowerhousePile = { counts = {}, processedAt = 0 },
+    CellPile = { counts = {} },
+    DepotPile = { counts = {}, drainedAt = 0 },
     Quests = { claimed = {} },
     Wheel = { lastSpinAt = 0, seed = 0, spins = 0 },
     Vault = { stored = 0, updatedAt = 0 },
@@ -264,6 +303,11 @@ local PROFILE_TEMPLATE: ProfileData = {
         partsSold = 0,
         copperSmelted = 0,
         copperSold = 0,
+        -- [D67] ACELEASI campuri ca ProfileMigrate.toV17
+        drawn = 0,
+        coilsSold = 0,
+        cellsMade = 0,
+        cellsSold = 0,
         fished = 0, -- [D59] ACELEASI campuri ca ProfileMigrate.toV9
         treasures = 0,
         playSeconds = 0, -- [D60] ACELEASI campuri ca ProfileMigrate.toV10
@@ -551,6 +595,7 @@ local function onPlayerAdded(player: Player)
     ProfileMigrate.toV14(profile.Data) -- coltul cu Robux [D61]: pass-urile, chitantele, ultima revenire -- aditiv
     ProfileMigrate.toV15(profile.Data) -- darurile raului [D62]: cate ai scos, care a fost ultimul -- aditiv
     ProfileMigrate.toV16(profile.Data) -- Era 2 [D65]: cladirile, gramezile si oamenii Morii -- aditiv
+    ProfileMigrate.toV17(profile.Data) -- Era 3 [D67]: cladirile, gramezile si oamenii Wire Works -- aditiv
     profile:Reconcile()
     profile.OnSessionEnd:Connect(function()
         profiles[player] = nil

@@ -73,7 +73,7 @@ return function()
                 check.is_true(piles[pile] == nil)
                 piles[pile] = true
             end
-            check.equal(#FlowConfig.PILES, 4 * 3 + 2)
+            check.equal(#FlowConfig.PILES, 6 * 3 + 3) -- [D67] sase linii, trei vanzatori
             -- gramezile Erei 1 sunt campurile pe care le are deja profilul
             for _, pile in
                 {

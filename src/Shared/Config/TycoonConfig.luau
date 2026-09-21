@@ -112,6 +112,14 @@ TycoonConfig.GOODS = {
     { id = "copper", value = 9000.0 },
     -- gasirile cartierului nou: aceleasi trepte ca `named`, de FIND_MULT ori mai scumpe (media ~42.000)
     { id = "named2", value = 42000.0 },
+    -- [D67] ERA 3, de StationConfig.ERA3_MULT (9 000 000) ori Era 1. Plasele Wire Works prind minereu de cupru, care iese
+    -- BOBINE de sarma (bobina valoreaza cat minereul). Turbina umple BATERII, care ies CELULE de energie: o turbina nu
+    -- prinde gasiri din rau, deci bateria valoreaza singura cat media unei plase de minereu (3.5 x 9 000 000).
+    { id = "works_ore", value = 9000000.0 },
+    { id = "coils", value = 9000000.0 },
+    { id = "battery", value = 31500000.0 },
+    { id = "cell", value = 31500000.0 },
+    { id = "named3", value = 126000000.0 },
 } :: { Good }
 
 -- [D55] CE PRINDE O PLASA, dupa felul ei. In ordinea simulatorului (`CATCH` din sim_tycoon.py): ordinea sumei
@@ -123,6 +131,9 @@ TycoonConfig.CATCH = {
     -- [D65] plasele Morii (scrap pentru turnatorie) si plasa de minereu; gasirile lor sunt ale Erei 2
     mill = { { id = "mill_scrap", share = 0.95 }, { id = "named2", share = 0.05 } },
     ore = { { id = "ore", share = 0.95 }, { id = "named2", share = 0.05 } },
+    -- [D67] plasele Wire Works (minereu de cupru, gasirile Erei 3) si turbina (doar baterii)
+    works = { { id = "works_ore", share = 0.95 }, { id = "named3", share = 0.05 } },
+    turbine = { { id = "battery", share = 1.0 } },
 } :: { [string]: { CatchPart } }
 
 -- [D65] CUM SE DESENEAZA MARFA EREI 2 PANA LA ARTA EI (docs/PLAN-ERA2.md, pasul 7): cu desenele perechii din Era 1.
@@ -134,6 +145,12 @@ TycoonConfig.GOOD_LOOKS_LIKE = {
     ore = "scrap",
     copper = "iron",
     named2 = "named",
+    -- [D67] marfa Erei 3, pana la arta ei (docs/PLAN-ERA3.md, pasul 7): cu desenele Morii
+    works_ore = "ore",
+    coils = "copper",
+    battery = "parts",
+    cell = "parts",
+    named3 = "named",
 } :: { [string]: string }
 function TycoonConfig.lookOf(good: string): string
     return TycoonConfig.GOOD_LOOKS_LIKE[good] or good
@@ -155,16 +172,31 @@ TycoonConfig.PAD_LOOKS_LIKE = {
     hire_coppersmith = "hire_smelter",
     hire_copper_hauler = "hire_iron_hauler",
     mill_bell = "landing_bell",
+    -- [D67] platformele Erei 3 poarta, pana la arta lor, desenele perechii din Moara
+    hire_works_collector = "hire_mill_collector",
+    hire_works_porter = "hire_mill_porter",
+    hire_wiredrawer = "hire_founder",
+    hire_coil_hauler = "hire_parts_hauler",
+    hire_clerk = "hire_merchant",
+    power_house = "copper_furnace",
+    battery_shed = "ore_shed",
+    hire_battery_collector = "hire_ore_collector",
+    hire_battery_porter = "hire_ore_porter",
+    hire_electrician = "hire_coppersmith",
+    hire_power_hauler = "hire_copper_hauler",
+    works_bell = "mill_bell",
 } :: { [string]: string }
 
 -- [D65] GASIRILE, pe ere: aceleasi trepte (NAMED_VALUE), inmultite cu cadrul erei. `named` e al Erei 1.
-TycoonConfig.FIND_MULT = { named = 1, named2 = 3000 } :: { [string]: number }
+TycoonConfig.FIND_MULT = { named = 1, named2 = 3000, named3 = 9000000 } :: { [string]: number }
 -- Ce iese din fiecare marfa bruta dupa atelierul ei (pentru nume si desene; valoarea e aceeasi, vezi GOODS).
 TycoonConfig.PROCESSED = {
     driftwood = "planks",
     scrap = "iron",
     mill_scrap = "parts",
     ore = "copper",
+    works_ore = "coils", -- [D67]
+    battery = "cell",
 } :: { [string]: string }
 
 -- Valoarea de vanzare a unui obiect cu nume, pe tier (ipoteza -- media ponderata ~14, cat cere GOODS.named)
@@ -223,6 +255,9 @@ TycoonConfig.PAD_SIZE = 96
 -- strada, vanzatorul in capatul dinspre amonte, casele pe un rand peste strada). Strada Morii continua strada satului.
 local MILL_DX = 1680
 TycoonConfig.MILL_DX = MILL_DX
+-- [D67] Cartierul Erei 3, The Wire Works, e asezat la fel, inca o data mai spre aval.
+local WORKS_DX = 2 * MILL_DX
+TycoonConfig.WORKS_DX = WORKS_DX
 
 -- [D50] Locul de VANZARE: usa tavernei, pe drumul mare. Numele `DOCK` ramane (e si id-ul statiei, al
 -- quest-urilor si al profilului), ca toti cititorii lui sa urmeze singuri locul nou. Pontonul cu barca
@@ -379,6 +414,12 @@ TycoonConfig.GOOD_NAMES = {
     ore = "Copper Ore",
     copper = "Copper",
     named2 = "Find",
+    -- [D67] Era 3: minereul de cupru al Wire Works, bobinele, bateriile turbinei, celulele de energie
+    works_ore = "Copper Ore",
+    coils = "Coil",
+    battery = "Battery",
+    cell = "Power Cell",
+    named3 = "Find",
 }
 
 -- [B5] Toate pozitiile de platforme, plase, debarcader si zone sunt LOCALE terenului. Lumea =
@@ -496,8 +537,8 @@ export type SellerPlaces = {
     customerSpots: { { x: number, y: number, facing: string } },
     customerEntry: { x: number, y: number },
 }
-local function shifted(p: { x: number, y: number }): { x: number, y: number }
-    return { x = p.x + MILL_DX, y = p.y }
+local function shifted(p: { x: number, y: number }, dx: number?): { x: number, y: number }
+    return { x = p.x + (dx or MILL_DX), y = p.y }
 end
 -- Clientii tavernei: doi la fereastra-tejghea, restul pe drum si sub el, la cel putin o latime de om unul de altul, pe
 -- langa usa (unde se lasa marfa), Innkeeper (x 446..494) si gramada (x <= 293, y <= 1092). Vin de la capatul de vest al
@@ -514,8 +555,10 @@ local TAVERN_CUSTOMER_SPOTS = {
 }
 local TAVERN_CUSTOMER_ENTRY = { x = 150, y = 1130 }
 local marketCustomerSpots: { { x: number, y: number, facing: string } } = {}
+local depotCustomerSpots: { { x: number, y: number, facing: string } } = {}
 for _, spot in TAVERN_CUSTOMER_SPOTS do
     table.insert(marketCustomerSpots, { x = spot.x + MILL_DX, y = spot.y, facing = spot.facing })
+    table.insert(depotCustomerSpots, { x = spot.x + WORKS_DX, y = spot.y, facing = spot.facing })
 end
 TycoonConfig.LINE_PLACES = {
     wood = {
@@ -564,6 +607,30 @@ TycoonConfig.LINE_PLACES = {
         outPile = shifted(TycoonConfig.PILES.forgeOut),
         secondOffset = { x = 60, y = 0 },
     },
+    -- [D67] Era 3, la fel: Works Store si Wire Works pe locul depozitului si al gaterului, Battery Shed si Power House
+    -- pe locul shed-ului si al forjei
+    coils = {
+        storeStand = shifted(TycoonConfig.STORAGE_STAND, WORKS_DX),
+        processorIn = shifted(TycoonConfig.SAWMILL_IN, WORKS_DX),
+        processorOut = shifted(TycoonConfig.SAWMILL_OUT, WORKS_DX),
+        playerStand = shifted(TycoonConfig.SAWMILL_STAND, WORKS_DX),
+        workerStand = shifted(TycoonConfig.SAWYER_STAND, WORKS_DX),
+        storePile = shifted(TycoonConfig.PILES.storage, WORKS_DX),
+        inPile = shifted(TycoonConfig.PILES.sawmillIn, WORKS_DX),
+        outPile = shifted(TycoonConfig.PILES.sawmillOut, WORKS_DX),
+        secondOffset = { x = -60, y = 0 },
+    },
+    power = {
+        storeStand = shifted(TycoonConfig.SCRAP_SHED_STAND, WORKS_DX),
+        processorIn = shifted(TycoonConfig.FORGE_IN, WORKS_DX),
+        processorOut = shifted(TycoonConfig.FORGE_OUT, WORKS_DX),
+        playerStand = shifted(TycoonConfig.WORKSHOP_STAND, WORKS_DX),
+        workerStand = shifted(TycoonConfig.SMELTER_STAND, WORKS_DX),
+        storePile = shifted(TycoonConfig.PILES.shed, WORKS_DX),
+        inPile = shifted(TycoonConfig.PILES.forgeIn, WORKS_DX),
+        outPile = shifted(TycoonConfig.PILES.forgeOut, WORKS_DX),
+        secondOffset = { x = 60, y = 0 },
+    },
 } :: { [string]: LinePlaces }
 -- Cladirile fixe ale Morii (ca depozitul si gaterul Erei 1: nu sunt platforme, sunt acolo cand se deschide cartierul)
 TycoonConfig.MILL_STORE =
@@ -572,6 +639,13 @@ TycoonConfig.FOUNDRY =
     { x = TycoonConfig.SAWMILL.x + MILL_DX, y = TycoonConfig.SAWMILL.y, w = 120, h = 96 }
 TycoonConfig.MARKET =
     { x = TycoonConfig.TAVERN.x + MILL_DX, y = TycoonConfig.TAVERN.y, w = 192, h = 144 }
+-- [D67] si ale Erei 3
+TycoonConfig.WORKS_STORE =
+    { x = TycoonConfig.STORAGE.x + WORKS_DX, y = TycoonConfig.STORAGE.y, w = 120, h = 96 }
+TycoonConfig.WIRE_WORKS =
+    { x = TycoonConfig.SAWMILL.x + WORKS_DX, y = TycoonConfig.SAWMILL.y, w = 120, h = 96 }
+TycoonConfig.DEPOT =
+    { x = TycoonConfig.TAVERN.x + WORKS_DX, y = TycoonConfig.TAVERN.y, w = 192, h = 144 }
 TycoonConfig.SELLER_PLACES = {
     dock = {
         door = TycoonConfig.DOCK,
@@ -590,6 +664,15 @@ TycoonConfig.SELLER_PLACES = {
         secondOffset = { x = 60, y = 0 },
         customerSpots = marketCustomerSpots,
         customerEntry = shifted(TAVERN_CUSTOMER_ENTRY),
+    },
+    depot = {
+        door = shifted(TycoonConfig.DOCK, WORKS_DX),
+        stand = shifted(TycoonConfig.TRADER_STAND, WORKS_DX),
+        pile = shifted(TycoonConfig.PILES.tavern, WORKS_DX),
+        building = TycoonConfig.DEPOT,
+        secondOffset = { x = 60, y = 0 },
+        customerSpots = depotCustomerSpots,
+        customerEntry = shifted(TAVERN_CUSTOMER_ENTRY, WORKS_DX),
     },
 } :: { [string]: SellerPlaces }
 
@@ -783,6 +866,61 @@ TycoonConfig.CREWS = {
         plural = "Copper Haulers",
         secondPrice = 90000000,
     },
+    -- [D67] ERA 3, in oglinda cu Moara: cei patru ai bobinelor, Clerk-ul Depoului, cei patru ai curentului
+    worksCollector = {
+        pad = "hire_works_collector",
+        name = "Works Collector",
+        plural = "Works Collectors",
+        secondPrice = 15000000000,
+    },
+    worksPorter = {
+        pad = "hire_works_porter",
+        name = "Works Porter",
+        plural = "Works Porters",
+        secondPrice = 28000000000,
+    },
+    wiredrawer = {
+        pad = "hire_wiredrawer",
+        name = "Wiredrawer",
+        plural = "Wiredrawers",
+        secondPrice = 280000000000,
+    },
+    coilHauler = {
+        pad = "hire_coil_hauler",
+        name = "Coil Hauler",
+        plural = "Coil Haulers",
+        secondPrice = 45000000000,
+    },
+    clerk = {
+        pad = "hire_clerk",
+        name = "Clerk",
+        plural = "Clerks",
+        secondPrice = 55000000000,
+    },
+    batteryCollector = {
+        pad = "hire_battery_collector",
+        name = "Battery Collector",
+        plural = "Battery Collectors",
+        secondPrice = 180000000000,
+    },
+    batteryPorter = {
+        pad = "hire_battery_porter",
+        name = "Battery Porter",
+        plural = "Battery Porters",
+        secondPrice = 200000000000,
+    },
+    electrician = {
+        pad = "hire_electrician",
+        name = "Electrician",
+        plural = "Electricians",
+        secondPrice = 160000000000,
+    },
+    powerHauler = {
+        pad = "hire_power_hauler",
+        name = "Power Hauler",
+        plural = "Power Haulers",
+        secondPrice = 300000000000,
+    },
 }
 -- Unde sta al doilea om al unei meserii statice, fata de primul. Sawyer-ul al doilea: in dreapta
 -- primului si putin mai jos, departe de gramada de busteni. Innkeeper-ul al doilea tot in dreapta: in
@@ -800,7 +938,7 @@ end
 TycoonConfig.CREW_OF_PAD = crewOfPad
 
 -- Platformele, in ordine. Preturile NU se calculeaza aici -- vin exact din simulator (sim_tycoon.py, lacom), care le
--- si verifica la fiecare rulare. Era 1 si Era 2; erele urmatoare nu exista inca [D64].
+-- si verifica la fiecare rulare. Era 1, Era 2 si Era 3 [D67]; erele urmatoare nu exista inca [D64].
 TycoonConfig.PADS = {
     -- ---- Era 1 · The Landing ----
     -- Preturile vin din `scripts/economy/sim_tycoon.py` (modelul cu niveluri si gatuire), nu sunt
@@ -1393,6 +1531,287 @@ TycoonConfig.PADS = {
         y = 954,
         needs = { all = true },
     }),
+    -- ---- Era 3 · The Wire Works [D67] ----
+    -- SCHEMA MORII, IN OGLINDA, platforma cu platforma (docs/PLAN-ERA3.md): masina cu abur (porneste Wire Works), prima
+    -- plasa a cartierului, gratis, si turul de mana, cei cinci oameni in rafala, plasele 12-14, apoi Power House, prima
+    -- turbina, magazia de baterii si cei patru oameni ai curentului, clopotul. Preturile vin din simulator (`ERA3_UNLOCKS`,
+    -- cadrul StationConfig.ERA3_MULT) si sunt verificate de el la fiecare rulare. LOCURILE: cartierul e asezat ca The
+    -- Landing [D57], mutat cu WORKS_DX spre aval. `live = false` pana cand serverul si clientul stiu sa-l joace.
+    pad({
+        id = "steam_engine",
+        index = 37,
+        blurb = "Machine parts and copper, driven by steam. It runs the Wire Works.",
+        note = "Starts the Wire Works and the Depot",
+        name = "Steam Engine",
+        era = 3,
+        motive = "V",
+        price = 25000000,
+        effects = { flagEffect("steam") },
+        live = false,
+        x = WORKS_DX + 330,
+        y = 812,
+        needs = { after = "mill_bell" },
+    }),
+    pad({
+        id = "eleventh_net",
+        index = 38,
+        blurb = "Copper ore from the river, this time for the Wire Works.",
+        note = "Catches copper ore for wire",
+        name = "Eleventh Net",
+        era = 3,
+        motive = "C",
+        price = 0,
+        effects = { netEffect(0.33, 1, "works") },
+        live = false,
+        x = WORKS_DX + 620,
+        y = 812,
+        needs = { netsExactly = 10, after = "steam_engine" },
+    }),
+    pad({
+        id = "hire_works_collector",
+        index = 39,
+        blurb = "Someone to empty the Works' nets into the Works Store.",
+        note = "Ore reaches the store on its own",
+        name = "Works Collector",
+        era = 3,
+        motive = "A",
+        price = 55000000,
+        effects = { hireEffect("worksCollector") },
+        live = false,
+        x = WORKS_DX + 630,
+        y = 1564,
+        needs = { netsOwned = 11 },
+    }),
+    pad({
+        id = "hire_works_porter",
+        index = 40,
+        blurb = "Carries ore from the Works Store to the Wire Works.",
+        note = "The Wire Works is fed on its own",
+        name = "Works Porter",
+        era = 3,
+        motive = "A",
+        price = 70000000,
+        effects = { hireEffect("worksPorter") },
+        live = false,
+        x = WORKS_DX + 790,
+        y = 1564,
+        needs = { after = "hire_works_collector" },
+    }),
+    pad({
+        id = "hire_wiredrawer",
+        index = 41,
+        blurb = "Keeps the Wire Works drawing while you are away from it.",
+        note = "Coils are drawn on their own",
+        name = "Wiredrawer",
+        era = 3,
+        motive = "A",
+        price = 80000000,
+        effects = { hireEffect("wiredrawer") },
+        live = false,
+        x = WORKS_DX + 950,
+        y = 1564,
+        needs = { after = "hire_works_porter" },
+    }),
+    pad({
+        id = "hire_coil_hauler",
+        index = 42,
+        blurb = "Hauls coils from the Wire Works to the Depot.",
+        note = "Coils reach the Depot on their own",
+        name = "Coil Hauler",
+        era = 3,
+        motive = "A",
+        price = 90000000,
+        effects = { hireEffect("coilHauler") },
+        live = false,
+        x = WORKS_DX + 1110,
+        y = 1564,
+        needs = { after = "hire_wiredrawer" },
+    }),
+    pad({
+        id = "hire_clerk",
+        index = 43,
+        blurb = "Runs the Depot all day, so it never sells slowly.",
+        note = "The Depot sells at full speed",
+        name = "Clerk",
+        era = 3,
+        motive = "A",
+        price = 110000000,
+        effects = { hireEffect("clerk") },
+        live = false,
+        x = WORKS_DX + 360,
+        y = 1244,
+        needs = { after = "hire_coil_hauler" },
+    }),
+    pad({
+        id = "twelfth_net",
+        index = 44,
+        blurb = "A second net for the Wire Works.",
+        name = "Twelfth Net",
+        era = 3,
+        motive = "C",
+        price = 550000000,
+        effects = { netEffect(0.33, 1, "works") },
+        live = false,
+        x = WORKS_DX + 820,
+        y = 812,
+        needs = {
+            netsExactly = 11,
+            prevNetLevel = TycoonConfig.PREV_NET_LEVEL,
+            after = "hire_clerk",
+        },
+    }),
+    pad({
+        id = "thirteenth_net",
+        index = 45,
+        blurb = "Further out, where the current carries more.",
+        name = "Thirteenth Net",
+        era = 3,
+        motive = "C",
+        price = 3000000000,
+        effects = { netEffect(0.33, 2, "works") },
+        live = false,
+        x = WORKS_DX + 1020,
+        y = 812,
+        needs = { netsExactly = 12, prevNetLevel = TycoonConfig.PREV_NET_LEVEL },
+    }),
+    pad({
+        id = "fourteenth_net",
+        index = 46,
+        blurb = "The last of the Works' ore nets.",
+        name = "Fourteenth Net",
+        era = 3,
+        motive = "C",
+        price = 40000000000,
+        effects = { netEffect(0.40, 2, "works") },
+        live = false,
+        x = WORKS_DX + 1220,
+        y = 812,
+        needs = { netsExactly = 13, prevNetLevel = TycoonConfig.PREV_NET_LEVEL },
+    }),
+    pad({
+        id = "power_house",
+        index = 47,
+        blurb = "Where batteries from the turbine become power cells.",
+        note = "Turns batteries into power cells",
+        name = "Power House",
+        era = 3,
+        motive = "V",
+        price = 100000000000,
+        effects = { flagEffect("powerhouse") },
+        live = false,
+        x = WORKS_DX + 1630,
+        y = 1324,
+        needs = { netsOwned = 14 },
+    }),
+    pad({
+        id = "first_turbine",
+        index = 48,
+        blurb = "Coils on a wheel in the deep channel. It fills batteries.",
+        note = "Makes electric power",
+        name = "First Turbine",
+        era = 3,
+        motive = "C",
+        price = 120000000000,
+        effects = { netEffect(0.40, 3, "turbine") },
+        live = false,
+        x = WORKS_DX + 1420,
+        y = 812,
+        needs = {
+            netsExactly = 14,
+            prevNetLevel = TycoonConfig.PREV_NET_LEVEL,
+            after = "power_house",
+        },
+    }),
+    pad({
+        id = "battery_shed",
+        index = 49,
+        blurb = "A dry shed for full batteries.",
+        note = "Opens the Battery Collector's job",
+        name = "Battery Shed",
+        era = 3,
+        motive = "V",
+        price = 9000000000,
+        effects = { flagEffect("batteryShed") },
+        live = false,
+        x = WORKS_DX + 1490,
+        y = 954,
+        needs = { netsOwned = 15 },
+    }),
+    pad({
+        id = "hire_battery_collector",
+        index = 50,
+        blurb = "Takes full batteries from the turbine to the Battery Shed.",
+        note = "Batteries reach the shed on their own",
+        name = "Battery Collector",
+        era = 3,
+        motive = "A",
+        price = 9000000000,
+        effects = { hireEffect("batteryCollector") },
+        live = false,
+        x = WORKS_DX + 1300,
+        y = 1564,
+        needs = { after = "battery_shed" },
+    }),
+    pad({
+        id = "hire_battery_porter",
+        index = 51,
+        blurb = "Carries batteries from the Battery Shed to the Power House.",
+        note = "The Power House is fed on its own",
+        name = "Battery Porter",
+        era = 3,
+        motive = "A",
+        price = 10000000000,
+        effects = { hireEffect("batteryPorter") },
+        live = false,
+        x = WORKS_DX + 1450,
+        y = 1564,
+        needs = { after = "hire_battery_collector" },
+    }),
+    pad({
+        id = "hire_electrician",
+        index = 52,
+        blurb = "Keeps the Power House running while you are away from it.",
+        note = "Power cells are made on their own",
+        name = "Electrician",
+        era = 3,
+        motive = "A",
+        price = 12000000000,
+        effects = { hireEffect("electrician") },
+        live = false,
+        x = WORKS_DX + 1600,
+        y = 1564,
+        needs = { after = "hire_battery_porter" },
+    }),
+    pad({
+        id = "hire_power_hauler",
+        index = 53,
+        blurb = "Hauls power cells from the Power House to the Depot.",
+        note = "Cells reach the Depot on their own",
+        name = "Power Hauler",
+        era = 3,
+        motive = "A",
+        price = 13000000000,
+        effects = { hireEffect("powerHauler") },
+        live = false,
+        x = WORKS_DX + 1750,
+        y = 1564,
+        needs = { after = "hire_electrician" },
+    }),
+    pad({
+        id = "works_bell",
+        index = 54,
+        blurb = "Ring it and The Wire Works is finished.",
+        note = "+10% on every sale, forever",
+        name = "Works Bell",
+        era = 3,
+        motive = "D",
+        price = 150000000000,
+        effects = { mulEffect("bells", 1.10) },
+        live = false,
+        x = WORKS_DX + 1780,
+        y = 954,
+        needs = { all = true },
+    }),
 } :: { Pad }
 
 -- Index construit o singura data la incarcare, ca PadService sa nu caute liniar prin 48 de intrari
@@ -1436,7 +1855,8 @@ end
 function TycoonConfig.verbOf(p: Pad): string
     for _, effect in p.effects do
         if effect.kind == "net" then
-            return "cast"
+            -- [D67] turbina sta in rau ca o plasa, dar nu se arunca: se construieste
+            return if effect.good == "turbine" then "build" else "cast"
         end
     end
     if crewOfPad[p.id] ~= nil then

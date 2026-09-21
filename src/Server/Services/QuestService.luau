@@ -6,6 +6,7 @@
 -- Nu exista niciun canal de evenimente si niciun contor de quest: progresul se CITESTE din stare.
 -- Singurul lucru salvat e ce-ai revendicat deja.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local FlowConfig = require(ReplicatedStorage.Shared.Config.FlowConfig)
 local QuestConfig = require(ReplicatedStorage.Shared.Config.QuestConfig)
 local QuestMath = require(ReplicatedStorage.Shared.Modules.QuestMath)
 local VillageLook = require(ReplicatedStorage.Shared.Modules.VillageLook)
@@ -13,6 +14,32 @@ local VillageLook = require(ReplicatedStorage.Shared.Modules.VillageLook)
 local Analytics = require(script.Parent.Analytics)
 local DataService = require(script.Parent.DataService)
 local EconomyService = require(script.Parent.EconomyService)
+
+-- [D65, D67] Numaratorile din Stats ale liniilor erelor noi ("cast", "partsSold", "drawn", "cellsSold"...) si nivelul
+-- vanzatorilor lor ("market", "depot"), pe numele lor: o era noua nu cere aici un rand scris de mana.
+local function eraStats(data: any): { [string]: number }
+    local out: { [string]: number } = {}
+    for _, spec in FlowConfig.LINES do
+        if spec.era > 1 then
+            out[spec.processedStat] = data.Stats[spec.processedStat] or 0
+            if spec.soldStat ~= nil then
+                out[spec.soldStat] = data.Stats[spec.soldStat] or 0
+            end
+        end
+    end
+    return out
+end
+
+local function sellerLevels(data: any): { [string]: number }
+    local out: { [string]: number } = {}
+    for seller, spec in FlowConfig.SELLERS do
+        local station = data.Stations[spec.station]
+        if spec.era > 1 and station ~= nil then
+            out[seller] = station.level
+        end
+    end
+    return out
+end
 
 local QuestService = {}
 local deps: {
@@ -38,14 +65,9 @@ local function factsFor(player: Player): QuestMath.Facts?
         ironSold = data.Stats.ironSold or 0, -- [D56]
         fished = data.Stats.fished or 0, -- [D59]
         decor = VillageLook.decorCount(data), -- [D62] cate lucruri ai construit de la avizier (din catalog)
-        -- [D65] numaratorile Morii si nivelul cladirilor ei, pe numele lor
-        stats = {
-            cast = data.Stats.cast or 0,
-            partsSold = data.Stats.partsSold or 0,
-            copperSmelted = data.Stats.copperSmelted or 0,
-            copperSold = data.Stats.copperSold or 0,
-        },
-        levels = { market = data.Stations.market.level },
+        -- [D65, D67] numaratorile erelor noi si nivelul vanzatorilor lor, pe numele lor (din FlowConfig)
+        stats = eraStats(data),
+        levels = sellerLevels(data),
         netLevels = if stations ~= nil then stations.NetLevels(player) else {},
         dockLevel = data.Stations.dock.level,
         idleRate = if stations ~= nil then stations.Idle(player) else 0,

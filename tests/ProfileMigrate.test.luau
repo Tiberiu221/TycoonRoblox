@@ -971,13 +971,104 @@ return function()
                 "FurnacePile = { counts = {}, processedAt = 0 },",
                 "cast = 0,",
                 "copperSold = 0,",
-                "version = 16",
                 "ProfileMigrate.toV16(profile.Data)",
             }
             for _, pile in FlowConfig.PILES do
                 table.insert(needles, pile .. " = { counts = {}")
             end
             for _, role in StationConfig.ERA2_ROLES do
+                table.insert(needles, role .. " = { tier = 1 },")
+            end
+            for _, needle in needles do
+                check.is_true(string.find(src, needle, 1, true) ~= nil)
+            end
+        end)
+    end)
+
+    -- [D67] Era 3, "The Wire Works": aceeasi forma ca v16, pe cladirile, gramezile si oamenii ei
+    test.suite("ProfileMigrate.toV17 -- Era 3, aditiv [D67]", function()
+        local FlowConfig = require("../src/Shared/Config/FlowConfig")
+        test.case(
+            "cladirile, gramezile, oamenii si numaratorii Wire Works; Moara si satul neatinse",
+            function()
+                local data: { [string]: any } = {
+                    Meta = { version = 16 },
+                    Stations = {
+                        saw = { level = 12 },
+                        foundry = { level = 30 },
+                        market = { level = 25 },
+                        nets = {},
+                    },
+                    Crews = { collector = { tier = 5 }, merchant = { tier = 4 } },
+                    Stats = { sold = 900, copperSold = 40 },
+                    MarketPile = { counts = { copper = 7 }, drainedAt = 5 },
+                }
+                ProfileMigrate.toV17(data)
+                check.equal(data.Meta.version, 17)
+                for _, kind in { "wireworks", "powerhouse", "depot" } do
+                    check.equal(data.Stations[kind].level, 1)
+                end
+                for _, line in { "coils", "power" } do
+                    local spec = FlowConfig.LINES[line]
+                    check.equal(next(data[spec.storePile].counts), nil)
+                    check.equal(next(data[spec.inputPile].counts), nil)
+                    check.equal(data[spec.inputPile].processedAt, 0)
+                    check.equal(next(data[spec.outputPile].counts), nil)
+                end
+                check.equal(data.DepotPile.drainedAt, 0)
+                for _, role in StationConfig.ERA3_ROLES do
+                    check.equal(data.Crews[role].tier, 1)
+                end
+                for _, stat in { "drawn", "coilsSold", "cellsMade", "cellsSold" } do
+                    check.equal(data.Stats[stat], 0)
+                end
+                check.equal(data.Stations.foundry.level, 30)
+                check.equal(data.Stations.market.level, 25)
+                check.equal(data.Crews.merchant.tier, 4)
+                check.equal(data.Stats.copperSold, 40)
+                check.equal(data.MarketPile.counts.copper, 7)
+            end
+        )
+
+        test.case(
+            "ce ai deja nu se pierde; migrarea e idempotenta; un profil gol primeste tot",
+            function()
+                local data: { [string]: any } = {
+                    Meta = { version = 16 },
+                    Stations = { wireworks = { level = 8 } },
+                    Crews = { wiredrawer = { tier = 3 } },
+                    Stats = { drawn = 77 },
+                    CoilsPile = { counts = { coils = 5 } },
+                }
+                ProfileMigrate.toV17(data)
+                ProfileMigrate.toV17(data)
+                check.equal(data.Stations.wireworks.level, 8)
+                check.equal(data.Crews.wiredrawer.tier, 3)
+                check.equal(data.Stats.drawn, 77)
+                check.equal(data.CoilsPile.counts.coils, 5)
+                local bare: { [string]: any } = { Meta = { version = 16 } }
+                ProfileMigrate.toV17(bare)
+                check.equal(bare.Stations.depot.level, 1)
+                check.equal(bare.Crews.clerk.tier, 1)
+            end
+        )
+
+        test.case("sablonul si migrarea adauga aceleasi campuri", function()
+            local fs = require("@lune/fs")
+            local src = fs.readFile("src/Server/Services/DataService.luau")
+            local needles = {
+                "wireworks = { level = 1 },",
+                "powerhouse = { level = 1 },",
+                "depot = { level = 1 },",
+                "DepotPile = { counts = {}, drainedAt = 0 },",
+                "WireworksPile = { counts = {}, processedAt = 0 },",
+                "PowerhousePile = { counts = {}, processedAt = 0 },",
+                "drawn = 0,",
+                "cellsSold = 0,",
+                "version = 17",
+                "ProfileMigrate.toV17(profile.Data)",
+            }
+            for _, role in StationConfig.ERA3_ROLES do
                 table.insert(needles, role .. " = { tier = 1 },")
             end
             for _, needle in needles do

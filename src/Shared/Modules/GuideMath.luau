@@ -580,18 +580,22 @@ end
 -- [D51] Pasul pentru quest-ul activ. Bucla (colectat, taiat, vandut; [D56] topit, fier vandut) -> pasul buclei.
 -- Cumparare sau nivel CU banii in mana -> obiectul. FARA bani -> ce face banii: daca vin deja din gramada
 -- tavernei, asteptarea; altfel pasul buclei. Alt fel de quest -> tinta lui.
-local LOOP_KINDS = {
+local LOOP_KINDS: { [string]: boolean } = {
     collected = true,
     sawn = true,
     sold = true,
     smelted = true,
     ironSold = true,
-    -- [D65] turul de mana al Morii
-    cast = true,
-    partsSold = true,
-    copperSmelted = true,
-    copperSold = true,
 }
+-- [D65, D67] turul de mana al fiecarei ere noi: numaratorile liniilor ei, din FlowConfig ("cast", "partsSold", ...)
+for _, spec in FlowConfig.LINES do
+    if spec.era > 1 then
+        LOOP_KINDS[spec.processedStat] = true
+        if spec.soldStat ~= nil then
+            LOOP_KINDS[spec.soldStat] = true
+        end
+    end
+end
 
 local function questGoal(s: State, quest: QuestGoal): Goal
     local kind = quest.kind

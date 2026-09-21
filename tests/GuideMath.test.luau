@@ -407,7 +407,7 @@ return function()
             })
             -- cu roata: cei patru ai pieselor si negustorul Pietei; cu cuptorul, si cei patru ai cuprului
             check.equal(#wheel, #era1 + #StationConfig.LINE_STEPS.parts + 1)
-            check.equal(#all, #StationConfig.ROLES)
+            check.equal(#all, #StationConfig.ERA1_ROLES + #StationConfig.ERA2_ROLES)
             check.is_true(table.find(wheel, "merchant") ~= nil)
             check.is_true(table.find(wheel, "coppersmith") == nil)
             local counts: { [string]: number } = {}
@@ -416,6 +416,29 @@ return function()
             end
             check.is_true(GuideMath.allCrewsHired(counts, era1))
             check.is_false(GuideMath.allCrewsHired(counts, wheel)) -- ghidajul se trezeste
+        end)
+
+        test.case("[D67] si la Wire Works: masina cu abur si Power House il trezesc", function()
+            local mill = { workshop = true, water_wheel = true, copper_furnace = true }
+            local era2 = GuideMath.guidedRoles(mill)
+            local steam = GuideMath.guidedRoles({
+                workshop = true,
+                water_wheel = true,
+                copper_furnace = true,
+                steam_engine = true,
+            })
+            local all = GuideMath.guidedRoles({
+                workshop = true,
+                water_wheel = true,
+                copper_furnace = true,
+                steam_engine = true,
+                power_house = true,
+            })
+            -- cu masina: cei patru ai bobinelor si Clerk-ul Depoului; cu Power House, si cei patru ai curentului
+            check.equal(#steam, #era2 + #StationConfig.LINE_STEPS.coils + 1)
+            check.equal(#all, #StationConfig.ROLES)
+            check.is_true(table.find(steam, "clerk") ~= nil)
+            check.is_true(table.find(steam, "electrician") == nil)
         end)
     end)
 

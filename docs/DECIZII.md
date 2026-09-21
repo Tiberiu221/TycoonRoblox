@@ -12,7 +12,8 @@ Convenție: în tot proiectul, „server" înseamnă o instanță Roblox efemer�
 ---
 
 ## D67 — Era 3, „The Wire Works": cuprul devine sârmă, iar spre final vine curentul
-**PROPUNERE, neaprobată** (2026-09-21). Owner-ul: *„continuă dezvoltarea, ce urmează?"* Urmează roadmap-ul lui din D64:
+**DECIS de owner pe 2026-09-21:** *„Da, construiește-o"*, cu **Depot și Clerk** pentru clădirea de vânzare și omul ei.
+Owner-ul întrebase: *„continuă dezvoltarea, ce urmează?"* Urmează roadmap-ul lui din D64:
 Era 3, cu regula unei ere și cu schema Morii oglindită încă o dată. Derivată în simulator cu
 `python3 scripts/economy/sim_era3.py` (unealta de „ce-ar fi dacă", ca `sim_era2.py` la D65: nu e în poartă și nu
 schimbă nimic din joc).
@@ -42,7 +43,7 @@ schimbă nimic din joc).
 
 **Cifrele** (simulatorul adevărat; Era 1 și Moara ies bit cu bit ca în poartă):
 - Era 3 durează **53 de minute reale**. Are 398 de cumpărături, dintre care 25 în primele 5 minute. Cea mai lungă pauză
-  a jucătorului lacom e de 2m47s. Venitul crește de la 369K/s la 1,22B/s.
+  a jucătorului lacom e de 2m47s. Venitul crește de la 369K/s la 1,21B/s.
 - Scara e cea din D66: marfa Erei 3 valorează de 3000 de ori marfa Morii. O noapte de absență la sfârșitul Morii (10,6B)
   plătește 8 din cele 26 de deblocări, până la a douăsprezecea plasă, adică **17% din eră**. Cu Long Nights: 21%. Cu
   Long Nights și 2x Flow: 26%.
@@ -51,10 +52,8 @@ schimbă nimic din joc).
 - La sfârșitul erei, satul și Moara aduc sub 0,1% din bani: 65% vin din bobine, 35% din curent. E același tipar ca la
   Moară.
 
-**De hotărât de owner:**
-1. **Mă apuc de Era 3 așa?**
-2. **Numele clădirii de vânzare și al vânzătorului ei:** Tavern cu Innkeeper, Market cu Merchant, apoi pentru Era 3
-   **Depot cu Clerk** (propunerea mea), Trading Post cu Trader sau Warehouse cu Keeper.
+**Hotărât de owner:** Era 3 se construiește așa. Clădirea de vânzare e **Depot**, cu **Clerk** (celelalte variante
+erau Trading Post cu Trader și Warehouse cu Keeper). Planul pe pași: `docs/PLAN-ERA3.md`.
 
 **Ce se construiește, dacă se aprobă** (ca la Moară: rânduri în tabele, apoi arta pe planșe):
 - **Simulatorul:** Era 3 intră în poartă. Funcțiile scrise anume pentru Moară (`run_era2`, porțile, raportul,

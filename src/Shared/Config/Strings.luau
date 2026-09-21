@@ -274,6 +274,29 @@ Strings.LINE_WORDS = {
         working = "Smelting",
         byIt = "stay by the furnace",
     },
+    -- [D67] Era 3, The Wire Works: minereul de cupru se trage in sarma (bobine), bateriile turbinei se incarca in celule
+    coils = {
+        raw = "ore",
+        done = "coils",
+        doneOne = "coil",
+        store = "Works Store",
+        processor = "Wire Works",
+        verb = "Draw",
+        standHere = "Stand here to draw wire",
+        working = "Drawing wire",
+        byIt = "stay by the Wire Works",
+    },
+    power = {
+        raw = "batteries",
+        done = "power cells",
+        doneOne = "power cell",
+        store = "Battery Shed",
+        processor = "Power House",
+        verb = "Charge",
+        standHere = "Stand here to charge",
+        working = "Charging",
+        byIt = "stay by the Power House",
+    },
 } :: { [string]: LineWords }
 Strings.MARKET_LABEL = "Market"
 
@@ -396,9 +419,71 @@ Strings.LINK_WORDS = {
         label = "Market",
         advice = "the Market — upgrade it to earn more.",
     },
+    -- [D67] Era 3, The Wire Works
+    worksCollect = {
+        subject = "collecting ore",
+        goTo = "Works Collector",
+        label = "Collect ore",
+        advice = "ore pickup — hire or upgrade Works Collectors.",
+    },
+    worksPort = {
+        subject = "carrying ore",
+        goTo = "Works Porter",
+        label = "Carry ore",
+        advice = "carrying ore — hire or upgrade Works Porters.",
+    },
+    wireworks = {
+        subject = "the Wire Works",
+        goTo = "Wire Works",
+        label = "Wire Works",
+        advice = "the Wire Works — upgrade it or its Wiredrawers.",
+    },
+    coilHaul = {
+        subject = "hauling coils",
+        goTo = "Coil Hauler",
+        label = "Haul coils",
+        advice = "hauling coils — hire or upgrade Coil Haulers.",
+    },
+    batteryCollect = {
+        subject = "collecting batteries",
+        goTo = "Battery Collector",
+        label = "Collect power",
+        advice = "batteries — hire or upgrade Battery Collectors.",
+    },
+    batteryPort = {
+        subject = "carrying batteries",
+        goTo = "Battery Porter",
+        label = "Carry power",
+        advice = "carrying batteries — hire more Battery Porters.",
+    },
+    powerhouse = {
+        subject = "the Power House",
+        goTo = "Power House",
+        label = "Power House",
+        advice = "the Power House — upgrade it or Electricians.",
+    },
+    powerHaul = {
+        subject = "hauling power cells",
+        goTo = "Power Hauler",
+        label = "Haul cells",
+        advice = "hauling cells — hire or upgrade Power Haulers.",
+    },
+    depot = {
+        subject = "the Depot",
+        goTo = "Depot",
+        label = "Depot",
+        advice = "the Depot — upgrade it to earn more.",
+    },
 } :: { [string]: LinkWords }
 -- Plasele au cate un nume pe linie: "your nets" (mai multe) si "the scrap net" (una singura) nu se acorda la fel.
-export type NetWords = { subject: string, plural: boolean, label: string, castFirst: string }
+-- [D67] `verb`: turbina nu se arunca in apa ca o plasa, se construieste (implicit "cast").
+export type NetWords = {
+    subject: string,
+    plural: boolean,
+    label: string,
+    castFirst: string,
+    verb: string?,
+}
 Strings.NET_WORDS = {
     wood = { subject = "your nets", plural = true, label = "Nets", castFirst = "your first net" },
     iron = {
@@ -418,6 +503,19 @@ Strings.NET_WORDS = {
         plural = false,
         label = "Ore net",
         castFirst = "the Tenth Net",
+    },
+    coils = {
+        subject = "the Works nets",
+        plural = true,
+        label = "Works nets",
+        castFirst = "the Eleventh Net",
+    },
+    power = {
+        subject = "the turbine",
+        plural = false,
+        label = "Turbine",
+        castFirst = "the First Turbine",
+        verb = "build",
     },
 } :: { [string]: NetWords }
 -- O cladire cu niveluri: ce face (cu om / doar cat stai tu langa ea) si verbul pragurilor ("cuts twice as fast").
@@ -444,6 +542,18 @@ Strings.BUILDING_WORDS = {
         verb = "smelts",
     },
     market = { does = "Sells", alone = "Sells at 35% until you hire a Merchant", verb = "sells" },
+    -- [D67] Era 3
+    wireworks = {
+        does = "Draws ore into coils of wire",
+        alone = "Draws only while you stand here",
+        verb = "draws",
+    },
+    powerhouse = {
+        does = "Charges batteries into power cells",
+        alone = "Charges only while you stand here",
+        verb = "charges",
+    },
+    depot = { does = "Sells", alone = "Sells at 35% until you hire a Clerk", verb = "sells" },
 } :: { [string]: BuildingWords }
 function Strings.promptStoreRaw(words: LineWords, keyHint: string): string
     return `Store {words.raw}{keyHint}`
@@ -500,9 +610,19 @@ function Strings.placeResult(
     if not ok then
         if reason == "sack_full" then
             return "Sack full"
-        elseif reason == "mill_store_empty" or reason == "ore_shed_empty" then
+        elseif
+            reason == "mill_store_empty"
+            or reason == "ore_shed_empty"
+            or reason == "works_store_empty"
+            or reason == "battery_shed_empty"
+        then
             return `The {words.store} is empty`
-        elseif reason == "nothing_cast" or reason == "nothing_smelted_copper" then
+        elseif
+            reason == "nothing_cast"
+            or reason == "nothing_smelted_copper"
+            or reason == "nothing_drawn"
+            or reason == "nothing_charged"
+        then
             return if staffed then `No {words.done} yet` else `No {words.done} yet — {words.byIt}`
         elseif reason == "no_wheel" then
             return "Build the Water Wheel first"
@@ -512,6 +632,15 @@ function Strings.placeResult(
             return "Build the Ore Shed first"
         elseif reason == "ore_to_furnace" then
             return "Ore goes to the Copper Furnace"
+        -- [D67] Era 3
+        elseif reason == "no_steam" then
+            return "Build the Steam Engine first"
+        elseif reason == "no_powerhouse" then
+            return "Build the Power House first"
+        elseif reason == "no_battery_shed" then
+            return "Build the Battery Shed first"
+        elseif reason == "batteries_to_powerhouse" then
+            return "Batteries go to the Power House"
         end
         return nil
     end
@@ -1337,7 +1466,7 @@ end
 -- [D65] La fel orice linie care se deschide cu plasa ei: piesele cu Sixth Net, cuprul cu Tenth Net.
 function Strings.lineNotOpen(line: string?): string
     local words = Strings.NET_WORDS[line or "iron"] or Strings.NET_WORDS.iron
-    return `No gain yet — cast {words.castFirst} first`
+    return `No gain yet — {words.verb or "cast"} {words.castFirst} first`
 end
 -- ---- ruinele [D53] ----------------------------------------------------------------------------
 -- Eticheta cartonasului langa o platforma incuiata: ruina, sau avizierul unde se angajeaza un om.
@@ -1428,6 +1557,25 @@ function Strings.crewDoes(role: string): string
         return "Carries copper from the Copper Furnace to the Market"
     elseif role == "merchant" then
         return "Runs the Market"
+    -- [D67] Era 3
+    elseif role == "worksCollector" then
+        return "Empties the Works nets into the Works Store"
+    elseif role == "worksPorter" then
+        return "Carries ore from the Works Store to the Wire Works"
+    elseif role == "wiredrawer" then
+        return "Keeps the Wire Works drawing"
+    elseif role == "coilHauler" then
+        return "Carries coils from the Wire Works to the Depot"
+    elseif role == "clerk" then
+        return "Runs the Depot"
+    elseif role == "batteryCollector" then
+        return "Takes full batteries to the Battery Shed"
+    elseif role == "batteryPorter" then
+        return "Carries batteries from the Battery Shed to the Power House"
+    elseif role == "electrician" then
+        return "Keeps the Power House charging"
+    elseif role == "powerHauler" then
+        return "Carries power cells from the Power House to the Depot"
     end
     return "Runs the Tavern"
 end
@@ -1452,6 +1600,16 @@ local CREW_HELLO: { [string]: string } = {
     orePorter = "I'll carry ore from the Ore Shed to the Copper Furnace.",
     coppersmith = "I'll keep the Copper Furnace smelting, even while you're away.",
     copperHauler = "I'll take the copper from the Copper Furnace to the Market.",
+    -- [D67] Era 3
+    worksCollector = "I'll empty the Works nets into the Works Store.",
+    worksPorter = "I'll carry ore from the Works Store to the Wire Works.",
+    wiredrawer = "I'll keep the Wire Works drawing, even while you're away.",
+    coilHauler = "I'll take the coils from the Wire Works to the Depot.",
+    clerk = "I'll keep the Depot selling while you're away.",
+    batteryCollector = "I'll take the full batteries to the Battery Shed.",
+    batteryPorter = "I'll carry batteries from the Battery Shed to the Power House.",
+    electrician = "I'll keep the Power House charging, even while you're away.",
+    powerHauler = "I'll take the power cells from the Power House to the Depot.",
 }
 function Strings.crewHello(role: string, name: string): string?
     local job = CREW_HELLO[role]

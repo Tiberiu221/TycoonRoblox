@@ -6,6 +6,8 @@
 --   fierul:  Scrap Shed   -> forja               -> fier     -> taverna
 --   piesele: Mill Store   -> turnatorie          -> piese    -> Piata
 --   cuprul:  Ore Shed     -> cuptorul de cupru   -> cupru    -> Piata
+--   bobinele: Works Store -> Wire Works          -> bobine   -> Depot     [D67]
+--   curentul: Battery Shed -> Power House        -> celule   -> Depot
 --
 -- Pana la D65, EconomyService avea cate o functie pe cladire, scrisa de doua ori (UseStorage / UseShed, UseSawmill /
 -- UseForge, saw / smelt, cinci instantanee): Era 2 ar fi fost a treia si a patra copie. Acum gesturile sunt in
@@ -167,6 +169,52 @@ FlowConfig.LINES = {
         hint = "ore_to_furnace",
         hintedBy = { "parts" },
     }),
+    -- [D67] ERA 3: minereul de cupru al Wire Works iese bobine, bateriile turbinei ies celule de energie
+    coils = lineSpec({
+        line = "coils",
+        era = 3,
+        raw = { "works_ore" },
+        find = "named3",
+        store = "worksStore",
+        storePile = "WorksPile",
+        processor = "wireworks",
+        inputPile = "WireworksPile",
+        processorPad = "steam_engine",
+        output = "coils",
+        outputPile = "CoilsPile",
+        processedStat = "drawn",
+        stamp = "processedAt",
+        soldStat = "coilsSold",
+        storeEmpty = "works_store_empty",
+        nothingDone = "nothing_drawn",
+        noStore = "no_works_store",
+        noProcessor = "no_steam",
+        hint = "ore_to_wireworks",
+        hintedBy = {},
+    }),
+    power = lineSpec({
+        line = "power",
+        era = 3,
+        raw = { "battery" },
+        find = "named3",
+        store = "batteryShed",
+        storePile = "BatteryPile",
+        storePad = "battery_shed",
+        processor = "powerhouse",
+        inputPile = "PowerhousePile",
+        processorPad = "power_house",
+        output = "cell",
+        outputPile = "CellPile",
+        processedStat = "cellsMade",
+        stamp = "processedAt",
+        soldStat = "cellsSold",
+        storeEmpty = "battery_shed_empty",
+        nothingDone = "nothing_charged",
+        noStore = "no_battery_shed",
+        noProcessor = "no_powerhouse",
+        hint = "batteries_to_powerhouse",
+        hintedBy = { "coils" },
+    }),
 } :: { [string]: Line }
 
 FlowConfig.SELLERS = {
@@ -185,6 +233,14 @@ FlowConfig.SELLERS = {
         station = "market",
         role = "merchant",
         find = "named2",
+    },
+    depot = {
+        seller = "depot",
+        era = 3,
+        pile = "DepotPile",
+        station = "depot",
+        role = "clerk",
+        find = "named3",
     },
 } :: { [string]: Seller }
 

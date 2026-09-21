@@ -129,9 +129,9 @@ return function()
                         elseif station == "dock" then
                             over.dockLevel = 7
                         else
-                            -- [D65] un alt vanzator: nivelul lui vine pe numele lui
-                            check.equal(station, "market")
-                            over.levels = { market = 7 }
+                            -- [D65, D67] un alt vanzator (Piata, Depoul): nivelul lui vine pe numele lui
+                            check.is_true(station == "market" or station == "depot")
+                            over.levels = { [station :: string] = 7 }
                         end
                         check.equal(QuestMath.progress(q, facts(over)), 7)
                     end
@@ -415,8 +415,9 @@ return function()
                     check.equal(q.goal, TycoonConfig.PREV_NET_LEVEL)
                 end
             end
-            -- inaintea plasei 2, 3, 4 si a Forge (dupa ea, plasa 5); [D65] la fel la Moara: 7, 8, 9 si cuptorul de cupru
-            check.equal(seen, 8)
+            -- inaintea plasei 2, 3, 4 si a Forge (dupa ea, plasa 5); [D65] la fel la Moara: 7, 8, 9 si cuptorul de cupru;
+            -- [D67] si la Wire Works: 12, 13, 14 si Power House
+            check.equal(seen, 12)
         end)
 
         test.case("textul unui quest de nivel spune nivelul pe care il si cere", function()
@@ -503,7 +504,7 @@ return function()
                 check.is_true(TycoonConfig.eraIsLive(ch.era))
             end
             -- altfel, dupa clopotul Erei 1, capitolul 4 ar cere o roata de apa pe care n-o poti construi
-            check.equal(#QuestConfig.ALL_CHAPTERS, 6)
+            check.equal(#QuestConfig.ALL_CHAPTERS, 9) -- [D67] capitolele 7-9, ale Erei 3
         end)
 
         test.case("[D65] quest-urile Morii se citesc din numaratorile si nivelurile ei", function()

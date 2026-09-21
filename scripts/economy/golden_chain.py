@@ -6,6 +6,7 @@ multe campuri, copiatul de mana devenea locul in care se strecoara o greseala; a
 
     python3 scripts/economy/golden_chain.py > /tmp/golden.luau
     python3 scripts/economy/golden_chain.py --era2 > /tmp/golden_era2.luau     # [D65] blocul `local GOLDEN_ERA2`
+    python3 scripts/economy/golden_chain.py --era3 > /tmp/golden_era3.luau     # [D67] blocul `local GOLDEN_ERA3`
 
 si blocul `local GOLDEN = { ... }` din test se inlocuieste cu iesirea. Starile sunt construite exact ca
 `state()` din test: plasa i are baza NET_BASE_RATE * NET_BASE_GROWTH^(i-1), banda si felul din NET_LANES /
@@ -145,9 +146,76 @@ def main_era2():
     print("}")
 
 
+# ---- [D67] Era 3: stari cu liniile Wire Works (bobine, curent) si Depoul, langa Moara incheiata ----
+ERA2_DONE = dict(ERA1_DONE, **ALL_PARTS, **ALL_COPPER)
+ALL_COILS = {"worksCollector": (2, 5), "worksPorter": (2, 5), "wiredrawer": (2, 5), "coilHauler": (2, 5), "clerk": (2, 5)}
+ALL_POWER = {"batteryCollector": (2, 5), "batteryPorter": (2, 5), "electrician": (2, 5), "powerHauler": (2, 5)}
+E12 = E1 + [40, 38, 36, 34, 30]  # plasele Erei 1 si ale Morii la finalul Morii
+
+# (nume, niveluri plase 1..n, oameni, masina cu abur, Power House, nivel Wire Works, nivel Power House, nivel Depot)
+CASES_ERA3 = [
+    ("Moara incheiata, Wire Works inca inchis: liniile lui nu exista", E12, dict(ERA2_DONE), False, False, 1, 1, 1),
+    ("masina cu abur fara plasa a unsprezecea: bobinele nu exista", E12, dict(ERA2_DONE), True, False, 1, 1, 1),
+    ("turul de mana al bobinelor: patru pasi, timpul tau intreg pe ei", E12 + [1], dict(ERA2_DONE), True, False, 1, 1, 1),
+    ("Works Collector si Works Porter angajati: Wire Works de mana e gatuirea", E12 + [10],
+     dict(ERA2_DONE, worksCollector=(1, 3), worksPorter=(1, 3)), True, False, 1, 1, 1),
+    ("toti oamenii bobinelor, fara Clerk: Depoul merge la o treime", E12 + [12, 9],
+     dict(ERA2_DONE, worksCollector=(1, 2), worksPorter=(1, 2), wiredrawer=(1, 1), coilHauler=(1, 1)), True, False, 6, 1, 3),
+    ("patru plase ale Wire Works, oameni pe trepte diferite, Power House fara turbina", E12 + [30, 28, 25, 20],
+     dict(ERA2_DONE, worksCollector=(2, 5), worksPorter=(1, 3), wiredrawer=(1, 2), coilHauler=(1, 4), clerk=(1, 2)),
+     True, True, 14, 1, 12),
+    ("turul de mana al curentului, langa bobinele cu toti oamenii", E12 + [30, 28, 25, 20, 1],
+     dict(ERA2_DONE, **ALL_COILS), True, True, 30, 1, 30),
+    ("Battery Collector si Battery Porter angajati: Power House de mana e gatuirea", E12 + [30, 28, 25, 20, 10],
+     dict(ERA2_DONE, **ALL_COILS, batteryCollector=(1, 3), batteryPorter=(1, 3)), True, True, 30, 1, 30),
+    ("Depoul plin: curentul intai, bobinele din ce ramane", E12 + [60, 60, 60, 60, 40],
+     dict(ERA2_DONE, **ALL_COILS, **ALL_POWER), True, True, 60, 60, 3),
+    ("prag 25 pe tot cartierul Wire Works, echipaj la maxim", E12 + [25, 25, 25, 25, 25],
+     dict(ERA2_DONE, **ALL_COILS, **ALL_POWER), True, True, 25, 25, 25),
+]
+
+
+def build_era3(levels, crews, steam, powerhouse, wireworks, powerhouse_level, depot):
+    s = build_era2(levels, 30, 30, 20, crews, True, True, 40, 40, 40)
+    s.steam, s.powerhouse = steam, powerhouse
+    s.wireworks_level, s.powerhouse_level, s.depot_level = wireworks, powerhouse_level, depot
+    return s
+
+
+def main_era3():
+    print("local GOLDEN_ERA3 = {")
+    for name, levels, crews, steam, powerhouse, wireworks, powerhouse_level, depot in CASES_ERA3:
+        s = build_era3(levels, crews, steam, powerhouse, wireworks, powerhouse_level, depot)
+        c = T.chain(s)
+        crews_lua = ", ".join(f"{r} = {{ {n}, {t} }}" for r, (n, t) in crews.items())
+        print("    {")
+        print(f'        name = "{name}",')
+        print(f"        nets = {{ {', '.join(str(x) for x in levels)} }},")
+        print(f"        steam = {lua(steam)},")
+        print(f"        powerhouse = {lua(powerhouse)},")
+        print(f"        wireworks = {wireworks},")
+        print(f"        powerhouseLevel = {powerhouse_level},")
+        print(f"        depot = {depot},")
+        print(f"        crews = {{ {crews_lua} }},")
+        print("        lines = {")
+        for line in T.LINE_ORDER:
+            f = c.lines[line]
+            values = ", ".join(lua(v) for _link, v in f.rates)
+            print(f"            {line} = {{ catch = {lua(f.catch)}, values = {{ {values} }}, delivered = {lua(f.delivered)},"
+                  f' bottleneck = "{f.bottleneck}" }},')
+        print("        },")
+        print(f"        capacity = {{ {', '.join(f'{k} = {lua(v)}' for k, v in c.capacity.items())} }},")
+        print(f'        bottleneck = "{c.bottleneck}",')
+        print(f"        income = {lua(T.income(s))},")
+        print("    },")
+    print("}")
+
+
 def main():
     if "--era2" in sys.argv:
         return main_era2()
+    if "--era3" in sys.argv:
+        return main_era3()
     print("local GOLDEN = {")
     for name, levels, saw, dock, sack, crews, forge_owned, forge in CASES:
         s = build(levels, saw, dock, sack, crews, forge_owned, forge)

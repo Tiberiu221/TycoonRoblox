@@ -452,4 +452,52 @@ function ProfileMigrate.toV16(data: { [string]: any })
     data.Meta.version = 16
 end
 
+-- [D67] ERA 3, "The Wire Works", ca toV16: nivelurile Wire Works, ale Power House si ale Depoului, gramezile cartierului
+-- (Works Store -> Wire Works -> bobine; Battery Shed -> Power House -> celule; gramada Depoului), treptele celor noua
+-- meserii (StationConfig.ERA3_ROLES) si numaratorii quest-urilor ei. Aditiv: nimic din erele dinainte nu se atinge.
+function ProfileMigrate.toV17(data: { [string]: any })
+    local version = if data.Meta ~= nil and data.Meta.version ~= nil then data.Meta.version else 1
+    if version >= 17 then
+        return
+    end
+    if typeof(data.Stations) ~= "table" then
+        data.Stations = {}
+    end
+    for _, kind in { "wireworks", "powerhouse", "depot" } do
+        if typeof(data.Stations[kind]) ~= "table" then
+            data.Stations[kind] = { level = 1 }
+        end
+    end
+    for _, pile in { "WorksPile", "CoilsPile", "BatteryPile", "CellPile" } do
+        if typeof(data[pile]) ~= "table" then
+            data[pile] = { counts = {} }
+        end
+    end
+    for _, pile in { "WireworksPile", "PowerhousePile" } do
+        if typeof(data[pile]) ~= "table" then
+            data[pile] = { counts = {}, processedAt = 0 }
+        end
+    end
+    if typeof(data.DepotPile) ~= "table" then
+        data.DepotPile = { counts = {}, drainedAt = 0 }
+    end
+    if typeof(data.Crews) ~= "table" then
+        data.Crews = {}
+    end
+    for _, role in StationConfig.ERA3_ROLES do
+        if typeof(data.Crews[role]) ~= "table" then
+            data.Crews[role] = { tier = 1 }
+        end
+    end
+    if typeof(data.Stats) ~= "table" then
+        data.Stats = {}
+    end
+    for _, stat in { "drawn", "coilsSold", "cellsMade", "cellsSold" } do
+        if typeof(data.Stats[stat]) ~= "number" then
+            data.Stats[stat] = 0
+        end
+    end
+    data.Meta.version = 17
+end
+
 return ProfileMigrate

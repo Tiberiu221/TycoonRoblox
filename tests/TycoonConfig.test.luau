@@ -91,32 +91,37 @@ end
 
 return function()
     test.suite("TycoonConfig", function()
-        test.case("36 de platforme, index = pozitia in lista", function()
+        test.case("54 de platforme, index = pozitia in lista", function()
             -- Bugul pe care il apara testul: daca `index` se dezalinieaza de pozitia reala,
             -- padStatuses (care merge prin PADS in ordine) si greedyRun (care citeste PRICES[k])
             -- ar arata/cumpara platforma gresita fara nicio eroare.
             -- [D56] +4: oamenii fierului. [D65] 18 + 18: Era 2 e Era 1 in oglinda, platforma cu platforma, iar
             -- ramasitele erelor 2-4 de dinainte de D46 (35 de platforme, niciodata `live`) au iesit.
-            check.equal(#TycoonConfig.PADS, 36)
+            -- [D67] +18: Era 3 e Moara in oglinda.
+            check.equal(#TycoonConfig.PADS, 54)
             for i, p in TycoonConfig.PADS do
                 check.equal(p.index, i)
             end
         end)
 
-        test.case("Era 1 are 18 deblocari, Era 2 la fel: e Era 1 in oglinda [D65]", function()
-            -- Era 1 a scazut de la 12 la 10 cand Sorting Crate si Dock Stall au devenit niveluri
-            -- ale debarcaderului, iar Weighted Nets pragul de nivel 10 al plaselor. Apoi 11 cu
-            -- Sawyer-ul [D48], 13 cu Porter-ul si Hauler-ul [D49], 14 cu shed-ul de scrap [D55],
-            -- 18 cu cei patru oameni ai fierului [D56]. Era 2: aceeasi schema, fara traista (o ai
-            -- deja), cu roata de apa in fata. Erele urmatoare nu exista inca [D64].
-            local perEra: { [number]: number } = {}
-            for _, p in TycoonConfig.PADS do
-                perEra[p.era] = (perEra[p.era] or 0) + 1
+        test.case(
+            "Era 1 are 18 deblocari, Era 2 si Era 3 la fel: fiecare e cea dinainte in oglinda [D65, D67]",
+            function()
+                -- Era 1 a scazut de la 12 la 10 cand Sorting Crate si Dock Stall au devenit niveluri
+                -- ale debarcaderului, iar Weighted Nets pragul de nivel 10 al plaselor. Apoi 11 cu
+                -- Sawyer-ul [D48], 13 cu Porter-ul si Hauler-ul [D49], 14 cu shed-ul de scrap [D55],
+                -- 18 cu cei patru oameni ai fierului [D56]. Era 2: aceeasi schema, fara traista (o ai
+                -- deja), cu roata de apa in fata. Erele urmatoare nu exista inca [D64].
+                local perEra: { [number]: number } = {}
+                for _, p in TycoonConfig.PADS do
+                    perEra[p.era] = (perEra[p.era] or 0) + 1
+                end
+                check.equal(perEra[1], 18)
+                check.equal(perEra[2], 18)
+                check.equal(perEra[3], 18)
+                check.equal(perEra[4], nil)
             end
-            check.equal(perEra[1], 18)
-            check.equal(perEra[2], 18)
-            check.equal(perEra[3], nil)
-        end)
+        )
 
         test.case("id-urile sunt unice", function()
             -- Un id duplicat ar insemna ca al doilea suprascrie primul in byId, si o platforma
@@ -817,9 +822,8 @@ return function()
                 check.not_nil(crew)
                 local p = TycoonConfig.byId[crew.pad]
                 check.not_nil(p)
-                -- [D65] oamenii Erei 2 se angajeaza in cartierul lor
-                local era = if table.find(StationConfig.ERA2_ROLES, role) ~= nil then 2 else 1
-                check.equal(p.era, era)
+                -- [D65, D67] oamenii fiecarei ere se angajeaza in cartierul lor
+                check.equal(p.era, StationConfig.ERA_OF_ROLE[role])
                 check.equal(TycoonConfig.CREW_OF_PAD[crew.pad], role)
                 check.equal(p.effects[1].kind, "hire")
                 check.equal(p.effects[1].field, role)
@@ -876,7 +880,8 @@ return function()
             local verbs =
                 { cast = "Cast", hire = "Hire", get = "Get", ring = "Ring", build = "Build" }
             local checked = 0
-            for _, chapter in QuestConfig.CHAPTERS do
+            -- [D67] toate capitolele scrise, si ale erelor inca in constructie
+            for _, chapter in QuestConfig.ALL_CHAPTERS do
                 for _, quest in chapter.quests do
                     -- doar quest-urile de cumparare: `arg` e chiar id-ul platformei (nu "net:<id>", care e un nivel)
                     local pad = if quest.arg ~= nil then TycoonConfig.byId[quest.arg] else nil

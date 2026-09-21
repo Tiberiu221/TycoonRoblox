@@ -499,9 +499,11 @@ function TycoonMath.padStatuses(
         result[p.id] = "available"
     end
     -- prima dintre cele care asteapta se vede conturata: se stie ce urmeaza, fara sa se poata lua
+    -- [D67] doar o platforma aflata in joc: una a unei ere inca in constructie (`live = false`) nu se arata ca pas
+    -- urmator, fiindca n-ar putea fi luata [D40]. Cine a terminat Moara nu vede Steam Engine-ul pana e Era 3 in joc.
     if #waiting > 0 then
         result[waiting[1].id] = "outline"
-    elseif blocker ~= nil and blocker.era == era0 then
+    elseif blocker ~= nil and blocker.era == era0 and blocker.live then
         result[blocker.id] = "outline"
     end
     return result
@@ -510,10 +512,15 @@ end
 -- floor; sub 1000 simplu ("950"); altfel K/M/B ca big() din simulator: 1200 -> "1.2K".
 -- [D60] Era la care a ajuns jucatorul: a primei platforme necumparate, in ordinea tabelului -- aceeasi regula ca `era0`
 -- din padStatuses. Cu toate cumparate, ultima era din tabel. Din ea iese titlul "Of the Landing" din balci.
+-- [D67] Doar platformele `live`: cat o era noua e in constructie (platformele ei stau in tabel, dar nu in joc), cine a
+-- terminat-o pe cea dinainte ramane in ea, nu intr-o era pe care n-o poate juca [D40].
 function TycoonMath.era(bought: { [string]: boolean }, pads: { TycoonConfig.Pad }?): number
     local list = pads or TycoonConfig.PADS
     local last = 1
     for _, p in list do
+        if not p.live then
+            continue
+        end
         if not bought[p.id] then
             return p.era
         end

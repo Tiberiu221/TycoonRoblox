@@ -29,6 +29,9 @@ StationConfig.LEVEL_INC = {
     foundry = 0.06,
     market = 0.06,
     furnace = 0.06,
+    wireworks = 0.06,
+    depot = 0.06,
+    powerhouse = 0.06,
 }
 StationConfig.LEVEL_INC_DEFAULT = 0.03
 StationConfig.LEVEL_GROWTH = 1.09 -- cat se scumpeste fiecare nivel
@@ -50,14 +53,35 @@ StationConfig.NET_UPGRADE_BASE_COST = 1.0
 -- 40, o noapte de absenta de la sfarsitul Erei 1 cumpara aproape toata Moara; cu 3000, doar inceputul ei (vezi
 -- sim_tycoon.check_windfall).
 StationConfig.ERA2_MULT = 3000.0
+-- [D67] Era 3, „The Wire Works", pe aceeasi regula: de 3000 de ori Moara, deci de 3000 x 3000 de ori satul.
+StationConfig.ERA3_MULT = 9000000.0
 -- [D65] CINCI PLASE PE ERA, in aceeasi schema: patru pentru marfa cu care pornesti era si una, in larg, pentru marfa
--- noua. A k-a plasa a unei ere are baza celei de-a k-a plase a Erei 1; nivelurile ei costa de ERA2_MULT ori in Era 2.
+-- noua. A k-a plasa a unei ere are baza celei de-a k-a plase a Erei 1; nivelurile ei costa de ERA2_MULT ori in Era 2
+-- (si de ERA3_MULT ori in Era 3: `ERA_MULT`).
 StationConfig.NETS_PER_ERA = 5
-StationConfig.NET_LANES = { 1, 1, 2, 2, 3, 1, 1, 2, 2, 3 } -- pe ce banda sta fiecare plasa: Era 1, apoi Era 2
+StationConfig.ERA_MULT = { 1.0, StationConfig.ERA2_MULT, StationConfig.ERA3_MULT }
+-- pe ce banda sta fiecare plasa: Era 1, Era 2, Era 3
+StationConfig.NET_LANES = { 1, 1, 2, 2, 3, 1, 1, 2, 2, 3, 1, 1, 2, 2, 3 }
 -- [D55] ce prinde fiecare: ultima plasa a Erei 1, cea din larg, prinde scrap (TycoonConfig.CATCH). [D65] Plasele Morii
--- prind scrap pentru turnatorie (`mill`), iar ultima, minereu de cupru (`ore`).
-StationConfig.NET_KINDS =
-    { "wood", "wood", "wood", "wood", "scrap", "mill", "mill", "mill", "mill", "ore" }
+-- prind scrap pentru turnatorie (`mill`), iar ultima, minereu de cupru (`ore`). [D67] Plasele Wire Works prind minereu
+-- de cupru (`works`), iar in larg sta prima turbina (`turbine`), care umple baterii.
+StationConfig.NET_KINDS = {
+    "wood",
+    "wood",
+    "wood",
+    "wood",
+    "scrap",
+    "mill",
+    "mill",
+    "mill",
+    "mill",
+    "ore",
+    "works",
+    "works",
+    "works",
+    "works",
+    "turbine",
+}
 
 StationConfig.SACK_BONUS = 1.5 -- traista mare: mai putine drumuri, pe tot ce duci tu
 
@@ -84,6 +108,14 @@ StationConfig.FURNACE_BASE_RATE = 1.2
 StationConfig.FURNACE_UPGRADE_BASE = 180000.0
 StationConfig.MARKET_BASE_RATE = 3.0
 StationConfig.MARKET_UPGRADE_BASE = 27000.0
+-- [D67] CLADIRILE EREI 3, in oglinda cu ale Morii: Wire Works cat turnatoria, Power House cat cuptorul de cupru, Depoul
+-- cat Piata; nivelurile lor de ERA3_MULT ori mai scumpe (7 / 60 / 9 x 9 000 000).
+StationConfig.WIREWORKS_BASE_RATE = 2.4
+StationConfig.WIREWORKS_UPGRADE_BASE = 63000000.0
+StationConfig.POWERHOUSE_BASE_RATE = 1.2
+StationConfig.POWERHOUSE_UPGRADE_BASE = 540000000.0
+StationConfig.DEPOT_BASE_RATE = 3.0
+StationConfig.DEPOT_UPGRADE_BASE = 81000000.0
 -- NEGUSTORUL FACE DEBARCADERUL SA MEARGA, NU SA PLATEASCA MAI BINE. Fara el, debarcaderul vinde
 -- singur la o treime; cu el, merge tot timpul. E singurul pas pe care nu-l faci tu.
 StationConfig.NO_TRADER_FACTOR = 0.35
@@ -116,22 +148,39 @@ StationConfig.ERA2_ROLES = {
     "coppersmith",
     "copperHauler",
 }
--- Toate meseriile, in ordinea erelor.
+-- [D67] Era 3, in aceeasi ordine: cei patru ai bobinelor, Clerk-ul Depoului, cei patru ai curentului.
+StationConfig.ERA3_ROLES = {
+    "worksCollector",
+    "worksPorter",
+    "wiredrawer",
+    "coilHauler",
+    "clerk",
+    "batteryCollector",
+    "batteryPorter",
+    "electrician",
+    "powerHauler",
+}
+-- Meseriile fiecarei ere, apoi toate, in ordinea erelor.
+StationConfig.ERA_ROLES =
+    { StationConfig.ERA1_ROLES, StationConfig.ERA2_ROLES, StationConfig.ERA3_ROLES }
 local allRoles: { string } = {}
-for _, role in StationConfig.ERA1_ROLES do
-    table.insert(allRoles, role)
-end
-for _, role in StationConfig.ERA2_ROLES do
-    table.insert(allRoles, role)
-end
-StationConfig.ROLES = allRoles
--- [D65] Treptele costa fix (25 / 75 / 225 / 675) pentru oamenii Erei 1; ai Erei 2 muta marfa de ERA2_MULT ori mai
+-- [D65] Treptele costa fix (25 / 75 / 225 / 675) pentru oamenii Erei 1; ai erelor noi muta marfa de ERA_MULT ori mai
 -- scumpa, deci si uneltele lor costa pe masura.
 local roleCostMult: { [string]: number } = {}
-for _, role in StationConfig.ERA2_ROLES do
-    roleCostMult[role] = StationConfig.ERA2_MULT
+-- [D67] Era fiecarei meserii.
+local eraOfRole: { [string]: number } = {}
+for era, roles in StationConfig.ERA_ROLES do
+    for _, role in roles do
+        table.insert(allRoles, role)
+        eraOfRole[role] = era
+        if era > 1 then
+            roleCostMult[role] = StationConfig.ERA_MULT[era]
+        end
+    end
 end
+StationConfig.ROLES = allRoles
 StationConfig.ROLE_COST_MULT = roleCostMult
+StationConfig.ERA_OF_ROLE = eraOfRole
 -- ---- liniile, ca date [D64] --------------------------------------------------------------------
 -- Pana la D64 motorul (ChainMath) era scris de mana pentru exact doua linii. Era 2 aduce linii de ACEEASI forma
 -- (plasa -> om care aduna -> magazie -> om care duce -> atelier -> om care duce -> vanzator), asa ca forma e tabel.
@@ -151,9 +200,9 @@ export type Line = { netKind: string, openFlag: string?, seller: string, steps: 
 export type Processor = { base: number, levelField: string }
 export type Seller = { role: string, base: number, levelField: string, priority: { string } }
 
-StationConfig.LINE_ORDER = { "wood", "iron", "parts", "copper" }
+StationConfig.LINE_ORDER = { "wood", "iron", "parts", "copper", "coils", "power" }
 -- Liniile fiecarei ere: in fiecare, a doua apare spre final, cu plasa, atelierul si oamenii ei [D64].
-StationConfig.ERA_LINES = { { "wood", "iron" }, { "parts", "copper" } }
+StationConfig.ERA_LINES = { { "wood", "iron" }, { "parts", "copper" }, { "coils", "power" } }
 local LINES: { [string]: Line } = {
     wood = {
         netKind = "wood",
@@ -200,6 +249,29 @@ local LINES: { [string]: Line } = {
             { role = "copperHauler", link = "copperHaul", kind = "walk" },
         },
     },
+    -- [D67] Era 3: bobinele (masina cu abur porneste Wire Works) si curentul (Power House), la Depot
+    coils = {
+        netKind = "works",
+        openFlag = "steam",
+        seller = "depot",
+        steps = {
+            { role = "worksCollector", link = "worksCollect", kind = "walk" },
+            { role = "worksPorter", link = "worksPort", kind = "walk" },
+            { role = "wiredrawer", link = "wireworks", kind = "processor" },
+            { role = "coilHauler", link = "coilHaul", kind = "walk" },
+        },
+    },
+    power = {
+        netKind = "turbine",
+        openFlag = "powerhouse",
+        seller = "depot",
+        steps = {
+            { role = "batteryCollector", link = "batteryCollect", kind = "walk" },
+            { role = "batteryPorter", link = "batteryPort", kind = "walk" },
+            { role = "electrician", link = "powerhouse", kind = "processor" },
+            { role = "powerHauler", link = "powerHaul", kind = "walk" },
+        },
+    },
 }
 StationConfig.LINES = LINES
 local PROCESSORS: { [string]: Processor } = {
@@ -207,10 +279,12 @@ local PROCESSORS: { [string]: Processor } = {
     forge = { base = StationConfig.FORGE_BASE_RATE, levelField = "forgeLevel" },
     foundry = { base = StationConfig.FOUNDRY_BASE_RATE, levelField = "foundryLevel" },
     furnace = { base = StationConfig.FURNACE_BASE_RATE, levelField = "furnaceLevel" },
+    wireworks = { base = StationConfig.WIREWORKS_BASE_RATE, levelField = "wireworksLevel" },
+    powerhouse = { base = StationConfig.POWERHOUSE_BASE_RATE, levelField = "powerhouseLevel" },
 }
 StationConfig.PROCESSORS = PROCESSORS
 -- Vanzatorii, cu ordinea lor (o harta cu chei text n-are ordine in Luau; in simulator e ordinea din dictionar).
-StationConfig.SELLER_ORDER = { "dock", "market" }
+StationConfig.SELLER_ORDER = { "dock", "market", "depot" }
 local SELLERS: { [string]: Seller } = {
     dock = {
         role = "trader",
@@ -224,6 +298,13 @@ local SELLERS: { [string]: Seller } = {
         base = StationConfig.MARKET_BASE_RATE,
         levelField = "marketLevel",
         priority = { "copper", "parts" },
+    },
+    -- [D67] Depoul Erei 3: vinde intai celulele de energie, bobinele iau restul
+    depot = {
+        role = "clerk",
+        base = StationConfig.DEPOT_BASE_RATE,
+        levelField = "depotLevel",
+        priority = { "power", "coils" },
     },
 }
 StationConfig.SELLERS = SELLERS
@@ -329,6 +410,12 @@ StationConfig.ROLE_BASE = {
     oreCollector = 2.0,
     orePorter = 2.5,
     copperHauler = 6.5,
+    worksCollector = 4.0,
+    worksPorter = 6.0,
+    coilHauler = 9.0,
+    batteryCollector = 2.0,
+    batteryPorter = 2.5,
+    powerHauler = 6.5,
 }
 StationConfig.TIER_STEP = 1.0 -- fiecare treapta adauga inca o data baza: treapta 5 = de 5 ori
 StationConfig.TIER_MAX = 5

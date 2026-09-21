@@ -60,6 +60,16 @@ local Assets = {
             Mucker = sprite(78713042840079, 64, 480),
             Coppersmith = sprite(121254545908111, 64, 480),
             Teamster = sprite(104438045676073, 64, 480),
+            -- [D67] oamenii Wire Works. Id 0 = inca neurcata: omul poarta tinuta perechii din Moara.
+            Dredger = sprite(0, 64, 480),
+            Barrowman = sprite(0, 64, 480),
+            Wiredrawer = sprite(0, 64, 480),
+            Coiler = sprite(0, 64, 480),
+            Clerk = sprite(0, 64, 480),
+            Lineman = sprite(0, 64, 480),
+            Hodman = sprite(0, 64, 480),
+            Electrician = sprite(0, 64, 480),
+            Freighter = sprite(0, 64, 480),
             -- [D59] tinutele jucatorului, cumparate cu perle (angler, captain) sau din jurnalul complet (legend). Cheile
             -- cu litera mica, ca `keeper`: nu sunt meserii. Id 0 = inca neurcat -> personajul ramane in `keeper`.
             angler = sprite(77086694802414, 64, 480),
