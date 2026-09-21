@@ -118,6 +118,22 @@ local SMOKE_AT: { [string]: { own: { number }, borrowed: { number }, key: string
             w = 64,
             h = 48,
         },
+        -- [D67] Wire Works si Power House, cat poarta desenele Morii (turnatoria, cuptorul): hornul lor. Cand vine arta
+        -- lor (pasul 7), `own` se masoara pe foile noi.
+        wireworks = {
+            own = { 0.79, 0.02 },
+            borrowed = { 0.79, 0.02 },
+            key = "wire_works",
+            w = 40,
+            h = 32,
+        },
+        powerhouse = {
+            own = { 0.5, 0.0 },
+            borrowed = { 0.5, 0.0 },
+            key = "power_house",
+            w = 64,
+            h = 48,
+        },
     }
 
 local function keyHint(): string

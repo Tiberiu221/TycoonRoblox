@@ -35,11 +35,22 @@ PadArt.HOME_SPRITES = {
     hire_ore_porter = { "hut_ore_porter_1", "hut_ore_porter_2" },
     hire_coppersmith = { "hut_coppersmith_1", "hut_coppersmith_2" },
     hire_copper_hauler = { "hut_copper_hauler_1", "hut_copper_hauler_2" },
+    -- [D67] oamenii Wire Works. Cat casele lor nu sunt urcate, platforma o poarta pe a perechii din Moara.
+    hire_works_collector = { "hut_works_collector_1", "hut_works_collector_2" },
+    hire_works_porter = { "hut_works_porter_1", "hut_works_porter_2" },
+    hire_wiredrawer = { "hut_wiredrawer_1", "hut_wiredrawer_2" },
+    hire_coil_hauler = { "hut_coil_hauler_1", "hut_coil_hauler_2" },
+    hire_clerk = { "stall_clerk", "stall_clerk_2" },
+    hire_battery_collector = { "hut_battery_collector_1", "hut_battery_collector_2" },
+    hire_battery_porter = { "hut_battery_porter_1", "hut_battery_porter_2" },
+    hire_electrician = { "hut_electrician_1", "hut_electrician_2" },
+    hire_power_hauler = { "hut_power_hauler_1", "hut_power_hauler_2" },
 } :: { [string]: { string } }
 -- taraba ramane recuzita mica (x2); colibele sunt cladiri (x3)
 PadArt.HOME_SCALE = {
     dock_trader = TycoonConfig.PROP_SCALE,
     hire_merchant = TycoonConfig.PROP_SCALE,
+    hire_clerk = TycoonConfig.PROP_SCALE,
 } :: { [string]: number }
 
 -- Avizierele: pe oameni ii angajezi, nu ii reconstruiesti. Pictograma meseriei pe avizierul curat.
@@ -92,6 +103,31 @@ PadArt.BOARD_ICON = {
     hire_copper_hauler = function()
         return GoodArt.icon("copper") or Assets.goods.iron
     end,
+    -- [D67] oamenii Wire Works, pe aceeasi regula
+    hire_works_collector = function()
+        return Assets.icons.net
+    end,
+    hire_works_porter = function()
+        return GoodArt.icon("works_ore") or Assets.goods.scrap
+    end,
+    hire_wiredrawer = function()
+        return Assets.icons.hammer
+    end,
+    hire_coil_hauler = function()
+        return GoodArt.icon("coils") or Assets.goods.iron
+    end,
+    hire_battery_collector = function()
+        return Assets.icons.net
+    end,
+    hire_battery_porter = function()
+        return GoodArt.icon("battery") or Assets.goods.scrap
+    end,
+    hire_electrician = function()
+        return Assets.icons.hammer
+    end,
+    hire_power_hauler = function()
+        return GoodArt.icon("cell") or Assets.goods.iron
+    end,
 } :: { [string]: () -> Assets.Sprite }
 
 -- [D65] Platforma al carei desen il poarta `padId`: ea insasi cand tabelul `tbl` o are, altfel perechea din Era 1
@@ -103,6 +139,20 @@ local function lookOf(padId: string, tbl: { [string]: any }?): string
     return TycoonConfig.PAD_LOOKS_LIKE[padId] or padId
 end
 PadArt.lookOf = lookOf
+
+-- [D67] LANTUL DE IMPRUMUT: platforma, perechea ei din era dinainte, perechea aceleia (Era 3 -> Moara -> Era 1). Cat
+-- arta unei ere nu e urcata, poarta desenul primei perechi care il are; fara lant, o platforma a Erei 3 ar fi cazut pe
+-- perechea din Moara si apoi pe nimic (ramurile de mai jos stiu doar numele Erei 1).
+local function borrowChain(padId: string): { string }
+    local out = { padId }
+    local id = TycoonConfig.PAD_LOOKS_LIKE[padId]
+    while id ~= nil and #out < 4 do
+        table.insert(out, id)
+        id = TycoonConfig.PAD_LOOKS_LIKE[id]
+    end
+    return out
+end
+PadArt.borrowChain = borrowChain
 
 function PadArt.isNet(pad: TycoonConfig.Pad): boolean
     for _, e in pad.effects do
@@ -127,7 +177,7 @@ end
 -- Numele desenului de casa ales pentru platforma asta (si scara lui): cel mai mare urcat, pana la `count`. [D65] Intai
 -- din casele platformei insesi, apoi din ale perechii din Era 1 (cat arta Morii nu e urcata).
 local function homeSpriteName(padId: string, count: number): (string?, number)
-    for _, id in { padId, TycoonConfig.PAD_LOOKS_LIKE[padId] or padId } do
+    for _, id in borrowChain(padId) do
         local names = PadArt.HOME_SPRITES[id]
         if names ~= nil then
             for i = math.clamp(count, 1, #names), 1, -1 do
@@ -180,12 +230,21 @@ local OWN_BUILT: { [string]: string } = {
     copper_furnace = "copper_furnace",
     ore_shed = "ore_shed",
     mill_bell = "mill_bell",
+    -- [D67] cladirile Wire Works care stau pe platforme (arta lor vine la pasul 7)
+    steam_engine = "steam_engine",
+    power_house = "power_house",
+    battery_shed = "battery_shed",
+    works_bell = "works_bell",
 }
 local OWN_RUIN: { [string]: string } = {
     water_wheel = "ruin_water_wheel",
     copper_furnace = "ruin_copper_furnace",
     ore_shed = "ruin_ore_shed",
     mill_bell = "ruin_mill_bell",
+    steam_engine = "ruin_steam_engine",
+    power_house = "ruin_power_house",
+    battery_shed = "ruin_battery_shed",
+    works_bell = "ruin_works_bell",
 }
 
 local function ownSprite(tbl: { [string]: string }, padId: string): Assets.Sprite?
@@ -195,18 +254,22 @@ local function ownSprite(tbl: { [string]: string }, padId: string): Assets.Sprit
 end
 
 function PadArt.bought(padId: string, count: number, forgeLevel: number?): (Assets.Sprite?, number)
-    local own = ownSprite(OWN_BUILT, padId)
-    if own ~= nil then
-        return own, Assets.PIXEL_SCALE
-    end
     if PadArt.HOME_SPRITES[padId] ~= nil then
-        return PadArt.home(padId, count) -- casa ei, sau a perechii cat nu e urcata
+        return PadArt.home(padId, count) -- casa ei, sau a primei perechi care o are urcata
+    end
+    -- [D67] desenul ei, apoi al perechii din era dinainte (Moara pentru Era 3), cat al ei nu e urcat
+    local chain = borrowChain(padId)
+    for _, id in chain do
+        local own = ownSprite(OWN_BUILT, id)
+        if own ~= nil then
+            return own, Assets.PIXEL_SCALE
+        end
     end
     if padId == "water_wheel" then
         -- [D65] pana la arta ei: roata de la carma (tot o roata de lemn), ca locul sa se vada
         return Assets.tycoon.wheel, Assets.PIXEL_SCALE
     end
-    padId = lookOf(padId, nil)
+    padId = chain[#chain] -- perechea din Era 1, pentru ramurile de mai jos
     if PadArt.HOME_SPRITES[padId] ~= nil then
         return PadArt.home(padId, count)
     elseif padId == "scrap_shed" then
@@ -223,14 +286,20 @@ end
 
 -- [D53] Ruina de pe locul unei platforme necumparate.
 function PadArt.ruin(padId: string): (Assets.Sprite?, number)
-    local own = ownSprite(OWN_RUIN, padId)
-    if own ~= nil then
-        return own, Assets.PIXEL_SCALE
+    local chain = borrowChain(padId)
+    for _, id in chain do
+        local own = ownSprite(OWN_RUIN, id)
+        if own ~= nil then
+            return own, Assets.PIXEL_SCALE
+        end
     end
     if padId == "water_wheel" then
         return Assets.tycoon.ruin_hut, Assets.PIXEL_SCALE -- [D65] de imprumut, pana la arta ei
     end
-    padId = lookOf(padId, nil)
+    if PadArt.BOARD_ICON[padId] ~= nil then
+        return Assets.tycoon.board_old, TycoonConfig.PROP_SCALE
+    end
+    padId = chain[#chain] -- perechea din Era 1, pentru ramurile de mai jos
     if PadArt.BOARD_ICON[padId] ~= nil then
         return Assets.tycoon.board_old, TycoonConfig.PROP_SCALE
     elseif padId == "first_runner" then

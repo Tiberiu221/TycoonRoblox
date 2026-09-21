@@ -16,6 +16,16 @@ local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 local Strings = require(ReplicatedStorage.Shared.Config.Strings)
 local FlowConfig = require(ReplicatedStorage.Shared.Config.FlowConfig)
 local StationConfig = require(ReplicatedStorage.Shared.Config.StationConfig)
+-- [D65, D67] Platforma care deschide fiecare vanzator al erelor noi: a atelierului primei lui linii (FlowConfig).
+local sellerOpenPad: { [string]: string } = {}
+local sellerSeen: { [string]: boolean } = {}
+for _, line in StationConfig.LINE_ORDER do
+    local spec = FlowConfig.LINES[line]
+    if not sellerSeen[spec.seller] then
+        sellerSeen[spec.seller] = true
+        sellerOpenPad[spec.seller] = spec.processorPad -- nil pentru taverna: e deschisa de la inceput
+    end
+end
 local AudioLevels = require(ReplicatedStorage.Shared.Modules.AudioLevels)
 local LookMath = require(ReplicatedStorage.Shared.Modules.LookMath)
 -- FOLDERELE DE LANGA SCRIPT SE ASTEAPTA. Roblox copiaza copiii lui StarterPlayerScripts in PlayerScripts pe rand, iar
@@ -294,6 +304,28 @@ safeInit("ForgeController", function()
     millSellers.market = LineController.seller(
         "market",
         fixedBuilding(TycoonConfig.MARKET, "market", "tavern", Strings.MARKET_LABEL)
+    )
+    -- [D67] ERA 3, The Wire Works, la fel: Works Store, Wire Works si Depot sunt cladiri fixe (apar cu masina cu abur);
+    -- Battery Shed si Power House sunt platforme. Pana la arta lor (docs/PLAN-ERA3.md, pasul 7) poarta desenele Morii.
+    millLines.coils = LineController.line(
+        "coils",
+        fixedBuilding(
+            TycoonConfig.WORKS_STORE,
+            "works_store",
+            "mill_store",
+            Strings.LINE_WORDS.coils.store
+        ),
+        fixedBuilding(
+            TycoonConfig.WIRE_WORKS,
+            "wire_works",
+            "foundry",
+            Strings.LINE_WORDS.coils.processor
+        )
+    )
+    millLines.power = LineController.line("power", nil, nil)
+    millSellers.depot = LineController.seller(
+        "depot",
+        fixedBuilding(TycoonConfig.DEPOT, "depot", "market", Strings.LINK_WORDS.depot.label)
     )
     for _, line in millLines do
         InteractController.AddSource(line.FocusStore)
@@ -673,6 +705,17 @@ end)
 -- nu face nimic in tacere e exact ce D43 interzice; reusitele doar cand nu se vad singure.
 -- [D56] "Are om" pe locul lui: gaterul are Sawyer, forja Smelter. Pana acum gaterul raspundea pentru orice loc.
 local staffedAt: { [string]: boolean } = { sawmill = false, forge = false }
+-- [D67] ce e in traista, pe vanzatori (din ultimul TycoonState): un refuz "other_seller" numeste vanzatorul potrivit
+local lastSellBy: { [string]: { count: number, value: number } } = {}
+local function sellerElsewhere(place: string): string?
+    for _, seller in StationConfig.SELLER_ORDER do
+        local entry = lastSellBy[seller]
+        if seller ~= place and entry ~= nil and entry.count > 0 then
+            return seller
+        end
+    end
+    return nil
+end
 Net.Get("UseResult").OnClientEvent
     :Connect(function(place: string, ok: boolean, reason: string, dropped: number, taken: number)
         local text = Strings.useResult(place, ok, reason, dropped, taken, staffedAt[place] == true)
@@ -688,7 +731,8 @@ Net.Get("UseResult").OnClientEvent
                 reason,
                 dropped,
                 taken,
-                staffedAt[place] == true
+                staffedAt[place] == true,
+                sellerElsewhere(place)
             )
         end
         if text ~= nil then
@@ -979,6 +1023,7 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
             value = if typeof(entry) == "table" then entry.value or 0 else 0,
         }
     end
+    lastSellBy = sackState.sellBy -- [D67]
 
     -- Quest-urile: capitolul, lista si quest-ul activ. Copiate camp cu camp [CLAUDE.md capcana 3].
     local rawWheel: any = raw.wheel or {}
@@ -1378,6 +1423,8 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
             PadController.SetBuildingLevel("workshop", row.level)
         elseif row.kind == "furnace" then
             PadController.SetBuildingLevel("copper_furnace", row.level) -- [D65]
+        elseif row.kind == "powerhouse" then
+            PadController.SetBuildingLevel("power_house", row.level) -- [D67]
         end
     end
     PadController.SetCrews(crewCounts, crewTiers) -- [D55] inainte de Apply: prima desenare alege deja casa potrivita
@@ -1431,11 +1478,12 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
             if lineView ~= nil then lineView.bottleneck else ""
         )
     end
+    -- [D65, D67] un vanzator se deschide odata cu prima lui linie: Piata cu roata de apa, Depoul cu masina cu abur
     for seller, controller in millSellers do
         controller.Apply(
             sackState,
             snapshot.flow.sellers[seller],
-            snapshot.pads.water_wheel == "bought"
+            snapshot.pads[sellerOpenPad[seller] or ""] == "bought"
         )
     end
     SawmillController.Apply(sackState, snapshot.sawmill)

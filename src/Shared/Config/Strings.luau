@@ -574,6 +574,22 @@ function Strings.promptSellAt(keyHint: string, value: string): string
     return `Sell{keyHint} — {value}`
 end
 Strings.PROMPT_MARKET_RAW = "Scrap and ore get worked in the Mill first"
+-- [D65, D67] Ce cumpara fiecare vanzator: pentru refuzul lui, cand ii aduci ce nu e al lui.
+export type SellerWords = { buys: string, rawOnly: string }
+Strings.SELLER_WORDS = {
+    dock = {
+        buys = "planks and iron",
+        rawOnly = "The Tavern buys planks and iron, not logs or scrap",
+    },
+    market = {
+        buys = "parts and copper",
+        rawOnly = "The Market buys machine parts and copper, not scrap or ore",
+    },
+    depot = {
+        buys = "coils and power cells",
+        rawOnly = "The Depot buys coils and power cells, not ore or batteries",
+    },
+} :: { [string]: SellerWords }
 -- Ce a facut un gest la un loc al Erei 2 (`UseResult`), ca `useResult` pentru Era 1. nil = locul nu e al ei.
 function Strings.placeResult(
     line: string?,
@@ -583,17 +599,22 @@ function Strings.placeResult(
     reason: string,
     dropped: number,
     taken: number,
-    staffed: boolean
+    staffed: boolean,
+    elsewhere: string? -- [D67] vanzatorul care cumpara ce ai adus (clientul il stie din traista), daca e altul
 ): string?
     if seller ~= nil then
+        local here = Strings.SELLER_WORDS[seller] or Strings.SELLER_WORDS.market
+        local hereName = (Strings.LINK_WORDS[seller] or Strings.LINK_WORDS.market).goTo
         if ok then
             return nil -- vanzarea se anunta cand se scurge gramada, nu la predare
         elseif reason == "raw_only" then
-            return "The Market buys machine parts and copper, not scrap or ore"
+            return here.rawOnly
         elseif reason == "other_seller" then
-            return if seller == "market"
-                then "The Tavern buys that — the Market buys parts and copper"
-                else "The Market buys that — the Tavern buys planks and iron"
+            -- [D67] cu trei vanzatori, "ce ai adus" poate fi al oricaruia: numele vine din traista, altfel nu se ghiceste
+            local other = if elsewhere ~= nil then Strings.LINK_WORDS[elsewhere] else nil
+            return if other ~= nil
+                then `The {other.goTo} buys that — the {hereName} buys {here.buys}`
+                else `That sells elsewhere — the {hereName} buys {here.buys}`
         end
         return nil
     end
@@ -670,7 +691,10 @@ function Strings.sackFullRaw(line: string): string
     local words = Strings.LINE_WORDS[line] or Strings.LINE_WORDS.wood
     return `Sack full — take the {words.raw} to the {words.processor}`
 end
-Strings.SACK_FULL_MARKET = "Sack full — sell at the Market"
+-- [D65, D67] marfa gata a unui vanzator al erelor noi: "Sack full — sell at the Market" / "... at the Depot"
+function Strings.sackFullSell(seller: string): string
+    return `Sack full — sell at the {(Strings.LINK_WORDS[seller] or Strings.LINK_WORDS.market).goTo}`
+end
 -- Ghidajul [GuideMath]: ce scrie sageata deasupra tintei.
 Strings.GUIDE_FIRST_PAD = "Step on the glowing pad"
 function Strings.guideBuy(name: string): string

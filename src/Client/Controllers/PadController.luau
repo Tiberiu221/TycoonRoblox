@@ -129,6 +129,8 @@ local FORGE_SIGN_Y = 30 -- px de la varful cladirii: pe acoperis, ca firma taver
 local ROOF_SIGN: { [string]: string } = {
     workshop = Strings.FORGE_LABEL,
     copper_furnace = Strings.LINE_WORDS.copper.processor,
+    -- [D67] si la Wire Works: Power House (masina cu abur si Battery Shed n-au Upgrade, deci nici nume pe acoperis)
+    power_house = Strings.LINE_WORDS.power.processor,
 }
 
 local BOARD_ICON = PadArt.BOARD_ICON

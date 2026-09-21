@@ -450,17 +450,24 @@ function VillageDiorama.Show(village: VillageLook.Snapshot)
 
     -- [D65] cladirile fixe ale Morii apar cu roata de apa, ca acasa la gazda (pana la arta lor: desenele perechii
     -- din Era 1, ca in LineController)
+    local tycoon: any = Assets.tycoon
+    -- desenul cladirii cand e urcat, altfel al perechii din era dinainte
+    local function art(own: string, borrowed: string): Assets.Sprite?
+        local sprite = tycoon[own]
+        return if sprite ~= nil and Assets.has(sprite) then sprite else tycoon[borrowed]
+    end
     if village.pads.water_wheel then
-        local tycoon: any = Assets.tycoon
-        -- desenul cladirii cand e urcat, altfel al perechii din Era 1
-        local function art(own: string, borrowed: string): Assets.Sprite?
-            local sprite = tycoon[own]
-            return if sprite ~= nil and Assets.has(sprite) then sprite else tycoon[borrowed]
-        end
         local words = Strings.LINE_WORDS.parts
         station(p, art("mill_store", "storage"), TycoonConfig.MILL_STORE, words.store, false)
         station(p, art("foundry", "sawmill"), TycoonConfig.FOUNDRY, words.processor, false)
         station(p, art("market", "tavern"), TycoonConfig.MARKET, Strings.MARKET_LABEL, true)
+    end
+    -- [D67] si ale Wire Works, cu masina cu abur (cat Era 3 e in joc: altfel platforma ei nu poate fi cumparata)
+    if village.pads.steam_engine and TycoonConfig.eraIsLive(3) then
+        local words = Strings.LINE_WORDS.coils
+        station(p, art("works_store", "mill_store"), TycoonConfig.WORKS_STORE, words.store, false)
+        station(p, art("wire_works", "foundry"), TycoonConfig.WIRE_WORKS, words.processor, false)
+        station(p, art("depot", "market"), TycoonConfig.DEPOT, Strings.LINK_WORDS.depot.label, true)
     end
 
     for _, pad in TycoonConfig.PADS do

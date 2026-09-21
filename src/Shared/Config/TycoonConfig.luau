@@ -185,6 +185,8 @@ TycoonConfig.PAD_LOOKS_LIKE = {
     hire_electrician = "hire_coppersmith",
     hire_power_hauler = "hire_copper_hauler",
     works_bell = "mill_bell",
+    -- masina cu abur n-are pereche in Moara: poarta, pana la arta ei, cladirea de caramida a cuptorului de cupru
+    steam_engine = "copper_furnace",
 } :: { [string]: string }
 
 -- [D65] GASIRILE, pe ere: aceleasi trepte (NAMED_VALUE), inmultite cu cadrul erei. `named` e al Erei 1.

@@ -96,7 +96,20 @@ type Assembly = {
     levelPill: GuiObject?,
     levelLabel: TextLabel?, -- insigna "Lv 7" de pe stalp
     boostTag: TextLabel, -- [D51] "Fast first catch", sub pastila cu numarul
+    turbine: boolean, -- [D67] prima turbina: o roata cu bobine, nu o plasa; nimic nu pluteste spre ea
 }
+
+-- [D67] TURBINA. Sta in larg ca o plasa (aceeasi platforma, acelasi stalp, acelasi nivel), dar nu prinde nimic din rau:
+-- se invarte si umple baterii. Desenul ei (`turbine`), cat nu e urcat, e roata de apa a Morii: roadmap-ul spune chiar
+-- asa, "bobine + roata". De doua ori marimea foii, ca sa stea cat o plasa in apa.
+local TURBINE_SCALE = 2
+local function turbineSprite(): Assets.Sprite?
+    local own = (Assets.tycoon :: any).turbine
+    if own ~= nil and Assets.has(own) then
+        return own
+    end
+    return if Assets.has(Assets.tycoon.water_wheel) then Assets.tycoon.water_wheel else nil
+end
 
 local NetController = {}
 local deps: Deps
@@ -231,6 +244,7 @@ local function ensureAssembly(padId: string, x: number, y: number): Assembly
     local pad = TycoonConfig.byId[padId]
     local padX = if pad ~= nil and pad.x ~= nil then pad.x :: number else x
     local padY = if pad ~= nil and pad.y ~= nil then pad.y :: number else y
+    local isTurbine = pad ~= nil and TycoonMath.netKind(pad) == "turbine"
 
     -- radacina: fixa la stalp -- un stalp infipt in ponton nu pluteste, doar plasa (bob, mai jos)
     local root = Instance.new("Frame")
@@ -316,7 +330,20 @@ local function ensureAssembly(padId: string, x: number, y: number): Assembly
     body.Parent = bob
 
     local art: ImageLabel? = nil
-    if Assets.has(Assets.tycoon.net_water) then
+    local turbineArt = if isTurbine then turbineSprite() else nil
+    if turbineArt ~= nil then
+        body.Size =
+            UDim2.fromOffset(turbineArt.width * TURBINE_SCALE, turbineArt.height * TURBINE_SCALE)
+        local img = Instance.new("ImageLabel")
+        img.Name = "Art"
+        img.BackgroundTransparency = 1
+        img.Image = Assets.url(turbineArt)
+        img.ResampleMode = Enum.ResamplerMode.Pixelated
+        img.Size = UDim2.fromScale(1, 1)
+        img.ZIndex = 5
+        img.Parent = body
+        art = img
+    elseif Assets.has(Assets.tycoon.net_water) then
         local img = Instance.new("ImageLabel")
         img.Name = "Art"
         img.BackgroundTransparency = 1
@@ -414,6 +441,7 @@ local function ensureAssembly(padId: string, x: number, y: number): Assembly
         levelPill = levelPill,
         levelLabel = levelLabel,
         boostTag = boostTag,
+        turbine = isTurbine,
     }
     assemblies[padId] = record
     return record
@@ -481,12 +509,20 @@ local function collect(padId: string)
             end
         end
         local atDock = if sackSellBy.dock ~= nil then sackSellBy.dock.count else 0
-        local atMarket = if sackSellBy.market ~= nil then sackSellBy.market.count else 0
+        -- [D65, D67] marfa gata a unui vanzator al erelor noi (Piata, Depoul), cand taverna n-are nimic de luat
+        local sellAt: string? = nil
+        for _, seller in StationConfig.SELLER_ORDER do
+            local entry = sackSellBy[seller]
+            if seller ~= "dock" and entry ~= nil and entry.count > 0 then
+                sellAt = seller
+                break
+            end
+        end
         deps.OnToast(if sackRaw > 0
             then Strings.SACK_FULL_LOGS
             elseif sackRawScrap > 0 then Strings.SACK_FULL_SCRAP
             elseif rawLine ~= nil then Strings.sackFullRaw(rawLine)
-            elseif atMarket > 0 and atDock == 0 then Strings.SACK_FULL_MARKET
+            elseif sellAt ~= nil and atDock == 0 then Strings.sackFullSell(sellAt)
             elseif sackIron > 0 and sackCount - sackIron - sackFinds > 0 then Strings.SACK_FULL_BOTH
             elseif sackIron > 0 then Strings.SACK_FULL_IRON
             elseif sackFinds >= sackCount then Strings.SACK_FULL_FINDS -- [D56] fara nicio scandura
@@ -717,8 +753,11 @@ local function updateNetMotion(now: number)
         if assembly.art ~= nil and (assembly.lastFull ~= full or assembly.lastRank ~= rank) then
             assembly.lastFull = full
             assembly.lastRank = rank
-            local sprite = PadArt.netSprite(rank, full)
-            assembly.art.Image = Assets.url(sprite)
+            -- [D67] turbina isi pastreaza desenul: plina, doar se intuneca
+            if not assembly.turbine then
+                local sprite = PadArt.netSprite(rank, full)
+                assembly.art.Image = Assets.url(sprite)
+            end
             assembly.art.ImageColor3 = if full
                 then Color3.fromRGB(140, 140, 150)
                 else Color3.new(1, 1, 1)
@@ -736,7 +775,8 @@ local function updateFloaters()
             floaters[padId] = recs
         end
         local assembly = assemblies[padId]
-        if assembly == nil or not assembly.root.Visible then
+        -- [D67] spre turbina nu pluteste nimic: ea umple baterii din curentul raului
+        if assembly == nil or not assembly.root.Visible or assembly.turbine then
             for key, rec in recs do
                 releaseFloater(rec)
                 recs[key] = nil
