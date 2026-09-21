@@ -141,6 +141,39 @@ OUTFITS = {
     "teamster":  dict(shirt=hexc("d0702c"), shirt_l=hexc("e88e48"), shirt_d=hexc("a0521c"),
                        hat=hexc("3f8f9a"), hat_d=hexc("2c6a74"), hat_l=hexc("5aacb8"),
                        hat_kind="kerchief", coat=False),
+    # [D67] OAMENII WIRE WORKS: aceeasi regula ca la Moara -- silueta palariei e a meseriei-pereche (culegatorul bor lat,
+    # caratorul caciula, omul atelierului banda si sort, cel care duce la vanzator basma, vanzatorul banda), culorile sunt
+    # ale cartierului nou: fier albastrui, pruna, visiniu, verde de muschi, bleumarin (Clerk-ul, cu haina de uniforma),
+    # apoi galben de semnal, pamant ars, albastru electric (Electrician-ul, cu casca si sort de cauciuc) si zmeura.
+    "dredger":   dict(shirt=hexc("4f5d6e"), shirt_l=hexc("6a7a8c"), shirt_d=hexc("38424e"),
+                       hat=hexc("d8c07a"), hat_d=hexc("a8904e"), hat_l=hexc("ecd89c"),
+                       hat_kind="brim", coat=False),
+    "barrowman": dict(shirt=hexc("7a5a8e"), shirt_l=hexc("9676a8"), shirt_d=hexc("58406a"),
+                       hat=hexc("3c4450"), hat_d=hexc("2a303a"), hat_l=hexc("5a6474"),
+                       hat_kind="dome", coat=False),
+    "wiredrawer": dict(shirt=hexc("8e2f4a"), shirt_l=hexc("aa4a64"), shirt_d=hexc("661f34"),
+                       hat=hexc("e8dcc0"), hat_d=hexc("b8ac90"), hat_l=hexc("f6eeda"),
+                       hat_kind="band", coat=False,
+                       apron=(hexc("6a5040"), hexc("86694f"), hexc("4e3a2e"))),
+    "coiler":    dict(shirt=hexc("5f8a2f"), shirt_l=hexc("7aa64a"), shirt_d=hexc("44661f"),
+                       hat=hexc("c8723a"), hat_d=hexc("9a5426"), hat_l=hexc("e08e54"),
+                       hat_kind="kerchief", coat=False),
+    "clerk":     dict(shirt=hexc("283a66"), shirt_l=hexc("3c5288"), shirt_d=hexc("1a2848"),
+                       hat=hexc("d6a53a"), hat_d=hexc("a2791f"), hat_l=hexc("f1cd6a"),
+                       hat_kind="band", coat=True),
+    "lineman":   dict(shirt=hexc("e0b52e"), shirt_l=hexc("f0cd5a"), shirt_d=hexc("aa861c"),
+                       hat=hexc("f2f2ea"), hat_d=hexc("c4c4bc"), hat_l=hexc("ffffff"),
+                       hat_kind="brim", coat=False),
+    "hodman":    dict(shirt=hexc("a05a2a"), shirt_l=hexc("bc7646"), shirt_d=hexc("74401c"),
+                       hat=hexc("4a4a52"), hat_d=hexc("333339"), hat_l=hexc("66666f"),
+                       hat_kind="dome", coat=False),
+    "electrician": dict(shirt=hexc("2a6fd0"), shirt_l=hexc("4d8ee4"), shirt_d=hexc("1f4f94"),
+                       hat=hexc("f0f0e8"), hat_d=hexc("c4c4bc"), hat_l=hexc("ffffff"),
+                       hat_kind="hardhat", coat=False,
+                       apron=(hexc("3a3a44"), hexc("55555f"), hexc("26262e"))),
+    "freighter": dict(shirt=hexc("b8436e"), shirt_l=hexc("d4608a"), shirt_d=hexc("8a2e50"),
+                       hat=hexc("e0b52e"), hat_d=hexc("aa861c"), hat_l=hexc("f0cd5a"),
+                       hat_kind="kerchief", coat=False),
     # [D61, partea 2] vine cu pass-ul Supporter: haina verde-inchis cu cerc de aur pe frunte
     "supporter": dict(shirt=hexc("1f5a5c"), shirt_l=hexc("2f7a7a"), shirt_d=hexc("143c3e"),
                        hat=hexc("e8b23c"), hat_d=hexc("a87a1e"), hat_l=hexc("f5f0e0"),
@@ -1078,7 +1111,10 @@ if __name__ == "__main__":
                    "festival", "minstrel", "lampkeeper", "harvest", "supporter",
                    # [D65] oamenii Morii
                    "gleaner", "drayman", "founder", "wheelwright", "merchant", "prospector", "mucker",
-                   "coppersmith", "teamster"):
+                   "coppersmith", "teamster",
+                   # [D67] oamenii Wire Works
+                   "dredger", "barrowman", "wiredrawer", "coiler", "clerk", "lineman", "hodman",
+                   "electrician", "freighter"):
         s_outfit = build_sheet("outfit", outfit=outfit)
         png(f"outfit_{outfit}.png", s_outfit.w, s_outfit.h, s_outfit.px)
 

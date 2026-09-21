@@ -50,6 +50,16 @@ OVERRIDE = {
     "outfit_mucker": "Mucker",
     "outfit_coppersmith": "Coppersmith",
     "outfit_teamster": "Teamster",
+    # [D67] oamenii Wire Works
+    "outfit_dredger": "Dredger",
+    "outfit_barrowman": "Barrowman",
+    "outfit_wiredrawer": "Wiredrawer",
+    "outfit_coiler": "Coiler",
+    "outfit_clerk": "Clerk",
+    "outfit_lineman": "Lineman",
+    "outfit_hodman": "Hodman",
+    "outfit_electrician": "Electrician",
+    "outfit_freighter": "Freighter",
     # [D59] tinutele jucatorului (cheile cu litera mica, ca keeper) si fata roatii din panou (prop_helm -> helm)
     "outfit_angler": "angler",
     "outfit_captain": "captain",
