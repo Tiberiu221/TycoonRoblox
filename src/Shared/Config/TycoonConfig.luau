@@ -1614,7 +1614,7 @@ TycoonConfig.PADS = {
         motive = "V",
         price = 25000000,
         effects = { flagEffect("steam") },
-        live = false,
+        live = true,
         x = WORKS_DX + 330,
         y = 812,
         needs = { after = "mill_bell" },
@@ -1629,7 +1629,7 @@ TycoonConfig.PADS = {
         motive = "C",
         price = 0,
         effects = { netEffect(0.33, 1, "works") },
-        live = false,
+        live = true,
         x = WORKS_DX + 620,
         y = 812,
         needs = { netsExactly = 10, after = "steam_engine" },
@@ -1644,7 +1644,7 @@ TycoonConfig.PADS = {
         motive = "A",
         price = 55000000,
         effects = { hireEffect("worksCollector") },
-        live = false,
+        live = true,
         x = WORKS_DX + 630,
         y = 1564,
         needs = { netsOwned = 11 },
@@ -1659,7 +1659,7 @@ TycoonConfig.PADS = {
         motive = "A",
         price = 70000000,
         effects = { hireEffect("worksPorter") },
-        live = false,
+        live = true,
         x = WORKS_DX + 790,
         y = 1564,
         needs = { after = "hire_works_collector" },
@@ -1674,7 +1674,7 @@ TycoonConfig.PADS = {
         motive = "A",
         price = 80000000,
         effects = { hireEffect("wiredrawer") },
-        live = false,
+        live = true,
         x = WORKS_DX + 950,
         y = 1564,
         needs = { after = "hire_works_porter" },
@@ -1689,7 +1689,7 @@ TycoonConfig.PADS = {
         motive = "A",
         price = 90000000,
         effects = { hireEffect("coilHauler") },
-        live = false,
+        live = true,
         x = WORKS_DX + 1110,
         y = 1564,
         needs = { after = "hire_wiredrawer" },
@@ -1704,7 +1704,7 @@ TycoonConfig.PADS = {
         motive = "A",
         price = 110000000,
         effects = { hireEffect("clerk") },
-        live = false,
+        live = true,
         x = WORKS_DX + 360,
         y = 1244,
         needs = { after = "hire_coil_hauler" },
@@ -1718,7 +1718,7 @@ TycoonConfig.PADS = {
         motive = "C",
         price = 550000000,
         effects = { netEffect(0.33, 1, "works") },
-        live = false,
+        live = true,
         x = WORKS_DX + 820,
         y = 812,
         needs = {
@@ -1736,7 +1736,7 @@ TycoonConfig.PADS = {
         motive = "C",
         price = 3000000000,
         effects = { netEffect(0.33, 2, "works") },
-        live = false,
+        live = true,
         x = WORKS_DX + 1020,
         y = 812,
         needs = { netsExactly = 12, prevNetLevel = TycoonConfig.PREV_NET_LEVEL },
@@ -1750,7 +1750,7 @@ TycoonConfig.PADS = {
         motive = "C",
         price = 40000000000,
         effects = { netEffect(0.40, 2, "works") },
-        live = false,
+        live = true,
         x = WORKS_DX + 1220,
         y = 812,
         needs = { netsExactly = 13, prevNetLevel = TycoonConfig.PREV_NET_LEVEL },
@@ -1765,7 +1765,7 @@ TycoonConfig.PADS = {
         motive = "V",
         price = 100000000000,
         effects = { flagEffect("powerhouse") },
-        live = false,
+        live = true,
         x = WORKS_DX + 1630,
         y = 1324,
         needs = { netsOwned = 14 },
@@ -1780,7 +1780,7 @@ TycoonConfig.PADS = {
         motive = "C",
         price = 120000000000,
         effects = { netEffect(0.40, 3, "turbine") },
-        live = false,
+        live = true,
         x = WORKS_DX + 1420,
         y = 812,
         needs = {
@@ -1799,7 +1799,7 @@ TycoonConfig.PADS = {
         motive = "V",
         price = 9000000000,
         effects = { flagEffect("batteryShed") },
-        live = false,
+        live = true,
         x = WORKS_DX + 1490,
         y = 954,
         needs = { netsOwned = 15 },
@@ -1814,7 +1814,7 @@ TycoonConfig.PADS = {
         motive = "A",
         price = 9000000000,
         effects = { hireEffect("batteryCollector") },
-        live = false,
+        live = true,
         x = WORKS_DX + 1300,
         y = 1564,
         needs = { after = "battery_shed" },
@@ -1829,7 +1829,7 @@ TycoonConfig.PADS = {
         motive = "A",
         price = 10000000000,
         effects = { hireEffect("batteryPorter") },
-        live = false,
+        live = true,
         x = WORKS_DX + 1450,
         y = 1564,
         needs = { after = "hire_battery_collector" },
@@ -1844,7 +1844,7 @@ TycoonConfig.PADS = {
         motive = "A",
         price = 12000000000,
         effects = { hireEffect("electrician") },
-        live = false,
+        live = true,
         x = WORKS_DX + 1600,
         y = 1564,
         needs = { after = "hire_battery_porter" },
@@ -1859,7 +1859,7 @@ TycoonConfig.PADS = {
         motive = "A",
         price = 13000000000,
         effects = { hireEffect("powerHauler") },
-        live = false,
+        live = true,
         x = WORKS_DX + 1750,
         y = 1564,
         needs = { after = "hire_electrician" },
@@ -1874,7 +1874,7 @@ TycoonConfig.PADS = {
         motive = "D",
         price = 150000000000,
         effects = { mulEffect("bells", 1.10) },
-        live = false,
+        live = true,
         x = WORKS_DX + 1780,
         y = 954,
         needs = { all = true },
@@ -1911,6 +1911,37 @@ function TycoonConfig.homeClearRects(): { HomeClear }
         if p.live and p.era > 1 and crewOfPad[p.id] ~= nil and p.x ~= nil and p.y ~= nil then
             local x, y = p.x :: number, p.y :: number
             table.insert(out, { x0 = x - 80, x1 = x + 80, y0 = y - 100, y1 = y + 40, frontOf = y })
+        end
+    end
+    return out
+end
+
+-- [D67] FELINARELE DE PE STRADA: pe marginea de sud a strazii fiecarui cartier, in golul dintre doua case vecine (casa
+-- mare are 120 px, casele stau la 150-190 px una de alta, felinarul are 36). Se aprind cu primul curent vandut. Doar
+-- cartierele in joc; si doar cand Era 3 e in joc (felinarele sunt ale ei, nu ale satului de dinainte de curent).
+TycoonConfig.LAMP_BASE_Y = 1492 -- baza felinarului: chiar sub strada (y 1420..1480), deasupra casei (baza la 1564)
+export type Lamp = { x: number, y: number, era: number }
+function TycoonConfig.streetLamps(): { Lamp }
+    local out: { Lamp } = {}
+    if not TycoonConfig.eraIsLive(3) then
+        return out
+    end
+    for _, district in TycoonConfig.DISTRICTS do
+        if not TycoonConfig.eraIsLive(district.era) then
+            continue
+        end
+        local xs: { number } = {}
+        for _, p in TycoonConfig.PADS do
+            if p.era == district.era and crewOfPad[p.id] ~= nil and p.y == 1564 and p.x ~= nil then
+                table.insert(xs, p.x :: number)
+            end
+        end
+        table.sort(xs)
+        for i = 1, #xs - 1 do
+            table.insert(
+                out,
+                { x = (xs[i] + xs[i + 1]) / 2, y = TycoonConfig.LAMP_BASE_Y, era = district.era }
+            )
         end
     end
     return out

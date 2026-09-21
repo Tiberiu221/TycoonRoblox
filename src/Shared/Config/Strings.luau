@@ -692,6 +692,8 @@ function Strings.sackFullRaw(line: string): string
     return `Sack full — take the {words.raw} to the {words.processor}`
 end
 -- [D65, D67] marfa gata a unui vanzator al erelor noi: "Sack full — sell at the Market" / "... at the Depot"
+-- [D67] felinarele de pe strada se aprind cu primul curent vandut: anuntul, o singura data [D43]
+Strings.LAMPS_ON = "Your first power is sold — the street lamps are on!"
 function Strings.sackFullSell(seller: string): string
     return `Sack full — sell at the {(Strings.LINK_WORDS[seller] or Strings.LINK_WORDS.market).goTo}`
 end

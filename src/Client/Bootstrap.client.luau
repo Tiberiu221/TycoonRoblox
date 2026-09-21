@@ -46,6 +46,7 @@ local StorageController = require(Controllers.StorageController)
 local ShedController = require(Controllers.ShedController)
 local ForgeController = require(Controllers.ForgeController)
 local LineController = require(Controllers.LineController)
+local LampController = require(Controllers.LampController)
 local PadController = require(Controllers.PadController)
 local InteractController = require(Controllers.InteractController)
 local MusicController = require(Controllers.MusicController)
@@ -217,6 +218,16 @@ safeInit("DriftController", function()
 end)
 safeInit("ZoneController", function()
     ZoneController.Init({ Plot = layers.Plot })
+end)
+-- [D67] felinarele de pe strada: se aprind cu primul curent vandut, iar prima aprindere se anunta [D43]
+safeInit("LampController", function()
+    LampController.Init({
+        Plot = layers.Plot,
+        OnFirstLight = function()
+            HUDController.Toast(Strings.LAMPS_ON)
+            SoundController.Play("chime")
+        end,
+    })
 end)
 safeInit("PadController", function()
     PadController.Init({
@@ -991,6 +1002,7 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
         named = raw.firsts.named,
         runner = raw.firsts.runner,
         bell = raw.firsts.bell,
+        power = raw.firsts.power == true, -- [D67] copiat explicit, ca orice camp nou [CLAUDE.md, capcana 3]
     }
     local sack = raw.sack
     local sackCount, sackCapacity, sackValue = sack.count, sack.capacity, sack.value
@@ -1492,6 +1504,7 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
     StationMenu.Apply(snapshot.stations)
     HandRenderController.Apply(snapshot.hands)
     ZoneController.Apply(snapshot.zones)
+    LampController.Apply(snapshot.firsts.power == true) -- [D67]
 
     if Overlay ~= nil then
         local ok, err = pcall(Overlay.Apply, snapshot)

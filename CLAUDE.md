@@ -115,11 +115,10 @@ monede"*). Detaliile și cifrele sunt în DECIZII D66.
   următoare. Orice eră nouă trebuie să treacă pe aici.
 - **Numerele mari:** `TycoonMath.formatNumber` merge până la `Qi`, în cinci caractere.
 - `scripts/create_monetization.py --update <cheie>` rescrie descrierea unui pass pe Roblox.
-- **Era 3, „The Wire Works" [D67]:** aprobată de owner (Depot cu Clerk), construită după `docs/PLAN-ERA3.md`, pașii
-  1–7: simulatorul (Era 3 în poartă), configurile, profilul v17, serverul, harta (lumea de 5520, decorul pe fâșii fixe),
-  clientul, capitolele 7–9 și arta (54 de imagini urcate și aprobate). **Platformele stau `live = false`.** Rămâne pasul 8:
-  Era 3 jucată cu sonda (cere Studio deschis), felinarele așezate între case, pământul recopt cu cartierul și urcat cu
-  acord, apoi `live = true`.
+- **Era 3, „The Wire Works" [D67]: în joc (`live`)**, cu arta ei (54 de imagini urcate și aprobate), jucată cap-coadă cu
+  sonda pe 2026-09-21, fără erori. Planul și ce s-a hotărât: `docs/PLAN-ERA3.md`. Felinarele de pe strada fiecărui cartier
+  se aprind cu primul curent vândut (`LampController`, `firsts.power`). **Rămâne:** urcarea feliei 2 a pământului recopt
+  (cu acordul owner-ului; până atunci Wire Works își primește puntea și curțile din dale) și verificarea owner-ului.
 
 ## Stare (2026-09-19, seara) [D65]
 

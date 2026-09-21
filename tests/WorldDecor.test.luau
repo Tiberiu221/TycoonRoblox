@@ -145,7 +145,8 @@ return function()
         end)
 
         test.case("[D67] cu lumea mai lata, satul si Moara isi tin fiecare copac", function()
-            -- fasia Wire Works vine cu samanta ei: tot ce era pana la 3840 (satul, Moara) ramane exact pe loc
+            -- fasia Wire Works vine cu samanta ei: tot ce era pana la capatul Morii (satul, Moara) ramane exact pe loc;
+            -- din fasia Morii pleaca doar ce statea in ceata de dincolo de ea, pe care s-a construit acum Wire Works
             local river = {
                 riverTop = RiverConfig.SHORE_FAR.baseY - RiverConfig.SHORE_FAR.amp,
                 riverBottom = RiverConfig.SHORE_NEAR.baseY + RiverConfig.SHORE_NEAR.amp,
@@ -162,22 +163,38 @@ return function()
                 oldWidth = RiverConfig.ERA1_WORLD_WIDTH,
                 strips = RiverConfig.DECOR_STRIPS,
             }, river, RiverConfig.PLOT, RiverConfig.PLOT_ERA1, clear)
-            local kept: { WorldDecor.Item } = {}
-            local newStrip = 0
-            for _, item in now do
-                if item.x < RiverConfig.ERA2_WORLD_WIDTH then
-                    table.insert(kept, item)
-                else
-                    newStrip += 1
+            local millEnd = TycoonConfig.ZONES[2].x1
+            local function upTo(list: { WorldDecor.Item }, x1: number): { WorldDecor.Item }
+                local out: { WorldDecor.Item } = {}
+                for _, item in list do
+                    if item.x < x1 then
+                        table.insert(out, item)
+                    end
                 end
+                return out
             end
-            check.equal(#kept, #before)
-            for i, item in before do
+            local was, kept = upTo(before, millEnd), upTo(now, millEnd)
+            check.equal(#kept, #was)
+            for i, item in was do
                 check.equal(kept[i].kind, item.kind)
                 check.equal(kept[i].x, item.x)
                 check.equal(kept[i].y, item.y)
             end
-            check.is_true(newStrip > 0) -- fasia noua chiar are decorul ei
+            -- terenul de azi (cu Wire Works) n-are niciun copac, iar fasia noua chiar are decorul ei (in afara lui)
+            local plot, newStrip = RiverConfig.PLOT, 0
+            for _, item in now do
+                local inside = item.x >= plot.x
+                    and item.x <= plot.x + plot.w
+                    and item.y >= plot.y
+                    and item.y <= plot.y + plot.h
+                if item.x >= millEnd then
+                    check.is_false(inside)
+                end
+                if item.x >= RiverConfig.ERA2_WORLD_WIDTH then
+                    newStrip += 1
+                end
+            end
+            check.is_true(newStrip > 0)
         end)
 
         test.case("[D65] niciun copac nu acopera casa unui om sau numele ei", function()
@@ -188,13 +205,21 @@ return function()
                     width = RiverConfig.WORLD_WIDTH,
                     height = RiverConfig.WORLD_HEIGHT,
                     oldWidth = RiverConfig.ERA1_WORLD_WIDTH,
+                    strips = RiverConfig.DECOR_STRIPS, -- [D67] exact decorul din joc (SceneArt)
                 }, {
                     riverTop = RiverConfig.SHORE_FAR.baseY - RiverConfig.SHORE_FAR.amp,
                     riverBottom = RiverConfig.SHORE_NEAR.baseY + RiverConfig.SHORE_NEAR.amp,
                 }, RiverConfig.PLOT, RiverConfig.PLOT_ERA1, clear)
             end
             local clear = TycoonConfig.homeClearRects()
-            check.equal(#clear, 9) -- casele celor noua meserii ale Morii (satul vechi ramane cum a fost vazut)
+            -- casele celor noua meserii ale fiecarui cartier de dupa sat, aflat in joc (satul vechi ramane cum a fost vazut)
+            local districts = 0
+            for era = 2, 8 do
+                if TycoonConfig.eraIsLive(era) then
+                    districts += 1
+                end
+            end
+            check.equal(#clear, 9 * districts)
             local items = village(clear)
             for _, item in items do
                 local size = WorldDecor.FOOTPRINT[item.kind]

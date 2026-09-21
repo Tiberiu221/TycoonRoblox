@@ -199,7 +199,11 @@ function WorldDecor.village(
                 },
             }, math.floor(count * width / world.oldWidth + 0.5))
             for _, item in extra do
-                table.insert(items, { kind = item.kind, x = item.x + x0, y = item.y, z = item.z })
+                -- [D67] ca la partea veche: ce cade pe terenul de azi (un cartier construit dupa fasia asta) se scoate
+                local wx = item.x + x0
+                if not inRect(wx, item.y, plot, KEEP_CLEAR) then
+                    table.insert(items, { kind = item.kind, x = wx, y = item.y, z = item.z })
+                end
             end
         end
         x0 = math.max(x0, strip.x1)

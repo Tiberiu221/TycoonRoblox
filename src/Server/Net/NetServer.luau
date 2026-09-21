@@ -208,6 +208,7 @@ local function buildTycoonState(player: Player): { [string]: any }
             named = firsts.named,
             runner = pads.first_runner == "bought",
             bell = pads.landing_bell == "bought",
+            power = firsts.power, -- [D67] felinarele de pe strada
         },
         -- [D54] preferintele: nivelul muzicii si al efectelor, 0..10
         settings = { musicLevel = musicLevel, soundLevel = soundLevel },

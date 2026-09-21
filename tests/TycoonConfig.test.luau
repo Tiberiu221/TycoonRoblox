@@ -873,6 +873,35 @@ return function()
             end
         )
 
+        test.case(
+            "[D67] felinarele stau intre case, nu peste ele, si doar cu Era 3 in joc",
+            function()
+                local lamps = TycoonConfig.streetLamps()
+                if not TycoonConfig.eraIsLive(3) then
+                    check.equal(#lamps, 0)
+                    return
+                end
+                local RiverConfig = require("../src/Shared/Config/RiverConfig")
+                -- capul felinarului (partea lui cea mai lata) are 8 px, casa mare 40 px (cu tot ce sta la usa ei), la scara 3
+                local LAMP_HALF, HOUSE_HALF = 4 * 3, 40 * 3 / 2
+                local perEra: { [number]: number } = {}
+                for _, lamp in lamps do
+                    perEra[lamp.era] = (perEra[lamp.era] or 0) + 1
+                    check.is_true(lamp.x > 0 and lamp.x < RiverConfig.WORLD_WIDTH)
+                    for _, p in TycoonConfig.PADS do
+                        if p.live and TycoonConfig.CREW_OF_PAD[p.id] ~= nil and p.y == 1564 then
+                            check.is_true(
+                                math.abs(lamp.x - (p.x :: number)) >= LAMP_HALF + HOUSE_HALF
+                            )
+                        end
+                    end
+                end
+                for era = 1, 3 do
+                    check.equal(perEra[era], 7) -- opt case pe cartier, sapte goluri intre ele
+                end
+            end
+        )
+
         -- [D63] Pentru copii: butonul cartonasului spune ACELASI verb ca quest-ul care te trimite acolo. "Cast a second
         -- net" pe linia NEXT si "Buy for 28" pe buton erau doua cuvinte pentru acelasi gest.
         test.case("verbul platformei e primul cuvant al quest-ului care o cere", function()
