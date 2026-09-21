@@ -302,6 +302,14 @@ function PadArt.chimneyOf(padId: string, count: number): { number }?
     return if name ~= nil then PadArt.CHIMNEY[name] else nil
 end
 
+-- [D65] DESENE CARE NU STAU PE PLATFORMA LOR. Roata de apa se cumpara de pe punte (platforma ei e acolo, ca jucatorul
+-- sa ajunga la ea), dar sta IN RAU: desenul si ruina ei urca pana cu baza la marginea de sus a puntii (platforma e la
+-- y 812, puntea incepe la 772), altfel piciorul de piatra si spuma ar fi stat peste scanduri. `inWater` = fara umbra pe
+-- pamant (o pata intunecata pe apa ar arata a defect).
+PadArt.ART_OFFSET = {
+    water_wheel = { y = -44, inWater = true },
+} :: { [string]: { y: number, inWater: boolean } }
+
 -- [D58] Numele de sub casa unei meserii, sau nil daca platforma nu e a unei meserii.
 function PadArt.homeName(padId: string): string?
     local role = TycoonConfig.CREW_OF_PAD[padId]

@@ -124,6 +124,12 @@ local HOME_SPRITES = PadArt.HOME_SPRITES
 -- pe casa ar fi acoperit usa. Forja, singura cladire cu Upgrade fara nume, il primeste pe acoperis, ca taverna.
 local HOME_NAME_GAP = 2 -- px sub baza cladirii
 local FORGE_SIGN_Y = 30 -- px de la varful cladirii: pe acoperis, ca firma tavernei (DockController)
+-- Atelierele care stau pe o platforma isi poarta numele pe acoperis: forja [D58] si, la Moara, cuptorul de cupru [D65]
+-- (turnatoria e cladire fixa, cu numele pus de LineController).
+local ROOF_SIGN: { [string]: string } = {
+    workshop = Strings.FORGE_LABEL,
+    copper_furnace = Strings.LINE_WORDS.copper.processor,
+}
 
 local BOARD_ICON = PadArt.BOARD_ICON
 local isNetPad = PadArt.isNet
@@ -340,12 +346,14 @@ local function buildGhost(
         return nil, TycoonConfig.PAD_SIZE
     end
     local w, h = sprite.width * scale, sprite.height * scale
+    local offset = PadArt.ART_OFFSET[pad.id] -- [D65] roata de apa sta in rau, nu pe platforma ei
+    local baseY = 8 + (if offset ~= nil then offset.y else 0)
     local img = ghostImage(frame, sprite, w, h, affordable)
     img.Name = "GhostBuilding"
     img.AnchorPoint = Vector2.new(0.5, 1)
-    img.Position = UDim2.new(0.5, 0, 1, 8)
+    img.Position = UDim2.new(0.5, 0, 1, baseY)
     img.ZIndex = Z + 1
-    return img, TycoonConfig.PAD_SIZE + 8 - h
+    return img, TycoonConfig.PAD_SIZE + baseY - h
 end
 
 -- [D53] Ruina fiecarei platforme (fara plase: stalpul si plasa rupte au functia lor, mai jos) si scara ei.
@@ -409,14 +417,19 @@ local function buildRuin(
     local sprite, scale = ruinSprite(pad.id)
     local s = sprite :: Assets.Sprite
     local h = s.height * scale
+    -- [D65] un desen care nu sta pe platforma lui (roata de apa, in rau): PadArt.ART_OFFSET
+    local offset = PadArt.ART_OFFSET[pad.id]
+    local baseY = 8 + (if offset ~= nil then offset.y else 0)
     -- [D57] si ruina sta pe pamant: o umbra mai slaba decat a cladirii intregi
-    GroundShadow.add(frame, UDim2.new(0.5, 0, 1, 8), s.width * scale, Z - 1, 0.35)
+    if offset == nil or not offset.inWater then
+        GroundShadow.add(frame, UDim2.new(0.5, 0, 1, baseY), s.width * scale, Z - 1, 0.35)
+    end
     local img = worldImage(frame, s, s.width * scale, h, tint)
     img.Name = "Ruin"
     img.AnchorPoint = Vector2.new(0.5, 1)
-    img.Position = UDim2.new(0.5, 0, 1, 8)
+    img.Position = UDim2.new(0.5, 0, 1, baseY)
     img.ZIndex = Z + 1
-    return img, TycoonConfig.PAD_SIZE + 8 - h
+    return img, TycoonConfig.PAD_SIZE + baseY - h
 end
 
 -- Pretul, deasupra obiectului stins. Text peste lume, fara panou -> Theme.punch, ca tot ce scrie
@@ -756,14 +769,19 @@ local function styleBought(frame: TextButton, pad: TycoonConfig.Pad)
 
     local sprite, scale = boughtSprite(pad.id)
     if sprite ~= nil and Assets.has(sprite) then
-        GroundShadow.add(frame, UDim2.new(0.5, 0, 1, 8), sprite.width * scale, Z - 1) -- [D57]
+        -- [D65] un desen care nu sta pe platforma lui (roata de apa, in rau): PadArt.ART_OFFSET
+        local offset = PadArt.ART_OFFSET[pad.id]
+        local baseY = 8 + (if offset ~= nil then offset.y else 0)
+        if offset == nil or not offset.inWater then
+            GroundShadow.add(frame, UDim2.new(0.5, 0, 1, baseY), sprite.width * scale, Z - 1) -- [D57]
+        end
         local img = Instance.new("ImageLabel")
         img.Name = "Building"
         img.BackgroundTransparency = 1
         img.Image = Assets.url(sprite)
         img.ResampleMode = Enum.ResamplerMode.Pixelated
         img.AnchorPoint = Vector2.new(0.5, 1)
-        img.Position = UDim2.new(0.5, 0, 1, 8)
+        img.Position = UDim2.new(0.5, 0, 1, baseY)
         img.Size = UDim2.fromOffset(sprite.width * scale, sprite.height * scale)
         img.ZIndex = Z
         img.Parent = frame
@@ -778,8 +796,8 @@ local function styleBought(frame: TextButton, pad: TycoonConfig.Pad)
             if chimney ~= nil then
                 SceneArt.AddSmoke(img, chimney[1], chimney[2])
             end
-        elseif pad.id == "workshop" then
-            worldName(frame, Strings.FORGE_LABEL, 8 - sprite.height * scale + FORGE_SIGN_Y)
+        elseif ROOF_SIGN[pad.id] ~= nil then
+            worldName(frame, ROOF_SIGN[pad.id], 8 - sprite.height * scale + FORGE_SIGN_Y)
         end
         return
     end

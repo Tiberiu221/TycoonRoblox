@@ -144,6 +144,60 @@ return function()
             end
         end)
 
+        test.case("[D65] niciun copac nu acopera casa unui om sau numele ei", function()
+            -- vazut de owner la Moara (2026-09-21): trei copaci cu baza chiar sub randul de case le acopereau numele
+            local Assets = require("../src/Shared/Config/Assets")
+            local function village(clear: { WorldDecor.Clear }?): { WorldDecor.Item }
+                return WorldDecor.village(20260910, 130, {
+                    width = RiverConfig.WORLD_WIDTH,
+                    height = RiverConfig.WORLD_HEIGHT,
+                    oldWidth = RiverConfig.ERA1_WORLD_WIDTH,
+                }, {
+                    riverTop = RiverConfig.SHORE_FAR.baseY - RiverConfig.SHORE_FAR.amp,
+                    riverBottom = RiverConfig.SHORE_NEAR.baseY + RiverConfig.SHORE_NEAR.amp,
+                }, RiverConfig.PLOT, RiverConfig.PLOT_ERA1, clear)
+            end
+            local clear = TycoonConfig.homeClearRects()
+            check.equal(#clear, 9) -- casele celor noua meserii ale Morii (satul vechi ramane cum a fost vazut)
+            local items = village(clear)
+            for _, item in items do
+                local size = WorldDecor.FOOTPRINT[item.kind]
+                check.is_true(size ~= nil)
+                for _, c in clear do
+                    local over = item.y > c.frontOf
+                        and item.x - size[1] / 2 < c.x1
+                        and item.x + size[1] / 2 > c.x0
+                        and item.y - size[2] < c.y1
+                        and item.y > c.y0
+                    check.is_false(over)
+                end
+            end
+            -- satul vechi ramane EXACT cum era: regula noua nu scoate nimic din ce stiu deja jucatorii
+            local function landing(list: { WorldDecor.Item }): { string }
+                local out: { string } = {}
+                for _, item in list do
+                    if item.x < TycoonConfig.ZONES[1].x1 then
+                        table.insert(out, `{item.kind}:{item.x}:{item.y}`)
+                    end
+                end
+                return out
+            end
+            local before, after = landing(village(nil)), landing(items)
+            check.equal(#after, #before)
+            for i, key in before do
+                check.equal(after[i], key)
+            end
+            -- iar ceva chiar s-a scos la Moara (altfel testul n-ar pazi nimic)
+            check.is_true(#items < #village(nil))
+            -- cifrele din FOOTPRINT sunt chiar desenele din Assets, la scara lumii
+            for kind, size in WorldDecor.FOOTPRINT do
+                local sprite = (Assets.props :: any)[kind]
+                check.is_true(sprite ~= nil)
+                check.equal(size[1], sprite.width * Assets.PIXEL_SCALE)
+                check.equal(size[2], sprite.height * Assets.PIXEL_SCALE)
+            end
+        end)
+
         test.case("toate felurile cerute exista in manifest", function()
             local known = {
                 cattails = true,

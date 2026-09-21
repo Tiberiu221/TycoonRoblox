@@ -23,6 +23,33 @@ local FIELD_KINDS =
     { "tree_round", "tree_pine", "bush", "bush", "rock_small", "flowers", "flowers" }
 local EDGE_KINDS = { "tree_pine", "tree_round", "tree_round", "bush" }
 
+-- [D65] Cat ocupa pe ecran fiecare fel de decor (latime, inaltime, in pixeli de lume): desenul lui din Assets.props la
+-- PIXEL_SCALE 3, prins de baza. Modulul ramane pur, deci cifrele stau aici; un test le tine legate de Assets.
+WorldDecor.FOOTPRINT = {
+    tree_round = { 144, 192 },
+    tree_pine = { 120, 228 },
+    bush = { 96, 84 },
+    rock_small = { 60, 60 },
+    stump = { 72, 60 },
+    log = { 108, 54 },
+    cattails = { 84, 114 },
+    flowers = { 78, 66 },
+} :: { [string]: { number } }
+
+-- Un loc pe care decorul n-are voie sa-l ACOPERE (casa unui om si numele de sub ea): un lucru e scos daca desenul lui
+-- intra peste dreptunghi si sta IN FATA lui (baza mai jos decat `frontOf`); in spatele casei, un copac e la locul lui.
+export type Clear = { x0: number, x1: number, y0: number, y1: number, frontOf: number }
+
+local function covers(item: Item, clear: Clear): boolean
+    local size = WorldDecor.FOOTPRINT[item.kind]
+    if size == nil or item.y <= clear.frontOf then
+        return false
+    end
+    local x0, x1 = item.x - size[1] / 2, item.x + size[1] / 2
+    local y0, y1 = item.y - size[2], item.y
+    return x0 < clear.x1 and x1 > clear.x0 and y0 < clear.y1 and y1 > clear.y0
+end
+
 local BANK_MARGIN = 150 -- cat de departe de apa se mai considera mal
 local KEEP_CLEAR = 90 -- distanta minima fata de drum si fata de terenul jucatorului
 
@@ -117,7 +144,10 @@ end
 -- jucatorii il stiu deja. De aceea partea veche se genereaza exact ca inainte (latimea si terenul de dinainte de D65,
 -- aceeasi samanta si acelasi numar), apoi:
 --   * se scot lucrurile cazute pe terenul cartierelor noi (acolo se construieste);
---   * fasia noua de lume isi primeste decorul ei, cu alta samanta, proportional cu latimea ei.
+--   * fasia noua de lume isi primeste decorul ei, cu alta samanta, proportional cu latimea ei;
+--   * la urma se scot lucrurile care ar ACOPERI un loc din `clear` (casele oamenilor si numele lor): terenul fara
+--     decor se opreste sub randul de case, iar un copac inalt cu baza chiar sub el le acoperea numele [vazut de owner
+--     la Moara, 2026-09-21]. In satul vechi nu cade niciunul pe o casa, deci ramane cum era (test).
 -- `river` = { riverTop, riverBottom }, ca la `build`.
 function WorldDecor.village(
     seed: number,
@@ -125,7 +155,8 @@ function WorldDecor.village(
     world: { width: number, height: number, oldWidth: number },
     river: { riverTop: number, riverBottom: number },
     plot: { x: number, y: number, w: number, h: number },
-    oldPlot: { x: number, y: number, w: number, h: number }
+    oldPlot: { x: number, y: number, w: number, h: number },
+    clear: { Clear }?
 ): { Item }
     local items: { Item } = {}
     local old = WorldDecor.build(seed, {
@@ -156,6 +187,22 @@ function WorldDecor.village(
                 { kind = item.kind, x = item.x + world.oldWidth, y = item.y, z = item.z }
             )
         end
+    end
+    if clear ~= nil then
+        local kept: { Item } = {}
+        for _, item in items do
+            local hides = false
+            for _, c in clear do
+                if covers(item, c) then
+                    hides = true
+                    break
+                end
+            end
+            if not hides then
+                table.insert(kept, item)
+            end
+        end
+        items = kept
     end
     return items
 end

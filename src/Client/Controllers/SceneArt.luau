@@ -113,7 +113,7 @@ local function buildDecor(scroll: Frame)
         -- asezat dupa vechile 480/768 ar sta cu radacinile in rau.
         riverTop = RiverConfig.SHORE_FAR.baseY - RiverConfig.SHORE_FAR.amp,
         riverBottom = RiverConfig.SHORE_NEAR.baseY + RiverConfig.SHORE_NEAR.amp,
-    }, RiverConfig.PLOT, RiverConfig.PLOT_ERA1)
+    }, RiverConfig.PLOT, RiverConfig.PLOT_ERA1, TycoonConfig.homeClearRects())
 
     local layer = Instance.new("Frame")
     layer.Name = "DecorLayer"

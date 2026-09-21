@@ -23,6 +23,7 @@ type ZoneView = {
     fade: Frame,
     fence: { GuiObject },
     sign: TextLabel,
+    signWidth: number,
     status: string?,
 }
 local views: { [string]: ZoneView } = {}
@@ -80,8 +81,9 @@ function ZoneController.Apply(zones: { [string]: string })
         view.sign.Visible = view.sign.Text ~= ""
         -- panoul creste dupa text: "The Wire Works — opens with the Mill Bell" are 41 de litere, adica doua randuri
         -- la latimea asta (fontul de pixeli are 0.56 em pe litera) [CLAUDE.md, capcana textului care iese din cutie]
-        local height = Theme.textHeight(view.sign.Text, Theme.TEXT.small, "strong", SIGN_W - 16)
-        view.sign.Size = UDim2.fromOffset(SIGN_W, math.max(30, height + 12))
+        local height =
+            Theme.textHeight(view.sign.Text, Theme.TEXT.small, "strong", view.signWidth - 16)
+        view.sign.Size = UDim2.fromOffset(view.signWidth, math.max(30, height + 12))
         -- o zona deschisa dar nefacuta ramane estompata: acolo chiar nu e nimic de facut inca
         local clear = open and built
         -- valul sta peste tot terenul zonei: odata sters, iese de tot din drum (nu ramane un strat gol peste butoane)
@@ -162,13 +164,16 @@ local function buildZone(
         table.insert(fence, line)
     end
 
-    -- semnul: numele zonei si conditia de deblocare, langa gard
+    -- semnul: numele zonei si conditia de deblocare, langa gard. Incape in ZONA lui: ultima zona e doar o fasie pana la
+    -- marginea lumii (280 px), iar semnul de 280 pornit de la gard + 14 iesea din lume si se vedea taiat ("The Wire
+    -- Works — comin") [owner, 2026-09-21]. Mai ingust, textul se rupe pe mai multe randuri (inaltimea vine din text).
+    local signWidth = math.min(SIGN_W, zone.x1 - zone.x0 - 28)
     local sign = Widgets.PlateLabel(deps.Plot, "", Theme.TEXT.small, "strong")
     sign.Position = UDim2.fromOffset(zone.x0 + 14, FENCE_TOP + 40)
-    sign.Size = UDim2.fromOffset(SIGN_W, 30)
+    sign.Size = UDim2.fromOffset(signWidth, 30)
     sign.TextWrapped = true
     sign.ZIndex = Z + 2
-    return { fade = fade, fence = fence, sign = sign, status = nil }
+    return { fade = fade, fence = fence, sign = sign, signWidth = signWidth, status = nil }
 end
 
 function ZoneController.Init(d: Deps)

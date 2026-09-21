@@ -632,7 +632,8 @@ end
 -- [D65] Cartierele pe care imaginea coapta URCATA a pamantului (Assets.tycoon.village_ground*) le contine deja. Restul
 -- isi primesc puntea, curtile si drumurile din dale, peste imagine (SceneArt). Se schimba DOAR la urcarea unei coaceri
 -- noi (scripts/art/village_ground.py, cu acordul owner-ului), nu la coacere.
-TycoonConfig.BAKED_DISTRICTS = { landing = true } :: { [string]: boolean }
+-- [2026-09-21] Coacerea cu Moara e urcata (ambele felii), deci si cartierul ei vine din imagine.
+TycoonConfig.BAKED_DISTRICTS = { landing = true, mill = true } :: { [string]: boolean }
 
 TycoonConfig.DISTRICTS = {
     {
@@ -1410,6 +1411,22 @@ for _, p in TycoonConfig.PADS do
 end
 function TycoonConfig.eraIsLive(era: number): boolean
     return liveEras[era] == true
+end
+
+-- [D65] CASELE OAMENILOR SI NUMELE DE SUB ELE, ca locuri pe care decorul imprastiat (copaci, tufe) n-are voie sa le
+-- acopere (WorldDecor.village). Casa mare are 120 x 102 deasupra platformei, numele sta imediat sub ea [D58].
+-- Doar cartierele de DUPA The Landing: satul vechi a fost asezat si vazut cu decorul lui (niciun nume acoperit), iar
+-- dreptunghiul unui brad e mai lat decat varful lui -- regula ar fi scos de acolo un brad pe care jucatorii il stiu.
+export type HomeClear = { x0: number, x1: number, y0: number, y1: number, frontOf: number }
+function TycoonConfig.homeClearRects(): { HomeClear }
+    local out = {}
+    for _, p in TycoonConfig.PADS do
+        if p.live and p.era > 1 and crewOfPad[p.id] ~= nil and p.x ~= nil and p.y ~= nil then
+            local x, y = p.x :: number, p.y :: number
+            table.insert(out, { x0 = x - 80, x1 = x + 80, y0 = y - 100, y1 = y + 40, frontOf = y })
+        end
+    end
+    return out
 end
 
 -- [D63] VERBUL unei platforme, acelasi pe butonul cartonasului si in textul quest-ului ei: o plasa se arunca ("cast"),

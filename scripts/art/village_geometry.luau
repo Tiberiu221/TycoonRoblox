@@ -67,7 +67,7 @@ local scattered = WorldDecor.village(DECOR_SEED, DECOR_COUNT, {
 }, {
     riverTop = RiverConfig.SHORE_FAR.baseY - RiverConfig.SHORE_FAR.amp,
     riverBottom = RiverConfig.SHORE_NEAR.baseY + RiverConfig.SHORE_NEAR.amp,
-}, RiverConfig.PLOT, RiverConfig.PLOT_ERA1)
+}, RiverConfig.PLOT, RiverConfig.PLOT_ERA1, TycoonConfig.homeClearRects())
 
 -- [D65] CARTIERELE, fiecare cu puntea, drumurile si curtile lui. Id-urile ies CANONICE (cele din The Landing, prin
 -- `like`), ca pamantul copt sa deseneze aceleasi detalii in fiecare: piata de piatra, potecile dintre case, zgura din

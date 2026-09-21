@@ -113,13 +113,13 @@ a rămas: `docs/PLAN-ERA2.md`.
   (`LINE_WORDS`, `LINK_WORDS`, `NET_WORDS`, `BUILDING_WORDS`), quest-urile în `QuestConfig.ALL_CHAPTERS` (în joc intră
   doar capitolele erelor `live`). Clientul Morii e un singur controller după tabel (`LineController`); controllerele
   Erei 1 au rămas cele scrise de mână.
-- **Arta Morii e desenată și neurcată** (2026-09-20; 50 de imagini, planșe cu `python3 scripts/art/preview_d65.py`).
-  Până o aprobă owner-ul, fiecare loc poartă desenul perechii din Era 1: `TycoonConfig.PAD_LOOKS_LIKE`,
-  `GOOD_LOOKS_LIKE`, `HandConfig.OUTFIT_LOOKS_LIKE`, `borrowed` la clădirile fixe (`Bootstrap.client`). Codul încearcă
-  întâi desenul propriu (`UI/GoodArt`, `PadArt`, `LineController`), deci urcarea înseamnă doar ID-uri în `Assets`.
-- **Pământul copt:** recopt local cu Moara, **neurcat**. Până la urcare, `SceneArt` desenează pământul Morii din dale
-  peste imaginea veche (`TycoonConfig.BAKED_DISTRICTS`); la urcare, `BAKED_DISTRICTS.mill = true` și ID-ul feliei 2 în
-  `Assets.village_ground_2`.
+- **Arta Morii e urcată** (2026-09-21, cu acordul owner-ului; 50 de imagini și cele două felii de pământ recopt, 52
+  din 52 aprobate de moderare; planșe cu `python3 scripts/art/preview_d65.py`). Moara e cărămidă, tablă și cupru.
+  Codul încearcă întâi desenul propriu (`UI/GoodArt`, `PadArt`, `LineController`) și cade pe al perechii din Era 1 doar
+  dacă lipsește (`TycoonConfig.PAD_LOOKS_LIKE`, `GOOD_LOOKS_LIKE`, `HandConfig.OUTFIT_LOOKS_LIKE`). Ținuta unui om
+  vine din rol la citire (`VillageLook`). `BAKED_DISTRICTS.mill = true`: pământul Morii vine din imaginea coaptă.
+- **Decorul împrăștiat nu acoperă casele cartierelor noi** (`TycoonConfig.homeClearRects` → `WorldDecor.village`);
+  satul vechi rămâne exact cum era (test). Roata de apă stă în râu, la marginea punții (`PadArt.ART_OFFSET`).
 - **Jucată cu sonda pe profil de probă, fără erori:** clopotul Erei 1, roata de apă, turul de mână al pieselor, oamenii,
   plasele, cuptorul, turul cuprului, clopotul Morii; niveluri, trepte și al doilea om pe drumul adevărat. Unelte:
   `dev "chapter:4"` (sare la începutul unui capitol), `dev "up:foundry 3"`, `client "ui:panel:foundry"`,
@@ -128,7 +128,8 @@ a rămas: `docs/PLAN-ERA2.md`.
   lângă obiecte, cartonașele platformelor și „textul nu încape" nu se pot judeca atunci. Textele și starea, da.
 - **Clienții** tavernei și ai Pieței vin din aceeași componentă (`UI/CustomerCrowd`), cu locurile din
   `TycoonConfig.SELLER_PLACES`. Mutarea s-a făcut întocmai, dar mersul lor (pe `PreRender`) n-a putut fi văzut cu sonda.
-- **Rămâne:** aprobarea și urcarea artei Morii și a pământului recopt, verificarea owner-ului.
+- **Rămâne:** verificarea owner-ului în Studio, cu arta Morii la locul ei (prima lui privire, pe 2026-09-21, a fost
+  cu desenele de împrumut).
 
 ## Stare (2026-09-19, noaptea) [D63]
 
