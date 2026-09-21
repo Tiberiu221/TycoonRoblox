@@ -531,12 +531,22 @@ function TycoonMath.formatNumber(n: number): string
     if v < 1000 then
         return tostring(v)
     end
-    local units = { { "B", 1e9 }, { "M", 1e6 }, { "K", 1e3 } }
+    -- [D66] Moara e pe scara x3000: o noapte acolo inseamna miliarde, iar fiecare era noua inca un ordin de marime
+    local units = {
+        { "Qi", 1e18 },
+        { "Qa", 1e15 },
+        { "T", 1e12 },
+        { "B", 1e9 },
+        { "M", 1e6 },
+        { "K", 1e3 },
+    }
     for _, u in units do
         local suffix, d = u[1] :: string, u[2] :: number
         if v >= d then
             local x = v / d
-            local decimals = if x < 10 then 2 elseif x < 100 then 1 else 0
+            -- cel mult cinci caractere [D63]: un sufix de doua litere (Qa, Qi) ia o zecimala
+            local decimals =
+                math.max(0, (if x < 10 then 2 elseif x < 100 then 1 else 0) - (#suffix - 1))
             local scale = 10 ^ decimals
             local s = string.format(`%.{decimals}f`, math.floor(x * scale) / scale)
             if decimals > 0 then

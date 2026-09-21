@@ -64,7 +64,7 @@ StationService.Init({
         arrived: number,
         capHours: number
     )
-        -- [D61, partea 2] `capHours`: cat lucreaza satul fara tine (24, sau 48 cu Long Nights), pentru nota ferestrei
+        -- [D61, partea 2] `capHours`: cat lucreaza satul fara tine (8, sau 16 cu Long Nights [D66]), pentru nota ferestrei
         Net.Get("WelcomeBack"):FireClient(player, coins, seconds, capped, arrived, capHours)
     end,
     Treasures = TreasureService,

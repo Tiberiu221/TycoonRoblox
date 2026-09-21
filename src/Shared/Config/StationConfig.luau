@@ -45,8 +45,11 @@ StationConfig.NET_BASE_GROWTH = 1.45
 StationConfig.NET_UPGRADE_BASE_COST = 1.0
 -- [D65] CADRUL EREI 2 E UN SINGUR NUMAR: de cate ori valoreaza marfa ei mai mult decat a Erei 1. Tot ce se masoara in
 -- monede in cartierul nou se inmulteste cu el (valoarea bucatii, costul nivelurilor, costul treptelor); tot ce se
--- masoara in bucati pe secunda ramane ca in Era 1. 40 sta in mijlocul zonei stabile a simulatorului (30..60).
-StationConfig.ERA2_MULT = 40.0
+-- masoara in bucati pe secunda ramane ca in Era 1.
+-- [D66] 3000, nu 40: o singura moneda, iar Moara pe o scara mult mai mare, ca minele unui continent din Idle Miner. Cu
+-- 40, o noapte de absenta de la sfarsitul Erei 1 cumpara aproape toata Moara; cu 3000, doar inceputul ei (vezi
+-- sim_tycoon.check_windfall).
+StationConfig.ERA2_MULT = 3000.0
 -- [D65] CINCI PLASE PE ERA, in aceeasi schema: patru pentru marfa cu care pornesti era si una, in larg, pentru marfa
 -- noua. A k-a plasa a unei ere are baza celei de-a k-a plase a Erei 1; nivelurile ei costa de ERA2_MULT ori in Era 2.
 StationConfig.NETS_PER_ERA = 5
@@ -73,14 +76,14 @@ StationConfig.DOCK_BASE_RATE = 3.0
 StationConfig.DOCK_UPGRADE_BASE = 9.0
 
 -- [D65] CLADIRILE EREI 2, in oglinda: turnatoria cat gaterul, cuptorul de cupru cat forja, Piata cat taverna (bucati pe
--- secunda), iar nivelurile lor de ERA2_MULT ori mai scumpe (7 / 60 / 9 x 40). Cifre scrise, nu socotite: simulatorul
+-- secunda), iar nivelurile lor de ERA2_MULT ori mai scumpe (7 / 60 / 9 x 3000). Cifre scrise, nu socotite: simulatorul
 -- le citeste de aici cu regex.
 StationConfig.FOUNDRY_BASE_RATE = 2.4
-StationConfig.FOUNDRY_UPGRADE_BASE = 280.0
+StationConfig.FOUNDRY_UPGRADE_BASE = 21000.0
 StationConfig.FURNACE_BASE_RATE = 1.2
-StationConfig.FURNACE_UPGRADE_BASE = 2400.0
+StationConfig.FURNACE_UPGRADE_BASE = 180000.0
 StationConfig.MARKET_BASE_RATE = 3.0
-StationConfig.MARKET_UPGRADE_BASE = 360.0
+StationConfig.MARKET_UPGRADE_BASE = 27000.0
 -- NEGUSTORUL FACE DEBARCADERUL SA MEARGA, NU SA PLATEASCA MAI BINE. Fara el, debarcaderul vinde
 -- singur la o treime; cu el, merge tot timpul. E singurul pas pe care nu-l faci tu.
 StationConfig.NO_TRADER_FACTOR = 0.35

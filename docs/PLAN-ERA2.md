@@ -67,3 +67,7 @@ micșorează orice imagine peste 1024: pământul se coace deci **pe felii de 28
   (`TycoonConfig.homeClearRects`, `WorldDecor.village`; satul vechi e neschimbat, cu test); panoul „The Wire Works"
   ieșea din lume: semnul unei zone încape acum în zona lui; cuptorul de cupru își poartă numele pe acoperiș, ca forja;
   roata de apă stă în râu, cu baza la marginea punții (`PadArt.ART_OFFSET`), nu peste scânduri.
+- **[D66, 2026-09-21] O singură monedă, Moara pe scara x3000.** Owner-ul a cumpărat toată Era 2 cu banii unei absențe
+  și a respins banii separați pe cartiere. Moara valorează acum de 3000 de ori satul, a șasea plasă e gratis, scara de
+  așteptare a Erei 2 pornește la 7,5, iar satul lucrează fără tine 8 h (16 h cu Long Nights). O noapte de la finalul
+  Erei 1 plătește doar începutul Morii (8 din 26 de deblocări). Detaliile, în DECIZII D66.

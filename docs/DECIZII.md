@@ -11,62 +11,55 @@ Convenție: în tot proiectul, „server" înseamnă o instanță Roblox efemer�
 
 ---
 
-## D66 — Fiecare cartier cu banii lui; cât lucrează satul fără tine
-**PROPUNERE, neaprobată** (2026-09-21). Owner-ul a terminat Era 1, a închis jocul câteva zile, iar la întoarcere a
-cumpărat toată Era 2 dintr-odată: *„nu are sens upgrade-ul la era 2 și este o problemă pentru toate erele viitoare …
-trebuie regândit. acel idle miner știi cum funcționează?"*
+## D66 — O singură monedă; Moara pe scara x3000; satul lucrează fără tine o noapte
+**DECIS de owner pe 2026-09-21.** A terminat Era 1, a închis jocul câteva zile, iar la întoarcere a cumpărat toată
+Era 2 dintr-odată: *„nu are sens upgrade-ul la era 2 și este o problemă pentru toate erele viitoare … trebuie regândit.
+acel idle miner știi cum funcționează?"*
 
-**Cât de mare e** (simulatorul adevărat; se reface cu `python3 scripts/economy/sim_era_purses.py`):
-- La sfârșitul Erei 1 satul face **112 monede/s**. Toată Era 2 costă **3,78 M** (398 de cumpărături).
-- **O oră** de absență plătește primele **178**; **o noapte** (8 h), **352**; **o zi** (plafonul de azi), **toate**.
+**Cât de mare era** (simulatorul adevărat, cu cadrul de dinainte: Moara pe x40, plafonul de 24 h; măsurat cu
+`scripts/economy/sim_era_purses.py`, care azi arată aceleași absențe pe cadrul nou):
+- La sfârșitul Erei 1 satul face **112 monede/s**. Toată Era 2 costa **3,78 M** (398 de cumpărături).
+- **O oră** de absență plătea primele **178**, **o noapte** (8 h) **352**, iar **o zi** (plafonul de atunci) **toate**.
   Owner-ul, fiind creatorul, are 2x Flow și Long Nights (48 h): **38,6 M**, de zece ori toată Era 2.
-- **Și în mijlocul unei ere:** dacă pleci din Era 1 imediat după cei cinci oameni (0,5 monede/s), 8 h plătesc 5 din
-  cele 14 deblocări rămase, iar 24 h **toate 14, cu Landing Bell cu tot**.
-- **De ce:** prețurile unei ere ies din „câteva secunde sau minute din venitul de atunci" [D46], iar o eră se joacă în
-  30–60 de minute. O absență de o zi e de zeci de ori mai lungă decât o eră.
+- **Și în mijlocul unei ere:** cine pleca din Era 1 imediat după cei cinci oameni (0,5 monede/s) primea, în 24 h,
+  toate cele 14 deblocări rămase, **cu Landing Bell cu tot**.
 
 **Cum fac alte jocuri** (verificat la sursă, 2026-09-21):
-- **Idle Miner Tycoon: fiecare continent are banii lui.** Pagina oficială a monedelor: „Ice Cash: The money you earn on
-  the second island (Ice Continent)", la fel Fire Cash, Dawn Cash… Minele unui continent împart banii lui. Un continent
-  nou se deschide cu banii celui dinainte și cu stele de prestigiu („Unlocking a Continent does not reduce the amount of
-  Prestige Stars you have"). Singura monedă comună e Super Cash. Surse: kolibri-games.helpshift.com, FAQ 55, 94, 205, 56.
-  Plafonul lor de offline nu apare în nicio sursă oficială (ghidurile neoficiale spun ~2 h).
+- **Idle Miner Tycoon:** fiecare continent are banii lui („Ice Cash: The money you earn on the second island"), dar
+  **minele aceluiași continent împart aceiași bani**, iar fiecare mină nouă produce și costă de mult mai multe ori decât
+  cea veche. Un continent nou se deschide cu banii celui dinainte și cu stele de prestigiu. Surse:
+  kolibri-games.helpshift.com, FAQ 55, 94, 205, 56. Plafonul lor de offline nu apare în nicio sursă oficială.
 - **Egg, Inc.:** „Players are limited to 2 hours of offline play by the game" (Pecorella, *The Math of Idle Games III*).
-  **Cookie Clicker:** offline doar după un upgrade, 5% din producție timp de o oră, apoi 0,5% (cookieclicker.wiki.gg).
-  **Clicker Heroes:** fără limită (același Pecorella).
+  **Cookie Clicker:** offline doar după un upgrade, 5% din producție o oră, apoi 0,5% (cookieclicker.wiki.gg).
+  **Clicker Heroes:** fără limită.
 
-**Ce propun, în pașii jucătorului:**
-1. **Fiecare cartier are banii lui.** The Landing plătește în monedele de azi; Moara, în banii ei (numele, de ales). Sus,
-   pastila arată banii cartierului în care stai; când treci gardul, se schimbă.
-2. **Poarta spre cartierul următor se plătește cu banii celui dinainte**: roata de apă, cu monede (cum s-a hotărât în
-   D65). E singurul lucru al Morii pe care îl cumpără monedele satului, ca la continentele din Idle Miner.
-3. **Moara pornește ca satul:** a șasea plasă e gratis, ca prima plasă; primul tur de mână aduce primii bani ai Morii;
-   cu ei vin cei cinci oameni, apoi plasele. Experimentul din simulator: Mill Collector 220, Merchant 450, Seventh Net
-   1,5 K … Mill Bell 400 K, în banii Morii; Era 2 în 21m29s ai jucătorului lacom (cam 39 de minute reale), de reglat la
-   porțile de ritm (40–75 de minute).
-4. **Cât lipsești, fiecare cartier strânge în punga lui**, și doar cu oamenii lui (cum e deja: fără oameni, venitul
-   pasiv e zero). Termini Era 1 și pleci trei zile: te întorci cu multe monede (pentru nivelurile satului și al doilea
-   om) și cu zero la Moară. Era 2 se joacă de la început.
-5. **Pentru toate erele viitoare, aceeași regulă:** lucrurile unei ere se plătesc cu banii ei; poarta spre următoarea,
-   cu banii erei dinainte.
-6. **Rămân comune:** perlele (doar aspect, ca Super Cash-ul din Idle Miner), pass-urile (2x Flow dublează în fiecare
-   cartier), clopotele (+10% la tot).
+**Ce a hotărât owner-ul:**
+1. **O singură monedă.** Separarea banilor pe cartiere (ca la continentele din Idle Miner) și o monedă nouă pentru Moară
+   au fost respinse: *„nu-mi plac ideile"*, *„nu vreau alte monede"*.
+2. **Moara pe o scară mult mai mare, x3000 în loc de x40,** ca mina nouă a unui continent din Idle Miner. O piesă de
+   mașină valorează 3000 de monede (o scândură, una); nivelurile și treptele Morii, la fel. Banii satului, și o noapte
+   de-a lor, plătesc doar **începutul** Morii.
+3. **Satul lucrează fără tine o noapte: 8 h**, 16 h cu Long Nights (înainte 24 h și 48 h). Descrierea pass-ului e
+   schimbată și pe Roblox (staging).
 
-**Separat, de hotărât: cât lucrează satul fără tine.** Azi 24 h (48 h cu Long Nights). Punga pe cartier rezolvă trecerea
-dintre ere, dar nu și o absență lungă în mijlocul unei ere. Dacă pleci imediat după cei cinci oameni: la Moară (cu punga
-ei) 8 h plătesc 4 din 13 deblocări, 24 h 11 din 13; în Era 1, 5 din 14 și, respectiv, toate 14. Propunerea: **o noapte,
-8 h** (16 h cu Long Nights). Descrierea pass-ului de pe Roblox se schimbă odată cu ea; e doar pe staging, fără cumpărători.
+**Ce face jucătorul acum** (simulatorul, `python3 scripts/economy/sim_tycoon.py`):
+- Trage Landing Bell și cumpără **roata de apă cu 7 K monede**. **A șasea plasă e gratis**, ca prima plasă a satului.
+  Cu scara mare, banii satului nu mai plătesc nivelurile ieftine ale Morii: plătită (8 K), plasa se aștepta ~2 minute
+  reale fără nimic de apăsat, iar primele 5 minute ale erei aveau doar 5 cumpărături (poarta de ritm cere 15).
+- **Cu a șasea plasă, Moara lucrează** (pașii fără om îi faci tu, ca în sat): venitul sare de la 112/s la ~1.900/s.
+  Cei cinci oameni costă 16–35 K și vin în ~2 minute. Apoi urmează plasele (a șaptea 180 K, a opta 900 K, a noua
+  7,5 M), al doilea om (4,5–8 M), cuptorul de cupru (30 M), a zecea plasă (35 M), linia cuprului (2,5–4 M) și Mill Bell
+  (45 M).
+- Era 2 durează **47m34s reale** (385 de cumpărături, 26 în primele 5 minute; cea mai lungă pauză, 2m45s ale
+  jucătorului lacom) și trece `--robust`. Scara ei de așteptare e a Erei 1, pornită mai sus (`ERA2_LADDER_START = 7.5`): cu scara Erei 1, Moara
+  pe x3000 se termina în ~43 de minute, la marginea porții. Peste 7,7 apar pauze de peste 3 minute înaintea cuptorului.
+- **O noapte de absență la sfârșitul Erei 1** (3,2 M) plătește **8 din cele 26 de deblocări, până la a șaptea plasă:
+  20% din eră.** Cu Long Nights: tot 8 (25%). Cu Long Nights și 2x Flow (cazul owner-ului): 15 (30%).
+- **Regula ține pentru orice eră:** poarta nouă `check_windfall` din simulator pică dacă o noapte de absență de la
+  sfârșitul unei ere sare mai mult de 25% din era următoare.
 
-**Ce se schimbă în cod, dacă se aprobă:**
-- **Simulatorul:** o pungă pe eră. Prețurile Erei 2 se derivă din venitul Morii; roata de apă, din venitul satului;
-  porțile de ritm se reglează din nou.
-- **Profilul v17:** monedele de azi rămân ale satului, iar punga Morii pornește goală. Nimic cumpărat nu se pierde.
-- **Serverul:** fiecare vânzare intră în punga cartierului ei, fiecare cumpărătură iese din punga erei ei, iar venitul
-  offline se socotește pe cartier. Darurile râului plătesc cartierul în dreptul căruia le prinzi. One Hour of Flow dă
-  fiecărui cartier o oră din venitul lui, iar Welcome Back x2 dublează ce a adus fiecare.
-- **Clientul:** pastilele de sus (bani, venit, AWAY) arată cartierul în care stai. Prețurile și culorile de „îți
-  permiți" se socotesc pe punga potrivită. Fereastra „Welcome back" arată ce a strâns fiecare cartier.
-- **Arta:** o iconiță pentru banii Morii (planșă, aprobare, urcare).
+**Tot aici:** numerele mari au sufixe până la `Qi` (1e18), tot în cinci caractere. Nota ferestrei „Welcome back" spune
+orele adevărate („8 hours"), nu „1 day".
 
 ---
 
@@ -75,6 +68,10 @@ ei) 8 h plătesc 4 din 13 deblocări, 24 h 11 din 13; în Era 1, 5 din 14 și, r
 *„ok, dacă totul are sens și logică în Era 1, se poate trece mai departe."* A pornit ca propunere cu cifre din simulator (`scripts/economy/sim_era2.py`), nu cod de joc. Pornește de la regula
 lui din D64 și de la ce a spus în noaptea de 2026-09-19: *„poți începe să copiezi schemele și pentru Era 2 (se continuă
 harta în dreapta)"*. Era 2 e deci **schema Erei 1**, care a fost reglată și jucată, cu altă marfă pe ea.
+
+**[D66, 2026-09-21] CADRUL S-A SCHIMBAT:** Moara e pe scara **x3000** (nu 40), a șasea plasă e gratis, iar scara de
+așteptare a Erei 2 pornește mai sus. Prețurile și timpii de mai jos sunt cei de la derivarea cu x40; cele de acum sunt
+în D66 și în `TycoonConfig`.
 
 **STARE (2026-09-19, seara): construită și în joc, cu desene de împrumut.** Cele 18 platforme sunt `live`; Era 2 a
 fost jucată cap-coadă cu sonda pe un profil de probă, prin aceleași cereri ca butoanele jocului, fără erori. Planul pe

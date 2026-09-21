@@ -104,6 +104,18 @@ stylua/selene o prind. Rulează-le mereu pe toate, nu înlănțuite după o eroa
   bâlciul doar în 114983498774894); serverul Rojo al satului rulează detașat pe 34872 și trebuie repornit ca să citească
   o schimbare de proiect. Ce a rulat în Studio se vede în `~/Library/Logs/Roblox/*_last.log` (`CreatorOutput`, `open place`).
 
+## Stare (2026-09-21) [D66]
+
+**O singură monedă; Moara pe scara x3000; satul lucrează fără tine o noapte (8 h, 16 h cu Long Nights).** Owner-ul a
+cumpărat toată Era 2 cu banii unei absențe. A respins banii separați pe cartiere și orice monedă nouă (*„nu vreau alte
+monede"*). Detaliile și cifrele sunt în DECIZII D66.
+- **Simulatorul:** `ERA2_MULT = 3000`, a șasea plasă gratis (`ERA2["free_units"]`), `ERA2_LADDER_START = 7.5`. Era 2
+  durează 47m34s reale și trece `--robust`. O noapte de la finalul Erei 1 plătește 8 din 26 de deblocări (20%).
+- **Poarta nouă `check_windfall`:** pică dacă o noapte de absență de la sfârșitul unei ere sare peste 25% din era
+  următoare. Orice eră nouă trebuie să treacă pe aici.
+- **Numerele mari:** `TycoonMath.formatNumber` merge până la `Qi`, în cinci caractere.
+- `scripts/create_monetization.py --update <cheie>` rescrie descrierea unui pass pe Roblox.
+
 ## Stare (2026-09-19, seara) [D65]
 
 **Era 2 e construită și în joc (`live`), cu desene de împrumut; nevăzută încă de owner în Studio.** Planul pe pași și ce

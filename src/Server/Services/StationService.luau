@@ -771,7 +771,7 @@ local function settleOffline(player: Player)
     end
     StationService.Invalidate(player)
     local now = os.time()
-    -- [D61, partea 2] cu Long Nights satul lucreaza pana la 48 de ore, nu 24
+    -- [D61, partea 2] cu Long Nights satul lucreaza pana la 16 ore, nu 8 [D66; pana atunci 48 si 24]
     local capSeconds = PassMath.offlineCapSeconds(data)
     local result =
         OfflineCalc.computeIdle(now, data.Meta.lastSeenAt, StationService.Idle(player), capSeconds)

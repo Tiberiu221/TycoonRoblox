@@ -14,6 +14,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 local Strings = require(ReplicatedStorage.Shared.Config.Strings)
 local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
+local PassMath = require(ReplicatedStorage.Shared.Modules.PassMath)
 
 local ShopPanel = require(script.Parent.ShopPanel)
 local SoundController = require(script.Parent.SoundController)
@@ -215,8 +216,8 @@ function WelcomeController.Init(deps: {
             away.Text = Strings.welcomeAway(fmtDuration(seconds))
             river.Text = if things > 0 then Strings.welcomeArrived(things) else ""
             river.Visible = things > 0
-            -- [D61, partea 2] plafonul e de o zi, sau de doua cu Long Nights: nota spune care
-            local hours = if typeof(capHours) == "number" then capHours else 24
+            -- [D61, partea 2] plafonul e de o noapte, sau de doua cu Long Nights [D66]: nota spune care
+            local hours = if typeof(capHours) == "number" then capHours else PassMath.OFFLINE_HOURS -- [D66]
             note.Text = if capped and coins > 0 then Strings.welcomeCapped(hours) else ""
             note.TextColor3 = Theme.COLOR.bad
             note.Visible = note.Text ~= ""

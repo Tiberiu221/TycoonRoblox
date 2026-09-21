@@ -167,7 +167,7 @@ local GOLDEN_ERA2 = {
         },
         capacity = { dock = 328.8, market = 1.0499999999999998 },
         bottleneck = "nets",
-        income = 88.66925090925,
+        income = 1700.38925090925,
     },
     {
         name = "Mill Collector si Mill Porter angajati: turnatoria de mana e gatuirea",
@@ -221,7 +221,7 @@ local GOLDEN_ERA2 = {
         },
         capacity = { dock = 328.8, market = 1.0499999999999998 },
         bottleneck = "nets",
-        income = 122.21045090925,
+        income = 4215.97925090925,
     },
     {
         name = "toti oamenii pieselor, fara Merchant: Piata merge la o treime",
@@ -277,7 +277,7 @@ local GOLDEN_ERA2 = {
         },
         capacity = { dock = 328.8, market = 1.176 },
         bottleneck = "market",
-        income = 144.50525090924998,
+        income = 5888.08925090925,
     },
     {
         name = "patru plase ale Morii, oameni pe trepte diferite, cuptorul fara plasa de minereu",
@@ -334,7 +334,7 @@ local GOLDEN_ERA2 = {
         },
         capacity = { dock = 328.8, market = 19.919999999999998 },
         bottleneck = "nets",
-        income = 981.99517175925,
+        income = 68699.83331465925,
     },
     {
         name = "turul de mana al cuprului, langa piesele cu toti oamenii",
@@ -391,7 +391,7 @@ local GOLDEN_ERA2 = {
         },
         capacity = { dock = 328.8, market = 328.8 },
         bottleneck = "furnace",
-        income = 1024.59517175925,
+        income = 71894.83331465925,
     },
     {
         name = "Ore Collector si Ore Porter angajati: cuptorul de mana e gatuirea",
@@ -450,7 +450,7 @@ local GOLDEN_ERA2 = {
         },
         capacity = { dock = 328.8, market = 328.8 },
         bottleneck = "furnace",
-        income = 1067.19517175925,
+        income = 75089.83331465925,
     },
     {
         name = "Piata plina: cuprul intai, piesele din ce ramane",
@@ -511,7 +511,7 @@ local GOLDEN_ERA2 = {
         },
         capacity = { dock = 328.8, market = 33.6 },
         bottleneck = "nets",
-        income = 3246.8087066992503,
+        income = 238560.84843515925,
     },
     {
         name = "amandoi vanzatorii plini: taverna tine lemnul, Piata tine piesele",
@@ -572,7 +572,7 @@ local GOLDEN_ERA2 = {
         },
         capacity = { dock = 33.6, market = 33.6 },
         bottleneck = "nets",
-        income = 3259.41744218475,
+        income = 238573.45717064475,
     },
     {
         name = "Copper Hauler-ul de mana e gatuirea cuprului",
@@ -632,7 +632,7 @@ local GOLDEN_ERA2 = {
         },
         capacity = { dock = 328.8, market = 400.79999999999995 },
         bottleneck = "copperHaul",
-        income = 2270.68497260925,
+        income = 165351.56837840925,
     },
     {
         name = "prag 25 pe tot cartierul Morii, echipaj la maxim",
@@ -693,7 +693,7 @@ local GOLDEN_ERA2 = {
         },
         capacity = { dock = 328.8, market = 292.8 },
         bottleneck = "nets",
-        income = 2631.04753748925,
+        income = 192378.76074440923,
     },
 }
 
@@ -1305,9 +1305,10 @@ return function()
                         ChainMath.netUpgradeBase(k) * StationConfig.ERA2_MULT
                     )
                 end
-                check.equal(ChainMath.netUpgradeBase(6), 40)
-                check.equal(ChainMath.tierCost(1, "millCollector"), 25 * 40)
-                check.equal(ChainMath.tierCost(4, "copperHauler"), 675 * 40)
+                local m = StationConfig.ERA2_MULT -- [D66] 3000
+                check.equal(ChainMath.netUpgradeBase(6), 1 * m)
+                check.equal(ChainMath.tierCost(1, "millCollector"), 25 * m)
+                check.equal(ChainMath.tierCost(4, "copperHauler"), 675 * m)
                 check.equal(ChainMath.tierCost(2, "collector"), 75)
                 check.equal(ChainMath.tierCost(2), 75)
             end

@@ -1166,10 +1166,9 @@ function Strings.welcomeDouble(price: number?): string
     return if price ~= nil then `Double it  R${price}` else "Double it"
 end
 Strings.WELCOME_DOUBLED = "Doubled!"
+-- [D66] Orele adevarate (8, sau 16 cu Long Nights): pana la D66 scria "1 day" / "2 days".
 function Strings.welcomeCapped(hours: number): string
-    return if hours >= 48
-        then "Your village works for 2 days while you are away."
-        else "Your village works for 1 day while you are away."
+    return `Your village works for {math.floor(hours + 0.5)} hours while you are away.`
 end
 
 -- [D61, partea 2] Poarta satelor: vizitezi satul altui om din balci, ca fotografie; un like pe zi pentru fiecare sat.

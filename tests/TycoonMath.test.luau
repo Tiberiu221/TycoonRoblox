@@ -4,6 +4,7 @@ local check = frktest.assert.check
 
 local TycoonMath = require("../src/Shared/Modules/TycoonMath")
 local TycoonConfig = require("../src/Shared/Config/TycoonConfig")
+local StationConfig = require("../src/Shared/Config/StationConfig")
 
 -- Paritatea cu simulatorul s-a MUTAT in tests/ChainMath.test.luau odata cu trecerea pe lantul cu
 -- trei verigi (E1.3): venitul nu mai e o suma peste platforme, deci `greedyRun`/`income`/`nice`
@@ -43,9 +44,11 @@ return function()
                 check.equal(TycoonMath.netKind(TycoonConfig.byId.tenth_net), "ore")
                 local s = TycoonMath.newState(0, 0)
                 check.equal(TycoonMath.itemValue("named", "rare", s), 22)
-                check.equal(TycoonMath.itemValue("named2", "rare", s), 22 * 40)
-                check.equal(TycoonMath.itemValue("parts", nil, s), 40)
-                check.equal(TycoonMath.itemValue("copper", nil, s), 120)
+                -- [D66] cadrul Morii: de StationConfig.ERA2_MULT ori marfa (si gasirile) Erei 1
+                local m = StationConfig.ERA2_MULT
+                check.equal(TycoonMath.itemValue("named2", "rare", s), 22 * m)
+                check.equal(TycoonMath.itemValue("parts", nil, s), 1 * m)
+                check.equal(TycoonMath.itemValue("copper", nil, s), 3 * m)
                 check.is_true(TycoonMath.isFind("named2"))
                 check.is_false(TycoonMath.isFind("parts"))
             end
@@ -364,8 +367,31 @@ return function()
             check.equal(TycoonMath.formatNumber(232954), "232K")
             check.equal(TycoonMath.formatNumber(999999), "999K")
             check.equal(TycoonMath.formatNumber(1999999), "1.99M")
+            -- [D66] Moara e pe scara x3000: trilioane si mai departe, tot in cinci caractere
+            check.equal(TycoonMath.formatNumber(1.5e12), "1.5T")
+            check.equal(TycoonMath.formatNumber(2.5e15), "2.5Qa")
+            check.equal(TycoonMath.formatNumber(1.25e15), "1.2Qa")
+            check.equal(TycoonMath.formatNumber(4.2e19), "42Qi")
             for _, n in
-                { 1000, 9999, 10000, 99999, 100000, 999999, 1e6, 5.5e7, 9.99e8, 1e9, 7.25e10 }
+                {
+                    1000,
+                    9999,
+                    10000,
+                    99999,
+                    100000,
+                    999999,
+                    1e6,
+                    5.5e7,
+                    9.99e8,
+                    1e9,
+                    7.25e10,
+                    9.99e11,
+                    1.23e13,
+                    9.99e14,
+                    1.23e15,
+                    9.99e17,
+                    9.99e20,
+                }
             do
                 check.is_true(#TycoonMath.formatNumber(n) <= 5)
             end

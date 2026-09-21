@@ -63,9 +63,13 @@ def drift_bonus(share=DRIFT_SHARE):
 
 # [D65] CADRUL EREI 2 E UN SINGUR NUMAR: de cate ori valoreaza marfa ei mai mult decat a Erei 1. Tot ce se masoara in
 # monede in cartierul nou se inmulteste cu el (valoarea bucatii, costul nivelurilor, costul treptelor); tot ce se
-# masoara in bucati pe secunda ramane ca in Era 1. 40 sta in mijlocul zonei stabile: durata erei e 55-57 de minute
-# pentru 30..60, dar sare la ~1h14m sub 28 (vezi scripts/economy/sim_era2.py, unealta de "ce-ar fi daca").
-ERA2_MULT = 40.0
+# masoara in bucati pe secunda ramane ca in Era 1.
+# [D66] 3000, NU 40: O SINGURA MONEDA, IAR MINA NOUA PE O SCARA MULT MAI MARE (ca minele unui continent din Idle Miner).
+# Cu 40, o noapte de absenta de la sfarsitul Erei 1 platea 352 din cele 398 de cumparaturi ale Erei 2, iar o zi pe toate
+# [owner, 2026-09-21: "am reusit sa deblochez cu acei bani toata era 2 dintr-un foc"]. Cu 3000, banii satului (si o
+# noapte de-a lor) platesc doar inceputul Morii: roata, a sasea plasa, cei cinci oameni, a saptea plasa. Poarta
+# `check_windfall` tine regula pentru orice era. (Separarea banilor pe cartiere a fost respinsa de owner.)
+ERA2_MULT = 3000.0
 
 GOODS = {  # valoarea de baza a unei bucati, in monede
     "driftwood": 1.0,
@@ -822,6 +826,9 @@ LADDER_START = 5
 # plus reperul erei, la inceput: Water Wheel, care porneste turnatoria (costa monede: jocul are o singura moneda).
 
 
+ERA2_LADDER_START = 7.5  # [D66] vezi ERA2["wait"]
+
+
 def era2_nets(s) -> int:
     return len(s.nets) - NETS_PER_ERA
 
@@ -916,8 +923,15 @@ ERA2 = {
     "first_net": NETS_PER_ERA,
     "net_count": NETS_PER_ERA,
     "step": lambda bought: len((bought & ERA2_OWN) - LADDER_EXEMPT),
-    "wait": lambda k: target_wait(k),
-    "free_first": False,
+    # [D66] aceeasi scara ca Era 1, pornita mai sus: fara banii satului care sa-i subventioneze inceputul, Moara pe
+    # scara x3000 se termina in ~43 de minute cu scara Erei 1 (START 5), la marginea portii de ritm; cu START 7.5 ~48 si
+    # trece --robust. Peste 7.7 apar pauze de peste 3 minute inaintea cuptorului de cupru.
+    "wait": lambda k: min(420.0, 20.0 * 1.17 ** (k + ERA2_LADDER_START)),
+    "free_first": False,  # roata de apa costa monede (D65): poarta erei
+    # [D66] Moara porneste ca satul: prima ei plasa e gratis. Cu scara x3000, banii satului nu mai subventioneaza
+    # nivelurile ieftine ale Morii: platita (8K), plasa asta se astepta ~2 minute reale fara nimic de apasat, iar primele
+    # 5 minute ale erei aveau doar 5 cumparaturi (poarta cere 15).
+    "free_units": ("net6",),
 }
 
 
@@ -1080,6 +1094,9 @@ def run(rebirths=0, index_found=0, max_seconds=36000, era=None, start=None):
         nonlocal last_price
         for uid, _name, _why, cond, _effect in unlocks:
             if uid in s.bought or uid in prices or not cond(s):
+                continue
+            if uid in era.get("free_units", ()):
+                prices[uid] = 0  # [D66] prima plasa a unei ere noi e gratis, ca prima plasa a satului
                 continue
             if uid in BURST_WAIT:  # [D56] oamenii fierului: secunde de venit, fara scara si fara podea
                 prices[uid] = nice(income(s) * BURST_WAIT[uid])
@@ -1264,7 +1281,7 @@ def fmt(sec):
 
 
 def big(n):
-    for unit, d in (("B", 1e9), ("M", 1e6), ("K", 1e3)):
+    for unit, d in (("Qi", 1e18), ("Qa", 1e15), ("T", 1e12), ("B", 1e9), ("M", 1e6), ("K", 1e3)):
         if n >= d:
             return f"{n / d:.2f}".rstrip("0").rstrip(".") + unit
     return str(int(n))
@@ -1346,6 +1363,11 @@ def check_run(rows, longest_idle, shares, prices, scrap_time):
 # [D65] PORTILE EREI 2, in oglinda cu ale Erei 1. Tinta owner-ului: cam o ora. Roata si a sasea plasa vin inaintea
 # oamenilor, deci rafala celor cinci se masoara de la clopotul Erei 1 cu loc pentru ele.
 ERA2_MIN_REAL, ERA2_MAX_REAL = 40 * 60, 75 * 60
+# [D66] CAT LUCREAZA SATUL FARA TINE: o noapte (PassMath.OFFLINE_HOURS), dubla cu Long Nights. Absenta de la
+# sfarsitul unei ere, platita cu venitul de atunci, poate cumpara cel mult inceputul erei urmatoare.
+OFFLINE_HOURS = 8.0
+OFFLINE_HOURS_LONG = 16.0
+WINDFALL_MAX_SHARE = 0.25  # partea din timpul erei urmatoare pe care o poate sari o noapte de absenta
 ERA2_MIN_FIRST_FIVE = 15
 ERA2_CREW_BURST_REAL = 360
 
@@ -1467,6 +1489,14 @@ def check_config_constants():
             bad.append(f"StationConfig: lipseste {name}")
         elif float(m.group(1)) != float(want):
             bad.append(f"StationConfig.{name} = {m.group(1)}, simulatorul are {want}")
+    passmath = open(
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "src", "Shared", "Modules", "PassMath.luau"),
+        encoding="utf-8",
+    ).read()
+    for name, want in (("OFFLINE_HOURS", OFFLINE_HOURS), ("OFFLINE_HOURS_LONG", OFFLINE_HOURS_LONG)):
+        m = re.search(r"PassMath\." + name + r" = ([0-9.]+)", passmath)
+        if m is None or float(m.group(1)) != want:
+            bad.append(f"PassMath.{name} = {m.group(1) if m else 'lipseste'}, simulatorul are {want:g} [D66]")
     m = re.search(r"StationConfig\.ROLE_BASE = \{([^}]*)\}", src)
     have = dict((k, float(v)) for k, v in re.findall(r"(\w+) = ([0-9.]+)", m.group(1))) if m else {}
     if have != ROLE_BASE:
@@ -1566,6 +1596,36 @@ def robust_era2(s1: State, prices1: dict):
     return failures
 
 
+def windfall(income_at_end, rows, started_at, ended_at, hours, mult=1.0):
+    """[D66] Absenta de `hours` ore la sfarsitul unei ere (venitul de atunci, inmultit cu `mult` pentru 2x Flow):
+    cate cumparaturi si deblocari ale erei urmatoare plateste, si ce parte din timpul ei sare."""
+    budget = income_at_end * mult * hours * 3600
+    spent, n, n_unlock, last_t, last_unlock = 0.0, 0, 0, started_at, "-"
+    for label, kind, price, t, _after, _bn in rows:
+        if spent + price > budget:
+            break
+        spent += price
+        n += 1
+        last_t = t
+        if kind == "unlock":
+            n_unlock, last_unlock = n_unlock + 1, label[7:]
+    share = (last_t - started_at) / max(1, ended_at - started_at)
+    return budget, n, n_unlock, last_unlock, share
+
+
+def check_windfall(income1, rows, started_at, ended_at):
+    """[D66] O NOAPTE DE ABSENTA NU CUMPARA ERA URMATOARE. Cu cadrul de dinainte (40), la sfarsitul Erei 1 o noapte
+    platea 352 din 398 de cumparaturi ale Erei 2. Regula tine pentru orice era noua: cel mult WINDFALL_MAX_SHARE din
+    timpul ei, platit de o noapte (fara pass-uri) din venitul erei dinainte."""
+    _budget, _n, _nu, last, share = windfall(income1, rows, started_at, ended_at, OFFLINE_HOURS)
+    if share > WINDFALL_MAX_SHARE:
+        return [
+            f"o noapte de absenta ({OFFLINE_HOURS:g} h) la sfarsitul Erei 1 sare {share * 100:.0f}% din Era 2 "
+            f"(pana la {last}; maxim {WINDFALL_MAX_SHARE * 100:.0f}%)"
+        ]
+    return []
+
+
 def report_era2(s1, s2, rows, prices, longest_idle, final_income, shares, income1):
     started = s1.t
     late = s2.line_time[LATE_LINE[2]]
@@ -1597,6 +1657,15 @@ def report_era2(s1, s2, rows, prices, longest_idle, final_income, shares, income
     never = [uid for uid, *_ in ERA2_UNLOCKS if uid not in s2.bought]
     if never:
         print("  necumparate in Era 2 (pret din starea de la final): " + ", ".join(f"{uid} {big(prices[uid])}" for uid in never))
+    print(f"\n[D66] absenta de la sfarsitul Erei 1 ({income1:.1f}/s), cat din Era 2 plateste:")
+    for label, hours, mult in (
+        (f"o noapte ({OFFLINE_HOURS:g} h)", OFFLINE_HOURS, 1.0),
+        (f"Long Nights ({OFFLINE_HOURS_LONG:g} h)", OFFLINE_HOURS_LONG, 1.0),
+        (f"Long Nights si 2x Flow", OFFLINE_HOURS_LONG, 2.0),
+    ):
+        budget, n, nu, last, share = windfall(income1, rows, started, s2.t, hours, mult)
+        print(f"  {label:26s} {big(budget):>8}: {n:3d} din {len(rows)} cumparaturi, {nu:2d} din {len(unlocks)} deblocari"
+              f" (pana la {last}), {share * 100:4.1f}% din timpul erei")
 
 
 if __name__ == "__main__":
@@ -1615,6 +1684,7 @@ if __name__ == "__main__":
     s2, rows2, prices2, idle2, final2, shares2, _ = run_era2(clone(s1), prices)
     problems += list(VIOLATIONS[era1_violations:])
     problems += check_run_era2(rows2, idle2, shares2, s2.line_time[LATE_LINE[2]], s1.t, s2.t)
+    problems += check_windfall(final_income, rows2, s1.t, s2.t)
     problems += check_config_prices({**prices, **prices2}, PAD_IDS_ERA2, ERA2_ROLES)
     # [D64] motorul chiar duce oricate linii: linii de proba pe o COPIE a modulului, comparate cu cifre socotite de mana
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))

@@ -499,7 +499,7 @@ Mecanismele de celebrare la praguri sunt recomandate explicit de Roblox [onboard
 ### P. Monetizarea
 
 > **[D61 partea a doua, 2026-09-18] Colțul cu Robux, scris.** Catalogul de mai jos a fost adus la ce are jocul azi:
-> `2x Flow` (viteză), `Swift Boots` ×1,5 (viteză), `Long Nights` — offline până la 48 h (spațiu), `Supporter` — titlu,
+> `2x Flow` (viteză), `Swift Boots` ×1,5 (viteză), `Long Nights` — offline până la 16 h, nu 8 (spațiu; 48 h până la D66), `Supporter` — titlu,
 > nume auriu, ținută (aspect), plus produsele `One Hour of Flow` și `Welcome Back x2`. `Auto-Collect` și `Extra Hand` au
 > ieșit: de la D49 plasele le golește Collector-ul, iar oamenii sunt chiar lanțul — un om vândut pe Robux ar fi conținut
 > cumpărat, nu viteză. Prețurile se citesc de la Roblox; nimic nu se vinde până nu există ID-urile. Vezi D61 (partea a

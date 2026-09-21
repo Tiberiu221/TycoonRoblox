@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""[D66, propunere] CAT DE MARE E „BANII DE OFFLINE CUMPARA ERA URMATOARE" si ce ar face o punga pe cartier.
+"""[D66] CAT DE MARE ERA „BANII DE OFFLINE CUMPARA ERA URMATOARE" si ce ar fi facut o punga pe cartier.
+
+PUNGA PE CARTIER A FOST RESPINSA de owner (2026-09-21: „nu vreau alte monede"). S-a ales o singura moneda cu Moara pe
+scara x3000 (sim_tycoon.ERA2_MULT) si poarta sim_tycoon.check_windfall. Scriptul ramane ca dovada a masuratorii: cu
+cadrul de acum, partea 1 arata cat sare o absenta azi, iar partea 2 e varianta respinsa.
 
 Unealta de „ce-ar fi daca", ca sim_era2.py: NU e in poarta si nu schimba nimic din joc. Incarca simulatorul adevarat
 (sim_tycoon.py), joaca Era 1 si masoara trei lucruri:
@@ -111,13 +115,15 @@ def main():
     print("\n1. AZI, o singura moneda: cat din Era 2 plateste absenta de la sfarsitul Erei 1")
     for label, hours, mult in (
         ("o ora", 1, 1),
-        ("o noapte (8 h)", 8, 1),
-        ("o zi (24 h, plafonul de azi)", 24, 1),
-        ("48 h cu Long Nights si 2x Flow", 48, 2),
+        ("o noapte (8 h, plafonul de azi)", 8, 1),
+        ("Long Nights (16 h)", 16, 1),
+        ("Long Nights si 2x Flow", 16, 2),
+        ("o zi (24 h, plafonul de pana la D66)", 24, 1),
+        ("48 h cu 2x Flow (pana la D66)", 48, 2),
     ):
         money = inc1 * mult * hours * 3600
         n, dt = covered(rows2, s1.t, money)
-        print(f"   {label:32s} {money:>13,.0f} -> primele {n:3d} din {len(rows2)} "
+        print(f"   {label:38s} {money:>13,.0f} -> primele {n:3d} din {len(rows2)} "
               f"(sare {T.fmt(dt)} din {T.fmt(s2.t - s1.t)})")
 
     with contextlib.redirect_stdout(io.StringIO()):

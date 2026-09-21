@@ -14,6 +14,9 @@ Preturile de aici sunt doar punctul de pornire: jocul afiseaza pretul citit de l
 din Creator Hub.
 
 Folosire: python3 scripts/create_monetization.py [--universe staging|production] [--dry-run]
+          python3 scripts/create_monetization.py --update <cheie> [--universe ...] [--dry-run]
+              [D66] rescrie DOAR descrierea unui pass deja creat, din `blurb`-ul lui din MonetizationConfig (PATCH
+              game-passes/v1/universes/{u}/game-passes/{id}, campul `description`, dreptul `game-pass:write`)
 """
 import json
 import os
@@ -77,7 +80,8 @@ def request(key, method, url, fields=None, file_path=None):
     req = urllib.request.Request(url, data=data, method=method, headers=headers)
     try:
         with urllib.request.urlopen(req, timeout=60) as r:
-            return r.status, json.load(r)
+            raw = r.read()
+            return r.status, (json.loads(raw) if raw.strip() else {})
     except urllib.error.HTTPError as e:
         body = e.read().decode("utf-8", "replace")
         try:
@@ -116,6 +120,35 @@ def create(key, universe, item):
     return body.get("gamePassId") if item["kind"] == "pass" else body.get("productId")
 
 
+def read_id(universe, item_key):
+    """ID-ul unui lucru deja creat, din randul universului din MonetizationConfig.IDS (0 = inca necreat)."""
+    src = open(CONFIG, encoding="utf-8").read()
+    m = re.search(rf"\[{universe}\] = \{{([^}}]*)\}}", src)
+    found = re.search(rf"\b{item_key} = (\d+)", m.group(1)) if m else None
+    return int(found.group(1)) if found else 0
+
+
+def update_description(key, universe, item, dry):
+    """[D66] Descrierea unui pass, rescrisa din `blurb` (Roblox o arata pe pagina pass-ului)."""
+    if item["kind"] != "pass":
+        sys.exit(f"{item['key']}: doar pass-urile se actualizeaza de aici")
+    pass_id = read_id(universe, item["key"])
+    if pass_id == 0:
+        sys.exit(f"{item['key']}: n-are ID pe universul {universe}; intai creeaza-l")
+    if dry:
+        print(f"  AR SCHIMBA descrierea lui {item['name']} ({pass_id}) in: {item['blurb']}")
+        return
+    url = f"{API}/game-passes/v1/universes/{universe}/game-passes/{pass_id}"
+    status, body = request(key, "PATCH", url, {"description": item["blurb"]})
+    if status not in (200, 204):
+        sys.exit(f"actualizarea lui {item['name']} a raspuns {status}: {body}")
+    status, now = request(key, "GET", url + "/creator")
+    shown = now.get("description") if status == 200 else None
+    print(f"  descrierea lui {item['name']} ({pass_id}): {shown!r}")
+    if shown is not None and shown != item["blurb"]:
+        sys.exit("  ! Roblox arata alta descriere decat cea trimisa")
+
+
 def write_ids(universe, ids):
     src = open(CONFIG, encoding="utf-8").read()
     m = re.search(rf"\[{universe}\] = \{{([^}}]*)\}}", src)
@@ -139,6 +172,13 @@ def main():
     dry = "--dry-run" in args
     key = api_key()
     items = read_items()
+    if "--update" in args:
+        wanted = args[args.index("--update") + 1]
+        item = next((i for i in items if i["key"] == wanted), None)
+        if item is None:
+            sys.exit(f"nu exista `{wanted}` in MonetizationConfig.ITEMS")
+        update_description(key, universe, item, dry)
+        return
     existing = {"pass": list_existing(key, universe, "pass"), "product": list_existing(key, universe, "product")}
     ids = {}
     for item in items:

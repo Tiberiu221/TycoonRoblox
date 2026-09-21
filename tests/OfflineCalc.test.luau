@@ -21,9 +21,9 @@ return function()
             check.is_false(r.cappedByTime)
         end)
 
-        test.case("se opreste la 24 de ore, si o spune", function()
+        test.case("se opreste dupa o noapte (8 ore), si o spune [D66]", function()
             local r = OfflineCalc.computeIdle(1000 + 72 * 3600, 1000, 1)
-            check.equal(r.seconds, 24 * 3600)
+            check.equal(r.seconds, 8 * 3600)
             check.is_true(r.cappedByTime)
         end)
 

@@ -4,12 +4,16 @@
 Era 2 traieste in `sim_tycoon.py` (liniile, cladirile, oamenii, `ERA2_UNLOCKS`, portile ei). Aici nu se defineste nimic:
 se schimba doar butoanele si se joaca din nou, ca `tune_tycoon.py` pentru Era 1. Nu scrie nimic in repo.
 
-    python3 scripts/economy/sim_era2.py [--table] [M=40] [A=20] [G=1.17] [START=5] [CAP=420] [EAGER=0] [PATIENCE=60]
+    python3 scripts/economy/sim_era2.py [--table] [M=3000] [A=20] [G=1.17] [START=7.5] [CAP=420] [EAGER=0] [PATIENCE=60]
 
   M        cadrul erei: de cate ori valoreaza marfa ei mai mult decat a Erei 1 (si nivelurile, si treptele)
   A, G, START, CAP   scara de asteptare a erei: min(CAP, A x G^(k + START)) secunde de venit la deblocarea k
   EAGER=1  un jucator care alearga dupa plase: le ia cum are banii si strange pentru ele cand e la cel mult PATIENCE
            secunde de venit de ele (implicit, acelasi jucator ca la Era 1: cumpara dupa raportul castig/pret)
+
+[D66, 2026-09-21] CADRUL S-A MUTAT LA M = 3000 si START = 7.5 (a sasea plasa gratis, in sim_tycoon.py). Cu 40, o noapte de
+absenta de la sfarsitul Erei 1 cumpara aproape toata Moara; pe scara mare, doar inceputul ei (sim_tycoon.check_windfall).
+Ce urmeaza e ce s-a aflat cu cadrul vechi:
 
 CE S-A AFLAT LA DERIVARE (2026-09-19):
   * Schema oglindita da singura ~57 de minute reale (tinta owner-ului: cam o ora), cu aceeasi scara de asteptare ca la
@@ -27,7 +31,7 @@ import os
 import sys
 
 SIM = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sim_tycoon.py")
-DEFAULTS = {"M": 40.0, "A": 20.0, "G": 1.17, "START": 5.0, "CAP": 420.0, "EAGER": 0.0, "PATIENCE": 60.0}
+DEFAULTS = {"M": 3000.0, "A": 20.0, "G": 1.17, "START": 7.5, "CAP": 420.0, "EAGER": 0.0, "PATIENCE": 60.0}
 
 
 def load():

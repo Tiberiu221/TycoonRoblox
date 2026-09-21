@@ -27,7 +27,7 @@ return function()
                 do
                     check.equal(PassMath.flowFactor(data), 1)
                     check.equal(PassMath.speedFactor(data), 1)
-                    check.equal(PassMath.offlineCapSeconds(data), 24 * 3600)
+                    check.equal(PassMath.offlineCapSeconds(data), 8 * 3600) -- [D66] o noapte
                 end
                 check.is_false(PassMath.has(nil, "flow2x"))
                 check.is_false(PassMath.has("x", "flow2x"))
@@ -39,8 +39,8 @@ return function()
             check.equal(PassMath.speedFactor(with("flow2x")), 1)
             check.equal(PassMath.speedFactor(with("swift")), 1.5)
             check.equal(PassMath.flowFactor(with("swift")), 1)
-            check.equal(PassMath.offlineCapSeconds(with("nights")), 48 * 3600)
-            check.equal(PassMath.offlineCapSeconds(with("flow2x", "swift", "supporter")), 24 * 3600)
+            check.equal(PassMath.offlineCapSeconds(with("nights")), 16 * 3600)
+            check.equal(PassMath.offlineCapSeconds(with("flow2x", "swift", "supporter")), 8 * 3600)
             -- Supporter e doar aspect: niciun numar nu se misca
             check.equal(PassMath.flowFactor(with("supporter")), 1)
             check.equal(PassMath.speedFactor(with("supporter")), 1)
@@ -88,9 +88,9 @@ return function()
         end)
 
         test.case(
-            "Long Nights: satul lucreaza pana la 48 de ore, nu 24; fara pass, ca pana acum",
+            "Long Nights: satul lucreaza pana la 16 ore, nu 8 [D66]; fara pass, cat o noapte",
             function()
-                local day = 24 * 3600
+                local day = 8 * 3600 -- o "zi" de lucru a satului fara tine: o noapte
                 local base = OfflineCalc.computeIdle(3 * day, 1, 2)
                 check.equal(base.seconds, day)
                 check.is_true(base.cappedByTime)
@@ -111,6 +111,18 @@ return function()
                 for _, cap in { 0, -5, 0 / 0 } do
                     check.equal(OfflineCalc.computeIdle(3 * day, 1, 2, cap).seconds, day)
                 end
+                -- implicitul modulului pur e chiar fereastra fara pass
+                check.equal(OfflineCalc.IDLE_DEFAULT_SECONDS, PassMath.OFFLINE_HOURS * 3600)
+                -- iar fereastra "Welcome back" spune orele adevarate [D40]
+                local Strings = require("../src/Shared/Config/Strings")
+                check.equal(
+                    Strings.welcomeCapped(PassMath.OFFLINE_HOURS),
+                    "Your village works for 8 hours while you are away."
+                )
+                check.equal(
+                    Strings.welcomeCapped(PassMath.OFFLINE_HOURS_LONG),
+                    "Your village works for 16 hours while you are away."
+                )
             end
         )
     end)

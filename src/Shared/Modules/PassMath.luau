@@ -12,8 +12,8 @@ local PassMath = {}
 
 PassMath.FLOW_FACTOR = 2 -- 2x Flow: venitul in monede, peste tot unde apare
 PassMath.SPEED_FACTOR = 1.5 -- Swift Boots (D60 zicea x2: la x2 traversezi balciul in 1,6 s si nu mai vezi nimic)
-PassMath.OFFLINE_HOURS = 24 -- cat lucreaza satul fara tine
-PassMath.OFFLINE_HOURS_LONG = 48 -- ...cu Long Nights
+PassMath.OFFLINE_HOURS = 8 -- cat lucreaza satul fara tine: o noapte [D66; pana atunci 24]
+PassMath.OFFLINE_HOURS_LONG = 16 -- ...cu Long Nights [D66; pana atunci 48]
 PassMath.HOUR_SECONDS = 3600
 PassMath.HOUR_MIN_COINS = 60 -- One Hour of Flow, pe un sat fara venit inca: macar cat primii oameni
 PassMath.PURCHASE_IDS_KEPT = 100 -- ultimele chitante tinute minte (tiparul ProfileStore pentru produse)
