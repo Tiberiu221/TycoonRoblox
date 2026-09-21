@@ -835,7 +835,7 @@ end
 -- Text care apare langa ceva, urca si se stinge: rasplata vizibila pentru un +1 sau +N. Fara ea,
 -- o cifra se schimba undeva si nimeni nu leaga schimbarea de actiunea care tocmai s-a intamplat
 -- [DECIZII D43].
-function Widgets.FloatText(parent: GuiObject, text: string, color: Color3, z: number)
+function Widgets.FloatText(parent: GuiObject, text: string, color: Color3, z: number): TextLabel
     local tag = Instance.new("TextLabel")
     tag.Name = "FloatText"
     tag.BackgroundTransparency = 1
@@ -858,6 +858,7 @@ function Widgets.FloatText(parent: GuiObject, text: string, color: Color3, z: nu
     task.delay(1, function()
         tag:Destroy()
     end)
+    return tag
 end
 
 -- Cip de resursa pentru HUD: pictograma plus numar, pe placa

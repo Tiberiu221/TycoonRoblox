@@ -814,6 +814,10 @@ function NetController.Celebrate(padId: string)
     SceneArt.Splash(assembly.body, 0.5, 0.5)
 end
 
+-- ultimul "+N marfa" al fiecarei plase, cat e inca proaspat (vezi OnCaught)
+local FLOAT_MERGE_SECONDS = 0.25
+local lastFloat: { [string]: { tag: TextLabel, good: string, count: number, at: number } } = {}
+
 function NetController.OnCaught(
     padId: string,
     count: number,
@@ -840,8 +844,28 @@ function NetController.OnCaught(
             local color = TIER_COLORS[tier or "common"] or Theme.COLOR.gold
             Widgets.FloatText(assembly.body, name, color, 8)
         else
+            -- [D65] Mai multe bucati prinse in aceeasi clipa (o plasa iute prinde doua-trei intr-un tick al serverului)
+            -- urcau ca tot atatea "+1" suprapuse la pixel, deci se citea "+1" cand fusesera trei [vazut in Play-ul
+            -- owner-ului, 2026-09-21; D40]. Cat ultimul text al plasei e inca proaspat, i se schimba cifra.
             local label = TycoonConfig.GOOD_NAMES[good] or good
-            Widgets.FloatText(assembly.body, `+1 {label}`, Theme.COLOR.good, 8)
+            local now = os.clock()
+            local last = lastFloat[padId]
+            if
+                last ~= nil
+                and last.good == good
+                and now - last.at <= FLOAT_MERGE_SECONDS
+                and last.tag.Parent ~= nil
+            then
+                last.count += 1
+                last.tag.Text = `+{last.count} {label}`
+            else
+                lastFloat[padId] = {
+                    tag = Widgets.FloatText(assembly.body, `+1 {label}`, Theme.COLOR.good, 8),
+                    good = good,
+                    count = 1,
+                    at = now,
+                }
+            end
         end
     end
     if snap ~= nil then
