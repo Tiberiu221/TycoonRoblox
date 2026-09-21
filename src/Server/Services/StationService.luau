@@ -8,7 +8,9 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ChainMath = require(ReplicatedStorage.Shared.Modules.ChainMath)
 local CrewMath = require(ReplicatedStorage.Shared.Modules.CrewMath)
+local FlowConfig = require(ReplicatedStorage.Shared.Config.FlowConfig)
 local StationConfig = require(ReplicatedStorage.Shared.Config.StationConfig)
+local Strings = require(ReplicatedStorage.Shared.Config.Strings)
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
 
@@ -90,24 +92,39 @@ local UPGRADE_BASE: { [string]: number } = {
     foundry = StationConfig.FOUNDRY_UPGRADE_BASE,
     furnace = StationConfig.FURNACE_UPGRADE_BASE,
     market = StationConfig.MARKET_UPGRADE_BASE,
+    -- [D67] Era 3
+    wireworks = StationConfig.WIREWORKS_UPGRADE_BASE,
+    powerhouse = StationConfig.POWERHOUSE_UPGRADE_BASE,
+    depot = StationConfig.DEPOT_UPGRADE_BASE,
 }
--- Platforma fara de care cladirea nu exista inca (nil = e acolo de la inceput). Aceleasi platforme ca in FlowConfig;
--- Piata porneste, ca turnatoria, odata cu roata de apa.
-local BUILDING_PAD: { [string]: string } = {
-    forge = "workshop",
-    foundry = "water_wheel",
-    market = "water_wheel",
-    furnace = "copper_furnace",
-}
--- Cladirile in ordinea randurilor din panou: lantul Erei 1 (gaterul, forja, taverna), apoi al Erei 2.
-local BUILDING_ROWS: { { kind: string, name: string } } = {
-    { kind = "saw", name = "Sawmill" },
-    { kind = "forge", name = "Forge" },
-    { kind = "dock", name = "Tavern" },
-    { kind = "foundry", name = "Foundry" },
-    { kind = "furnace", name = "Copper Furnace" },
-    { kind = "market", name = "Market" },
-}
+-- [D67] DERIVATE, NU SCRISE: platforma fara de care cladirea nu exista inca (nil = e acolo de la inceput) si randurile
+-- panoului, pe ere. Atelierul unei linii se deschide cu platforma ei din FlowConfig (Forge, roata de apa, cuptorul de
+-- cupru, masina cu abur, Power House); vanzatorul, odata cu prima lui linie (Piata cu roata, Depoul cu masina). Numele
+-- randului e cel din meniul care duce la cladire (Strings.LINK_WORDS). Pana la D67 erau doua liste scrise de mana.
+local BUILDING_PAD: { [string]: string } = {}
+local BUILDING_ROWS: { { kind: string, name: string } } = {}
+for _, eraLines in StationConfig.ERA_LINES do
+    local sellers: { string } = {}
+    for _, line in eraLines do
+        local spec = FlowConfig.LINES[line]
+        if spec.processorPad ~= nil then
+            BUILDING_PAD[spec.station] = spec.processorPad
+        end
+        table.insert(
+            BUILDING_ROWS,
+            { kind = spec.station, name = Strings.LINK_WORDS[spec.station].goTo }
+        )
+        if not table.find(sellers, spec.seller) then
+            table.insert(sellers, spec.seller)
+            if spec.processorPad ~= nil then
+                BUILDING_PAD[spec.seller] = spec.processorPad
+            end
+        end
+    end
+    for _, seller in sellers do
+        table.insert(BUILDING_ROWS, { kind = seller, name = Strings.LINK_WORDS[seller].goTo })
+    end
+end
 
 function StationService.UpgradeBase(kind: string, id: string?): number
     local base = UPGRADE_BASE[kind]
@@ -152,10 +169,14 @@ function StationService.StateFrom(data: any, bought: { [string]: boolean }): Cha
         end
     end
     -- [D55, D56] linia fierului: Forge (platforma `workshop`), din aceleasi platforme ca intrebarea "daca"; plasa de
-    -- scrap intra cu plasele de mai sus. [D65] La fel roata de apa (linia pieselor) si cuptorul de cupru.
-    s.workshop = bought.workshop == true
-    s.wheel = bought.water_wheel == true
-    s.furnace = bought.copper_furnace == true
+    -- scrap intra cu plasele de mai sus. [D65, D67] La fel fiecare linie cu conditie: steagul ei (StationConfig) il
+    -- ridica platforma atelierului ei (FlowConfig) -- roata de apa, cuptorul de cupru, masina cu abur, Power House.
+    for _, line in StationConfig.LINE_ORDER do
+        local flag = StationConfig.LINES[line].openFlag
+        if flag ~= nil then
+            fields[flag] = bought[FlowConfig.LINES[line].processorPad or ""] == true
+        end
+    end
     -- OAMENII [D49]: cati sunt se numara din `data.Hands` (dupa rol), treapta vine din `data.Crews`.
     -- O platforma de meserie din `bought` fara om inca (intrebarea "daca as cumpara-o") numara un om:
     -- altfel cartonasul de la apropiere ar arata castig zero pe fiecare angajare.

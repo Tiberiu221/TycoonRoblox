@@ -6,10 +6,13 @@ local RiverConfig = {
     SCREEN_HEIGHT = 1080,
     -- [D65] 80 de tile-uri de 48 px: The Landing (x 200..1860), The Mill (1860..3560) si capatul lumii, unde se vede
     -- gardul erei urmatoare. Pana la D65 erau 2880; lumea creste spre est (aval) cu fiecare era.
-    WORLD_WIDTH = 3840,
+    -- [D67] 115 tile-uri: si The Wire Works (3560..5240), apoi gardul Erei 4 (The Dam). Pana la D67 erau 3840.
+    WORLD_WIDTH = 5520,
     -- Latimea lumii de dinainte de D65. Decorul imprastiat al partii vechi se genereaza tot pe ea, cu aceeasi samanta,
     -- ca niciun copac al satului deja vazut de jucatori sa nu se mute (vezi WorldDecor.village).
     ERA1_WORLD_WIDTH = 2880,
+    -- [D67] Latimea lumii cu Moara, de dinainte de Era 3: fasia ei de decor ramane exact cea de atunci (DECOR_STRIPS).
+    ERA2_WORLD_WIDTH = 3840,
     WORLD_HEIGHT = 1920, -- 40 tile-uri
     TILE = 48,
     WINDOW_SECONDS = 60,
@@ -57,15 +60,18 @@ local RiverConfig = {
         beach = 46,
         -- malul amenajat: de la marginea din stanga a pontonului pana la capatul terenului [D50]
         -- [D65] pana la capatul Morii (x 3560 + 80): malul e amenajat in fata fiecarui cartier construit
-        calm = { x0 = 150, x1 = 3640, feather = 240, amp = 12 },
+        -- [D67] si in fata Wire Works (x 5240 + 80)
+        calm = { x0 = 150, x1 = 5320, feather = 240, amp = 12 },
     },
     -- Zona in care WorldDecor nu pune copaci/pietre: tot ce e construit in Era 1 incape in acest
     -- dreptunghi (verificat in tests/WorldDecor.test.luau) [F0 spec 4.6]. Se termina la x 1960, cu
     -- 100 px dincolo de gardul Morii, exact unde se termina si malul amenajat (SHORE_NEAR.calm) [D50].
     -- [D65] Cu Moara, terenul fara decor se intinde pana la capatul ei (x 3640). `PLOT_ERA1` e dreptunghiul de
     -- dinainte: cu el se genereaza decorul partii vechi, ca sa ramana pe loc (WorldDecor.village).
-    PLOT = { x = 200, y = 800, w = 3440, h = 850 },
+    -- [D67] Cu Wire Works, pana la capatul ei (x 5320); `PLOT_ERA2` e terenul de pe vremea Morii (fasia ei de decor).
+    PLOT = { x = 200, y = 800, w = 5120, h = 850 },
     PLOT_ERA1 = { x = 200, y = 800, w = 1760, h = 850 },
+    PLOT_ERA2 = { x = 200, y = 800, w = 3440, h = 850 },
     TIERS = {
         { id = "common", weight = 0.537, rgb = { 160, 110, 60 } },
         { id = "uncommon", weight = 0.248, rgb = { 90, 160, 90 } },
@@ -74,6 +80,14 @@ local RiverConfig = {
         { id = "legendary", weight = 0.021, rgb = { 240, 170, 40 } },
         { id = "mythic", weight = 0.0045, rgb = { 240, 60, 90 } },
     },
+}
+
+-- [D67] FASIILE DE DECOR de dupa partea veche a satului (WorldDecor.village), in ordinea in care au venit: fiecare cu
+-- marginea ei din dreapta si terenul fara decor de pe vremea ei. O fasie noua isi primeste decorul ei, cu samanta ei,
+-- fara sa mute un copac din cele de dinainte (Moara ramane exact cum a vazut-o owner-ul).
+RiverConfig.DECOR_STRIPS = {
+    { x1 = RiverConfig.ERA2_WORLD_WIDTH, plot = RiverConfig.PLOT_ERA2 },
+    { x1 = RiverConfig.WORLD_WIDTH, plot = RiverConfig.PLOT },
 }
 
 return RiverConfig

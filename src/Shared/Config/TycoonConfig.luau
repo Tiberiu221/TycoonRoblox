@@ -432,8 +432,10 @@ TycoonConfig.PLOT_ORIGIN = { x = 0, y = 0 }
 TycoonConfig.ZONES = {
     { id = "landing", name = "The Landing", era = 1, x0 = 200, x1 = 1860 },
     { id = "mill", name = "The Mill", era = 2, x0 = 1860, x1 = 3560 },
-    -- [D64] Era 3 e doar anuntata: gardul si ceata ei, pana la marginea lumii (RiverConfig.WORLD_WIDTH)
-    { id = "wire_works", name = "The Wire Works", era = 3, x0 = 3560, x1 = 3840 },
+    -- [D67] Era 3, cat e in constructie: deschisa de clopotul Morii, dar estompata si cu "coming soon" (ZoneController)
+    { id = "wire_works", name = "The Wire Works", era = 3, x0 = 3560, x1 = 5240 },
+    -- [D67] Era 4 e doar anuntata: gardul si ceata ei, pana la marginea lumii (RiverConfig.WORLD_WIDTH)
+    { id = "dam", name = "The Dam", era = 4, x0 = 5240, x1 = 5520 },
 }
 
 -- Unde sta Negustorul: la tejgheaua tavernei, in piata din fata ei [D57], in dreapta usii (DOCK). Picioarele la
@@ -680,39 +682,61 @@ TycoonConfig.SELLER_PLACES = {
 -- YARDS); al doilea e Moara, aceeasi asezare mutata cu MILL_DX. Strada Morii incepe unde se termina strada satului
 -- (x 1860), deci oamenii si dara de ghidaj trec dintr-un cartier in altul pe ea. RoadGraph ia drumurile din toate.
 export type District = { id: string, era: number, deck: Rect, roads: { Road }, yards: { Yard } }
-local function shiftedRect(r: Rect): Rect
-    return { x0 = r.x0 + MILL_DX, x1 = r.x1 + MILL_DX, y0 = r.y0, y1 = r.y1 }
+local function shiftedRect(r: Rect, dx: number?): Rect
+    local d = dx or MILL_DX
+    return { x0 = r.x0 + d, x1 = r.x1 + d, y0 = r.y0, y1 = r.y1 }
 end
-local millYards: { Yard } = {}
-for _, pair in
-    {
-        { "tavern", "market" },
-        { "stall", "merchant" },
-        { "storage", "mill_store" },
-        { "sawmill", "foundry" },
-        { "shed", "ore_shed" },
-        { "forge", "furnace" },
-        { "bell", "mill_bell" },
-        { "house_collector", "house_mill_collector" },
-        { "house_porter", "house_mill_porter" },
-        { "house_sawyer", "house_founder" },
-        { "house_hauler", "house_parts_hauler" },
-        { "house_scrap_collector", "house_ore_collector" },
-        { "house_scrap_porter", "house_ore_porter" },
-        { "house_smelter", "house_coppersmith" },
-        { "house_iron_hauler", "house_copper_hauler" },
-    }
-do
-    for _, yard in TycoonConfig.YARDS do
-        if yard.id == pair[1] then
-            local r = shiftedRect(yard)
-            table.insert(
-                millYards,
-                { id = pair[2], like = pair[1], x0 = r.x0, x1 = r.x1, y0 = r.y0, y1 = r.y1 }
-            )
+-- Curtile unui cartier nou: cele ale satului, mutate cu `dx`, fiecare cu numele ei (`like` = perechea din sat).
+local function districtYards(pairs: { { string } }, dx: number): { Yard }
+    local out: { Yard } = {}
+    for _, pair in pairs do
+        for _, yard in TycoonConfig.YARDS do
+            if yard.id == pair[1] then
+                local r = shiftedRect(yard, dx)
+                table.insert(
+                    out,
+                    { id = pair[2], like = pair[1], x0 = r.x0, x1 = r.x1, y0 = r.y0, y1 = r.y1 }
+                )
+            end
         end
     end
+    return out
 end
+local millYards = districtYards({
+    { "tavern", "market" },
+    { "stall", "merchant" },
+    { "storage", "mill_store" },
+    { "sawmill", "foundry" },
+    { "shed", "ore_shed" },
+    { "forge", "furnace" },
+    { "bell", "mill_bell" },
+    { "house_collector", "house_mill_collector" },
+    { "house_porter", "house_mill_porter" },
+    { "house_sawyer", "house_founder" },
+    { "house_hauler", "house_parts_hauler" },
+    { "house_scrap_collector", "house_ore_collector" },
+    { "house_scrap_porter", "house_ore_porter" },
+    { "house_smelter", "house_coppersmith" },
+    { "house_iron_hauler", "house_copper_hauler" },
+}, MILL_DX)
+-- [D67] si ale Wire Works
+local worksYards = districtYards({
+    { "tavern", "depot" },
+    { "stall", "clerk" },
+    { "storage", "works_store" },
+    { "sawmill", "wireworks" },
+    { "shed", "battery_shed" },
+    { "forge", "powerhouse" },
+    { "bell", "works_bell" },
+    { "house_collector", "house_works_collector" },
+    { "house_porter", "house_works_porter" },
+    { "house_sawyer", "house_wiredrawer" },
+    { "house_hauler", "house_coil_hauler" },
+    { "house_scrap_collector", "house_battery_collector" },
+    { "house_scrap_porter", "house_battery_porter" },
+    { "house_smelter", "house_electrician" },
+    { "house_iron_hauler", "house_power_hauler" },
+}, WORKS_DX)
 -- [D65] Cartierele pe care imaginea coapta URCATA a pamantului (Assets.tycoon.village_ground*) le contine deja. Restul
 -- isi primesc puntea, curtile si drumurile din dale, peste imagine (SceneArt). Se schimba DOAR la urcarea unei coaceri
 -- noi (scripts/art/village_ground.py, cu acordul owner-ului), nu la coacere.
@@ -767,6 +791,47 @@ TycoonConfig.DISTRICTS = {
             },
         },
         yards = millYards,
+    },
+    -- [D67] Wire Works, la fel, mutat cu WORKS_DX; strada lui continua strada Morii
+    {
+        id = "works",
+        era = 3,
+        deck = shiftedRect(TycoonConfig.DECK, WORKS_DX),
+        roads = {
+            {
+                id = "works_street",
+                like = "street",
+                x0 = 1860 + MILL_DX,
+                x1 = 1860 + WORKS_DX,
+                y0 = 1420,
+                y1 = 1480,
+            },
+            {
+                id = "depot_link",
+                like = "tavern_link",
+                x0 = 525 + WORKS_DX,
+                x1 = 575 + WORKS_DX,
+                y0 = 856,
+                y1 = 1420,
+            },
+            {
+                id = "depot_plaza",
+                like = "plaza",
+                x0 = 240 + WORKS_DX,
+                x1 = 550 + WORKS_DX,
+                y0 = 1090,
+                y1 = 1170,
+            },
+            {
+                id = "power_lane",
+                like = "iron_lane",
+                x0 = 1260 + WORKS_DX,
+                x1 = 1300 + WORKS_DX,
+                y0 = 856,
+                y1 = 1420,
+            },
+        },
+        yards = worksYards,
     },
 } :: { District }
 

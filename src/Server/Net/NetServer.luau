@@ -12,6 +12,25 @@ local StationConfig = require(ReplicatedStorage.Shared.Config.StationConfig)
 local RateLimiter = require(script.Parent.RateLimiter)
 local AudioLevels = require(ReplicatedStorage.Shared.Modules.AudioLevels)
 
+-- [D67] Clopotul care deschide zona fiecarei ere: platforma cu motivul "D" a erei dinainte (Landing Bell -> The Mill,
+-- Mill Bell -> The Wire Works, Works Bell -> The Dam). Pana la D67 zonele erau scrise de mana, una cate una.
+local ZONE_BELL: { [number]: string } = {}
+for _, p in TycoonConfig.PADS do
+    if p.motive == "D" then
+        ZONE_BELL[p.era + 1] = p.id
+    end
+end
+local function zoneStatuses(pads: { [string]: string }): { [string]: string }
+    local out: { [string]: string } = {}
+    for _, zone in TycoonConfig.ZONES do
+        local bell = ZONE_BELL[zone.era]
+        out[zone.id] = if zone.era == 1 or (bell ~= nil and pads[bell] == "bought")
+            then "open"
+            else "locked"
+    end
+    return out
+end
+
 export type Deps = {
     River: { GetConfigFor: (Player) -> { [string]: any }, Now: () -> number },
     -- Firsts: DOAR cele trei care nu se pot deduce din pads (collect/sell/named se repeta, deci
@@ -173,12 +192,9 @@ local function buildTycoonState(player: Player): { [string]: any }
         padDeltas = padDeltas,
         hands = deps.Hands.Snapshot(player),
         -- Mill se vede mereu (estompata, ingradita) si se deschide cu Landing Bell [B4, C].
-        -- [D65] La fel zona erei urmatoare (The Wire Works), cu clopotul Morii.
-        zones = {
-            landing = "open",
-            mill = if pads.landing_bell == "bought" then "open" else "locked",
-            wire_works = if pads.mill_bell == "bought" then "open" else "locked",
-        },
+        -- [D65, D67] La fel zona fiecarei ere urmatoare, cu clopotul erei dinainte (ZONE_BELL). Una deschisa dar inca
+        -- nefacuta (platformele ei nu sunt `live`) ramane estompata si scrie "coming soon": asta o decide clientul.
+        zones = zoneStatuses(pads),
         workshop = pads.workshop == "bought",
         -- [D56] parcat odata cu colectia: clientul nu-l mai citeste (insigna atelierului a iesit)
         pile = deps.Workshop.PileCount(player),

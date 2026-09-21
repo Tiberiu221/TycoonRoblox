@@ -64,10 +64,16 @@ local scattered = WorldDecor.village(DECOR_SEED, DECOR_COUNT, {
     width = W,
     height = H,
     oldWidth = RiverConfig.ERA1_WORLD_WIDTH,
+    strips = RiverConfig.DECOR_STRIPS, -- [D67]
 }, {
     riverTop = RiverConfig.SHORE_FAR.baseY - RiverConfig.SHORE_FAR.amp,
     riverBottom = RiverConfig.SHORE_NEAR.baseY + RiverConfig.SHORE_NEAR.amp,
 }, RiverConfig.PLOT, RiverConfig.PLOT_ERA1, TycoonConfig.homeClearRects())
+
+local stripEnds = {}
+for _, strip in RiverConfig.DECOR_STRIPS do
+    table.insert(stripEnds, strip.x1)
+end
 
 -- [D65] CARTIERELE, fiecare cu puntea, drumurile si curtile lui. Id-urile ies CANONICE (cele din The Landing, prin
 -- `like`), ca pamantul copt sa deseneze aceleasi detalii in fiecare: piata de piatra, potecile dintre case, zgura din
@@ -88,7 +94,10 @@ for _, d in TycoonConfig.DISTRICTS do
         for _, y in d.yards do
             table.insert(yards, { id = y.like or y.id, x0 = y.x0, x1 = y.x1, y0 = y.y0, y1 = y.y1 })
         end
-        table.insert(districts, { id = d.id, era = d.era, deck = d.deck, roads = roads, yards = yards })
+        table.insert(
+            districts,
+            { id = d.id, era = d.era, deck = d.deck, roads = roads, yards = yards }
+        )
     end
 end
 
@@ -102,6 +111,9 @@ local out = {
     -- latimea unei felii de pamant copt, in pixeli de lume: Roblox micsoreaza orice imagine peste 1024, deci lumea
     -- (3840 / 3 = 1280 px) se coace pe felii de 2880 (960 px)
     tile = RiverConfig.ERA1_WORLD_WIDTH,
+    -- [D67] marginile din dreapta ale fasiilor de dupa satul vechi (Moara, Wire Works): ce se imprastie la intamplare
+    -- se imprastie pe fiecare fasie cu samanta ei, ca o fasie noua sa nu mute nimic din cele de dinainte
+    strips = stripEnds,
     districts = districts,
     pierWalk = TycoonConfig.PIER_WALK,
     decor = TycoonConfig.DECOR,

@@ -149,10 +149,19 @@ end
 --     decor se opreste sub randul de case, iar un copac inalt cu baza chiar sub el le acoperea numele [vazut de owner
 --     la Moara, 2026-09-21]. In satul vechi nu cade niciunul pe o casa, deci ramane cum era (test).
 -- `river` = { riverTop, riverBottom }, ca la `build`.
+-- [D67] `world.strips`: fasiile de dupa partea veche, fiecare cu marginea ei din dreapta si terenul ei fara decor, in
+-- ordinea in care au venit (Moara, apoi Wire Works). Fasia k are samanta `seed + k` si numarul ei de lucruri, deci una
+-- noua nu muta nimic din cele de dinainte. Fara `strips`: o singura fasie pana la `width`, cu `plot` (ca pana la D67).
+export type Strip = { x1: number, plot: { x: number, y: number, w: number, h: number } }
 function WorldDecor.village(
     seed: number,
     count: number,
-    world: { width: number, height: number, oldWidth: number },
+    world: {
+        width: number,
+        height: number,
+        oldWidth: number,
+        strips: { Strip }?,
+    },
     river: { riverTop: number, riverBottom: number },
     plot: { x: number, y: number, w: number, h: number },
     oldPlot: { x: number, y: number, w: number, h: number },
@@ -171,22 +180,29 @@ function WorldDecor.village(
             table.insert(items, item)
         end
     end
-    local strip = world.width - world.oldWidth
-    if strip > 0 then
-        local extra = WorldDecor.build(seed + 1, {
-            width = strip,
-            height = world.height,
-            riverTop = river.riverTop,
-            riverBottom = river.riverBottom,
-            -- terenul, vazut din fasia noua (x-ul ei porneste de la 0)
-            plot = { x = plot.x - world.oldWidth, y = plot.y, w = plot.w, h = plot.h },
-        }, math.floor(count * strip / world.oldWidth + 0.5))
-        for _, item in extra do
-            table.insert(
-                items,
-                { kind = item.kind, x = item.x + world.oldWidth, y = item.y, z = item.z }
-            )
+    local strips: { Strip } = world.strips or { { x1 = world.width, plot = plot } }
+    local x0 = world.oldWidth
+    for k, strip in strips do
+        local width = strip.x1 - x0
+        if width > 0 then
+            local extra = WorldDecor.build(seed + k, {
+                width = width,
+                height = world.height,
+                riverTop = river.riverTop,
+                riverBottom = river.riverBottom,
+                -- terenul fasiei, vazut din ea (x-ul ei porneste de la 0)
+                plot = {
+                    x = strip.plot.x - x0,
+                    y = strip.plot.y,
+                    w = strip.plot.w,
+                    h = strip.plot.h,
+                },
+            }, math.floor(count * width / world.oldWidth + 0.5))
+            for _, item in extra do
+                table.insert(items, { kind = item.kind, x = item.x + x0, y = item.y, z = item.z })
+            end
         end
+        x0 = math.max(x0, strip.x1)
     end
     if clear ~= nil then
         local kept: { Item } = {}

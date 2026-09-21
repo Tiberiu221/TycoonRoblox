@@ -254,6 +254,19 @@ def bake(G):
     # partii deja aprobate si urcate. De aceea fiecare imprastiere se face in doi timpi: intai pe latimea veche, cu
     # aceeasi samanta si acelasi numar (iese exact ca inainte), apoi pe fasia noua, cu samanta ei.
     W_OLD = min(W, G["tile"] // D)
+    # [D67] si fasiile de dupa satul vechi, fiecare cu marginea ei (Moara pana la 1280, Wire Works pana la capat): fasia
+    # k isi imprastie lucrurile cu samanta ei, ca latirea lumii sa nu mute smocurile si pietricelele Morii.
+    STRIP_ENDS = [min(W, x1 // D) for x1 in G.get("strips", [W * D])]
+
+    def strips(base_seed, old_share):
+        """(samanta, x_from, x_to, parte) pentru satul vechi si pentru fiecare fasie; prima fasie are samanta de
+        dinainte de D67 (`base_seed`), urmatoarele cate una noua."""
+        out, x0 = [], W_OLD
+        for k, x1 in enumerate(STRIP_ENDS):
+            if x1 > x0:
+                out.append((base_seed + 100 * k, x0, x1, (x1 - x0) / W_OLD * old_share))
+            x0 = max(x0, x1)
+        return out
     n_tone, n_mid, n_fine, n_edge = Noise(11), Noise(12), Noise(13), Noise(14)
 
     def world(ix, iy):
@@ -317,10 +330,9 @@ def bake(G):
         for k in range(tries):
             yield random.Random(seed * 1000003 + k)
 
-    for seed, x_from, x_to, tries in (
-        (62, 0, W_OLD, 900),
-        (6202, W_OLD, W, 900 * (W - W_OLD) // W_OLD),
-    ):
+    for seed, x_from, x_to, tries in [(62, 0, W_OLD, 900)] + [
+        (seed, x_from, x_to, 900 * (x_to - x_from) // W_OLD) for seed, x_from, x_to, _share in strips(6202, 1.0)
+    ]:
         for rnd in each_try(seed, tries):
             ix, iy = x_from + rnd.randrange(x_to - x_from), rnd.randrange(H)
             if cv.mat[iy * W + ix] != MAT_SAND or not cv.inside(ix + 1, iy + 1):
@@ -554,10 +566,7 @@ def bake(G):
     flowers = ((244, 240, 226), (250, 214, 96), (236, 150, 170), (170, 190, 250))
     flower_top = int(near["y"][0] // D) + 30
     # in doi timpi, ca la pietricele: satul vechi isi tine smocurile si florile, fasia noua le primeste pe ale ei
-    for seed, x_from, x_to, share in (
-        (5, 0, W_OLD, 1.0),
-        (505, W_OLD, W, (W - W_OLD) / W_OLD),
-    ):
+    for seed, x_from, x_to, share in [(5, 0, W_OLD, 1.0)] + strips(505, 1.0):
         span = x_to - x_from
         if span <= 2:
             continue

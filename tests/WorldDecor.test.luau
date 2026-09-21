@@ -144,6 +144,42 @@ return function()
             end
         end)
 
+        test.case("[D67] cu lumea mai lata, satul si Moara isi tin fiecare copac", function()
+            -- fasia Wire Works vine cu samanta ei: tot ce era pana la 3840 (satul, Moara) ramane exact pe loc
+            local river = {
+                riverTop = RiverConfig.SHORE_FAR.baseY - RiverConfig.SHORE_FAR.amp,
+                riverBottom = RiverConfig.SHORE_NEAR.baseY + RiverConfig.SHORE_NEAR.amp,
+            }
+            local clear = TycoonConfig.homeClearRects()
+            local before = WorldDecor.village(20260910, 130, {
+                width = RiverConfig.ERA2_WORLD_WIDTH,
+                height = RiverConfig.WORLD_HEIGHT,
+                oldWidth = RiverConfig.ERA1_WORLD_WIDTH,
+            }, river, RiverConfig.PLOT_ERA2, RiverConfig.PLOT_ERA1, clear)
+            local now = WorldDecor.village(20260910, 130, {
+                width = RiverConfig.WORLD_WIDTH,
+                height = RiverConfig.WORLD_HEIGHT,
+                oldWidth = RiverConfig.ERA1_WORLD_WIDTH,
+                strips = RiverConfig.DECOR_STRIPS,
+            }, river, RiverConfig.PLOT, RiverConfig.PLOT_ERA1, clear)
+            local kept: { WorldDecor.Item } = {}
+            local newStrip = 0
+            for _, item in now do
+                if item.x < RiverConfig.ERA2_WORLD_WIDTH then
+                    table.insert(kept, item)
+                else
+                    newStrip += 1
+                end
+            end
+            check.equal(#kept, #before)
+            for i, item in before do
+                check.equal(kept[i].kind, item.kind)
+                check.equal(kept[i].x, item.x)
+                check.equal(kept[i].y, item.y)
+            end
+            check.is_true(newStrip > 0) -- fasia noua chiar are decorul ei
+        end)
+
         test.case("[D65] niciun copac nu acopera casa unui om sau numele ei", function()
             -- vazut de owner la Moara (2026-09-21): trei copaci cu baza chiar sub randul de case le acopereau numele
             local Assets = require("../src/Shared/Config/Assets")

@@ -107,6 +107,7 @@ local function buildDecor(scroll: Frame)
         width = RiverConfig.WORLD_WIDTH,
         height = RiverConfig.WORLD_HEIGHT,
         oldWidth = RiverConfig.ERA1_WORLD_WIDTH,
+        strips = RiverConfig.DECOR_STRIPS, -- [D67]
     }, {
         -- Decorul trebuie sa stie cat de departe poate ajunge APA, nu unde e banda nominala:
         -- de cand malurile serpuiesc, raul urca pana la 392 si coboara pana la 824, iar un copac
@@ -457,12 +458,19 @@ function SceneArt.BuildBackground(layers: Layers)
             if w <= 0 then
                 break
             end
-            if Assets.has(sprite) then
-                local ground = image(shoreLayer, sprite, x0, 0, w, H, 1)
+            -- [D67] cat din felie acopera imaginea URCATA (latimea ei nativa x 3): cand lumea creste, felia urcata
+            -- ramane pe bucata ei, iar restul feliei isi primeste iarba din dale pana la coacerea noua, nu se intinde
+            local covered = if Assets.has(sprite)
+                then math.min(w, sprite.width * Assets.PIXEL_SCALE)
+                else 0
+            if covered > 0 then
+                local ground = image(shoreLayer, sprite, x0, 0, covered, H, 1)
                 ground.Name = "BakedGround" .. k
-            else
-                tiled(groundLayer, Assets.grass_tile, x0, 0, w, waterTop, 0)
-                tiled(groundLayer, Assets.grass_tile, x0, waterBottom, w, H - waterBottom, 0)
+            end
+            if covered < w then
+                local gx, gw = x0 + covered, w - covered
+                tiled(groundLayer, Assets.grass_tile, gx, 0, gw, waterTop, 0)
+                tiled(groundLayer, Assets.grass_tile, gx, waterBottom, gw, H - waterBottom, 0)
             end
         end
     end
