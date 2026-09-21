@@ -117,8 +117,8 @@ monede"*). Detaliile și cifrele sunt în DECIZII D66.
 - `scripts/create_monetization.py --update <cheie>` rescrie descrierea unui pass pe Roblox.
 - **Era 3, „The Wire Works" [D67]: în joc (`live`)**, cu arta ei (54 de imagini urcate și aprobate), jucată cap-coadă cu
   sonda pe 2026-09-21, fără erori. Planul și ce s-a hotărât: `docs/PLAN-ERA3.md`. Felinarele de pe strada fiecărui cartier
-  se aprind cu primul curent vândut (`LampController`, `firsts.power`). **Rămâne:** urcarea feliei 2 a pământului recopt
-  (cu acordul owner-ului; până atunci Wire Works își primește puntea și curțile din dale) și verificarea owner-ului.
+  se aprind cu primul curent vândut (`LampController`, `firsts.power`). Pământul recopt cu cartierul e urcat.
+  **Rămâne:** verificarea owner-ului în Studio.
 
 ## Stare (2026-09-19, seara) [D65]
 

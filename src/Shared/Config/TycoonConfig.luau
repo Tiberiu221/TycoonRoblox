@@ -743,7 +743,9 @@ local worksYards = districtYards({
 -- isi primesc puntea, curtile si drumurile din dale, peste imagine (SceneArt). Se schimba DOAR la urcarea unei coaceri
 -- noi (scripts/art/village_ground.py, cu acordul owner-ului), nu la coacere.
 -- [2026-09-21] Coacerea cu Moara e urcata (ambele felii), deci si cartierul ei vine din imagine.
-TycoonConfig.BAKED_DISTRICTS = { landing = true, mill = true } :: { [string]: boolean }
+-- [D67] La fel Wire Works: felia 2, recoapta cu cartierul, e urcata (880 px, pana la capatul lumii).
+TycoonConfig.BAKED_DISTRICTS =
+    { landing = true, mill = true, works = true } :: { [string]: boolean }
 
 TycoonConfig.DISTRICTS = {
     {

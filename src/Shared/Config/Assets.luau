@@ -278,7 +278,7 @@ local Assets = {
         -- deci lumea latita la 3840 se coace pe felii de 2880. 0 = coapta, inca neurcata: fasia ei se deseneaza din
         -- dale pana atunci (SceneArt). Prima felie de mai sus e inca cea de dinainte de Moara (strada Morii lipseste
         -- din ea pana la urmatoarea urcare, cu acordul owner-ului).
-        village_ground_2 = sprite(109758979132988, 320, 640),
+        village_ground_2 = sprite(91716333663371, 880, 640),
         platform = sprite(136060284598059, 48, 24),
         weights = sprite(116698981575799, 24, 16),
         -- pier2 (64x48) a fost respins: se citea ca o lada cu capac. pier3 e pontonul inalt,
