@@ -897,7 +897,31 @@ return function()
                     end
                 end
                 for era = 1, 3 do
-                    check.equal(perEra[era], 7) -- opt case pe cartier, sapte goluri intre ele
+                    -- opt case pe cartier, sapte goluri intre ele; [D67, audit] trei raman goale, unde lucreaza un om:
+                    -- omul atelierului, al doilea om de la gater / Foundry / Wire Works, Porter-ul care isi rastoarna roaba
+                    check.equal(perEra[era], 4)
+                end
+                -- niciun felinar peste un om care lucreaza pe loc (cutia lui 40x60, prinsa de talpi)
+                for _, lamp in lamps do
+                    for _, place in TycoonConfig.LINE_PLACES do
+                        local w = place.workerStand
+                        for _, spot in { w, { x = w.x + place.secondOffset.x, y = w.y } } do
+                            local apart = math.abs(lamp.x - spot.x) >= 15 + 20
+                            check.is_true(apart)
+                        end
+                        -- nici peste roaba Porter-ului (in dreapta lui, la gura atelierului) sau a Hauler-ului (in stanga)
+                        local pin, pout = place.processorIn, place.processorOut
+                        check.is_true(lamp.x + 15 <= pin.x - 20 or lamp.x - 15 >= pin.x + 73)
+                        check.is_true(lamp.x + 15 <= pout.x - 73 or lamp.x - 15 >= pout.x + 20)
+                    end
+                end
+                -- nici peste un felinar pus de mana [D57]: cel dintre curti (x 1215) statea chiar sub cel de la x 1205
+                for _, lamp in lamps do
+                    for _, item in TycoonConfig.DECOR do
+                        if item.sprite == "lantern" then
+                            check.is_true(math.abs(lamp.x - item.x) >= 60)
+                        end
+                    end
                 end
             end
         )

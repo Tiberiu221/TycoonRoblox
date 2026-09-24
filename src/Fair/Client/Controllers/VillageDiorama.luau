@@ -30,6 +30,7 @@ local WorldMap = require(ReplicatedStorage.Shared.Modules.WorldMap)
 local SceneArt = require(script.Parent.SceneArt)
 local GroundShadow = require(script.Parent.Parent.UI.GroundShadow)
 local PadArt = require(script.Parent.Parent.UI.PadArt)
+local StreetLamps = require(script.Parent.Parent.UI.StreetLamps)
 local PersonView = require(script.Parent.Parent.UI.PersonView)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
@@ -179,7 +180,19 @@ local function drawNet(parent: Instance, pad: TycoonConfig.Pad, level: number)
     rope.Parent = parent
     -- [D62, pasul 5] plasa si insigna pe rangul nivelului (pragurile 10 / 25 / 50), ca acasa
     local rank = ChainMath.rankOf(level)
-    if Assets.has(Assets.tycoon.net_water) then
+    local turbine = if PadArt.isTurbine(pad) then PadArt.turbineSprite() else nil
+    if turbine ~= nil then
+        -- [D67, audit] turbina e roata ei cu bobine, nu o plasa (acelasi desen ca NetController)
+        local art = image(
+            parent,
+            turbine,
+            turbine.width * PadArt.TURBINE_SCALE,
+            turbine.height * PadArt.TURBINE_SCALE,
+            5
+        )
+        art.AnchorPoint = Vector2.new(0.5, 0.5)
+        art.Position = UDim2.fromOffset(x, laneY)
+    elseif Assets.has(Assets.tycoon.net_water) then
         local net = image(
             parent,
             PadArt.netSprite(rank, false),
@@ -213,8 +226,41 @@ local function drawRuin(parent: Instance, pad: TycoonConfig.Pad)
         return
     end
     local x, y = pad.x :: number, pad.y :: number
+    if PadArt.isTurbine(pad) then
+        -- [D67, audit] turbina necumparata e umbra ei, ca acasa (PadController.buildGhost): stalpul intreg, funia si
+        -- roata, toate intunecate si pe jumatate transparente
+        local post = Assets.tycoon.netpost
+        local postW, postH =
+            post.width * TycoonConfig.PROP_SCALE, post.height * TycoonConfig.PROP_SCALE
+        local laneY = TycoonConfig.LANE_Y[PadArt.laneOf(pad)] or TycoonConfig.LANE_Y[1]
+        if Assets.has(post) then
+            local postImg = image(parent, post, postW, postH, 3)
+            postImg.AnchorPoint = Vector2.new(0.5, 1)
+            postImg.Position = UDim2.fromOffset(x, y)
+            postImg.ImageColor3 = PadArt.GHOST_TINT
+            postImg.ImageTransparency = PadArt.GHOST_FADE
+        end
+        local art, artW, artH = PadArt.laneArt(pad, true)
+        local rope = Instance.new("Frame")
+        rope.AnchorPoint = Vector2.new(0.5, 1)
+        rope.Position = UDim2.fromOffset(x, y - postH)
+        -- pana la marginea de jos a roții: prin roata pe jumatate transparenta, funia s-ar vedea pana la butuc
+        rope.Size = UDim2.fromOffset(3, math.max(0, (y - postH) - (laneY + artH / 2)))
+        rope.BackgroundColor3 = PadArt.GHOST_TINT
+        rope.BackgroundTransparency = PadArt.GHOST_FADE
+        rope.BorderSizePixel = 0
+        rope.ZIndex = 3
+        rope.Parent = parent
+        local wheel = image(parent, art, artW, artH, 4)
+        wheel.AnchorPoint = Vector2.new(0.5, 0.5)
+        wheel.Position = UDim2.fromOffset(x, laneY)
+        wheel.ImageColor3 = PadArt.GHOST_TINT
+        wheel.ImageTransparency = PadArt.GHOST_FADE
+        return
+    end
     if PadArt.isNet(pad) then
-        local post, net = Assets.tycoon.ruin_netpost, Assets.tycoon.ruin_net
+        local post = Assets.tycoon.ruin_netpost
+        local net, netW, netH = PadArt.laneArt(pad, true)
         local postImg = image(
             parent,
             post,
@@ -226,7 +272,7 @@ local function drawRuin(parent: Instance, pad: TycoonConfig.Pad)
         postImg.Position = UDim2.fromOffset(x, y)
         postImg.ImageColor3 = LOCKED_TINT
         local laneY = TycoonConfig.LANE_Y[PadArt.laneOf(pad)] or TycoonConfig.LANE_Y[1]
-        local netImg = image(parent, net, TycoonConfig.NET_DRAW.w, TycoonConfig.NET_DRAW.h, 4)
+        local netImg = image(parent, net, netW, netH, 4)
         netImg.AnchorPoint = Vector2.new(0.5, 0.5)
         netImg.Position = UDim2.fromOffset(x, laneY)
         netImg.ImageColor3 = LOCKED_TINT
@@ -234,15 +280,16 @@ local function drawRuin(parent: Instance, pad: TycoonConfig.Pad)
     end
     local sprite, scale = PadArt.ruin(pad.id)
     if sprite ~= nil then
+        local offset = PadArt.ART_OFFSET[pad.id] -- [D67, audit] ruina rotii de apa sta si ea in rau, ca acasa
         local img = standing(
             parent,
             sprite,
             x,
-            y + HALF + 8,
+            y + HALF + 8 + (if offset ~= nil then offset.y else 0),
             sprite.width * scale,
             sprite.height * scale,
             4,
-            0.35
+            if offset ~= nil and offset.inWater then nil else 0.35
         )
         img.ImageColor3 = LOCKED_TINT
     end
@@ -255,14 +302,28 @@ local function drawBought(parent: Instance, pad: TycoonConfig.Pad, village: Vill
         return
     end
     local x, y = pad.x :: number, pad.y :: number
-    local base = y + HALF + 8
+    -- [D67, audit] un desen care nu sta pe platforma lui (roata de apa, in rau), ca acasa: PadArt.ART_OFFSET
+    local offset = PadArt.ART_OFFSET[pad.id]
+    local base = y + HALF + 8 + (if offset ~= nil then offset.y else 0)
+    local shadow = if offset ~= nil and offset.inWater then nil else 0.55
     local role = TycoonConfig.CREW_OF_PAD[pad.id]
     local count = if role ~= nil then village.crews[role] or 1 else 1
-    local sprite, scale = PadArt.bought(pad.id, count, village.stations.forge)
+    -- nivelul forjei conteaza doar pentru forja insasi; [D67, audit] o cladire care ar cadea pe desenul forjei (arta ei
+    -- lipsa) nu-l mai ia pe cel mare dupa nivelul forjei gazdei
+    local forgeLevel = if pad.id == "workshop" then village.stations.forge else nil
+    local sprite, scale = PadArt.bought(pad.id, count, forgeLevel)
     local name = PadArt.homeName(pad.id)
     if sprite ~= nil and Assets.has(sprite) then
-        local house =
-            standing(parent, sprite, x, base, sprite.width * scale, sprite.height * scale, 3, 0.55)
+        local house = standing(
+            parent,
+            sprite,
+            x,
+            base,
+            sprite.width * scale,
+            sprite.height * scale,
+            3,
+            shadow
+        )
         if name ~= nil then
             worldName(parent, name, x, base + 2)
             -- [D62, pasul 5] treapta meseriei si fumul de la horn, ca acasa
@@ -481,6 +542,8 @@ function VillageDiorama.Show(village: VillageLook.Snapshot)
         end
     end
     drawDecor(p, village)
+    -- [D67, audit] felinarele strazii, aprinse daca gazda a vandut deja curent (adancimea dupa baza, ca oamenii)
+    StreetLamps.draw(p, village.power)
     drawPeople(p, village)
 
     -- cartea de oaspeti: avizierul curat, cu numele dedesubt

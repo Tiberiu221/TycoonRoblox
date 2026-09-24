@@ -58,6 +58,7 @@ export type Snapshot = {
     hands: { HandSnap },
     decor: { [string]: boolean },
     decorCount: number,
+    power: boolean, -- [D67, audit] gazda a vandut deja curent: felinarele strazii ei ard (ca DataService.Firsts.power)
 }
 
 local function netEffectOf(pad: TycoonConfig.Pad): number?
@@ -220,6 +221,7 @@ function VillageLook.of(data: { [string]: any }): Snapshot
         hands = VillageLook.hands(data),
         decor = decor,
         decorCount = VillageLook.decorCount(data),
+        power = typeof(data.Stats) == "table" and (tonumber(data.Stats.cellsSold) or 0) > 0,
     }
 end
 

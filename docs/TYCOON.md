@@ -563,7 +563,8 @@ Seiful (2–3 reveniri pe zi [16]) · scara renașterii (zile) · colecția (lun
 1 lună [37] · evenimente **cu preaviz**, care merg mai bine decât surprizele [20].
 **Nu:** recompense zilnice simple [16]; mecanici de tip „ratezi dacă nu vii" [addictive].
 
-**Sarcini:** Q1 calendarul de conținut · Q2 primul eveniment cu preaviz · Q3 decizia D19 (Inundația).
+**Sarcini:** Q1 calendarul de conținut · Q2 primul eveniment cu preaviz (un eveniment doar *aduce* ceva, niciodată nu ia
+[D69]) · ~~Q3 decizia D19 (Inundația)~~ **anulată 2026-09-24 [D69]: fără niciun dezastru**.
 
 ### R. Social — mai târziu
 
@@ -573,7 +574,7 @@ pentru algoritm [35], iar retenția pe 30 de zile vine din mecanici sociale [18]
 izolată (B5), ca să nu fie o rescriere.
 
 **Sarcini:** R1 terenuri multiple · R2 clasamentul top 30 (`OrderedDataStore`) · R3 lobby-ul
-(decizia de avatar, D20/D23).
+(decizia de avatar, D20/D23: **închisă 2026-09-24 [D69]**, jocul rămâne 2D pentru totdeauna, fără avatar 3D).
 
 > **[D60, 2026-09-16] Socialul a început, dar nu pe terenul tău.** R2 și R3 s-au făcut altfel decât scrie mai sus:
 > bâlciul de seară e locul comun (place separat, avatarul e tot omul 2D), iar clasamentele sunt săptămânale, câte 10,
@@ -839,7 +840,9 @@ progression-depth · `[factorio]` factorio-satisfactory · `[money]` roblox-mone
 
 1. ~~Snapshot git înainte de tăiere.~~ **Rezolvat 2026-09-11:** primul commit e pe `main`, în
    repo-ul privat `Tiberiu221/TycoonRoblox`. Cele ~4.400 de linii pe care le scoate F0 rămân în istoric.
-2. **Numele.** Place-ul din Studio se numește deja *Driftycoon*. Îl păstrăm?
+2. ~~**Numele.**~~ **Rezolvat 2026-09-24 [D69]:** „Driftwood" e bun ca nume final, dar nu contează acum; auditul de
+   marcă rămâne înainte de marketing (D22).
 3. **Terenuri multiple pe server** — recomandarea e *mai târziu* (arie R).
-4. **Lobby-ul cu avatar** — așteaptă ticketul la Roblox despre rata DevEx (D20/D23).
-5. **D19 / Inundația** — contrazice regula „nimic nu se distruge".
+4. ~~**Lobby-ul cu avatar.**~~ **Rezolvat 2026-09-24 [D69]:** 2D pentru totdeauna, fără lobby 3D (rata DevEx se
+   confirmă tot prin ticket, D20).
+5. ~~**D19 / Inundația.**~~ **Rezolvat 2026-09-24 [D69]:** anulată; fără niciun dezastru.

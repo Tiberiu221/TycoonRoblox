@@ -51,6 +51,10 @@ local PILE_OF: { [string]: string } = {
     parts = "pile_parts",
     ore = "pile_ore",
     copper = "pile_copper",
+    -- [D67] marfa Wire Works
+    coils = "pile_coils",
+    battery = "pile_battery",
+    cell = "pile_cell",
 }
 -- al doilea fel: la 70%, lipit in dreapta, cel mult treapta 2 -- se citeste "si asta", nu "a doua gramada"
 local SECOND_SCALE = 0.7

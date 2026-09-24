@@ -40,6 +40,25 @@ ELECTRICIAN = ramp(214, 0.78, 0.80)  # Electrician: albastru electric
 FREIGHTER = ramp(336, 0.62, 0.70)  # Power Hauler: zmeura
 SLATE = W.IRON  # linia bobinelor: ardezie gri de fier
 POWER_SLATE = ramp(196, 0.34, 0.46)  # linia curentului: ardezie albastru-verzuie, cu paratrasnet pe casele mari
+# [D68] Fiecare meserie cu acoperisul ei, ca la Moara (d65_crew.py): pana acum toate opt aveau aceeasi ardezie, in doua
+# culori, iar Works Collector si Coil Hauler aveau practic aceeasi casa. Peretii raman de fier nituit (cartierul).
+RUST_TIN = ramp(18, 0.46, 0.50)  # tabla ruginita
+TAR = ramp(30, 0.16, 0.34, val_span=0.34)  # carton gudronat, aproape negru
+MOSS_TIN = ramp(112, 0.20, 0.50)  # tabla verde, spalata de ploaie
+OCHRE_TIN = ramp(40, 0.44, 0.60)  # tabla vopsita in ocru
+VOLT_SLATE = ramp(222, 0.42, 0.44)  # ardezie albastru-electric
+OXIDE_TIN = ramp(356, 0.40, 0.46)  # tabla rosie de oxid
+# meseria -> (acoperisul, textura, (x0, x1) casa mica, (x0, x1) casa mare); streasina iese altfel la fiecare, ca la Moara
+ROOFS = {
+    "works_collector": (RUST_TIN, "plank", (2, 29), (1, 32)),
+    "works_porter": (TAR, "shingle", (3, 30), (4, 37)),
+    "wiredrawer": (SLATE, "slate", (1, 28), (3, 36)),
+    "coil_hauler": (MOSS_TIN, "plank", (2, 29), (2, 34)),
+    "battery_collector": (POWER_SLATE, "slate", (2, 29), (1, 32)),
+    "battery_porter": (OCHRE_TIN, "plank", (3, 30), (4, 37)),
+    "electrician": (VOLT_SLATE, "slate", (1, 28), (3, 36)),
+    "power_hauler": (OXIDE_TIN, "shingle", (2, 29), (2, 34)),
+}
 
 
 # ---------------------------------------------------------------------------------------------
@@ -84,30 +103,31 @@ def _cart(c, x, y, cargo):
     line(c, x + 9, y + 4, x + 12, y + 2, WOOD[1], 1)
 
 
-def _hut(small, seed, door, extra, power=False):
-    """O casa: mica (32x28) sau mare (40x34), pereti de fier, fronton de ardezie, usa in culoarea omului, `extra` = semnul
-    meseriei (functie (c, rng) care deseneaza ce sta la usa). `power`: casele liniei curentului, cu ardezia lor si, cele
-    mari, cu paratrasnet."""
+def _hut(small, seed, door, extra, power=False, role=None):
+    """O casa: mica (32x28) sau mare (40x34), pereti de fier, fronton, usa in culoarea omului, `extra` = semnul meseriei
+    (functie (c, rng) care deseneaza ce sta la usa). `role`: acoperisul meseriei (ROOFS). `power`: casele liniei
+    curentului; cele mari au paratrasnet pe coama."""
     rng = Rng(seed)
-    roof = POWER_SLATE if power else SLATE
+    roof, texture, span_small, span_big = ROOFS[role] if role else (POWER_SLATE if power else SLATE, "slate", (2, 29), (1, 32))
     if small:
         c = C(32, 28)
         soft_shadow(c, 16, 26, 14, 2)
         _iron_wall(c, 5, 26, 14, 25)
-        d55._gable(c, 2, 29, 3, 14, roof, "slate")
+        d55._gable(c, span_small[0], span_small[1], 3, 14, roof, texture)
         d55._door(c, 15, 18, 5, 8, door)
         d55._window(c, 8, 17)
     else:
         c = C(40, 34)
         soft_shadow(c, 20, 32, 18, 2)
         _iron_wall(c, 4, 29, 17, 31)
-        d55._gable(c, 1, 32, 4, 17, roof, "slate")
+        d55._gable(c, span_big[0], span_big[1], 4, 17, roof, texture)
         d55._door(c, 12, 21, 6, 10, door)
         d55._window(c, 6, 21)
         d55._window(c, 21, 21)
         if power:
-            c.rect(16, 0, 1, 5, STEEL[3])  # paratrasnetul, pe coama
-            c.put(16, 0, W.BRASS[4])
+            ridge = span_big[0] + (span_big[1] - span_big[0]) // 2  # paratrasnetul, pe coama
+            c.rect(ridge, 0, 1, 5, STEEL[3])
+            c.put(ridge, 0, W.BRASS[4])
     extra(c, rng)
     outline_trace(c)
     return c
@@ -118,7 +138,7 @@ def _hut(small, seed, door, extra, power=False):
 
 
 def prop_hut_works_collector_1():
-    return _hut(True, 6731, DREDGER, lambda c, rng: (d56._gaff(c, 27, 12), M.ore_rock(c, 23, 24, 2.4, 1.6, rng)))
+    return _hut(True, 6731, DREDGER, lambda c, rng: (d56._gaff(c, 27, 12), M.ore_rock(c, 23, 24, 2.4, 1.6, rng)), role="works_collector")
 
 
 def prop_hut_works_collector_2():
@@ -127,21 +147,21 @@ def prop_hut_works_collector_2():
         for k in range(3):
             M.ore_rock(c, 33 + k * 2, 30 - k, 2.2, 1.6, rng)
 
-    return _hut(False, 6732, DREDGER, extra)
+    return _hut(False, 6732, DREDGER, extra, role="works_collector")
 
 
 def prop_hut_works_porter_1():
     def extra(c, rng):
         _cart(c, 21, 19, lambda cc, x, y: M.ore_rock(cc, x + 5, y + 3, 3, 1.8, rng))
 
-    return _hut(True, 6733, BARROWMAN, extra)
+    return _hut(True, 6733, BARROWMAN, extra, role="works_porter")
 
 
 def prop_hut_works_porter_2():
     def extra(c, rng):
         _cart(c, 28, 24, lambda cc, x, y: (M.ore_rock(cc, x + 3, y + 3, 2.4, 1.6, rng), M.ore_rock(cc, x + 7, y + 3, 2.4, 1.6, rng)))
 
-    return _hut(False, 6734, BARROWMAN, extra)
+    return _hut(False, 6734, BARROWMAN, extra, role="works_porter")
 
 
 def prop_hut_wiredrawer_1():
@@ -149,7 +169,7 @@ def prop_hut_wiredrawer_1():
         _iron_chimney(c, 21, 0, 8)
         W.coil(c, 21, 20, 8, 6)
 
-    return _hut(True, 6735, WIREDRAWER, extra)
+    return _hut(True, 6735, WIREDRAWER, extra, role="wiredrawer")
 
 
 def prop_hut_wiredrawer_2():
@@ -157,18 +177,18 @@ def prop_hut_wiredrawer_2():
         _iron_chimney(c, 26, 0, 10)
         W.coil(c, 30, 24, 9, 8)
 
-    return _hut(False, 6736, WIREDRAWER, extra)
+    return _hut(False, 6736, WIREDRAWER, extra, role="wiredrawer")
 
 
 def prop_hut_coil_hauler_1():
-    return _hut(True, 6737, COILER, lambda c, rng: _cart(c, 21, 19, lambda cc, x, y: W.coil(cc, x + 2, y, 6, 4)))
+    return _hut(True, 6737, COILER, lambda c, rng: _cart(c, 21, 19, lambda cc, x, y: W.coil(cc, x + 2, y, 6, 4)), role="coil_hauler")
 
 
 def prop_hut_coil_hauler_2():
     def extra(c, rng):
         _cart(c, 28, 24, lambda cc, x, y: (W.coil(cc, x + 1, y, 5, 4), W.coil(cc, x + 5, y - 1, 5, 5)))
 
-    return _hut(False, 6738, COILER, extra)
+    return _hut(False, 6738, COILER, extra, role="coil_hauler")
 
 
 # ---------------------------------------------------------------------------------------------
@@ -176,7 +196,7 @@ def prop_hut_coil_hauler_2():
 
 
 def prop_hut_battery_collector_1():
-    return _hut(True, 6741, LINEMAN, lambda c, rng: _pole(c, 28, 6, 26), power=True)
+    return _hut(True, 6741, LINEMAN, lambda c, rng: _pole(c, 28, 6, 26), power=True, role="battery_collector")
 
 
 def prop_hut_battery_collector_2():
@@ -184,7 +204,7 @@ def prop_hut_battery_collector_2():
         _pole(c, 35, 8, 32)
         W.jar(c, 30, 25)
 
-    return _hut(False, 6742, LINEMAN, extra, power=True)
+    return _hut(False, 6742, LINEMAN, extra, power=True, role="battery_collector")
 
 
 def prop_hut_battery_porter_1():
@@ -194,7 +214,7 @@ def prop_hut_battery_porter_1():
         W.jar(c, 22, 16)
         W.jar(c, 26, 16, lit=False)
 
-    return _hut(True, 6743, HODMAN, extra, power=True)
+    return _hut(True, 6743, HODMAN, extra, power=True, role="battery_porter")
 
 
 def prop_hut_battery_porter_2():
@@ -204,7 +224,7 @@ def prop_hut_battery_porter_2():
         for k in range(2):
             W.jar(c, 30 + k * 5, 20, lit=k == 0)
 
-    return _hut(False, 6744, HODMAN, extra, power=True)
+    return _hut(False, 6744, HODMAN, extra, power=True, role="battery_porter")
 
 
 def prop_hut_electrician_1():
@@ -213,7 +233,7 @@ def prop_hut_electrician_1():
         W.bolt(c, 23, 16)
         W.insulator(c, 28, 17)
 
-    return _hut(True, 6745, ELECTRICIAN, extra, power=True)
+    return _hut(True, 6745, ELECTRICIAN, extra, power=True, role="electrician")
 
 
 def prop_hut_electrician_2():
@@ -222,20 +242,19 @@ def prop_hut_electrician_2():
         W.bolt(c, 31, 20, big=True)
         W.insulator(c, 36, 24)
 
-    return _hut(False, 6746, ELECTRICIAN, extra, power=True)
+    return _hut(False, 6746, ELECTRICIAN, extra, power=True, role="electrician")
 
 
 def prop_hut_power_hauler_1():
     return _hut(
-        True, 6747, FREIGHTER, lambda c, rng: _cart(c, 21, 19, lambda cc, x, y: _cell(cc, x + 1, y + 1, 8)), power=True
-    )
+        True, 6747, FREIGHTER, lambda c, rng: _cart(c, 21, 19, lambda cc, x, y: _cell(cc, x + 1, y + 1, 8)), power=True, role="power_hauler")
 
 
 def prop_hut_power_hauler_2():
     def extra(c, rng):
         _cart(c, 28, 24, lambda cc, x, y: (_cell(cc, x, y + 1, 8), _cell(cc, x + 1, y - 2, 8)))
 
-    return _hut(False, 6748, FREIGHTER, extra, power=True)
+    return _hut(False, 6748, FREIGHTER, extra, power=True, role="power_hauler")
 
 
 # ---------------------------------------------------------------------------------------------

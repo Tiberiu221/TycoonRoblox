@@ -75,9 +75,17 @@ HandConfig.OUTFIT_LOOKS_LIKE = {
     Freighter = "Teamster",
 } :: { [string]: string }
 
--- [D56, D65] Meseriile care au cadrele "la lucru" (ciocanul in mana) pe foaia tinutei: omul forjei si, cu tinuta lui de
--- imprumut, omul cuptorului de cupru. Bat doar cat atelierul chiar lucreaza.
-HandConfig.WORKING_POSE = { smelter = true, coppersmith = true } :: { [string]: boolean }
+-- [D56, D65, D67] Meseriile care lucreaza cu ciocanul in mana langa atelierul lor (randul "work" e pe fiecare foaie de
+-- tinuta), si incotro se uita cat lucreaza. Omul forjei, al cuptorului de cupru si al Power House sta sub dreapta
+-- cladirii (SMELTER_STAND); al turnatoriei si al Wire Works sta la dreapta ei (SAWYER_STAND), deci se uita spre stanga.
+-- Bat doar cat atelierul chiar lucreaza. Sawyer-ul lipseste intentionat: el sta la gater, nu la o nicovala.
+HandConfig.WORKING_POSE = {
+    smelter = "right",
+    coppersmith = "right",
+    electrician = "right",
+    founder = "left",
+    wiredrawer = "left",
+} :: { [string]: string }
 
 -- [D50] Clientii tavernei: tinute pe care nu le poarta nicio meserie (fara palarie, prun si ardezie),
 -- ca un client sa nu para un om al tau care sta degeaba [D44]. Testul HandConfig le tine separate.

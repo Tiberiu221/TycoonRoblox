@@ -182,5 +182,31 @@ return function()
                 "No Merchant — the Market sells slowly"
             )
         end)
+
+        test.case(
+            "[D67] turbina umple baterii, nu prinde: meniul si bannerul de prag spun asta",
+            function()
+                local TycoonConfig = require("../src/Shared/Config/TycoonConfig")
+                check.equal(TycoonConfig.wordsKindOf("net", "first_turbine"), "turbine")
+                check.equal(TycoonConfig.wordsKindOf("net", "first_net"), "net")
+                check.equal(TycoonConfig.wordsKindOf("saw", nil), "saw")
+                check.equal(Strings.milestoneNow("turbine", 2), "Fills twice as much now")
+                check.equal(
+                    Strings.menuMilestone("turbine", 10, 2),
+                    "Level 10: fills twice as much"
+                )
+                check.equal(Strings.menuDoes("turbine", true), "Fills batteries")
+                -- orice platforma cu plasa (si turbina) are cuvintele ei in tabel, nu cade pe ale tavernei
+                for _, pad in TycoonConfig.PADS do
+                    for _, effect in pad.effects do
+                        if effect.kind == "net" then
+                            check.not_nil(
+                                Strings.BUILDING_WORDS[TycoonConfig.wordsKindOf("net", pad.id)]
+                            )
+                        end
+                    end
+                end
+            end
+        )
     end)
 end

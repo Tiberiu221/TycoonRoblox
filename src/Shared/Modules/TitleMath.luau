@@ -5,6 +5,9 @@
 -- Regula: titlurile CASTIGATE sunt gratuite si vin din ce ai facut (Era, jurnalul, recordul tau, decorul cumparat,
 -- concursul saptamanii). Cele CUMPARATE costa perle si sunt scumpe intentionat -- 600/1000/1600, peste tot catalogul
 -- de decor (1.460) -- ca sa ramana ceva de dorit dupa ce l-ai terminat [owner, 2026-09-16].
+local TycoonConfig =
+    require(script and script.Parent.Parent.Config.TycoonConfig or "../Config/TycoonConfig")
+
 local TitleMath = {}
 
 export type Record = { fish: string, cm: number }
@@ -39,8 +42,12 @@ TitleMath.FOR_SALE = {
     { id = "lord_of_the_river", label = "Lord of the River", price = 1600 },
 } :: { { id: string, label: string, price: number } }
 
--- zonele erelor, ca in TycoonConfig.ZONES si docs/TYCOON.md: The Landing / The Mill / The Yard / The Harbor
-TitleMath.ZONE_TITLE = { "Of the Landing", "Of the Mill", "Of the Yard", "Of the Harbor" }
+-- Titlul Erei, din numele cartierului ei (TycoonConfig.zoneName): "The Wire Works" -> "Of the Wire Works". [D67, audit]
+-- Pana acum era o lista a ei, ramasa la planul vechi: "Of the Yard" pentru Era 3.
+function TitleMath.eraTitle(era: number): string
+    local name: string = TycoonConfig.zoneName(era)
+    return "Of the " .. (if string.sub(name, 1, 4) == "The " then string.sub(name, 5) else name)
+end
 
 local function saleLabel(id: string): string?
     for _, entry in TitleMath.FOR_SALE do
@@ -54,8 +61,7 @@ end
 -- Eticheta unui titlu, din fapte: recordul se scrie cu specia si marimea lui, deci nu poate fi un text fix [D40].
 function TitleMath.label(id: string, facts: Facts): string?
     if id == "era" then
-        local index = math.clamp(facts.era, 1, #TitleMath.ZONE_TITLE)
-        return TitleMath.ZONE_TITLE[index]
+        return TitleMath.eraTitle(facts.era)
     elseif id == "legend" then
         return if facts.species >= facts.speciesTotal and facts.speciesTotal > 0
             then "River Legend"

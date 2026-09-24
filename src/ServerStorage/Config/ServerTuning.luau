@@ -13,5 +13,4 @@ return {
         legendary = 0.021,
         mythic = 0.0045,
     },
-    secret_weight_flood_only = 0.0005,
 }

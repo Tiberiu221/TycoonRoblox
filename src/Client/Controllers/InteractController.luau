@@ -261,7 +261,7 @@ function InteractController.Init(d: Deps)
     card.AnchorPoint = Vector2.new(0.5, 1)
     card.BackgroundTransparency = 1
     card.Size = UDim2.fromOffset(ACTION_W + Theme.SPACE.sm + UPGRADE_W, CARD_H)
-    card.ZIndex = 30
+    card.ZIndex = 48 -- [D67, audit] peste textul lumii (nume 46, placi si replici 47): e interfata, se apasa
     card.Visible = false
     card.Parent = deps.Plot
     local layout = Instance.new("UIListLayout")

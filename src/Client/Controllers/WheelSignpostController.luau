@@ -112,9 +112,12 @@ function WheelSignpostController.Init(d: Deps)
 
     local tag =
         Widgets.Label(post, Strings.WHEEL_MOVED_TAG, Theme.TEXT.tiny, Theme.COLOR.onDark, "strong")
+    -- Sub stalp, la aceeasi inaltime cu "Village Board" (avizierul e la 86 px): cu cutii late de 160 si 140, cele doua
+    -- se citeau ca un singur text, "Wheel moved Village / to the fair Board". Cutia are acum latimea textului si sta
+    -- putin spre stanga, deci intre cele doua texte sunt ~40 px. Deasupra stalpului nu se poate: acolo e barca.
     tag.AnchorPoint = Vector2.new(0.5, 0)
-    tag.Position = UDim2.new(0.5, 0, 1, 2)
-    tag.Size = UDim2.fromOffset(W + 104, 30) -- doua randuri
+    tag.Position = UDim2.new(0.5, -18, 1, 2)
+    tag.Size = UDim2.fromOffset(96, 30) -- doua randuri de cel mult 11 litere (80 px)
     tag.TextXAlignment = Enum.TextXAlignment.Center
     tag.ZIndex = 5
     Theme.punch(tag, 2)

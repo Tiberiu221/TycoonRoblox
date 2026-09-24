@@ -66,7 +66,9 @@ function Strings.padAvailable(
 ): string -- [E] -- cartonasul agentului U
     return `{name} — {formattedPrice}`
 end
-function Strings.padNeedMoreCoins(n: number): string -- [A]
+function Strings.padNeedMoreCoins(
+    n: string
+): string -- [A] suma deja scrisa (TycoonMath.formatNumberUp)
     return `Need {n} more coins`
 end
 Strings.PAD_BUILT = "Built!" -- [B]
@@ -522,6 +524,8 @@ Strings.NET_WORDS = {
 export type BuildingWords = { does: string, alone: string, verb: string, much: boolean? }
 Strings.BUILDING_WORDS = {
     net = { does = "Catches", alone = "Catches", verb = "catches", much = true },
+    -- [D67] turbina sta in rau ca o plasa, dar nu prinde nimic: umple baterii (TycoonConfig.wordsKindOf)
+    turbine = { does = "Fills batteries", alone = "Fills batteries", verb = "fills", much = true },
     saw = { does = "Cuts", alone = "Cuts only while you stand here", verb = "cuts" },
     -- [D56] ca gaterul: fara Smelter doar cat stai langa ea
     forge = {
@@ -1191,7 +1195,6 @@ end
 function Strings.lookAtCard(name: string, keyHint: string): string
     return `Look at {name}{keyHint}`
 end
-Strings.ERA_NAMES = { "The Landing", "The Mill", "The Yard", "The Harbor" }
 function Strings.cardEra(era: number, name: string): string
     return `Era {era}: {name}`
 end
@@ -1497,6 +1500,7 @@ end
 -- ---- ruinele [D53] ----------------------------------------------------------------------------
 -- Eticheta cartonasului langa o platforma incuiata: ruina, sau avizierul unde se angajeaza un om.
 Strings.PAD_EYEBROW_RUINS = "RUINS"
+Strings.PAD_EYEBROW_NOT_BUILT = "NOT BUILT YET" -- [D67, audit] turbina incuiata: umbra ei, nu o ruina
 Strings.PAD_EYEBROW_WANTED = "HELP WANTED"
 -- Ce trebuie facut intai. Primeste TycoonMath.Blocker, cu numele deja rezolvate: textul spune exact
 -- conditia pe care o verifica jocul [D40].

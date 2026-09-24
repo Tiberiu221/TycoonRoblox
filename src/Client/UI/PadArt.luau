@@ -163,6 +163,47 @@ function PadArt.isNet(pad: TycoonConfig.Pad): boolean
     return false
 end
 
+-- [D67] TURBINA. Sta in larg ca o plasa (aceeasi platforma, acelasi stalp, acelasi nivel), dar nu prinde nimic din rau:
+-- se invarte si umple baterii. Desenul ei (`turbine`), cat nu e urcat, e roata de apa a Morii ("bobine + roata", D64),
+-- de doua ori marimea foii, ca sa stea cat o plasa in apa. Aici, ca satul (NetController) si satul vizitat din balci
+-- (VillageDiorama) sa deseneze aceeasi turbina: [D67, audit] macheta o desena ca pe o plasa de pescuit.
+PadArt.TURBINE_SCALE = 2
+-- UMBRA unui obiect inca necumparat (PadController.buildGhost): intunecat si pe jumatate transparent. Aici, ca satul si
+-- satul vizitat din balci sa aiba aceeasi umbra.
+PadArt.GHOST_TINT = Color3.fromRGB(26, 32, 42)
+PadArt.GHOST_FADE = 0.48
+function PadArt.isTurbine(pad: TycoonConfig.Pad): boolean
+    for _, e in pad.effects do
+        if e.kind == "net" and e.good == "turbine" then
+            return true
+        end
+    end
+    return false
+end
+function PadArt.turbineSprite(): Assets.Sprite?
+    local own = (Assets.tycoon :: any).turbine
+    if own ~= nil and Assets.has(own) then
+        return own
+    end
+    return if Assets.has(Assets.tycoon.water_wheel) then Assets.tycoon.water_wheel else nil
+end
+
+-- Ce sta pe banda din rau a unei platforme cu plasa, cat inca n-o ai: umbra obiectului (`ruined` false) sau ruina lui
+-- (`ruined` true), cu marimea desenata. [D67, audit] Turbina aparea ca o plasa (rupta sau stinsa), apoi, la cumparare,
+-- sarea deodata intr-o roata de alta forma. Acum e chiar turbina, in ambele stari, iar apelantul o deseneaza ca umbra
+-- stinsa (regula owner-ului: ce e incuiat se vede el insusi, stins). Ruina rotii de apa nu merge aici: e desenata
+-- pentru uscat, cu iarba si umbra.
+function PadArt.laneArt(pad: TycoonConfig.Pad, ruined: boolean): (Assets.Sprite, number, number)
+    if PadArt.isTurbine(pad) then
+        local sprite = PadArt.turbineSprite()
+        if sprite ~= nil then
+            return sprite, sprite.width * PadArt.TURBINE_SCALE, sprite.height * PadArt.TURBINE_SCALE
+        end
+    end
+    local sprite = if ruined then Assets.tycoon.ruin_net else Assets.tycoon.net_water
+    return sprite, TycoonConfig.NET_DRAW.w, TycoonConfig.NET_DRAW.h
+end
+
 -- Banda plasei unei platforme (1 = cea mai aproape de mal).
 function PadArt.laneOf(pad: TycoonConfig.Pad): number
     local lane = 1
@@ -363,6 +404,12 @@ PadArt.CHIMNEY = {
     hut_coppersmith_1 = { 0.672, 0.03 },
     hut_coppersmith_2 = { 0.6875, 0.03 },
     hut_copper_hauler_2 = { 0.275, 0.03 },
+    -- [D67] casele Wire Works (scripts/art/d67_crew.py): hornul de fier (3 px, la x 21 / 26) al Wiredrawer-ului si al
+    -- Electrician-ului, singurele cu horn
+    hut_wiredrawer_1 = { 0.703, 0.03 },
+    hut_wiredrawer_2 = { 0.6875, 0.03 },
+    hut_electrician_1 = { 0.703, 0.03 },
+    hut_electrician_2 = { 0.6875, 0.03 },
 } :: { [string]: { number } }
 
 -- Hornul casei desenate acum pentru platforma asta (dupa cati oameni are meseria), sau nil.

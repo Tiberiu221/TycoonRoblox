@@ -830,7 +830,7 @@ local ALL_CHAPTERS: { Chapter } = {
             },
             {
                 id = "cast_fourteenth",
-                text = "Cast a fourteenth net, further out",
+                text = "Cast a fourteenth net",
                 kind = "pad",
                 arg = "fourteenth_net",
                 goal = 1,
@@ -893,7 +893,7 @@ local ALL_CHAPTERS: { Chapter } = {
             },
             {
                 id = "sell_cells",
-                text = "Sell the power cells at the Depot",
+                text = "Sell power cells at the Depot",
                 kind = "cellsSold",
                 goal = 10,
                 reward = { pearls = 2 },

@@ -150,6 +150,14 @@ return function()
             check.equal(VillageLook.decorCount(data), 2)
         end)
 
+        test.case("[D67, audit] felinarele gazdei ard doar dupa primul curent vandut", function()
+            local data = profile()
+            check.equal(VillageLook.of(data).power, false)
+            data.Stats = { cellsSold = 1 }
+            check.equal(VillageLook.of(data).power, true)
+            check.equal(VillageLook.of({ Stats = "x" } :: any).power, false)
+        end)
+
         test.case("un profil gol (sau stricat) da un sat gol, nu o eroare", function()
             local snap = VillageLook.of({})
             check.equal(snap.era, 1)

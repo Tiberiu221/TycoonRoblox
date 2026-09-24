@@ -110,7 +110,7 @@ local function showBubble(rec: Hand, text: string, seconds: number?, width: numb
     bubble.Size = UDim2.fromOffset(width or 280, if width ~= nil then 30 else 48)
     bubble.TextWrapped = true
     bubble.TextXAlignment = Enum.TextXAlignment.Center
-    bubble.ZIndex = 9
+    bubble.ZIndex = 47 -- [D67, audit] peste banda de adancime a lumii (felinare, oameni), ca numele cladirilor (46)
     rec.bubble = bubble
     rec.bubbleUntil = os.clock() + (seconds or 5)
 end
@@ -129,16 +129,17 @@ local function ensureHand(snap: HandSnap): Hand
     local view =
         PersonView.new(deps.Plot, snap.id, if HandRoutes.isWalker(snap.role) then "barrow" else nil)
 
-    -- [D58] meseria: text peste lume, ca numele cladirilor (fontul de pixeli, conturat), copil al omului ca sa mearga cu el
+    -- [D58] meseria: text peste lume, ca numele cladirilor (fontul de pixeli, conturat). [D67, audit] Sta pe teren, nu in
+    -- om, la z 46 ca numele cladirilor: copil al omului, avea adancimea lui, iar stalpul unui felinar il taia in doua
+    -- ("WORKS POR|ER"). Il muta `updateJob` dupa om, la fiecare cadru cat se vede.
     local job =
-        Widgets.Label(view.frame, jobName(snap.role), Theme.TEXT.tiny, Theme.COLOR.onDark, "strong")
+        Widgets.Label(deps.Plot, jobName(snap.role), Theme.TEXT.tiny, Theme.COLOR.onDark, "strong")
     job.Name = "Job"
     job.AnchorPoint = Vector2.new(0.5, 0)
-    job.Position = UDim2.new(0.5, 0, 1, JOB_DROP)
     job.Size = UDim2.fromOffset(160, 16)
     job.TextXAlignment = Enum.TextXAlignment.Center
     job.TextTransparency = 1
-    job.ZIndex = 11
+    job.ZIndex = 46
     job.Visible = false
     Theme.punch(job, 2)
     -- conturul are transparenta lui, separata de a textului: se stinge odata cu el
@@ -224,7 +225,11 @@ local function updateJob(
         rec.jobDrop = if math.abs(delta) <= move
             then target
             else rec.jobDrop + math.sign(delta) * move
-        job.Position = UDim2.new(0.5, 0, 1, math.round(rec.jobDrop))
+    end
+    -- sub talpile omului (x, y), pe teren
+    local at = UDim2.fromOffset(math.round(x), math.round(y + rec.jobDrop))
+    if job.Position ~= at then
+        job.Position = at
     end
 end
 
@@ -246,13 +251,10 @@ local function render(dt: number)
             -- rol static: sta pe loc si respira, fata spre jucator
             x, y, state, facing = snap.x, snap.y, "idle", "down"
             local isWorking = deps.IsWorking
-            if
-                HandConfig.WORKING_POSE[snap.role] == true
-                and isWorking ~= nil
-                and isWorking(snap.role)
-            then
-                -- [D56] cu fata spre forja (cladirea e la dreapta locului lui), ciocanul in mana
-                state, facing = "working", "right"
+            local pose = HandConfig.WORKING_POSE[snap.role]
+            if pose ~= nil and isWorking ~= nil and isWorking(snap.role) then
+                -- [D56] cu fata spre atelierul lui, ciocanul in mana
+                state, facing = "working", pose
             end
         else
             x, y, state, facing = HandMath.sampleAt(rec.cycle, now - snap.cycleStartAt)
@@ -310,6 +312,7 @@ function HandRenderController.Apply(hands: { HandSnap })
     for id, rec in tracked do
         if not seen[id] and rec.frame.Visible then
             rec.frame.Visible = false
+            rec.job.Visible = false -- [D67, audit] eticheta sta pe teren, nu in om: se ascunde separat
         end
     end
 end

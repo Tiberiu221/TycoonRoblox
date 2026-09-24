@@ -132,7 +132,7 @@ function PierController.Init(d: Deps)
             end)
         end,
         LineZ = 8,
-        Z = 32, -- peste cardul obiectului (30): bara e ce conteaza cat mulinezi
+        Z = 50, -- peste cardul obiectului (48) si textul lumii (46/47): bara si cartonasul prinderii conteaza [D67, audit]
     })
 end
 

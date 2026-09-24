@@ -762,7 +762,10 @@ function Overlay.Init(d: Deps)
                 JuiceController.CameraPunch()
                 CeremonyController.PlayMoment(
                     Strings.milestoneTitle(name, milestone),
-                    Strings.milestoneNow(kind, StationConfig.MILESTONE_MULT)
+                    Strings.milestoneNow(
+                        TycoonConfig.wordsKindOf(kind, id),
+                        StationConfig.MILESTONE_MULT
+                    )
                 )
             else
                 SoundController.PlayLevelUp()
@@ -817,7 +820,7 @@ function Overlay.Init(d: Deps)
         if missing <= 0 then
             return -- starea noastra locala e invechita -- mai bine tacem decat sa spunem o cifra falsa
         end
-        local text = Strings.padNeedMoreCoins(missing)
+        local text = Strings.padNeedMoreCoins(TycoonMath.formatNumberUp(missing))
         local px, py = padScreenPos(padId)
         if px ~= nil and py ~= nil then
             JuiceController.FloatAt(px, py, text, Theme.COLOR.bad)

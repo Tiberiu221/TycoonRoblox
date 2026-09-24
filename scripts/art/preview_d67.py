@@ -145,8 +145,52 @@ def crew():
     print(f"scris {path} ({img.w}x{img.h})")
 
 
+def audit():
+    """[D67, dupa auditul din 2026-09-24] Ce se schimba, inainte / dupa: colibele Wire Works cu acoperisul fiecarei
+    meserii (sus: cate una; jos: toata strada, in ordinea din joc) si cele patru cadre ale turbinei si ale rotii de apa."""
+    import d67_crew as K
+    import d65_mill as M
+
+    scale = 3
+    order = [key for _name, key, _twin in HUTS]
+    street_w = len(order) * (40 * scale + 6)
+    img = C(max(20 + street_w, 900), 40 + 2 * (34 * scale + 40) + 2 * (34 * scale + 34) + 48 * 4 + 90)
+    img.rect(0, 0, img.w, img.h, P.GRASS_BG)
+    y = 10
+    for title, loader in (
+        ("WIRE WORKS HOUSES TODAY (UPLOADED)", lambda key: load(f"prop_hut_{key}_2")),
+        ("WIRE WORKS HOUSES NEW (EACH TRADE ITS OWN ROOF)", lambda key: getattr(K, f"prop_hut_{key}_2")()),
+    ):
+        P.draw_text(img, 10, y, title, P.INK, 1)
+        y += 18
+        for k, key in enumerate(order):
+            got = loader(key)
+            w, h, px = (got if isinstance(got, tuple) else (got.w, got.h, got.px))
+            blit(img, px, w, h, 10 + k * (40 * scale + 6), y + (34 - h) * scale, scale)
+        y += 34 * scale + 22
+    P.draw_text(img, 10, y, "ONE-PERSON HOUSES: TODAY / NEW", P.INK, 1)
+    y += 18
+    for k, key in enumerate(order):
+        w, h, px = load(f"prop_hut_{key}_1")
+        blit(img, px, w, h, 10 + k * (40 * scale + 6), y + (28 - h) * scale, scale)
+        c = getattr(K, f"prop_hut_{key}_1")()
+        blit(img, c.px, c.w, c.h, 10 + k * (40 * scale + 6), y + 30 * scale + (28 - c.h) * scale, scale)
+    y += 60 * scale + 20
+    for title, sheet in (("FIRST TURBINE, 4 FRAMES (SPINS)", W.prop_turbine_spin()), ("WATER WHEEL, 4 FRAMES (SPINS)", M.prop_water_wheel_spin())):
+        P.draw_text(img, 10, y, title, P.INK, 1)
+        for i in range(4):
+            frame = [row[i * 48:(i + 1) * 48] for row in sheet.px]
+            blit(img, frame, 48, 48, 10 + i * (48 * 3 + 10) + (0 if title.startswith("FIRST") else 0), y + 16, 3)
+        y += 48 * 3 + 30
+    path = os.path.join(SCRATCH, "d67_audit.png")
+    write_png(path, img.w, img.h, img.px)
+    print(f"scris {path} ({img.w}x{img.h})")
+
+
 if __name__ == "__main__":
     which = sys.argv[1] if len(sys.argv) > 1 else "all"
+    if which == "audit":
+        audit()
     if which in ("buildings", "all"):
         buildings()
     if which in ("goods", "all"):

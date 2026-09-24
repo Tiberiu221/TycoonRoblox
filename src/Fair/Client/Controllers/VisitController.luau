@@ -591,6 +591,7 @@ function VisitController.Init(d: Deps)
                 hands = hands,
                 decor = tableOr(v.decor),
                 decorCount = host.decor,
+                power = v.power == true, -- [D67, audit] felinarele gazdei
             }
             enter(host, village)
         end

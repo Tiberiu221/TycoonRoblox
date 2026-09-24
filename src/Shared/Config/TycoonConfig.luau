@@ -381,9 +381,9 @@ TycoonConfig.DECOR = {
     { sprite = "flowers", x = 1712, y = 1050, scale = 2 },
     { sprite = "signpost", x = 1334, y = 1414, scale = 2 },
     { sprite = "fence", x = 1358, y = 1418, scale = 2 },
-    -- felinarele strazii, pe marginea ei de sud
+    -- felinarele strazii, pe marginea ei de sud. [D67] Cel dintre curti (x 1215) a plecat: felinarul electric dintre
+    -- Hauler si Scrap Collector (TycoonConfig.streetLamps, x 1205) statea chiar peste el.
     { sprite = "lantern", x = 232, y = 1506, scale = 2 },
-    { sprite = "lantern", x = 1215, y = 1506, scale = 2 },
     { sprite = "lantern", x = 1848, y = 1506, scale = 2 },
     -- flori intre case, bufnite de iarba la capetele randurilor (sudul ramane deschis)
     { sprite = "flowers", x = 716, y = 1606, scale = 2 },
@@ -1923,6 +1923,35 @@ end
 -- cartierele in joc; si doar cand Era 3 e in joc (felinarele sunt ale ei, nu ale satului de dinainte de curent).
 TycoonConfig.LAMP_BASE_Y = 1492 -- baza felinarului: chiar sub strada (y 1420..1480), deasupra casei (baza la 1564)
 export type Lamp = { x: number, y: number, era: number }
+-- [D67, audit] Un felinar nu sta unde lucreaza cineva: Smelter-ul, Coppersmith-ul si Electrician-ul stau pe strada in
+-- fata atelierului lor, al doilea om de la gater / Foundry / Wire Works langa primul, iar Porter-ul isi rastoarna roaba
+-- la gura atelierului (processorIn, cu fata la dreapta) si Hauler-ul o incarca la iesire (processorOut, spre stanga).
+-- Acolo capul felinarului le-ar taia fata sau roaba oricum le-ai aseza in adancime, deci golul acela ramane fara
+-- felinar. Cutiile: capul felinarului x+-15, y 1372..1414; stalpul x+-6 pana la baza; omul 40x60, prins de talpi, cu
+-- roaba de 60x50 in fata lui (PersonView: celula 13, x2.5).
+local function lampHitsWorker(x: number): boolean
+    local function hits(bx0: number, by0: number, bx1: number, by1: number): boolean
+        local head = x - 15 < bx1 and bx0 < x + 15 and 1372 < by1 and by0 < 1414
+        local post = x - 6 < bx1 and bx0 < x + 6 and 1414 < by1 and by0 < TycoonConfig.LAMP_BASE_Y
+        return head or post
+    end
+    for _, place in TycoonConfig.LINE_PLACES do
+        local w = place.workerStand
+        for _, spot in { w, { x = w.x + place.secondOffset.x, y = w.y + place.secondOffset.y } } do
+            if hits(spot.x - 20, spot.y - 60, spot.x + 20, spot.y) then
+                return true
+            end
+        end
+        local pin, pout = place.processorIn, place.processorOut
+        if
+            hits(pin.x - 20, pin.y - 60, pin.x + 73, pin.y)
+            or hits(pout.x - 73, pout.y - 60, pout.x + 20, pout.y)
+        then
+            return true
+        end
+    end
+    return false
+end
 function TycoonConfig.streetLamps(): { Lamp }
     local out: { Lamp } = {}
     if not TycoonConfig.eraIsLive(3) then
@@ -1940,13 +1969,41 @@ function TycoonConfig.streetLamps(): { Lamp }
         end
         table.sort(xs)
         for i = 1, #xs - 1 do
-            table.insert(
-                out,
-                { x = (xs[i] + xs[i + 1]) / 2, y = TycoonConfig.LAMP_BASE_Y, era = district.era }
-            )
+            local x = (xs[i] + xs[i + 1]) / 2
+            if not lampHitsWorker(x) then
+                table.insert(out, { x = x, y = TycoonConfig.LAMP_BASE_Y, era = district.era })
+            end
         end
     end
     return out
+end
+
+-- Numele cartierului unei ere ("The Wire Works"), din ZONES: singura lista de nume de era. [D67, audit] Balciul avea
+-- doua liste proprii ramase din planul vechi ("The Yard", "The Harbor") si scria "Era 3: The Yard" pe cardul cuiva
+-- ajuns la Wire Works [D40]. O era necunoscuta ia numele ultimei scrise, ca nimeni sa nu ramana fara nume.
+function TycoonConfig.zoneName(era: number): string
+    local best = TycoonConfig.ZONES[1]
+    for _, zone in TycoonConfig.ZONES do
+        if zone.era <= era and zone.era >= best.era then
+            best = zone
+        end
+    end
+    return best.name
+end
+
+-- [D67] Cheia din Strings.BUILDING_WORDS pentru randul unei statii: serverul trimite `kind = "net"` si pentru turbina
+-- (se urca, se rutează si se socoteste ca o plasa), dar ea nu prinde, umple baterii. Fara asta meniul si bannerul de
+-- prag ar scrie "Catches twice as much now" pe turbina [D40].
+function TycoonConfig.wordsKindOf(kind: string, id: string?): string
+    local station = if kind == "net" and id ~= nil then TycoonConfig.byId[id] else nil
+    if station ~= nil then
+        for _, effect in station.effects do
+            if effect.kind == "net" and effect.good == "turbine" then
+                return "turbine"
+            end
+        end
+    end
+    return kind
 end
 
 -- [D63] VERBUL unei platforme, acelasi pe butonul cartonasului si in textul quest-ului ei: o plasa se arunca ("cast"),

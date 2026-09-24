@@ -533,8 +533,8 @@ end
 -- "232.95K" -- sapte caractere, care la marimea contorului de monede ieseau din pastila lui (vazut cu sonda in Studio, pe
 -- salvarea owner-ului). Trei cifre sunt si mai usor de citit pentru un copil. Se TAIE, nu se rotunjeste: contorul nu arata
 -- niciodata mai mult decat ai, iar "999.9K" nu sare la "1000K".
-function TycoonMath.formatNumber(n: number): string
-    local v = math.floor(n)
+local function formatWith(n: number, up: boolean): string
+    local v = if up then math.ceil(n) else math.floor(n)
     if v < 1000 then
         return tostring(v)
     end
@@ -555,7 +555,14 @@ function TycoonMath.formatNumber(n: number): string
             local decimals =
                 math.max(0, (if x < 10 then 2 elseif x < 100 then 1 else 0) - (#suffix - 1))
             local scale = 10 ^ decimals
-            local s = string.format(`%.{decimals}f`, math.floor(x * scale) / scale)
+            -- in sus, pe pasi intregi de monede (fara epsilon): 119e9 + 1 lipsa trebuie sa scrie "120B", nu "119B"
+            local shown = if up
+                then math.ceil(v / (d / scale)) / scale
+                else math.floor(x * scale) / scale
+            if up and shown >= 1000 and d < 1e18 then
+                return formatWith(d * 1000, true) -- 999.5K rotunjit in sus e "1M", nu "1000K"
+            end
+            local s = string.format(`%.{decimals}f`, shown)
             if decimals > 0 then
                 s = s:gsub("0+$", ""):gsub("%.$", "")
             end
@@ -563,6 +570,16 @@ function TycoonMath.formatNumber(n: number): string
         end
     end
     return tostring(v)
+end
+
+function TycoonMath.formatNumber(n: number): string
+    return formatWith(n, false)
+end
+
+-- [D67, audit] Ca formatNumber, dar rotunjit IN SUS la cifra aratata: pentru "cat mai lipseste". Taiat in jos, placa scria
+-- "Need 119B more" cand lipseau 119.38B; strangeai 119B si tot nu ajungea [D40].
+function TycoonMath.formatNumberUp(n: number): string
+    return formatWith(n, true)
 end
 
 -- Rata pe secunda: sub 10, o zecimala ("0.4"); altfel ca formatNumber.

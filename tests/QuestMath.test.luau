@@ -111,6 +111,25 @@ return function()
             end
         )
 
+        test.case(
+            "[D67] fiecare text de quest incape pe randul listei (270 px), cel mult cu un punct mai mic",
+            function()
+                -- Fontul de pixeli are 0,5585 em pe litera (CLAUDE.md). QuestController micsoreaza textul cat sa incapa
+                -- (Theme.fitSize), dar sub 14 randul ar parea altfel decat vecinii lui: "Cast a fourteenth net, further
+                -- out" (34 de litere) se taia in "..." inainte sa existe testul.
+                for _, chapter in QuestConfig.ALL_CHAPTERS do
+                    for _, q in chapter.quests do
+                        local width = #q.text * 0.5585 * 14
+                        if width > 270 then
+                            error(
+                                `"{q.text}" ({q.id}) are {math.ceil(width)} px la marimea 14, randul are 270`
+                            )
+                        end
+                    end
+                end
+            end
+        )
+
         test.case("Go! si bara de progres inteleg aceeasi statie din `arg`", function()
             -- Butonul Go! deschide panoul pe statia din stationTarget, iar bara citeste nivelul
             -- aceleiasi statii. Daca ar parsa fiecare separat, Go! ar putea deschide Dock-ul in

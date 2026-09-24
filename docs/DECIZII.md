@@ -11,6 +11,159 @@ Convenție: în tot proiectul, „server" înseamnă o instanță Roblox efemer�
 
 ---
 
+## D70 — Harta se schimbă: modernizarea din Era 3, demolarea filmată la Era 4, harta SF la Era 8
+**DECIS de owner pe 2026-09-24** în regulile mari, după o dezbatere și trei runde de întrebări (mai jos). Produsele
+concrete ale Erelor 5–8 se propun la fiecare eră, iar Era 8 se mai discută. Owner-ul, după ce a văzut Era 3 în Studio: *„aș prefera ca de la Era 3 harta
+să se schimbe progresiv, din ce în ce mai modernă. Dar de la Era 4 trebuie să fie un cinematic cum se trece la The Dam
+(toți oamenii angajați să se pună mână la mână și să șteargă/demoleze tot ce au făcut până acum și să înceapă
+construirea barajului). De acolo să continue harta ca până acum în dreapta, doar că la ultima eră, 8, să fie ultima dată
+harta schimbată în ceva foarte SF. Spune-mi dacă e ok ca de la Era 4 să se schimbe harta și cum s-ar schimba în așa fel
+încât jucătorul să păstreze o parte mică din banii pe care-i are, astfel încât să înceapă de la semi-zero noile ere. Hai
+să dezbatem."*
+
+**Ce atinge din regulile scrise** (de rezolvat înainte de orice cod):
+- CLAUDE.md, „Nimic nu se pierde. Fără dezastre, fără furt, fără scădere": o pornire de la semi-zero scade monedele.
+  Poate rămâne cinstită doar ca **renaștere**. TYCOON §K („Move Downstream") descrie deja una: resetează monedele,
+  platformele, stațiile și oamenii; păstrează tot ce e plătit și cosmetic; aduce +50% venit pe tură; un ecran
+  „Stays / Resets / You gain" o anunță dinainte. Prima renaștere s-ar muta la trecerea spre Era 4 și s-ar spune dinainte,
+  pe clopot [D40, D43].
+- D64: renașterea venea abia după Era 8 („o planetă nouă").
+- D66: `check_windfall` și scara ×3000 pornesc de la ideea că banii trec întregi dintr-o eră în alta. Procentul păstrat se
+  reglează în simulator, nu după ochi.
+- D68 / `docs/PLAN-ERA4.md`: pasul 1 („râul se deschide mai departe spre dreapta") e înlocuit de tranziția de aici.
+
+**Răspunsurile owner-ului (2026-09-24, seara):**
+- **Oamenii:** primii cinci (din Era 1) lucrează deja la baraj, cu numele lor.
+- **Filmul:** *„un cinematic de câteva secunde în care toți oamenii strânși ajută la crearea barajului, iar mai apoi,
+  pentru că restul sunt necalificați, aș vrea să plece."* E scurt; ceilalți oameni pleacă după ce ajută.
+- **Era 8:** *„mai vorbim… dar fă un drum spre o hartă nouă."* Deci un drum, nu o a doua desfacere a satului.
+- **Banii:** *„nu avem cum să știm câți bani o să aibă la final, aș vrea de fapt să fie o sumă fixă, dar mai mare. Dacă
+  nu așa, vreau alte variante; trebuie inspirație din alt joc."* E deschis: cercetarea pe alte jocuri e în curs.
+- **Întrebarea lui următoare** (de lămurit în interviul despre logica banilor, era cu era): cu doar cinci oameni la
+  începutul Erei 4, cât produce jucătorul pe secundă, și de unde vin bateriile, dacă acolo stă un baraj?
+
+**Interviul despre logica banilor, runda 1 (owner, 2026-09-24):**
+- **Forma erei:** de la Era 4, **3 linii pe eră** (Erele 1–3 rămân cu 2).
+- **Erele vechi, între Era 4 și Era 7:** **marfa veche intră în cea nouă.** Liniile unei ere vechi nu mai vând doar
+  pentru ele; marfa lor devine piesă pentru era nouă, un lanț peste ere.
+- **Venitul imediat după baraj:** **un salt, ca la fiecare eră** (~×16 față de 1,21B/s: ~20B/s).
+- **De unde vin mărfurile după baraj:** **barajul face curent**, iar **râul aduce restul**. Ce vine din amonte, de la
+  navă, trece peste deversor și se prinde cu plase sub baraj.
+- **Ce cere asta de la motor:** un atelier care ia **două** mărfuri (asamblarea) nu există azi. Azi fiecare linie e un
+  lanț separat, iar venitul e suma liniilor. Se scrie întâi în simulator, cu tabelul de aur neschimbat pentru Erele 1–3.
+
+**Runda 2 (owner, 2026-09-24):**
+- **Cum se leagă cele 3 linii:** **două aduc piese, a treia le unește**. Doar produsul unit se vinde, la clădirea erei.
+  Fiecare pas are omul lui.
+- **Cum ajunge marfa veche în era nouă:** **un om o duce pe drum** (un Courier al erei vechi), vizibil.
+- **Era 4:** **curentul ajunge la oraș pe stâlpi.** Turbinele din baraj umplu baterii, din care se fac butoaie de curent;
+  din minereul prins sub baraj se face cablu; oamenii duc butoaiele și cablul la Relay Station, care leagă orașul de
+  peste râu. Stâlpii se văd, iar ce se vinde e curentul livrat.
+- **Cristalul:** **o linie a lui, spre finalul Erei 4** (plasa, atelierul, oamenii). E marfa cu care începe Era 5, după
+  regula owner-ului din D64. Era 4 are deci trei linii de la început și a patra, a cristalului, spre final.
+
+**Runda 3, Erele 5–8 (owner, 2026-09-24):**
+- **Produsele erelor 5–8:** owner-ul păstrează **doar direcția**: SF prin nava prăbușită, iar fiecare eră unește marfa de
+  la finalul erei dinainte cu produsul ei, adus de un om pe drum. Produsele concrete se propun din nou la fiecare eră.
+- **Cumpărătorii:** **fiecare eră are alt cumpărător.**
+- **Roboții (Era 6):** **îi înlocuiesc pe oameni** pe unii pași. Amendează regula „un om vizibil pe fiecare pas”: din
+  Era 6, pe fiecare pas se vede un om **sau un robot**.
+- **Era 8:** **racheta se construiește pe etape** (corpul, motoarele, combustibilul, lansarea), cu banii din toate
+  liniile. Fiecare etapă o ridică oamenii (și roboții). Lansarea e renașterea din TYCOON §K: o planetă nouă, +50% venit,
+  nimic plătit nu se pierde. Până acolo e un drum spre o hartă nouă, nu o a doua desfacere a satului.
+
+**Banii la „Build the Dam”: variantele din cercetare** (alte jocuri, verificate pe simulator, cifre pe proba Era 3 ×3000):
+1. **Toți pornesc cu 40T** (Theme Park Tycoon 2, Restaurant Tycoon 2, Lumber Inc). Cine are mai puțin e completat de
+   sat; ce e peste intră în piatra barajului, scris pe o placă. Sare ~11% din Era 4.
+2. **Cel puțin 40T, cel mult 150T** (Tycoon Simulator, Mall Tycoon). Nimeni nu pierde nimic după o noapte, dar cine
+   amână câștigă.
+3. **O jumătate de oră din munca barajului** (AdVenture Capitalist, Egg Inc): suma se potrivește singură la fiecare eră.
+4. **Ca la 1, iar banii în plus înalță zidul** (rânduri de piatră doar de privit).
+
+Scoase: un bonus permanent pe vânzări, pentru că seamănă cu o a doua monedă și îndeamnă la amânare; barajul gata
+construit, cu banii la zero, pentru că contorul ar cădea exact la film.
+
+**Banii, hotărât:** *„Toți pornesc cu 40T.”* La „Build the Dam”, oricine are mai puțin e completat de sat, iar ce e peste
+intră în piatra barajului, scris pe o placă. Ecranul și Welcome back spun asta dinainte. Monedele cumpărate cu Robux trec
+întregi, peste cei 40T. 40T e cifra pe proba de azi (Era 3 ×3000). Suma adevărată se stabilește în `sim_tycoon.py`: cea
+mai mare dintre costul primelor 5 minute ale Erei 4 și o noapte fără pass-uri de la finalul Erei 3, rotunjită în sus.
+`check_windfall` se extinde la sumă și la cazurile cu pass-uri.
+
+**Regula „nimic nu se pierde”, amendată** (CLAUDE.md): la schimbarea de hartă aleasă de jucător („Build the Dam”, drumul
+spre Era 8) toți pornesc cu aceeași sumă. Ce e peste ea intră în construcție, e scris pe placă și e anunțat dinainte.
+Nimic plătit nu se taie, venitul crește, iar din profil nu se șterge nimic.
+
+**Propunerea din dezbatere** (în `docs/PLAN-HARTA.md`, neaprobată):
+- **Tu alegi momentul.** După Works Bell, butonul „Build the Dam” se ține apăsat, iar „Not yet” nu te costă nimic.
+- **Păstrezi monedele până la cât îți aduce o noapte.** Ce e peste intră în baraj și rămâne scris pe o placă.
+- **Venitul crește,** iar primii oameni lucrează deja la baraj.
+- **Nimic plătit sau cosmetic nu se atinge.**
+- **Barajul stă în aval de ponton,** deci pontonul, barca și avizierul rămân pe loc.
+- **La Era 8** e un drum cu barjele spre o hartă SF nouă, nu o a doua desfacere a satului.
+
+---
+
+## D69 — 2D pentru totdeauna, fără niciun dezastru, numele
+**DECIS de owner pe 2026-09-24:** *„jocul rămâne 2D permanent ca până acum — scoatem orice dezastru, regândim dacă trebuie
+ca să pară bine — urcă ce mai este de urcat. Jocul final e ok Driftwood, pentru că de aici pleci, dar e irelevant numele
+în acest moment."*
+- **2D pentru totdeauna.** Se închide întrebarea lăsată deschisă pe 2026-09-10: nu există lobby cu avatar 3D. Un loc de
+  clasamente, dacă va fi, e 2D, ca bâlciul. Asta ține jocul „fără personaj vizibil", condiția ratei DevEx din D20, care
+  se confirmă tot prin ticket la Roblox.
+- **Fără niciun dezastru.** „Inundația" din D19 e anulată: nu există fereastră lunară care strică ceva, nici măcar cu
+  grație. Din cod a plecat singura ei urmă, constanta nefolosită `secret_weight_flood_only` din `ServerTuning`. Treapta
+  „Secret" a Indexului (D17), care trăia doar în ferestrele Inundației, rămâne parcată odată cu colecția [D56]. Dacă un
+  eveniment lunar va fi vreodată bun pentru revenire, e unul care *aduce* ceva (un dar mare pe râu, o întâmplare în
+  bâlci), niciodată unul care ia.
+- **Numele:** „Driftwood" e bun ca nume final, dar nu contează acum. D22 rămâne așa cum e: auditul de marcă se face
+  înainte de marketing.
+- **„Urcă ce mai este de urcat":** verificat pe 2026-09-24, nu mai e nimic. Pictogramele Shop sunt urcate, iar iconițele de
+  512 px au fost puse pe pass-uri și produse chiar la creare. Singurul ID 0 din `Assets` e coafura `bald`, fără foaie
+  intenționat.
+
+---
+
+## D68 — Era 4, „The Dam": propunerea, și ce a hotărât owner-ul până acum
+**DE DECIS** (2026-09-24). Owner-ul: *„continuă dev-ul. În același timp lasă și un agent să verifice mereu ce s-a lucrat.
+Mă interesează mult logica și aspectul jocului."* Propunerea a ieșit dintr-un panou de trei designuri independente
+(logică și poveste întâi / aspect întâi / economie și construcție întâi), notate de trei judecători. A câștigat designul
+cu barajul ca zid peste tot râul, cu cele mai bune idei ale celorlalte două altoite pe el. Textul întreg al propunerii e în
+`docs/PLAN-ERA4.md` (neaprobat). Aici stă ce trebuie ca să se poată relua.
+
+**Răspunsurile owner-ului (2026-09-24):**
+- **Construiesc Era 4?** *„Nu încă."*
+- **Ce vinde barajul orașului de peste râu?** *„nu știu încă, mă mai focusez când ajung acasă să mă uit."* Rămâne
+  deschis, cu variantele de mai jos.
+- **De când se vede cristalul plutind pe râu?** *„De la finalul Erei 3."* Apare abia după Works Bell și amendează D64.
+
+**Propunerea, în pașii jucătorului:**
+1. Tragi Works Bell. Se vede un zid de beton peste tot râul, cu apă albă pe deversor.
+2. Cumperi Spillway Gate. A doua turbină e gratis și continuă numărătoarea primei turbine din Era 3.
+3. Primul tur de mână: Dam Store → Switchyard → Relay Station, care stă pe o punte ieșită peste apă.
+4. Vin cinci oameni: Dam Collector, Dam Porter, Switchman, Pylon Hauler și Dispatcher. Urmează turbinele 3–5.
+5. La primul curent vândut se aprind, una câte una, ferestrele unui orășel pictat pe malul celălalt.
+6. Spre final, cristalul violet ajunge la îndemână. Ridici Fifteenth Net (o plasă întărită, nu o macara: altfel ar trebui
+   un al treilea fel de platformă), Crystal Shed și Electric Kiln, care îl topește în **Crystal Ingot**. Vin încă patru
+   oameni: Crystal Collector, Crystal Porter, Crystalsmith și Ingot Hauler.
+7. Radio Beacon trimite un semnal spre nava din amonte și scrie cinstit „No answer yet". Abia apoi se poate trage Dam
+   Bell, care deschide The Lab.
+
+**Întrebarea deschisă: ce e marfa liniei întâi.** Toate trei designurile au citit rândul din D64 („curent → stâlpi →
+vândut orașului") ca „din curent se fac stâlpi". Un copil nu înțelege cum se face un stâlp din curent.
+- **(a) Curentul, dus pe stâlpi (recomandat).** Turbinele umplu baterii mari, cum știi din Era 3. Switchman-ul le
+  încarcă în butoaie de curent, Pylon Hauler le duce la Relay Station, iar de acolo curentul trece pe un șir de stâlpi
+  peste râu, până la oraș. Stâlpii se văd, dar marfa e curentul.
+- **(b) Stâlpii sunt marfa.** Este rândul din roadmap citit literal.
+
+**Numele Erei 5.** Era 3 vinde deja „Power Cell" (`cell`). D64 spunea că Era 5 face „celule de energie" din cristale, deci
+Era 5 își ia alt cuvânt. Cu „Crystal Ingot" la Era 4, „Core" rămâne liber pentru ea.
+
+**Cifrele, cât se știu fără simulator.** Pe regula D66, `ERA4_MULT = ERA3_MULT × 3000 = 2,7·10¹⁰`, iar venitul de la
+sfârșitul Erei 4 ar sta în zona T. Mai departe, venitul final ar trece de plafonul lui `TycoonMath.formatNumber` (Qi =
+10¹⁸) în jurul Erei 6, o eră mai devreme decât se credea. Scara ×3000 trebuie deci reverificată înainte de Era 5.
+
+---
+
 ## D67 — Era 3, „The Wire Works": cuprul devine sârmă, iar spre final vine curentul
 **DECIS de owner pe 2026-09-21:** *„Da, construiește-o"*, cu **Depot și Clerk** pentru clădirea de vânzare și omul ei.
 Owner-ul întrebase: *„continuă dezvoltarea, ce urmează?"* Urmează roadmap-ul lui din D64:
@@ -70,6 +223,29 @@ erau Trading Post cu Trader și Warehouse cu Keeper). Planul pe pași: `docs/PLA
   - nouă ținute;
   - bobinele, bateriile și celulele;
   - felinarele aprinse.
+
+**După auditul din 2026-09-24.** Owner-ul a cerut un agent care să verifice mereu ce s-a lucrat, cu ochii pe logică și pe
+aspect. Auditul a avut șapte lentile (economie, drumul mărfii, progresie, logica de design, hartă, artă, texte), un sceptic
+pe fiecare constatare și un critic al acoperirii. Economia și drumul mărfii au ieșit curate. S-au reparat:
+- **Textul turbinei mințea:** meniul și bannerul de prag scriau „Catches twice as much now". Acum scriu „Fills
+  batteries" (`Strings.BUILDING_WORDS.turbine`, `TycoonConfig.wordsKindOf`).
+- **Grămezile și roabele Erei 3** foloseau desenele Morii, deși ale lor erau urcate. Acum sunt legate
+  (`PileView.PILE_OF`, `PersonView.LOAD_SPRITE`).
+- **Wiredrawer și Electrician** au acum poza „la lucru" și fum la horn. Founder-ul a primit și el poza, pentru paritate
+  cu Moara (`HandConfig.WORKING_POSE` spune și încotro se uită omul).
+- **Un felinar vechi** (decor D57, x 1215) stătea sub felinarul electric nou. L-am scos; pământul copt a ieșit identic la
+  byte.
+- **Etichetele** „Wheel moved to the fair" și „Village Board" se citeau ca un singur text. Acum au cutii pe lățimea
+  textului și stau despărțite.
+- **Patru texte de quest** din capitolele 8–9 nu încăpeau. Două sunt scurtate, iar rândul se strânge cu
+  `Theme.fitSize`. Un test ține orice text de quest sub 270 px.
+- **Bâlciul scria „Era 3: The Yard" și titlul „Of the Yard".** Numele de eră vin acum dintr-un singur loc:
+  `TycoonConfig.zoneName`, `TitleMath.eraTitle`.
+- **Satul vizitat în bâlci** își aprinde acum felinarele: `UI/StreetLamps`, comun cu satul, și `VillageLook.power`.
+- **Arta, aprobată de owner și urcată:**
+  - colibele Wire Works, fiecare meserie cu acoperișul ei (înainte erau toate la fel, în două culori);
+  - turbina și roata de apă a Morii se învârt acum (`UI/Spin`, 4 cadre). Turbina se oprește când e plină.
+- **Rămas pentru Era 4:** cristalul care se vede plutind de la finalul Erei 3 are nevoie de desenul lui (D68).
 
 ---
 
@@ -242,6 +418,8 @@ mult sens"*. A treia ține de trei reguli:
   mașini**, o marfă nouă pentru Piață.
 - **Curentul e o marfă ca oricare alta pe aceeași schemă:** turbinele sunt „plasele" lui (nivelul lor dă cât curent
   fac), oamenii îl duc, o clădire îl pregătește, alta îl vinde. Rămâne regula owner-ului: un om vizibil pe fiecare pas.
+- **[Amendat 2026-09-24, D68]** Cristalul nu trece pe râu „din Era 1": owner-ul a ales să apară abia de la finalul
+  Erei 3, după Works Bell. Iar marfa Erei 5 nu se mai numește „celule de energie", fiindcă Era 3 vinde deja „Power Cell".
 - **Marfa de la finalul Erei 2 e încă de confirmat.** Propun cuprul, fiindcă duce drept spre curent; owner-ul n-a ales
   încă. Celelalte variante discutate: lut, sticle, lână.
 
@@ -1936,7 +2114,7 @@ Trei locuri unde interfața promitea un lucru și jocul făcea altul. Regula pe 
 - Nou-venit într-un oraș avansat: vede istoricul (cine a deblocat ce), primește un „bundle de bun venit" personal și un set activ mereu deschis. Cazul se testează cu oameni reali; nicio sursă nu-l rezolvă. [community-progression, onboarding-ftue]
 - E **sistemul fără precedent** din cele 10 jocuri studiate: se testează cel mai devreme posibil, cu cohortă mică, înainte de monetizare. [case-top-games]
 
-### D19 — Sezoane, Amonte, Inundația · DECIS
+### D19 — Sezoane, Amonte, Inundația · DECIS · **Inundația ANULATĂ de owner pe 2026-09-24 (D69: fără niciun dezastru)**
 - Sezonul curent **nu se stochează**: se calculează pe fiecare server din `os.time()` (UTC) și `SEASON_EPOCH`, ciclu de 4 săptămâni; 4 sezoane, an de 16 săptămâni. Fără MessagingService ca sursă de adevăr (livrare best-effort). [seasons-liveops]
 - **Inundația**: fereastră lunară derivată determinist (`windowId`), anunțată cu 7 zile înainte (countdown în HUD) și notificare cu 24 h înainte; **kill-switch** `flood_enabled` în ConfigService verificat înainte de orice efect distructiv (singurul rollback instant). Afectează obiectele nefixate ale **tuturor** jucătorilor (inclusiv offline) — altfel nu e obligație de revenire — dar fixarea e o acțiune gratuită, dintr-un tap, iar prima Inundație a fiecărui jucător e cu grație (pierdere zero, doar avertisment). [seasons-liveops]
 - **Amonte**: reset zilnic la **UTC fix** (`floor(os.time()/86400)`), nu rulant per jucător (mai simplu, imun la exploatare prin reconectare). [seasons-liveops]

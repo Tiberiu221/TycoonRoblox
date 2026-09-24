@@ -23,6 +23,7 @@ local Widgets = require(script.Parent.Parent.UI.Widgets)
 local Focus = require(script.Parent.Parent.UI.Focus)
 local GroundShadow = require(script.Parent.Parent.UI.GroundShadow)
 local PadArt = require(script.Parent.Parent.UI.PadArt)
+local Spin = require(script.Parent.Parent.UI.Spin)
 local SceneArt = require(script.Parent.SceneArt)
 local Pop = require(script.Parent.Parent.UI.Pop)
 
@@ -43,6 +44,10 @@ local PadController = {}
 local deps: Deps
 local frames: { [string]: TextButton } = {}
 local statuses: { [string]: string } = {}
+-- [D67, audit] desenele care se invart (roata de apa), pe platforma. Tabel TARE: un ImageLabel ca cheie slaba se poate
+-- pierde la colectarea de gunoi cat e inca pe ecran (ghidul de stil Roblox), iar roata ar ingheta. O platforma
+-- redesenata isi suprascrie randul; imaginea distrusa (Parent nil) iese din tabel la cadrul urmator.
+local spinning: { [string]: { img: ImageLabel, sheet: Spin.Sheet } } = {}
 -- Tinta cartonasului de la apropiere. Sus, cu restul starii: `ensureFrame` o citeste la clic,
 -- iar o variabila locala declarata DUPA functia care o foloseste nu e vazuta de ea.
 local approachTarget: string? = nil -- padId-ul cartonasului curent, sau nil daca e ascuns
@@ -163,15 +168,15 @@ end
 -- ghicit [D40, research 38 pct.6]. Rotunjit in sus: la 45.7/50 lipsesc 5, nu 4 (4 tot nu ajunge).
 -- `bottomY` difera intre placuta noua (deasupra ei) si patratul vechi (dedesubt) -- geometria e
 -- alta, mesajul e acelasi. Text peste lume, fara panou -> Theme.punch, ca restul patratului.
+-- [D67, audit] suma lipsa, scrisa ca preturile ("119.8B"), nu cifra bruta de 12 cifre care iesea din placa
+local function needText(pad: TycoonConfig.Pad): string
+    return `Need {TycoonMath.formatNumberUp(math.max(0, pad.price - coins))} more`
+end
+
 local function attachNeedLabel(frame: TextButton, pad: TycoonConfig.Pad, bottomY: number): TextLabel
     -- PlateLabel, nu Label+punch: rosul mic pe apa albastra nu se citea nici cu contur. Placa il
     -- scoate la fel de clar peste apa, peste iarba si peste scandurile pontonului.
-    local need = Widgets.PlateLabel(
-        frame,
-        `Need {math.max(0, math.ceil(pad.price - coins))} more`,
-        Theme.TEXT.tiny,
-        "strong"
-    )
+    local need = Widgets.PlateLabel(frame, needText(pad), Theme.TEXT.tiny, "strong")
     need.TextColor3 = Theme.COLOR.bad
     need.AnchorPoint = Vector2.new(0.5, 1)
     need.Position = UDim2.new(0.5, 0, 0, bottomY)
@@ -245,8 +250,8 @@ end
 -- Tenta siluetei: aproape NEAGRA, nu albastra. Prima varianta era albastru-cenusiu si, pe apa
 -- (tot albastra), fantoma plasei aproape ca disparea -- vazut in propria randare, nu in joc.
 -- Negrul se citeste la fel de bine si pe apa, si pe iarba, si pe scandurile pontonului.
-local GHOST_TINT = Color3.fromRGB(26, 32, 42)
-local GHOST_FADE, READY_FADE = 0.48, 0.12
+local GHOST_TINT = PadArt.GHOST_TINT
+local GHOST_FADE, READY_FADE = PadArt.GHOST_FADE, 0.12
 local HALF = TycoonConfig.PAD_SIZE / 2
 
 local function ghostImage(
@@ -295,31 +300,28 @@ local function ghostNet(
     post.Position = UDim2.new(0.5, 0, 0, HALF)
 
     local netY = HALF + ((TycoonConfig.LANE_Y[lane] or TycoonConfig.LANE_Y[1]) - (pad.y :: number))
-    local net = ghostImage(
-        frame,
-        Assets.tycoon.net_water,
-        TycoonConfig.NET_DRAW.w,
-        TycoonConfig.NET_DRAW.h,
-        affordable
-    )
+    -- [D67, audit] plasa, sau turbina insasi, stinsa (PadArt.laneArt)
+    local laneSprite, laneW, laneH = PadArt.laneArt(pad, false)
+    local net = ghostImage(frame, laneSprite, laneW, laneH, affordable)
     net.AnchorPoint = Vector2.new(0.5, 0.5)
     net.Position = UDim2.new(0.5, 0, 0, netY)
     net.ZIndex = Z + 1
 
-    -- funia, la fel de stinsa: fara ea plasa pluteste fara sa fie prinsa de nimic
+    -- funia, la fel de stinsa: fara ea plasa pluteste fara sa fie prinsa de nimic. [D67, audit] Urca din varful stalpului
+    -- pana la plasa (banda e in rau, deasupra stalpului), ca in NetController; cobora si ramanea mereu de 0 px.
     local rope = Instance.new("Frame")
     rope.Name = "GhostRope"
-    rope.AnchorPoint = Vector2.new(0.5, 0)
+    rope.AnchorPoint = Vector2.new(0.5, 1)
     rope.Position = UDim2.new(0.5, 0, 0, HALF - postH)
-    rope.Size =
-        UDim2.fromOffset(3, math.max(0, (netY - TycoonConfig.NET_DRAW.h / 2) - (HALF - postH)))
+    -- pana la marginea de jos a desenului, nu la mijlocul lui: umbra e pe jumatate transparenta si funia s-ar vedea prin ea
+    rope.Size = UDim2.fromOffset(3, math.max(0, (HALF - postH) - (netY + laneH / 2)))
     rope.BackgroundColor3 = if affordable then Theme.COLOR.woodDark else GHOST_TINT
     rope.BackgroundTransparency = if affordable then READY_FADE else GHOST_FADE
     rope.BorderSizePixel = 0
     rope.ZIndex = Z
     rope.Parent = frame
 
-    return net, netY - TycoonConfig.NET_DRAW.h / 2
+    return net, netY - laneH / 2
 end
 
 local function buildGhost(
@@ -389,7 +391,8 @@ local function buildRuin(
 ): (GuiObject?, number)
     local tint = if locked then LOCKED_TINT else Color3.new(1, 1, 1)
     if isNetPad(pad) then
-        local post, net = Assets.tycoon.ruin_netpost, Assets.tycoon.ruin_net
+        local post = Assets.tycoon.ruin_netpost
+        local net, netW, netH = PadArt.laneArt(pad, true) -- [D67, audit] turbina: ea insasi (dar ea trece pe buildGhost)
         local lane = 1
         for _, e in pad.effects do
             if e.kind == "net" and e.lane ~= nil then
@@ -408,13 +411,12 @@ local function buildRuin(
         postImg.Position = UDim2.new(0.5, 0, 0, HALF)
         local netY = HALF
             + ((TycoonConfig.LANE_Y[lane] or TycoonConfig.LANE_Y[1]) - (pad.y :: number))
-        local netImg =
-            worldImage(frame, net, TycoonConfig.NET_DRAW.w, TycoonConfig.NET_DRAW.h, tint)
+        local netImg = worldImage(frame, net, netW, netH, tint)
         netImg.Name = "RuinNet"
         netImg.AnchorPoint = Vector2.new(0.5, 0.5)
         netImg.Position = UDim2.new(0.5, 0, 0, netY)
         netImg.ZIndex = Z + 1
-        return netImg, netY - TycoonConfig.NET_DRAW.h / 2
+        return netImg, netY - netH / 2
     end
     local sprite, scale = ruinSprite(pad.id)
     local s = sprite :: Assets.Sprite
@@ -522,7 +524,10 @@ local function styleLocked(frame: TextButton, pad: TycoonConfig.Pad)
     ringSetters[pad.id] = nil
     needLabels[pad.id] = nil
     frame.BackgroundTransparency = 1
-    plaques[pad.id] = buildRuin(frame, pad, true)
+    -- [D67, audit] turbina n-are ruina desenata: e chiar ea, ca umbra intunecata (altfel parea deja construita)
+    plaques[pad.id] = if PadArt.isTurbine(pad)
+        then buildGhost(frame, pad, false)
+        else buildRuin(frame, pad, true)
 end
 
 -- "available": placuta (sau patratul de azi) + pictograma + nume + pret. Fara bani: pretul rosu +
@@ -537,9 +542,10 @@ local function styleAvailable(frame: TextButton, pad: TycoonConfig.Pad, affordab
 
     -- [D53] ruina, daca arta ei e urcata; altfel silueta de dinainte
     local target: GuiObject?, topY: number
-    if ruinReady(pad) then
+    if ruinReady(pad) and not PadArt.isTurbine(pad) then
         target, topY = buildRuin(frame, pad, false)
     else
+        -- [D67, audit] turbina: umbra ei, stinsa fara bani si aproape reala cu bani (ca obiectele fara ruina)
         target, topY = buildGhost(frame, pad, affordable)
     end
     if target ~= nil then
@@ -787,6 +793,12 @@ local function styleBought(frame: TextButton, pad: TycoonConfig.Pad)
         img.Size = UDim2.fromOffset(sprite.width * scale, sprite.height * scale)
         img.ZIndex = Z
         img.Parent = frame
+        -- [D67, audit] roata de apa se invarte (UI/Spin), cat foaia ei de miscare e urcata
+        local spin = Spin.sheetOf(sprite)
+        if spin ~= nil then
+            Spin.apply(img, spin)
+            spinning[pad.id] = { img = img, sheet = spin }
+        end
         -- [D56] insigna atelierului (gasirile care asteptau reparatia) a iesit: colectia e pusa deoparte
         -- [D58] numele: sub casa unei meserii; pe acoperisul forjei
         local name = homeName(pad.id)
@@ -1107,7 +1119,7 @@ function PadController.Apply(
                 end
                 local need = needLabels[pad.id]
                 if need ~= nil then
-                    need.Text = `Need {math.max(0, math.ceil(pad.price - coins))} more`
+                    need.Text = needText(pad)
                 end
             end
         elseif lastStatus[pad.id] ~= status then
@@ -1275,6 +1287,14 @@ function PadController.Init(d: Deps)
     end)
 
     RunService.PreRender:Connect(function()
+        local clock = os.clock()
+        for padId, entry in spinning do
+            if entry.img.Parent == nil then
+                spinning[padId] = nil
+            else
+                Spin.step(entry.img, entry.sheet, clock)
+            end
+        end
         local cx, cy = deps.CharacterPos()
         local px, py = toPlotLocal(cx, cy)
         local nearestId: string? = nil
@@ -1348,8 +1368,10 @@ function PadController.Init(d: Deps)
                 local needs = ruinNeeds(pad)
                 if needs ~= nil and ruinTarget ~= ruinId then
                     ruinTarget = ruinId
+                    -- [D67, audit] turbina incuiata e umbra ei, nu o ruina: cartonasul nu scrie "RUINS"
                     local eyebrow = if BOARD_ICON[PadArt.lookOf(pad.id, BOARD_ICON)] ~= nil
                         then Strings.PAD_EYEBROW_WANTED
+                        elseif PadArt.isTurbine(pad) then Strings.PAD_EYEBROW_NOT_BUILT
                         else Strings.PAD_EYEBROW_RUINS
                     HUDController.ShowRuinCard(pad, eyebrow, needs)
                 elseif needs == nil and ruinTarget ~= nil then

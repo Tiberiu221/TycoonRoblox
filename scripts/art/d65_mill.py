@@ -248,12 +248,13 @@ def prop_market():
     return c
 
 
-def _wheel_body(c, cx, cy, r, tones, paddles=10, missing=()):
-    """Roata de apa: obada dubla, spite, palete. `missing` = paletele care lipsesc (ruina)."""
+def _wheel_body(c, cx, cy, r, tones, paddles=10, missing=(), phase=0.0):
+    """Roata de apa: obada dubla, spite, palete. `missing` = paletele care lipsesc (ruina). `phase` = cat e rotita roata
+    (radiani, in sensul acelor pe ecran); 0 = desenul urcat, bit cu bit."""
     for k in range(paddles):
         if k in missing:
             continue
-        a = 2 * math.pi * k / paddles
+        a = 2 * math.pi * k / paddles + phase
         x0, y0 = cx + math.cos(a) * (r - 4), cy + math.sin(a) * (r - 4)
         x1, y1 = cx + math.cos(a) * (r + 1.5), cy + math.sin(a) * (r + 1.5)
         line(c, round(x0), round(y0), round(x1), round(y1), tones[1], 2)
@@ -263,7 +264,7 @@ def _wheel_body(c, cx, cy, r, tones, paddles=10, missing=()):
             a = math.radians(step)
             c.put(round(cx + math.cos(a) * rr), round(cy + math.sin(a) * rr), tone)
     for k in range(paddles // 2):
-        a = math.pi * k / (paddles // 2)
+        a = math.pi * k / (paddles // 2) + phase
         line(
             c,
             round(cx - math.cos(a) * (r - 4)),
@@ -277,7 +278,7 @@ def _wheel_body(c, cx, cy, r, tones, paddles=10, missing=()):
     c.ellipse(cx - 0.4, cy - 0.4, 1.4, 1.4, STEEL[3])
 
 
-def prop_water_wheel():
+def prop_water_wheel(phase=0.0):
     """Roata de apa (48x48, fara pereche in satul vechi): reperul Erei 2. Roata mare de lemn pe un picior de piatra, jgheabul
     care aduce apa de sus si spuma de la baza. Se face din scanduri si fier: exact ce produci deja [D64]."""
     c = C(48, 48)
@@ -297,7 +298,7 @@ def prop_water_wheel():
     for px in (38, 45):
         c.rect(px, 8, 2, 14, WOOD[1])
     # roata
-    _wheel_body(c, 20, 25, 17, WOOD)
+    _wheel_body(c, 20, 25, 17, WOOD, phase=phase)
     # apa care cade din jgheab si spuma de la baza
     for y in range(8, 14):
         c.put(25, y, WATER[4] if y % 2 else FOAM[4])
@@ -308,6 +309,26 @@ def prop_water_wheel():
     c.rect(4, 45, 34, 1, WATER[2])
     outline_trace(c)
     return c
+
+
+def spin_sheet(draw, frames, step):
+    """Fasia de cadre a unei roti care se invarte: `frames` cadre alaturate, fiecare rotit cu inca `step` radiani. Cu
+    `step` = perioada paletelor / `frames`, ultimul cadru se leaga de primul fara salt. Doar roata se misca: piciorul,
+    jgheabul si apa se deseneaza la fel in fiecare cadru."""
+    first = draw(phase=0.0)
+    sheet = C(first.w * frames, first.h)
+    for i in range(frames):
+        f = first if i == 0 else draw(phase=i * step)
+        for y in range(f.h):
+            for x in range(f.w):
+                sheet.px[y][i * f.w + x] = f.px[y][x]
+    return sheet
+
+
+def prop_water_wheel_spin():
+    """[D68] Roata de apa care se invarte (4 cadre de 48x48): apa cade din jgheab pe partea dreapta a vârfului, deci roata
+    merge in sensul acelor. 10 palete: o perioada are 36 de grade, 9 pe cadru."""
+    return spin_sheet(prop_water_wheel, 4, 2 * math.pi / 10 / 4)
 
 
 def prop_copper_furnace():
@@ -658,6 +679,7 @@ SPRITES = {
     "prop_foundry": prop_foundry,
     "prop_market": prop_market,
     "prop_water_wheel": prop_water_wheel,
+    "prop_water_wheel_spin": prop_water_wheel_spin,
     "prop_copper_furnace": prop_copper_furnace,
     "prop_ore_shed": prop_ore_shed,
     "prop_mill_bell": prop_mill_bell,

@@ -86,9 +86,14 @@ function StandRing.new(o: Options): Ring
     sign.Name = `{o.name}StandSign`
     sign.AnchorPoint = Vector2.new(0.5, 1)
     sign.Position = UDim2.fromOffset(stand.x, stand.y - RING_H / 2 - 4)
-    sign.Size = UDim2.fromOffset(220, 30)
+    -- [D67, audit] placa creste dupa text: "Stand here to draw wire" si "Drawing wire — 1200 left" ieseau din 220 px
+    local function fit(text: string)
+        local width = Theme.textWidth(text, Theme.TEXT.body, "strong") + 2 * Theme.SPACE.sm + 4
+        sign.Size = UDim2.fromOffset(math.max(220, math.ceil(width)), 30)
+    end
+    fit(o.standHere)
     sign.TextXAlignment = Enum.TextXAlignment.Center
-    sign.ZIndex = 7
+    sign.ZIndex = 47 -- [D67, audit] peste banda de adancime a lumii (felinare, oameni), ca numele cladirilor (46)
     sign.Visible = false
     Theme.punch(sign, 2)
 
@@ -160,8 +165,11 @@ function StandRing.new(o: Options): Ring
         end
         ringScale.Scale = scale
         local showSign = signText ~= nil
-        if showSign then
+        if showSign and sign.Text ~= signText then
             sign.Text = signText :: string
+            fit(signText :: string)
+        end
+        if showSign then
             sign.TextColor3 = if toldPresent then Theme.COLOR.good else Theme.COLOR.gold
         end
         if sign.Visible ~= showSign then

@@ -405,7 +405,7 @@ def prop_works_bell():
     return c
 
 
-def prop_turbine():
+def prop_turbine(phase=0.0):
     """Prima turbina (48x48, fara pereche): o roata de fier cu palete, in apa, cu DINAMUL DE CUPRU la ax (bobinele pe
     care le trage Wire Works) si firul care urca pe un stalp cu izolator. Roadmap-ul: "bobine + roata" [D64]."""
     c = C(48, 48)
@@ -418,7 +418,7 @@ def prop_turbine():
     insulator(c, 44, 4)
     line(c, 24, 25, 38, 5, COPPER[2], 1)
     # roata, fier, cu palete
-    M._wheel_body(c, 20, 25, 16, IRON, paddles=12)
+    M._wheel_body(c, 20, 25, 16, IRON, paddles=12, phase=phase)
     # dinamul de cupru la ax: spire concentrice, capac de alama
     for rr, tone in ((5.2, COPPER[1]), (4.4, COPPER[3]), (3.4, COPPER[2]), (2.4, COPPER[4])):
         c.ellipse(20, 25, rr, rr, tone)
@@ -696,6 +696,12 @@ def prop_lamp_glow():
     return c
 
 
+def prop_turbine_spin():
+    """[D68] Turbina care se invarte (4 cadre de 48x48): raul curge spre dreapta si impinge paletele de jos, deci roata
+    merge invers acelor de ceasornic. 12 palete: 30 de grade pe perioada, 7,5 pe cadru. Stalpul si firul stau pe loc."""
+    return M.spin_sheet(prop_turbine, 4, -2 * math.pi / 12 / 4)
+
+
 SPRITES = {
     "prop_works_store": prop_works_store,
     "prop_wire_works": prop_wire_works,
@@ -705,6 +711,7 @@ SPRITES = {
     "prop_battery_shed": prop_battery_shed,
     "prop_works_bell": prop_works_bell,
     "prop_turbine": prop_turbine,
+    "prop_turbine_spin": prop_turbine_spin,
     "prop_ruin_works_store": prop_ruin_works_store,
     "prop_ruin_wire_works": prop_ruin_wire_works,
     "prop_ruin_depot": prop_ruin_depot,

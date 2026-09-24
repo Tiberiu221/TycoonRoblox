@@ -28,7 +28,10 @@ Arhivat, nu în proiect: masterplanul vechi, direcțiile concurente, documentele
 
 ## Reguli de design care nu se negociază
 
-- **Nimic nu se pierde.** Fără dezastre, fără furt, fără scădere; offline doar binevoitor.
+- **Nimic nu se pierde.** Fără dezastre, fără furt, fără scădere; offline doar binevoitor. **Singura excepție scrisă
+  [D70]:** la schimbarea de hartă aleasă de jucător („Build the Dam", drumul spre Era 8) toți pornesc cu aceeași sumă
+  (40T pe proba de azi, stabilită în simulator). Ce e peste ea intră în construcție, e scris pe placă și e anunțat
+  dinainte. Nimic plătit nu se taie, iar venitul crește.
 - **Banii cumpără viteză, spațiu, aspect.** Niciodată noroc **care scade ceva ce ai** [D46]. Roata
   zilnică e gratuită, dă doar în plus, și își afișează șansele. Rotiri plătite nu există [D20].
 - **Orice se cumpără** prinde mai mult, vinde mai scump, scapă de o corvoadă sau deschide ce urmează.
@@ -78,7 +81,8 @@ stylua/selene o prind. Rulează-le mereu pe toate, nu înlănțuite după o eroa
 
 ## Mod de lucru
 
-- Agenții pe **Sonnet**, niciodată moștenind modelul principal. Le dai instrucțiuni clare, apoi
+- Agenții pe **Sonnet**, niciodată moștenind modelul principal. **Excepție (owner, 2026-09-24):** verificatorii (logică, aspect,
+  reguli, verificări în general, adică `verify-work` și auditurile) rulează pe **Opus 5.5**. Le dai instrucțiuni clare, apoi
   **verifici tu** în cod ce raportează — au greșit de mai multe ori.
 - Dus la capăt singur, apoi o listă scurtă cu ce poate verifica doar owner-ul în Studio.
 - **Commit și push după fiecare lucru terminat**, cu poarta verde înainte (owner, 2026-09-17: „fă commit și push
@@ -103,6 +107,29 @@ stylua/selene o prind. Rulează-le mereu pe toate, nu înlănțuite după o eroa
   accidental „The Fair", universul 10766663878). De aceea fiecare proiect are `servePlaceIds` (satul doar în 132381101591529,
   bâlciul doar în 114983498774894); serverul Rojo al satului rulează detașat pe 34872 și trebuie repornit ca să citească
   o schimbare de proiect. Ce a rulat în Studio se vede în `~/Library/Logs/Roblox/*_last.log` (`CreatorOutput`, `open place`).
+
+## Stare (2026-09-24) [D67 după audit, D68]
+
+**Un verificator după fiecare lucru** (owner: *„lasă și un agent să verifice mereu ce s-a lucrat; mă interesează mult logica
+și aspectul jocului"*). Înainte de commit rulează `Workflow({scriptPath: ".claude/workflows/verify-work.js", args: {what,
+base: "HEAD"}})`: trei recenzenți pe Opus 5.5 (logică, aspect, reguli), iar fiecare constatare trece printr-un sceptic. Ce rămâne în
+picioare se repară înainte de push.
+- **Auditul Erei 3** (șapte lentile plus criticul acoperirii) și reparațiile lui sunt în DECIZII D67, „După auditul din
+  2026-09-24". Pe scurt: textul turbinei, grămezile Erei 3, poza „la lucru", hornurile, felinarul dublat, etichetele,
+  quest-urile prea lungi, numele de eră din bâlci, felinarele satului vizitat.
+- **Arta aprobată și urcată:** colibele Wire Works cu acoperiș pe meserie, plus turbina și roata de apă care se învârt
+  (`UI/Spin`). Toate 18 imagini sunt aprobate de moderare.
+- **Hotărâri [D69]:** 2D pentru totdeauna (fără lobby 3D), fără niciun dezastru (Inundația din D19 e anulată), numele
+  „Driftwood" e bun, dar nu contează acum.
+- **Harta se schimbă [D70], DECIS în regulile mari:**
+  - Era 3 se modernizează treptat.
+  - La Era 4, un film scurt în care oamenii desfac satul și ridică barajul. Primii cinci lucrează mai departe, ceilalți
+    pleacă. Toți pornesc cu 40T.
+  - De la Era 4: 3 linii pe eră (două fac piese, a treia le unește), iar marfa erei vechi o duce un om pe drum în era nouă.
+  - Fiecare eră are alt cumpărător. Din Era 6, roboții iau locul unor oameni.
+  - La Era 8, un drum spre o hartă SF, iar racheta se construiește pe etape. Planul: `docs/PLAN-HARTA.md`.
+- **Era 4, „The Dam" [D68]: propusă, neaprobată** (`docs/PLAN-ERA4.md`). Owner-ul: *„Nu încă"*. Ce vinde barajul
+  hotărăște acasă. Cristalul se va vedea pe râu de la finalul Erei 3.
 
 ## Stare (2026-09-21) [D66]
 
@@ -154,7 +181,8 @@ e gata. Detaliile și sursele sunt în DECIZII D63. **Nimic din ce urmează n-a 
 - **Făcute:** scriptul de pornire al clientului așteaptă folderele de lângă el (ecranul gol de la Play); cuvintele
   jocului pentru copii („tier" → „level", verbul din quest pe butonul cartonașului, fraze scurte); linia NEXT nu mai
   dispare după ultimul quest (`AmbitionMath`); pe „Welcome back" butonul auriu e cel gratuit; pictograme proprii
-  pentru ofertele din Shop (`scripts/art/d63_shop_icons.py`, **neurcate**, plus iconițele de 512 px din `assets/store/`).
+  pentru ofertele din Shop (`scripts/art/d63_shop_icons.py`; urcate, iar iconițele de 512 px din `assets/store/` au intrat pe
+  pass-uri la creare).
 - **Sonda din Studio** (`plugins/DriftwoodProbe.lua`, `scripts/probe.py`, `scripts/probe_server.py`) pornește și
   oprește singură un Play și citește clientul prin jurnalul Studio. Fereastra de editare o încarcă abia după o
   repornire a Studio-ului. Cu ea se verifică tot ce e nevăzut: `python3 scripts/probe.py play`, `wait-boot`, `errors`,

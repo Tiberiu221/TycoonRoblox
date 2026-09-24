@@ -46,6 +46,22 @@ return function()
             end
         )
 
+        test.case(
+            "[D67] fiecare om care prelucreaza intr-un atelier (nu la gater) bate cu ciocanul, cu fata intr-o parte",
+            function()
+                local StationConfig = require("../src/Shared/Config/StationConfig")
+                for _, line in StationConfig.LINES do
+                    for _, step in line.steps do
+                        if step.kind == "processor" and step.role ~= "sawyer" then
+                            local pose = HandConfig.WORKING_POSE[step.role]
+                            check.not_nil(pose)
+                            check.is_true(pose == "left" or pose == "right")
+                        end
+                    end
+                end
+            end
+        )
+
         test.case("appearanceFor e deterministic: acelasi seed, acelasi angajat", function()
             local a = HandConfig.appearanceFor(12345)
             local b = HandConfig.appearanceFor(12345)

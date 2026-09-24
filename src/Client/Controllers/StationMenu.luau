@@ -359,7 +359,8 @@ local function renderBuilding(row: Row, snap: Snapshot)
         local crew = findCrew(keeper)
         staffed = crew ~= nil and crew.count > 0
     end
-    captionLabel.Text = Strings.menuDoes(row.kind, staffed)
+    local words = TycoonConfig.wordsKindOf(row.kind, row.id)
+    captionLabel.Text = Strings.menuDoes(words, staffed)
     local now = TycoonMath.formatPerMinute(row.output)
     rateLabel.Text = `{now} → {TycoonMath.formatPerMinute(outputAfter(row, shown))}`
     -- [D56] plasa de scrap prinde scrap, nu busteni
@@ -371,7 +372,7 @@ local function renderBuilding(row: Row, snap: Snapshot)
         subLabel.TextColor3 = Theme.COLOR.goodInk
     else
         subLabel.Text = if milestone ~= nil
-            then Strings.menuMilestone(row.kind, milestone, StationConfig.MILESTONE_MULT)
+            then Strings.menuMilestone(words, milestone, StationConfig.MILESTONE_MULT)
             else ""
         subLabel.TextColor3 = Theme.COLOR.inkSoft
     end
@@ -554,8 +555,11 @@ function StationMenu.OnUpgraded(kind: string, id: string?, milestone: number?)
     Pop.play(levelLabel, 1.12, 0.3)
     Pop.play(rateLabel, 1.08, 0.3)
     if milestone ~= nil then
-        milestoneFlashText =
-            Strings.menuMilestoneDone(kind, milestone, StationConfig.MILESTONE_MULT)
+        milestoneFlashText = Strings.menuMilestoneDone(
+            TycoonConfig.wordsKindOf(kind, id),
+            milestone,
+            StationConfig.MILESTONE_MULT
+        )
         milestoneFlashUntil = os.clock() + 3
         render()
         task.delay(3.1, function()

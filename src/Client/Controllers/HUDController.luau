@@ -977,7 +977,7 @@ function HUDController.SetStep(goal: GuideMath.Goal?, coinsNow: number)
     objFill.Size = UDim2.fromScale(math.clamp(coinsNow / price, 0, 1), 1)
     local missing = math.max(0, math.ceil(price - coinsNow))
     objNeed.Text = if missing > 0
-        then `{TycoonMath.formatNumber(missing)} more`
+        then `{TycoonMath.formatNumberUp(missing)} more`
         else Strings.OBJ_READY
     objNeed.TextColor3 = if missing > 0 then Theme.COLOR.onDarkSoft else Theme.COLOR.good
 end
@@ -1051,7 +1051,7 @@ function HUDController.ShowApproachCard(
         approachSpend.Text = ""
         Widgets.SetButtonText(
             approachBuy,
-            Strings.padNeedMore(TycoonMath.formatNumber(math.ceil(pad.price - coins)))
+            Strings.padNeedMore(TycoonMath.formatNumberUp(pad.price - coins))
         )
         -- stins, nu ascuns: se vede ca exista o actiune, doar ca nu e inca la indemana
         Widgets.SetButtonTone(approachBuy, Color3.fromRGB(150, 144, 136))

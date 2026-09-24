@@ -28,8 +28,10 @@ return function()
             check.equal(TitleMath.label("era", facts()), "Of the Landing")
             check.equal(TitleMath.label("era", facts({ era = 2 })), "Of the Mill")
             -- o era necunoscuta nu lasa omul fara titlu: se opreste la ultima scrisa
-            check.equal(TitleMath.label("era", facts({ era = 9 })), "Of the Harbor")
-            check.equal(TitleMath.label("era", facts({ era = 3 })), "Of the Yard")
+            check.equal(TitleMath.label("era", facts({ era = 9 })), "Of the Dam")
+            -- [D67, audit] din TycoonConfig.ZONES, nu dintr-o lista ramasa la planul vechi ("Of the Yard")
+            check.equal(TitleMath.label("era", facts({ era = 3 })), "Of the Wire Works")
+            check.equal(TitleMath.eraTitle(1), "Of the Landing")
         end)
 
         test.case("[D61] iazul si gheretele dau titlurile lor, doar dupa prag", function()

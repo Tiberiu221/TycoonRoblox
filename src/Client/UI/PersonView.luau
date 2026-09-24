@@ -71,6 +71,10 @@ local LOAD_SPRITE: { [string]: string } = {
     parts = "load_parts",
     ore = "load_ore",
     copper = "load_copper",
+    -- [D67] marfa Wire Works
+    coils = "load_coils",
+    battery = "load_battery",
+    cell = "load_cell",
 }
 
 local function rgbOf(triple: { number }): Color3

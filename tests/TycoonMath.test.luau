@@ -382,6 +382,39 @@ return function()
             check.is_true(math.abs(TycoonMath.itemValue("named", "rare", s) - 33) < 1e-9)
         end)
 
+        test.case(
+            "[D67, audit] formatNumberUp: cat mai lipseste, rotunjit in sus la cifra aratata",
+            function()
+                check.equal(TycoonMath.formatNumberUp(45.2), "46")
+                check.equal(TycoonMath.formatNumberUp(1099), "1.1K")
+                check.equal(TycoonMath.formatNumberUp(109.38e9), "110B")
+                check.equal(TycoonMath.formatNumberUp(119.7e9), "120B")
+                check.equal(TycoonMath.formatNumberUp(1.201e6), "1.21M")
+                check.equal(TycoonMath.formatNumberUp(999.5e3), "1M") -- nu "1000K"
+                check.equal(TycoonMath.formatNumberUp(120e9), "120B") -- exact: nu sare la urmatoarea cifra
+                check.equal(TycoonMath.formatNumberUp(0), "0")
+                check.equal(TycoonMath.formatNumberUp(119e9 + 1), "120B") -- o moneda peste o cifra
+                check.equal(TycoonMath.formatNumberUp(119e12 + 1), "120T")
+                check.equal(TycoonMath.formatNumberUp(9995), "10K")
+                check.equal(TycoonMath.formatNumberUp(999.6e15), "1Qi")
+                -- si niciodata mai putin decat lipseste: citit inapoi, textul acopera suma
+                local mult = { K = 1e3, M = 1e6, B = 1e9, T = 1e12, Qa = 1e15, Qi = 1e18 }
+                local seed = 12345
+                for _ = 1, 20000 do
+                    seed = (seed * 1103515245 + 12345) % 2147483648
+                    local n = (seed / 2147483648) * 10 ^ (seed % 19)
+                    local s = TycoonMath.formatNumberUp(n)
+                    check.is_true(#s <= 5)
+                    local num, suffix = string.match(s, "^([%d%.]+)(%a*)$")
+                    local factor = if suffix == "" then 1 else mult[suffix :: string]
+                    local shown = (tonumber(num) :: number) * factor
+                    if shown < math.ceil(n) * (1 - 1e-12) then
+                        error(`formatNumberUp({n}) = {s}, sub suma lipsa`)
+                    end
+                end
+            end
+        )
+
         test.case("formatNumber: floor, plain sub 1000, K/M/B ca big()", function()
             check.equal(TycoonMath.formatNumber(0), "0")
             check.equal(TycoonMath.formatNumber(950.7), "950")

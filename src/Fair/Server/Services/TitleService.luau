@@ -96,7 +96,7 @@ function TitleService.Worn(player: Player): (string, string)
     local facts = TitleService.Facts(player)
     local data = DataService.Get(player)
     if facts == nil or data == nil then
-        return "era", TitleMath.ZONE_TITLE[1]
+        return "era", TitleMath.eraTitle(1)
     end
     local worn = titlesOf(data).worn
     local label = TitleMath.label(worn, facts)

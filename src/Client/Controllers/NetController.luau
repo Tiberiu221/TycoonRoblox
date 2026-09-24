@@ -33,6 +33,7 @@ local Focus = require(script.Parent.Parent.UI.Focus)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
 local Pop = require(script.Parent.Parent.UI.Pop)
 local PadArt = require(script.Parent.Parent.UI.PadArt)
+local Spin = require(script.Parent.Parent.UI.Spin)
 local ChainMath = require(ReplicatedStorage.Shared.Modules.ChainMath)
 
 export type NetSnap = {
@@ -97,19 +98,12 @@ type Assembly = {
     levelLabel: TextLabel?, -- insigna "Lv 7" de pe stalp
     boostTag: TextLabel, -- [D51] "Fast first catch", sub pastila cu numarul
     turbine: boolean, -- [D67] prima turbina: o roata cu bobine, nu o plasa; nimic nu pluteste spre ea
+    spin: Spin.Sheet?, -- [D67, audit] foaia ei de miscare: se invarte cat umple baterii
 }
 
--- [D67] TURBINA. Sta in larg ca o plasa (aceeasi platforma, acelasi stalp, acelasi nivel), dar nu prinde nimic din rau:
--- se invarte si umple baterii. Desenul ei (`turbine`), cat nu e urcat, e roata de apa a Morii: roadmap-ul spune chiar
--- asa, "bobine + roata". De doua ori marimea foii, ca sa stea cat o plasa in apa.
-local TURBINE_SCALE = 2
-local function turbineSprite(): Assets.Sprite?
-    local own = (Assets.tycoon :: any).turbine
-    if own ~= nil and Assets.has(own) then
-        return own
-    end
-    return if Assets.has(Assets.tycoon.water_wheel) then Assets.tycoon.water_wheel else nil
-end
+-- [D67] TURBINA: desenul si marimea ei vin din UI/PadArt (turbineSprite, TURBINE_SCALE), comune cu satul vizitat.
+local TURBINE_SCALE = PadArt.TURBINE_SCALE
+local turbineSprite = PadArt.turbineSprite
 
 local NetController = {}
 local deps: Deps
@@ -330,6 +324,7 @@ local function ensureAssembly(padId: string, x: number, y: number): Assembly
     body.Parent = bob
 
     local art: ImageLabel? = nil
+    local spin: Spin.Sheet? = nil
     local turbineArt = if isTurbine then turbineSprite() else nil
     if turbineArt ~= nil then
         body.Size =
@@ -343,6 +338,10 @@ local function ensureAssembly(padId: string, x: number, y: number): Assembly
         img.ZIndex = 5
         img.Parent = body
         art = img
+        spin = Spin.sheetOf(turbineArt)
+        if spin ~= nil then
+            Spin.apply(img, spin)
+        end
     elseif Assets.has(Assets.tycoon.net_water) then
         local img = Instance.new("ImageLabel")
         img.Name = "Art"
@@ -442,6 +441,7 @@ local function ensureAssembly(padId: string, x: number, y: number): Assembly
         levelLabel = levelLabel,
         boostTag = boostTag,
         turbine = isTurbine,
+        spin = spin,
     }
     assemblies[padId] = record
     return record
@@ -761,6 +761,11 @@ local function updateNetMotion(now: number)
             assembly.art.ImageColor3 = if full
                 then Color3.fromRGB(140, 140, 150)
                 else Color3.new(1, 1, 1)
+        end
+        -- [D67, audit] turbina se invarte cat umple baterii; plina, sta pe loc
+        local spin = assembly.spin
+        if spin ~= nil and assembly.art ~= nil and not full then
+            Spin.step(assembly.art, spin, now)
         end
     end
 end

@@ -8,6 +8,7 @@ local StarterGui = game:GetService("StarterGui")
 
 local LookMath = require(ReplicatedStorage.Shared.Modules.LookMath)
 local Strings = require(ReplicatedStorage.Shared.Config.Strings)
+local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
 
 local Panels = require(script.Parent.Panels)
@@ -52,8 +53,7 @@ local function show(card: { [string]: any })
     shownUserId = card.userId
     nameLabel.Text = card.name
     titleLabel.Text = card.title
-    local era = math.clamp(card.era, 1, #Strings.ERA_NAMES)
-    eraLabel.Text = Strings.cardEra(card.era, Strings.ERA_NAMES[era])
+    eraLabel.Text = Strings.cardEra(card.era, TycoonConfig.zoneName(card.era))
     values.income.Text = if card.incomePerSec > 0
         then `{TycoonMath.formatNumber(card.incomePerSec)}/s`
         else Strings.CARD_INCOME_UNKNOWN
