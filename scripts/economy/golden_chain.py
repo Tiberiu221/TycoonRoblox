@@ -61,6 +61,16 @@ def build(levels, saw, dock, sack, crews, forge_owned, forge):
     return s
 
 
+# [D70] TABELELE DE AUR ALE ERELOR 1-3 TIPARESC DOAR LINIILE SI VANZATORII LOR. Liniile erelor noi (Era 4: bateriile,
+# cablul, curentul, cristalul, orasul) se adauga la coada lui LINE_ORDER si stau inchise in starile de aici; tiparite,
+# ar schimba textul tabelelor din tests/ChainMath.test.luau desi nicio cifra de-a lor nu se misca.
+GOLDEN_ERAS = (1, 2, 3)
+GOLDEN_LINES = tuple(line for line in T.LINE_ORDER if any(line in T.ERA_LINES[era] for era in GOLDEN_ERAS))
+GOLDEN_SELLERS = tuple(
+    seller for seller in T.SELLERS if any(T.LINES[line].get("seller") == seller for line in GOLDEN_LINES)
+)
+
+
 def lua(v):
     if isinstance(v, bool):
         return "true" if v else "false"
@@ -133,13 +143,13 @@ def main_era2():
         print(f"        market = {market},")
         print(f"        crews = {{ {crews_lua} }},")
         print("        lines = {")
-        for line in T.LINE_ORDER:
+        for line in GOLDEN_LINES:
             f = c.lines[line]
             values = ", ".join(lua(v) for _link, v in f.rates)
             print(f"            {line} = {{ catch = {lua(f.catch)}, values = {{ {values} }}, delivered = {lua(f.delivered)},"
                   f' bottleneck = "{f.bottleneck}" }},')
         print("        },")
-        print(f"        capacity = {{ {', '.join(f'{k} = {lua(v)}' for k, v in c.capacity.items())} }},")
+        print(f"        capacity = {{ {', '.join(f'{k} = {lua(c.capacity[k])}' for k in GOLDEN_SELLERS)} }},")
         print(f'        bottleneck = "{c.bottleneck}",')
         print(f"        income = {lua(T.income(s))},")
         print("    },")
@@ -198,13 +208,13 @@ def main_era3():
         print(f"        depot = {depot},")
         print(f"        crews = {{ {crews_lua} }},")
         print("        lines = {")
-        for line in T.LINE_ORDER:
+        for line in GOLDEN_LINES:
             f = c.lines[line]
             values = ", ".join(lua(v) for _link, v in f.rates)
             print(f"            {line} = {{ catch = {lua(f.catch)}, values = {{ {values} }}, delivered = {lua(f.delivered)},"
                   f' bottleneck = "{f.bottleneck}" }},')
         print("        },")
-        print(f"        capacity = {{ {', '.join(f'{k} = {lua(v)}' for k, v in c.capacity.items())} }},")
+        print(f"        capacity = {{ {', '.join(f'{k} = {lua(c.capacity[k])}' for k in GOLDEN_SELLERS)} }},")
         print(f'        bottleneck = "{c.bottleneck}",')
         print(f"        income = {lua(T.income(s))},")
         print("    },")

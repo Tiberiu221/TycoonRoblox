@@ -273,6 +273,17 @@ ERA_ROLES = {1: ERA1_ROLES, 2: ERA2_ROLES, 3: ERA3_ROLES}
 #     venitului) si in care se departajeaza verigile la egalitate. `priority` e ALTA ordine, a vanzatorului: cine ia
 #     primul din capacitatea lui (marfa mai scumpa intai, vezi verificarea de la sfarsit). Azi sunt una inversul
 #     celeilalte doar din intamplare, deci raman doua liste.
+#   * [D70] CHEILE PENTRU UNIRE SI BARAJ, toate OPTIONALE (docs/PLAN-MOTOR-UNIRE.md). O linie fara ele se poarta exact
+#     ca pana acum, iar liniile Erelor 1-3 nu poarta niciuna:
+#       - `closeFlag`: campul din State care INCHIDE linia (barajul opreste satul vechi). Inchisa, livreaza 0, n-are
+#         veriga, iar `options` nu mai vinde nimic de pe ea. Plasele, nivelurile si oamenii ei raman in State.
+#       - `inputs`: linia e o UNIRE, cu reteta 1:1 (o bucata din fiecare piesa face o bucata). N-are plase (`netKind`):
+#         intra in ea cat aduce cea mai inceata dintre piese.
+#       - `into`: linia e o PIESA si merge in unirea numita, nu la un vanzator. Livreaza cat ia unirea de la ea.
+#       - `value`: cheia din GOODS a bucatii livrate (obligatorie la o unire). Fara ea, media plasei (`AVG[netKind]`).
+#       - `pool`: liniile cu acelasi `pool` IMPART timpul tau: pasii de mana ai tuturor liniilor deschise din bazin.
+#         Fara `pool`, linia e bazinul ei, adica regula de pana acum [D56].
+#       - `source`: REZERVATA curierului din Era 5 (plan, sectiunea 4); `derive_tables` o refuza pana atunci.
 LINE_ORDER = ("wood", "iron", "parts", "copper", "coils", "power")
 ERA_LINES = {1: ("wood", "iron"), 2: ("parts", "copper"), 3: ("coils", "power")}
 LINES = {
@@ -330,8 +341,47 @@ SELLERS = {
 
 def derive_tables(line_order, lines, sellers, roles):
     """Tabelele de lucru, DERIVATE din LINES / SELLERS ca sa nu existe doua liste care sa se desparta. Intoarce
-    (LINE_STEPS, LINE_LINKS, LINE_OF_ROLE, LINK_OF, LINKS) si pica pe un tabel care nu se leaga. E functie, nu cod de
-    modul, pentru ca check_lines.py o cheama din nou dupa ce adauga linii de proba."""
+    (LINE_STEPS, LINE_LINKS, LINE_OF_ROLE, LINK_OF, LINKS, NET_LINE, CONSUMER_OF, POOL_LINES) si pica pe un tabel care
+    nu se leaga. E functie, nu cod de modul, pentru ca check_lines.py o cheama din nou dupa ce adauga linii de proba.
+      NET_LINE     felul de plasa -> linia ei (doar liniile cu plase)
+      CONSUMER_OF  piesa -> unirea in care merge [D70]
+      POOL_LINES   linia -> liniile care impart timpul tau cu ea, in LINE_ORDER (fara `pool`: doar ea) [D70]"""
+    # [D70] INVARIANTELE CHEILOR NOI (aceleasi le va verifica ChainMath.model)
+    for i, line in enumerate(line_order):
+        spec = lines[line]
+        assert spec.get("source") is None, f"linia {line}: `source` e rezervata curierului din Era 5 [D70]"
+        assert (spec.get("netKind") is None) != (spec.get("inputs") is None), (
+            f"linia {line}: are exact una dintre `netKind` (plase) si `inputs` (unire)"
+        )
+        assert (spec.get("seller") is None) != (spec.get("into") is None), (
+            f"linia {line}: are exact unul dintre `seller` si `into`"
+        )
+        if spec.get("inputs") is not None:
+            assert spec.get("value") is not None, f"unirea {line} n-are `value`"
+            assert len(spec["inputs"]) > 0, f"unirea {line} n-are piese"
+            for part in spec["inputs"]:
+                assert part in line_order and lines[part].get("into") == line, (
+                    f"unirea {line}: piesa {part} nu merge in ea (`into`)"
+                )
+        if spec.get("into") is not None:
+            consumer = spec["into"]
+            assert consumer in line_order and line in (lines[consumer].get("inputs") or ()), (
+                f"piesa {line}: nu sta in `inputs` ale unirii {consumer}"
+            )
+            assert i < line_order.index(consumer), f"piesa {line} sta dupa unirea ei ({consumer}) in LINE_ORDER"
+    net_line = {}
+    for line in line_order:
+        kind = lines[line].get("netKind")
+        if kind is not None:
+            assert kind not in net_line, f"doua linii prind acelasi fel de plasa ({kind}): {net_line.get(kind)}, {line}"
+            net_line[kind] = line
+    consumer_of = {line: lines[line]["into"] for line in line_order if lines[line].get("into") is not None}
+
+    def pool_of(line):
+        pool = lines[line].get("pool")
+        return ("pool", pool) if pool is not None else ("line", line)
+
+    pool_lines = {line: tuple(other for other in line_order if pool_of(other) == pool_of(line)) for line in line_order}
     line_steps = {line: tuple(role for role, _link, _kind in lines[line]["steps"]) for line in line_order}
     line_links = {line: tuple(link for _role, link, _kind in lines[line]["steps"]) for line in line_order}
     line_of_role = {r: line for line, steps in line_steps.items() for r in steps}
@@ -343,13 +393,18 @@ def derive_tables(line_order, lines, sellers, roles):
     assert set(roles) == set(link_of), "ROLES si LINES/SELLERS nu au aceiasi oameni"
     assert len(set(links)) == len(links), "o veriga apare de doua ori"
     for line in line_order:
-        assert line in sellers[lines[line]["seller"]]["priority"], f"linia {line} lipseste din randul vanzatorului ei"
+        seller = lines[line].get("seller")
+        if seller is not None:  # o piesa n-are vanzator: se vinde doar prin unirea ei
+            assert line in sellers[seller]["priority"], f"linia {line} lipseste din randul vanzatorului ei"
     for seller, spec in sellers.items():
-        assert all(lines[l]["seller"] == seller for l in spec["priority"]), f"{seller}: o linie de-a altui vanzator"
-    return line_steps, line_links, line_of_role, link_of, links
+        # [D70] in randul unui vanzator stau doar linii care vand (nicio piesa)
+        assert all(lines[l].get("seller") == seller for l in spec["priority"]), f"{seller}: o linie de-a altui vanzator"
+    return line_steps, line_links, line_of_role, link_of, links, net_line, consumer_of, pool_lines
 
 
-LINE_STEPS, LINE_LINKS, LINE_OF_ROLE, LINK_OF, LINKS = derive_tables(LINE_ORDER, LINES, SELLERS, ROLES)
+(
+    LINE_STEPS, LINE_LINKS, LINE_OF_ROLE, LINK_OF, LINKS, NET_LINE, CONSUMER_OF, POOL_LINES,
+) = derive_tables(LINE_ORDER, LINES, SELLERS, ROLES)
 ROLE_NAMES = {
     "collector": "Collector", "porter": "Porter", "sawyer": "Sawyer", "hauler": "Hauler", "trader": "Innkeeper",
     "scrapCollector": "Scrap Collector", "scrapPorter": "Scrap Porter", "smelter": "Smelter", "ironHauler": "Iron Hauler",
@@ -363,7 +418,7 @@ ROLE_NAMES = {
 # Verigile fiecarei ere (plasele sunt ale tuturor): portile si rapoartele unei ere se uita doar la ale ei.
 ERA_LINKS = {
     era: ("nets",) + tuple(link for line in lines for link in LINE_LINKS[line])
-    + tuple(seller for seller in SELLERS if any(LINES[line]["seller"] == seller for line in lines))
+    + tuple(seller for seller in SELLERS if any(LINES[line].get("seller") == seller for line in lines))
     for era, lines in ERA_LINES.items()
 }
 
@@ -445,51 +500,79 @@ def tier_cost(tier: int, role: str = None) -> float:
     return TIER_COST_BASE * TIER_COST_GROWTH ** (tier - 1) * ROLE_COST_MULT.get(role, 1.0)
 
 
+def line_closed(s: State, line: str) -> bool:
+    """[D70] Linia e INCHISA de campul ei `closeFlag` (barajul opreste satul vechi). Fara cheie, niciodata."""
+    flag = LINES[line].get("closeFlag")
+    return flag is not None and bool(getattr(s, flag))
+
+
 def line_open(s: State, line: str) -> bool:
     """O linie fara conditie e deschisa de la inceput. Una cu conditie cere campul ei din State si o plasa de felul
-    ei. [D56] Pana la oamenii ei, culesul si dusul sunt pasii tai de mana, ca turul de lemn din capitolul 1."""
-    flag = LINES[line]["openFlag"]
+    ei. [D56] Pana la oamenii ei, culesul si dusul sunt pasii tai de mana, ca turul de lemn din capitolul 1.
+    [D70] Una inchisa (`closeFlag`) nu e deschisa, orice ar zice restul; o unire cere in loc de plasa toate piesele ei
+    deschise."""
+    spec = LINES[line]
+    close = spec.get("closeFlag")  # `line_closed`, scris pe loc: e cea mai des chemata functie a simulatorului
+    if close is not None and getattr(s, close):
+        return False
+    flag = spec.get("openFlag")
+    if spec.get("inputs") is not None:
+        return (flag is None or bool(getattr(s, flag))) and all(line_open(s, part) for part in spec["inputs"])
     if flag is None:
         return True
-    kind = LINES[line]["netKind"]
+    kind = spec["netKind"]
     return bool(getattr(s, flag)) and any(n.kind == kind for n in s.nets)
 
 
-def manual_steps(s: State, line: str = "wood") -> int:
-    """Cati din pasii unei linii n-au inca om (0 cat linia e inchisa)."""
-    if not line_open(s, line):
+def manual_steps(s: State, line: str = "wood", is_open: bool = None) -> int:
+    """Cati pasi n-au inca om in BAZINUL liniei (0 cat linia e inchisa). [D70] Bazinul = liniile care impart timpul tau
+    (`pool`): se numara pasii fara om ai tuturor liniilor DESCHISE din el. O linie fara `pool` e bazinul ei, deci
+    socoteala e cea de pana acum: pasii ei fara om. `is_open`, daca apelantul stie deja daca linia e deschisa."""
+    if not (line_open(s, line) if is_open is None else is_open):
         return 0
-    return sum(1 for r in LINE_STEPS[line] if s.crews[r].count == 0)
+    pool = POOL_LINES[line]
+    if len(pool) == 1:  # acelasi rezultat ca mai jos, fara intrebarile despre celelalte linii (Erele 1-3)
+        return sum(1 for r in LINE_STEPS[line] if s.crews[r].count == 0)
+    return sum(
+        1
+        for other in pool
+        if other == line or line_open(s, other)
+        for r in LINE_STEPS[other]
+        if s.crews[r].count == 0
+    )
 
 
-def player_share(s: State, line: str) -> float:
-    """Partea ta din timp pe fiecare pas fara om al liniei; 0 cand linia n-are pasi de mana."""
-    n = manual_steps(s, line)
+def player_share(s: State, line: str, n: int = None) -> float:
+    """Partea ta din timp pe fiecare pas fara om al liniei; 0 cand linia n-are pasi de mana. [D70] Timpul se imparte
+    pe tot bazinul liniei (`manual_steps`; `n`, daca apelantul l-a socotit deja)."""
+    if n is None:
+        n = manual_steps(s, line)
     if n == 0:
         return 0.0
     labor = PLAYER_LABOR * (SACK_BONUS if s.sack_big else 1.0)
     return labor / n
 
 
-def walk_rate(s: State, role: str) -> float:
-    """Un pas de drum: oamenii lui, sau partea ta din timp pe linia lui."""
+def walk_rate(s: State, role: str, n: int = None) -> float:
+    """Un pas de drum: oamenii lui, sau partea ta din timp pe linia lui (`n` ca la `player_share`)."""
     crew = s.crews[role]
     if crew.count > 0:
         return ROLE_BASE[role] * tier_mult(crew.tier) * crew.count
-    return player_share(s, LINE_OF_ROLE[role])
+    return player_share(s, LINE_OF_ROLE[role], n)
 
 
-def processor_rate(s: State, line: str, role: str, link: str) -> float:
+def processor_rate(s: State, line: str, role: str, link: str, n: int = None, is_open: bool = None) -> float:
     """O cladire cu niveluri (gaterul [D48], forja [D56]): oamenii ei o tin pornita tot timpul; fara ei merge doar cat
-    stai tu langa ea. Cat linia e inchisa, nimic. Constanta de baza se citeste dupa nume, la fiecare apel."""
-    if not line_open(s, line):
+    stai tu langa ea (partea ei din pasii de mana ai bazinului [D70]). Cat linia e inchisa, nimic. Constanta de baza se
+    citeste dupa nume, la fiecare apel. `n` si `is_open`, daca apelantul le-a socotit deja."""
+    if not (line_open(s, line) if is_open is None else is_open):
         return 0.0
     spec = PROCESSORS[link]
     cap = level_output(globals()[spec["base"]], getattr(s, spec["level"]), link)
     crew = s.crews[role]
     if crew.count > 0:
         return cap * tier_mult(crew.tier) * crew.count
-    return cap / manual_steps(s, line)
+    return cap / (manual_steps(s, line) if n is None else n)
 
 
 def seller_rate(s: State, seller: str) -> float:
@@ -503,24 +586,37 @@ def seller_rate(s: State, seller: str) -> float:
 
 
 def line_avg(line: str) -> float:
-    """Cat valoreaza, in medie, o bucata livrata pe linia asta."""
-    return AVG[LINES[line]["netKind"]]
+    """Cat valoreaza, in medie, o bucata livrata pe linia asta. [D70] Cu `value`, bucata din GOODS (o unire o are
+    mereu: n-are plase); fara, media plasei ei."""
+    spec = LINES[line]
+    value = spec.get("value")
+    if value is not None:
+        return GOODS[value]
+    return AVG[spec["netKind"]]
 
 
 @dataclass
 class LineFlow:
     """Ce curge pe o linie, pe secunda."""
-    catch: float  # cat prind plasele ei (0 cat linia e inchisa)
+    catch: float  # cat prind plasele ei (0 cat linia e inchisa; 0 la o unire: plasele sunt doar ale liniilor de plase)
     rates: tuple  # ((veriga, debit), ...) in ordinea pasilor, fara plase
-    own_max: float  # marginea liniei inaintea vanzatorului: minimul dintre plase si pasi
-    active: bool  # intra in socoteala verigilor: mereu pentru o linie fara conditie, altfel doar cat prinde ceva
+    own_max: float  # marginea liniei inaintea vanzatorului: minimul dintre ce intra (`supply`) si pasi
+    active: bool  # intra in socoteala verigilor: mereu pentru o linie fara conditie, altfel doar cat intra ceva
+    supply: float  # [D70] ce intra pe linie: plasele ei, sau la o unire cat aduce cea mai inceata piesa
+    inputs: tuple  # [D70] piesele unei uniri (gol la o linie de plase)
     room: float = 0.0  # cat mai avea vanzatorul cand i-a venit randul
-    delivered: float = 0.0  # bucati livrate
+    delivered: float = 0.0  # bucati livrate (la o piesa: cate ia unirea de la ea)
     by_seller: bool = False  # vanzatorul e marginea liniei
     bottleneck: str = ""  # veriga slaba a liniei ("" cat nu e activa)
+    # [D70] piesele: tinute de unire, si a cui e veriga
+    by_consumer: bool = False  # piesa e tinuta de unirea ei: unirea ia mai putin decat poate aduce piesa
+    held_by: str = ""  # linia careia ii apartine veriga slaba ("" cat nu e activa)
 
     def links(self) -> tuple:
-        """Toate verigile liniei, cu plasele in fata: ordinea in care se cauta primul minim."""
+        """Toate verigile liniei, cu plasele in fata: ordinea in care se cauta primul minim. [D70] O unire n-are plase:
+        in locul lor stau piesele (`supply`), socotite separat."""
+        if self.inputs:
+            return self.rates
         return (("nets", self.catch),) + self.rates
 
 
@@ -533,6 +629,9 @@ class Chain:
         self.lines = lines  # {linie: LineFlow}
         self.capacity = capacity  # {vanzator: bucati pe secunda}
         self.bottleneck = "nets"  # veriga care tine venitul
+        # [D70] ale cui plase tin venitul, cand veriga e "nets" (plasele sunt ale tuturor liniilor; "" altfel)
+        self.nets_line = ""
+        self.gains = {}  # [D70] castigul unei bucati in plus pe fiecare veriga (0 = "No gain yet"), din `bottlenecks`
 
     def rate(self, line: str, link: str) -> float:
         return dict(self.lines[line].rates)[link]
@@ -567,8 +666,30 @@ def bottlenecks(c: Chain) -> str:
     marginea ei. Fara linia fierului iese PRIMUL minim din cele sase -- regula de dinainte [D49].
 
     Trei sau mai multe linii la acelasi vanzator nu exista inca nicaieri: regula "prima linie tinuta de dupa ea" e
-    exacta pentru doua. Inainte de a treia, intai teste socotite de mana (docs/PLAN-MOTOR-N-LINII.md)."""
+    exacta pentru doua. Inainte de a treia, intai teste socotite de mana (docs/PLAN-MOTOR-N-LINII.md).
+
+    [D70] UNIREA. Castigul unei bucati in plus pe o linie ajunge la verigile ei prin `credit`: fiecare veriga cu debitul
+    egal cu ce livreaza linia il primeste (ca maxim), iar la o unire tinuta de piese (`supply` == livrat) il primeste si
+    fiecare piesa cu marginea egala, mai departe prin verigile ei. La egalitate intre piese, il primesc amandoua (si
+    fiecare singura da zero: e cinstit [D46], iar ecranul numeste linia cealalta). Veriga unei linii: "" daca e
+    inactiva; vanzatorul, daca el e marginea; veriga unirii, daca piesa e tinuta de unirea ei; altfel primul minim al
+    ei (`own_first`), care la o unire tinuta de piese e al primei piese, in ordinea din `inputs`, care o tine.
+    `held_by` spune a cui e veriga, iar `Chain.nets_line` ale cui plase, cand venitul il tin plasele."""
     gains = {link: 0.0 for link in LINKS}
+    nets_gain = {}  # [D70] linia -> castigul dus de plasele ei
+
+    def credit(line, x, g):
+        f = c.lines[line]
+        for link, value in f.links():
+            if value == x:
+                gains[link] = max(gains[link], g)
+                if link == "nets":
+                    nets_gain[line] = max(nets_gain.get(line, 0.0), g)
+        if f.inputs and f.supply == x:
+            for part in f.inputs:
+                if c.lines[part].own_max == x:
+                    credit(part, x, g)
+
     for seller, spec in SELLERS.items():
         order = spec["priority"]
         for i, line in enumerate(order):
@@ -577,9 +698,7 @@ def bottlenecks(c: Chain) -> str:
                 continue
             displaced = next((other for other in order[i + 1:] if c.lines[other].by_seller), None)
             gain = line_avg(line) if displaced is None else line_avg(line) - line_avg(displaced)
-            for link, value in f.links():
-                if value == f.delivered:
-                    gains[link] = max(gains[link], gain)
+            credit(line, f.delivered, gain)
         held = next((line for line in order if c.lines[line].by_seller), None)
         if held is not None:
             gains[seller] = line_avg(held)
@@ -587,35 +706,63 @@ def bottlenecks(c: Chain) -> str:
     for link in LINKS:
         if gains[link] > gains[best]:
             best = link
-    for line in LINE_ORDER:
+    c.gains = gains
+    if best == "nets" and gains["nets"] > 0.0:
+        c.nets_line = next(line for line in LINE_ORDER if nets_gain.get(line, 0.0) == gains["nets"])
+
+    def own_first(line):
+        """(veriga, linia ei): primul minim al liniei; la o unire tinuta de piese, al primei piese care o tine."""
+        f = c.lines[line]
+        if f.inputs and f.supply == f.own_max:
+            return own_first(next(part for part in f.inputs if c.lines[part].own_max == f.supply))
+        return next(link for link, value in f.links() if value == f.own_max), line
+
+    # in LINE_ORDER inversat: unirea isi stie veriga inaintea pieselor care o mostenesc
+    for line in reversed(LINE_ORDER):
         f = c.lines[line]
         if not f.active:
-            f.bottleneck = ""
+            f.bottleneck, f.held_by = "", ""
         elif f.by_seller:
-            f.bottleneck = LINES[line]["seller"]
+            f.bottleneck, f.held_by = LINES[line]["seller"], line
+        elif f.by_consumer:
+            consumer = c.lines[LINES[line]["into"]]
+            f.bottleneck, f.held_by = consumer.bottleneck, consumer.held_by
         else:
-            f.bottleneck = next(link for link, value in f.links() if value == f.own_max)
+            f.bottleneck, f.held_by = own_first(line)
     return best
 
 
 def chain(s: State) -> Chain:
     """Liniile [D49, D56]: fiecare cu oamenii ei; cele care au acelasi vanzator impart doar capacitatea lui. El vinde
     in ordinea din `priority` (intai marfa mai scumpa) cat poate aduce fiecare linie, iar urmatoarea ia restul. Orice
-    capacitate in plus doar largeste ce se poate, deci nicio cumparatura nu scade venitul."""
+    capacitate in plus doar largeste ce se poate, deci nicio cumparatura nu scade venitul.
+
+    [D70] TREI TRECERI. Inainte, in LINE_ORDER (piesele stau inaintea unirii lor): ce intra pe fiecare linie (plasele
+    ei, sau la o unire cat aduce cea mai inceata piesa) si marginea ei. Apoi vanzatorii, neschimbati. Inapoi, in
+    LINE_ORDER inversat: o piesa livreaza cat ia unirea ei, si e tinuta de ea cand ar putea aduce mai mult. Fara piese
+    (Erele 1-3), a treia trecere nu atinge nimic, iar `supply` e chiar `catch`."""
     lines = {}
     for line in LINE_ORDER:
         spec = LINES[line]
+        is_open = line_open(s, line)
+        manual = manual_steps(s, line, is_open)  # o data pe linie, nu la fiecare pas de mana
+        inputs = spec.get("inputs") or ()
         catch = 0.0
-        if line_open(s, line):
+        if is_open and not inputs:
             for n in s.nets:
                 if n.kind == spec["netKind"]:
                     catch += n.rate()
         rates = tuple(
-            (link, walk_rate(s, role) if kind == "walk" else processor_rate(s, line, role, link))
+            (link, walk_rate(s, role, manual) if kind == "walk" else processor_rate(s, line, role, link, manual, is_open))
             for role, link, kind in spec["steps"]
         )
-        own_max = min([catch] + [value for _link, value in rates])
-        lines[line] = LineFlow(catch, rates, own_max, spec["openFlag"] is None or catch > 0.0)
+        if inputs:
+            supply = min(lines[part].own_max for part in inputs) if is_open else 0.0
+        else:
+            supply = catch
+        own_max = min([supply] + [value for _link, value in rates])
+        active = is_open and (spec.get("openFlag") is None or supply > 0.0)
+        lines[line] = LineFlow(catch, rates, own_max, active, supply, inputs)
     capacity = {}
     for seller, spec in SELLERS.items():
         capacity[seller] = seller_rate(s, seller)
@@ -626,6 +773,14 @@ def chain(s: State) -> Chain:
             f.delivered = min(f.own_max, room)
             f.by_seller = f.active and f.delivered == room and f.delivered < f.own_max
             room = room - f.delivered
+    if CONSUMER_OF:  # fara piese (Erele 1-3) nu e nimic de dus inapoi
+        for line in reversed(LINE_ORDER):
+            consumer = CONSUMER_OF.get(line)
+            if consumer is None:
+                continue
+            f = lines[line]
+            f.delivered = lines[consumer].delivered
+            f.by_consumer = f.active and f.delivered < f.own_max
     c = Chain(lines, capacity)
     c.bottleneck = bottlenecks(c)
     return c
@@ -635,6 +790,8 @@ def income(s: State) -> float:
     c = chain(s)
     gross = 0.0
     for line in LINE_ORDER:  # ordine fixa: aceeasi suma, bit cu bit, la fiecare rulare si in ChainMath.luau
+        if line in CONSUMER_OF:
+            continue  # [D70] o piesa nu se vinde: bucata ei intra in venit doar prin unire
         gross += c.lines[line].delivered * line_avg(line)
     return (
         gross
@@ -668,6 +825,27 @@ def net_era_mult(k: int) -> float:
 def unlock_net(k: int):
     def f(s: State):
         s.nets.append(Net(net_base(k), NET_LANES[k - 1], kind=NET_KINDS[k - 1]))
+
+    return f
+
+
+def unlock_net_ranked(kind: str, rank: int, lane: int, era: int):
+    """[D70] O plasa cu RANG explicit, nu cu loc in lista: de la Era 4, turbinele barajului si plasele de cablu se
+    cumpara amestecat, deci locul in `s.nets` nu mai spune cat de mare e plasa. Rangul r are baza si costul
+    nivelurilor celei de-a r-a plase dintr-o era (`net_base`, `net_upgrade_base`), iar costul se inmulteste cu cadrul
+    erei `era`. Aceleasi operatii, in aceeasi ordine: rangul 5 al Erei 3 e bit cu bit First Turbine (check_lines.py).
+    Constantele se citesc dupa nume, in clipa cumpararii."""
+
+    def f(s: State):
+        grown = NET_BASE_GROWTH ** (rank - 1)
+        s.nets.append(
+            Net(
+                NET_BASE_RATE * grown,
+                lane,
+                kind=kind,
+                upgrade_base=NET_UPGRADE_BASE_COST * grown * era_mult(era),
+            )
+        )
 
     return f
 
@@ -1110,18 +1288,24 @@ def run_era2(start: State, era1_prices: dict, max_seconds=200000):
 NICE = (1, 1.1, 1.2, 1.3, 1.5, 1.6, 1.8, 2, 2.2, 2.5, 2.8, 3, 3.5, 4, 4.5, 5, 5.5, 6, 7, 7.5, 8, 9)
 
 
+NICE_MAX_MAG = 24  # [D70] pana la 9 x 10^24: o noapte la Dam Bell face ~96Qa (~10^17), iar erele de dupa urca mai sus
+
+
 def nice(x: float, floor: int = 0) -> int:
     """Pret 'rotund' pe care il citeste un copil dintr-o privire, si STRICT mai mare decat
-    pretul deblocarii anterioare."""
+    pretul deblocarii anterioare.
+    [D70] Pana la 10^24, in intregi: `int(2.8 * 10**14)` iese 279999999999999 (virgula mobila), deci pretul se face
+    din zecimi exacte. Pana la 10^12 cifrele sunt aceleasi ca inainte, bit cu bit; peste scara, simulatorul se opreste
+    (inainte intorcea `int(x)`, un pret nerotunjit)."""
     if x < 10:
         v = max(0, int(round(x)))
         return v if v > floor else floor + 1
-    for mag in (10**k for k in range(0, 13)):
+    for mag in (10**k for k in range(0, NICE_MAX_MAG + 1)):
         for n in NICE:
-            v = int(n * mag)
+            v = round(n * 10) * mag // 10
             if v >= x * 0.93 and v > floor:
                 return v
-    return int(x)
+    raise SystemExit(f"EROARE: pretul {x:.3g} trece de scara preturilor (9 x 10^{NICE_MAX_MAG})")
 
 
 # ---- optiunile de cumparare la un moment dat --------------------------------------------------
@@ -1154,12 +1338,21 @@ def net_upgrade_base(s: State, i: int) -> float:
     return NET_UPGRADE_BASE_COST * NET_BASE_GROWTH ** (i % NETS_PER_ERA) * net_era_mult(i + 1)
 
 
+def link_closed(link: str, closed: set) -> bool:
+    """[D70] Veriga apartine liniilor inchise: un pas al unei linii inchise, sau un vanzator cu toate liniile inchise."""
+    if link in SELLERS:
+        return all(line in closed for line in SELLERS[link]["priority"])
+    return any(link in LINE_LINKS[line] for line in closed)
+
+
 def options(s: State, prices: dict, era=None):
     """Tot ce poate cumpara jucatorul ACUM: deblocarile erei a caror conditie e implinita, un nivel pe
     orice cladire detinuta si o treapta pe orice meserie cu oameni. Intoarce (eticheta, pret, efect,
-    fel, uid)."""
+    fel, uid). [D70] Fara plasele, cladirile si treptele liniilor INCHISE (`closeFlag`): raman in State, dar nu mai
+    lucreaza, deci nu se mai vand. O linie inca nedeschisa (forja inaintea plasei de scrap) ramane de vanzare."""
     era = era or ERA1
     out = []
+    closed = {line for line in LINE_ORDER if line_closed(s, line)}
     for uid, name, _why, cond, effect in era["unlocks"]:
         if uid in s.bought or not cond(s):
             continue
@@ -1167,6 +1360,8 @@ def options(s: State, prices: dict, era=None):
             out.append((f"unlock:{name}", prices[uid], effect, "unlock", uid))
 
     for i, n in enumerate(s.nets):
+        if closed and NET_LINE.get(n.kind) in closed:
+            continue
         base_cost = net_upgrade_base(s, i)
 
         def up_net(st, idx=i):
@@ -1179,6 +1374,8 @@ def options(s: State, prices: dict, era=None):
     for kind, spec in BUILDINGS.items():
         if spec["owned"] is not None and not getattr(s, spec["owned"]):
             continue
+        if closed and link_closed(kind, closed):
+            continue
         level = getattr(s, spec["level"])
 
         def up_building(st, field=spec["level"]):
@@ -1189,6 +1386,8 @@ def options(s: State, prices: dict, era=None):
     for role in ROLES:
         crew = s.crews[role]
         if crew.count == 0 or crew.tier >= TIER_MAX:
+            continue
+        if closed and link_closed(LINK_OF[role], closed):
             continue
 
         def up_tier(st, r=role):
@@ -1407,7 +1606,7 @@ def run(rebirths=0, index_found=0, max_seconds=36000, era=None, start=None):
         now_chain = chain(s)
         shares[now_chain.bottleneck] += 1
         for line in LINE_ORDER:
-            if now_chain.lines[line].catch > 0:
+            if now_chain.lines[line].supply > 0:  # [D70] `supply`: la o unire intra piesele, nu plase
                 line_time[line] += 1
         inc = income(s)
         if inc <= 0:

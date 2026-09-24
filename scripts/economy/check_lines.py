@@ -10,6 +10,15 @@ ciocni de liniile adevarate (Era 2 are de la D65 piesele, cuprul si Piata ei in 
 "piesele" sunt probeA, "cuprul" e probeB, iar "Piata" e taraba. Cifrele sunt alese rotunde, ca socoteala de mana sa fie
 exacta in virgula mobila. Liniile adevarate ale Erei 2 stau inchise in starile de aici, deci nu se amesteca.
 
+[D70] UNIREA SI BARAJUL (docs/PLAN-MOTOR-UNIRE.md, pasul b), pe o alta copie: doua PIESE (`probeBat`, bateriile, si
+`probeWire`, cablul) care merg intr-o UNIRE (`probeGrid`, curentul), vanduta la o taraba a orasului (`booth`), toate
+trei in acelasi BAZIN al timpului tau; liniile Erelor 1-3 primesc pe copie `closeFlag`, ca la baraj. Forma e a Erei 4
+din plan, cu nume care nu se pot ciocni de liniile ei (pasul d le aduce pe cele adevarate). Cifrele sunt ale startului
+barajului din plan (drumurile 0.9, atelierul cablului 0.333, releul 0.467, livrat 0.33), cu bucata unita la 50.
+Fiecare regula a motorului nou are aici o stare in care regula inversa da alta cifra: bazinul, trecerea inapoi,
+egalitatea intre piese, veriga mostenita de la unire, venitul doar pe liniile care vand, `closeFlag` si `options`.
+La sfarsit, doua unelte pe care Era 4 le cere: `unlock_net_ranked` si `nice()` peste 10^12.
+
 Ruleaza odata cu simulatorul (`sim_tycoon.py` il cheama la sfarsit), deci e in poarta fara un rand nou. De mana:
     python3 scripts/economy/check_lines.py
 """
@@ -58,9 +67,14 @@ def add_probe_lines(T):
         "probeACollector", "probeAPorter", "probeAMaker", "probeAHauler",
         "probeBCollector", "probeBPorter", "probeBMaker", "probeBHauler", "stallkeeper",
     )
-    T.LINE_STEPS, T.LINE_LINKS, T.LINE_OF_ROLE, T.LINK_OF, T.LINKS = T.derive_tables(
-        T.LINE_ORDER, T.LINES, T.SELLERS, T.ROLES
-    )
+    rederive(T)
+
+
+def rederive(T):
+    """Tabelele derivate, din nou, dupa ce s-au schimbat LINES / SELLERS / ROLES pe copie."""
+    (
+        T.LINE_STEPS, T.LINE_LINKS, T.LINE_OF_ROLE, T.LINK_OF, T.LINKS, T.NET_LINE, T.CONSUMER_OF, T.POOL_LINES,
+    ) = T.derive_tables(T.LINE_ORDER, T.LINES, T.SELLERS, T.ROLES)
 
 
 def era1_state(T):
@@ -98,6 +112,312 @@ def staff(s, T, roles, count, tier):
 PARTS_ROLES = ("probeACollector", "probeAPorter", "probeAMaker", "probeAHauler")
 COPPER_ROLES = ("probeBCollector", "probeBPorter", "probeBMaker", "probeBHauler")
 
+# ---- [D70] unirea: bateriile si cablul fac curent, vandut orasului -------------------------------------------------
+BAT_ROLES = ("probeBatCollector", "probeBatPorter", "probeSwitchman", "probeBatHauler")
+WIRE_ROLES = ("probeWireCollector", "probeWirePorter", "probeWiremaker", "probeWireHauler")
+GRID_ROLES = ("probeRelayKeeper", "probeRunner")
+JOIN_LINES = ("probeBat", "probeWire", "probeGrid")
+JOIN_BUILDINGS = {"probeYard": "Probe Yard", "probeWorks": "Probe Works", "probeRelay": "Probe Relay", "booth": "Booth"}
+
+
+def add_join_lines(T):
+    """Liniile vechi se inchid la baraj (`closeFlag`); piesele si unirea se deschid tot cu el (`openFlag`)."""
+    for line in T.LINE_ORDER:
+        T.LINES[line]["closeFlag"] = "probe_dam"
+    # piesele INAINTEA unirii: ordinea in care se socoteste inainte
+    T.LINE_ORDER = T.LINE_ORDER + JOIN_LINES
+    T.LINES["probeBat"] = {
+        "netKind": "probe_bat", "openFlag": "probe_dam", "into": "probeGrid", "pool": "probeDam",
+        "steps": (("probeBatCollector", "probeBatCollect", "walk"), ("probeBatPorter", "probeBatPort", "walk"),
+                  ("probeSwitchman", "probeYard", "processor"), ("probeBatHauler", "probeBatHaul", "walk")),
+    }
+    T.LINES["probeWire"] = {
+        "netKind": "probe_wire", "openFlag": "probe_dam", "into": "probeGrid", "pool": "probeDam",
+        "steps": (("probeWireCollector", "probeWireCollect", "walk"), ("probeWirePorter", "probeWirePort", "walk"),
+                  ("probeWiremaker", "probeWorks", "processor"), ("probeWireHauler", "probeWireHaul", "walk")),
+    }
+    T.LINES["probeGrid"] = {
+        "inputs": ("probeBat", "probeWire"), "openFlag": "probe_dam", "seller": "booth", "value": "probe_grid",
+        "pool": "probeDam",
+        "steps": (("probeRelayKeeper", "probeRelay", "processor"), ("probeRunner", "probeRun", "walk")),
+    }
+    T.PROCESSORS["probeYard"] = {"base": "PROBE_YARD_BASE_RATE", "level": "probe_yard_level"}
+    T.PROCESSORS["probeWorks"] = {"base": "PROBE_WORKS_BASE_RATE", "level": "probe_works_level"}
+    T.PROCESSORS["probeRelay"] = {"base": "PROBE_RELAY_BASE_RATE", "level": "probe_relay_level"}
+    T.SELLERS["booth"] = {"role": "probeDispatcher", "base": "BOOTH_BASE_RATE", "level": "booth_level",
+                          "priority": ("probeGrid",)}
+    T.PROBE_YARD_BASE_RATE = 2.4  # cat Switchyard-ul din plan
+    T.PROBE_WORKS_BASE_RATE = 2.0  # cat Cable Works
+    T.PROBE_RELAY_BASE_RATE = 2.8  # cat Relay-ul
+    T.BOOTH_BASE_RATE = 3.0
+    for kind, label in JOIN_BUILDINGS.items():
+        T.LEVEL_INC_BY_KIND[kind] = 0.06
+        const = f"PROBE_{kind.upper()}_UPGRADE_BASE"
+        setattr(T, const, 10.0)
+        level = "booth_level" if kind == "booth" else T.PROCESSORS[kind]["level"]
+        T.BUILDINGS[kind] = {"label": label, "cost": const, "level": level, "owned": "probe_dam"}
+    T.ROLE_BASE.update({
+        "probeBatCollector": 4.0, "probeBatPorter": 6.0, "probeBatHauler": 7.5,
+        "probeWireCollector": 4.0, "probeWirePorter": 5.0, "probeWireHauler": 7.0, "probeRunner": 7.0,
+    })
+    T.GOODS["probe_grid"] = 50.0
+    # Piesele NU se vand. Media lor e pusa intentionat ne-zero: un venit care le-ar numara ar iesi altul decat cel de mana.
+    T.AVG["probe_bat"] = 5.0
+    T.AVG["probe_wire"] = 7.0
+    T.ROLES = T.ROLES + BAT_ROLES + WIRE_ROLES + GRID_ROLES + ("probeDispatcher",)
+    for role in BAT_ROLES + WIRE_ROLES + GRID_ROLES + ("probeDispatcher",):
+        T.ROLE_NAMES[role] = role
+    rederive(T)
+
+
+def dam_fields(s, dam):
+    s.probe_dam = dam
+    s.probe_yard_level = s.probe_works_level = s.probe_relay_level = s.booth_level = 1
+    return s
+
+
+def dam_start(T):
+    """Startul barajului, in mic: turbina din zid (rangul 5) si prima plasa de cablu (rangul 1), veteranii pe linia
+    bateriilor si la oras; cablul si releul le faci tu."""
+    s = dam_fields(era1_state(T), True)
+    T.unlock_net_ranked("probe_bat", 5, 3, 1)(s)
+    T.unlock_net_ranked("probe_wire", 1, 1, 1)(s)
+    staff(s, T, BAT_ROLES + ("probeDispatcher",), 1, 1)
+    return s
+
+
+def join_problems(expect):
+    base = load()
+    before_state = era1_state(base)
+    before, before_income = base.chain(before_state), base.income(before_state)
+    no_unlocks = {"unlocks": []}
+    before_labels = [o[0] for o in base.options(before_state, {}, no_unlocks)]
+
+    T = load()
+    add_join_lines(T)
+    states = []  # pe fiecare: o piesa livreaza cat ia unirea
+
+    # 0. INAINTE DE BARAJ: `closeFlag` pus, dar fals; piesele si unirea inca nedeschise. Totul ca pe copia neatinsa.
+    s = dam_fields(era1_state(T), False)
+    c = T.chain(s)
+    states.append(c)
+    expect("inainte de baraj: venitul", T.income(s), before_income)
+    expect("inainte de baraj: veriga care tine venitul", c.bottleneck, before.bottleneck)
+    expect("inainte de baraj: liniile vechi", tuple(c.lines[l].delivered for l in base.LINE_ORDER),
+           tuple(before.lines[l].delivered for l in base.LINE_ORDER))
+    expect("inainte de baraj: unirea nu livreaza", (c.lines["probeGrid"].delivered, c.lines["probeGrid"].bottleneck), (0.0, ""))
+    expect("inainte de baraj: ce se poate cumpara", [o[0] for o in T.options(s, {}, no_unlocks)], before_labels)
+
+    # 1. STARTUL BARAJULUI. Liniile vechi inchise. Pasii de mana ai bazinului: 4 ai cablului + 2 ai unirii = 6, deci
+    #    fiecare drum 3.6 x 1.5 / 6 = 0.9, atelierul cablului 2.0 / 6, releul 2.8 / 6. Bateriile (veteranii) ar duce cat
+    #    turbina, 0.33 x 1.45^4 = 1.4587670625; cablul, cat plasa lui, 0.33. Unirea ia 0.33 din fiecare: bateriile sunt
+    #    tinute de unire, iar unirea de plasa cablului. Venitul: 0.33 x 50.
+    s = dam_start(T)
+    c = T.chain(s)
+    states.append(c)
+    bat, wire, grid = c.lines["probeBat"], c.lines["probeWire"], c.lines["probeGrid"]
+    expect("baraj: liniile vechi nu livreaza", tuple(c.lines[l].delivered for l in base.LINE_ORDER), (0.0,) * len(base.LINE_ORDER))
+    expect("baraj: liniile vechi n-au veriga", tuple(c.lines[l].bottleneck for l in base.LINE_ORDER), ("",) * len(base.LINE_ORDER))
+    expect("baraj: lemnul e inchis desi n-are openFlag", T.line_open(s, "wood"), False)
+    expect("baraj: drumul cablului (bazinul de 6)", dict(wire.rates)["probeWireCollect"], 0.9)
+    expect("baraj: atelierul cablului", dict(wire.rates)["probeWorks"], 2.0 / 6)
+    expect("baraj: releul", dict(grid.rates)["probeRelay"], 2.8 / 6)
+    expect("baraj: drumul curentului", dict(grid.rates)["probeRun"], 0.9)
+    expect("baraj: turbina", bat.supply, 1.4587670625)
+    expect("baraj: ce intra in unire", grid.supply, 0.33)
+    expect("baraj: unirea n-are plase", grid.catch, 0.0)
+    expect("baraj: livrat", (bat.delivered, wire.delivered, grid.delivered), (0.33, 0.33, 0.33))
+    expect("baraj: bateriile tinute de unire", (bat.by_consumer, wire.by_consumer), (True, False))
+    expect("baraj: verigile", (bat.bottleneck, wire.bottleneck, grid.bottleneck), ("nets", "nets", "nets"))
+    expect("baraj: a cui e veriga", (bat.held_by, wire.held_by, grid.held_by), ("probeWire", "probeWire", "probeWire"))
+    expect("baraj: veriga care tine venitul", (c.bottleneck, c.nets_line), ("nets", "probeWire"))
+    expect("baraj: venitul (doar curentul se vinde)", T.income(s), 16.5)
+    # un nivel la plasa cablului (0.3399) aduce doar pana la atelierul cablului (2.0 / 6): 50 x (2/6 - 0.33)
+    expect("baraj: un nivel la plasa cablului", T.gain_of(s, lambda st: setattr(st.nets[6], "level", 2)), 50 * (2.0 / 6 - 0.33))
+    expect("baraj: un nivel la turbina nu aduce nimic", T.gain_of(s, lambda st: setattr(st.nets[5], "level", 2)), 0.0)
+    want = ["Net 6 lvl 2", "Net 7 lvl 2", "Probe Yard lvl 2", "Probe Works lvl 2", "Probe Relay lvl 2", "Booth lvl 2"]
+    want += [f"{r} tier 2" for r in BAT_ROLES + ("probeDispatcher",)]
+    expect("baraj: nimic de cumparat pe liniile inchise", [o[0] for o in T.options(s, {}, no_unlocks)], want)
+
+    # 2. BAZINUL, fara niciun om pe baraj: 10 pasi de mana, deci drumurile 0.54, curtea 0.24, atelierul 0.2, releul
+    #    0.28. Bateriile 0.24, cablul 0.2: unirea e tinuta de atelierul cablului.
+    s = dam_start(T)
+    staff(s, T, BAT_ROLES + ("probeDispatcher",), 0, 1)
+    c = T.chain(s)
+    states.append(c)
+    bat, wire, grid = c.lines["probeBat"], c.lines["probeWire"], c.lines["probeGrid"]
+    expect("bazin: drumul bateriilor", dict(bat.rates)["probeBatCollect"], 0.54)
+    expect("bazin: curtea", dict(bat.rates)["probeYard"], 0.24)
+    expect("bazin: atelierul cablului", dict(wire.rates)["probeWorks"], 0.2)
+    expect("bazin: releul", dict(grid.rates)["probeRelay"], 0.28)
+    expect("bazin: livrat", grid.delivered, 0.2)
+    expect("bazin: verigile", (bat.bottleneck, bat.held_by, grid.bottleneck, grid.held_by),
+           ("probeWorks", "probeWire", "probeWorks", "probeWire"))
+    expect("bazin: veriga care tine venitul", c.bottleneck, "probeWorks")
+    expect("bazin: venitul", T.income(s), 10.0)
+    # o linie din bazin care nu e deschisa (cablul fara plasa, deci nici unirea) nu ia din timpul tau: 5.4 / 4
+    s = dam_fields(era1_state(T), True)
+    T.unlock_net_ranked("probe_bat", 5, 3, 1)(s)
+    c = T.chain(s)
+    states.append(c)
+    expect("bazin cu cablul inchis: drumul bateriilor", dict(c.lines["probeBat"].rates)["probeBatCollect"], 1.35)
+    expect("bazin cu cablul inchis: curtea", dict(c.lines["probeBat"].rates)["probeYard"], 0.6)
+    expect("bazin cu cablul inchis: drumul cablului", dict(c.lines["probeWire"].rates)["probeWireCollect"], 0.0)
+    expect("bazin cu cablul inchis: nimic nu se vinde", (c.lines["probeGrid"].delivered, T.income(s)), (0.0, 0.0))
+
+    # 3. EGALITATE INTRE PIESE. Intai pe plase: o turbina de rangul 1 prinde cat plasa cablului (0.33). Plasele
+    #    amandurora duc castigul, iar `nets_line` numeste prima linie, in LINE_ORDER; unirea, prima piesa din `inputs`.
+    s = dam_fields(era1_state(T), True)
+    T.unlock_net_ranked("probe_bat", 1, 1, 1)(s)
+    T.unlock_net_ranked("probe_wire", 1, 1, 1)(s)
+    staff(s, T, BAT_ROLES + ("probeDispatcher",), 1, 1)
+    c = T.chain(s)
+    states.append(c)
+    bat, wire, grid = c.lines["probeBat"], c.lines["probeWire"], c.lines["probeGrid"]
+    expect("egalitate pe plase: livrat", grid.delivered, 0.33)
+    expect("egalitate pe plase: verigile", (bat.bottleneck, wire.bottleneck, grid.bottleneck, grid.held_by),
+           ("nets", "nets", "nets", "probeBat"))
+    expect("egalitate pe plase: ale cui plase", (c.bottleneck, c.nets_line), ("nets", "probeBat"))
+    #    Apoi pe oameni. Turbina la nivel 25 (10.04) si plasa cablului la 50 (6.52); fiecare piesa tinuta de omul care
+    #    aduna, la 4.0. Unirea si orasul, cu cate doi oameni pe treapta 5, sunt departe (28, 70, 30).
+    s = dam_start(T)
+    s.nets[5].level, s.nets[6].level = 25, 50
+    staff(s, T, BAT_ROLES + WIRE_ROLES, 1, 1)
+    staff(s, T, ("probeSwitchman",), 1, 2)  # 4.8
+    staff(s, T, ("probeWiremaker",), 1, 3)  # 6.0
+    staff(s, T, GRID_ROLES + ("probeDispatcher",), 2, 5)
+    c = T.chain(s)
+    states.append(c)
+    bat, wire, grid = c.lines["probeBat"], c.lines["probeWire"], c.lines["probeGrid"]
+    expect("egalitate: marginile pieselor", (bat.own_max, wire.own_max), (4.0, 4.0))
+    expect("egalitate: livrat", grid.delivered, 4.0)
+    expect("egalitate: verigile (unirea: a primei piese)", (bat.bottleneck, wire.bottleneck, grid.bottleneck, grid.held_by),
+           ("probeBatCollect", "probeWireCollect", "probeBatCollect", "probeBat"))
+    expect("egalitate: nicio piesa tinuta de unire", (bat.by_consumer, wire.by_consumer), (False, False))
+    expect("egalitate: amandoua piesele duc castigul", (c.gains["probeBatCollect"], c.gains["probeWireCollect"]), (50.0, 50.0))
+    expect("egalitate: veriga care tine venitul (prima, in ordinea verigilor)", c.bottleneck, "probeBatCollect")
+    expect("egalitate: venitul", T.income(s), 200.0)
+
+    def tier_up(*roles):
+        def f(st):
+            for role in roles:
+                st.crews[role].tier += 1
+        return f
+
+    expect("egalitate: doar Collector-ul bateriilor nu aduce nimic", T.gain_of(s, tier_up("probeBatCollector")), 0.0)
+    expect("egalitate: doar Collector-ul cablului nu aduce nimic", T.gain_of(s, tier_up("probeWireCollector")), 0.0)
+    expect("egalitate: amandoi aduc 0.8 x 50", T.gain_of(s, tier_up("probeBatCollector", "probeWireCollector")), 40.0)
+    # amandoua piesele au castigul unei bucati in plus: dupa o treapta la bateriile, veriga ramasa e a cablului, iar
+    # bateriile (acum 4.8, tinute de unire) o arata pe a lui, cu linia care o detine
+    tier_up("probeBatCollector")(s)
+    c = T.chain(s)
+    states.append(c)
+    bat = c.lines["probeBat"]
+    expect("dupa egalitate: bateriile tinute de unire", (bat.own_max, bat.by_consumer), (4.8, True))
+    expect("dupa egalitate: veriga bateriilor e a cablului", (bat.bottleneck, bat.held_by), ("probeWireCollect", "probeWire"))
+    expect("dupa egalitate: veriga care tine venitul", c.bottleneck, "probeWireCollect")
+
+    # 4. UNIREA TINUTA DE RELEU. Piesele cu toti oamenii lor (bateriile 1.4588, cablul 2.0 din atelier); unirea de mana:
+    #    2 pasi in bazin, deci releul 2.8 / 2 = 1.4, drumul 2.7. Ambele piese livreaza 1.4 si arata releul.
+    s = dam_start(T)
+    s.nets[6].level = 50
+    staff(s, T, WIRE_ROLES, 1, 1)
+    c = T.chain(s)
+    states.append(c)
+    bat, wire, grid = c.lines["probeBat"], c.lines["probeWire"], c.lines["probeGrid"]
+    expect("releul: releul si drumul", (dict(grid.rates)["probeRelay"], dict(grid.rates)["probeRun"]), (1.4, 2.7))
+    expect("releul: livrat", (bat.delivered, wire.delivered, grid.delivered), (1.4, 1.4, 1.4))
+    expect("releul: verigile", (bat.bottleneck, wire.bottleneck, grid.bottleneck), ("probeRelay",) * 3)
+    expect("releul: a cui e veriga", (bat.held_by, wire.held_by, grid.held_by), ("probeGrid",) * 3)
+    expect("releul: veriga care tine venitul", (c.bottleneck, c.nets_line), ("probeRelay", ""))
+    expect("releul: venitul", T.income(s), 70.0)
+    #    ... APOI DE ORAS: Relay Keeper-ul (2.8) si orasul fara Dispatcher (3.0 x 0.35 = 1.05). Unirea ar duce 1.4588.
+    staff(s, T, ("probeRelayKeeper",), 1, 1)
+    staff(s, T, ("probeDispatcher",), 0, 1)
+    c = T.chain(s)
+    states.append(c)
+    bat, wire, grid = c.lines["probeBat"], c.lines["probeWire"], c.lines["probeGrid"]
+    expect("orasul: drumul (un pas de mana)", dict(grid.rates)["probeRun"], 5.4)
+    expect("orasul: livrat", (bat.delivered, wire.delivered, grid.delivered), (1.05, 1.05, 1.05))
+    expect("orasul: unirea tinuta de oras", (grid.by_seller, grid.bottleneck, grid.held_by), (True, "booth", "probeGrid"))
+    expect("orasul: piesele arata orasul", (bat.bottleneck, wire.bottleneck, bat.held_by), ("booth", "booth", "probeGrid"))
+    expect("orasul: veriga care tine venitul", c.bottleneck, "booth")
+    expect("orasul: venitul", T.income(s), 52.5)
+
+    for i, c in enumerate(states):
+        grid = c.lines["probeGrid"]
+        for part in ("probeBat", "probeWire"):
+            expect(f"starea {i}: {part} livreaza cat unirea", c.lines[part].delivered, grid.delivered)
+
+    # 5. INVARIANTELE: derive_tables refuza un tabel care nu se leaga
+    def refused(what, change):
+        lines = {line: dict(spec) for line, spec in T.LINES.items()}
+        sellers = {seller: dict(spec) for seller, spec in T.SELLERS.items()}
+        order = change(lines, sellers)  # o schimbare a ordinii intoarce noua ordine; restul, ce intoarce `update`/`pop`
+        order = order if isinstance(order, tuple) else T.LINE_ORDER
+        try:
+            T.derive_tables(order, lines, sellers, T.ROLES)
+        except AssertionError:
+            return
+        expect(f"derive_tables primeste {what}", "primit", "refuzat")
+
+    refused("`source` (e a curierului din Era 5)", lambda L, S: L["probeGrid"].update(source="probeGrid"))
+    refused("o unire fara `value`", lambda L, S: L["probeGrid"].pop("value"))
+    refused("o linie cu plase si piese deodata", lambda L, S: L["probeGrid"].update(netKind="probe_grid"))
+    refused("o linie fara plase si fara piese", lambda L, S: L["probeWire"].pop("netKind"))
+    refused("o piesa care si vinde", lambda L, S: L["probeWire"].update(seller="booth"))
+    refused("o piesa in afara pieselor unirii", lambda L, S: L["probeGrid"].update(inputs=("probeBat",)))
+    refused("o piesa in randul unui vanzator", lambda L, S: S["booth"].update(priority=("probeGrid", "probeWire")))
+    refused("o piesa dupa unirea ei", lambda L, S: T.LINE_ORDER[:-3] + ("probeBat", "probeGrid", "probeWire"))
+    refused("doua linii pe acelasi fel de plasa", lambda L, S: L["probeWire"].update(netKind="probe_bat"))
+
+
+def tool_problems(expect):
+    """Doua unelte pe care Era 4 le cere: plasa cu rang explicit si pretul rotund peste 10^12."""
+    T = load()
+    # rangul 5 al Erei 3 e bit cu bit First Turbine (a 15-a plasa, pe locul ei)
+    by_place, by_rank = T.State(), T.State()
+    for k in range(1, 16):
+        T.unlock_net(k)(by_place)
+    T.unlock_net_ranked("turbine", 5, 3, 3)(by_rank)
+    a, b = by_place.nets[14], by_rank.nets[0]
+    expect("plasa cu rang: baza, banda, felul", (b.base, b.base_lane, b.kind) == (a.base, a.base_lane, a.kind), True)
+    expect("plasa cu rang: costul nivelurilor", T.net_upgrade_base(by_rank, 0) == T.net_upgrade_base(by_place, 14), True)
+
+    def old_nice(x, floor=0):
+        """Regula de pana la D70, ca dovada ca pana la 10^12 nimic nu s-a mutat. None unde cadea pe `int(x)`."""
+        if x < 10:
+            v = max(0, int(round(x)))
+            return v if v > floor else floor + 1
+        for mag in (10**k for k in range(0, 13)):
+            for n in T.NICE:
+                v = int(n * mag)
+                if v >= x * 0.93 and v > floor:
+                    return v
+        return None
+
+    x, moved = 0.5, []
+    while x < 9e12:
+        for floor in (0, old_nice(x)):
+            was = old_nice(x, floor)
+            if was is not None and T.nice(x, floor) != was:
+                moved.append((x, floor))
+        x *= 1.013
+    expect("nice: preturile pana la 10^12 raman bit cu bit", moved, [])
+
+    def nice(x, floor=0):
+        try:
+            return T.nice(x, floor)
+        except SystemExit:
+            return "oprire"
+
+    # unde regula veche cadea pe `int(x)` (un pret nerotunjit, si nici peste cel dinainte), acum urca la 10^13
+    expect("nice: peste 9 x 10^12 cu podeaua 9 x 10^12", nice(8.8e12, 9 * 10**12), 10**13)
+    expect("nice: 2.8 x 10^14 e rotund (virgula mobila dadea ...999)", nice(2.7e14), 280000000000000)
+    expect("nice: 1.1 x 10^17 e rotund", nice(1.1e17), 110000000000000000)
+    expect("nice: 5 x 10^24", nice(5e24), 5 * 10**24)
+    expect("nice: peste 9 x 10^24 simulatorul se opreste", nice(1e26), "oprire")
+
 
 def problems():
     bad = []
@@ -105,10 +425,17 @@ def problems():
     def expect(what, got, want):
         if isinstance(want, float):
             ok = abs(got - want) < 1e-9
+        elif isinstance(want, tuple) and any(isinstance(w, float) for w in want):
+            ok = len(got) == len(want) and all(
+                abs(g - w) < 1e-9 if isinstance(w, float) else g == w for g, w in zip(got, want)
+            )
         else:
             ok = got == want
         if not ok:
             bad.append(f"check_lines: {what}: a iesit {got!r}, socotit de mana {want!r}")
+
+    join_problems(expect)
+    tool_problems(expect)
 
     base = load()
     before = base.chain(era1_state(base))
@@ -185,4 +512,7 @@ if __name__ == "__main__":
         print(line)
     if found:
         sys.exit(1)
-    print("check_lines: motorul duce liniile de proba (a treia si a patra linie, al doilea vanzator) cum iese din socoteala de mana")
+    print(
+        "check_lines: motorul duce liniile de proba (a treia si a patra linie, al doilea vanzator) si unirea de la baraj"
+        " (doua piese, bazinul, liniile inchise) cum iese din socoteala de mana"
+    )

@@ -1,6 +1,6 @@
 # Planul: motorul lanțului cu unire și baraj, pentru Era 4 și după [D70]
 
-**Stare (2026-09-24): propunere.** Pașii a–c (motorul general, fără Era 4) nu depind de răspunsurile owner-ului și au pornit; pașii d–l așteaptă întrebările din §6. Planul pornește de la designul B, cu barajul dat întreg și cablul lucrat de mână. Din designul A am luat patru lucruri: filtrul tabelelor de aur, locul de unde ia curierul, formula monedelor Robux și regula plaselor pe familii. Pe fiecare le-am verificat în cod. Cifrele vin din prototipuri (copii ale simulatorului, în afara repo-ului), rulate din nou de judecător. Cifrele finale se derivă doar în `sim_tycoon.py`.
+**Stare (2026-09-24): propunere; pașii a–c sunt făcuți** (motorul general, fără Era 4; ce a ieșit altfel e la §10). Pașii d–l așteaptă întrebările din §6. Planul pornește de la designul B, cu barajul dat întreg și cablul lucrat de mână. Din designul A am luat patru lucruri: filtrul tabelelor de aur, locul de unde ia curierul, formula monedelor Robux și regula plaselor pe familii. Pe fiecare le-am verificat în cod. Cifrele vin din prototipuri (copii ale simulatorului, în afara repo-ului), rulate din nou de judecător. Cifrele finale se derivă doar în `sim_tycoon.py`.
 
 ## 0. Întrebarea owner-ului, pe scurt
 
@@ -287,3 +287,41 @@ La fiecare pas: toată poarta din CLAUDE.md, apoi commit și push.
 10. **Unelte fără CI:** `tune_tycoon.py` nu rulează în CI, deci se rulează de mână la pașii a și d.
 11. **Cifrele vin din prototipuri care înlocuiesc funcțiile unei copii a simulatorului.** Constantele finale se reglează în `sim_tycoon.py`, cu porțile lui.
 
+
+## 10. Cum au ieșit pașii a–c (2026-09-24)
+
+**Dovezile că Erele 1–3 sunt neschimbate:** `--table --chain --robust`, rularea simplă, `golden_chain.py` (toate trei blocurile) și trei `tune_tycoon.py eval` (două cu constante suprascrise) ies identice la octet, înainte și după. Tabelele de aur sunt identice jeton cu jeton cu `tests/ChainMath.test.luau`. Poarta e verde.
+
+**Simulatorul (pasul a).** Ce a ieșit altfel decât în §2–§3 sau ce trebuie să copieze întocmai portul din pasul g:
+- `derive_tables` întoarce trei tabele în plus: `NET_LINE` (felul de plasă → linia ei), `CONSUMER_OF` și `POOL_LINES`. Pe lângă invariantele din §2, mai refuză două lucruri: două linii pe același fel de plasă (altfel `NET_LINE` n-ar fi o funcție) și o unire fără piese.
+- **`active` = linia e deschisă** și (`openFlag` nil sau `supply > 0`). „Nu e închisă” din §3 s-a citit ca „e deschisă”. Diferența apare doar la o unire fără `openFlag` cu piese încă nedeschise.
+- O unire închisă sau încă nedeschisă are `supply = 0`. Altfel, oamenii ei de drum ar vinde din piese.
+- **O unire n-are veriga `nets`:** `links()` are doar pașii ei. Locul plaselor îl ia `supply`, verificat înaintea pașilor, ca plasele în fața liniei. Tot așa se caută `own_first` și se dă `credit`.
+- **`held_by`:** la o linie ținută de vânzător e chiar linia. La o piesă ținută de unire e cel al unirii. Altfel e linia căreia îi aparține primul minim.
+- **`nets_line`** se scrie doar când veriga globală e `nets` (cu câștig > 0). E prima linie, în `LINE_ORDER`, ale cărei plase au dus câștigul. În rest e `""`.
+- **`Chain.gains`** (câștigul fiecărei verigi) e acum vizibil. Fără el, „amândouă piesele au câștig” nu se putea verifica. `HeldBack` va avea nevoie de aceeași cifră.
+- **`options` sare doar liniile închise de `closeFlag`**, nu și pe cele încă nedeschise. Forja se urcă și înaintea plasei de scrap, iar cu regula largă Era 1 s-ar fi schimbat.
+- `line_time` numără `supply > 0`, nu `catch > 0`, ca unirea să aibă timpul ei.
+- **`unlock_net_ranked(kind, rank, lane, era)`:** al patrulea parametru e explicit, fiindcă M4 trebuie să vină de undeva. Rangul 5 al Erei 3 e bit cu bit First Turbine.
+- **`nice()`:**
+  - prețul se face din zecimi întregi, până la 9 × 10^24;
+  - până la 10^12 dă aceleași cifre, verificat pe o baleiere;
+  - peste scară oprește simulatorul, în loc să întoarcă `int(x)`;
+  - `int(x)` putea ieși chiar sub prețul dinainte, iar `int(2.8 × 10^14)` dădea 279999999999999.
+- **Timpul simulatorului:** +14% (6,3 → 7,2 s pentru cele trei ere; `--robust` complet ~124 → ~142 s). Starea deschisă și pașii de mână ai bazinului se socotesc o dată pe linie la fiecare `chain`.
+
+**`check_lines.py` (pasul b).** A treia copie a simulatorului conține:
+- startul barajului: drumurile 0,9, Cable Works 2/6, Relay 2,8/6, livrat 0,33;
+- bazinul, inclusiv cu o linie nedeschisă în el;
+- egalitatea pe plase și pe oameni: amândouă piesele au câștig, iar fiecare singură dă 0;
+- piesa ținută de unire, cu veriga și `held_by` ale celeilalte;
+- unirea ținută de Relay, apoi de vânzător;
+- `closeFlag` și `options`;
+- invariantele refuzate;
+- `unlock_net_ranked` și `nice()`.
+
+Piesele au intenționat o valoare ne-zero, ca un venit care le-ar număra să pice. Au fost inversate, pe rând, 15 reguli ale motorului, și fiecare pică verificarea (scriptul de mutații n-a rămas în repo).
+
+**`golden_chain.py` (pasul c).** Blocurile tipăresc doar `GOLDEN_LINES` și `GOLDEN_SELLERS` (Erele 1–3). Dovada: cu liniile de probă ale unirii adăugate închise în simulator, iese același text. Fără filtru, `GOLDEN_ERA2` și `GOLDEN_ERA3` s-ar fi schimbat.
+
+**Rămâne pentru pasul d, pe bazin:** `check_hire_order`, `link_share` / `LATE_LINE`, `report_era` (banii doar pe liniile care vând) și `BOTTLENECK_EXEMPT`.
