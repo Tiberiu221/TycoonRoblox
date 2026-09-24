@@ -287,4 +287,3 @@ La fiecare pas: toată poarta din CLAUDE.md, apoi commit și push.
 10. **Unelte fără CI:** `tune_tycoon.py` nu rulează în CI, deci se rulează de mână la pașii a și d.
 11. **Cifrele vin din prototipuri care înlocuiesc funcțiile unei copii a simulatorului.** Constantele finale se reglează în `sim_tycoon.py`, cu porțile lui.
 
-Verificarea tronsonului fără creștere de venit e în `/private/tmp/claude-501/-Users-tiberiubojan-Desktop-Driftwood/b9d4df87-0fc9-4d56-a2d7-bd3169d84806/scratchpad/lead_check/flat.py` (Erele 1–3 și B) și `flat_a.py` (A).
