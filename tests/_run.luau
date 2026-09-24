@@ -42,6 +42,7 @@ require("./TreasureMath.test")()
 require("./PearlBudget.test")()
 require("./LookMath.test")()
 require("./VillageLook.test")()
+require("./ModernMath.test")() -- [D70]
 require("./VisitMath.test")()
 require("./AmbitionMath.test")()
 require("./HudLayout.test")()
