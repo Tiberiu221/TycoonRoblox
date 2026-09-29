@@ -604,6 +604,7 @@ class LineFlow:
     active: bool  # intra in socoteala verigilor: mereu pentru o linie fara conditie, altfel doar cat intra ceva
     supply: float  # [D70] ce intra pe linie: plasele ei, sau la o unire cat aduce cea mai inceata piesa
     inputs: tuple  # [D70] piesele unei uniri (gol la o linie de plase)
+    is_open: bool  # [D70] linia e deschisa (`line_open`): la o unire, si toate piesele ei
     room: float = 0.0  # cat mai avea vanzatorul cand i-a venit randul
     delivered: float = 0.0  # bucati livrate (la o piesa: cate ia unirea de la ea)
     by_seller: bool = False  # vanzatorul e marginea liniei
@@ -672,8 +673,9 @@ def bottlenecks(c: Chain) -> str:
     egal cu ce livreaza linia il primeste (ca maxim), iar la o unire tinuta de piese (`supply` == livrat) il primeste si
     fiecare piesa cu marginea egala, mai departe prin verigile ei. La egalitate intre piese, il primesc amandoua (si
     fiecare singura da zero: e cinstit [D46], iar ecranul numeste linia cealalta). Veriga unei linii: "" daca e
-    inactiva; vanzatorul, daca el e marginea; veriga unirii, daca piesa e tinuta de unirea ei; altfel primul minim al
-    ei (`own_first`), care la o unire tinuta de piese e al primei piese, in ordinea din `inputs`, care o tine.
+    inactiva; vanzatorul, daca el e marginea; veriga unirii, daca piesa e tinuta de unirea ei (cat unirea nu merge
+    inca, plasa piesei care lipseste); altfel primul minim al ei (`own_first`), care la o unire tinuta de piese e al
+    primei piese, in ordinea din `inputs`, care o tine.
     `held_by` spune a cui e veriga, iar `Chain.nets_line` ale cui plase, cand venitul il tin plasele."""
     gains = {link: 0.0 for link in LINKS}
     nets_gain = {}  # [D70] linia -> castigul dus de plasele ei
@@ -726,7 +728,14 @@ def bottlenecks(c: Chain) -> str:
             f.bottleneck, f.held_by = LINES[line]["seller"], line
         elif f.by_consumer:
             consumer = c.lines[LINES[line]["into"]]
-            f.bottleneck, f.held_by = consumer.bottleneck, consumer.held_by
+            if consumer.active:
+                f.bottleneck, f.held_by = consumer.bottleneck, consumer.held_by
+            else:
+                # [D70] Unirea nu merge inca: ii lipseste o piesa (turbina fara plasa de cablu). Piesa asta asteapta
+                # dupa plasa celeilalte, nu dupa nimic [D43]: ecranul spune "Needs a Cable Net". Daca nu lipseste nicio
+                # piesa (unirea e oprita de campul ei), veriga ramane "" si o prinde `silent_lines` in cronologie.
+                missing = next((part for part in consumer.inputs if not c.lines[part].is_open), None)
+                f.bottleneck, f.held_by = ("nets", missing) if missing is not None else ("", "")
         else:
             f.bottleneck, f.held_by = own_first(line)
     return best
@@ -762,7 +771,7 @@ def chain(s: State) -> Chain:
             supply = catch
         own_max = min([supply] + [value for _link, value in rates])
         active = is_open and (spec.get("openFlag") is None or supply > 0.0)
-        lines[line] = LineFlow(catch, rates, own_max, active, supply, inputs)
+        lines[line] = LineFlow(catch, rates, own_max, active, supply, inputs, is_open)
     capacity = {}
     for seller, spec in SELLERS.items():
         capacity[seller] = seller_rate(s, seller)
@@ -784,6 +793,12 @@ def chain(s: State) -> Chain:
     c = Chain(lines, capacity)
     c.bottleneck = bottlenecks(c)
     return c
+
+
+def silent_lines(c: Chain) -> list:
+    """[D70] Liniile ACTIVE fara veriga slaba. Contractul lui LineFlow e ca "" inseamna "linia nu e activa"; o linie
+    activa fara veriga ar lasa ecranul fara niciun motiv [D43]. `run` se opreste daca apare in cronologie."""
+    return [line for line in LINE_ORDER if c.lines[line].active and not c.lines[line].bottleneck]
 
 
 def income(s: State) -> float:
@@ -1604,6 +1619,9 @@ def run(rebirths=0, index_found=0, max_seconds=36000, era=None, start=None):
         if era["bell"] in s.bought:
             break
         now_chain = chain(s)
+        silent = silent_lines(now_chain)
+        if silent:
+            raise SystemExit(f"EROARE: linia activa {silent[0]} n-are veriga slaba la {fmt(s.t)} lacom [D43, D70]")
         shares[now_chain.bottleneck] += 1
         for line in LINE_ORDER:
             if now_chain.lines[line].supply > 0:  # [D70] `supply`: la o unire intra piesele, nu plase

@@ -16,7 +16,8 @@ trei in acelasi BAZIN al timpului tau; liniile Erelor 1-3 primesc pe copie `clos
 din plan, cu nume care nu se pot ciocni de liniile ei (pasul d le aduce pe cele adevarate). Cifrele sunt ale startului
 barajului din plan (drumurile 0.9, atelierul cablului 0.333, releul 0.467, livrat 0.33), cu bucata unita la 50.
 Fiecare regula a motorului nou are aici o stare in care regula inversa da alta cifra: bazinul, trecerea inapoi,
-egalitatea intre piese, veriga mostenita de la unire, venitul doar pe liniile care vand, `closeFlag` si `options`.
+egalitatea intre piese si intre o piesa si releu, veriga mostenita de la unire (si cea a pieselor unei uniri care nu
+merge inca), `nets_line`, venitul doar pe liniile care vand, `closeFlag`, `options` si plasa de siguranta.
 La sfarsit, doua unelte pe care Era 4 le cere: `unlock_net_ranked` si `nice()` peste 10^12.
 
 Ruleaza odata cu simulatorul (`sim_tycoon.py` il cheama la sfarsit), deci e in poarta fara un rand nou. De mana:
@@ -207,6 +208,8 @@ def join_problems(expect):
            tuple(before.lines[l].delivered for l in base.LINE_ORDER))
     expect("inainte de baraj: unirea nu livreaza", (c.lines["probeGrid"].delivered, c.lines["probeGrid"].bottleneck), (0.0, ""))
     expect("inainte de baraj: ce se poate cumpara", [o[0] for o in T.options(s, {}, no_unlocks)], before_labels)
+    # venitul il tine forja, nu plasele: `nets_line` ramane gol chiar daca plasele au si ele un castig
+    expect("inainte de baraj: ale cui plase (veriga nu e `nets`)", (c.bottleneck != "nets", c.nets_line), (True, ""))
 
     # 1. STARTUL BARAJULUI. Liniile vechi inchise. Pasii de mana ai bazinului: 4 ai cablului + 2 ai unirii = 6, deci
     #    fiecare drum 3.6 x 1.5 / 6 = 0.9, atelierul cablului 2.0 / 6, releul 2.8 / 6. Bateriile (veteranii) ar duce cat
@@ -264,6 +267,16 @@ def join_problems(expect):
     expect("bazin cu cablul inchis: curtea", dict(c.lines["probeBat"].rates)["probeYard"], 0.6)
     expect("bazin cu cablul inchis: drumul cablului", dict(c.lines["probeWire"].rates)["probeWireCollect"], 0.0)
     expect("bazin cu cablul inchis: nimic nu se vinde", (c.lines["probeGrid"].delivered, T.income(s)), (0.0, 0.0))
+    # bateriile asteapta plasa cablului, nu "nimic" [D43]: veriga lor e plasa liniei care lipseste din unire
+    bat = c.lines["probeBat"]
+    expect("bazin cu cablul inchis: bateriile asteapta plasa cablului", (bat.active, bat.bottleneck, bat.held_by),
+           (True, "nets", "probeWire"))
+    # niciun castig nicaieri: veriga globala ramane "nets" din oficiu, dar nicio plasa nu o tine
+    expect("bazin cu cablul inchis: ale cui plase", (c.bottleneck, c.nets_line), ("nets", ""))
+    # regula ingusta din `options`: o cladire detinuta se urca si cat linia ei nu e inca deschisa (ca forja inaintea
+    # plasei de scrap in joc); doar liniile inchise de `closeFlag` ies din lista
+    expect("bazin cu cablul inchis: ce se poate cumpara", [o[0] for o in T.options(s, {}, no_unlocks)],
+           ["Net 6 lvl 2", "Probe Yard lvl 2", "Probe Works lvl 2", "Probe Relay lvl 2", "Booth lvl 2"])
 
     # 3. EGALITATE INTRE PIESE. Intai pe plase: o turbina de rangul 1 prinde cat plasa cablului (0.33). Plasele
     #    amandurora duc castigul, iar `nets_line` numeste prima linie, in LINE_ORDER; unirea, prima piesa din `inputs`.
@@ -344,12 +357,54 @@ def join_problems(expect):
     expect("orasul: veriga care tine venitul", c.bottleneck, "booth")
     expect("orasul: venitul", T.income(s), 52.5)
 
+    # 5. RELEUL EXACT CAT CE INTRA (o copie cu releul de doua ori turbina, deci 2x / 2 = turbina, bit cu bit): la
+    #    egalitate intre piese si pasii unirii, veriga e a pieselor, verificate inaintea pasilor (ca plasele in fata).
+    R = load()
+    add_join_lines(R)
+    R.PROBE_RELAY_BASE_RATE = 2 * (R.NET_BASE_RATE * R.NET_BASE_GROWTH**4)
+    s = dam_start(R)
+    s.nets[6].level = 50
+    staff(s, R, WIRE_ROLES, 1, 1)
+    c = R.chain(s)
+    states.append(c)
+    grid = c.lines["probeGrid"]
+    expect("releul cat turbina: egalitate", dict(grid.rates)["probeRelay"] == grid.supply == grid.own_max, True)
+    expect("releul cat turbina: veriga unirii e a pieselor", (grid.bottleneck, grid.held_by), ("nets", "probeBat"))
+
+    # 6. EGALITATE INTRE O PIESA SI RELEU (o copie cu Collector-ul cablului la 1.4): cablul duce 1.4, releul de mana
+    #    2.8 / 2 = 1.4. Castigul il primesc amandoua verigile; veriga globala e prima in ordinea verigilor (a cablului).
+    W = load()
+    add_join_lines(W)
+    W.ROLE_BASE["probeWireCollector"] = 1.4
+    s = dam_start(W)
+    s.nets[6].level = 50
+    staff(s, W, WIRE_ROLES, 1, 1)
+    c = W.chain(s)
+    states.append(c)
+    bat, grid = c.lines["probeBat"], c.lines["probeGrid"]
+    expect("piesa cat releul: ce intra si releul", (grid.supply, dict(grid.rates)["probeRelay"]), (1.4, 1.4))
+    expect("piesa cat releul: veriga unirii", (grid.bottleneck, grid.held_by), ("probeWireCollect", "probeWire"))
+    expect("piesa cat releul: castigul pe amandoua", (c.gains["probeRelay"], c.gains["probeWireCollect"]), (50.0, 50.0))
+    expect("piesa cat releul: veriga care tine venitul", c.bottleneck, "probeWireCollect")
+    expect("piesa cat releul: bateriile tinute de unire", (bat.by_consumer, bat.bottleneck, bat.held_by),
+           (True, "probeWireCollect", "probeWire"))
+
     for i, c in enumerate(states):
         grid = c.lines["probeGrid"]
         for part in ("probeBat", "probeWire"):
             expect(f"starea {i}: {part} livreaza cat unirea", c.lines[part].delivered, grid.delivered)
+        expect(f"starea {i}: nicio linie activa fara veriga slaba", T.silent_lines(c), [])
 
-    # 5. INVARIANTELE: derive_tables refuza un tabel care nu se leaga
+    # 7. PLASA DE SIGURANTA: o unire oprita de campul ei, cu piesele deschise, le-ar lasa pe ele active fara veriga.
+    #    Nicio forma din plan nu ajunge aici (piesele si unirea au acelasi `openFlag`); `silent_lines` o prinde.
+    U = load()
+    add_join_lines(U)
+    U.LINES["probeGrid"]["openFlag"] = "probe_relay_built"
+    s = dam_start(U)
+    s.probe_relay_built = False
+    expect("unire oprita de campul ei: plasa de siguranta", U.silent_lines(U.chain(s)), ["probeBat", "probeWire"])
+
+    # 8. INVARIANTELE: derive_tables refuza un tabel care nu se leaga
     def refused(what, change):
         lines = {line: dict(spec) for line, spec in T.LINES.items()}
         sellers = {seller: dict(spec) for seller, spec in T.SELLERS.items()}

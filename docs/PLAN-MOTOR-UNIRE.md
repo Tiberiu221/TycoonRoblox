@@ -1,6 +1,6 @@
 # Planul: motorul lanțului cu unire și baraj, pentru Era 4 și după [D70]
 
-**Stare (2026-09-24): propunere; pașii a–c sunt făcuți** (motorul general, fără Era 4; ce a ieșit altfel e la §10). Pașii d–l așteaptă întrebările din §6. Planul pornește de la designul B, cu barajul dat întreg și cablul lucrat de mână. Din designul A am luat patru lucruri: filtrul tabelelor de aur, locul de unde ia curierul, formula monedelor Robux și regula plaselor pe familii. Pe fiecare le-am verificat în cod. Cifrele vin din prototipuri (copii ale simulatorului, în afara repo-ului), rulate din nou de judecător. Cifrele finale se derivă doar în `sim_tycoon.py`.
+**Stare (2026-09-29): propunere; pașii a–c sunt făcuți** (motorul general, fără Era 4; ce a ieșit altfel e la §10). Owner-ul a hotărât întrebările 2, 4 și 8 din §6: piesele se vând doar unite, suma de start e cea din simulator (35T), iar cristalul se vinde și în Era 4. Pașii d–l așteaptă celelalte întrebări. Planul pornește de la designul B, cu barajul dat întreg și cablul lucrat de mână. Din designul A am luat patru lucruri: filtrul tabelelor de aur, locul de unde ia curierul, formula monedelor Robux și regula plaselor pe familii. Pe fiecare le-am verificat în cod. Cifrele vin din prototipuri (copii ale simulatorului, în afara repo-ului), rulate din nou de judecător. Cifrele finale se derivă doar în `sim_tycoon.py`.
 
 ## 0. Întrebarea owner-ului, pe scurt
 
@@ -220,13 +220,13 @@ Aici se fixează doar forma, ca tabelele Erei 4 să nu-l blocheze.
 Întrebările sunt puse în pașii jucătorului. Fiecare are recomandarea mea. **Pașii a–c de mai jos nu așteaptă răspunsurile. Pașii d–l le așteaptă.** Deja hotărât, nu mai întreb: Erele 1–3 rămân cum sunt, iar la baraj satul vechi se oprește. De la Era 4 fiecare eră are trei linii: două fac piese, a treia le unește, iar cumpărătorul e altul la fiecare eră.
 
 1. **Era 4, începutul.** Veteranii fac linia bateriilor, iar tu faci cablul de mână? *Recomandat: da.* Invers, n-ai avea ce face cu mâna pe linia bateriilor.
-2. **Bateriile (butoaiele) se vând și singure?** Ai spus „bateriile se vând la preț bun”. În planul acesta ele valorează bani doar unite cu cablul, ca curent vândut orașului, iar singure așteaptă la Relay. *Recomandat: nu se vând singure.* Dacă vrei să se vândă, e nevoie de o a doua ieșire pentru ele, cu altă poartă de venit.
+2. **Bateriile (butoaiele) se vând și singure?** Ai spus „bateriile se vând la preț bun”. În planul acesta ele valorează bani doar unite cu cablul, ca curent vândut orașului, iar singure așteaptă la Relay. *Recomandat: nu se vând singure.* Dacă vrei să se vândă, e nevoie de o a doua ieșire pentru ele, cu altă poartă de venit. **Hotărât (owner, 2026-09-29): se vând doar unite.** Butoaiele așteaptă cablul la Relay.
 3. **Cine duce curentul la oraș?** *Recomandat:* un Pylon Runner, pe podul cu stâlpi, până la Switch House, unde stă Dispatcher-ul. Varianta cealaltă: Relay-ul vinde direct, cu un om mai puțin.
-4. **Suma de start e 35T, nu 40T:** e cifra scrisă de simulator. Fără tine câștigi 0 cam 2–3 minute, până la cei 6 oameni, iar ecranul spune asta dinainte. E în regulă?
+4. **Suma de start e 35T, nu 40T:** e cifra scrisă de simulator. Fără tine câștigi 0 cam 2–3 minute, până la cei 6 oameni, iar ecranul spune asta dinainte. E în regulă? **Hotărât (owner, 2026-09-29): da.** Suma e cea derivată de simulator (35T pe proba de azi), iar AWAY e 0 până la cei 6 oameni noi.
 5. **Monedele Robux trec întregi.** În cel mai rău caz (Welcome Back x2 după 16 h cu 2x Flow), sar ~33% din Era 4. *Recomandat:* limită de 40% doar pentru monedele plătite, sau nicio limită. Tu alegi.
 6. **Plasele de sub baraj nu mai prind găsiri** (o găsire nu se poate uni cu un butoi). Surprizele rămân darurile râului. *Recomandat: da.*
 7. **Pe la minutul 29 al Erei 4, venitul poate sta pe loc ~16 minute:** Cable Collector-ii sunt la maxim (2 oameni, treapta 5). *Recomandat:* repar cu cifrele, în simulator. Varianta a doua: un al treilea om pe meserie de la Era 4 („progresiv cu jocul”).
-8. **Era 4, finalul.** Cristalul se vinde în Era 4, primul la oraș (ca fierul, cuprul și curentul), și tot cu el începe Era 5? *Recomandat: da.* Altfel ultimele ~11 minute ale erei nu aduc nimic.
+8. **Era 4, finalul.** Cristalul se vinde în Era 4, primul la oraș (ca fierul, cuprul și curentul), și tot cu el începe Era 5? *Recomandat: da.* Altfel ultimele ~11 minute ale erei nu aduc nimic. **Hotărât (owner, 2026-09-29): da.** Cristalul se vinde în Era 4, primul la oraș, și pornește Era 5.
 9. **Erele 5–7.** Curierul care aduce produsul erei vechi vine gratis cu poarta erei noi? Ia el întâi, iar clădirea veche vinde ce rămâne? *Recomandat: da, la amândouă.*
 10. **Era 6.** Un robot face cât un om, doar arată altfel? *Recomandat: da.* Motorul rămâne neschimbat.
 11. **Era 8.** Etapele rachetei se cumpără cu monede, ca un clopot, din banii tuturor liniilor, fără o linie nouă de marfă? Lansarea e renașterea: +50%, fără să pierzi ceva plătit. *Recomandat: da.*
@@ -288,7 +288,7 @@ La fiecare pas: toată poarta din CLAUDE.md, apoi commit și push.
 11. **Cifrele vin din prototipuri care înlocuiesc funcțiile unei copii a simulatorului.** Constantele finale se reglează în `sim_tycoon.py`, cu porțile lui.
 
 
-## 10. Cum au ieșit pașii a–c (2026-09-24)
+## 10. Cum au ieșit pașii a–c (2026-09-24, cu reparațiile verificatorului din 2026-09-29)
 
 **Dovezile că Erele 1–3 sunt neschimbate:** `--table --chain --robust`, rularea simplă, `golden_chain.py` (toate trei blocurile) și trei `tune_tycoon.py eval` (două cu constante suprascrise) ies identice la octet, înainte și după. Tabelele de aur sunt identice jeton cu jeton cu `tests/ChainMath.test.luau`. Poarta e verde.
 
@@ -298,9 +298,11 @@ La fiecare pas: toată poarta din CLAUDE.md, apoi commit și push.
 - O unire închisă sau încă nedeschisă are `supply = 0`. Altfel, oamenii ei de drum ar vinde din piese.
 - **O unire n-are veriga `nets`:** `links()` are doar pașii ei. Locul plaselor îl ia `supply`, verificat înaintea pașilor, ca plasele în fața liniei. Tot așa se caută `own_first` și se dă `credit`.
 - **`held_by`:** la o linie ținută de vânzător e chiar linia. La o piesă ținută de unire e cel al unirii. Altfel e linia căreia îi aparține primul minim.
+- **O piesă a unei uniri care nu merge încă** (turbina fără plasa de cablu) are veriga `nets`, cu `held_by` = prima piesă din `inputs` care nu e deschisă. Ecranul spune „Needs a Cable Net”, nu tace [D43]. Pentru asta, `LineFlow` ține și `is_open`.
+- **Plasa de siguranță:** `silent_lines` găsește liniile active fără verigă slabă (contractul e că `""` înseamnă inactivă). `run` se oprește cu eroare dacă apare una în cronologie. Nicio formă din plan nu ajunge acolo; un caz construit anume (o unire oprită de câmpul ei, cu piesele deschise) e în `check_lines`.
 - **`nets_line`** se scrie doar când veriga globală e `nets` (cu câștig > 0). E prima linie, în `LINE_ORDER`, ale cărei plase au dus câștigul. În rest e `""`.
 - **`Chain.gains`** (câștigul fiecărei verigi) e acum vizibil. Fără el, „amândouă piesele au câștig” nu se putea verifica. `HeldBack` va avea nevoie de aceeași cifră.
-- **`options` sare doar liniile închise de `closeFlag`**, nu și pe cele încă nedeschise. Forja se urcă și înaintea plasei de scrap, iar cu regula largă Era 1 s-ar fi schimbat.
+- **`options` sare doar liniile închise de `closeFlag`**, nu și pe cele încă nedeschise. Simulatorul oglindește jocul, unde o clădire deținută se poate urca și cât linia ei nu e deschisă (forja înaintea plasei de scrap). Pe cifrele Erelor 1–3 nu contează: un asemenea nivel dă 0, iar cumpărătorul lacom nu-l ia. Regula e fixată în `check_lines` (starea „bazin cu cablul închis”).
 - `line_time` numără `supply > 0`, nu `catch > 0`, ca unirea să aibă timpul ei.
 - **`unlock_net_ranked(kind, rank, lane, era)`:** al patrulea parametru e explicit, fiindcă M4 trebuie să vină de undeva. Rangul 5 al Erei 3 e bit cu bit First Turbine.
 - **`nice()`:**
@@ -308,19 +310,23 @@ La fiecare pas: toată poarta din CLAUDE.md, apoi commit și push.
   - până la 10^12 dă aceleași cifre, verificat pe o baleiere;
   - peste scară oprește simulatorul, în loc să întoarcă `int(x)`;
   - `int(x)` putea ieși chiar sub prețul dinainte, iar `int(2.8 × 10^14)` dădea 279999999999999.
-- **Timpul simulatorului:** +14% (6,3 → 7,2 s pentru cele trei ere; `--robust` complet ~124 → ~142 s). Starea deschisă și pașii de mână ai bazinului se socotesc o dată pe linie la fiecare `chain`.
+- **Timpul simulatorului:** +14% (6,3 → 7,2 s pentru cele trei ere). Starea deschisă și pașii de mână ai bazinului se socotesc o dată pe linie la fiecare `chain`.
 
 **`check_lines.py` (pasul b).** A treia copie a simulatorului conține:
 - startul barajului: drumurile 0,9, Cable Works 2/6, Relay 2,8/6, livrat 0,33;
 - bazinul, inclusiv cu o linie nedeschisă în el;
 - egalitatea pe plase și pe oameni: amândouă piesele au câștig, iar fiecare singură dă 0;
 - piesa ținută de unire, cu veriga și `held_by` ale celeilalte;
+- piesa unei uniri care nu merge încă: veriga `nets` a celeilalte piese;
 - unirea ținută de Relay, apoi de vânzător;
-- `closeFlag` și `options`;
+- egalitățile dintre o piesă și Relay: Relay-ul cât turbina (veriga e a pieselor, verificate întâi) și Cable Collector-ul cât Relay-ul (câștigul pe amândouă verigile);
+- `nets_line` gol când venitul nu-l țin plasele și când niciun câștig nu există;
+- `closeFlag` și `options`, cu regula îngustă (clădirile unei linii nedeschise rămân de urcat);
+- plasa de siguranță, pe fiecare stare și pe unirea oprită de câmpul ei;
 - invariantele refuzate;
 - `unlock_net_ranked` și `nice()`.
 
-Piesele au intenționat o valoare ne-zero, ca un venit care le-ar număra să pice. Au fost inversate, pe rând, 15 reguli ale motorului, și fiecare pică verificarea (scriptul de mutații n-a rămas în repo).
+Piesele au intenționat o valoare ne-zero, ca un venit care le-ar număra să pice. Prima variantă lăsa să treacă trei inversări, găsite de verificator: fără garda câștigului la `nets_line`, `nets_line` scris și când veriga nu e `nets`, și pașii unirii verificați înaintea pieselor. Acum sunt inversate, pe rând, 22 de reguli ale motorului, și fiecare pică verificarea (scriptul de mutații n-a rămas în repo).
 
 **`golden_chain.py` (pasul c).** Blocurile tipăresc doar `GOLDEN_LINES` și `GOLDEN_SELLERS` (Erele 1–3). Dovada: cu liniile de probă ale unirii adăugate închise în simulator, iese același text. Fără filtru, `GOLDEN_ERA2` și `GOLDEN_ERA3` s-ar fi schimbat.
 
