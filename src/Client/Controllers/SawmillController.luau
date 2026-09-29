@@ -159,6 +159,7 @@ function SawmillController.Focus(px: number, py: number): Focus.Focus?
     end
     return {
         key = "sawmill",
+        at = STAND,
         distance = d,
         x = SM.x,
         y = TOP_Y - 6,
@@ -211,18 +212,21 @@ function SawmillController.Init(d: Deps)
         corner.Parent = marker
     end
 
-    -- Panza: se misca doar cat taie. Fara pictograma, un disc de otel, ca tot sa se vada miscarea.
-    local bladeArt = Widgets.Icon(marker, "saw", 34)
+    -- Panza: se misca doar cat taie. Fara pictograma, un disc de otel, ca tot sa se vada miscarea. [2026-09-29] Chiar peste
+    -- panza pictata in toate cele patru desene (centrul ei la pixelul 30, 18 din foaia de 40x32, lata de 12 px): mai
+    -- sus cu 24 px, gaterul arata doua panze, iar cea adevarata statea pe loc cat taia.
+    local BLADE_AT = UDim2.fromScale(30 / 40, 18 / 32)
+    local bladeArt = Widgets.Icon(marker, "saw", 36)
     if bladeArt ~= nil then
         bladeArt.AnchorPoint = Vector2.new(0.5, 0.5)
-        bladeArt.Position = UDim2.new(1, -26, 0, 30)
+        bladeArt.Position = BLADE_AT
         bladeArt.ZIndex = 4
         blade = bladeArt
     else
         local disc = Instance.new("Frame")
         disc.Name = "Blade"
         disc.AnchorPoint = Vector2.new(0.5, 0.5)
-        disc.Position = UDim2.new(1, -26, 0, 30)
+        disc.Position = BLADE_AT
         disc.Size = UDim2.fromOffset(26, 26)
         disc.BackgroundColor3 = Color3.fromRGB(176, 184, 196)
         disc.ZIndex = 4

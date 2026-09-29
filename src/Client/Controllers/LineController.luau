@@ -28,6 +28,7 @@ local SceneArt = require(script.Parent.SceneArt)
 local CustomerCrowd = require(script.Parent.Parent.UI.CustomerCrowd)
 local Focus = require(script.Parent.Parent.UI.Focus)
 local GroundShadow = require(script.Parent.Parent.UI.GroundShadow)
+local PadArt = require(script.Parent.Parent.UI.PadArt)
 local PileView = require(script.Parent.Parent.UI.PileView)
 local StandRing = require(script.Parent.Parent.UI.StandRing)
 local Theme = require(script.Parent.Parent.UI.Theme)
@@ -166,6 +167,9 @@ local function drawRuin(b: Building): GuiObject?
     return img
 end
 
+-- Cat urca peste acoperis numele unei cladiri fixe (eticheta de 18 px, cu baza la 4 px peste el): cardul E sta deasupra.
+local NAME_ABOVE = 4 + 18
+
 local function drawBuilding(b: Building): (GuiObject, TextLabel)
     local sprite = uploaded(b.sprite) or uploaded(b.borrowed)
     local art: GuiObject
@@ -201,6 +205,17 @@ local function drawBuilding(b: Building): (GuiObject, TextLabel)
     label.Visible = false
     Theme.punch(label, 2)
     return art, label
+end
+
+-- [2026-09-29] CLADIREA CU NIVELURI A FIECAREI STATII din tabel (atelierul unei linii, vanzatorul): mijlocul ei in lume,
+-- numele si ce sare cand urci un nivel (`art` pentru o cladire fixa, `pad` pentru una de pe platforma). Overlay le
+-- citeste de aici: fara ele, orice nivel al Morii sau al Wire Works isi punea rafala si cifra pe taverna Erei 1, in
+-- afara ecranului, iar bannerul de prag scria "Tavern".
+export type StationSpot = { x: number, y: number, name: string, art: GuiObject?, pad: string? }
+local stationSpots: { [string]: StationSpot } = {}
+
+function LineController.StationSpot(kind: string): StationSpot?
+    return stationSpots[kind]
 end
 
 -- O linie: magazia si atelierul ei. `storeBuilding` / `processorBuilding` = cladirea fixa, cand locul nu e o platforma.
@@ -254,6 +269,49 @@ function LineController.line(
         end
     end
 
+    -- [2026-09-29] Mijlocul si acoperisul cladirii chiar desenate (magazia, atelierul), pentru cardul E: cea fixa are cutia
+    -- ei, cea de pe platforma sta la TycoonConfig.buildingBase, cat desenul ales de PadArt. Cardul socotea inaltimea
+    -- din cifre scrise de mana (144 si pe turnatoria de 96 px, deci plutea la 54 px peste acoperis) si mijlocul din
+    -- gramada (40 px spre stanga la magaziile Morii si ale Wire Works). Cardul sta la 6 px peste acoperis; la cladirea
+    -- fixa, deasupra numelui ei, care sta si el peste acoperis (drawBuilding: 18 px, cu baza la 4 px peste el).
+    -- Intoarce mijlocul (x), acoperisul, baza si unde sta baza cardului E.
+    local function roofOf(
+        building: Building?,
+        padId: string?,
+        fallbackX: number,
+        fallbackBase: number,
+        fallbackH: number
+    ): (number, number, number, number)
+        if building ~= nil then
+            local roof = building.y - building.h
+            return building.x, roof, building.y, roof - NAME_ABOVE - 6
+        end
+        local pad = if padId ~= nil then TycoonConfig.byId[padId] else nil
+        if pad ~= nil and pad.x ~= nil and pad.y ~= nil then
+            local sprite, scale = PadArt.bought(pad.id, 0)
+            local h = if sprite ~= nil then sprite.height * scale else fallbackH
+            local base = TycoonConfig.buildingBase(pad)
+            return pad.x :: number, base - h, base, base - h - 6
+        end
+        return fallbackX, fallbackBase - fallbackH, fallbackBase, fallbackBase - fallbackH - 6
+    end
+    local storeX, _, _, storeCardY =
+        roofOf(storeBuilding, flow.storePad, places.storePile.x + 100, places.storePile.y, 96)
+    local processorX, processorRoof, processorBase, processorCardY = roofOf(
+        processorBuilding,
+        flow.processorPad,
+        (places.inPile.x + places.outPile.x) / 2,
+        places.inPile.y,
+        144
+    )
+    stationSpots[flow.station] = {
+        x = processorX,
+        y = (processorRoof + processorBase) / 2,
+        name = words.processor,
+        art = processorArt,
+        pad = if processorBuilding == nil then flow.processorPad else nil,
+    }
+
     StandRing.new({
         plot = deps.Plot,
         name = flow.processor,
@@ -286,7 +344,7 @@ function LineController.line(
         if box == nil and pad ~= nil and pad.x ~= nil and pad.y ~= nil then
             box = {
                 x = pad.x :: number,
-                y = (pad.y :: number) + 8, -- cum prinde PadController desenul de platforma
+                y = TycoonConfig.buildingBase(pad), -- unde prinde PadController desenul de platforma
                 w = smoke.w * Assets.PIXEL_SCALE,
                 h = smoke.h * Assets.PIXEL_SCALE,
                 sprite = "",
@@ -377,9 +435,10 @@ function LineController.line(
         end
         return {
             key = flow.store,
+            at = places.storeStand,
             distance = d,
-            x = places.storePile.x + 60,
-            y = places.storePile.y - 96 - 6,
+            x = storeX,
+            y = storeCardY,
             action = text,
             act = if text ~= nil
                 then function()
@@ -410,9 +469,10 @@ function LineController.line(
         end
         return {
             key = flow.processor,
+            at = places.playerStand,
             distance = d,
-            x = (places.inPile.x + places.outPile.x) / 2,
-            y = places.inPile.y - 144 - 6,
+            x = processorX,
+            y = processorCardY,
             action = text,
             act = if text ~= nil
                 then function()
@@ -441,6 +501,12 @@ function LineController.seller(seller: string, building: Building): Seller
     local pile = PileView.new(deps.Plot, places.pile.x, places.pile.y, { warnAt = 60 })
     local art, label = drawBuilding(building)
     local ruin = drawRuin(building)
+    stationSpots[flow.station] = {
+        x = building.x,
+        y = building.y - building.h / 2,
+        name = building.label,
+        art = art,
+    }
     -- [D50, D65] clientii: vin cat vinde vanzatorul chiar acum si pleaca acasa cu marfa in brate (UI/CustomerCrowd)
     local crowd = CustomerCrowd.new({
         plot = deps.Plot,
@@ -489,9 +555,10 @@ function LineController.seller(seller: string, building: Building): Seller
         end
         return {
             key = seller,
+            at = places.door,
             distance = d,
             x = building.x,
-            y = building.y - building.h - 6,
+            y = building.y - building.h - NAME_ABOVE - 6, -- deasupra numelui, ca la atelier si la magazie
             action = text,
             act = if text ~= nil
                 then function()

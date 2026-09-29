@@ -106,6 +106,7 @@ function StorageController.Focus(px: number, py: number): Focus.Focus?
         else nil
     return {
         key = "storage",
+        at = STAND,
         distance = d,
         x = ST.x,
         y = ST.y - ST.h - 6,

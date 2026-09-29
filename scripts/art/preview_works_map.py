@@ -40,6 +40,7 @@ PAD_ART = {
     "hire_power_hauler": ("prop_hut_power_hauler_2", 3),
 }
 ART_OFFSET_Y = {}  # nimic in rau (turbina o deseneaza NetController, in larg)
+BUILDING_BASE = 48 + 8  # TycoonConfig.buildingBase: y + PAD_SIZE/2 + BUILDING_DROP
 FIXED = {"WORKS_STORE": "prop_works_store", "WIRE_WORKS": "prop_wire_works", "DEPOT": "prop_depot"}
 DECOR = {"tree_round": "prop_tree_round", "tree_pine": "prop_tree_pine", "bush": "prop_bush"}
 
@@ -118,7 +119,7 @@ def main():
     for pad in G["pads"]:
         art = PAD_ART.get(pad["id"])
         if art is not None:
-            base = pad["y"] + 8 + ART_OFFSET_Y.get(pad["id"], 0)
+            base = pad["y"] + BUILDING_BASE + ART_OFFSET_Y.get(pad["id"], 0)
             things.append((pad["y"], art[0], pad["x"], base, art[1], places["names"].get(pad["id"], "")))
     for lamp in places.get("lamps", []):  # felinarele aprinse (TycoonConfig.streetLamps)
         if wx0 <= lamp["x"] <= wx1:

@@ -6,12 +6,24 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Assets = require(ReplicatedStorage.Shared.Config.Assets)
+local Strings = require(ReplicatedStorage.Shared.Config.Strings)
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 local ChainMath = require(ReplicatedStorage.Shared.Modules.ChainMath)
 local GoodArt = require(script.Parent.GoodArt)
 local Modern = require(script.Parent.Modern)
 
 local PadArt = {}
+
+-- [D58, D65, D67] Atelierele care stau pe o platforma isi poarta numele pe acoperis, ROOF_SIGN_Y px sub varful
+-- cladirii, ca firma tavernei (DockController): forja, cuptorul de cupru, Power House. Turnatoria si Wire Works sunt
+-- cladiri fixe, cu numele pus de LineController. [2026-09-29] O singura lista, pentru sat si pentru satul vizitat din
+-- balci: macheta avea doar forja, iar cuptorul si Power House stateau acolo fara nume.
+PadArt.ROOF_SIGN = {
+    workshop = Strings.FORGE_LABEL,
+    copper_furnace = Strings.LINE_WORDS.copper.processor,
+    power_house = Strings.LINE_WORDS.power.processor,
+} :: { [string]: string }
+PadArt.ROOF_SIGN_Y = 30
 
 -- [D55] COLIBELE. Platforma unei meserii cumparate arata casa omului, mica pentru unul si mare pentru doi.
 PadArt.HOME_SPRITES = {
@@ -432,11 +444,17 @@ function PadArt.chimneyOf(padId: string, count: number): { number }?
 end
 
 -- [D65] DESENE CARE NU STAU PE PLATFORMA LOR. Roata de apa se cumpara de pe punte (platforma ei e acolo, ca jucatorul
--- sa ajunga la ea), dar sta IN RAU: desenul si ruina ei urca pana cu baza la marginea de sus a puntii (platforma e la
--- y 812, puntea incepe la 772), altfel piciorul de piatra si spuma ar fi stat peste scanduri. `inWater` = fara umbra pe
+-- sa ajunga la ea), dar sta IN RAU: desenul si ruina ei urca pana cu baza la marginea de sus a puntii (TycoonConfig.DECK,
+-- 772; 4 px peste scanduri), altfel piciorul de piatra si spuma ar sta pe scanduri. Decalajul e fata de baza oricarei
+-- cladiri de pe platforma (TycoonConfig.buildingBase). [2026-09-29] Era -44, masurat pe o plansa care punea baza la
+-- pad.y + 8: in joc roata statea cu 48 px mai jos, cu piciorul si spuma chiar pe scanduri. `inWater` = fara umbra pe
 -- pamant (o pata intunecata pe apa ar arata a defect).
+local WHEEL_FOOT = TycoonConfig.DECK.y0 + 4
 PadArt.ART_OFFSET = {
-    water_wheel = { y = -44, inWater = true },
+    water_wheel = {
+        y = WHEEL_FOOT - TycoonConfig.buildingBase(TycoonConfig.byId.water_wheel),
+        inWater = true,
+    },
 } :: { [string]: { y: number, inWater: boolean } }
 
 -- [D58] Numele de sub casa unei meserii, sau nil daca platforma nu e a unei meserii.

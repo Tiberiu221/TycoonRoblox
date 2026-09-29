@@ -189,6 +189,7 @@ function VillageController.Focus(px: number, py: number): Focus.Focus?
     local keyHint = if UserInputService.KeyboardEnabled then " (E)" else ""
     return {
         key = "board",
+        at = { x = stand.x, y = stand.y - 20 },
         distance = distance,
         x = stand.x,
         y = stand.y - Assets.tycoon.village_board.height * BOARD_SCALE - 8,

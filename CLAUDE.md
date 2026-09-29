@@ -121,6 +121,12 @@ stylua/selene o prind. Rulează-le mereu pe toate, nu înlănțuite după o eroa
   Era 4.
 - **Capcana sondei:** dacă Studio nu e conectat la Rojo, Play-ul rulează codul vechi, fără nicio eroare. Verifică înainte:
   `lsof -nP -iTCP:34872` trebuie să arate o legătură `ESTABLISHED`, nu doar `LISTEN`.
+- **Baza unei clădiri de pe platformă e `TycoonConfig.buildingBase(p)`** (y + 48 + 8). Orice desen pus față de o clădire
+  (fum, fir, card, inel, nume) o citește de acolo. Cine o socotea singur greșea cu 48 px: fumul Power House, roata de apă
+  pe scânduri, planșele Morii. Sweep-ul și reparațiile din 2026-09-29 sunt în commit, cu cinci runde de verificator.
+- **Ghidajul și cardul E:** cardul unui loc are `at` (punctul din care se măsoară). Ghidajul își retrage săgeata doar
+  pentru cardul locului spre care arată (`InteractController.ShownAt`). O regulă după geometria cardului a produs cazuri noi
+  la fiecare rundă. Rămâne o sarcină separată: cardul țintei să câștige tasta E lângă țintă (ponton, avizier).
 
 ## Stare (2026-09-24) [D67 după audit, D68]
 

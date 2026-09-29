@@ -427,6 +427,10 @@ safeInit("InteractController", function()
         CharacterPos = CharacterController.Position,
         OpenStation = openStation,
         OnToast = HUDController.Toast,
+        ViewTop = function(): number
+            local _, camY = CameraController.WorldOrigin()
+            return camY - TycoonConfig.PLOT_ORIGIN.y
+        end,
     })
 end)
 

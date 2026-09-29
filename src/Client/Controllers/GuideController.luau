@@ -32,6 +32,10 @@ export type Deps = {
     HudGui: Frame,
     CharacterPos: () -> (number, number),
     WorldToHud: (number, number) -> (number, number),
+    -- [2026-09-29] varful placii de pret a unei platforme (PadController.TagTop), ca sageata sa stea deasupra ei
+    TagTop: ((padId: string) -> number?)?,
+    -- [2026-09-29] punctul locului al carui card E e pe ecran (InteractController.ShownAt), sau nil
+    CardAt: (() -> (number?, number?))?,
 }
 
 local GuideController = {}
@@ -75,10 +79,10 @@ local TRAIL_END_GAP = 40 -- se opreste inainte de inel
 local ROUTE_REFRESH = 0.5
 local ROUTE_MOVE = 24
 local RING_W, RING_H = 96, 48
+local SAME_PLACE = 24 -- cat de aproape e punctul cardului de tinta ca sa fie acelasi loc (px de lume)
 local ARROW_BOX_H = 104 -- inaltimea marcajului: eticheta sus, sageata jos
--- [D52] Unde poate sta eticheta, fata de tinta (px de lume): varful ei deasupra (implicit) sau sub inel.
--- GuideMath.labelPlacement alege, ca textul sa nu ramana sub panourile HUD-ului.
-local LABEL_TOP = WORLD_ARROW_Y_OFFSET + ARROW_BOX_H
+-- [D52] Unde poate sta eticheta: deasupra marcajului (implicit, varful lui e la ARROW_BOX_H peste baza sagetii) sau sub
+-- inel, la LABEL_BELOW px sub mijlocul lui. GuideMath.labelPlacement alege, ca textul sa nu ramana sub panourile HUD-ului.
 local LABEL_BELOW = RING_H / 2 + 10
 local labelPlace = "above" -- "above" | "below" | "hidden"
 
@@ -325,17 +329,18 @@ end
 -- [D52] Eticheta de deasupra tintei sta in lume, deci SUB HUD. Cu taverna sus-stanga (cand esti la
 -- gater), textul cadea chiar sub monede, traista si linia NEXT si nu se mai citea [owner, Studio,
 -- 2026-09-13]. Acum: deasupra daca e loc, altfel sub inel, altfel deloc -- si intreaga pe ecran.
-local function placeLabel(gx: number, gy: number, w: number, h: number)
+-- `arrowY` = baza marcajului (sageata), `ringY` = mijlocul inelului, amandoua in lume.
+local function placeLabel(gx: number, arrowY: number, ringY: number, w: number, h: number)
     local scale = hudScale()
     local width, height = worldLabel.AbsoluteSize.X / scale, worldLabel.AbsoluteSize.Y / scale
-    local cx = deps.WorldToHud(gx, gy)
-    local rx = deps.WorldToHud(gx + 100, gy)
+    local cx = deps.WorldToHud(gx, ringY)
+    local rx = deps.WorldToHud(gx + 100, ringY)
     local perWorld = (rx - cx) / 100 -- px de panza pe px de lume
     if width <= 0 or perWorld <= 0 then
         return -- eticheta inca nemasurata (primul cadru): ramane unde era
     end
-    local _, aboveY = deps.WorldToHud(gx, gy - LABEL_TOP)
-    local _, belowY = deps.WorldToHud(gx, gy + LABEL_BELOW)
+    local _, aboveY = deps.WorldToHud(gx, arrowY - ARROW_BOX_H)
+    local _, belowY = deps.WorldToHud(gx, ringY + LABEL_BELOW)
     local place, shift = GuideMath.labelPlacement({
         centerX = cx,
         aboveY = aboveY,
@@ -349,8 +354,46 @@ local function placeLabel(gx: number, gy: number, w: number, h: number)
     })
     labelPlace = place
     worldLabel.Visible = place ~= "hidden"
-    local down = if place == "below" then LABEL_TOP + LABEL_BELOW else 0
+    -- sub inel: de la varful marcajului (arrowY - ARROW_BOX_H) pana sub inel
+    local down = if place == "below" then (ringY + LABEL_BELOW) - (arrowY - ARROW_BOX_H) else 0
     worldLabel.Position = UDim2.new(0.5, shift / perWorld, 0, down)
+end
+
+-- [2026-09-29] UNDE SE DESENEAZA TINTA UNEI PLATFORME. Tinta e mijlocul platformei (de acolo se masoara si cat de
+-- aproape esti), dar cladirea ei sta cu baza cu 56 px mai jos si e desenata PESTE inel: la o ruina sau o cladire
+-- inalta, inelul ramanea ascuns in spatele ei, iar sageata, la 78 px fix peste mijloc, cadea pe placa de pret. Acum
+-- inelul sta pe pamant, in fata talpii cladirii, iar sageata urca deasupra placii de pret cand ar sta pe ea. Inelul
+-- plaselor si al rotii de apa (in rau) ramane pe mijlocul platformei, pe punte.
+local function goalMarks(goal: GuideMath.Goal, gx: number, gy: number): (number, number)
+    local arrowY, ringY = gy - WORLD_ARROW_Y_OFFSET, gy
+    local pad = if goal.padId ~= nil then TycoonConfig.byId[goal.padId] else nil
+    if pad == nil or pad.x ~= gx or pad.y ~= gy then
+        return arrowY, ringY -- tinta nu e chiar platforma (inelul unui atelier, o usa)
+    end
+    local net = false
+    for _, e in pad.effects do
+        if e.kind == "net" then
+            net = true
+        end
+    end
+    if not net and pad.id ~= "water_wheel" then
+        ringY = TycoonConfig.buildingBase(pad) + RING_H / 2 - 12
+    end
+    -- sageata urca deasupra placii de pret doar la o cladire de pe mal si doar cand ar sta chiar pe ea (cutia ei, cu saltul
+    -- de 16 px, peste cei 28 px ai placii). La plase, la turbina si la roata de apa placa e sus in rau: sageata ramane
+    -- peste stalpul de pe punte [owner, 2026-09-12: sus, "parea ca arata spre rau"]
+    local tagTopOf = deps.TagTop
+    local tagTop = if tagTopOf ~= nil then tagTopOf(pad.id) else nil
+    if
+        not net
+        and pad.id ~= "water_wheel"
+        and tagTop ~= nil
+        and arrowY > tagTop
+        and arrowY - ARROW_SIZE - 16 < tagTop + 28
+    then
+        arrowY = tagTop - 4
+    end
+    return arrowY, ringY
 end
 
 local function hideTrail()
@@ -455,11 +498,12 @@ local function updateGuideVisuals()
     end
 
     local now = os.clock()
-    refreshRoute(goal, gx, gy, px, py, now)
+    local arrowY, ringY = goalMarks(goal, gx, gy)
+    refreshRoute(goal, gx, ringY, px, py, now)
     drawTrail(now)
 
     local pulse = (math.sin(now * 3.2) + 1) / 2
-    ring.Position = UDim2.fromOffset(gx, gy)
+    ring.Position = UDim2.fromOffset(gx, ringY)
     if ring:IsA("ImageLabel") then
         setAlpha(ring, 0.3 - 0.25 * pulse, Theme.COLOR.gold)
     else
@@ -473,7 +517,6 @@ local function updateGuideVisuals()
     ring.Visible = true
 
     worldLabel.Text = goal.text
-    worldArrow.Position = UDim2.fromOffset(gx, gy - WORLD_ARROW_Y_OFFSET)
 
     local w, h = canvasSize()
     if w <= 0 or h <= 0 then
@@ -483,10 +526,37 @@ local function updateGuideVisuals()
     end
     local hx, hy = deps.WorldToHud(gx, gy)
     local onScreen = hx >= 0 and hx <= w and hy >= 0 and hy <= h
-    worldArrow.Visible = onScreen
-    edgeGroup.Visible = not onScreen
     if onScreen then
-        placeLabel(gx, gy, w, h)
+        -- [2026-09-29] tinta e pe ecran, dar sageata de deasupra ei (cu saltul) poate iesi pe sus, iar indicatorul de
+        -- margine nu apare: sageata coboara cat sa ramana in ecran
+        local _, topHud = deps.WorldToHud(gx, arrowY - ARROW_SIZE - 16)
+        local _, zeroHud = deps.WorldToHud(gx, 0)
+        local _, hundredHud = deps.WorldToHud(gx, 100)
+        local perWorld = (hundredHud - zeroHud) / 100
+        if topHud < EDGE_MARGIN / 2 and perWorld > 0 then
+            arrowY = math.min(ringY, arrowY + (EDGE_MARGIN / 2 - topHud) / perWorld)
+        end
+    end
+    worldArrow.Position = UDim2.fromOffset(gx, arrowY)
+    -- [2026-09-29] Cand cardul E de pe ecran e chiar al locului spre care arata ghidajul (inelul unui atelier, magazia,
+    -- usa vanzatorului, plasa, pontonul, avizierul: campul `at` al cardului e punctul tintei), cardul spune ce e de facut, iar sageata si
+    -- eticheta ghidajului (desenate peste teren, deci si peste card) i-ar acoperi butoanele: se retrag, inelul si dara
+    -- raman. Cardul altui obiect (barca, indicatorul rotii, casa vecina) nu retrage nimic. Avizierul isi masoara cardul de
+    -- la 20 px mai sus decat tinta, de aici toleranta.
+    local cardAt = deps.CardAt
+    local shownX, shownY = nil, nil
+    if cardAt ~= nil then
+        shownX, shownY = cardAt()
+    end
+    local atPlace = goal.padId == nil
+        and shownX ~= nil
+        and shownY ~= nil
+        and math.abs(shownX - gx) <= SAME_PLACE
+        and math.abs(shownY - gy) <= SAME_PLACE
+    worldArrow.Visible = onScreen and not atPlace
+    edgeGroup.Visible = not onScreen
+    if onScreen and not atPlace then
+        placeLabel(gx, arrowY, ringY, w, h)
     end
     if not onScreen then
         local ex, ey = clampToEdge(hx, hy, w, h)

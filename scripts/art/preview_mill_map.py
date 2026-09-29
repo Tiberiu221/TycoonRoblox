@@ -39,7 +39,8 @@ PAD_ART = {
     "hire_coppersmith": ("prop_hut_coppersmith_2", 3),
     "hire_copper_hauler": ("prop_hut_copper_hauler_2", 3),
 }
-ART_OFFSET_Y = {"water_wheel": -44}  # PadArt.ART_OFFSET
+ART_OFFSET_Y = {"water_wheel": -92}  # PadArt.ART_OFFSET: baza la DECK.y0 + 4 (776), fata de baza cladirii (868)
+BUILDING_BASE = 48 + 8  # TycoonConfig.buildingBase: y + PAD_SIZE/2 + BUILDING_DROP
 FIXED = {"MILL_STORE": "prop_mill_store", "FOUNDRY": "prop_foundry", "MARKET": "prop_market"}
 DECOR = {"tree_round": "prop_tree_round", "tree_pine": "prop_tree_pine", "bush": "prop_bush"}
 
@@ -118,7 +119,7 @@ def main():
     for pad in G["pads"]:
         art = PAD_ART.get(pad["id"])
         if art is not None:
-            base = pad["y"] + 8 + ART_OFFSET_Y.get(pad["id"], 0)
+            base = pad["y"] + BUILDING_BASE + ART_OFFSET_Y.get(pad["id"], 0)
             things.append((pad["y"], art[0], pad["x"], base, art[1], places["names"].get(pad["id"], "")))
     for item in G["scattered"]:
         sprite = DECOR.get(item["kind"])

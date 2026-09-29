@@ -77,7 +77,7 @@ local smokeClock = 0
 local SMOKE_FRAME = 10
 
 local function base(): (number, number)
-    return PAD.x :: number, (PAD.y :: number) + 56
+    return PAD.x :: number, TycoonConfig.buildingBase(PAD)
 end
 
 local function puff()
@@ -163,6 +163,7 @@ function ForgeController.Focus(px: number, py: number): Focus.Focus?
     local x, b = base()
     return {
         key = "forge",
+        at = STAND,
         distance = d,
         x = x,
         y = b - BUILDING_H - 6,

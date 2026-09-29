@@ -63,7 +63,7 @@ function PierController.Focus(px: number, py: number): Focus.Focus?
     if d > math.min(SPOT_DISTANCE, RiverConfig.INTERACT_DISTANCE) then
         return nil
     end
-    local f: Focus.Focus = { key = "pier", distance = d, x = STAND.x, y = STAND.y - 84 }
+    local f: Focus.Focus = { key = "pier", at = STAND, distance = d, x = STAND.x, y = STAND.y - 84 }
     if r.state() ~= "idle" then
         return f
     end

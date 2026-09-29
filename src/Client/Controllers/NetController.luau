@@ -568,6 +568,7 @@ function NetController.Focus(px: number, py: number): Focus.Focus?
     end
     return {
         key = `net:{id}`,
+        at = { x = pad.x :: number, y = pad.y :: number },
         distance = bestD,
         x = pad.x :: number,
         y = (pad.y :: number) - 56,

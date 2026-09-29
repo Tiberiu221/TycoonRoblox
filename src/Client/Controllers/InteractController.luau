@@ -45,6 +45,8 @@ export type Deps = {
     OpenStation: (string, string?) -> (),
     -- E pe un card fara actiune spune de ce (starea lui), nu tace [D43]
     OnToast: (string) -> (),
+    -- [2026-09-29] y-ul (pe teren) al marginii de sus a ecranului: cardul nu iese pe sus (pe telefon, cel al Pietei)
+    ViewTop: (() -> number)?,
 }
 
 export type StationRow = { kind: string, id: string?, costs: { number } }
@@ -169,7 +171,13 @@ local function update()
     end
     current = f
 
-    card.Position = UDim2.fromOffset(math.round(f.x), math.round(f.y))
+    -- [2026-09-29] tinut in ecran: pe telefon (~460 px de teren pe inaltime) cardul Pietei si al tavernei iesea pe sus
+    local y = f.y
+    local viewTop = deps.ViewTop
+    if viewTop ~= nil then
+        y = math.max(y, viewTop() + CARD_H + 8)
+    end
+    card.Position = UDim2.fromOffset(math.round(f.x), math.round(y))
     local action = f.action
     if action ~= shownAction then
         shownAction = action
@@ -228,6 +236,17 @@ function InteractController.SetContext(
 end
 
 -- E si butonul rotund de pe telefon: ce scrie pe card; fara card, cumpararea de pe cartonas.
+-- [2026-09-29] Punctul locului al carui card e pe ecran acum (campul `at` al cardului), sau nil: ghidajul isi retrage sageata cand
+-- cardul e chiar al locului spre care arata (altfel eticheta lui se desena peste butoanele cardului).
+function InteractController.ShownAt(): (number?, number?)
+    local f = current
+    if card == nil or not card.Visible or f == nil or f.at == nil then
+        return nil, nil
+    end
+    local at = f.at :: { x: number, y: number }
+    return at.x, at.y
+end
+
 function InteractController.Interact()
     local f = current
     if f ~= nil and f.act ~= nil then

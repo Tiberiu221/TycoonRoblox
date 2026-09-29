@@ -133,8 +133,7 @@ function ModernProps.draw(parent: GuiObject, stage: number): Props
         then
             local fx, fy = ModernConfig.feedPoint(
                 house.x :: number,
-                house.y :: number,
-                TycoonConfig.PAD_SIZE,
+                TycoonConfig.buildingBase(house),
                 houseArt.width,
                 houseArt.height,
                 SCALE

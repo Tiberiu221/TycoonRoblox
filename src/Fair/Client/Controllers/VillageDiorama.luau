@@ -49,7 +49,6 @@ VillageDiorama.GUEST_BOOK = { x = 760, y = 1300 }
 
 local ROOT_Z = 50 -- sub obiectele balciului (FairScene.Z.OBJECTS = 100), deci sub omul tau
 local LOCKED_TINT = Color3.fromRGB(200, 196, 188) -- ruinele, usor stinse (ca in PadController)
-local HALF = TycoonConfig.PAD_SIZE / 2
 local GUEST_BOOK_SCALE = TycoonConfig.PROP_SCALE
 
 local scroll: Frame? = nil
@@ -128,13 +127,19 @@ local function tierPips(parent: Instance, x: number, y: number, tier: number)
     end
 end
 
+-- Unde sta numele unei cladiri fixe, ca acasa: "inside" = jos, pe fata ei (depozitul, gaterul: StorageController,
+-- SawmillController), "roof" = firma pe acoperis (taverna: DockController), "above" = deasupra acoperisului (cladirile
+-- Morii si ale Wire Works: LineController.drawBuilding, cu baza etichetei la 4 px peste acoperis). [2026-09-29] Macheta
+-- punea si cladirile Morii dupa regula Erei 1: numele lor cadeau pe usa sau pe acoperis, cu 52-94 px mai jos decat acasa.
+type LabelAt = "inside" | "roof" | "above"
+
 -- O cladire prefabricata (taverna, depozitul, gaterul): desenul intins pe cutia ei din TycoonConfig.
 local function station(
     parent: Instance,
     sprite: Assets.Sprite?,
     box: { x: number, y: number, w: number, h: number },
     label: string,
-    labelAtTop: boolean,
+    labelAt: LabelAt,
     stage: number? -- [D70] treapta modernizarii gazdei (doar cladirile satului vechi au lumini)
 )
     GroundShadow.add(parent, UDim2.fromOffset(box.x, box.y), box.w, 2)
@@ -154,13 +159,17 @@ local function station(
         f.ZIndex = 3
         f.Parent = parent
     end
-    worldName(
-        parent,
-        label,
-        box.x,
-        if labelAtTop then box.y - box.h + 30 else box.y - 24,
-        box.w - 8
-    )
+    if labelAt == "above" then
+        worldName(parent, label, box.x, box.y - box.h - 4 - 18, math.max(box.w, 120))
+    else
+        worldName(
+            parent,
+            label,
+            box.x,
+            if labelAt == "roof" then box.y - box.h + 30 else box.y - 24,
+            box.w - 8
+        )
+    end
 end
 
 -- Plasa cumparata: stalpul pe punte, funia, plasa pe banda ei si insigna nivelului (ca in NetController).
@@ -289,7 +298,7 @@ local function drawRuin(parent: Instance, pad: TycoonConfig.Pad)
             parent,
             sprite,
             x,
-            y + HALF + 8 + (if offset ~= nil then offset.y else 0),
+            TycoonConfig.buildingBase(pad) + (if offset ~= nil then offset.y else 0),
             sprite.width * scale,
             sprite.height * scale,
             4,
@@ -305,10 +314,10 @@ local function drawBought(parent: Instance, pad: TycoonConfig.Pad, village: Vill
         drawNet(parent, pad, village.netLevels[pad.id] or 1)
         return
     end
-    local x, y = pad.x :: number, pad.y :: number
+    local x = pad.x :: number
     -- [D67, audit] un desen care nu sta pe platforma lui (roata de apa, in rau), ca acasa: PadArt.ART_OFFSET
     local offset = PadArt.ART_OFFSET[pad.id]
-    local base = y + HALF + 8 + (if offset ~= nil then offset.y else 0)
+    local base = TycoonConfig.buildingBase(pad) + (if offset ~= nil then offset.y else 0)
     local shadow = if offset ~= nil and offset.inWater then nil else 0.55
     local role = TycoonConfig.CREW_OF_PAD[pad.id]
     local count = if role ~= nil then village.crews[role] or 1 else 1
@@ -342,8 +351,17 @@ local function drawBought(parent: Instance, pad: TycoonConfig.Pad, village: Vill
             if chimney ~= nil then
                 SceneArt.AddSmoke(house, chimney[1], chimney[2])
             end
-        elseif pad.id == "workshop" then
-            worldName(parent, Strings.FORGE_LABEL, x, base - sprite.height * scale + 30)
+        elseif PadArt.ROOF_SIGN[pad.id] ~= nil then
+            -- forja, cuptorul de cupru, Power House: numele pe acoperis, din aceeasi lista ca acasa
+            worldName(
+                parent,
+                PadArt.ROOF_SIGN[pad.id],
+                x,
+                base - sprite.height * scale + PadArt.ROOF_SIGN_Y
+            )
+        elseif pad.id == "scrap_shed" then
+            -- [2026-09-29] ca ShedController: numele jos, pe fata magaziei (baza etichetei la 6 px peste baza ei)
+            worldName(parent, Strings.SHED_LABEL, x, base - 24, 112)
         end
         return
     end
@@ -506,7 +524,7 @@ function VillageDiorama.Show(village: VillageLook.Snapshot)
         PadArt.station("dock", village.stations.dock, village.modern),
         TycoonConfig.TAVERN,
         Strings.TAVERN_LABEL,
-        true,
+        "roof",
         village.modern
     )
     station(
@@ -514,7 +532,7 @@ function VillageDiorama.Show(village: VillageLook.Snapshot)
         Modern.variant((Assets.tycoon :: any).storage, village.modern),
         TycoonConfig.STORAGE,
         Strings.STORAGE_LABEL,
-        false,
+        "inside",
         village.modern
     )
     station(
@@ -522,7 +540,7 @@ function VillageDiorama.Show(village: VillageLook.Snapshot)
         PadArt.station("saw", village.stations.saw, village.modern),
         TycoonConfig.SAWMILL,
         Strings.SAWMILL_LABEL,
-        false,
+        "inside",
         village.modern
     )
 
@@ -534,18 +552,53 @@ function VillageDiorama.Show(village: VillageLook.Snapshot)
         local sprite = tycoon[own]
         return if sprite ~= nil and Assets.has(sprite) then sprite else tycoon[borrowed]
     end
+    -- [2026-09-29] cat cartierul e inchis, ruinele lor, ca acasa (LineController.drawRuin: fara nume, fara tenta)
+    local function ruinOf(key: string, box: { x: number, y: number, w: number, h: number })
+        local sprite = tycoon["ruin_" .. key]
+        if sprite ~= nil and Assets.has(sprite) then
+            standing(p, sprite, box.x, box.y, box.w, box.h, 3, nil)
+        end
+    end
     if village.pads.water_wheel then
         local words = Strings.LINE_WORDS.parts
-        station(p, art("mill_store", "storage"), TycoonConfig.MILL_STORE, words.store, false)
-        station(p, art("foundry", "sawmill"), TycoonConfig.FOUNDRY, words.processor, false)
-        station(p, art("market", "tavern"), TycoonConfig.MARKET, Strings.MARKET_LABEL, true)
+        station(p, art("mill_store", "storage"), TycoonConfig.MILL_STORE, words.store, "above")
+        station(p, art("foundry", "sawmill"), TycoonConfig.FOUNDRY, words.processor, "above")
+        station(p, art("market", "tavern"), TycoonConfig.MARKET, Strings.MARKET_LABEL, "above")
+    else
+        ruinOf("mill_store", TycoonConfig.MILL_STORE)
+        ruinOf("foundry", TycoonConfig.FOUNDRY)
+        ruinOf("market", TycoonConfig.MARKET)
     end
     -- [D67] si ale Wire Works, cu masina cu abur (cat Era 3 e in joc: altfel platforma ei nu poate fi cumparata)
-    if village.pads.steam_engine and TycoonConfig.eraIsLive(3) then
-        local words = Strings.LINE_WORDS.coils
-        station(p, art("works_store", "mill_store"), TycoonConfig.WORKS_STORE, words.store, false)
-        station(p, art("wire_works", "foundry"), TycoonConfig.WIRE_WORKS, words.processor, false)
-        station(p, art("depot", "market"), TycoonConfig.DEPOT, Strings.LINK_WORDS.depot.label, true)
+    if TycoonConfig.eraIsLive(3) then
+        if village.pads.steam_engine then
+            local words = Strings.LINE_WORDS.coils
+            station(
+                p,
+                art("works_store", "mill_store"),
+                TycoonConfig.WORKS_STORE,
+                words.store,
+                "above"
+            )
+            station(
+                p,
+                art("wire_works", "foundry"),
+                TycoonConfig.WIRE_WORKS,
+                words.processor,
+                "above"
+            )
+            station(
+                p,
+                art("depot", "market"),
+                TycoonConfig.DEPOT,
+                Strings.LINK_WORDS.depot.label,
+                "above"
+            )
+        else
+            ruinOf("works_store", TycoonConfig.WORKS_STORE)
+            ruinOf("wire_works", TycoonConfig.WIRE_WORKS)
+            ruinOf("depot", TycoonConfig.DEPOT)
+        end
     end
 
     for _, pad in TycoonConfig.PADS do

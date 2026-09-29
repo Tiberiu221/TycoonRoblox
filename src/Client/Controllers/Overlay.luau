@@ -31,6 +31,7 @@ local GuideController = require(script.Parent.GuideController)
 local HUDController = require(script.Parent.HUDController)
 local InteractController = require(script.Parent.InteractController)
 local JuiceController = require(script.Parent.JuiceController)
+local LineController = require(script.Parent.LineController)
 local NetController = require(script.Parent.NetController)
 local PadController = require(script.Parent.PadController)
 local SoundController = require(script.Parent.SoundController)
@@ -374,16 +375,32 @@ local function stationSpot(kind: string, id: string?): (number?, number?, string
         local x, y = padScreenPos("workshop")
         return x, y, Strings.FORGE_LABEL
     end
+    -- [2026-09-29] cladirile Morii si ale Wire Works: fiecare linie isi spune singura unde e (LineController)
+    local spot = LineController.StationSpot(kind)
+    if spot ~= nil then
+        local x, y = deps.WorldToHud(spot.x, spot.y)
+        return x, y, spot.name
+    end
+    if kind ~= "saw" and kind ~= "dock" then
+        return nil, nil, "" -- o statie necunoscuta nu-si pune efectul pe alta cladire
+    end
     local at = if kind == "saw" then TycoonConfig.SAWMILL else TycoonConfig.TAVERN
     local x, y = deps.WorldToHud(at.x, at.y - at.h / 2)
     return x, y, if kind == "saw" then Strings.SAWMILL_LABEL else Strings.TAVERN_LABEL
 end
 
 local function popStation(kind: string, id: string?)
+    local spot = LineController.StationSpot(kind)
     if kind == "net" and id ~= nil then
         NetController.Celebrate(id)
     elseif kind == "forge" then
         PadController.Pop("workshop")
+    elseif spot ~= nil then
+        if spot.pad ~= nil then
+            PadController.Pop(spot.pad)
+        elseif spot.art ~= nil then
+            Pop.play(spot.art, 1.1)
+        end
     else
         local marker = deps.Plot:FindFirstChild(STATION_MARKER[kind] or "")
         if marker ~= nil and marker:IsA("GuiObject") then
@@ -582,6 +599,8 @@ function Overlay.Init(d: Deps)
         HudGui = deps.HudGui,
         CharacterPos = deps.CharacterPos,
         WorldToHud = deps.WorldToHud,
+        TagTop = PadController.TagTop,
+        CardAt = InteractController.ShownAt,
     })
 
     -- [39, Sistem] "Loading your river..." -- doar daca prima stare chiar intarzie (0.3s), ca sa

@@ -666,7 +666,7 @@ def compose(G, ground_rows):
     sp = G["spots"]
     for key, name in (("tavern", "prop_tavern"), ("storage", "prop_storage"), ("sawmill", "prop_sawmill")):
         r = sp[key]
-        things.append((r["y"] + r["h"] / 2, name, r["x"], 1.0))
+        things.append((r["y"], name, r["x"], 1.0))  # y-ul cladirilor fixe e deja baza lor (TycoonConfig)
     for p in G["pads"]:
         if p["net"]:
             continue
@@ -674,7 +674,8 @@ def compose(G, ground_rows):
         if p["id"].startswith("hire_") or p["id"] == "first_runner":
             name = "prop_runner_hut"
         if name:
-            things.append((p["y"] + 60, name, p["x"], 1.0))
+            # baza cladirii de pe platforma, ca in joc: TycoonConfig.buildingBase = y + PAD_SIZE/2 + BUILDING_DROP
+            things.append((p["y"] + 48 + 8, name, p["x"], 1.0))
     for _y, name, x, scale in sorted(things):
         stamp(name, x, _y, scale)
     return out

@@ -5,6 +5,9 @@
 -- face exact ce scrie pe card, nu ce vine primul intr-o lista de prioritati.
 export type Focus = {
     key: string, -- identitate stabila: "net:first_net", "storage", "sawmill", "dock", "pad:workshop"
+    -- [2026-09-29] punctul din care se masoara `distance` (inelul, usa, plasa), in coordonatele terenului: ghidajul isi
+    -- retrage sageata cand cardul de pe ecran e chiar al locului spre care arata (nil = nu se potriveste cu nimic)
+    at: { x: number, y: number }?,
     distance: number,
     x: number, -- baza cardului, in coordonatele terenului
     y: number,

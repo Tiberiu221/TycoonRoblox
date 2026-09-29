@@ -62,6 +62,8 @@ local lastStatus: { [string]: string } = {}
 local lastAffordable: { [string]: boolean } = {}
 local ringSetters: { [string]: (number, Color3, Color3) -> () } = {}
 local needLabels: { [string]: TextLabel } = {} -- padId -> "Need N more", doar cat timp nu ajung banii
+-- padId -> varful placii de pret, in cadrul platformei, cat platforma se poate cumpara (PadController.TagTop)
+local tagTops: { [string]: number } = {}
 local plaques: { [string]: GuiObject } = {} -- padId -> tinta pentru Flash (placuta noua sau, fara arta, cadrul insusi)
 local pulseGen: { [string]: number } = {} -- padId -> generatia pulsului curent, anuleaza un task.delay invechit
 local coins = 0
@@ -128,15 +130,9 @@ local HOME_SPRITES = PadArt.HOME_SPRITES
 -- Sub casa fiecarei meserii, numele ei, cum il scrie meniul care se deschide de acolo; ca "Lucky Wheel" sub roata:
 -- pe casa ar fi acoperit usa. Forja, singura cladire cu Upgrade fara nume, il primeste pe acoperis, ca taverna.
 local HOME_NAME_GAP = 2 -- px sub baza cladirii
-local FORGE_SIGN_Y = 30 -- px de la varful cladirii: pe acoperis, ca firma tavernei (DockController)
--- Atelierele care stau pe o platforma isi poarta numele pe acoperis: forja [D58] si, la Moara, cuptorul de cupru [D65]
--- (turnatoria e cladire fixa, cu numele pus de LineController).
-local ROOF_SIGN: { [string]: string } = {
-    workshop = Strings.FORGE_LABEL,
-    copper_furnace = Strings.LINE_WORDS.copper.processor,
-    -- [D67] si la Wire Works: Power House (masina cu abur si Battery Shed n-au Upgrade, deci nici nume pe acoperis)
-    power_house = Strings.LINE_WORDS.power.processor,
-}
+-- Atelierele care stau pe o platforma isi poarta numele pe acoperis (lista, comuna cu satul vizitat: PadArt.ROOF_SIGN).
+local FORGE_SIGN_Y = PadArt.ROOF_SIGN_Y
+local ROOF_SIGN = PadArt.ROOF_SIGN
 
 local BOARD_ICON = PadArt.BOARD_ICON
 local isNetPad = PadArt.isNet
@@ -351,7 +347,7 @@ local function buildGhost(
     end
     local w, h = sprite.width * scale, sprite.height * scale
     local offset = PadArt.ART_OFFSET[pad.id] -- [D65] roata de apa sta in rau, nu pe platforma ei
-    local baseY = 8 + (if offset ~= nil then offset.y else 0)
+    local baseY = TycoonConfig.BUILDING_DROP + (if offset ~= nil then offset.y else 0)
     local img = ghostImage(frame, sprite, w, h, affordable)
     img.Name = "GhostBuilding"
     img.AnchorPoint = Vector2.new(0.5, 1)
@@ -423,7 +419,7 @@ local function buildRuin(
     local h = s.height * scale
     -- [D65] un desen care nu sta pe platforma lui (roata de apa, in rau): PadArt.ART_OFFSET
     local offset = PadArt.ART_OFFSET[pad.id]
-    local baseY = 8 + (if offset ~= nil then offset.y else 0)
+    local baseY = TycoonConfig.BUILDING_DROP + (if offset ~= nil then offset.y else 0)
     -- [D57] si ruina sta pe pamant: o umbra mai slaba decat a cladirii intregi
     if offset == nil or not offset.inWater then
         GroundShadow.add(frame, UDim2.new(0.5, 0, 1, baseY), s.width * scale, Z - 1, 0.35)
@@ -495,6 +491,7 @@ local function styleOutline(frame: TextButton, pad: TycoonConfig.Pad)
     clearContent(frame)
     ringSetters[pad.id] = nil
     needLabels[pad.id] = nil
+    tagTops[pad.id] = nil
     frame.BackgroundTransparency = 1
     -- "outline" = se vede ca acolo URMEAZA ceva, dar nu e randul lui inca: aceeasi silueta, si
     -- mai stinsa, si fara pret. Pretul apare cand platforma devine cumparabila.
@@ -523,6 +520,7 @@ local function styleLocked(frame: TextButton, pad: TycoonConfig.Pad)
     clearContent(frame)
     ringSetters[pad.id] = nil
     needLabels[pad.id] = nil
+    tagTops[pad.id] = nil
     frame.BackgroundTransparency = 1
     -- [D67, audit] turbina n-are ruina desenata: e chiar ea, ca umbra intunecata (altfel parea deja construita)
     plaques[pad.id] = if PadArt.isTurbine(pad)
@@ -537,6 +535,7 @@ local function styleAvailable(frame: TextButton, pad: TycoonConfig.Pad, affordab
     clearContent(frame)
     ringSetters[pad.id] = nil
     needLabels[pad.id] = nil
+    tagTops[pad.id] = nil
     frame.BackgroundTransparency = 1
     local needBottomY: number
 
@@ -550,6 +549,7 @@ local function styleAvailable(frame: TextButton, pad: TycoonConfig.Pad, affordab
     end
     if target ~= nil then
         needBottomY = priceTag(frame, pad, topY, affordable)
+        tagTops[pad.id] = topY - 6 - 28 -- varful placii de pret (28 px, la 6 px peste obiect), in cadrul platformei
         plaques[pad.id] = target
         if affordable then
             -- ai banii: obiectul e aproape real si pulseaza auriu. Asta e tot indemnul de care
@@ -706,7 +706,7 @@ local TIER_PIPS_GAP = 10 -- intre varful acoperisului si patratele
 local pipsTop: { [string]: number } = {}
 local function refreshTierPips(frame: GuiObject, padId: string, artHeight: number?)
     if artHeight ~= nil then
-        pipsTop[padId] = 8 - artHeight - TIER_PIPS_GAP - PIP
+        pipsTop[padId] = TycoonConfig.BUILDING_DROP - artHeight - TIER_PIPS_GAP - PIP
     end
     local role = TycoonConfig.CREW_OF_PAD[padId]
     local tier = if role ~= nil then crewTiers[role] else nil
@@ -725,6 +725,7 @@ local function styleBought(frame: TextButton, pad: TycoonConfig.Pad)
     clearContent(frame)
     ringSetters[pad.id] = nil
     needLabels[pad.id] = nil
+    tagTops[pad.id] = nil
     plaques[pad.id] = nil
     frame.BackgroundTransparency = 1
     -- Plasele NU se mai deseneaza aici: stalpul, franghia, plasa din apa, marfa dinauntru si
@@ -779,7 +780,7 @@ local function styleBought(frame: TextButton, pad: TycoonConfig.Pad)
     if sprite ~= nil and Assets.has(sprite) then
         -- [D65] un desen care nu sta pe platforma lui (roata de apa, in rau): PadArt.ART_OFFSET
         local offset = PadArt.ART_OFFSET[pad.id]
-        local baseY = 8 + (if offset ~= nil then offset.y else 0)
+        local baseY = TycoonConfig.BUILDING_DROP + (if offset ~= nil then offset.y else 0)
         if offset == nil or not offset.inWater then
             GroundShadow.add(frame, UDim2.new(0.5, 0, 1, baseY), sprite.width * scale, Z - 1) -- [D57]
         end
@@ -1244,16 +1245,31 @@ function PadController.FocusBuilt(px: number, py: number): Focus.Focus?
         then
             continue
         end
+        -- [2026-09-29] deasupra patratelelor treptei, oricat de inalta e casa: la y - 56 fix, cardul acoperea treapta
+        -- tocmai la casele mari (a Collector-ului, a celor cu doi oameni), adica treapta pe care o urci
+        local top = pipsTop[pad.id]
         best = {
             key = `pad:{pad.id}`,
             distance = d,
             x = x,
-            y = y - 56,
+            y = if top ~= nil then y + TycoonConfig.PAD_SIZE / 2 + top - 6 else y - 56,
             upgradeKind = "crew",
             upgradeId = role,
         }
     end
     return best
+end
+
+-- [2026-09-29] Varful placii de pret a unei platforme de cumparat (y in lume), sau nil cand n-are placa. Sageata
+-- ghidajului sta deasupra ei: la o distanta fixa de mijlocul platformei, la cladirile inalte (masina cu abur, forja,
+-- clopotele) statea chiar peste pret.
+function PadController.TagTop(padId: string): number?
+    local top = tagTops[padId]
+    local pad = TycoonConfig.byId[padId]
+    if top == nil or pad == nil or pad.y == nil then
+        return nil
+    end
+    return (pad.y :: number) - TycoonConfig.PAD_SIZE / 2 + top
 end
 
 -- Platforma pe care ar arata-o cartonasul de cumparare acum si cat de departe e (math.huge = niciuna).

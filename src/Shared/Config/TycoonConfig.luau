@@ -251,6 +251,10 @@ TycoonConfig.FIRST_CATCH = { pad = "first_net", untilCollected = 12, speed = 3 }
 TycoonConfig.SACK_CAPACITY = 30
 TycoonConfig.SACK_BIG_CAPACITY = 60
 TycoonConfig.PAD_SIZE = 96
+-- Cladirea de pe o platforma sta cu baza la atatia px sub cadrul platformei (PadController o prinde acolo). Fumul,
+-- firele si testele de asezare citesc baza tot de aici, prin `buildingBase`: cand fumul atelierelor de pe platforme o
+-- socotea singur (pad.y + 8, fara jumatatea cadrului), iesea cu 48 px deasupra hornului.
+TycoonConfig.BUILDING_DROP = 8
 
 -- [D65] CARTIERUL MORII E ASEZAT CA THE LANDING [D57], mutat spre aval cu atat: fiecare lucru al Erei 2 sta fata de
 -- cartierul lui unde sta perechea lui din Era 1 fata de al ei (plasele pe punte, magazia sub ele, atelierul cu fata la
@@ -1903,7 +1907,9 @@ function TycoonConfig.eraIsLive(era: number): boolean
 end
 
 -- [D65] CASELE OAMENILOR SI NUMELE DE SUB ELE, ca locuri pe care decorul imprastiat (copaci, tufe) n-are voie sa le
--- acopere (WorldDecor.village). Casa mare are 120 x 102 deasupra platformei, numele sta imediat sub ea [D58].
+-- acopere (WorldDecor.village). Casa mare are 120 x 102 cu baza la TycoonConfig.buildingBase, patratelele treptei stau
+-- la 10 + 6 px deasupra acoperisului, numele imediat sub ea [D58], pana la baza + 20. [2026-09-29] Dreptunghiul era
+-- socotit cu baza la pad.y + 8: numele si partea de jos a casei ramaneau afara din el.
 -- Doar cartierele de DUPA The Landing: satul vechi a fost asezat si vazut cu decorul lui (niciun nume acoperit), iar
 -- dreptunghiul unui brad e mai lat decat varful lui -- regula ar fi scos de acolo un brad pe care jucatorii il stiu.
 export type HomeClear = { x0: number, x1: number, y0: number, y1: number, frontOf: number }
@@ -1912,7 +1918,11 @@ function TycoonConfig.homeClearRects(): { HomeClear }
     for _, p in TycoonConfig.PADS do
         if p.live and p.era > 1 and crewOfPad[p.id] ~= nil and p.x ~= nil and p.y ~= nil then
             local x, y = p.x :: number, p.y :: number
-            table.insert(out, { x0 = x - 80, x1 = x + 80, y0 = y - 100, y1 = y + 40, frontOf = y })
+            local base = TycoonConfig.buildingBase(p)
+            table.insert(
+                out,
+                { x0 = x - 80, x1 = x + 80, y0 = base - 130, y1 = base + 20, frontOf = y }
+            )
         end
     end
     return out
@@ -2064,6 +2074,12 @@ TycoonConfig.FIELD_PROPS = {
     { sprite = "cable_drums", x = 4490, y = 1150, stage = 1 },
     { sprite = "substation", x = 4240, y = 1215, stage = 4 },
 } :: { { sprite: string, x: number, y: number, stage: number } }
+
+-- Linia de jos a cladirii de pe o platforma (y in lume): marginea de jos a cadrului, plus BUILDING_DROP. Fara
+-- PadArt.ART_OFFSET: roata de apa, care sta in rau, isi muta singura desenul.
+function TycoonConfig.buildingBase(p: Pad): number
+    return (p.y :: number) + TycoonConfig.PAD_SIZE / 2 + TycoonConfig.BUILDING_DROP
+end
 
 -- [D63] VERBUL unei platforme, acelasi pe butonul cartonasului si in textul quest-ului ei: o plasa se arunca ("cast"),
 -- un om se angajeaza ("hire"), traista se ia ("get"), clopotul se trage ("ring"), restul se construiesc ("build").

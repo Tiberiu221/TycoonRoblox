@@ -84,7 +84,7 @@ local function placed(): { [string]: Box }
     end
     for id, size in BOUGHT do
         local p = TycoonConfig.byId[id]
-        things[`building_{id}`] = box(p.x :: number, (p.y :: number) + 56, size[1], size[2])
+        things[`building_{id}`] = box(p.x :: number, TycoonConfig.buildingBase(p), size[1], size[2])
     end
     return things
 end
@@ -704,7 +704,7 @@ return function()
                 for _, p in TycoonConfig.PADS do
                     local role = TycoonConfig.CREW_OF_PAD[p.id]
                     if p.live and role ~= nil and p.x ~= nil and p.y ~= nil then
-                        local base = (p.y :: number) + 56
+                        local base = TycoonConfig.buildingBase(p)
                         -- cea mai inalta si cea mai scunda casa a meseriei, pe ecran (taraba Innkeeper-ului e la x2,
                         -- coliba Collector-ului e mai inalta decat restul)
                         local tall, short = 34 * 3, 28 * 3
@@ -966,7 +966,7 @@ return function()
                         bottom(
                             `pad {p.id}`,
                             p.x :: number,
-                            (p.y :: number) + 56,
+                            TycoonConfig.buildingBase(p),
                             if home then 128 else 192,
                             if home then 110 else 144
                         )
@@ -1097,8 +1097,7 @@ return function()
             local art = (Assets.tycoon :: any).power_house
             local fx, fy = ModernConfig.feedPoint(
                 house.x :: number,
-                house.y :: number,
-                TycoonConfig.PAD_SIZE,
+                TycoonConfig.buildingBase(house),
                 art.width,
                 art.height,
                 Assets.PIXEL_SCALE
@@ -1179,7 +1178,7 @@ return function()
             do
                 local p = TycoonConfig.byId[id]
                 if p.live then
-                    clear(text, p.x :: number, (p.y :: number) + 56 - 144 + 30)
+                    clear(text, p.x :: number, TycoonConfig.buildingBase(p) - 144 + 30)
                     checked += 1
                 end
             end

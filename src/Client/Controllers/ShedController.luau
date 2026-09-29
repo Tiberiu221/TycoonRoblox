@@ -47,11 +47,11 @@ local bottleneck = "" -- [D56] veriga slaba a liniei fierului
 local STAND = TycoonConfig.SCRAP_SHED_STAND
 local PAD = TycoonConfig.byId.scrap_shed
 local PILE_SPOT = TycoonConfig.PILES.shed
--- sopronul e 120x96, prins de baza la 56 px sub platforma (PadController)
+-- sopronul e 120x96, prins de baza unde il pune PadController (TycoonConfig.buildingBase)
 local SHED_W, SHED_H = 120, 96
 
 local function shedBase(): (number, number)
-    return PAD.x :: number, (PAD.y :: number) + 56
+    return PAD.x :: number, TycoonConfig.buildingBase(PAD)
 end
 
 -- Ce ar face un E acum: lasi scrap-ul, sau iei scrap daca n-ai si ai loc. nil = nimic.
@@ -98,6 +98,7 @@ function ShedController.Focus(px: number, py: number): Focus.Focus?
     local x, base = shedBase()
     return {
         key = "shed",
+        at = STAND,
         distance = d,
         x = x,
         y = base - SHED_H - 6,

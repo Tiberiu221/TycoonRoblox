@@ -147,17 +147,15 @@ end
 -- prop_power_house.png (pixeli de foaie); scris de mana, nu de d70_modern.py.
 ModernConfig.POWER_FEED = { pad = "power_house", insulator = { x = 20, y = 5 }, stage = 4 }
 
--- Izolatorul Power House in pixeli de lume, pentru o cladire de `spriteW` x `spriteH` (foaie) desenata la `scale` pe
--- platforma de la (padX, padY), de `padSize`: cladirile stau cu baza la 8 px sub cadrul platformei (PadController).
+-- Izolatorul Power House in pixeli de lume, pentru o cladire de `spriteW` x `spriteH` (foaie) desenata la `scale`,
+-- centrata pe `padX`, cu baza la `bottom` (TycoonConfig.buildingBase).
 function ModernConfig.feedPoint(
     padX: number,
-    padY: number,
-    padSize: number,
+    bottom: number,
     spriteW: number,
     spriteH: number,
     scale: number
 ): (number, number)
-    local bottom = padY + padSize / 2 + 8
     local p = ModernConfig.POWER_FEED.insulator
     return padX - spriteW * scale / 2 + (p.x + 0.5) * scale, bottom - spriteH * scale + p.y * scale
 end

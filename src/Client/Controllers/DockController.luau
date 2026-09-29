@@ -163,6 +163,7 @@ function DockController.Focus(px: number, py: number): Focus.Focus?
     end
     return {
         key = "dock",
+        at = DOCK,
         distance = d,
         x = TAVERN.x,
         y = TAVERN_TOP - 6,
