@@ -34,7 +34,8 @@ function BoardMath.format(kind: string, value: number, extra: string?): string
         if perSec < 1000 then
             return string.format("%.2f/s", perSec)
         end
-        return TycoonMath.formatNumber(perSec) .. "/s"
+        -- aceeasi cifra ca pe panoul pictat de pe scena (BoardMath.compact), ca un rand sa nu spuna doua numere
+        return BoardMath.compact("income", value) .. "/s"
     elseif kind == "era1" then
         return duration(math.floor(value))
     end
@@ -57,20 +58,23 @@ function BoardMath.compact(kind: string, value: number): string
         -- Urca la unitatea urmatoare cand numarul scris ar avea patru cifre: 999.95K s-ar rotunji la "1000.0K" si
         -- n-ar mai incapea in coloana de pe scena, asa ca se scrie "1.0M".
         -- [2026-09-29] Cifra are cel mult cinci caractere, iar cu unitatea cel mult sase: cu sufixele de doua litere de dupa
-        -- T ("Qa", "Qi"...), "123.0Qi" plus "/s" ar fi avut noua litere. O unitate de doua litere pierde intai zecimala
-        -- ("123Qi"); abia cand nici asa nu incape (o mie), urca la unitatea urmatoare ("1.0Sx").
+        -- T ("Qa", "Qi"...), "123.4Qi" plus "/s" ar fi avut noua litere. O unitate de doua litere pierde intai zecimala
+        -- ("123Qi"); abia cand nici asa nu incape (o mie), urca la unitatea urmatoare ("1.0Sx"). Cifra se TAIE, ca pe
+        -- contorul de monede: nu arata niciodata mai mult decat venitul (rotunjit, "999.95K" iesea "1.0M"). Toleranta
+        -- acopera doar impartirile cu 100 si 1000, care nu sunt exacte in virgula mobila.
         local function fits(number: string, suffix: string): boolean
             return #number <= 5 and #number + #suffix <= 6
         end
+        local SLACK = 1e-12
         local perSec = value / 100
         for i = 0, #INCOME_UNITS do
             local suffix = if i == 0 then "" else INCOME_UNITS[i]
             local shown = perSec / 1000 ^ i
-            local number = string.format("%.1f", shown)
+            local number = string.format("%.1f", math.floor(shown * 10 * (1 + SLACK)) / 10)
             if fits(number, suffix) then
                 return number .. suffix
             end
-            local whole = string.format("%.0f", shown)
+            local whole = string.format("%.0f", math.floor(shown * (1 + SLACK)))
             if #whole <= 3 and fits(whole, suffix) then
                 return whole .. suffix
             end

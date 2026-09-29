@@ -25,9 +25,16 @@ return function()
             function()
                 check.equal(BoardMath.format("income", 99999), "999.99/s")
                 check.equal(BoardMath.format("income", 120000000000), "1.2B/s") -- 1,2 miliarde pe secunda (Era 3)
-                check.equal(BoardMath.format("income", 4.2e21), "42Qi/s")
-                check.equal(BoardMath.compact("income", 99994000000000000000), "1.0Qi")
+                check.equal(BoardMath.format("income", 4.2e21), "42.0Qi/s")
+                check.equal(BoardMath.compact("income", 99994000000000000000), "999Qa")
                 check.equal(BoardMath.compact("income", 1.23e22), "123Qi")
+                -- panoul mare si cel de pe scena spun acelasi numar pentru acelasi rand
+                for _, v in { 99995000, 12391000, 249900000, 99999999, 199999, 1.236e22 } do
+                    check.equal(
+                        BoardMath.format("income", v),
+                        BoardMath.compact("income", v) .. "/s"
+                    )
+                end
             end
         )
 
@@ -120,14 +127,15 @@ return function()
         test.case("cifra scurta de pe scena, cu unitatea ei, incape in coloana panoului", function()
             check.equal(BoardMath.compact("fish", 1875), "187.5")
             check.equal(BoardMath.compact("income", 1234), "12.3")
-            check.equal(BoardMath.compact("income", 12345600), "123.5K")
+            check.equal(BoardMath.compact("income", 12345600), "123.4K") -- taiat, ca pe contor
             check.equal(BoardMath.compact("income", 250000000), "2.5M")
             check.equal(BoardMath.compact("era1", 2512), "41:52")
             check.equal(BoardMath.compact("era1", 3723), "1:02:03")
-            -- 999.95K s-ar rotunji la "1000.0K" si ar iesi din coloana: urca la M
-            check.equal(BoardMath.compact("income", 99995000), "1.0M")
+            -- [2026-09-29] taiat, ca pe contor: 999.95K ramane "999.9K", nu "1.0M" (nu arata mai mult decat venitul)
+            check.equal(BoardMath.compact("income", 99995000), "999.9K")
             check.equal(BoardMath.compact("income", 99994000), "999.9K")
-            check.equal(BoardMath.compact("income", 99995), "1.0K")
+            check.equal(BoardMath.compact("income", 99995), "999.9")
+            check.equal(BoardMath.compact("income", 12399000), "123.9K")
             check.equal(BoardMath.compact("income", 250000000000), "2.5B")
             -- cu unitatea lipita de scena, cel mult opt litere, oricat de mare (cat se poate atinge) e cifra
             local worst: { [string]: { number } } = {

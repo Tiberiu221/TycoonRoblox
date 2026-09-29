@@ -553,6 +553,13 @@ TycoonMath.UNITS = {
     { "Td", 1e42 },
 } :: { { any } }
 
+-- Cat se poate insela o impartire la un numar care nu e exact in virgula mobila (10^23 si mai sus nu sunt: 5^23 > 2^53):
+-- cu mult peste eroarea ei (~3e-16), cu mult sub o cifra aratata. Se pune DOAR acolo: la o impartire exacta (un intreg
+-- sub 2^53 la 10^k, k <= 22) toleranta ar muta textul cu o moneda de pe la 870T in sus ("Need 968T more" cand lipseau
+-- 968T si o moneda). Fara ea, 3.2e24 taiat in jos iesea "3.1Sp", iar 5e48 iesea "4e48".
+local ROUND_SLACK = 1e-15
+local EXACT_STEP = 1e22
+
 -- Peste 1000 din cea mai mare unitate: o cifra si puterea lui zece ("1e45", "9e99", "1e100"), in jos sau in sus.
 local function scientific(v: number, up: boolean): string
     -- log10 poate gresi cu o unitate chiar pe o putere a lui zece: exponentul se indreapta pe valoarea insasi
@@ -562,18 +569,13 @@ local function scientific(v: number, up: boolean): string
     elseif 10 ^ e > v then
         e -= 1
     end
-    local m = v / 10 ^ e -- in [1, 10)
-    local digit = if up then math.ceil(m) else math.floor(m)
+    local m = v / 10 ^ e -- in [1, 10), cu eroarea lui 10^e (niciodata exact aici)
+    local digit = if up then math.ceil(m * (1 - ROUND_SLACK)) else math.floor(m * (1 + ROUND_SLACK))
     if digit >= 10 then
         digit, e = 1, e + 1 -- 9.3e45 in sus e "1e46"
     end
-    return `{digit}e{e}`
+    return `{math.max(1, digit)}e{e}`
 end
-
--- Cat se poate insela o impartire la o unitate care nu e exacta in virgula mobila (1e24 nu e, 5^24 > 2^53): cu mult sub
--- o moneda la T (119e12 + 1 in sus trebuie sa scrie "120T", adica o diferenta relativa de 8e-15), cu mult peste eroarea
--- unei impartiri (~3e-16). Fara ea, 3.2e24 taiat in jos iesea "3.1Sp".
-local ROUND_SLACK = 1e-15
 
 local function formatWith(n: number, up: boolean): string
     local v = if up then math.ceil(n) else math.floor(n)
@@ -589,10 +591,13 @@ local function formatWith(n: number, up: boolean): string
             local decimals =
                 math.max(0, (if x < 10 then 2 elseif x < 100 then 1 else 0) - (#suffix - 1))
             local scale = 10 ^ decimals
-            -- in sus, pe pasi intregi de monede: 119e9 + 1 lipsa trebuie sa scrie "120B", nu "119B"
+            -- in sus, pe pasi intregi de monede: 119e9 + 1 lipsa trebuie sa scrie "120B", nu "119B". Amandoua sensurile
+            -- impart la acelasi pas; toleranta doar cand pasul nu e exact (vezi ROUND_SLACK)
+            local step = d / scale
+            local slack = if step > EXACT_STEP then ROUND_SLACK else 0
             local shown = if up
-                then math.ceil(v / (d / scale) * (1 - ROUND_SLACK)) / scale
-                else math.floor(x * scale * (1 + ROUND_SLACK)) / scale
+                then math.ceil(v / step * (1 - slack)) / scale
+                else math.floor(v / step * (1 + slack)) / scale
             if shown >= 1000 then
                 -- 999.5K rotunjit in sus e "1M", nu "1000K"; dupa cea mai mare unitate, scrierea stiintifica. Unitatea
                 -- urmatoare se ia din tabel, nu d * 1000: 1e21 * 1000 nu e exact literalul 1e24, iar apelul s-ar fi

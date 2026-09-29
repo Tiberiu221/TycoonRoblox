@@ -449,6 +449,34 @@ return function()
                 check.equal(TycoonMath.formatNumberUp(9.7e47), "1e48")
                 check.equal(TycoonMath.formatNumberUp(999.5e42), "1e45") -- nu "1000Td"
                 check.equal(TycoonMath.formatNumber(1e100), "1e100")
+                check.equal(TycoonMath.formatNumber(5e48), "5e48")
+                check.equal(TycoonMath.formatNumberUp(3e45), "3e45")
+                for k = 1, 9 do
+                    for e = 45, 120 do
+                        check.equal(TycoonMath.formatNumber(k * 10 ^ e), `{k}e{e}`)
+                        check.equal(TycoonMath.formatNumberUp(k * 10 ^ e), `{k}e{e}`)
+                    end
+                end
+                -- [2026-09-29] exact pe intregi sub 2^53, fara nicio toleranta: in jos niciodata o moneda peste suma, in
+                -- sus niciodata una sub ea (o toleranta relativa muta textul cu o moneda de pe la 870T in sus)
+                check.equal(TycoonMath.formatNumberUp(968e12 + 1), "969T")
+                check.equal(TycoonMath.formatNumber(1e15 - 1), "999T")
+                check.equal(TycoonMath.formatNumber(899999999999999), "899T")
+                check.equal(TycoonMath.formatNumberUp(9e15 + 1), "9.1Qa")
+                check.equal(TycoonMath.formatNumber(1130), "1.13K")
+                local function exact(s: string): number
+                    return math.floor(readBack(s) + 0.5)
+                end
+                for j = 3, 15 do
+                    for _, k in { 1, 2, 5, 9, 12, 99, 123, 871, 968, 999 } do
+                        local v = k * 10 ^ j
+                        if v + 1 < 2 ^ 53 then
+                            check.is_true(exact(TycoonMath.formatNumber(v - 1)) <= v - 1)
+                            check.is_true(exact(TycoonMath.formatNumberUp(v + 1)) >= v + 1)
+                            check.is_true(exact(TycoonMath.formatNumber(v)) <= v)
+                        end
+                    end
+                end
                 -- taiat, deci niciodata mai mult decat ai: citit inapoi, textul nu trece de suma
                 local seed = 777
                 for _ = 1, 20000 do
