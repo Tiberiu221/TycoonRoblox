@@ -10,7 +10,8 @@ lucrurile de care se leaga codul stau pe aceiasi pixeli: hornul tavernei (47, 0)
   Treapta 1, Clerk (~4 min): "Wire comes to every street"
     prop_wire_pole         16x54  x3  stalpul liniei: lemn gudronat, traversa in perspectiva, doi izolatori de portelan
     prop_wire_pole_end     28x54  x3  stalpul de capat: acelasi, cu transformatorul si ancora (sarma de ancorare)
-                                      spre STANGA; capatul de est il oglindeste (ImageRectSize negativ)
+                                      spre STANGA; doar la capatul de vest (la est linia se opreste pe un stalp de
+                                      linie si urca la Power House; oglindirea ramane pentru alta harta)
     firul dintre stalpi il deseneaza codul (vezi WIRE mai jos)
   Treapta 2, Thirteenth Net (~14 min): "Iron carts"
     prop_barrow_iron       72x20      inlocuieste prop_barrow pixel-la-pixel ca geometrie: aceleasi trei cadre de 24x20
@@ -301,7 +302,7 @@ WIRE = {
     "color_near": IRON[0],  # firul din fata (izolatorul de jos)
     "color_far": IRON[1],  # firul din spate, putin mai deschis (e mai departe)
     "thickness_world_px": 2,
-    "sag_fraction": 0.06,  # sageata la mijloc = 6% din deschidere (la 300 px: 18 px)
+    "sag_fraction": 0.03,  # sageata la mijloc = 3% din deschidere (la 300 px: 9 px); la 6% atingea numele tarabelor
 }
 
 
@@ -1347,7 +1348,7 @@ def luau():
     lines.append("WIRE_POLE = { -- foaia 16x54, prinsa de baza (mijlocul stalpului la x 8)")
     lines.append(f'    near = {{ x = {POLE_WIRES["near"][0]}, y = {POLE_WIRES["near"][1]} }}, far = {{ x = {POLE_WIRES["far"][0]}, y = {POLE_WIRES["far"][1]} }},')
     lines.append("}")
-    lines.append(f"WIRE_POLE_END = {{ -- foaia {END_W}x54: stalpul e mutat cu {END_POLE_DX} px spre dreapta; oglindit la capatul de est")
+    lines.append(f"WIRE_POLE_END = {{ -- foaia {END_W}x54: stalpul e mutat cu {END_POLE_DX} px spre dreapta; doar la capatul de vest (oglindirea ramane pentru alta harta)")
     lines.append(f'    near = {{ x = {POLE_WIRES["near"][0] + END_POLE_DX}, y = {POLE_WIRES["near"][1]} }}, far = {{ x = {POLE_WIRES["far"][0] + END_POLE_DX}, y = {POLE_WIRES["far"][1]} }}, postX = {8 + END_POLE_DX},')
     lines.append("}")
     lines.append("SURVEY_STAKE = { -- x2, prinse de baza; cadrul 0 stegulet, 1 panglica, 2 nivela (fara sfoara)")

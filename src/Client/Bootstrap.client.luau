@@ -47,6 +47,7 @@ local ShedController = require(Controllers.ShedController)
 local ForgeController = require(Controllers.ForgeController)
 local LineController = require(Controllers.LineController)
 local LampController = require(Controllers.LampController)
+local ModernController = require(Controllers.ModernController)
 local PadController = require(Controllers.PadController)
 local InteractController = require(Controllers.InteractController)
 local MusicController = require(Controllers.MusicController)
@@ -226,6 +227,27 @@ safeInit("LampController", function()
         OnFirstLight = function()
             HUDController.Toast(Strings.LAMPS_ON)
             SoundController.Play("chime")
+        end,
+    })
+end)
+-- [D70] satul vechi se modernizeaza pe trepte in Era 3; fiecare treapta noua se anunta [D43], pe rand, dupa toastul
+-- cumparaturii care a urcat-o (ModernController o tine la coada)
+safeInit("ModernController", function()
+    ModernController.Init({
+        Plot = layers.Plot,
+        Refresh = {
+            SawmillController.RefreshModern,
+            DockController.RefreshModern,
+            StorageController.RefreshModern,
+            PadController.RefreshModern,
+            HandRenderController.SetModern,
+        },
+        OnStage = function(stage: number)
+            local line = Strings.MODERN_STAGE[stage]
+            if line ~= nil then
+                HUDController.Toast(line)
+                SoundController.Play("chime")
+            end
         end,
     })
 end)
@@ -1424,6 +1446,24 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
         QuestController.Apply(snapshot.quests)
     end
     HUDController.SetSack(sackCount, sackCapacity)
+    -- [D70] treapta modernizarii, din platformele cumparate, oamenii meseriilor si primul curent vandut. INAINTE de orice
+    -- desenare din starea asta: ce apare acum (casa noua, al doilea om) se deseneaza direct pe treapta noua si isi
+    -- pastreaza "rasaritul" [D55], iar redesenarea treptei atinge doar ce era deja pe harta.
+    local boughtPads: { [string]: boolean } = {}
+    for padId, status in snapshot.pads do
+        if status == "bought" then
+            boughtPads[padId] = true
+        end
+    end
+    local crewCountsNow: { [string]: number } = {}
+    for _, crew in snapshot.stations.crews do
+        crewCountsNow[crew.role] = crew.count
+    end
+    ModernController.Apply({
+        pads = boughtPads,
+        crews = crewCountsNow,
+        powerSold = snapshot.firsts.power == true,
+    })
     -- [D62, pasul 5] nivelul cladirilor lantului, pentru a doua lor infatisare de la pragul 25. Inainte de
     -- PadController.Apply, ca prima desenare a forjei sa aleaga deja desenul potrivit (altfel ar "creste" la intrare).
     for _, row in snapshot.stations.rows do

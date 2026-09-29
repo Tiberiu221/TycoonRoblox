@@ -158,6 +158,31 @@ return function()
             check.equal(VillageLook.of({ Stats = "x" } :: any).power, false)
         end)
 
+        -- [D70, dupa verificator] vizitatorul vede satul pe aceeasi treapta ca gazda: aceleasi fapte, din profil
+        test.case("[D70] treapta modernizarii, din profilul gazdei", function()
+            local data = profile()
+            check.equal(VillageLook.of(data).modern, 0)
+            data.Pads.hire_clerk = true
+            data.Pads.thirteenth_net = true
+            data.Pads.hire_works_porter = true
+            data.Hands.hire_works_porter =
+                hand("worksPorter", "hire_works_porter", "hire_works_porter")
+            check.equal(VillageLook.of(data).modern, 2)
+            data.Hands.hire_works_porter_2 =
+                hand("worksPorter", "hire_works_porter", "hire_works_porter_2")
+            check.equal(VillageLook.of(data).modern, 3)
+            data.Pads.power_house = true
+            check.equal(VillageLook.of(data).modern, 4)
+            data.Stats = { cellsSold = 1 }
+            check.equal(VillageLook.of(data).modern, 5)
+            -- fara al doilea Works Porter, plasa a 14-a duce satul tot acolo
+            data.Hands.hire_works_porter_2 = nil
+            check.equal(VillageLook.of(data).modern, 2)
+            data.Pads.fourteenth_net = true
+            check.equal(VillageLook.of(data).modern, 5)
+            check.equal(VillageLook.of({}).modern, 0)
+        end)
+
         test.case("un profil gol (sau stricat) da un sat gol, nu o eroare", function()
             local snap = VillageLook.of({})
             check.equal(snap.era, 1)

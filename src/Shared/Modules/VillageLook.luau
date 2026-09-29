@@ -16,6 +16,7 @@ local ChainMath = require(script and script.Parent.ChainMath or "./ChainMath")
 local CrewMath = require(script and script.Parent.CrewMath or "./CrewMath")
 local HandRoutes = require(script and script.Parent.HandRoutes or "./HandRoutes")
 local TycoonMath = require(script and script.Parent.TycoonMath or "./TycoonMath")
+local ModernMath = require(script and script.Parent.ModernMath or "./ModernMath")
 local HandConfig =
     require(script and script.Parent.Parent.Config.HandConfig or "../Config/HandConfig")
 
@@ -59,6 +60,7 @@ export type Snapshot = {
     decor: { [string]: boolean },
     decorCount: number,
     power: boolean, -- [D67, audit] gazda a vandut deja curent: felinarele strazii ei ard (ca DataService.Firsts.power)
+    modern: number, -- [D70] treapta modernizarii satului ei (ModernMath), ca vizitatorul sa-l vada cum il vede ea
 }
 
 local function netEffectOf(pad: TycoonConfig.Pad): number?
@@ -207,6 +209,7 @@ function VillageLook.of(data: { [string]: any }): Snapshot
             end
         end
     end
+    local power = typeof(data.Stats) == "table" and (tonumber(data.Stats.cellsSold) or 0) > 0
     return {
         era = TycoonMath.era(bought),
         pads = pads,
@@ -221,7 +224,8 @@ function VillageLook.of(data: { [string]: any }): Snapshot
         hands = VillageLook.hands(data),
         decor = decor,
         decorCount = VillageLook.decorCount(data),
-        power = typeof(data.Stats) == "table" and (tonumber(data.Stats.cellsSold) or 0) > 0,
+        power = power,
+        modern = ModernMath.stage({ pads = bought, crews = crews, powerSold = power }),
     }
 end
 

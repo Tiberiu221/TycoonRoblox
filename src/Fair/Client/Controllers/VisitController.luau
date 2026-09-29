@@ -592,6 +592,7 @@ function VisitController.Init(d: Deps)
                 decor = tableOr(v.decor),
                 decorCount = host.decor,
                 power = v.power == true, -- [D67, audit] felinarele gazdei
+                modern = if typeof(v.modern) == "number" then v.modern else 0, -- [D70] treapta satului ei
             }
             enter(host, village)
         end

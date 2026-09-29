@@ -23,6 +23,8 @@ local Widgets = require(script.Parent.Widgets)
 
 local PileView = {}
 
+local WORLD_TEXT_Z = 46 -- banda textului din lume: numele cladirilor, etichetele liniilor, placa inelului (47)
+
 export type Options = {
     warnAt: number?, -- de la atatea bucati cifra se face portocalie (implicit 25)
     pill: string?, -- unde sta cifra: "above" (implicit) | "right"
@@ -177,15 +179,17 @@ function PileView.new(parent: Instance, cx: number, baseY: number, options: Opti
         pill.Position = UDim2.fromOffset(cx, baseY - FRAME_H * SCALE - 2)
     end
     pill.Visible = false
-    pill.ZIndex = z + 3
-    Widgets.PillBackground(pill, z + 3)
+    -- [D70, dupa verificator] cifra sta in banda textului din lume (46/47, ca numele cladirilor si etichetele liniilor),
+    -- peste adancimea lumii: sarma stalpilor din Era 3 (5 + y/64) trecea prin ea, iar dupa cifra asta vezi veriga slaba
+    pill.ZIndex = WORLD_TEXT_Z
+    Widgets.PillBackground(pill, WORLD_TEXT_Z)
     pill.Parent = parent
     local label = Widgets.Label(pill, "0", Theme.TEXT.small, Theme.COLOR.onDark, "display")
     label.AnchorPoint = Vector2.new(0.5, 0.5)
     label.Position = UDim2.fromScale(0.5, 0.5)
     label.Size = UDim2.fromOffset(48, 20)
     label.TextXAlignment = Enum.TextXAlignment.Center
-    label.ZIndex = z + 4
+    label.ZIndex = WORLD_TEXT_Z + 1
 
     local function showStage(
         img: ImageLabel,

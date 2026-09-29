@@ -17,6 +17,7 @@ local Widgets = require(script.Parent.Parent.UI.Widgets)
 local PileView = require(script.Parent.Parent.UI.PileView)
 local Focus = require(script.Parent.Parent.UI.Focus)
 local GroundShadow = require(script.Parent.Parent.UI.GroundShadow)
+local Modern = require(script.Parent.Parent.UI.Modern)
 
 export type Deps = {
     Plot: Frame,
@@ -41,6 +42,19 @@ export type Snapshot = { count: number, contents: { [string]: number } }
 
 local StorageController = {}
 local deps: Deps
+local storageArt: ImageLabel? = nil -- [D70] desenul depozitului, ca sa-si ia tabla la treapta 3
+
+-- [D70] Satul a urcat o treapta de modernizare: depozitul isi ia acoperisul de tabla, apoi luminile (UI/Modern).
+function StorageController.RefreshModern()
+    local art = storageArt
+    local building = (Assets.tycoon :: any).storage
+    if art == nil or building == nil then
+        return
+    end
+    local sprite = Modern.variant(building)
+    art.Image = Assets.url(sprite)
+    Modern.lights(art, sprite)
+end
 local pile: PileView.View
 local sack: Sack =
     { count = 0, capacity = 0, raw = 0, rawScrap = 0, finds = 0, iron = 0, cut = 0, cutValue = 0 }
@@ -129,11 +143,12 @@ function StorageController.Init(d: Deps)
         local art = Instance.new("ImageLabel")
         art.Name = "Art"
         art.BackgroundTransparency = 1
-        art.Image = Assets.url(building)
         art.ResampleMode = Enum.ResamplerMode.Pixelated
         art.Size = UDim2.fromScale(1, 1)
         art.ZIndex = 3
         art.Parent = marker
+        storageArt = art
+        StorageController.RefreshModern()
     else
         -- arta inca neurcata: un sopron de lemn simplu, cat sa se vada unde e depozitul [regula 6]
         marker.BackgroundTransparency = 0.15

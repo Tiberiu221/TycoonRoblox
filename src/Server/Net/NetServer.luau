@@ -231,6 +231,12 @@ function NetServer.PushState(player: Player)
         if player.Parent ~= Players then
             return
         end
+        -- [D70, dupa verificator] Nu inainte de profil: fara el, starea ar pleca goala (nicio platforma, niciun curent
+        -- vandut), iar clientul ar lua starea adevarata de dupa drept o schimbare, cu felinarele si treptele satului
+        -- anuntate din nou la fiecare intrare si la fiecare intoarcere din balci. ProfileLoaded o trimite imediat dupa.
+        if player:GetAttribute("SaveLoaded") ~= true then
+            return
+        end
         Net.Get("TycoonState"):FireClient(player, buildTycoonState(player))
     end)
 end

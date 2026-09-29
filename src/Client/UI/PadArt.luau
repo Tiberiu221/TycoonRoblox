@@ -9,6 +9,7 @@ local Assets = require(ReplicatedStorage.Shared.Config.Assets)
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 local ChainMath = require(ReplicatedStorage.Shared.Modules.ChainMath)
 local GoodArt = require(script.Parent.GoodArt)
+local Modern = require(script.Parent.Modern)
 
 local PadArt = {}
 
@@ -243,7 +244,8 @@ end
 -- magazia de scrap n-au niveluri, deci nici variante.
 local GRAND: { [string]: string } =
     { saw = "sawmill_grand", dock = "tavern_grand", forge = "workshop_grand" }
-function PadArt.station(kind: string, level: number?): Assets.Sprite
+-- [D70] `stage`: treapta modernizarii (implicit a satului de acasa, Modern.stage); de la "brick", tabla si caramida.
+local function stationBase(kind: string, level: number?): Assets.Sprite
     local key = GRAND[kind]
     if key ~= nil and level ~= nil and ChainMath.isGrand(level) then
         local grand = (Assets.tycoon :: any)[key]
@@ -261,6 +263,9 @@ function PadArt.station(kind: string, level: number?): Assets.Sprite
         return Assets.buildings.workshop
     end
     return Assets.tycoon.sawmill
+end
+function PadArt.station(kind: string, level: number?, stage: number?): Assets.Sprite
+    return Modern.variant(stationBase(kind, level), stage)
 end
 
 -- Ce sta pe o platforma cumparata. Casele oamenilor vin din `home` [D55]; taraba a ramas a Negustorului cand Sorting
@@ -294,7 +299,12 @@ local function ownSprite(tbl: { [string]: string }, padId: string): Assets.Sprit
     return if sprite ~= nil and Assets.has(sprite) then sprite else nil
 end
 
-function PadArt.bought(padId: string, count: number, forgeLevel: number?): (Assets.Sprite?, number)
+function PadArt.bought(
+    padId: string,
+    count: number,
+    forgeLevel: number?,
+    stage: number?
+): (Assets.Sprite?, number)
     if PadArt.HOME_SPRITES[padId] ~= nil then
         return PadArt.home(padId, count) -- casa ei, sau a primei perechi care o are urcata
     end
@@ -310,17 +320,20 @@ function PadArt.bought(padId: string, count: number, forgeLevel: number?): (Asse
         -- [D65] pana la arta ei: roata de la carma (tot o roata de lemn), ca locul sa se vada
         return Assets.tycoon.wheel, Assets.PIXEL_SCALE
     end
+    -- [D70] doar cladirile satului vechi se modernizeaza; o platforma a Morii care ar purta desenul perechii nu
+    local own = chain[1] == chain[#chain]
+    local modern = if own then stage else 0
     padId = chain[#chain] -- perechea din Era 1, pentru ramurile de mai jos
     if PadArt.HOME_SPRITES[padId] ~= nil then
         return PadArt.home(padId, count)
     elseif padId == "scrap_shed" then
-        return Assets.tycoon.scrap_shed, Assets.PIXEL_SCALE -- [D55]
+        return Modern.variant(Assets.tycoon.scrap_shed, modern), Assets.PIXEL_SCALE -- [D55]
     elseif padId == "bigger_sack" then
         return Assets.tycoon.sack, TycoonConfig.PROP_SCALE
     elseif padId == "landing_bell" then
         return Assets.tycoon.bell, Assets.PIXEL_SCALE
     elseif padId == "workshop" then
-        return PadArt.station("forge", forgeLevel), Assets.PIXEL_SCALE
+        return PadArt.station("forge", forgeLevel, modern), Assets.PIXEL_SCALE
     end
     return nil, Assets.PIXEL_SCALE
 end

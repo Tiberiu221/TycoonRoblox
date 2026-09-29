@@ -2006,6 +2006,65 @@ function TycoonConfig.wordsKindOf(kind: string, id: string?): string
     return kind
 end
 
+-- [D70] STALPII CU SARMA ("Wire comes to every street", treapta 1 a modernizarii din Era 3). Stau pe marginea de NORD a
+-- strazii, in golurile unde nu se lucreaza: pe acolo sunt curtile gaterului si ale forjei, cu grameziile, roabele si
+-- oamenii lor, deci tiparul unui cartier are doar patru locuri libere (masurate, testul TycoonConfig le tine). Strada e
+-- una singura prin toate cartierele (240..5220), deci stalpii se leaga la inceputul fiecarui cartier nou, iar stalpul de
+-- capat (cu transformator si ancora) sta doar la vest, unde incepe strada. Sarma cea mai lunga trece peste curtea
+-- forjei. Numai cu Era 3 in joc, ca felinarele: sarma e a ei.
+-- Ancora stalpului de capat coboara 60 px spre margine. La vest singurul loc liber e intre bradul de la capatul strazii
+-- si taraba Innkeeper-ului: ancora se prinde in pamant in fata bradului, care sta cu 18 px mai in spate (testul o
+-- stie). La est linia se opreste la ultimul stalp al cartierului, in fata curtii Power House: de acolo pana la gard
+-- (x 5240) curtea e plina (gramezile, inelul, oamenii, caruciorul Power Hauler-ului), iar gardul Erei 4 e desenat
+-- peste tot ce sta la 42 px de el (ZoneController, Z 201), deci si peste traversa unui stalp pus acolo.
+TycoonConfig.WIRE_POLE_BASE_Y = 1418
+TycoonConfig.WIRE_POLE_XS = { 480, 760, 1234, 1400 } -- in cartierul satului; celelalte, mutate cu MILL_DX
+export type WirePole = { x: number, y: number, kind: string, mirror: boolean }
+function TycoonConfig.wirePoles(): { WirePole }
+    local out: { WirePole } = {}
+    if not TycoonConfig.eraIsLive(3) then
+        return out
+    end
+    local y = TycoonConfig.WIRE_POLE_BASE_Y
+    local live = 0
+    for _, district in TycoonConfig.DISTRICTS do
+        if TycoonConfig.eraIsLive(district.era) then
+            live += 1
+        end
+    end
+    table.insert(out, { x = 272, y = y, kind = "end", mirror = false })
+    for k = 1, live do
+        local dx = (k - 1) * MILL_DX
+        if k > 1 then
+            table.insert(
+                out,
+                { x = 1860 + (k - 2) * MILL_DX, y = y, kind = "line", mirror = false }
+            )
+        end
+        for _, x in TycoonConfig.WIRE_POLE_XS do
+            table.insert(out, { x = x + dx, y = y, kind = "line", mirror = false })
+        end
+    end
+    return out
+end
+
+-- [D70] Recuzita modernizarii, pe harta (x, baza y): masa cu planurile barajului la capatul Wire Works (treapta 4),
+-- tarusii topografilor pe linia viitorului zid, intre punte si curtea depozitului (treapta 4), si curtea goala din
+-- mijlocul Wire Works: tamburii de cablu (treapta 1) si statia de transformare (treapta 4). Toate in spatele firelor,
+-- cu baza deasupra lor (testul recuzitei): o recuzita prin care trece sarma pare agatata de ea.
+TycoonConfig.DAM_PLANS = { x = 5150, y = 1200 }
+TycoonConfig.SURVEY_STAKES = {
+    { x = 620, y = 905, frame = 2 },
+    { x = 690, y = 905, frame = 0 },
+    { x = 760, y = 905, frame = 1 },
+    { x = 830, y = 905, frame = 0 },
+} :: { { x: number, y: number, frame: number } }
+TycoonConfig.FIELD_PROPS = {
+    { sprite = "cable_drums", x = 4020, y = 1250, stage = 1 },
+    { sprite = "cable_drums", x = 4490, y = 1150, stage = 1 },
+    { sprite = "substation", x = 4240, y = 1215, stage = 4 },
+} :: { { sprite: string, x: number, y: number, stage: number } }
+
 -- [D63] VERBUL unei platforme, acelasi pe butonul cartonasului si in textul quest-ului ei: o plasa se arunca ("cast"),
 -- un om se angajeaza ("hire"), traista se ia ("get"), clopotul se trage ("ring"), restul se construiesc ("build").
 -- Un test tine verbul legat de textele din QuestConfig.

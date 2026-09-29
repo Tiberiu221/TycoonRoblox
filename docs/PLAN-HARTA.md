@@ -1,5 +1,5 @@
 <!-- [D70] Hotărârile owner-ului din 2026-09-24 sunt în DECIZII D70 și trec înaintea acestui text acolo unde diferă:
-toți pornesc barajul cu 40T (nu „până la o noapte”); după film rămân primii cinci, ceilalți pleacă; filmul e scurt; de la
+toți pornesc barajul cu aceeași sumă (40T la hotărâre, 35T pe prototipurile simulatorului pe 2026-09-29; nu „până la o noapte”); după film rămân primii cinci, ceilalți pleacă; filmul e scurt; de la
 Era 4, 3 linii pe eră (două piese + asamblare) și marfa veche dusă de un om pe drum; fiecare eră cu alt cumpărător; din
 Era 6 roboții înlocuiesc oameni; Era 8 = drum spre o hartă nouă, racheta pe etape.
 [D70] PROPUNEREA INIȚIALĂ, DIN DEZBATERE (2026-09-24). Sinteza unei dezbateri pe Opus 5.5: cinci poziții (regulile, economia,
@@ -115,12 +115,32 @@ Mă despart de tine într-un singur punct. „Partea mică din bani” nu se ob�
 |---|---|---|---|---|
 | 1 | Clerk (~4 min) | *Wire comes to every street*: stâlpi cu sârmă pe toate străzile, după modelul `StreetLamps` | și în Wire Works, unde stai | 2 |
 | 2 | Thirteenth Net (~14 min) | *Iron carts*: roaba tuturor oamenilor devine cărucior de fier | peste tot | 1–2 |
-| 3 | Second Works Porter (~19 min) | *Tin roofs and brick*: depozitul, gaterul, taverna, Scrap Shed și forja trec în varianta modernă (după varianta de bază și cea grand); dacă imaginea lipsește, rămâne desenul de azi | Look (V) și în film | 5 |
+| 3 | Second Works Porter (~19 min) sau Fourteenth Net (~37 min) | *Tin roofs and brick*: depozitul, gaterul, taverna, Scrap Shed și forja trec în varianta modernă (după varianta de bază și cea grand); dacă imaginea lipsește, rămâne desenul de azi | Look (V) și în film | 5 |
 | 4 | Power House (~41 min) | geamuri pe case; țărușii lângă ponton; masa Dam Plans | lângă ponton și în Wire Works | 3 |
 | 5 | Primul curent vândut (~48 min) | *The village lights up*: felinarele (există deja), ferestrele și firmele | tot satul | 2 |
 
 - Treapta 0 rămâne identică la pixel (test).
 - Amânate: pavajul (cere a doua imagine coaptă pe fiecare felie) și acoperișurile colibelor (~46 de straturi).
+
+**Făcut (2026-09-29), cu cele 18 imagini aprobate de owner pe planșă și de moderare:**
+- `ModernController` citește treapta din stare la fiecare `TycoonState`. Când treapta urcă, dă un toast (`Strings.MODERN_STAGE`, treapta 5 o anunță `LAMPS_ON`) și un clinchet.
+- `UI/Modern` alege desenul: varianta modernă, geamurile, luminile, căruciorul.
+- `UI/ModernProps` desenează stâlpii și sârma, tamburii și stația din curtea Wire Works, masa Dam Plans și țărușii cu sfoara. Sunt 15 stâlpi, de la stâlpul de capăt de vest (x 272) până la ultimul stâlp al Wire Works (x 4760). De la treapta 4, un fir urcă de acolo la izolatorul de pe acoperișul Power House, deci linia pleacă de la clădirea care face curentul.
+- Locurile stau în `TycoonConfig` (`wirePoles`, `FIELD_PROPS`, `DAM_PLANS`, `SURVEY_STAKES`) și sunt testate să nu calce nimic. Desenul și punctele de prindere a sârmei stau în `ModernConfig`.
+- Macheta din bâlci arată **treapta gazdei** (`VillageLook.modern`), nu pe a vizitatorului.
+- **Nefăcute încă:** `PlayMoment` și „Look (V)”, adică privirea peste tot satul la schimbarea treptei. Azi fiecare treaptă se anunță cu un toast. Treapta 3 schimbă însă clădirile din Landing, departe de Wire Works, unde stai la minutul ~19: toastul spune „old village”, dar schimbarea o vezi abia când treci pe acolo.
+
+**După verificator (2026-09-29):**
+- **Treapta 3 vine și cu Fourteenth Net.** Al doilea Works Porter e opțional, clopotul nu-l cere. Fără el, satul ajungea la clopot oprit pe treapta 2.
+- **Fiecare treaptă urcată se anunță, pe rând, după toastul cumpărăturii.** Treapta 5 are fraza ei („The old village lights up!”). Fraza tace doar când vine odată cu primul curent vândut, fiindcă atunci anunță felinarele.
+- **Serverul nu mai trimite starea înainte de profil.** Starea goală de dinainte făcea ca anunțurile (și felinarele) să se repete la fiecare intrare și la fiecare întoarcere din bâlci.
+- **Treapta se calculează înaintea oricărei desenări.** Redesenarea schimbă doar desenul și straturile, deci casa care tocmai răsare își păstrează creșterea.
+- **Cifrele grămezilor stau în banda textului din lume** (Z 46/47), peste sârmă.
+- **Săgeata firului e 3%, nu 6%.** La 6%, firul trecea peste numele „Merchant” și „Clerk” (testat).
+- **La est, linia se oprește la ultimul stâlp al cartierului (x 4760), în fața curții Power House.** De acolo până la gard curtea e plină, iar gardul Erei 4 se desenează peste tot ce stă la 42 px de el, deci și peste traversa unui stâlp pus acolo.
+- **Tamburii de cablu stau în spatele firelor** (baza la y 1250). Testul recuzitei are acum și banda firelor.
+- **Roata de apă a Morii se învârte și după o treaptă nouă.** Redesenarea schimbă desenul doar când treapta îl schimbă, iar o roată rămâne pe foaia ei de mișcare.
+- **Ancora stâlpului de capăt de vest** se prinde în pământ în fața bradului de la capătul străzii. E singurul loc liber între brad și taraba Innkeeper-ului.
 
 **Era 4, harta nouă (~2.880 px).** Barajul stă **în aval de ponton**, la x 640–880. Am verificat: PIER x300, FERRY x418, WHEEL_STAND x400, VILLAGE_BOARD x486, TREASURE_SLOTS x214 și TAVERN x400 sunt toate la stânga zidului.
 - **x 0–640, lacul.** Tot colțul copilului rămâne pe loc, iar barca vâslește tot spre stânga, fără să treacă prin zid.

@@ -13,7 +13,6 @@ local TweenService = game:GetService("TweenService")
 local RiverConfig = require(ReplicatedStorage.Shared.Config.RiverConfig)
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
-local ChainMath = require(ReplicatedStorage.Shared.Modules.ChainMath)
 local HeldBack = require(ReplicatedStorage.Shared.Modules.HeldBack)
 local Assets = require(ReplicatedStorage.Shared.Config.Assets)
 local Strings = require(ReplicatedStorage.Shared.Config.Strings)
@@ -24,6 +23,7 @@ local Focus = require(script.Parent.Parent.UI.Focus)
 local GroundShadow = require(script.Parent.Parent.UI.GroundShadow)
 local PadArt = require(script.Parent.Parent.UI.PadArt)
 local Spin = require(script.Parent.Parent.UI.Spin)
+local Modern = require(script.Parent.Parent.UI.Modern)
 local SceneArt = require(script.Parent.SceneArt)
 local Pop = require(script.Parent.Parent.UI.Pop)
 
@@ -793,6 +793,9 @@ local function styleBought(frame: TextButton, pad: TycoonConfig.Pad)
         img.Size = UDim2.fromOffset(sprite.width * scale, sprite.height * scale)
         img.ZIndex = Z
         img.Parent = frame
+        -- [D70] satul se modernizeaza: geamurile caselor (treptele 4-5) si luminile cladirilor moderne (5)
+        Modern.windows(img, sprite)
+        Modern.lights(img, sprite)
         -- [D67, audit] roata de apa se invarte (UI/Spin), cat foaia ei de miscare e urcata
         local spin = Spin.sheetOf(sprite)
         if spin ~= nil then
@@ -1170,13 +1173,51 @@ function PadController.SetCrews(counts: { [string]: number }, tiers: { [string]:
     end
 end
 
--- [D62, pasul 5] Forja isi schimba desenul la pragul 25. Se redeseneaza doar cand se schimba INFATISAREA, nu la fiecare
--- nivel: `growIn` e o mica sarbatoare si ar obosi la fiecare cumparare.
+-- [D70] Satul a urcat o treapta de modernizare: pe fiecare cladire deja desenata se schimba doar desenul (forja si
+-- magazia de scrap iau tabla si caramida; varianta are aceeasi marime, test in ModernConfig) si straturile (geamuri,
+-- lumini). Nu se reface platforma: o casa care tocmai rasare [D55] isi pastreaza cresterea si praful. O roata care se
+-- invarte (UI/Spin) ramane pe foaia ei de miscare: desenul fix pus peste ea o oprea si o facea sa clipeasca.
+function PadController.RefreshModern()
+    for padId, frame in frames do
+        local building = frame:FindFirstChild("Building")
+        if lastStatus[padId] == "bought" and building ~= nil and building:IsA("ImageLabel") then
+            local sprite = boughtSprite(padId)
+            if sprite ~= nil and Assets.has(sprite) then
+                local spin = Spin.sheetOf(sprite)
+                local entry = spinning[padId]
+                if spin ~= nil then
+                    if
+                        entry == nil
+                        or entry.img ~= building
+                        or entry.sheet.sprite ~= spin.sprite
+                    then
+                        Spin.apply(building, spin)
+                        spinning[padId] = { img = building, sheet = spin }
+                    end
+                elseif building.Image ~= Assets.url(sprite) then
+                    if entry ~= nil then
+                        spinning[padId] = nil
+                        building.ImageRectOffset = Vector2.zero
+                        building.ImageRectSize = Vector2.zero
+                    end
+                    building.Image = Assets.url(sprite)
+                end
+                Modern.windows(building, sprite)
+                Modern.lights(building, sprite)
+            end
+        end
+    end
+end
+
+-- [D62, pasul 5] Forja isi schimba desenul la pragul 25. Se redeseneaza doar cand se schimba DESENUL, nu la fiecare
+-- nivel: `growIn` e o mica sarbatoare si ar obosi la fiecare cumparare. [D70, dupa verificator] Si nu la un prag fara
+-- alt desen (Power House, Copper Furnace): cladirea crestea din nou degeaba, iar firul prins de acoperisul Power House
+-- ramanea o clipa in aer.
 function PadController.SetBuildingLevel(padId: string, level: number)
-    local before = ChainMath.isGrand(buildingLevels[padId] or 1)
+    local before = boughtSprite(padId)
     buildingLevels[padId] = level
     local frame = frames[padId]
-    if before ~= ChainMath.isGrand(level) and frame ~= nil and lastStatus[padId] == "bought" then
+    if frame ~= nil and lastStatus[padId] == "bought" and boughtSprite(padId) ~= before then
         styleBought(frame, TycoonConfig.byId[padId])
         growIn(frame)
     end

@@ -108,6 +108,20 @@ stylua/selene o prind. Rulează-le mereu pe toate, nu înlănțuite după o eroa
   bâlciul doar în 114983498774894); serverul Rojo al satului rulează detașat pe 34872 și trebuie repornit ca să citească
   o schimbare de proiect. Ce a rulat în Studio se vede în `~/Library/Logs/Roblox/*_last.log` (`CreatorOutput`, `open place`).
 
+## Stare (2026-09-29) [D70]
+
+**Modernizarea Erei 3 e în cod, iar motorul lanțului știe să unească piese.** Nimic nu e văzut încă în Studio.
+- **Modernizarea** (`docs/PLAN-HARTA.md` §5, „Făcut"): cinci trepte din `ModernMath`, citite de `ModernController`.
+  Desenul se alege în `UI/Modern`, recuzita (stâlpi, sârmă, tamburi, Dam Plans, țăruși) se face în `UI/ModernProps`, iar
+  locurile, testate să nu calce nimic, stau în `TycoonConfig`. Toate 18 imagini sunt urcate și aprobate. Macheta din bâlci
+  arată treapta gazdei. Nefăcute: `PlayMoment` și „Look (V)".
+- **Motorul** (`docs/PLAN-MOTOR-UNIRE.md`, pașii a–c): chei opționale pe linii (`closeFlag`, `inputs`, `into`, `value`,
+  `pool`); Erele 1–3 ies neschimbate la bit, iar `check_lines` fixează 22 de reguli. **Urmează pașii d–l**, cu hotărârile
+  din D70 „Runda 4": piesele se vând doar unite, startul e 35T cu AWAY 0 până la cei 6 oameni, cristalul se vinde și în
+  Era 4.
+- **Capcana sondei:** dacă Studio nu e conectat la Rojo, Play-ul rulează codul vechi, fără nicio eroare. Verifică înainte:
+  `lsof -nP -iTCP:34872` trebuie să arate o legătură `ESTABLISHED`, nu doar `LISTEN`.
+
 ## Stare (2026-09-24) [D67 după audit, D68]
 
 **Un verificator după fiecare lucru** (owner: *„lasă și un agent să verifice mereu ce s-a lucrat; mă interesează mult logica

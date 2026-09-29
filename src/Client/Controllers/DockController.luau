@@ -29,6 +29,7 @@ local CustomerCrowd = require(script.Parent.Parent.UI.CustomerCrowd)
 local Focus = require(script.Parent.Parent.UI.Focus)
 local GroundShadow = require(script.Parent.Parent.UI.GroundShadow)
 local PadArt = require(script.Parent.Parent.UI.PadArt)
+local Modern = require(script.Parent.Parent.UI.Modern)
 local SceneArt = require(script.Parent.SceneArt)
 
 export type Deps = {
@@ -109,8 +110,15 @@ function DockController.SetLevel(level: number)
     tavernLevel = level
     local art = tavernArt
     if art ~= nil then
-        art.Image = Assets.url(PadArt.station("dock", level))
+        local sprite = PadArt.station("dock", level)
+        art.Image = Assets.url(sprite)
+        Modern.lights(art, sprite) -- [D70]
     end
+end
+
+-- [D70] Satul a urcat o treapta de modernizare: taverna isi ia caramida si tabla (PadArt.station), apoi luminile.
+function DockController.RefreshModern()
+    DockController.SetLevel(tavernLevel)
 end
 
 function DockController.Apply(
@@ -226,12 +234,14 @@ local function buildTavern()
         local art = Instance.new("ImageLabel")
         art.Name = "Art"
         art.BackgroundTransparency = 1
-        art.Image = Assets.url(PadArt.station("dock", tavernLevel))
+        local sprite = PadArt.station("dock", tavernLevel)
+        art.Image = Assets.url(sprite)
         art.ResampleMode = Enum.ResamplerMode.Pixelated
         art.Size = UDim2.fromScale(1, 1)
         art.ZIndex = 3
         art.Parent = marker
         tavernArt = art
+        Modern.lights(art, sprite) -- [D70]
         -- [D62, pasul 5] fum la hornul tavernei (masurat pe desen: 47 din 64, sus): e mereu deschisa
         SceneArt.AddSmoke(marker, 0.734, 0.02)
     else

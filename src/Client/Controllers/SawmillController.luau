@@ -29,6 +29,7 @@ local Focus = require(script.Parent.Parent.UI.Focus)
 local StandRing = require(script.Parent.Parent.UI.StandRing)
 local GroundShadow = require(script.Parent.Parent.UI.GroundShadow)
 local PadArt = require(script.Parent.Parent.UI.PadArt)
+local Modern = require(script.Parent.Parent.UI.Modern)
 
 export type Deps = {
     Plot: Frame,
@@ -108,8 +109,15 @@ function SawmillController.SetLevel(level: number)
     buildingLevel = level
     local art = buildingArt
     if art ~= nil then
-        art.Image = Assets.url(PadArt.station("saw", level))
+        local sprite = PadArt.station("saw", level)
+        art.Image = Assets.url(sprite)
+        Modern.lights(art, sprite) -- [D70]
     end
+end
+
+-- [D70] Satul a urcat o treapta de modernizare: gaterul isi ia tabla si caramida (PadArt.station), apoi luminile.
+function SawmillController.RefreshModern()
+    SawmillController.SetLevel(buildingLevel)
 end
 
 function SawmillController.Apply(newSack: Sack, snap: Snapshot?)
@@ -193,6 +201,7 @@ function SawmillController.Init(d: Deps)
         art.ZIndex = 3
         art.Parent = marker
         buildingArt = art
+        Modern.lights(art, building) -- [D70]
     else
         -- arta inca neurcata: un sopron de lemn simplu, cat sa se vada unde e gaterul [regula 6]
         marker.BackgroundTransparency = 0.15

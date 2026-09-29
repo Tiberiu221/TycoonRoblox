@@ -23,6 +23,7 @@ local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
 local PersonView = require(script.Parent.Parent.UI.PersonView)
+local Modern = require(script.Parent.Parent.UI.Modern)
 
 export type Appearance = PersonView.Appearance
 export type HandSnap = {
@@ -324,6 +325,14 @@ function HandRenderController.Cheer(role: string)
         if rec.snap.role == role and rec.frame.Visible then
             showBubble(rec, Strings.CREW_TIER_THANKS, 2.5, 200)
         end
+    end
+end
+
+-- [D70] Satul a urcat o treapta de modernizare: roabele tuturor devin carucioare de fier (UI/Modern, treapta 2).
+function HandRenderController.SetModern()
+    local sprite = Modern.barrow()
+    for _, rec in tracked do
+        rec.view.SetBarrowArt(sprite)
     end
 end
 

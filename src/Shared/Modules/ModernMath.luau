@@ -11,25 +11,37 @@ export type Facts = {
     powerSold: boolean, -- s-a vandut deja curent (TycoonState.firsts.power)
 }
 
+-- O treapta se implineste printr-o platforma, o meserie cu destui oameni sau primul curent vandut; `orPad` e a doua
+-- cale, printr-o platforma pe care orice jucator o cumpara.
+export type Step = {
+    key: string,
+    pad: string?,
+    crew: string?,
+    count: number?,
+    power: boolean?,
+    orPad: string?,
+}
+
 -- Treptele, in ordinea din simulator (minutele sunt ale jucatorului lacom, docs/PLAN-HARTA.md):
 --   1 wire    Clerk angajat (~4 min)            stalpi cu sarma pe toate strazile
 --   2 carts   Thirteenth Net (~14 min)          roabele devin carucioare de fier
 --   3 brick   al doilea Works Porter (~19 min)  tabla si caramida pe cladirile vechi
+--             SAU Fourteenth Net (~37 min)      al doilea om e optional (clopotul nu-l cere), plasa a 14-a nu:
+--                                               asa orice sat ajunge la tabla, geamuri si lumini inainte de clopot
 --   4 glass   Power House (~41 min)             geamuri; tarusii topografilor, masa Dam Plans
 --   5 lights  primul curent vandut (~48 min)    satul se lumineaza
-ModernMath.STAGES =
-    {
-        { key = "wire", pad = "hire_clerk" },
-        { key = "carts", pad = "thirteenth_net" },
-        { key = "brick", crew = "worksPorter", count = 2 },
-        { key = "glass", pad = "power_house" },
-        { key = "lights", power = true },
-    } :: { { key: string, pad: string?, crew: string?, count: number?, power: boolean? } }
+ModernMath.STAGES = {
+    { key = "wire", pad = "hire_clerk" },
+    { key = "carts", pad = "thirteenth_net" },
+    { key = "brick", crew = "worksPorter", count = 2, orPad = "fourteenth_net" },
+    { key = "glass", pad = "power_house" },
+    { key = "lights", power = true },
+} :: { Step }
 
-local function holds(
-    step: { pad: string?, crew: string?, count: number?, power: boolean? },
-    f: Facts
-): boolean
+local function holds(step: Step, f: Facts): boolean
+    if step.orPad ~= nil and f.pads[step.orPad] == true then
+        return true
+    end
     if step.pad ~= nil then
         return f.pads[step.pad] == true
     elseif step.crew ~= nil then

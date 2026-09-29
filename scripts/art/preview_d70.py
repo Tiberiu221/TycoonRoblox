@@ -7,9 +7,9 @@
   d70_street.png                    -- o bucata din The Landing la 1:1 (pixel de lume), treapta 0 deasupra, 5 dedesubt
   d70_field.png                     -- curtea goala din mijlocul Wire Works, azi si cu recuzita optionala
 
-Nu e jocul: pozitiile stalpilor, tarusilor si ale oamenilor cu roaba sunt alese aici de mana, ca propunere (le hotaraste
-codul). Restul (cladirile, casele, felinarele, drumurile, pamantul copt) vine din aceleasi cifre ca jocul
-(scripts/art/village_geometry.luau + un mic export Lune).
+Stalpii, tarusii, tamburii, statia si masa cu planuri vin din TycoonConfig, ca in joc (wirePoles, SURVEY_STAKES,
+FIELD_PROPS, DAM_PLANS); la fel cladirile, casele, felinarele, drumurile si pamantul copt (scripts/art/village_geometry.luau
++ un mic export Lune). Doar oamenii cu roaba sunt pusi aici de mana, ca exemplu.
 
 Rulare: python3 scripts/art/preview_d70.py [stages|village|street|field|all]
 """
@@ -85,11 +85,11 @@ def label(img, x, y, text):
     P.draw_text(img, int(x), int(y), text.upper(), INK, 1)
 
 
-def wire(img, a, b, color, thick, sag_frac=0.06):
+def wire(img, a, b, color, thick, sag_frac=None):
     """Firul dintre doi izolatori: o curba cu sageata la mijloc (asa l-ar desena codul)."""
     (xa, ya), (xb, yb) = a, b
     span = abs(xb - xa)
-    sag = sag_frac * span
+    sag = (D.WIRE["sag_fraction"] if sag_frac is None else sag_frac) * span
     n = max(2, int(span))
     for i in range(n + 1):
         t = i / n
@@ -311,7 +311,8 @@ def stage5():
 EXPORT = """
 local serde = require("@lune/serde")
 local T = require("../../../src/Shared/Config/TycoonConfig")
-local out = { fixed = {}, lamps = T.streetLamps(), decor = T.DECOR, pier = T.PIER, lamp_base = T.LAMP_BASE_Y }
+local out = { fixed = {}, lamps = T.streetLamps(), decor = T.DECOR, pier = T.PIER, lamp_base = T.LAMP_BASE_Y,
+    poles = T.wirePoles(), stakes = T.SURVEY_STAKES, field = T.FIELD_PROPS, plans = T.DAM_PLANS }
 for _, key in { "TAVERN", "STORAGE", "SAWMILL", "WORKS_STORE", "WIRE_WORKS", "DEPOT" } do
     out.fixed[key] = T[key]
 end
@@ -354,16 +355,57 @@ PAD_ART = {
     "scrap_shed": ("prop_scrap_shed", 3), "workshop": ("prop_workshop_e1", 3), "landing_bell": ("prop_bell", 3),
 }
 MODERN_OF = {base: name for name, _fn, base in D.MODERN}
-# PROPUNERE: stalpii pe marginea de NORD a strazii (baza la y 1418), in golurile dintre curti, unde nu sta nimeni la
-# lucru; capatul de vest cu stalpul de ancorare. Linia merge mai departe spre Moara si Wire Works (x 1880, ...).
-POLES = [(248, True), (480, False), (786, False), (1222, False), (1556, False), (1882, False)]
-POLE_BASE_Y = 1418
-# PROPUNERE: tarusii pe iarba dintre punte si curtea depozitului, pe linia zidului (x 640..880)
-STAKES = [(610, 2), (650, 0), (710, 1), (770, 0), (830, 1), (880, 0)]
-STAKE_BASE_Y = 905
 # oameni cu roaba pe strada (x, baza, cadru)
 WALKERS = [(700, 1446, 0, "push_side", "side", False), (1340, 1470, 1, "push_side", "side", True),
            (1180, 1460, 2, "push_side", "side", True)]
+
+
+def poles_and_wires(add, at, img, wx0, wy0, scale):
+    """Stalpii din TycoonConfig.wirePoles(), prinsi de stalp (nu de marginea foii), si cele doua fire intre ei, ca in
+    UI/ModernProps."""
+    tops = []
+    for pole in places()["poles"]:
+        is_end = pole["kind"] == "end"
+        nm = "prop_wire_pole_end" if is_end else "prop_wire_pole"
+        spr = sprite(nm)
+        post = 8 + (D.END_POLE_DX if is_end else 0)
+        mirror = pole["mirror"]
+        ax = spr[0] - post if mirror else post
+        x, base = pole["x"], pole["y"]
+        add(base, lambda spr=spr, x=x, base=base, ax=ax, mirror=mirror: at(spr, x, base, 3, anchor_x=ax, flip=mirror))
+        sign = -1 if mirror else 1
+        dx = D.END_POLE_DX if is_end else 0
+        tops.append({n: (x + sign * (D.POLE_WIRES[n][0] + dx - post) * 3, base - (54 - D.POLE_WIRES[n][1]) * 3)
+                     for n in ("near", "far")})
+
+    def wires(tops=tops):
+        for a, b in zip(tops, tops[1:]):
+            for n, col in (("far", D.WIRE["color_far"]), ("near", D.WIRE["color_near"])):
+                pa = ((a[n][0] - wx0) * scale, (a[n][1] - wy0) * scale)
+                pb = ((b[n][0] - wx0) * scale, (b[n][1] - wy0) * scale)
+                wire(img, pa, pb, col, max(1, round(2 * scale)))
+
+    if places()["poles"]:
+        add(places()["poles"][0]["y"] + 0.5, wires)
+    return tops
+
+
+def feed_wire(add, img, tops, wx0, wy0, scale):
+    """De la treapta 4: firul din spate al ultimului stalp pana la izolatorul din stanga de pe acoperisul Power House
+    (ModernConfig.POWER_FEED, pixelul (20, 5) al foii ei), ca in UI/ModernProps."""
+    pad = [p for p in places()["geometry"]["pads"] if p["id"] == "power_house"]
+    if not pad or not tops:
+        return
+    w, h, _px = sprite("prop_power_house")
+    x = pad[0]["x"] - w * 3 / 2 + 20.5 * 3
+    y = pad[0]["y"] + 48 + 8 - h * 3 + 5 * 3
+    a = tops[-1]["far"]
+
+    def draw():
+        wire(img, ((a[0] - wx0) * scale, (a[1] - wy0) * scale), ((x - wx0) * scale, (y - wy0) * scale),
+             D.WIRE["color_far"], max(1, round(2 * scale)))
+
+    add(places()["poles"][0]["y"] + 0.5, draw)
 
 
 def landing(stage, wx0, wx1, wy0, wy1, scale):
@@ -425,38 +467,23 @@ def landing(stage, wx0, wx1, wy0, wy1, scale):
                                              lamp["x"], lamp["y"], 3))
     # treapta 1: stalpii si firele
     if stage >= 1:
-        tops = []
-        for x, is_end in POLES:
-            nm = "prop_wire_pole_end" if is_end else "prop_wire_pole"
-            spr = sprite(nm)
-            ax = 8 + (D.END_POLE_DX if is_end else 0)
-            add(POLE_BASE_Y, lambda spr=spr, x=x, ax=ax: at(spr, x, POLE_BASE_Y, 3, anchor_x=ax))
-            tops.append({n: (x + (D.POLE_WIRES[n][0] - 8) * 3, POLE_BASE_Y - (54 - D.POLE_WIRES[n][1]) * 3)
-                         for n in ("near", "far")})
-
-        def wires(tops=tops):
-            for a, b in zip(tops, tops[1:]):
-                for n, col in (("far", D.WIRE["color_far"]), ("near", D.WIRE["color_near"])):
-                    pa = ((a[n][0] - wx0) * scale, (a[n][1] - wy0) * scale)
-                    pb = ((b[n][0] - wx0) * scale, (b[n][1] - wy0) * scale)
-                    wire(img, pa, pb, col, max(1, round(2 * scale)))
-
-        add(POLE_BASE_Y + 0.5, wires)
+        poles_and_wires(add, at, img, wx0, wy0, scale)
     # treapta 4: tarusii pe linia zidului
     if stage >= 4:
         pins = []
-        for x, f in STAKES:
-            add(STAKE_BASE_Y, lambda x=x, f=f: at(sprite("prop_survey_stakes"), x, STAKE_BASE_Y, 2, rect=(f * 12, 0, 12, 26)))
-            if f != 2:
+        for stake in pl["stakes"]:
+            x, base, f = stake["x"], stake["y"], stake["frame"]
+            add(base, lambda x=x, base=base, f=f: at(sprite("prop_survey_stakes"), x, base, 2, rect=(f * 12, 0, 12, 26)))
+            if f in D.STAKE_STRING:
                 sx, sy = D.STAKE_STRING[f]
-                pins.append((x + (sx - 6) * 2, STAKE_BASE_Y - (26 - sy) * 2))
+                pins.append((x + (sx - 6) * 2, base - (26 - sy) * 2))
 
         def string(pins=pins):
             for a, b in zip(pins, pins[1:]):
                 wire(img, ((a[0] - wx0) * scale, (a[1] - wy0) * scale), ((b[0] - wx0) * scale, (b[1] - wy0) * scale),
                      (222, 70, 60, 255), 1, 0.03)
 
-        add(STAKE_BASE_Y + 0.5, string)
+        add(pl["stakes"][0]["y"] + 0.5, string)
     # oamenii cu roaba (de fier de la treapta 2)
     for x, base, who, row, view, left in WALKERS:
         shot = person_shot(who, row, 1, view, left, stage >= 2)
@@ -518,10 +545,7 @@ def street():
 # ---------------------------------------------------------------------------------------------
 # curtea Wire Works
 
-FIELD_PROPS = [("prop_substation", 4240, 1215), ("prop_cable_drums", 4040, 1300), ("prop_cable_drums", 4490, 1150)]
-
-
-def works(with_props, wx0, wx1, wy0, wy1, scale):
+def works(stage, wx0, wx1, wy0, wy1, scale):
     pl = places()
     G = pl["geometry"]
     img = C(int((wx1 - wx0) * scale), int((wy1 - wy0) * scale))
@@ -531,9 +555,17 @@ def works(with_props, wx0, wx1, wy0, wy1, scale):
         blit(img, sprite(name), (k * tile - wx0) * scale, -wy0 * scale, 3 * scale)
     things = []
 
-    def at(spr, x, base, art_scale):
-        blit(img, spr, (x - wx0 - spr[0] / 2 * art_scale) * scale, (base - wy0 - spr[1] * art_scale) * scale,
-             art_scale * scale)
+    def at(spr, x, base, art_scale, rect=None, flip=False, anchor_x=None):
+        w = (rect[2] if rect else spr[0])
+        h = (rect[3] if rect else spr[1])
+        ax = anchor_x if anchor_x is not None else w / 2
+        blit(img, spr, (x - wx0 - ax * art_scale) * scale, (base - wy0 - h * art_scale) * scale, art_scale * scale,
+             rect=rect, flip=flip)
+
+    drawn = []
+
+    def add(depth, fn):
+        drawn.append((depth, len(drawn), fn))
 
     art = {"steam_engine": "prop_steam_engine", "power_house": "prop_power_house", "battery_shed": "prop_battery_shed",
            "works_bell": "prop_works_bell", "hire_works_collector": "prop_hut_works_collector_2",
@@ -558,11 +590,20 @@ def works(with_props, wx0, wx1, wy0, wy1, scale):
         nm = {"tree_round": "prop_tree_round", "tree_pine": "prop_tree_pine", "bush": "prop_bush"}.get(item["kind"])
         if nm and wx0 - 100 < item["x"] < wx1 + 100:
             things.append((item["y"], nm, item["x"], item["y"], 3))
-    if with_props:
-        for nm, x, y in FIELD_PROPS:
-            things.append((y, nm, x, y, 3))
-    for _d, nm, x, y, sc in sorted(things, key=lambda t: t[0]):
-        at(sprite(nm), x, y, sc)
+    for prop in pl["field"]:
+        if stage >= prop["stage"]:
+            things.append((prop["y"], "prop_" + prop["sprite"], prop["x"], prop["y"], 3))
+    if stage >= 4:
+        plans = pl["plans"]
+        things.append((plans["y"], "prop_dam_plans", plans["x"], plans["y"], 2))
+    for d, nm, x, y, sc in things:
+        add(d, lambda nm=nm, x=x, y=y, sc=sc: at(sprite(nm), x, y, sc))
+    if stage >= 1:
+        tops = poles_and_wires(add, at, img, wx0, wy0, scale)
+        if stage >= 4:
+            feed_wire(add, img, tops, wx0, wy0, scale)
+    for _d, _i, fn in sorted(drawn, key=lambda t: (t[0], t[1])):
+        fn()
     return img
 
 
@@ -571,11 +612,11 @@ def field():
     scale = 0.5
     pw, ph = int((wx1 - wx0) * scale), int((wy1 - wy0) * scale)
     img = sheet(pw + 20, 2 * (ph + 22) + 20)
-    for k, with_props in enumerate((False, True)):
-        panel = works(with_props, wx0, wx1, wy0, wy1, scale)
+    for k, stage in enumerate((0, 5)):
+        panel = works(stage, wx0, wx1, wy0, wy1, scale)
         blit(img, of(panel), 10, 20 + k * (ph + 22), 1)
-        label(img, 10, 8 + k * (ph + 22), "WIRE WORKS TODAY" if not with_props else
-              "WITH THE OPTIONAL PROPS: SUBSTATION (4240, 1215), CABLE DRUMS (4040, 1300) AND (4490, 1150)")
+        label(img, 10, 8 + k * (ph + 22), "WIRE WORKS " + STAGE_TITLES[stage] +
+              ("  (POLES, DRUMS, SUBSTATION, DAM PLANS FROM TycoonConfig)" if stage else ""))
     path = os.path.join(SCRATCH, "d70_field.png")
     write_png(path, img.w, img.h, img.px)
     print("scris", path, img.w, img.h)

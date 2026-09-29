@@ -14,6 +14,7 @@ local AnimConfig = require(ReplicatedStorage.Shared.Config.AnimConfig)
 local Assets = require(ReplicatedStorage.Shared.Config.Assets)
 local HandConfig = require(ReplicatedStorage.Shared.Config.HandConfig)
 local GoodArt = require(script.Parent.GoodArt)
+local Modern = require(script.Parent.Modern)
 
 export type Appearance = {
     body: string,
@@ -33,6 +34,8 @@ export type View = {
     SetHeld: (step: number) -> (),
     -- [D55] ce e in roaba: "driftwood" | "planks" | "scrap" | "iron" | "named" | nil
     SetCarry: (kind: string?, step: number) -> (),
+    -- [D70] desenul roabei (caruciorul de fier din treapta 2 a modernizarii); aceleasi cadre
+    SetBarrowArt: (sprite: Assets.Sprite) -> (),
     Destroy: () -> (),
 }
 
@@ -164,7 +167,7 @@ function PersonView.new(parent: Instance, name: string, held: string?): View
         local b = Instance.new("ImageLabel")
         b.Name = "Art"
         b.BackgroundTransparency = 1
-        b.Image = Assets.url(Assets.tycoon.barrow)
+        b.Image = Assets.url(Modern.barrow()) -- [D70] roaba, sau caruciorul de fier al treptei de acum
         b.ImageRectSize = Vector2.new(BARROW_W, BARROW_H)
         b.ResampleMode = Enum.ResamplerMode.Pixelated
         b.Size = UDim2.fromScale(1, 1)
@@ -392,6 +395,15 @@ function PersonView.new(parent: Instance, name: string, held: string?): View
                     setFrame(outfit, row, frameIndex, facing)
                 else
                     setIfChanged(outfit, "ImageTransparency", 1)
+                end
+            end
+        end,
+        SetBarrowArt = function(art: Assets.Sprite)
+            local b = barrowImg
+            if b ~= nil and Assets.has(art) then
+                local url = Assets.url(art)
+                if b.Image ~= url then
+                    b.Image = url
                 end
             end
         end,

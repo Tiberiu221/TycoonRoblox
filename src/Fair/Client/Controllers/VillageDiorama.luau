@@ -31,6 +31,8 @@ local SceneArt = require(script.Parent.SceneArt)
 local GroundShadow = require(script.Parent.Parent.UI.GroundShadow)
 local PadArt = require(script.Parent.Parent.UI.PadArt)
 local StreetLamps = require(script.Parent.Parent.UI.StreetLamps)
+local Modern = require(script.Parent.Parent.UI.Modern)
+local ModernProps = require(script.Parent.Parent.UI.ModernProps)
 local PersonView = require(script.Parent.Parent.UI.PersonView)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
@@ -132,13 +134,15 @@ local function station(
     sprite: Assets.Sprite?,
     box: { x: number, y: number, w: number, h: number },
     label: string,
-    labelAtTop: boolean
+    labelAtTop: boolean,
+    stage: number? -- [D70] treapta modernizarii gazdei (doar cladirile satului vechi au lumini)
 )
     GroundShadow.add(parent, UDim2.fromOffset(box.x, box.y), box.w, 2)
     if sprite ~= nil and Assets.has(sprite) then
         local img = image(parent, sprite, box.w, box.h, 3)
         img.AnchorPoint = Vector2.new(0.5, 1)
         img.Position = UDim2.fromOffset(box.x, box.y)
+        Modern.lights(img, sprite, stage or 0) -- [D70] luminile cladirilor moderne ale gazdei
     else
         local f = Instance.new("Frame")
         f.AnchorPoint = Vector2.new(0.5, 1)
@@ -311,7 +315,7 @@ local function drawBought(parent: Instance, pad: TycoonConfig.Pad, village: Vill
     -- nivelul forjei conteaza doar pentru forja insasi; [D67, audit] o cladire care ar cadea pe desenul forjei (arta ei
     -- lipsa) nu-l mai ia pe cel mare dupa nivelul forjei gazdei
     local forgeLevel = if pad.id == "workshop" then village.stations.forge else nil
-    local sprite, scale = PadArt.bought(pad.id, count, forgeLevel)
+    local sprite, scale = PadArt.bought(pad.id, count, forgeLevel, village.modern)
     local name = PadArt.homeName(pad.id)
     if sprite ~= nil and Assets.has(sprite) then
         local house = standing(
@@ -324,6 +328,9 @@ local function drawBought(parent: Instance, pad: TycoonConfig.Pad, village: Vill
             3,
             shadow
         )
+        -- [D70] geamurile caselor si luminile cladirilor moderne, pe treapta gazdei
+        Modern.windows(house, sprite, village.modern)
+        Modern.lights(house, sprite, village.modern)
         if name ~= nil then
             worldName(parent, name, x, base + 2)
             -- [D62, pasul 5] treapta meseriei si fumul de la horn, ca acasa
@@ -400,6 +407,7 @@ local function drawPeople(parent: Frame, village: VillageLook.Snapshot)
         local walker = HandRoutes.isWalker(snap.role)
         local view = PersonView.new(parent, snap.id, if walker then "barrow" else nil)
         view.SetAppearance(snap.appearance)
+        view.SetBarrowArt(Modern.barrow(village.modern)) -- [D70] caruciorul de fier, daca gazda e acolo
         local cycle: HandMath.Cycle = { legs = {}, duration = 0 }
         if snap.x == nil then
             cycle = HandRoutes.cycleFor(snap.role, snap.index, snap.count, snap.nets)
@@ -495,18 +503,27 @@ function VillageDiorama.Show(village: VillageLook.Snapshot)
     -- [D62, pasul 5] de la nivelul 25, gazda are taverna si gaterul in a doua infatisare, ca acasa la ea
     station(
         p,
-        PadArt.station("dock", village.stations.dock),
+        PadArt.station("dock", village.stations.dock, village.modern),
         TycoonConfig.TAVERN,
         Strings.TAVERN_LABEL,
-        true
+        true,
+        village.modern
     )
-    station(p, (Assets.tycoon :: any).storage, TycoonConfig.STORAGE, Strings.STORAGE_LABEL, false)
     station(
         p,
-        PadArt.station("saw", village.stations.saw),
+        Modern.variant((Assets.tycoon :: any).storage, village.modern),
+        TycoonConfig.STORAGE,
+        Strings.STORAGE_LABEL,
+        false,
+        village.modern
+    )
+    station(
+        p,
+        PadArt.station("saw", village.stations.saw, village.modern),
         TycoonConfig.SAWMILL,
         Strings.SAWMILL_LABEL,
-        false
+        false,
+        village.modern
     )
 
     -- [D65] cladirile fixe ale Morii apar cu roata de apa, ca acasa la gazda (pana la arta lor: desenele perechii
@@ -544,6 +561,7 @@ function VillageDiorama.Show(village: VillageLook.Snapshot)
     drawDecor(p, village)
     -- [D67, audit] felinarele strazii, aprinse daca gazda a vandut deja curent (adancimea dupa baza, ca oamenii)
     StreetLamps.draw(p, village.power)
+    ModernProps.draw(p, village.modern) -- [D70] stalpii cu sarma si recuzita modernizarii, pe treapta gazdei
     drawPeople(p, village)
 
     -- cartea de oaspeti: avizierul curat, cu numele dedesubt

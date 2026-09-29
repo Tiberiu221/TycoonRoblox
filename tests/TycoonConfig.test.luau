@@ -926,6 +926,294 @@ return function()
             end
         )
 
+        -- [D70] Obstacolele tari de pe teren: cladirile fixe, platformele cu cladiri sau case, oamenii care lucreaza pe
+        -- loc cu roabele lor, inelele si gramezile atelierelor, aleile, felinarele si decorul care nu se poate calca
+        -- (tufele si gardurile, da: un stalp in fata unui gard e firesc).
+        local function hardObstacles(): { { any } }
+            local out: { { any } } = {}
+            local function add(name: string, x0: number, y0: number, x1: number, y1: number)
+                table.insert(out, { name, x0, y0, x1, y1 })
+            end
+            local function bottom(name: string, cx: number, by: number, w: number, h: number)
+                add(name, cx - w / 2, by - h, cx + w / 2, by)
+            end
+            for _, k in
+                {
+                    "STORAGE",
+                    "SAWMILL",
+                    "TAVERN",
+                    "MILL_STORE",
+                    "FOUNDRY",
+                    "MARKET",
+                    "WORKS_STORE",
+                    "WIRE_WORKS",
+                    "DEPOT",
+                }
+            do
+                local b = (TycoonConfig :: any)[k]
+                bottom(k, b.x, b.y, b.w, b.h)
+            end
+            for _, p in TycoonConfig.PADS do
+                if p.live and p.x ~= nil and p.y ~= nil then
+                    local net = false
+                    for _, e in p.effects do
+                        if e.kind == "net" then
+                            net = true
+                        end
+                    end
+                    if not net then
+                        local home = TycoonConfig.CREW_OF_PAD[p.id] ~= nil
+                        bottom(
+                            `pad {p.id}`,
+                            p.x :: number,
+                            (p.y :: number) + 56,
+                            if home then 128 else 192,
+                            if home then 110 else 144
+                        )
+                    end
+                end
+            end
+            for name, pl in TycoonConfig.LINE_PLACES do
+                local w = pl.workerStand
+                bottom(`{name}.worker`, w.x, w.y, 40, 60)
+                bottom(`{name}.second`, w.x + pl.secondOffset.x, w.y, 40, 60)
+                add(
+                    `{name}.inBarrow`,
+                    pl.processorIn.x - 20,
+                    pl.processorIn.y - 60,
+                    pl.processorIn.x + 73,
+                    pl.processorIn.y
+                )
+                add(
+                    `{name}.outBarrow`,
+                    pl.processorOut.x - 73,
+                    pl.processorOut.y - 60,
+                    pl.processorOut.x + 20,
+                    pl.processorOut.y
+                )
+                add(
+                    `{name}.ring`,
+                    pl.playerStand.x - 48,
+                    pl.playerStand.y - 28,
+                    pl.playerStand.x + 48,
+                    pl.playerStand.y + 20
+                )
+                for _, pile in { pl.inPile, pl.outPile, pl.storePile } do
+                    add(`{name}.pile`, pile.x - 40, pile.y - 82, pile.x + 40, pile.y)
+                end
+            end
+            for _, d in TycoonConfig.DECOR do
+                local soft = d.sprite == "bush"
+                    or d.sprite == "fence"
+                    or d.sprite == "flowers"
+                    or d.sprite == "rock_small"
+                local art = (Assets.props :: any)[d.sprite] or (Assets.tycoon :: any)[d.sprite]
+                if art ~= nil and not soft then
+                    bottom(`decor {d.sprite}`, d.x, d.y, art.width * d.scale, art.height * d.scale)
+                end
+            end
+            for _, district in TycoonConfig.DISTRICTS do
+                for _, r in district.roads do
+                    if r.y1 == 1420 then
+                        add(`lane {r.id}`, r.x0 - 12, 1300, r.x1 + 12, 1420)
+                    end
+                end
+            end
+            for _, l in TycoonConfig.streetLamps() do
+                add("lamp", l.x - 15, 1372, l.x + 15, l.y)
+            end
+            return out
+        end
+        local function clashes(
+            obstacles: { { any } },
+            x0: number,
+            y0: number,
+            x1: number,
+            y1: number
+        ): string?
+            for _, b in obstacles do
+                if x0 < b[4] and b[2] < x1 and y0 < b[5] and b[3] < y1 then
+                    return b[1]
+                end
+            end
+            return nil
+        end
+
+        test.case("[D70] stalpii cu sarma stau pe marginea strazii fara sa calce nimic", function()
+            local poles = TycoonConfig.wirePoles()
+            if not TycoonConfig.eraIsLive(3) then
+                check.equal(#poles, 0)
+                return
+            end
+            check.equal(#poles, 15) -- capatul de vest, patru pe cartier, doi de legatura
+            check.equal(poles[1].kind, "end")
+            check.equal(poles[#poles].kind, "line") -- se opreste in fata curtii Power House
+            local obstacles = hardObstacles()
+            -- gardul primului cartier inca inchis: el si ceata lui (ZoneController, Z 200/201) acopera tot ce trece de el.
+            -- Gardul e desenat culcat, centrat pe linie: jumatate din inaltimea foii lui cade spre partea luminata.
+            local fenceArt = (Assets.props :: any).fence
+            local fence = math.huge
+            for _, zone in TycoonConfig.ZONES do
+                if not TycoonConfig.eraIsLive(zone.era) then
+                    fence = math.min(fence, zone.x0 - fenceArt.height * Assets.PIXEL_SCALE / 2)
+                end
+            end
+            for i, pole in poles do
+                -- stalpul (x+-6) si traversa cu izolatorii (x-15..x+12), de la baza pana la 162 px deasupra
+                local hit = clashes(obstacles, pole.x - 6, pole.y - 162, pole.x + 6, pole.y)
+                    or clashes(obstacles, pole.x - 15, pole.y - 162, pole.x + 12, pole.y - 126)
+                if hit ~= nil then
+                    error(`stalpul de la x {pole.x} calca {hit}`)
+                end
+                -- toata foaia (la capat: si ancora, 60 px spre margine) sta pe partea luminata a gardului
+                local reach = if pole.kind == "end" and pole.mirror then 60 else 24
+                check.is_true(pole.x + reach <= fence)
+                if i > 1 then
+                    local span = pole.x - poles[i - 1].x
+                    check.is_true(span > 100 and span <= 480)
+                end
+            end
+            -- [D70, dupa verificator] ancora stalpului de capat se prinde in pamant in fata bradului de la capatul strazii
+            -- (singurul loc liber intre el si taraba Innkeeper-ului): bradul sta in spate, deci ancora se deseneaza peste
+            -- el, si nimic altceva nu e acolo.
+            local first = poles[1]
+            for _, b in obstacles do
+                local x0, y0, x1, y1 = first.x - 60, first.y - 162, first.x + 24, first.y
+                if x0 < b[4] and b[2] < x1 and y0 < b[5] and b[3] < y1 then
+                    check.equal(b[1], "decor tree_pine")
+                    check.is_true(b[5] < first.y) -- bradul sta in spatele stalpului
+                end
+            end
+        end)
+
+        -- [D70, dupa verificator] Toate firele din joc, din aceeasi lista ca desenul (ModernConfig.wireSpans): intre stalpi
+        -- si, de la treapta 4, pana la izolatorul de pe acoperisul Power House. `wireThrough` spune daca vreun fir intra
+        -- in dreptunghiul dat (cu grosimea lui).
+        local ModernConfig = require("../src/Shared/Config/ModernConfig")
+        local function allSpans(): { ModernConfig.Span }
+            local height = (Assets.tycoon :: any).wire_pole.height
+            check.equal((Assets.tycoon :: any).wire_pole_end.height, height)
+            local house = TycoonConfig.byId[ModernConfig.POWER_FEED.pad]
+            local art = (Assets.tycoon :: any).power_house
+            local fx, fy = ModernConfig.feedPoint(
+                house.x :: number,
+                house.y :: number,
+                TycoonConfig.PAD_SIZE,
+                art.width,
+                art.height,
+                Assets.PIXEL_SCALE
+            )
+            return ModernConfig.wireSpans(
+                TycoonConfig.wirePoles(),
+                height,
+                Assets.PIXEL_SCALE,
+                { x = fx, y = fy }
+            )
+        end
+        local function wireThrough(
+            x0: number,
+            y0: number,
+            x1: number,
+            y1: number
+        ): (number?, number?)
+            local half = ModernConfig.WIRE.thickness / 2
+            for _, span in allSpans() do
+                for k = 0, 200 do
+                    local x, y = ModernConfig.wirePoint(span.ax, span.ay, span.bx, span.by, k / 200)
+                    if x >= x0 and x <= x1 and y + half > y0 and y - half < y1 then
+                        return x, y
+                    end
+                end
+            end
+            return nil, nil
+        end
+
+        test.case("[D70] firul spre Power House pleaca de la ultimul stalp, peste curte", function()
+            if not TycoonConfig.eraIsLive(3) then
+                return
+            end
+            local spans = allSpans()
+            local feed = spans[#spans]
+            check.equal(feed.stage, ModernConfig.POWER_FEED.stage)
+            -- firul apare cand apare si Power House: treapta lui e cea care cere platforma ei
+            local ModernMath = require("../src/Shared/Modules/ModernMath")
+            check.equal(ModernMath.STAGES[feed.stage].pad, ModernConfig.POWER_FEED.pad)
+            local span = feed.bx - feed.ax
+            check.is_true(span > 100 and span <= 480)
+            check.is_true(feed.by < feed.ay) -- urca spre acoperis
+        end)
+
+        -- [D70, dupa verificator] Sarma trece prin fata cladirilor de pe marginea de nord a strazii (adancimea ei e a
+        -- stalpilor, 5 + 1418/64), deci peste numele de sub case si tarabe si peste firmele de pe acoperisuri, care stau
+        -- in cadrul platformei. La sageata de 6% firul din fata taia varful literelor din "Merchant" si "Clerk". Cutia
+        -- numelui: 10 px sub baza cadrului platformei (y + 48), 18 px inalta; firma de pe acoperis: 30 px sub varful
+        -- cladirii (PadController, FORGE_SIGN_Y). Textul de 13 px sta centrat in cutie (2,5 .. 15,5), iar conturul
+        -- literelor adauga 2 px: literele ocupa 0,5 .. 17,5 din cutie.
+        test.case("[D70] sarma nu trece peste numele de sub case si de pe acoperisuri", function()
+            local Strings = require("../src/Shared/Config/Strings")
+            local function clear(text: string, cx: number, top: number)
+                local w = #text * 0.56 * 13 + 4 -- fontul de pixeli (0,56 em) la Theme.TEXT.tiny, cu contur
+                local x, y = wireThrough(cx - w / 2, top + 0.5, cx + w / 2, top + 17.5)
+                if x ~= nil then
+                    error(
+                        `sarma trece peste {text} (x {math.floor(x)}, y {math.floor(y :: number)})`
+                    )
+                end
+            end
+            local checked = 0
+            for _, p in TycoonConfig.PADS do
+                local role = TycoonConfig.CREW_OF_PAD[p.id]
+                local crew = if role ~= nil then TycoonConfig.CREWS[role] else nil
+                if p.live and crew ~= nil and p.x ~= nil and p.y ~= nil then
+                    clear(crew.name, p.x :: number, (p.y :: number) + 58)
+                    checked += 1
+                end
+            end
+            -- firmele de pe acoperis (PadController.ROOF_SIGN), cladiri de 48 px inaltime x3
+            for id, text in
+                {
+                    workshop = Strings.FORGE_LABEL,
+                    copper_furnace = Strings.LINE_WORDS.copper.processor,
+                    power_house = Strings.LINE_WORDS.power.processor,
+                }
+            do
+                local p = TycoonConfig.byId[id]
+                if p.live then
+                    clear(text, p.x :: number, (p.y :: number) + 56 - 144 + 30)
+                    checked += 1
+                end
+            end
+            check.is_true(checked > 3)
+        end)
+
+        test.case("[D70] recuzita modernizarii nu calca nimic", function()
+            local obstacles = hardObstacles()
+            for _, pole in TycoonConfig.wirePoles() do
+                table.insert(obstacles, { "pole", pole.x - 15, pole.y - 162, pole.x + 12, pole.y })
+            end
+            -- [D70, dupa verificator] nici firele: trec prin fata recuzitei din spatele lor (adancimea stalpilor e mai mare),
+            -- deci o recuzita prin care trece firul pare agatata de el
+            local function place(name: string, x: number, y: number, w: number, h: number)
+                local hit = clashes(obstacles, x - w / 2, y - h, x + w / 2, y)
+                if hit ~= nil then
+                    error(`{name} de la ({x}, {y}) calca {hit}`)
+                end
+                if wireThrough(x - w / 2, y - h, x + w / 2, y) ~= nil then
+                    error(`{name} de la ({x}, {y}) e taiat de sarma`)
+                end
+            end
+            local plans = TycoonConfig.DAM_PLANS
+            place("masa planurilor", plans.x, plans.y, 48 * 2, 44 * 2)
+            for _, stake in TycoonConfig.SURVEY_STAKES do
+                place("tarusul", stake.x, stake.y, 12 * 2, 26 * 2)
+            end
+            for _, prop in TycoonConfig.FIELD_PROPS do
+                local art = (Assets.tycoon :: any)[prop.sprite]
+                check.not_nil(art)
+                place(prop.sprite, prop.x, prop.y, art.width * 3, art.height * 3)
+            end
+        end)
+
         -- [D63] Pentru copii: butonul cartonasului spune ACELASI verb ca quest-ul care te trimite acolo. "Cast a second
         -- net" pe linia NEXT si "Buy for 28" pe buton erau doua cuvinte pentru acelasi gest.
         test.case("verbul platformei e primul cuvant al quest-ului care o cere", function()
