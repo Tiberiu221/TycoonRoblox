@@ -732,8 +732,9 @@ def bottlenecks(c: Chain) -> str:
                 f.bottleneck, f.held_by = consumer.bottleneck, consumer.held_by
             else:
                 # [D70] Unirea nu merge inca: ii lipseste o piesa (turbina fara plasa de cablu). Piesa asta asteapta
-                # dupa plasa celeilalte, nu dupa nimic [D43]: ecranul spune "Needs a Cable Net". Daca nu lipseste nicio
-                # piesa (unirea e oprita de campul ei), veriga ramane "" si o prinde `silent_lines` in cronologie.
+                # dupa plasa celeilalte, nu dupa nimic [D43]: ecranul spune "cast the Cable Net first"
+                # (Strings.lineNotOpen). Daca nu lipseste nicio piesa (unirea e oprita de campul ei), veriga ramane ""
+                # si o prinde `silent_lines` in cronologie.
                 missing = next((part for part in consumer.inputs if not c.lines[part].is_open), None)
                 f.bottleneck, f.held_by = ("nets", missing) if missing is not None else ("", "")
         else:

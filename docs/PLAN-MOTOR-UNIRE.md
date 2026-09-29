@@ -245,7 +245,7 @@ La fiecare pas: toată poarta din CLAUDE.md, apoi commit și push.
 | e | **`golden_chain.py --era4` → `GOLDEN_ERA4`.** Șase stări: startul barajului, după cei 6, butoaiele țin, egalitatea butoaie–cablu, Town plin, cristalul primul | tabelul generat |
 | f | **Configurația.** `StationConfig` (rânduri prin referință, derivate noi); `TycoonConfig` (GOODS, CATCH, PROCESSED, JOINED, platformele cu `netRank` și prețuri din simulator, `DAM_START_COINS`); `Strings`. Era 4 cu `live = false` | stylua, selene, `sim --robust` (`check_config_constants` și `check_config_prices` extinse) |
 | g | **`ChainMath`.** `model`, `flowWith` în trei treceri, `pickBottlenecks`, `valueWith`, totaluri, `empty`, `clone`, `supply`, `heldBy`, `netsLine`. Comparația veche–nouă pe 80.000 de stări, apoi scoasă | GOLDEN*, `GOLDEN_ERA4`, „liniile ca date” cu unirea de probă |
-| h | **`HeldBack`.** `among` = grupul liniei (ea, piesele, unirea); `nets` doar pe liniile de plase; gardă pentru un `seller` nil (azi :133/:135); textele „the Cable line is slower” / „just as slow as the Barrel line” | teste noi |
+| h | **`HeldBack`.** `among` = grupul liniei (ea, piesele, unirea); `nets` doar pe liniile de plase; gardă pentru un `seller` nil (azi :133/:135); textele „the Cable line is slower” / „just as slow as the Barrel line”; când `heldBy` e o linie închisă, `Strings.lineNotOpen(heldBy)` („cast the Cable Net first”) cu Go to spre plasă, nu „is slower” | teste noi |
 | i | **Modulele comune.** `FlowConfig` (`into`, `inputPiles`, `SELLERS.town`); `FlowMath.assemble` (`min(întregi, nA, nB)` perechi); `sellerOf(piesă) = nil`; refuzul `part_to_relay`; `split` primește piese la Relay; `HandRoutes` cu `job` pe pas, drumul pieselor la `inputIn` al Relay-ului | teste Lune |
 | j | **Serverul.** `EconomyService` (unirea merge doar cu ambele intrări nevide, `assemble`, `DropAt` pe fel de piesă, liniile închise fără tick); `HandService` (sare oamenii retrași); `NetService` (nu mai umple plasele închise); `StationService` (`StateFrom` cu `dam` și rangurile, garda din `BUILDING_ROWS`, `Snapshot` cu `supply` / `heldBy` / `netsLine`); `DamService` și profilul v18 după PLAN-HARTA, cu suma din §5 | teste: migrarea păstrează numele și chipul celor 5; `StateFrom` reproduce `dam_transform` |
 | k | **Clientul.** `LineController` pentru unire (două grămezi, „Waiting for cable/barrels”); `Overlay.DROP_AT`; `Bootstrap` copiază explicit câmpurile noi; `GuideMath` pentru primul tur (6 pași de mână); capitolele 10–12; indiciul AWAY | poarta și sonda pe texte |
@@ -269,6 +269,7 @@ La fiecare pas: toată poarta din CLAUDE.md, apoi commit și push.
   - `clone` păstrează câmpurile noi.
 - **`HeldBack`:**
   - rândul turbinei spune „the Cable line is slower”;
+  - o piesă a cărei pereche n-are încă plasa spune „No gain yet — cast the Cable Net first”, nu „is slower”;
   - `netsLine` numește plasele cablului;
   - o piesă fără vânzător nu crapă.
 - **Fizic:** `assemble` nu pierde nicio bucată și se oprește cu o intrare goală; drumurile pieselor se termină la intrarea Relay-ului; `loadFor` = rată × durată.
@@ -298,7 +299,7 @@ La fiecare pas: toată poarta din CLAUDE.md, apoi commit și push.
 - O unire închisă sau încă nedeschisă are `supply = 0`. Altfel, oamenii ei de drum ar vinde din piese.
 - **O unire n-are veriga `nets`:** `links()` are doar pașii ei. Locul plaselor îl ia `supply`, verificat înaintea pașilor, ca plasele în fața liniei. Tot așa se caută `own_first` și se dă `credit`.
 - **`held_by`:** la o linie ținută de vânzător e chiar linia. La o piesă ținută de unire e cel al unirii. Altfel e linia căreia îi aparține primul minim.
-- **O piesă a unei uniri care nu merge încă** (turbina fără plasa de cablu) are veriga `nets`, cu `held_by` = prima piesă din `inputs` care nu e deschisă. Ecranul spune „Needs a Cable Net”, nu tace [D43]. Pentru asta, `LineFlow` ține și `is_open`.
+- **O piesă a unei uniri care nu merge încă** (turbina fără plasa de cablu) are veriga `nets`, cu `held_by` = prima piesă din `inputs` care nu e deschisă. Ecranul nu tace [D43]: spune fraza jocului pentru o linie nedeschisă, `Strings.lineNotOpen(heldBy)` („No gain yet — cast the Cable Net first”), cu Go to spre locul plasei, nu „is slower”. Pentru asta, `LineFlow` ține și `is_open`.
 - **Plasa de siguranță:** `silent_lines` găsește liniile active fără verigă slabă (contractul e că `""` înseamnă inactivă). `run` se oprește cu eroare dacă apare una în cronologie. Nicio formă din plan nu ajunge acolo; un caz construit anume (o unire oprită de câmpul ei, cu piesele deschise) e în `check_lines`.
 - **`nets_line`** se scrie doar când veriga globală e `nets` (cu câștig > 0). E prima linie, în `LINE_ORDER`, ale cărei plase au dus câștigul. În rest e `""`.
 - **`Chain.gains`** (câștigul fiecărei verigi) e acum vizibil. Fără el, „amândouă piesele au câștig” nu se putea verifica. `HeldBack` va avea nevoie de aceeași cifră.

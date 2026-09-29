@@ -89,6 +89,15 @@ intră în piatra barajului, scris pe o placă. Ecranul și Welcome back spun as
 mai mare dintre costul primelor 5 minute ale Erei 4 și o noapte fără pass-uri de la finalul Erei 3, rotunjită în sus.
 `check_windfall` se extinde la sumă și la cazurile cu pass-uri.
 
+**Runda 4 (owner, 2026-09-29), pe planul motorului (`docs/PLAN-MOTOR-UNIRE.md`):**
+- **Piesele se vând doar unite.** Butoaiele de curent așteaptă la Relay Station până vine cablul și n-au vânzare a lor.
+- **Startul la baraj e 35T**, cifra scoasă din regula owner-ului (cea mai mare dintre costul primelor 5 minute ale
+  Erei 4 și o noapte fără pass-uri la finalul Erei 3) pe prototipurile simulatorului. În `sim_tycoon.py` intră ca
+  `START_SUM` la pașii d–l ai motorului, iar suma de acolo e cea adevărată. Cei 40T erau cifra de probă. În primele ~2–3 minute,
+  până la cei 6 oameni noi, satul nu câștigă nimic cât lipsești, iar ecranul spune asta dinainte.
+- **Cristalul se vinde și în Era 4**, primul la oraș, și tot cu el începe Era 5.
+- **Arta modernizării Erei 3 e aprobată și urcată** (18 imagini, cu stația și tamburii din curtea Wire Works).
+
 **Regula „nimic nu se pierde”, amendată** (CLAUDE.md): la schimbarea de hartă aleasă de jucător („Build the Dam”, drumul
 spre Era 8) toți pornesc cu aceeași sumă. Ce e peste ea intră în construcție, e scris pe placă și e anunțat dinainte.
 Nimic plătit nu se taie, venitul crește, iar din profil nu se șterge nimic.
