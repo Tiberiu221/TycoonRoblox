@@ -160,7 +160,8 @@ monede"*). Detaliile și cifrele sunt în DECIZII D66.
   durează 47m34s reale și trece `--robust`. O noapte de la finalul Erei 1 plătește 8 din 26 de deblocări (20%).
 - **Poarta nouă `check_windfall`:** pică dacă o noapte de absență de la sfârșitul unei ere sare peste 25% din era
   următoare. Orice eră nouă trebuie să treacă pe aici.
-- **Numerele mari:** `TycoonMath.formatNumber` merge până la `Qi`, în cinci caractere.
+- **Numerele mari:** `TycoonMath.formatNumber` merge până la `Td` (10^42), apoi „1e45”, în cinci caractere (2026-09-29);
+  venitul de pe tabla din bâlci e codat (`BoardMath.encodeIncome`), ca să încapă și la Era 8.
 - `scripts/create_monetization.py --update <cheie>` rescrie descrierea unui pass pe Roblox.
 - **Era 3, „The Wire Works" [D67]: în joc (`live`)**, cu arta ei (54 de imagini urcate și aprobate), jucată cap-coadă cu
   sonda pe 2026-09-21, fără erori. Planul și ce s-a hotărât: `docs/PLAN-ERA3.md`. Felinarele de pe strada fiecărui cartier

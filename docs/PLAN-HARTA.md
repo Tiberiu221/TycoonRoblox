@@ -189,9 +189,9 @@ Mă despart de tine într-un singur punct. „Partea mică din bani” nu se ob�
    - Treptele modernizării.
    Le aprobi înainte de cod.
 2. **Modernizarea Erei 3.** Se livrează singură și **nu așteaptă D68**: `ModernMath`, `UI/StreetPoles`, foaia căruciorului, lanțul de variante din PadArt, `PlayMoment` + „Look (V)”. Sonda verifică treapta citită din stare și textele; aspectul îl judeci tu.
-3. **Numerele, înainte de Era 5, independent de baraj.**
-   - `formatNumber` peste Qi (Sx, Sp, Oc, No, Dc, cele din simulatoarele Roblox), tot în 5 caractere.
-   - Tabla de venit din bâlci: `math.floor(venit*100)` trece de int64 pe la Era 6, deci se codează pe eră + mantisă.
+3. **Numerele, înainte de Era 5, independent de baraj. Făcut (2026-09-29).**
+   - `formatNumber` peste Qi: Sx, Sp, Oc, No, Dc, Ud, Dd, Td (până la 10^42), apoi scriere științifică („1e45”), tot în cel mult 5 caractere (`TycoonMath.UNITS`, testat pe citire înapoi până la 10^60).
+   - Tabla de venit din bâlci: sutimile se codează (`BoardMath.encodeIncome`: sub 10^12 chiar cifra, deci tabelele vechi rămân bune; peste, exponent × 10^12 + 12 cifre), ordinea se păstrează și codul rămâne sub 2^53. Panoul mare scrie venitul cu unitățile contorului (la Era 3 scria „1200000000.00/s”), iar cel de pe scenă încape în opt litere și cu sufixele de două litere.
 4. **Filtrul pe lume.** `TycoonConfig.padsOfWorld(w)` se pune peste cele ~23 de bucle pe `PADS`, în controllerele Erei 1 scrise de mână (Dock, Storage, Sawmill, Shed, Forge, Pier, Treasure, Drift, Ferry, WheelSignpost) și în Overlay/GuideMath. Lumea 1 trebuie să iasă bit cu bit (tabelul de aur). Fiecare apelant primește un test pe un profil din lumea 2.
 5. **Profilul v18, aditiv:** `World`, `Memories.oldVillage` (`VillageLook.of` + treapta modernă), `Stats.damGift`, `Purchases.coinsBought`, medalia și legătura veteranului pe `Hands`.
 6. **Simulatorul.**

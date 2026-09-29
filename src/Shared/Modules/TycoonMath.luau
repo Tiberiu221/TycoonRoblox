@@ -533,21 +533,55 @@ end
 -- "232.95K" -- sapte caractere, care la marimea contorului de monede ieseau din pastila lui (vazut cu sonda in Studio, pe
 -- salvarea owner-ului). Trei cifre sunt si mai usor de citit pentru un copil. Se TAIE, nu se rotunjeste: contorul nu arata
 -- niciodata mai mult decat ai, iar "999.9K" nu sare la "1000K".
+-- [D66] Moara e pe scara x3000: o noapte acolo inseamna miliarde, iar fiecare era noua inca un ordin de marime.
+-- [D70, 2026-09-29] Dupa Qi, sufixele din simulatoarele Roblox (Sx, Sp, Oc, No, Dc, Ud, Dd, Td), tot de cel mult doua
+-- litere, ca numarul sa ramana in cinci caractere pana la Era 8. De la 1000 Td in sus: scriere stiintifica ("1e45").
+TycoonMath.UNITS = {
+    { "K", 1e3 },
+    { "M", 1e6 },
+    { "B", 1e9 },
+    { "T", 1e12 },
+    { "Qa", 1e15 },
+    { "Qi", 1e18 },
+    { "Sx", 1e21 },
+    { "Sp", 1e24 },
+    { "Oc", 1e27 },
+    { "No", 1e30 },
+    { "Dc", 1e33 },
+    { "Ud", 1e36 },
+    { "Dd", 1e39 },
+    { "Td", 1e42 },
+} :: { { any } }
+
+-- Peste 1000 din cea mai mare unitate: o cifra si puterea lui zece ("1e45", "9e99", "1e100"), in jos sau in sus.
+local function scientific(v: number, up: boolean): string
+    -- log10 poate gresi cu o unitate chiar pe o putere a lui zece: exponentul se indreapta pe valoarea insasi
+    local e = math.floor(math.log10(v))
+    if 10 ^ (e + 1) <= v then
+        e += 1
+    elseif 10 ^ e > v then
+        e -= 1
+    end
+    local m = v / 10 ^ e -- in [1, 10)
+    local digit = if up then math.ceil(m) else math.floor(m)
+    if digit >= 10 then
+        digit, e = 1, e + 1 -- 9.3e45 in sus e "1e46"
+    end
+    return `{digit}e{e}`
+end
+
+-- Cat se poate insela o impartire la o unitate care nu e exacta in virgula mobila (1e24 nu e, 5^24 > 2^53): cu mult sub
+-- o moneda la T (119e12 + 1 in sus trebuie sa scrie "120T", adica o diferenta relativa de 8e-15), cu mult peste eroarea
+-- unei impartiri (~3e-16). Fara ea, 3.2e24 taiat in jos iesea "3.1Sp".
+local ROUND_SLACK = 1e-15
+
 local function formatWith(n: number, up: boolean): string
     local v = if up then math.ceil(n) else math.floor(n)
-    if v < 1000 then
+    if v < 1000 or not math.isfinite(v) then
         return tostring(v)
     end
-    -- [D66] Moara e pe scara x3000: o noapte acolo inseamna miliarde, iar fiecare era noua inca un ordin de marime
-    local units = {
-        { "Qi", 1e18 },
-        { "Qa", 1e15 },
-        { "T", 1e12 },
-        { "B", 1e9 },
-        { "M", 1e6 },
-        { "K", 1e3 },
-    }
-    for _, u in units do
+    for i = #TycoonMath.UNITS, 1, -1 do
+        local u = TycoonMath.UNITS[i]
         local suffix, d = u[1] :: string, u[2] :: number
         if v >= d then
             local x = v / d
@@ -555,12 +589,18 @@ local function formatWith(n: number, up: boolean): string
             local decimals =
                 math.max(0, (if x < 10 then 2 elseif x < 100 then 1 else 0) - (#suffix - 1))
             local scale = 10 ^ decimals
-            -- in sus, pe pasi intregi de monede (fara epsilon): 119e9 + 1 lipsa trebuie sa scrie "120B", nu "119B"
+            -- in sus, pe pasi intregi de monede: 119e9 + 1 lipsa trebuie sa scrie "120B", nu "119B"
             local shown = if up
-                then math.ceil(v / (d / scale)) / scale
-                else math.floor(x * scale) / scale
-            if up and shown >= 1000 and d < 1e18 then
-                return formatWith(d * 1000, true) -- 999.5K rotunjit in sus e "1M", nu "1000K"
+                then math.ceil(v / (d / scale) * (1 - ROUND_SLACK)) / scale
+                else math.floor(x * scale * (1 + ROUND_SLACK)) / scale
+            if shown >= 1000 then
+                -- 999.5K rotunjit in sus e "1M", nu "1000K"; dupa cea mai mare unitate, scrierea stiintifica. Unitatea
+                -- urmatoare se ia din tabel, nu d * 1000: 1e21 * 1000 nu e exact literalul 1e24, iar apelul s-ar fi
+                -- intors la nesfarsit pe aceeasi unitate
+                local nextUnit = TycoonMath.UNITS[i + 1]
+                return if nextUnit ~= nil
+                    then formatWith(nextUnit[2] :: number, up)
+                    else scientific(v, up)
             end
             local s = string.format(`%.{decimals}f`, shown)
             if decimals > 0 then

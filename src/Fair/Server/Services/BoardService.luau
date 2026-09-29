@@ -118,7 +118,8 @@ local function readBoards()
             table.insert(entries, {
                 userId = item.userId,
                 name = nameOf(item.userId),
-                value = item.value,
+                -- [D70] venitul sta codat in store (BoardMath.encodeIncome); randurile il vor in sutimi
+                value = if kind == "income" then BoardMath.decodeIncome(item.value) else item.value,
                 extra = extra,
             })
         end

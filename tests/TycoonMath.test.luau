@@ -10,6 +10,25 @@ local StationConfig = require("../src/Shared/Config/StationConfig")
 -- trei verigi (E1.3): venitul nu mai e o suma peste platforme, deci `greedyRun`/`income`/`nice`
 -- n-au mai avut ce oglindi si au fost scoase din TycoonMath. Aici a ramas ce nu tine de venit.
 
+-- Un numar scris de formatNumber, citit inapoi: "1.2K", "42Qi", "999Td", "1e45".
+local function readBack(s: string): number
+    local digit, power = string.match(s, "^(%d)e(%d+)$")
+    if digit ~= nil and power ~= nil then
+        return (tonumber(digit) :: number) * 10 ^ (tonumber(power) :: number)
+    end
+    local num, suffix = string.match(s, "^([%d%.]+)(%a*)$")
+    local factor = 1
+    for _, unit in TycoonMath.UNITS do
+        if unit[1] == suffix then
+            factor = unit[2] :: number
+        end
+    end
+    if suffix ~= "" and factor == 1 then
+        error(`sufix necunoscut in "{s}"`)
+    end
+    return (tonumber(num) :: number) * factor
+end
+
 return function()
     test.suite("TycoonMath.stateFor", function()
         -- [D65] Testele de aici foloseau platforme ale erelor 3-4 de dinainte de D46 (Sorting Shed, Smelter, Fine
@@ -397,19 +416,48 @@ return function()
                 check.equal(TycoonMath.formatNumberUp(119e12 + 1), "120T")
                 check.equal(TycoonMath.formatNumberUp(9995), "10K")
                 check.equal(TycoonMath.formatNumberUp(999.6e15), "1Qi")
-                -- si niciodata mai putin decat lipseste: citit inapoi, textul acopera suma
-                local mult = { K = 1e3, M = 1e6, B = 1e9, T = 1e12, Qa = 1e15, Qi = 1e18 }
+                -- si niciodata mai putin decat lipseste: citit inapoi, textul acopera suma. [D70] pana la 10^50, cu
+                -- toate unitatile (pana la Td) si scrierea stiintifica de dupa ele
                 local seed = 12345
                 for _ = 1, 20000 do
                     seed = (seed * 1103515245 + 12345) % 2147483648
-                    local n = (seed / 2147483648) * 10 ^ (seed % 19)
+                    local n = (seed / 2147483648) * 10 ^ (seed % 50)
                     local s = TycoonMath.formatNumberUp(n)
                     check.is_true(#s <= 5)
-                    local num, suffix = string.match(s, "^([%d%.]+)(%a*)$")
-                    local factor = if suffix == "" then 1 else mult[suffix :: string]
-                    local shown = (tonumber(num) :: number) * factor
+                    local shown = readBack(s)
                     if shown < math.ceil(n) * (1 - 1e-12) then
                         error(`formatNumberUp({n}) = {s}, sub suma lipsa`)
+                    end
+                end
+            end
+        )
+
+        test.case(
+            "[D70] formatNumber dupa Qi: Sx .. Td, apoi scriere stiintifica, tot in cinci caractere",
+            function()
+                check.equal(TycoonMath.formatNumber(1.5e21), "1.5Sx")
+                check.equal(TycoonMath.formatNumber(3.2e24), "3.2Sp")
+                check.equal(TycoonMath.formatNumber(4.2e28), "42Oc")
+                check.equal(TycoonMath.formatNumber(1e30), "1No")
+                check.equal(TycoonMath.formatNumber(7.77e35), "777Dc")
+                check.equal(TycoonMath.formatNumber(2e36), "2Ud")
+                check.equal(TycoonMath.formatNumber(9.9e41), "990Dd")
+                check.equal(TycoonMath.formatNumber(1.25e42), "1.2Td")
+                check.equal(TycoonMath.formatNumber(9.99e44), "999Td")
+                check.equal(TycoonMath.formatNumber(1e45), "1e45")
+                check.equal(TycoonMath.formatNumber(9.7e47), "9e47") -- taiat, nu rotunjit
+                check.equal(TycoonMath.formatNumberUp(9.7e47), "1e48")
+                check.equal(TycoonMath.formatNumberUp(999.5e42), "1e45") -- nu "1000Td"
+                check.equal(TycoonMath.formatNumber(1e100), "1e100")
+                -- taiat, deci niciodata mai mult decat ai: citit inapoi, textul nu trece de suma
+                local seed = 777
+                for _ = 1, 20000 do
+                    seed = (seed * 1103515245 + 12345) % 2147483648
+                    local n = (seed / 2147483648) * 10 ^ (seed % 60)
+                    local s = TycoonMath.formatNumber(n)
+                    check.is_true(#s <= 5)
+                    if readBack(s) > math.floor(n) * (1 + 1e-12) then
+                        error(`formatNumber({n}) = {s}, peste suma`)
                     end
                 end
             end

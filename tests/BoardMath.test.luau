@@ -20,6 +20,57 @@ return function()
             check.equal(BoardMath.format("era1", 45), "45s")
         end)
 
+        test.case(
+            "[D70] venitul mare se scrie cu unitatile contorului, nu cu toate cifrele",
+            function()
+                check.equal(BoardMath.format("income", 99999), "999.99/s")
+                check.equal(BoardMath.format("income", 120000000000), "1.2B/s") -- 1,2 miliarde pe secunda (Era 3)
+                check.equal(BoardMath.format("income", 4.2e21), "42Qi/s")
+                check.equal(BoardMath.compact("income", 99994000000000000000), "1.0Qi")
+                check.equal(BoardMath.compact("income", 1.23e22), "123Qi")
+            end
+        )
+
+        test.case(
+            "[D70] venitul codat pentru tabela: exact cat incape, ordinea pastrata, sub 2^53",
+            function()
+                -- sub 10^12 sutimi codul e chiar cifra: ce e deja scris in store ramane bun
+                check.equal(BoardMath.encodeIncome(0), 0)
+                check.equal(BoardMath.encodeIncome(0.5), 0)
+                check.equal(BoardMath.encodeIncome(11165), 11165)
+                check.equal(BoardMath.encodeIncome(999999999999), 999999999999)
+                check.equal(BoardMath.decodeIncome(11165), 11165)
+                check.equal(BoardMath.encodeIncome(0 / 0), 0)
+                check.equal(BoardMath.encodeIncome(math.huge), 0)
+                -- o cifra mai mare are un cod mai mare, oricat ar fi de mare
+                local seed = 4242
+                local previous: { value: number, code: number }? = nil
+                local values: { number } = {}
+                for _ = 1, 5000 do
+                    seed = (seed * 1103515245 + 12345) % 2147483648
+                    table.insert(values, (1 + seed / 2147483648) * 10 ^ (seed % 300))
+                end
+                table.insert(values, 999999999999)
+                table.insert(values, 1e12)
+                table.insert(values, 1e12 + 1)
+                table.sort(values)
+                for _, v in values do
+                    local code = BoardMath.encodeIncome(v)
+                    check.is_true(code == math.floor(code) and code >= 0 and code < 2 ^ 53)
+                    local p = previous
+                    if p ~= nil and v > p.value and code < p.code then
+                        error(`ordinea se strica: {p.value} -> {p.code}, {v} -> {code}`)
+                    end
+                    previous = { value = v, code = code }
+                    -- citit inapoi: aceleasi 12 cifre
+                    local back = BoardMath.decodeIncome(code)
+                    if math.abs(back - math.floor(v)) > math.floor(v) * 1e-11 then
+                        error(`{v} -> {code} -> {back}`)
+                    end
+                end
+            end
+        )
+
         test.case("la pescuit si la venit castiga cifra mare, la Era 1 timpul mic", function()
             check.is_true(BoardMath.better("fish", 900, 800))
             check.is_true(BoardMath.better("income", 900, 800))
@@ -81,7 +132,7 @@ return function()
             -- cu unitatea lipita de scena, cel mult opt litere, oricat de mare (cat se poate atinge) e cifra
             local worst: { [string]: { number } } = {
                 fish = { 0, 40, 999, 2400, 9999 }, -- milimetri; cel mai mare peste are 240 cm
-                -- sutimi pe secunda, pana la 999.9T pe secunda
+                -- sutimi pe secunda, pana la 999.9T pe secunda; [D70] si dupa, pana la Td si scrierea stiintifica
                 income = {
                     0,
                     99,
@@ -92,6 +143,13 @@ return function()
                     99999999999,
                     99999999999999,
                     99994000000000000,
+                    99994000000000000000,
+                    1.23e22,
+                    9.9994e25,
+                    4.2e30,
+                    9.9994e44,
+                    1e50,
+                    1e100,
                 },
                 era1 = { 0, 59, 3599, 3600, 359999, 360000, 1e12 },
             }

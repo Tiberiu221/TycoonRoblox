@@ -2,7 +2,8 @@
 -- [D60] CLASAMENTELE BALCIULUI, scrise din SAT (acolo se intampla lucrurile); balciul doar le citeste (BoardService).
 -- Trei clasamente SAPTAMANALE, care incep din nou lunea (BoardMath.weekKey), ca sa poata castiga si cineva nou:
 --   * cel mai mare peste: OrderedDataStore FairFish_<saptamana>, in milimetri; specia sta alaturi (FairFishSpecies_);
---   * cel mai mare venit pe secunda: FairIncome_<saptamana>, in sutimi, esantionat o data pe minut;
+--   * cel mai mare venit pe secunda: FairIncome_<saptamana>, in sutimi codate (BoardMath.encodeIncome), esantionat o
+--     data pe minut;
 --   * cel mai scurt drum pana la clopotul Erei 1: FairEra1_<saptamana>, secunde de joc efectiv (Stats.playSeconds).
 -- Recordul fiecarei specii, de cand e jocul, sta in FairFishRecords (o cheie pe specie): trofeele din fata scenei.
 --
@@ -147,7 +148,13 @@ function LeaderboardService.SampleIncome(player: Player)
         return
     end
     incomeSent[player] = { week = week, value = value }
-    keepBest(LeaderboardService.STORES.income .. week, tostring(player.UserId), value, false)
+    -- [D70] codat (BoardMath.encodeIncome): sutimile unui venit de Era 6 nu mai incap intr-un intreg exact
+    keepBest(
+        LeaderboardService.STORES.income .. week,
+        tostring(player.UserId),
+        BoardMath.encodeIncome(value),
+        false
+    )
 end
 
 function LeaderboardService.Init(d: typeof(deps))
