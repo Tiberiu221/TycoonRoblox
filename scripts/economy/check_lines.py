@@ -474,6 +474,54 @@ def tool_problems(expect):
     expect("nice: peste 9 x 10^24 simulatorul se opreste", nice(1e26), "oprire")
 
 
+def dam_gate_problems(expect):
+    """[D70] Uneltele portilor barajului (pasul d), cu cifre socotite de mana: suma de start, platoul, "tararea",
+    cheltuiala unui buget, venitul cat lipsesti si treptele moarte."""
+    T = load()
+    # nice_up: cel mai mic pret rotund care nu e sub x (nu rotunjeste in jos, ca nice)
+    expect("nice_up: o noapte la Works Bell -> 35T", T.nice_up(34.86e12), 35 * 10**12)
+    expect("nice_up: fix pe treapta", T.nice_up(35e12), 35 * 10**12)
+    expect("nice_up: intre trepte, in sus", T.nice_up(35.1e12), 40 * 10**12)
+    # randuri de proba: (eticheta, fel, pret, t, venit dupa, veriga)
+    rows = [
+        ("a", "nets", 1, 10, 100.0, "nets"),
+        ("b", "nets", 1, 20, 100.0, "nets"),  # nicio crestere
+        ("c", "nets", 1, 30, 101.0, "nets"),  # +1%
+        ("d", "nets", 1, 70, 112.0, "nets"),  # +10.9% fata de 101
+    ]
+    # platoul: de la 10 (100) pana la 30 (101): 20 de secunde; apoi 30..70: 40; la coada 70..100: 30
+    expect("longest_flat: tronsonul cel mai lung", T.longest_flat(rows, 0, 50.0, 100), 40)
+    expect("longest_flat: coada cea mai lunga", T.longest_flat(rows, 0, 50.0, 200), 130)
+    expect("longest_flat: fara cumparaturi, toata era", T.longest_flat([], 5, 50.0, 25), 20)
+    # tararea (<10%): din 10 (100) abia la 70 (112) trece de 110: 60 de secunde; din 70 pana la capat (100): 30
+    expect("longest_crawl: +1% nu opreste numaratoarea", T.longest_crawl(rows, 0, 50.0, 100), 60)
+    # un buget care se opreste la prima cumparatura prea scumpa, chiar daca una de dupa ar incapea
+    spend = [("x", "nets", 5, 10, 1.0, "nets"), ("y", "nets", 10, 20, 1.0, "nets"), ("z", "nets", 1, 30, 1.0, "nets")]
+    expect("spend_share: se opreste la prima prea scumpa", T.spend_share(12, spend, 0, 40), (1, "x", 0.25))
+    # venitul cat lipsesti: fara om nu merge nimic, iar AWAY redevine fals si dupa o eroare
+    s = T.State()
+    T.unlock_net(1)(s)
+    expect("away_income: fara oameni, zero", T.away_income(s), 0.0)
+    expect("away_income: AWAY redevine fals", T.AWAY, False)
+    broken = T.State()
+    broken.nets = None  # income crapa pe drum
+    try:
+        T.away_income(broken)
+    except Exception:
+        pass
+    expect("away_income: AWAY redevine fals si dupa o eroare", T.AWAY, False)
+    # treptele moarte: doar cele luate cat meseria era veriga slaba aratata
+    tiers = [
+        ("Collector tier 2", "collect", 1, 1, 10.0, "collect"),
+        ("Collector tier 3", "collect", 1, 2, 10.0, "port"),  # zero, luata pe veriga aratata (collect)
+        ("Porter tier 2", "port", 1, 3, 12.0, "saw"),  # luata pe veriga aratata (port), cu crestere
+        ("Porter tier 3", "port", 1, 4, 12.0, "saw"),  # zero, dar veriga aratata era saw: nu se numara
+    ]
+    expect("dead_tiers: doar pe veriga aratata", T.dead_tiers(tiers, ("collector", "porter"), "collect"),
+           {"collector": (1, 2), "porter": (0, 1)})
+    expect("too_many_dead: 2 din 5 trec, 3 din 5 nu", (T.too_many_dead(2, 5), T.too_many_dead(3, 5)), (False, True))
+
+
 def problems():
     bad = []
 
@@ -491,6 +539,7 @@ def problems():
 
     join_problems(expect)
     tool_problems(expect)
+    dam_gate_problems(expect)
 
     base = load()
     before = base.chain(era1_state(base))

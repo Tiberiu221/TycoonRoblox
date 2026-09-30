@@ -73,6 +73,9 @@ ERA2_MULT = 3000.0
 # [D67] ERA 3, „THE WIRE WORKS", pe aceeasi regula: de 3000 de ori Moara, deci de 3000 x 3000 de ori satul. O noapte de
 # absenta la sfarsitul Morii plateste tot doar inceputul erei (check_windfall).
 ERA3_MULT = ERA2_MULT * 3000.0
+# [D70] ERA 4, „THE DAM", tot pe regula asta: de 3000 de ori Wire Works (docs/PLAN-MOTOR-UNIRE.md). Barajul inchide
+# satul vechi, deci o noapte de absenta nu mai e poarta erei: toti pornesc cu aceeasi suma (START_SUM, derivata mai jos).
+ERA4_MULT = ERA3_MULT * 3000.0
 
 GOODS = {  # valoarea de baza a unei bucati, in monede
     "driftwood": 1.0,
@@ -95,6 +98,17 @@ GOODS = {  # valoarea de baza a unei bucati, in monede
     "battery": 3.5 * ERA3_MULT,
     "cell": 3.5 * ERA3_MULT,
     "named3": 14.0 * ERA3_MULT,
+    # [D70] Era 4. PIESELE NU SE VAND (D70 Runda 4): sarcina turbinei iese butoi, minereul de cablu iese cablu, iar
+    # amandoua valoreaza doar unite, ca unitate de curent livrata orasului. Valoarea unitatii e oglinda mediei primei
+    # linii a fiecarei ere (1.65), scrisa ca produs (`1.65 * ERA4_MULT`), la fel in Luau: un literal ar muta un ulp.
+    # Cristalul se vinde primul la oras, cat bateria din Era 3.
+    "charge": 0.0,
+    "barrel": 0.0,
+    "cable_ore": 0.0,
+    "cable": 0.0,
+    "grid": 1.65 * ERA4_MULT,
+    "crystal": 3.5 * ERA4_MULT,
+    "ingot": 3.5 * ERA4_MULT,
 }
 # CE PRINDE O PLASA, dupa felul ei [D55]. Pana la D55 toate plasele prindeau acelasi amestec, iar banda cea
 # mai departata decidea ce marfuri exista: dupa plasa a patra, si a doua prindea scrap, care trecea prin
@@ -107,6 +121,11 @@ CATCH = {
     "ore": (("ore", 0.95), ("named2", 0.05)),  # [D65] plasa de minereu
     "works": (("works_ore", 0.95), ("named3", 0.05)),  # [D67] plasele Wire Works
     "turbine": (("battery", 1.0),),  # [D67] turbina: doar baterii
+    # [D70] Era 4: turbina din baraj umple sarcina; plasele de sub baraj nu prind gasiri (D70 Runda 5): o gasire nu se
+    # poate uni cu un butoi. Surprizele raman darurile raului si undita.
+    "dam": (("charge", 1.0),),
+    "cable_ore": (("cable_ore", 1.0),),
+    "crystal": (("crystal", 1.0),),
 }
 # Valoarea medie a unei bucati prinse, pe fel de plasa. Aceeasi ordine a sumei ca in ChainMath.luau.
 AVG = {kind: sum(share * GOODS[good] for good, share in parts) for kind, parts in CATCH.items()}
@@ -124,6 +143,8 @@ LEVEL_INC = 0.03  # implicit (plasele)
 LEVEL_INC_BY_KIND = {
     "nets": 0.03, "saw": 0.06, "dock": 0.06, "foundry": 0.06, "market": 0.06, "furnace": 0.06,
     "wireworks": 0.06, "depot": 0.06, "powerhouse": 0.06,
+    # [D70] Era 4
+    "switchyard": 0.06, "cableworks": 0.06, "relay": 0.06, "kiln": 0.06, "town": 0.06,
 }
 LEVEL_GROWTH = 1.09  # cat se scumpeste fiecare nivel
 MILESTONES = (10, 25, 50, 100, 200, 300, 400, 500)
@@ -213,6 +234,19 @@ POWERHOUSE_BASE_RATE = 1.2
 POWERHOUSE_UPGRADE_BASE = 60.0 * ERA3_MULT
 DEPOT_BASE_RATE = 3.0
 DEPOT_UPGRADE_BASE = 9.0 * ERA3_MULT
+# [D70] CLADIRILE EREI 4 (plan, sectiunea 2): Switchyard-ul umple butoaiele din sarcina turbinei, Cable Works face cablul,
+# Relay Station-ul le uneste (un butoi si o bucata de cablu fac o unitate de curent), Kiln-ul topeste cristalul, iar
+# orasul (Switch House) cumpara. Relay-ul e mai iute decat Cable Works-ul, ca la startul barajului cablul sa tina unirea.
+SWITCHYARD_BASE_RATE = 2.4
+SWITCHYARD_UPGRADE_BASE = 7.0 * ERA4_MULT
+CABLEWORKS_BASE_RATE = 2.0
+CABLEWORKS_UPGRADE_BASE = 7.0 * ERA4_MULT
+RELAY_BASE_RATE = 2.8
+RELAY_UPGRADE_BASE = 8.0 * ERA4_MULT
+KILN_BASE_RATE = 1.2
+KILN_UPGRADE_BASE = 60.0 * ERA4_MULT
+TOWN_BASE_RATE = 3.0
+TOWN_UPGRADE_BASE = 9.0 * ERA4_MULT
 
 # ---- oamenii [D49] ---------------------------------------------------------------------------
 # FIECARE PAS E MUNCA DE OM. La inceput le faci tu pe toate; fiecare angajare iti ia un drum sau o
@@ -236,6 +270,14 @@ ROLE_BASE = {
     # [D67] si ai Erei 3, in oglinda cu ai Morii
     "worksCollector": 4.0, "worksPorter": 6.0, "coilHauler": 9.0,
     "batteryCollector": 2.0, "batteryPorter": 2.5, "powerHauler": 6.5,
+    # [D70] ai Erei 4 (plan, sectiunea 2): linia butoaielor (veteranii), a cablului, Pylon Runner-ul unirii, cristalul.
+    # Cable Collector-ul la 4.0, nu 3.0: cu 3.0, venitul statea pe loc ~16 minute pe la minutul 29 (riscul 1; D70 Runda 5:
+    # se repara din cifre). BAZE CARE NU SE POT EGALA: pasii celor doua piese intra in ACELASI minim al unirii, deci doi
+    # oameni cu aceeasi baza (sau cu produse egale pe trepte, 4 x 3 = 6 x 2) stau la egalitate toata era, iar treapta pe
+    # veriga aratata de joc da zero [verificator, 2026-09-30: damCollector = cableCollector si cableHauler = pylonRunner].
+    "damCollector": 4.4, "damPorter": 6.2, "barrelHauler": 7.5,
+    "cableCollector": 4.0, "cablePorter": 5.0, "cableHauler": 7.0, "pylonRunner": 6.5,
+    "crystalCollector": 2.0, "crystalPorter": 2.5, "ingotHauler": 6.5,
 }
 TIER_STEP = 1.0  # fiecare treapta adauga inca o data baza: treapta 5 = de 5 ori
 TIER_MAX = 5
@@ -252,8 +294,15 @@ ERA3_ROLES = (
     "worksCollector", "worksPorter", "wiredrawer", "coilHauler", "clerk",
     "batteryCollector", "batteryPorter", "electrician", "powerHauler",
 )
-ROLES = ERA1_ROLES + ERA2_ROLES + ERA3_ROLES
-ERA_ROLES = {1: ERA1_ROLES, 2: ERA2_ROLES, 3: ERA3_ROLES}
+# [D70] Era 4: cei cinci veterani ai butoaielor (si Dispatcher-ul orasului, fostul hangiu), cei sase ai cablului si ai
+# unirii (angajati in rafala, capitolul 10), cei patru ai cristalului
+ERA4_ROLES = (
+    "damCollector", "damPorter", "switchman", "barrelHauler", "dispatcher",
+    "cableCollector", "cablePorter", "cablemaker", "cableHauler", "relayKeeper", "pylonRunner",
+    "crystalCollector", "crystalPorter", "crystalsmith", "ingotHauler",
+)
+ROLES = ERA1_ROLES + ERA2_ROLES + ERA3_ROLES + ERA4_ROLES
+ERA_ROLES = {1: ERA1_ROLES, 2: ERA2_ROLES, 3: ERA3_ROLES, 4: ERA4_ROLES}
 
 # ---- liniile, ca date [D64] --------------------------------------------------------------------
 # Pana la D64 motorul era scris de mana pentru exact doua linii, lemnul si fierul. Era 2 aduce linii de ACEEASI forma
@@ -284,40 +333,64 @@ ERA_ROLES = {1: ERA1_ROLES, 2: ERA2_ROLES, 3: ERA3_ROLES}
 #       - `pool`: liniile cu acelasi `pool` IMPART timpul tau: pasii de mana ai tuturor liniilor deschise din bazin.
 #         Fara `pool`, linia e bazinul ei, adica regula de pana acum [D56].
 #       - `source`: REZERVATA curierului din Era 5 (plan, sectiunea 4); `derive_tables` o refuza pana atunci.
-LINE_ORDER = ("wood", "iron", "parts", "copper", "coils", "power")
-ERA_LINES = {1: ("wood", "iron"), 2: ("parts", "copper"), 3: ("coils", "power")}
+# [D70] Era 4 la coada, cu piesele inaintea unirii lor (ordine topologica: trecerea inainte le stie marginea)
+LINE_ORDER = ("wood", "iron", "parts", "copper", "coils", "power", "barrels", "cable", "grid", "crystal")
+ERA_LINES = {1: ("wood", "iron"), 2: ("parts", "copper"), 3: ("coils", "power"), 4: ("barrels", "cable", "grid", "crystal")}
 LINES = {
     "wood": {
-        "netKind": "wood", "openFlag": None, "seller": "dock",
+        "netKind": "wood", "openFlag": None, "seller": "dock", "closeFlag": "dam",
         "steps": (("collector", "collect", "walk"), ("porter", "port", "walk"),
                   ("sawyer", "saw", "processor"), ("hauler", "haul", "walk")),
     },
     "iron": {
-        "netKind": "scrap", "openFlag": "workshop", "seller": "dock",
+        "netKind": "scrap", "openFlag": "workshop", "seller": "dock", "closeFlag": "dam",
         "steps": (("scrapCollector", "scrapCollect", "walk"), ("scrapPorter", "scrapPort", "walk"),
                   ("smelter", "forge", "processor"), ("ironHauler", "ironHaul", "walk")),
     },
     # [D65] Era 2: piesele de masini (roata de apa porneste turnatoria) si cuprul (cuptorul de cupru), la Piata
     "parts": {
-        "netKind": "mill", "openFlag": "wheel", "seller": "market",
+        "netKind": "mill", "openFlag": "wheel", "seller": "market", "closeFlag": "dam",
         "steps": (("millCollector", "millCollect", "walk"), ("millPorter", "millPort", "walk"),
                   ("founder", "foundry", "processor"), ("partsHauler", "partsHaul", "walk")),
     },
     "copper": {
-        "netKind": "ore", "openFlag": "furnace", "seller": "market",
+        "netKind": "ore", "openFlag": "furnace", "seller": "market", "closeFlag": "dam",
         "steps": (("oreCollector", "oreCollect", "walk"), ("orePorter", "orePort", "walk"),
                   ("coppersmith", "furnace", "processor"), ("copperHauler", "copperHaul", "walk")),
     },
     # [D67] Era 3: bobinele (masina cu abur porneste Wire Works) si curentul (Power House), la Depot
     "coils": {
-        "netKind": "works", "openFlag": "steam", "seller": "depot",
+        "netKind": "works", "openFlag": "steam", "seller": "depot", "closeFlag": "dam",
         "steps": (("worksCollector", "worksCollect", "walk"), ("worksPorter", "worksPort", "walk"),
                   ("wiredrawer", "wireworks", "processor"), ("coilHauler", "coilHaul", "walk")),
     },
     "power": {
-        "netKind": "turbine", "openFlag": "powerhouse", "seller": "depot",
+        "netKind": "turbine", "openFlag": "powerhouse", "seller": "depot", "closeFlag": "dam",
         "steps": (("batteryCollector", "batteryCollect", "walk"), ("batteryPorter", "batteryPort", "walk"),
                   ("electrician", "powerhouse", "processor"), ("powerHauler", "powerHaul", "walk")),
+    },
+    # [D70] Era 4, „The Dam" (docs/PLAN-MOTOR-UNIRE.md): doua PIESE (butoaiele si cablul) si UNIREA lor (curentul pentru
+    # oras), toate trei in bazinul barajului, plus cristalul la coada. Barajul le deschide si inchide liniile vechi
+    # (`closeFlag` de mai sus). Veteranii lucreaza butoaiele; cablul il faci tu, pana vin cei sase (D70 Runda 5).
+    "barrels": {
+        "netKind": "dam", "openFlag": "dam", "into": "grid", "pool": "dam",
+        "steps": (("damCollector", "damCollect", "walk"), ("damPorter", "damPort", "walk"),
+                  ("switchman", "switchyard", "processor"), ("barrelHauler", "barrelHaul", "walk")),
+    },
+    "cable": {
+        "netKind": "cable_ore", "openFlag": "dam", "into": "grid", "pool": "dam",
+        "steps": (("cableCollector", "cableCollect", "walk"), ("cablePorter", "cablePort", "walk"),
+                  ("cablemaker", "cableworks", "processor"), ("cableHauler", "cableHaul", "walk")),
+    },
+    # Pylon Runner-ul duce curentul pe podul cu stalpi pana la Switch House (D70 Runda 5: fiecare pas are omul lui)
+    "grid": {
+        "inputs": ("barrels", "cable"), "openFlag": "dam", "seller": "town", "value": "grid", "pool": "dam",
+        "steps": (("relayKeeper", "relay", "processor"), ("pylonRunner", "pylonRun", "walk")),
+    },
+    "crystal": {
+        "netKind": "crystal", "openFlag": "kiln", "seller": "town", "pool": "dam",
+        "steps": (("crystalCollector", "crystalCollect", "walk"), ("crystalPorter", "crystalPort", "walk"),
+                  ("crystalsmith", "kiln", "processor"), ("ingotHauler", "ingotHaul", "walk")),
     },
 }
 # Cladirile cu niveluri: numele constantei de baza si campul din State cu nivelul. Veriga e si felul din
@@ -329,12 +402,19 @@ PROCESSORS = {
     "furnace": {"base": "FURNACE_BASE_RATE", "level": "furnace_level"},
     "wireworks": {"base": "WIREWORKS_BASE_RATE", "level": "wireworks_level"},
     "powerhouse": {"base": "POWERHOUSE_BASE_RATE", "level": "powerhouse_level"},
+    # [D70] Era 4
+    "switchyard": {"base": "SWITCHYARD_BASE_RATE", "level": "switchyard_level"},
+    "cableworks": {"base": "CABLEWORKS_BASE_RATE", "level": "cableworks_level"},
+    "relay": {"base": "RELAY_BASE_RATE", "level": "relay_level"},
+    "kiln": {"base": "KILN_BASE_RATE", "level": "kiln_level"},
 }
 # Vanzatorii: omul lor nu are baza, inmulteste capacitatea cladirii (fara el merge la NO_TRADER_FACTOR).
 SELLERS = {
     "dock": {"role": "trader", "base": "DOCK_BASE_RATE", "level": "dock_level", "priority": ("iron", "wood")},
     "market": {"role": "merchant", "base": "MARKET_BASE_RATE", "level": "market_level", "priority": ("copper", "parts")},
     "depot": {"role": "clerk", "base": "DEPOT_BASE_RATE", "level": "depot_level", "priority": ("power", "coils")},
+    # [D70] orasul (Switch House), cu Dispatcher-ul, fostul hangiu: cristalul intai, apoi curentul unit
+    "town": {"role": "dispatcher", "base": "TOWN_BASE_RATE", "level": "town_level", "priority": ("crystal", "grid")},
 }
 
 
@@ -414,6 +494,12 @@ ROLE_NAMES = {
     "worksCollector": "Works Collector", "worksPorter": "Works Porter", "wiredrawer": "Wiredrawer",
     "coilHauler": "Coil Hauler", "clerk": "Clerk", "batteryCollector": "Battery Collector",
     "batteryPorter": "Battery Porter", "electrician": "Electrician", "powerHauler": "Power Hauler",
+    # [D70] Era 4 (numele sunt propuneri, plan §6 intrebarea 12)
+    "damCollector": "Dam Collector", "damPorter": "Dam Porter", "switchman": "Switchman",
+    "barrelHauler": "Barrel Hauler", "dispatcher": "Dispatcher", "cableCollector": "Cable Collector",
+    "cablePorter": "Cable Porter", "cablemaker": "Cablemaker", "cableHauler": "Cable Hauler",
+    "relayKeeper": "Relay Keeper", "pylonRunner": "Pylon Runner", "crystalCollector": "Crystal Collector",
+    "crystalPorter": "Crystal Porter", "crystalsmith": "Crystalsmith", "ingotHauler": "Ingot Hauler",
 }
 # Verigile fiecarei ere (plasele sunt ale tuturor): portile si rapoartele unei ere se uita doar la ale ei.
 ERA_LINKS = {
@@ -479,6 +565,16 @@ class State:
     wireworks_level: int = 1
     powerhouse_level: int = 1
     depot_level: int = 1
+    # [D70] Era 4: barajul (inchide liniile vechi, deschide butoaiele, cablul si unirea), Kiln-ul (porneste cristalul),
+    # magazia de cristal, nivelurile cladirilor ei
+    dam: bool = False
+    kiln: bool = False
+    crystal_shed: bool = False
+    switchyard_level: int = 1
+    cableworks_level: int = 1
+    relay_level: int = 1
+    kiln_level: int = 1
+    town_level: int = 1
     price_mult: float = 1.0
     bells: float = 1.0
     index_found: int = 0
@@ -492,7 +588,13 @@ def tier_mult(tier: int) -> float:
 
 # [D64] Treptele costa fix (25 / 75 / 225 / 675) pentru oamenii Erei 1. Oamenii unei ere noi muta marfa de zeci de ori
 # mai scumpa, deci si uneltele lor costa pe masura: rolul -> de cate ori. Gol = toti la 1 (Era 1, neschimbata).
-ROLE_COST_MULT = {**{role: ERA2_MULT for role in ERA2_ROLES}, **{role: ERA3_MULT for role in ERA3_ROLES}}
+ROLE_COST_MULT = {
+    **{role: ERA2_MULT for role in ERA2_ROLES},
+    **{role: ERA3_MULT for role in ERA3_ROLES},
+    # [D70] uneltele oamenilor barajului costa dublu: altfel suma de start (35T) le cumpara pe toate in primele minute, cei
+    # doi colectori ajung la plafon devreme, iar venitul se taraste pana la cristal ("tararea", check_dam)
+    **{role: 2.0 * ERA4_MULT for role in ERA4_ROLES},
+}
 
 
 def tier_cost(tier: int, role: str = None) -> float:
@@ -542,9 +644,17 @@ def manual_steps(s: State, line: str = "wood", is_open: bool = None) -> int:
     )
 
 
+# [D70] CAT LIPSESTI (AWAY): pasii fara om nu merg, nici drumurile tale, nici cladirea langa care ai sta, iar vanzatorul
+# fara omul lui nu vinde, ca `idleOnly` din ChainMath.luau (ce plateste offline-ul). `away_income` il pune doar cat
+# socoteste; altfel e fals si nimic nu se schimba.
+AWAY = False
+
+
 def player_share(s: State, line: str, n: int = None) -> float:
     """Partea ta din timp pe fiecare pas fara om al liniei; 0 cand linia n-are pasi de mana. [D70] Timpul se imparte
-    pe tot bazinul liniei (`manual_steps`; `n`, daca apelantul l-a socotit deja)."""
+    pe tot bazinul liniei (`manual_steps`; `n`, daca apelantul l-a socotit deja). Cat lipsesti (AWAY), 0."""
+    if AWAY:
+        return 0.0
     if n is None:
         n = manual_steps(s, line)
     if n == 0:
@@ -572,6 +682,8 @@ def processor_rate(s: State, line: str, role: str, link: str, n: int = None, is_
     crew = s.crews[role]
     if crew.count > 0:
         return cap * tier_mult(crew.tier) * crew.count
+    if AWAY:
+        return 0.0
     return cap / (manual_steps(s, line) if n is None else n)
 
 
@@ -582,6 +694,8 @@ def seller_rate(s: State, seller: str) -> float:
     crew = s.crews[spec["role"]]
     if crew.count > 0:
         return cap * tier_mult(crew.tier) * crew.count
+    if AWAY:
+        return 0.0  # [D70] cat lipsesti, fara omul lui nu vinde (idleOnly din ChainMath)
     return cap * NO_TRADER_FACTOR
 
 
@@ -818,6 +932,16 @@ def income(s: State) -> float:
     )
 
 
+def away_income(s: State) -> float:
+    """[D70] Venitul cat lipsesti: doar pasii cu om, si vanzatorii cu omul lor."""
+    global AWAY
+    AWAY = True
+    try:
+        return income(s)
+    finally:
+        AWAY = False
+
+
 # ---- deblocarile ------------------------------------------------------------------------------
 # Fiecare are un MOTIV: C=prinzi mai mult, V=vinzi mai scump, A=scapi de o corvoada, D=deschizi.
 
@@ -1044,6 +1168,10 @@ UNLOCK_STAGE.update({
     "steam": "wireworks", "net11": "nets", "net12": "nets", "net13": "nets", "net14": "nets", "net15": "nets",
     "powerhouse": "powerhouse", "batteryShed": "batteryCollect", "bell3": "depot",
     **{_role: LINK_OF[_role] for _role in ERA3_ROLES},
+    # [D70] Era 4
+    "cableNet2": "nets", "cableNet3": "nets", "cableNet4": "nets", "damTurbine2": "nets", "crystalNet": "nets",
+    "kiln": "kiln", "crystalShed": "crystalCollect", "bell4": "town",
+    **{_role: LINK_OF[_role] for _role in ERA4_ROLES},
 })
 
 
@@ -1060,6 +1188,15 @@ BURST_WAIT["oreShed"] = BURST_WAIT["shed"]
 ERA3_MIRROR = dict(zip(ERA3_ROLES, ERA2_ROLES))
 BURST_WAIT.update({_role: BURST_WAIT[ERA3_MIRROR[_role]] for _role in ERA3_ROLES})
 BURST_WAIT["batteryShed"] = BURST_WAIT["oreShed"]
+# [D70] Era 4: cei sase ai cablului si ai unirii vin in rafala, ca oamenii capitolului 1 (secunde de venit, ~2,5 minute
+# reale pentru toti); magazia si oamenii cristalului ca oglinda lor din Wire Works
+BURST_WAIT.update({
+    "cableCollector": 9.0, "cablePorter": 11.0, "cablemaker": 13.0, "cableHauler": 15.0, "relayKeeper": 16.0,
+    "pylonRunner": 18.0,
+    "crystalShed": BURST_WAIT["batteryShed"], "crystalCollector": BURST_WAIT["batteryCollector"],
+    "crystalPorter": BURST_WAIT["batteryPorter"], "crystalsmith": BURST_WAIT["electrician"],
+    "ingotHauler": BURST_WAIT["powerHauler"],
+})
 LADDER_EXEMPT = {f"{r}2" for r in ROLES} | set(BURST_WAIT)
 # [D55, D56] Shed-ul si oamenii fierului au pretul lor (BURST_WAIT), deci nu urca scara.
 
@@ -1283,13 +1420,160 @@ ERA3 = {
     "free_first": False,  # masina cu abur costa monede: poarta erei, ca roata de apa
     "free_units": ("net11",),  # prima plasa a erei e gratis, ca a sasea [D66]
 }
-# Erele de dupa prima, in ordine; fiecare se joaca din starea in care a lasat-o cea dinainte.
-LATER_ERAS = {2: ERA2, 3: ERA3}
+# ---- ERA 4, "THE DAM" [D70] ----------------------------------------------------------------------------------------
+# Planul: docs/PLAN-MOTOR-UNIRE.md (sectiunile 2 si 5), cu hotararile owner-ului din D70 Runda 4 si 5. Barajul nu e o
+# deblocare de pe scara: e schimbarea de harta pe care o alegi dupa Works Bell. `dam_transform` face din starea de la
+# clopot starea de la baraj, iar era se joaca de acolo, de doua ori (`play_era4`).
+#     cei cinci veterani lucreaza butoaiele; turbina din zid si Cable Net 1 vin gratis; tu faci turul cablului
+#     -> cei sase ai cablului si ai unirii, in rafala (capitolul 10) -> plasele de cablu si a doua turbina, pe familii
+#     -> Kiln (doar cu toti cei 11, ca bazinul sa nu-ti imparta timpul) -> Crystal Net -> Crystal Shed -> cei patru
+#     -> Dam Bell
+DAM_VETERANS = ("damCollector", "damPorter", "switchman", "barrelHauler", "dispatcher")
+DAM_HIRES = ("cableCollector", "cablePorter", "cablemaker", "cableHauler", "relayKeeper", "pylonRunner")
+DAM_CREW = DAM_VETERANS + DAM_HIRES
+DAM_NETS = {"dam": 2, "cable_ore": 4, "crystal": 1}  # cate plase are fiecare familie la Dam Bell
+# RISCUL 1 DIN PLAN, PLATOUL: cei doi colectori (butoaie si cablu) ajung la maxim (2 oameni x treapta 5) si tin unirea,
+# iar venitul sta pe loc (sau se taraste, cu niveluri de plasa de +0.3%) pana la cristal. Cu uneltele la pretul Erelor
+# 1-3, suma de start le cumpara pe toate in primele minute si venitul crestea sub 10% timp de 26 de minute (Erele 1-3: cel
+# mult 20m58s). Cu uneltele la pret dublu (ROLE_COST_MULT) si scara pornita de la 7.0: platoul 7m51s, "tararea" 20m06s.
+# Kiln-ul dupa a treia plasa de cablu scurta era sub 40 de minute si lasa jumatate din verigi decor; ramane dupa a patra.
+KILN_CABLE_NETS = 4
+# La +-15% pe o constanta (--robust), platoul si "tararea" pot iesi cu cel mult atat peste cele mai lungi din Erele 1-3,
+# cum pragul verigilor e pe jumatate la Erele 2-3. Poarta prinde o prapastie, nu zgomotul de +-15%. (Marja a fost aleasa
+# dupa ce se vazuse cel mai rau caz al primei variante, 14m04s: e o marja de zgomot, nu o dovada.)
+ROBUST_FLAT_SLACK = 1.35
+ERA4_LADDER_START = 7.0  # vezi KILN_CABLE_NETS
+
+
+def dam_nets(s: State, kind: str) -> int:
+    return sum(1 for n in s.nets if n.kind == kind)
+
+
+def family_ready(s: State, kind: str) -> bool:
+    """Plasa urmatoare a unei familii cere ca ultima de acelasi fel sa fie la nivelul 2 (quest-ul, pe familii)."""
+    last = next((n for n in reversed(s.nets) if n.kind == kind), None)
+    return last is None or last.level >= PREV_NET_LEVEL
+
+
+def dam_transform(s3: State, coins: float) -> State:
+    """[D70] Barajul, pe o clona a starii de la Works Bell (plan, sectiunea 5): liniile vechi se inchid (plasele, nivelurile
+    si oamenii lor raman in stare, ca in profil), cei cinci veterani intra pe treapta 1 cate unul, turbina zidita in baraj
+    (rang 5) si Cable Net 1 vin gratis, iar Switchyard, Cable Works, Relay si orasul exista de la baraj. Clopotele,
+    traista, pass-urile, indexul si renasterile raman. Monedele sunt suma de start."""
+    s = clone(s3)
+    s.dam = True
+    for role in DAM_VETERANS:
+        s.crews[role].count = 1
+    unlock_net_ranked("dam", 5, 3, 4)(s)
+    unlock_net_ranked("cable_ore", 1, 1, 4)(s)
+    s.coins = coins
+    return s
+
+
+ERA4_UNLOCKS = [
+    ("cableCollector", "Cable Collector", "A", lambda s: s.dam and people(s, "cableCollector") == 0, hire("cableCollector")),
+    ("cablePorter", "Cable Porter", "A", lambda s: people(s, "cableCollector") >= 1 and people(s, "cablePorter") == 0, hire("cablePorter")),
+    ("cablemaker", "Cablemaker", "A", lambda s: people(s, "cablePorter") >= 1 and people(s, "cablemaker") == 0, hire("cablemaker")),
+    ("cableHauler", "Cable Hauler", "A", lambda s: people(s, "cablemaker") >= 1 and people(s, "cableHauler") == 0, hire("cableHauler")),
+    ("relayKeeper", "Relay Keeper", "A", lambda s: people(s, "cableHauler") >= 1 and people(s, "relayKeeper") == 0, hire("relayKeeper")),
+    ("pylonRunner", "Pylon Runner", "A", lambda s: people(s, "relayKeeper") >= 1 and people(s, "pylonRunner") == 0, hire("pylonRunner")),
+    (
+        "cableNet2", "Second Cable Net", "C",
+        lambda s: dam_nets(s, "cable_ore") == 1 and family_ready(s, "cable_ore") and people(s, "pylonRunner") >= 1,
+        unlock_net_ranked("cable_ore", 2, 1, 4),
+    ),
+    (
+        "cableNet3", "Third Cable Net", "C",
+        lambda s: dam_nets(s, "cable_ore") == 2 and family_ready(s, "cable_ore"),
+        unlock_net_ranked("cable_ore", 3, 2, 4),
+    ),
+    (
+        "damTurbine2", "Second Dam Turbine", "C",
+        lambda s: dam_nets(s, "dam") == 1 and dam_nets(s, "cable_ore") >= 3,
+        unlock_net_ranked("dam", 6, 3, 4),
+    ),
+    (
+        "cableNet4", "Fourth Cable Net", "C",
+        lambda s: dam_nets(s, "cable_ore") == 3 and family_ready(s, "cable_ore"),
+        unlock_net_ranked("cable_ore", 4, 2, 4),
+    ),
+    (
+        "kiln", "Kiln", "V",
+        lambda s: dam_nets(s, "cable_ore") >= KILN_CABLE_NETS and all(people(s, r) >= 1 for r in DAM_CREW) and not s.kiln,
+        set_flag("kiln"),
+    ),
+    ("crystalNet", "Crystal Net", "C", lambda s: s.kiln and dam_nets(s, "crystal") == 0, unlock_net_ranked("crystal", 5, 3, 4)),
+    ("crystalShed", "Crystal Shed", "V", lambda s: dam_nets(s, "crystal") == 1 and not s.crystal_shed, set_flag("crystal_shed")),
+    ("crystalCollector", "Crystal Collector", "A", lambda s: s.crystal_shed and people(s, "crystalCollector") == 0, hire("crystalCollector")),
+    ("crystalPorter", "Crystal Porter", "A", lambda s: people(s, "crystalCollector") >= 1 and people(s, "crystalPorter") == 0, hire("crystalPorter")),
+    ("crystalsmith", "Crystalsmith", "A", lambda s: people(s, "crystalPorter") >= 1 and people(s, "crystalsmith") == 0, hire("crystalsmith")),
+    ("ingotHauler", "Ingot Hauler", "A", lambda s: people(s, "crystalsmith") >= 1 and people(s, "ingotHauler") == 0, hire("ingotHauler")),
+]
+for _role in ERA4_ROLES:
+    ERA4_UNLOCKS.append(
+        (
+            f"{_role}2",
+            f"Second {ROLE_NAMES[_role]}",
+            "A",
+            (lambda s, r=_role: people(s, r) == 1 and s.crews[r].tier >= SECOND_AT_TIER),
+            hire(_role),
+        )
+    )
+# Al doilea om al erelor dinainte nu mai e de cumparat: liniile lor sunt inchise de baraj.
+ERA4_UNLOCKS.append(
+    (
+        "bell4",
+        "Dam Bell",
+        "D",
+        lambda s: all(dam_nets(s, kind) == n for kind, n in DAM_NETS.items())
+        and all(people(s, r) >= 1 for r in ERA4_ROLES)
+        and s.kiln
+        and s.crystal_shed,
+        unlock_bell,
+    )
+)
+ERA4_OWN = {u[0] for u in ERA4_UNLOCKS}
+
+
+def era4_quest_net(s: State):
+    """Quest-ul "nivelul 2 pe ultima plasa", pe familii: ultima plasa de cablu la nivelul 2. Ca in Erele 2-3, capitolul
+    cere nivelul 2 si pe plasa dinaintea atelierului erei (a patra de cablu), apoi Kiln-ul (quest-ul lui)."""
+    cable = [i for i, n in enumerate(s.nets) if n.kind == "cable_ore"]
+    if 1 <= len(cable) <= DAM_NETS["cable_ore"] and s.nets[cable[-1]].level < PREV_NET_LEVEL:
+        return cable[-1]
+    return None
+
+
+ERA4 = {
+    "name": "Era 4",
+    "unlocks": ERA4_UNLOCKS,
+    "chapter_hires": DAM_HIRES,
+    "quest_unlocks": (
+        ("kiln", lambda s: dam_nets(s, "cable_ore") >= KILN_CABLE_NETS and family_ready(s, "cable_ore")),
+        ("crystalNet", lambda s: True),
+        ("crystalShed", lambda s: True),
+        ("crystalCollector", lambda s: True),
+        ("crystalPorter", lambda s: True),
+        ("crystalsmith", lambda s: True),
+        ("ingotHauler", lambda s: True),
+    ),
+    "bell": "bell4",
+    "quest_net": era4_quest_net,
+    "step": lambda bought: len((bought & ERA4_OWN) - LADDER_EXEMPT),
+    "wait": lambda k: min(420.0, 20.0 * 1.17 ** (k + ERA4_LADDER_START)),
+    "free_first": False,
+}
+
+# Erele de dupa prima, in ordine; fiecare se joaca din starea in care a lasat-o cea dinainte. [D70] Era 4 se joaca prin
+# `play_era4` (barajul, apoi doua rulari), nu prin `run_era`.
+LATER_ERAS = {2: ERA2, 3: ERA3, 4: ERA4}
 
 
 def run_era(n: int, start: State, prior_prices: dict, max_seconds=200000):
     """[D67] Joaca era `n` din starea in care s-a terminat cea dinainte. Al doilea om al erelor dinainte, ramas
     necumparat, isi tine pretul de atunci (`prior_prices`: preturile tuturor erelor jucate pana acum)."""
+    if n == 4:
+        raise SystemExit("EROARE: Era 4 se joaca prin play_era4 (barajul si cele doua rulari), nu prin run_era [D70]")
     era = dict(LATER_ERAS[n])
     older = {f"{r}2" for k in range(1, n) for r in ERA_ROLES[k]}
     era["seed_prices"] = {uid: price for uid, price in prior_prices.items() if uid not in start.bought and uid in older}
@@ -1324,6 +1608,16 @@ def nice(x: float, floor: int = 0) -> int:
     raise SystemExit(f"EROARE: pretul {x:.3g} trece de scara preturilor (9 x 10^{NICE_MAX_MAG})")
 
 
+def nice_up(x: float) -> int:
+    """[D70] Cel mai mic pret rotund care nu e sub `x` (suma de start la baraj: nu se rotunjeste in jos, ca `nice`)."""
+    for mag in (10**k for k in range(0, NICE_MAX_MAG + 1)):
+        for n in NICE:
+            v = round(n * 10) * mag // 10
+            if v >= x:
+                return v
+    raise SystemExit(f"EROARE: suma {x:.3g} trece de scara preturilor (9 x 10^{NICE_MAX_MAG})")
+
+
 # ---- optiunile de cumparare la un moment dat --------------------------------------------------
 
 
@@ -1342,6 +1636,12 @@ BUILDINGS = {
     "wireworks": {"label": "Wire Works", "cost": "WIREWORKS_UPGRADE_BASE", "level": "wireworks_level", "owned": "steam"},
     "depot": {"label": "Depot", "cost": "DEPOT_UPGRADE_BASE", "level": "depot_level", "owned": "steam"},
     "powerhouse": {"label": "Power House", "cost": "POWERHOUSE_UPGRADE_BASE", "level": "powerhouse_level", "owned": "powerhouse"},
+    # [D70] Era 4: Switchyard, Cable Works, Relay si orasul exista de la baraj; Kiln-ul cand il cumperi
+    "switchyard": {"label": "Switchyard", "cost": "SWITCHYARD_UPGRADE_BASE", "level": "switchyard_level", "owned": "dam"},
+    "cableworks": {"label": "Cable Works", "cost": "CABLEWORKS_UPGRADE_BASE", "level": "cableworks_level", "owned": "dam"},
+    "relay": {"label": "Relay Station", "cost": "RELAY_UPGRADE_BASE", "level": "relay_level", "owned": "dam"},
+    "town": {"label": "Switch House", "cost": "TOWN_UPGRADE_BASE", "level": "town_level", "owned": "dam"},
+    "kiln": {"label": "Kiln", "cost": "KILN_UPGRADE_BASE", "level": "kiln_level", "owned": "kiln"},
 }
 
 
@@ -1558,9 +1858,20 @@ def run(rebirths=0, index_found=0, max_seconds=36000, era=None, start=None):
             # QUEST-UL CERE NIVELUL 2 PE ULTIMA PLASA, iar un om il urmeaza. Singur, nivelul 2 nu da
             # nimic cand plasele nu sunt gatuirea, deci lacomul nu-l lua niciodata -- si plasa
             # urmatoare, pe care o deschide, venea cu 32 de minute mai tarziu [D49].
-            first_net, net_count = era["first_net"], era["net_count"]
-            if first_net + 1 <= len(s.nets) < first_net + net_count and s.nets[-1].level < PREV_NET_LEVEL:
-                i = len(s.nets) - 1
+            # [D70] De la Era 4 plasele se cumpara amestecat (turbinele si plasele de cablu), deci quest-ul merge pe
+            # familii: era isi spune singura ce plasa cere (`quest_net`). Fara ea, ultima plasa a erei, ca pana acum.
+            quest_net = era.get("quest_net")
+            if quest_net is not None:
+                qi = quest_net(s)
+            else:
+                first_net, net_count = era["first_net"], era["net_count"]
+                qi = (
+                    len(s.nets) - 1
+                    if first_net + 1 <= len(s.nets) < first_net + net_count and s.nets[-1].level < PREV_NET_LEVEL
+                    else None
+                )
+            if qi is not None:
+                i = qi
                 cost = level_cost(net_upgrade_base(s, i), s.nets[i].level)
                 if cost <= s.coins:
 
@@ -1649,7 +1960,7 @@ def run(rebirths=0, index_found=0, max_seconds=36000, era=None, start=None):
 
 
 # Linia care apare la coada fiecarei ere (fierul, cuprul): verigile ei se masoara doar pe timpul in care e deschisa.
-LATE_LINE = {1: "iron", 2: "copper", 3: "power"}
+LATE_LINE = {1: "iron", 2: "copper", 3: "power", 4: "crystal"}
 
 
 def link_share(link, shares, late_time, era=1):
@@ -1718,7 +2029,7 @@ CREW_BURST_REAL = 150
 # aduce mai multi bani". Poarta de 0.5% ramane pentru toate celelalte verigi.
 # [D65] Era 2 e in oglinda, deci si scutirile: Ore Porter si Copper Hauler. [D67] La fel Era 3: Battery Porter si Power
 # Hauler.
-BOTTLENECK_EXEMPT = {"scrapPort", "ironHaul", "orePort", "copperHaul", "batteryPort", "powerHaul"}
+BOTTLENECK_EXEMPT = {"scrapPort", "ironHaul", "orePort", "copperHaul", "batteryPort", "powerHaul", "crystalPort", "ingotHaul"}
 
 
 def check_run(rows, longest_idle, shares, prices, scrap_time):
@@ -1864,6 +2175,11 @@ def check_config_prices(prices, pad_ids=None, roles=None):
     return bad
 
 
+# [D70] Erele scrise deja in configuratia jocului. Era 4 intra in StationConfig / TycoonConfig la pasul f al planului
+# motorului; pana atunci, constantele ei traiesc doar aici.
+CONFIG_ERAS = (1, 2, 3)
+
+
 def check_config_constants():
     """Constantele oamenilor si ale gaterului din StationConfig.luau = cele de aici. Debitele le
     prind si testele de aur din ChainMath; costul treptelor si pragul celui de-al doilea om nu intra
@@ -1907,8 +2223,9 @@ def check_config_constants():
             bad.append(f"PassMath.{name} = {m.group(1) if m else 'lipseste'}, simulatorul are {want:g} [D66]")
     m = re.search(r"StationConfig\.ROLE_BASE = \{([^}]*)\}", src)
     have = dict((k, float(v)) for k, v in re.findall(r"(\w+) = ([0-9.]+)", m.group(1))) if m else {}
-    if have != ROLE_BASE:
-        bad.append(f"StationConfig.ROLE_BASE = {have}, simulatorul are {ROLE_BASE}")
+    want = {role: v for role, v in ROLE_BASE.items() if any(role in ERA_ROLES[era] for era in CONFIG_ERAS)}
+    if have != want:
+        bad.append(f"StationConfig.ROLE_BASE = {have}, simulatorul are {want}")
     return bad
 
 
@@ -2049,8 +2366,253 @@ def check_windfall(income1, rows, started_at, ended_at, era=2):
     return []
 
 
+# ---- ERA 4: cele doua rulari si portile barajului [D70] ------------------------------------------------------------
+class DamRun:
+    """Era 4, jucata de doua ori din starea de la Works Bell (plan, sectiunea 5)."""
+
+    def __init__(self, s3, prior_prices, max_seconds=200000):
+        self.s3 = s3
+        # 1. FARA BANI: preturile se fixeaza ca la orice era, din venitul din clipa in care devine accesibila deblocarea
+        self.start_zero = dam_transform(s3, 0.0)
+        (self.s_zero, self.rows_zero, self.prices, self.idle_zero, self.final_zero, self.shares_zero,
+         _) = run(era=ERA4, start=clone(self.start_zero), max_seconds=max_seconds)
+        # suma de start: cea mai mare dintre costul primelor 5 minute reale ale erei si o noapte fara pass-uri la clopot
+        # (regula owner-ului, D70 Runda 4), rotunjita in sus
+        self.c5 = sum(r[2] for r in self.rows_zero if (r[3] - self.start_zero.t) * REAL <= 300)
+        self.night = income(s3) * OFFLINE_HOURS * 3600
+        self.start_sum = nice_up(max(self.c5, self.night))
+        # 2. CU SUMA: cronologia adevarata, pe aceleasi preturi
+        era = dict(ERA4)
+        era["seed_prices"] = dict(self.prices)
+        self.start = dam_transform(s3, float(self.start_sum))
+        (self.s4, self.rows, _prices, self.idle, self.final, self.shares,
+         _) = run(era=era, start=clone(self.start), max_seconds=max_seconds)
+        self.late_time = self.s4.line_time[LATE_LINE[4]]
+
+
+def play_era4(s3: State, prior_prices: dict, max_seconds=200000) -> DamRun:
+    return DamRun(s3, prior_prices, max_seconds)
+
+
+ERA_JUMP_MIN, ERA_JUMP_MAX = 8.0, 30.0  # venitul la baraj / venitul la Works Bell
+DAM_HIRES_MAX_SHARE = 0.10  # cei sase costa cel mult atat din suma de start
+
+
+def spend_share(budget, rows, started_at, ended_at):
+    """Cate cumparaturi ale unei rulari plateste `budget`, in ordine, si ce parte din timpul ei sare."""
+    spent, n, last_t, last_label = 0.0, 0, started_at, "-"
+    for label, _kind, price, t, _after, _bn in rows:
+        if spent + price > budget:
+            break
+        spent += price
+        n += 1
+        last_t, last_label = t, label
+    return n, last_label, (last_t - started_at) / max(1, ended_at - started_at)
+
+
+def longest_flat(rows, started_at, start_income, ended_at):
+    """[D70] Cel mai lung tronson (secunde lacome) in care venitul nu creste: intre doua cumparaturi care il urca."""
+    best, last_t, last_inc = 0.0, started_at, start_income
+    for _label, _kind, _price, t, after, _bn in rows:
+        if after > last_inc * (1 + 1e-9):
+            best = max(best, t - last_t)
+            last_t, last_inc = t, after
+    return max(best, ended_at - last_t)
+
+
+def longest_crawl(rows, started_at, start_income, ended_at, growth=0.10):
+    """[D70] Cel mai lung tronson (secunde lacome) in care venitul creste sub `growth`: din orice punct, cat pana ajunge
+    la (1 + growth) ori venitul de atunci. `longest_flat` vede doar cresterea exact zero; un sir de niveluri de plasa de
+    +0.3% ar reporni-o la fiecare cumparatura, desi pe ecran cifra abia se misca [verificator, 2026-09-30]."""
+    points = [(started_at, start_income)] + [(r[3], r[4]) for r in rows]
+    best = 0.0
+    for i, (t0, v0) in enumerate(points):
+        target = v0 * (1 + growth) * (1 - 1e-9)
+        t1 = next((t for t, v in points[i + 1:] if v >= target), ended_at)
+        best = max(best, t1 - t0)
+    return best
+
+
+def dead_tiers(rows, roles, start_bottleneck=""):
+    """[D70] Pentru fiecare meserie: cate trepte (si "al doilea om") cumparate CAT EA ERA VERIGA SLABA aratata de joc au
+    dat castig zero, din cate cumparate asa. Cumparaturile facute doar ca sa inaintezi cand nimic nu mai aduce (ramura
+    "ECHIPAJ LA MAXIM" din `run`) nu intra: nu le arata jocul ca pas urmator. Veriga dinaintea unei cumparaturi e cea de
+    dupa cumparatura precedenta (intre doua cumparaturi starea nu se schimba)."""
+    out = {}
+    prev_income, prev_bn = None, start_bottleneck
+    for label, _kind, _price, _t, after, bn in rows:
+        for role in roles:
+            name = ROLE_NAMES[role]
+            if (label.startswith(name + " tier ") or label == "unlock:Second " + name) and prev_bn == LINK_OF[role]:
+                dead, n = out.get(role, (0, 0))
+                out[role] = (dead + (1 if prev_income is not None and after <= prev_income * (1 + 1e-12) else 0), n + 1)
+        prev_income, prev_bn = after, bn
+    return out
+
+
+# O treapta pe veriga aratata poate da zero la o EGALITATE intre piese (unirea e tinuta de amandoua deodata): e cinstit
+# [D46, riscul 3 din plan], iar ecranul numeste linia cealalta. O egalitate PERMANENTA (baze egale) le omoara insa pe
+# toate: poarta pica daca mai mult de jumatate din treptele luate pe veriga aratata dau zero (Erele 1-3: cel mult 1 din 5).
+def too_many_dead(dead: int, n: int) -> bool:
+    return dead * 2 > n
+
+
+def check_dam(d: DamRun, flat_before: float, crawl_before: float):
+    """[D70] Portile barajului (plan, sectiunea 5), pe cele doua rulari."""
+    problems = []
+    # suma sare cel mult WINDFALL_MAX_SHARE din cronologia fara bani
+    _n, last, share = spend_share(d.start_sum, d.rows_zero, d.start_zero.t, d.s_zero.t)
+    if share > WINDFALL_MAX_SHARE:
+        problems.append(
+            f"Era 4: suma de start ({big(d.start_sum)}) sare {share * 100:.0f}% din era (pana la {last}; "
+            f"maxim {WINDFALL_MAX_SHARE * 100:.0f}%)"
+        )
+    # saltul de venit la baraj
+    jump = income(d.start) / income(d.s3)
+    if not ERA_JUMP_MIN <= jump <= ERA_JUMP_MAX:
+        problems.append(f"Era 4: la baraj venitul sare de {jump:.1f} ori (intre {ERA_JUMP_MIN:g} si {ERA_JUMP_MAX:g})")
+    # AWAY: dupa cei sase, cat lipsesti castigi macar cat la Works Bell; iar cei sase costa putin din suma
+    hired = clone(d.start)
+    for role in DAM_HIRES:
+        hired.crews[role].count = 1
+    away_bell, away_hired = away_income(d.s3), away_income(hired)
+    if away_hired < away_bell:
+        problems.append(f"Era 4: cu cei sase angajati, AWAY e {big(away_hired)}/s, sub Works Bell ({big(away_bell)}/s)")
+    hires = sum(d.prices[uid] for uid in DAM_HIRES)
+    if hires > DAM_HIRES_MAX_SHARE * d.start_sum:
+        problems.append(f"Era 4: cei sase costa {big(hires)}, peste {DAM_HIRES_MAX_SHARE * 100:.0f}% din {big(d.start_sum)}")
+    # platoul: cel mai lung tronson fara crestere, cel mult cat in Erele 1-3 (aceeasi rulare)
+    flat = longest_flat(d.rows, d.start.t, income(d.start), d.s4.t)
+    if flat > flat_before:
+        problems.append(
+            f"Era 4: venitul sta pe loc {fmt(flat * REAL)} reali (maxim {fmt(flat_before * REAL)}, cel mai lung din Erele 1-3)"
+        )
+    # si "tararea": cel mai lung tronson cu crestere sub 10%, cel mult cat in Erele 1-3
+    crawl = longest_crawl(d.rows, d.start.t, income(d.start), d.s4.t)
+    if crawl > crawl_before:
+        problems.append(
+            f"Era 4: venitul creste sub 10% timp de {fmt(crawl * REAL)} reali (maxim {fmt(crawl_before * REAL)}, cel mai "
+            f"lung din Erele 1-3)"
+        )
+    # nicio meserie a erei cu trepte moarte in sir: veriga aratata de joc trebuie sa aduca ceva cand o urci [D46]
+    for role, (dead, n) in dead_tiers(d.rows, ERA4_ROLES, chain(d.start).bottleneck).items():
+        if too_many_dead(dead, n):
+            problems.append(
+                f"Era 4: {ROLE_NAMES[role]}: {dead} din {n} trepte si angajari luate cat era veriga slaba dau castig zero "
+                f"(maxim jumatate)"
+            )
+    return problems
+
+
+ROBUST_KNOBS_ERA4 = (
+    "SWITCHYARD_BASE_RATE", "CABLEWORKS_BASE_RATE", "RELAY_BASE_RATE", "KILN_BASE_RATE", "TOWN_BASE_RATE",
+    "ROLE_BASE.damCollector", "ROLE_BASE.damPorter", "ROLE_BASE.barrelHauler", "ROLE_BASE.cableCollector",
+    "ROLE_BASE.cablePorter", "ROLE_BASE.cableHauler", "ROLE_BASE.pylonRunner", "ROLE_BASE.crystalCollector",
+    "ROLE_BASE.crystalPorter", "ROLE_BASE.ingotHauler",
+)
+
+
+def robust_era4(s3: State, prior_prices: dict, flat_before: float, crawl_before: float):
+    """Constantele barajului, cu 15% in jos si in sus, pe Era 4 jucata din finalul (neschimbat) al Wire Works. Ca la
+    Erele 2-3, pragul verigilor e pe jumatate; platoul are marja ROBUST_FLAT_SLACK."""
+    failures = []
+    module = sys.modules[__name__]
+    print("\n--robust, Era 4: fiecare constanta a barajului x0.85 si x1.15")
+    for knob in ROBUST_KNOBS_ERA4:
+        for factor in ROBUST_FACTORS:
+            if knob.startswith("ROLE_BASE."):
+                role = knob.split(".")[1]
+                original = ROLE_BASE[role]
+                ROLE_BASE[role] = original * factor
+            else:
+                original = getattr(module, knob)
+                setattr(module, knob, original * factor)
+            VIOLATIONS.clear()
+            tag = f"{knob} x{factor}"
+            try:
+                d = play_era4(clone(s3), prior_prices)
+                problems = list(VIOLATIONS) + check_hire_order()
+                problems += check_run_era(
+                    4, d.rows, d.idle, d.shares, d.late_time, d.start.t, d.s4.t, MIN_BOTTLENECK_SHARE / 2
+                )
+                problems += [
+                    p for p in check_dam(d, flat_before * ROBUST_FLAT_SLACK, crawl_before * ROBUST_FLAT_SLACK)
+                    if "trepte si angajari" not in p  # treptele moarte: doar pe cifrele de baza
+                ]
+                flat = longest_flat(d.rows, d.start.t, income(d.start), d.s4.t)
+                crawl = longest_crawl(d.rows, d.start.t, income(d.start), d.s4.t)
+                print(
+                    f"  {tag:<28} {fmt((d.s4.t - d.start.t) * REAL):>7} real, start {big(d.start_sum)}, {len(d.rows)} "
+                    f"cumparaturi, pauza {fmt(d.idle)}, platou {fmt(flat * REAL)}, tarare {fmt(crawl * REAL)}"
+                )
+            except SystemExit as e:
+                problems = [str(e)]
+                print(f"  {tag:<28} {e}")
+            finally:
+                if knob.startswith("ROLE_BASE."):
+                    ROLE_BASE[knob.split(".")[1]] = original
+                else:
+                    setattr(module, knob, original)
+            failures += [f"{tag}: {p}" for p in problems]
+    VIOLATIONS.clear()
+    return failures
+
+
+def report_era4(d: DamRun, flats: dict, crawls: dict):
+    rows, started = d.rows, d.start.t
+    unlocks = [r for r in rows if r[1] == "unlock"]
+    five_min = [r for r in rows if (r[3] - started) * REAL <= 300]
+    c = chain(d.s4)
+    money = {line: c.lines[line].delivered * line_avg(line) for line in LINE_ORDER if line not in CONSUMER_OF}
+    total = sum(money.values()) or 1.0
+    print(f"\nEra 4: {len(rows)} cumparaturi ({len(unlocks)} deblocari, {len(rows) - len(unlocks)} niveluri si trepte)")
+    print(f"  terminata in {fmt(d.s4.t - started)} lacom  ->  {fmt((d.s4.t - started) * REAL)} real, de la baraj "
+          f"(fara bani: {fmt((d.s_zero.t - d.start_zero.t) * REAL)} real)")
+    print(f"  suma de start: {big(d.start_sum)} = max(primele 5 minute {big(d.c5)}, o noapte la Works Bell {big(d.night)}), "
+          f"rotunjita in sus")
+    print(f"  venit: la Works Bell {rate_txt(income(d.s3))}/s -> la baraj {rate_txt(income(d.start))}/s "
+          f"(x{income(d.start) / income(d.s3):.1f}) -> la Dam Bell {rate_txt(d.final)}/s")
+    hired = clone(d.start)
+    for role in DAM_HIRES:
+        hired.crews[role].count = 1
+    hires = sum(d.prices[uid] for uid in DAM_HIRES)
+    print(f"  AWAY: la Works Bell {rate_txt(away_income(d.s3))}/s, la baraj {rate_txt(away_income(d.start))}/s, "
+          f"dupa cei sase {rate_txt(away_income(hired))}/s; cei sase costa {big(hires)} ({hires / d.start_sum * 100:.1f}% din suma)")
+    print(f"  primele 5 minute reale: {len(five_min)} cumparaturi (minim {ERA2_MIN_FIRST_FIVE})")
+    print(f"  cea mai lunga pauza fara nimic de apasat: {fmt(d.idle)}")
+    print("  venitul sta pe loc cel mai mult: " + " | ".join(f"Era {n} {fmt(v * REAL)}" for n, v in flats.items()) + " (real)")
+    print("  venitul creste sub 10% cel mai mult: " + " | ".join(f"Era {n} {fmt(v * REAL)}" for n, v in crawls.items()) + " (real)")
+    print(
+        "  gatuirea, ca parte din timp: "
+        + " | ".join(f"{link} {link_share(link, d.shares, d.late_time, era=4) * 100:.1f}%" for link in ERA_LINKS[4])
+        + f"  (cristalul: din {fmt(d.late_time)} cu Crystal Net)"
+    )
+    print("  la final: " + ", ".join(f"{LINE_WORDS.get(line, line)} {money[line] / total * 100:.1f}%" for line in ERA_LINES[4] if line in money))
+    print("  oamenii la final: " + ", ".join(f"{ROLE_NAMES[r]} {d.s4.crews[r].count}x treapta {d.s4.crews[r].tier}" for r in ERA4_ROLES))
+    print("\npreturile deblocarilor Erei 4, in ordinea cumpararii (timpul: de la baraj, cu suma de start):")
+    for label, kind, price, t, inc, _bn in rows:
+        if kind == "unlock":
+            print(f"  {label[7:]:<22} {big(price):>9}   la {fmt(t - started):>7} lacom / {fmt((t - started) * REAL):>7} real   venit {rate_txt(inc):>8}/s")
+    never = [uid for uid, *_ in ERA4_UNLOCKS if uid not in d.s4.bought]
+    if never:
+        print("  necumparate in Era 4 (pret din starea de la final): " + ", ".join(f"{uid} {big(d.prices[uid])}" for uid in never))
+    print("\n[D70] suma de start si monedele Robux pastrate peste ea: cat din Era 4 (fara bani) sare")
+    bell = income(d.s3)
+    for label, extra in (
+        ("doar suma", 0.0),
+        ("+1 h Flow", bell * 3600),
+        (f"Welcome Back x2 dupa {OFFLINE_HOURS:g} h", bell * OFFLINE_HOURS * 3600),
+        (f"dupa {OFFLINE_HOURS_LONG:g} h cu 2x Flow", bell * 2 * OFFLINE_HOURS_LONG * 3600),
+    ):
+        n, last, share = spend_share(d.start_sum + extra, d.rows_zero, d.start_zero.t, d.s_zero.t)
+        print(f"  {label:34s} {big(d.start_sum + extra):>8}: {n:3d} cumparaturi (pana la {last[7:] if last.startswith('unlock:') else last}), {share * 100:4.1f}% din timpul erei")
+
+
 # [D67] Cum se cheama in raport marfa fiecarei linii si ce aduce linia tarzie a fiecarei ere
-LINE_WORDS = {"parts": "piesele", "copper": "cuprul", "coils": "bobinele", "power": "curentul"}
+LINE_WORDS = {
+    "parts": "piesele", "copper": "cuprul", "coils": "bobinele", "power": "curentul",
+    "grid": "curentul unit", "crystal": "cristalul",  # [D70]
+}
 LATE_WORDS = {2: "cuprul: din {} cu minereu", 3: "curentul: din {} cu turbina"}
 
 
@@ -2132,6 +2694,27 @@ if __name__ == "__main__":
     problems += check_run_era(3, rows3, idle3, shares3, s3.line_time[LATE_LINE[3]], s2.t, s3.t)
     problems += check_windfall(final2, rows3, s2.t, s3.t, era=3)
     problems += check_config_prices({**prices12, **prices3}, PAD_IDS_ERA3, ERA3_ROLES)
+    # [D70] Era 4, barajul, jucat din finalul Wire Works: doua rulari (fara bani, apoi cu suma de start)
+    prices123 = {**prices12, **prices3}
+    flats = {
+        1: longest_flat(rows, 0.0, 0.0, s1.t),
+        2: longest_flat(rows2, s1.t, final_income, s2.t),
+        3: longest_flat(rows3, s2.t, final2, s3.t),
+    }
+    flat_before = max(flats.values())
+    crawls = {
+        1: longest_crawl(rows, 0.0, 0.0, s1.t),
+        2: longest_crawl(rows2, s1.t, final_income, s2.t),
+        3: longest_crawl(rows3, s2.t, final2, s3.t),
+    }
+    crawl_before = max(crawls.values())
+    era3_violations = len(VIOLATIONS)
+    dam = play_era4(clone(s3), prices123)
+    flats[4] = longest_flat(dam.rows, dam.start.t, income(dam.start), dam.s4.t)
+    crawls[4] = longest_crawl(dam.rows, dam.start.t, income(dam.start), dam.s4.t)
+    problems += list(VIOLATIONS[era3_violations:])
+    problems += check_run_era(4, dam.rows, dam.idle, dam.shares, dam.late_time, dam.start.t, dam.s4.t)
+    problems += check_dam(dam, flat_before, crawl_before)
     # [D64] motorul chiar duce oricate linii: linii de proba pe o COPIE a modulului, comparate cu cifre socotite de mana
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     import check_lines
@@ -2150,6 +2733,7 @@ if __name__ == "__main__":
         problems += robust()
         problems += robust_era(2, s1, prices)
         problems += robust_era(3, s2, prices12)
+        problems += robust_era4(s3, prices123, flat_before, crawl_before)
 
     if problems:
         print("EROARE -- economia nu trece portile:")
@@ -2219,3 +2803,8 @@ if __name__ == "__main__":
         for i, (label, kind, price, t, inc, bn) in enumerate(rows3, 1):
             print(f"{i:>3} {label:<30} {kind:>8} {big(price):>8} {fmt((t - s2.t) * REAL):>8} {big(inc):>10} {bn:>14}")
     report_era(3, s2, s3, rows3, prices3, idle3, final3, shares3, final2)
+    if "--table" in sys.argv:
+        print(f"\n{'#':>3} {'cumparatura (Era 4)':<30} {'fel':>8} {'pret':>8} {'real~':>8} {'venit/s':>10} {'gatuire':>14}")
+        for i, (label, kind, price, t, inc, bn) in enumerate(dam.rows, 1):
+            print(f"{i:>3} {label:<30} {kind:>8} {big(price):>8} {fmt((t - dam.start.t) * REAL):>8} {big(inc):>10} {bn:>14}")
+    report_era4(dam, flats, crawls)

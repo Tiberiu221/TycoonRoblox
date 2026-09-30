@@ -332,3 +332,59 @@ Piesele au intenționat o valoare ne-zero, ca un venit care le-ar număra să pi
 **`golden_chain.py` (pasul c).** Blocurile tipăresc doar `GOLDEN_LINES` și `GOLDEN_SELLERS` (Erele 1–3). Dovada: cu liniile de probă ale unirii adăugate închise în simulator, iese același text. Fără filtru, `GOLDEN_ERA2` și `GOLDEN_ERA3` s-ar fi schimbat.
 
 **Rămâne pentru pasul d, pe bazin:** `check_hire_order`, `link_share` / `LATE_LINE`, `report_era` (banii doar pe liniile care vând) și `BOTTLENECK_EXEMPT`.
+
+## 11. Cum a ieșit pasul d (2026-09-30, după verificator)
+
+**Era 4 e în simulator.** Erele 1–3 ies identice la octet: rularea simplă, `--table --chain`, cele trei blocuri din `golden_chain.py` și porțiunea lor din `--robust`. Singura diferență e că ieșirile au acum și Era 4, la coadă. `tune_tycoon.py eval` dă aceleași cifre; rândul cu toate verigile le listează acum și pe ale Erei 4, la 0%.
+
+**Cifrele, față de prototipul B:**
+
+| | Prototip | Simulator |
+|---|---|---|
+| venitul la baraj | 19,6B/s (×16,2) | 19,57B/s (×16,2) |
+| cei șase oameni noi | 1,58T (4,5%) | 1,58T (4,5%) |
+| primele 5 minute (C5) | 8,13T | 7,48T |
+| o noapte la Works Bell | 34,86T | 34,86T |
+| `START_SUM` | 35T | **35T** |
+| Era 4, cu suma | 41m49s | 1h05m reale (fără bani: 1h14m) |
+| cel mai lung platou (venit pe loc) | 16m41s (pica) | 7m51s (Erele 1–3: 6m28s / 9m10s / 10m51s) |
+| cel mai lung tronson cu creștere sub 10% | — | 20m06s (Erele 1–3: 9m30s / 15m25s / 20m58s) |
+
+**Ce e în cod:**
+- **Tabelele** din §2: patru linii noi (`barrels`, `cable`, `grid`, `crystal`), `closeFlag = "dam"` pe cele șase vechi, cinci clădiri (Switchyard, Cable Works, Relay, Kiln, orașul), 15 oameni (`ERA4_ROLES`), bunurile și prinderile fără găsiri.
+- **`dam_transform`**, pe o clonă a stării de la Works Bell: barajul, cei cinci veterani pe treapta 1, turbina zidită (rang 5) și Cable Net 1 gratis, suma de start.
+- **`ERA4_UNLOCKS` pe familii:** cei șase în rafală (9–18 secunde de venit, ca oamenii capitolului 1), plasele de cablu și a doua turbină (după a treia plasă de cablu), Kiln doar cu toți cei 11 și a patra plasă de cablu, Crystal Net, **Crystal Shed** (în oglindă cu Battery Shed; planul nu-l numea), cei patru ai cristalului, al doilea om pe fiecare meserie a erei, Dam Bell. Al doilea om al erelor vechi nu mai e de cumpărat: liniile lor sunt închise.
+- **Quest-ul „nivelul 2 pe ultima plasă”, pe familii:** era își spune singură plasa (`quest_net`). Ca în Erele 2–3, capitolul cere nivelul 2 pe plasa dinaintea atelierului erei (aici a patra de cablu), apoi atelierul (Kiln-ul).
+- **`AWAY`** și `away_income`, ca `idleOnly` din ChainMath: cât lipsești, pașii fără om nu merg, iar vânzătorul fără omul lui nu vinde.
+- **`DamRun` / `play_era4`:** cele două rulări din §5. Rularea cu suma primește prețurile celei fără bani (`seed_prices`).
+- **Porțile:** `check_run_era(4)` pe rularea cu suma, apoi `check_dam`:
+  - suma sare cel mult 25%;
+  - saltul la baraj e între 8 și 30;
+  - AWAY după cei șase e cel puțin cât la Works Bell;
+  - cei șase costă cel mult 10% din sumă;
+  - platoul e cel mult cât cel mai lung din Erele 1–3;
+  - tronsonul cu creștere sub 10% e cel mult cât cel mai lung din Erele 1–3;
+  - nicio meserie nu are mai mult de jumătate din treptele luate pe veriga arătată cu câștig zero.
+- **`robust_era4`:** 15 constante × 2, fiecare cu ambele rulări, cu pragul verigilor pe jumătate (ca la Erele 2–3) și cu marja `ROBUST_FLAT_SLACK = 1,35` pentru platou și pentru creșterea sub 10%. La ±15%, Era 4 ține între 45m34s și 1h08m, platoul iese cel mult 10m24s (sub 10m51s chiar fără marjă), iar creșterea sub 10% cel mult 23m16s.
+- **Testele de mână, în `check_lines.py`:** `nice_up`, `longest_flat`, `longest_crawl`, `spend_share`, `away_income` (și că `AWAY` revine după o eroare), `dead_tiers`.
+- **Raportul Erei 4:** suma și din ce vine, saltul, AWAY, platourile și creșterea sub 10% pe ere, banii pe linii, prețurile, apoi monedele Robux păstrate peste sumă (doar raport).
+
+**Ce a găsit verificatorul și cum s-a reparat:**
+- **Egalități permanente.** Dam Collector și Cable Collector aveau aceeași bază (4,0), la fel Cable Hauler și Pylon Runner (7,0). Pașii celor două piese intră în același minim al unirii, deci egalitatea ținea toată era, iar fiecare treaptă pe veriga arătată dădea zero. Bazele sunt acum diferite și nu se pot egala pe trepte: Dam Collector 4,4, Dam Porter 6,2, Pylon Runner 6,5.
+- **Platoul măsura doar creșterea exact zero.** Un șir de niveluri de plasă de +0,3% repornea numărătoarea, deși pe ecran cifra abia se mișca. Cu uneltele la prețul Erelor 1–3, suma de start le cumpăra pe toate în primele minute. Cei doi colectori ajungeau la plafon (2 oameni × treapta 5) devreme, iar venitul creștea sub 10% timp de 26 de minute. Remediul, din cifre (D70 Runda 5):
+  - **uneltele oamenilor barajului costă dublu** (`ROLE_COST_MULT = 2 × ERA4_MULT`);
+  - **scara Erei 4 pornește de la 7,0.**
+
+  Am încercat și Kiln după a treia plasă de cablu (platou mai scurt, dar Era 4 sub 40 de minute și jumătate din verigi decor) și a doua turbină după Kiln (Era 4 spre 75 de minute).
+- **AWAY lăsa orașul să vândă fără om.** Jocul (`idleOnly`) nu o face; acum nici simulatorul.
+- **Quest-ul Kiln-ului nu se aprindea niciodată.** Acum capitolul cere nivelul 2 pe a patra plasă de cablu, apoi Kiln-ul.
+- **O egalitate între piese dă uneori o treaptă cu zero** (riscul 3). E cinstit [D46], iar ecranul numește linia cealaltă. Poarta prinde doar egalitatea permanentă.
+
+**Ce a ieșit altfel decât în plan:**
+- **`check_hire_order` rămâne pe linii, nu pe bazin.** Pe linie, ultimul drum al fiecărei linii trebuie să ducă tot timpul tău (5,4). Pe bazin i s-ar cere doar partea lui din pașii rămași. Regula pe linii e deci mai strictă și o acoperă pe cea pe bazin.
+- **`check_config_constants` compară `ROLE_BASE` doar pe erele din configurație** (`CONFIG_ERAS = (1, 2, 3)`). Era 4 intră în `StationConfig` la pasul f, iar atunci `CONFIG_ERAS` primește 4.
+- **„~2–3 minute fără câștig cât lipsești” vine din rularea fără bani.** Cu suma de start, cei șase costă 4,5% din ea și se pot angaja din prima clipă. AWAY = 0 ține doar cât faci drumul la aviziere. Textul din joc (pasul k) spune ce faci („angajează cei 6”), nu minute.
+- **Marja de la `--robust`** (1,35) a fost aleasă după ce se văzuse cel mai rău caz al primei variante (14m04s). E o marjă de zgomot, nu o dovadă.
+- **Timpul simulatorului s-a dublat** (10,5 → ~23 s pentru rularea simplă, ~10 minute pentru `--robust`): Era 4 se joacă de două ori, iar lanțul are patru linii în plus.
+
+**Următorul pas: e** (`golden_chain.py --era4` → `GOLDEN_ERA4`).
