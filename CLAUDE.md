@@ -118,8 +118,9 @@ stylua/selene o prind. Rulează-le mereu pe toate, nu înlănțuite după o eroa
   (`LookController` + `GlanceMath`, locurile în `TycoonConfig.modernLookAt`).
 - **Motorul** (`docs/PLAN-MOTOR-UNIRE.md`, pașii a–c): chei opționale pe linii (`closeFlag`, `inputs`, `into`, `value`,
   `pool`); Erele 1–3 ies neschimbate la bit, iar `check_lines` fixează 22 de reguli. **Urmează pașii d–l**, cu hotărârile
-  din D70 „Runda 4": piesele se vând doar unite, startul e 35T cu AWAY 0 până la cei 6 oameni, cristalul se vinde și în
-  Era 4.
+  din D70 „Runda 4" (piesele se vând doar unite, startul e 35T cu AWAY 0 până la cei 6 oameni, cristalul se vinde și în
+  Era 4) și „Runda 5" (veteranii pe butoaie, cablul de mână, Pylon Runner, fără găsiri sub baraj, pauza reparată din
+  cifre).
 - **Capcana sondei:** dacă Studio nu e conectat la Rojo, Play-ul rulează codul vechi, fără nicio eroare. Verifică înainte:
   `lsof -nP -iTCP:34872` trebuie să arate o legătură `ESTABLISHED`, nu doar `LISTEN`.
 - **Baza unei clădiri de pe platformă e `TycoonConfig.buildingBase(p)`** (y + 48 + 8). Orice desen pus față de o clădire

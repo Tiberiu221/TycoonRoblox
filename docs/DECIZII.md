@@ -98,6 +98,16 @@ mai mare dintre costul primelor 5 minute ale Erei 4 și o noapte fără pass-uri
 - **Cristalul se vinde și în Era 4**, primul la oraș, și tot cu el începe Era 5.
 - **Arta modernizării Erei 3 e aprobată și urcată** (18 imagini, cu stația și tamburii din curtea Wire Works).
 
+**Runda 5 (owner, 2026-09-30: „ia răspunsurile recomandate”)**, întrebările 1, 3, 6 și 7 din §6 al planului motorului:
+- **Începutul barajului:** cei cinci veterani lucrează linia butoaielor (turbina → butoaie → Relay), iar jucătorul face
+  cu mâna turul cablului; primii oameni noi vin pe cablu.
+- **Curentul ajunge la oraș prin Pylon Runner:** un om nou îl duce pe podul cu stâlpi până la Switch House, unde îl vinde
+  Dispatcher-ul (fostul hangiu). Fiecare pas are omul lui.
+- **Plasele de sub baraj nu prind găsiri.** Surprizele rămân darurile de pe râu și undița.
+- **Pauza de ~16 minute din Era 4** (Cable Collector-ii la maxim) se repară din cifre, în simulator; regula de doi
+  oameni pe meserie rămâne.
+Rămân pentru mai târziu întrebările 5 (limita monedelor Robux) și 9–12 (Erele 5–8, numele).
+
 **Regula „nimic nu se pierde”, amendată** (CLAUDE.md): la schimbarea de hartă aleasă de jucător („Build the Dam”, drumul
 spre Era 8) toți pornesc cu aceeași sumă. Ce e peste ea intră în construcție, e scris pe placă și e anunțat dinainte.
 Nimic plătit nu se taie, venitul crește, iar din profil nu se șterge nimic.
