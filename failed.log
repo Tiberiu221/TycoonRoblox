@@ -1,151 +1,151 @@
-=== job 109778642753
-2026-09-30T07:06:11.4988143Z   ssh-user: git
-2026-09-30T07:06:11.4988592Z   persist-credentials: true
-2026-09-30T07:06:11.4989080Z   clean: true
-2026-09-30T07:06:11.4989519Z   sparse-checkout-cone-mode: true
-2026-09-30T07:06:11.4990033Z   fetch-depth: 1
-2026-09-30T07:06:11.4990462Z   fetch-tags: false
-2026-09-30T07:06:11.4990896Z   show-progress: true
-2026-09-30T07:06:11.4991338Z   lfs: false
-2026-09-30T07:06:11.4991753Z   submodules: false
-2026-09-30T07:06:11.4992196Z   set-safe-directory: true
-2026-09-30T07:06:11.4992710Z   allow-unsafe-pr-checkout: false
-2026-09-30T07:06:11.4993477Z ##[endgroup]
-2026-09-30T07:06:11.6302999Z Syncing repository: Tiberiu221/TycoonRoblox
-2026-09-30T07:06:11.6305463Z ##[group]Getting Git version info
-2026-09-30T07:06:11.6306708Z Working directory is '/home/runner/work/TycoonRoblox/TycoonRoblox'
-2026-09-30T07:06:11.6310515Z [command]/usr/bin/git version
-2026-09-30T07:06:11.6442973Z git version 2.55.0
-2026-09-30T07:06:11.6461600Z ##[endgroup]
-2026-09-30T07:06:11.6481582Z Temporarily overriding HOME='/home/runner/work/_temp/59c85a6d-29b0-4092-8715-972ecbf21cec' before making global git config changes
-2026-09-30T07:06:11.6484291Z Adding repository directory to the temporary git global config as a safe directory
-2026-09-30T07:06:11.6488214Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/TycoonRoblox/TycoonRoblox
-2026-09-30T07:06:11.6579017Z Deleting the contents of '/home/runner/work/TycoonRoblox/TycoonRoblox'
-2026-09-30T07:06:11.6581470Z ##[group]Initializing the repository
-2026-09-30T07:06:11.6583399Z [command]/usr/bin/git init /home/runner/work/TycoonRoblox/TycoonRoblox
-2026-09-30T07:06:11.6744580Z hint: Using 'master' as the name for the initial branch. This default branch name
-2026-09-30T07:06:11.6759488Z hint: will change to "main" in Git 3.0. To configure the initial branch name
-2026-09-30T07:06:11.6768253Z hint: to use in all of your new repositories, which will suppress this warning,
-2026-09-30T07:06:11.6769990Z hint: call:
-2026-09-30T07:06:11.6771294Z hint:
-2026-09-30T07:06:11.6772509Z hint: 	git config --global init.defaultBranch <name>
-2026-09-30T07:06:11.6777301Z hint:
-2026-09-30T07:06:11.6779118Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
-2026-09-30T07:06:11.6781341Z hint: 'development'. The just-created branch can be renamed via this command:
-2026-09-30T07:06:11.6782882Z hint:
-2026-09-30T07:06:11.6784138Z hint: 	git branch -m <name>
-2026-09-30T07:06:11.6786985Z hint:
-2026-09-30T07:06:11.6788380Z hint: Disable this message with "git config set advice.defaultBranchName false"
-2026-09-30T07:06:11.6790181Z Initialized empty Git repository in /home/runner/work/TycoonRoblox/TycoonRoblox/.git/
-2026-09-30T07:06:11.6792959Z [command]/usr/bin/git remote add origin https://github.com/Tiberiu221/TycoonRoblox
-2026-09-30T07:06:11.6874251Z ##[endgroup]
-2026-09-30T07:06:11.6875659Z ##[group]Disabling automatic garbage collection
-2026-09-30T07:06:11.6877054Z [command]/usr/bin/git config --local gc.auto 0
-2026-09-30T07:06:11.7953184Z ##[endgroup]
-2026-09-30T07:06:11.7954553Z ##[group]Setting up auth
-2026-09-30T07:06:11.7955854Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
-2026-09-30T07:06:11.7961766Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
-2026-09-30T07:06:11.7965579Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
-2026-09-30T07:06:11.7970639Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
-2026-09-30T07:06:11.8216238Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
-2026-09-30T07:06:11.8256151Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
-2026-09-30T07:06:11.8501939Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
-2026-09-30T07:06:11.8545989Z ##[endgroup]
-2026-09-30T07:06:11.8547092Z ##[group]Fetching the repository
-2026-09-30T07:06:11.8560108Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +e5fcada34ac63e7ed3bb9c373aec4c5658086f1f:refs/remotes/origin/main
-2026-09-30T07:06:12.8445653Z From https://github.com/Tiberiu221/TycoonRoblox
-2026-09-30T07:06:12.8448760Z  * [new ref]         e5fcada34ac63e7ed3bb9c373aec4c5658086f1f -> origin/main
-2026-09-30T07:06:12.8481132Z ##[endgroup]
-2026-09-30T07:06:12.8483240Z ##[group]Determining the checkout info
-2026-09-30T07:06:12.8486209Z ##[endgroup]
-2026-09-30T07:06:12.8488320Z [command]/usr/bin/git sparse-checkout disable
-2026-09-30T07:06:12.8559655Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
-2026-09-30T07:06:12.8567924Z ##[group]Checking out the ref
-2026-09-30T07:06:12.8644019Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
-2026-09-30T07:06:12.9613581Z Switched to a new branch 'main'
-2026-09-30T07:06:12.9629458Z branch 'main' set up to track 'origin/main'.
-2026-09-30T07:06:12.9635575Z ##[endgroup]
-2026-09-30T07:06:12.9675577Z [command]/usr/bin/git log -1 --format=%H
-2026-09-30T07:06:12.9708011Z e5fcada34ac63e7ed3bb9c373aec4c5658086f1f
-2026-09-30T07:06:12.9983046Z ##[group]Run bash scripts/ci_install_rokit.sh
-2026-09-30T07:06:12.9984705Z bash scripts/ci_install_rokit.sh
-2026-09-30T07:06:13.0299512Z shell: /usr/bin/bash -e {0}
-2026-09-30T07:06:13.0300770Z env:
-2026-09-30T07:06:13.0312571Z   GITHUB_PAT: ***
-2026-09-30T07:06:13.0313650Z ##[endgroup]
-2026-09-30T07:06:13.1648071Z NOTE: Using provided GITHUB_PAT for authentication
-2026-09-30T07:06:13.1692588Z 
-2026-09-30T07:06:13.1696189Z [1 / 3] Looking for latest rokit release
-2026-09-30T07:06:13.4517976Z [2 / 3] Downloading 'rokit-1.2.0-linux-x86_64.zip'
-2026-09-30T07:06:13.8419136Z [3 / 3] Running rokit installation
-2026-09-30T07:06:13.8438146Z 
-2026-09-30T07:06:13.8662812Z ##[group]Run echo "$HOME/.rokit/bin" >> "$GITHUB_PATH"
-2026-09-30T07:06:13.8663307Z echo "$HOME/.rokit/bin" >> "$GITHUB_PATH"
-2026-09-30T07:06:13.8730176Z shell: /usr/bin/bash -e {0}
-2026-09-30T07:06:13.8794976Z ##[endgroup]
-2026-09-30T07:06:13.8931258Z ##[group]Run bash scripts/ci_retry.sh rokit install --no-trust-check
-2026-09-30T07:06:13.8931839Z bash scripts/ci_retry.sh rokit install --no-trust-check
-2026-09-30T07:06:13.8996757Z shell: /usr/bin/bash -e {0}
-2026-09-30T07:06:13.8997082Z env:
-2026-09-30T07:06:13.8999983Z   GITHUB_TOKEN: ***
-2026-09-30T07:06:13.9000266Z ##[endgroup]
-2026-09-30T07:06:14.5505248Z ##[group]Run bash scripts/ci_retry.sh wally install
-2026-09-30T07:06:14.5505675Z bash scripts/ci_retry.sh wally install
-2026-09-30T07:06:14.5569293Z shell: /usr/bin/bash -e {0}
-2026-09-30T07:06:14.5569589Z ##[endgroup]
-2026-09-30T07:06:19.4872784Z [INFO ] Updating package index https://github.com/UpliftGames/wally-index...
-2026-09-30T07:06:20.3237536Z [INFO ] Downloaded 3 packages!
-2026-09-30T07:06:20.3404220Z ##[group]Run rojo build default.project.json -o Driftwood.rbxl
-2026-09-30T07:06:20.3404736Z rojo build default.project.json -o Driftwood.rbxl
-2026-09-30T07:06:20.3469347Z shell: /usr/bin/bash -e {0}
-2026-09-30T07:06:20.3469627Z ##[endgroup]
-2026-09-30T07:06:20.3786974Z Building project 'Driftwood'
-2026-09-30T07:06:20.3869775Z Built project to Driftwood.rbxl
-2026-09-30T07:06:20.3906398Z ##[group]Run rojo build fair.project.json -o DriftwoodFair.rbxl
-2026-09-30T07:06:20.3906897Z rojo build fair.project.json -o DriftwoodFair.rbxl
-2026-09-30T07:06:20.3968772Z shell: /usr/bin/bash -e {0}
-2026-09-30T07:06:20.3969036Z ##[endgroup]
-2026-09-30T07:06:20.4253672Z Building project 'DriftwoodFair'
-2026-09-30T07:06:20.4318882Z Built project to DriftwoodFair.rbxl
-2026-09-30T07:06:20.4380895Z ##[group]Run bash scripts/ci_publish.sh "132381101591529" Driftwood.rbxl
-2026-09-30T07:06:20.4381425Z bash scripts/ci_publish.sh "132381101591529" Driftwood.rbxl
-2026-09-30T07:06:20.4442035Z shell: /usr/bin/bash -e {0}
-2026-09-30T07:06:20.4442297Z env:
-2026-09-30T07:06:20.4452687Z   ROBLOX_API_KEY: ***
-2026-09-30T07:06:20.4452944Z   UNIVERSE_ID: 10765888327
-2026-09-30T07:06:20.4453183Z ##[endgroup]
-2026-09-30T07:06:20.4571636Z universe=10765888327 place=132381101591529 key_length=968 fisier=Driftwood.rbxl (910681 octeti)
-2026-09-30T07:06:21.4310935Z sesiunea colaborativa: {"errors":[{"code":0,"message":"Forbidden"}]} [HTTP 403]
-2026-09-30T07:06:22.3547080Z HTTP 409: {"code":"Conflict","message":"Save failed. Server is busy and unable to process your upload request. Please try again in a couple minutes."}
-2026-09-30T07:06:52.8026874Z HTTP 409: {"code":"Conflict","message":"Save failed. Server is busy and unable to process your upload request. Please try again in a couple minutes."}
-2026-09-30T07:07:53.4827483Z HTTP 409: {"code":"Conflict","message":"Save failed. Server is busy and unable to process your upload request. Please try again in a couple minutes."}
-2026-09-30T07:09:24.2558612Z HTTP 409: {"code":"Conflict","message":"Save failed. Server is busy and unable to process your upload request. Please try again in a couple minutes."}
-2026-09-30T07:09:24.2592690Z ##[error]place-ul 132381101591529 e deschis in Studio (sesiune colaborativa): Roblox nu primeste publicarea cat e deschis
-2026-09-30T07:09:24.2602544Z ##[error]Process completed with exit code 1.
-2026-09-30T07:09:24.2655633Z ##[group]Run bash scripts/ci_publish.sh 114983498774894 DriftwoodFair.rbxl
-2026-09-30T07:09:24.2656173Z bash scripts/ci_publish.sh 114983498774894 DriftwoodFair.rbxl
-2026-09-30T07:09:24.2717980Z shell: /usr/bin/bash -e {0}
-2026-09-30T07:09:24.2718240Z env:
-2026-09-30T07:09:24.2728884Z   ROBLOX_API_KEY: ***
-2026-09-30T07:09:24.2729129Z   UNIVERSE_ID: 10765888327
-2026-09-30T07:09:24.2729354Z ##[endgroup]
-2026-09-30T07:09:24.2844729Z universe=10765888327 place=114983498774894 key_length=968 fisier=DriftwoodFair.rbxl (696555 octeti)
-2026-09-30T07:09:24.4500792Z sesiunea colaborativa: {"errors":[{"code":0,"message":"Forbidden"}]} [HTTP 403]
-2026-09-30T07:09:25.8095843Z HTTP 200: {"versionNumber":59}
-2026-09-30T07:09:25.8148751Z publicat: place 114983498774894, versiunea 59
-2026-09-30T07:09:25.8322627Z Post job cleanup.
-2026-09-30T07:09:25.9276453Z [command]/usr/bin/git version
-2026-09-30T07:09:25.9344877Z git version 2.55.0
-2026-09-30T07:09:25.9408809Z Temporarily overriding HOME='/home/runner/work/_temp/b92fc084-0940-433b-aae8-f7cdc07965f2' before making global git config changes
-2026-09-30T07:09:25.9412266Z Adding repository directory to the temporary git global config as a safe directory
-2026-09-30T07:09:25.9416042Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/TycoonRoblox/TycoonRoblox
-2026-09-30T07:09:25.9478150Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
-2026-09-30T07:09:25.9551135Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
-2026-09-30T07:09:25.9909797Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
-2026-09-30T07:09:25.9982314Z http.https://github.com/.extraheader
-2026-09-30T07:09:25.9992253Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
-2026-09-30T07:09:26.0030485Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
-2026-09-30T07:09:26.0418586Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
-2026-09-30T07:09:26.0478997Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
-2026-09-30T07:09:26.0985498Z Cleaning up orphan processes
-2026-09-30T07:09:26.1240043Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+=== job 109821648183
+2026-09-30T09:18:38.5412337Z   ssh-user: git
+2026-09-30T09:18:38.5412803Z   persist-credentials: true
+2026-09-30T09:18:38.5413303Z   clean: true
+2026-09-30T09:18:38.5413757Z   sparse-checkout-cone-mode: true
+2026-09-30T09:18:38.5414296Z   fetch-depth: 1
+2026-09-30T09:18:38.5414734Z   fetch-tags: false
+2026-09-30T09:18:38.5415194Z   show-progress: true
+2026-09-30T09:18:38.5415653Z   lfs: false
+2026-09-30T09:18:38.5416079Z   submodules: false
+2026-09-30T09:18:38.5416546Z   set-safe-directory: true
+2026-09-30T09:18:38.5417058Z   allow-unsafe-pr-checkout: false
+2026-09-30T09:18:38.5417884Z ##[endgroup]
+2026-09-30T09:18:38.6841004Z Syncing repository: Tiberiu221/TycoonRoblox
+2026-09-30T09:18:38.6844676Z ##[group]Getting Git version info
+2026-09-30T09:18:38.6846107Z Working directory is '/home/runner/work/TycoonRoblox/TycoonRoblox'
+2026-09-30T09:18:38.6847917Z [command]/usr/bin/git version
+2026-09-30T09:18:38.6944512Z git version 2.55.0
+2026-09-30T09:18:38.6969194Z ##[endgroup]
+2026-09-30T09:18:38.6977376Z Temporarily overriding HOME='/home/runner/work/_temp/bd6b281b-cc92-4803-89b0-4df6b87e21da' before making global git config changes
+2026-09-30T09:18:38.6980548Z Adding repository directory to the temporary git global config as a safe directory
+2026-09-30T09:18:38.6984172Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/TycoonRoblox/TycoonRoblox
+2026-09-30T09:18:38.7090748Z Deleting the contents of '/home/runner/work/TycoonRoblox/TycoonRoblox'
+2026-09-30T09:18:38.7093447Z ##[group]Initializing the repository
+2026-09-30T09:18:38.7094950Z [command]/usr/bin/git init /home/runner/work/TycoonRoblox/TycoonRoblox
+2026-09-30T09:18:38.7233659Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-09-30T09:18:38.7243459Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-09-30T09:18:38.7248338Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-09-30T09:18:38.7249961Z hint: call:
+2026-09-30T09:18:38.7250826Z hint:
+2026-09-30T09:18:38.7251813Z hint: 	git config --global init.defaultBranch <name>
+2026-09-30T09:18:38.7253415Z hint:
+2026-09-30T09:18:38.7254567Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-09-30T09:18:38.7256645Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-09-30T09:18:38.7258147Z hint:
+2026-09-30T09:18:38.7259042Z hint: 	git branch -m <name>
+2026-09-30T09:18:38.7259867Z hint:
+2026-09-30T09:18:38.7261075Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-09-30T09:18:38.7263919Z Initialized empty Git repository in /home/runner/work/TycoonRoblox/TycoonRoblox/.git/
+2026-09-30T09:18:38.7267564Z [command]/usr/bin/git remote add origin https://github.com/Tiberiu221/TycoonRoblox
+2026-09-30T09:18:38.7339696Z ##[endgroup]
+2026-09-30T09:18:38.7341290Z ##[group]Disabling automatic garbage collection
+2026-09-30T09:18:38.7343021Z [command]/usr/bin/git config --local gc.auto 0
+2026-09-30T09:18:38.7411781Z ##[endgroup]
+2026-09-30T09:18:38.7414524Z ##[group]Setting up auth
+2026-09-30T09:18:38.7416565Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-09-30T09:18:38.8628323Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-09-30T09:18:38.8632769Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-09-30T09:18:38.8640950Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-09-30T09:18:38.8889691Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-09-30T09:18:38.8944241Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-09-30T09:18:38.9214679Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-09-30T09:18:38.9270881Z ##[endgroup]
+2026-09-30T09:18:38.9278096Z ##[group]Fetching the repository
+2026-09-30T09:18:38.9281480Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +93e265c254298c3d93bbe42f25895ebb26bb4d55:refs/remotes/origin/main
+2026-09-30T09:18:39.8010594Z From https://github.com/Tiberiu221/TycoonRoblox
+2026-09-30T09:18:39.8027380Z  * [new ref]         93e265c254298c3d93bbe42f25895ebb26bb4d55 -> origin/main
+2026-09-30T09:18:39.8032487Z ##[endgroup]
+2026-09-30T09:18:39.8035452Z ##[group]Determining the checkout info
+2026-09-30T09:18:39.8038355Z ##[endgroup]
+2026-09-30T09:18:39.8040158Z [command]/usr/bin/git sparse-checkout disable
+2026-09-30T09:18:39.8103285Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-09-30T09:18:39.8152381Z ##[group]Checking out the ref
+2026-09-30T09:18:39.8166007Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+2026-09-30T09:18:39.9019980Z Switched to a new branch 'main'
+2026-09-30T09:18:39.9032720Z branch 'main' set up to track 'origin/main'.
+2026-09-30T09:18:39.9038703Z ##[endgroup]
+2026-09-30T09:18:39.9090018Z [command]/usr/bin/git log -1 --format=%H
+2026-09-30T09:18:39.9123488Z 93e265c254298c3d93bbe42f25895ebb26bb4d55
+2026-09-30T09:18:39.9440353Z ##[group]Run bash scripts/ci_install_rokit.sh
+2026-09-30T09:18:39.9442380Z bash scripts/ci_install_rokit.sh
+2026-09-30T09:18:39.9758120Z shell: /usr/bin/bash -e {0}
+2026-09-30T09:18:39.9759357Z env:
+2026-09-30T09:18:39.9770223Z   GITHUB_PAT: ***
+2026-09-30T09:18:39.9771298Z ##[endgroup]
+2026-09-30T09:18:40.0295179Z NOTE: Using provided GITHUB_PAT for authentication
+2026-09-30T09:18:40.0345964Z 
+2026-09-30T09:18:40.0347508Z [1 / 3] Looking for latest rokit release
+2026-09-30T09:18:40.3768369Z [2 / 3] Downloading 'rokit-1.2.0-linux-x86_64.zip'
+2026-09-30T09:18:40.9080947Z [3 / 3] Running rokit installation
+2026-09-30T09:18:40.9083502Z 
+2026-09-30T09:18:40.9405240Z ##[group]Run echo "$HOME/.rokit/bin" >> "$GITHUB_PATH"
+2026-09-30T09:18:40.9405744Z echo "$HOME/.rokit/bin" >> "$GITHUB_PATH"
+2026-09-30T09:18:40.9542949Z shell: /usr/bin/bash -e {0}
+2026-09-30T09:18:40.9543374Z ##[endgroup]
+2026-09-30T09:18:40.9671823Z ##[group]Run bash scripts/ci_retry.sh rokit install --no-trust-check
+2026-09-30T09:18:40.9672874Z bash scripts/ci_retry.sh rokit install --no-trust-check
+2026-09-30T09:18:40.9735938Z shell: /usr/bin/bash -e {0}
+2026-09-30T09:18:40.9736354Z env:
+2026-09-30T09:18:40.9738890Z   GITHUB_TOKEN: ***
+2026-09-30T09:18:40.9739190Z ##[endgroup]
+2026-09-30T09:18:41.6036181Z ##[group]Run bash scripts/ci_retry.sh wally install
+2026-09-30T09:18:41.6036639Z bash scripts/ci_retry.sh wally install
+2026-09-30T09:18:41.6103299Z shell: /usr/bin/bash -e {0}
+2026-09-30T09:18:41.6103797Z ##[endgroup]
+2026-09-30T09:18:46.1545963Z [INFO ] Updating package index https://github.com/UpliftGames/wally-index...
+2026-09-30T09:18:46.6008035Z [INFO ] Downloaded 3 packages!
+2026-09-30T09:18:46.6153630Z ##[group]Run rojo build default.project.json -o Driftwood.rbxl
+2026-09-30T09:18:46.6154151Z rojo build default.project.json -o Driftwood.rbxl
+2026-09-30T09:18:46.6218748Z shell: /usr/bin/bash -e {0}
+2026-09-30T09:18:46.6219023Z ##[endgroup]
+2026-09-30T09:18:46.6563172Z Building project 'Driftwood'
+2026-09-30T09:18:46.6633431Z Built project to Driftwood.rbxl
+2026-09-30T09:18:46.6681854Z ##[group]Run rojo build fair.project.json -o DriftwoodFair.rbxl
+2026-09-30T09:18:46.6683390Z rojo build fair.project.json -o DriftwoodFair.rbxl
+2026-09-30T09:18:46.6749336Z shell: /usr/bin/bash -e {0}
+2026-09-30T09:18:46.6749669Z ##[endgroup]
+2026-09-30T09:18:46.7057884Z Building project 'DriftwoodFair'
+2026-09-30T09:18:46.7116988Z Built project to DriftwoodFair.rbxl
+2026-09-30T09:18:46.7190444Z ##[group]Run bash scripts/ci_publish.sh "132381101591529" Driftwood.rbxl
+2026-09-30T09:18:46.7191013Z bash scripts/ci_publish.sh "132381101591529" Driftwood.rbxl
+2026-09-30T09:18:46.7257244Z shell: /usr/bin/bash -e {0}
+2026-09-30T09:18:46.7257549Z env:
+2026-09-30T09:18:46.7269094Z   ROBLOX_API_KEY: ***
+2026-09-30T09:18:46.7269347Z   UNIVERSE_ID: 10765888327
+2026-09-30T09:18:46.7269581Z ##[endgroup]
+2026-09-30T09:18:46.7404841Z universe=10765888327 place=132381101591529 key_length=968 fisier=Driftwood.rbxl (923391 octeti)
+2026-09-30T09:18:47.0975745Z sesiunea colaborativa: {"errors":[{"code":0,"message":"Forbidden"}]} [HTTP 403]
+2026-09-30T09:18:47.5590989Z HTTP 409: {"code":"Conflict","message":"Save failed. Server is busy and unable to process your upload request. Please try again in a couple minutes."}
+2026-09-30T09:19:18.0922847Z HTTP 409: {"code":"Conflict","message":"Save failed. Server is busy and unable to process your upload request. Please try again in a couple minutes."}
+2026-09-30T09:20:18.6418848Z HTTP 409: {"code":"Conflict","message":"Save failed. Server is busy and unable to process your upload request. Please try again in a couple minutes."}
+2026-09-30T09:21:49.5135113Z HTTP 409: {"code":"Conflict","message":"Save failed. Server is busy and unable to process your upload request. Please try again in a couple minutes."}
+2026-09-30T09:21:49.5157524Z ##[error]place-ul 132381101591529 e deschis in Studio (sesiune colaborativa): Roblox nu primeste publicarea cat e deschis
+2026-09-30T09:21:49.5168620Z ##[error]Process completed with exit code 1.
+2026-09-30T09:21:49.5224561Z ##[group]Run bash scripts/ci_publish.sh 114983498774894 DriftwoodFair.rbxl
+2026-09-30T09:21:49.5225118Z bash scripts/ci_publish.sh 114983498774894 DriftwoodFair.rbxl
+2026-09-30T09:21:49.5289189Z shell: /usr/bin/bash -e {0}
+2026-09-30T09:21:49.5289447Z env:
+2026-09-30T09:21:49.5301567Z   ROBLOX_API_KEY: ***
+2026-09-30T09:21:49.5301824Z   UNIVERSE_ID: 10765888327
+2026-09-30T09:21:49.5302325Z ##[endgroup]
+2026-09-30T09:21:49.5423609Z universe=10765888327 place=114983498774894 key_length=968 fisier=DriftwoodFair.rbxl (700029 octeti)
+2026-09-30T09:21:50.1355775Z sesiunea colaborativa: {"errors":[{"code":0,"message":"Forbidden"}]} [HTTP 403]
+2026-09-30T09:21:51.2628740Z HTTP 200: {"versionNumber":60}
+2026-09-30T09:21:51.2666806Z publicat: place 114983498774894, versiunea 60
+2026-09-30T09:21:51.2813990Z Post job cleanup.
+2026-09-30T09:21:51.3862334Z [command]/usr/bin/git version
+2026-09-30T09:21:51.3941362Z git version 2.55.0
+2026-09-30T09:21:51.4005930Z Temporarily overriding HOME='/home/runner/work/_temp/753d1854-859b-4ac1-8bfb-a78d4c39562a' before making global git config changes
+2026-09-30T09:21:51.4042423Z Adding repository directory to the temporary git global config as a safe directory
+2026-09-30T09:21:51.4087157Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/TycoonRoblox/TycoonRoblox
+2026-09-30T09:21:51.4133094Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-09-30T09:21:51.4145344Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-09-30T09:21:51.4471668Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-09-30T09:21:51.4514463Z http.https://github.com/.extraheader
+2026-09-30T09:21:51.4540626Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-09-30T09:21:51.4635843Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-09-30T09:21:51.5080403Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-09-30T09:21:51.5152826Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-09-30T09:21:51.5635307Z Cleaning up orphan processes
+2026-09-30T09:21:51.5918268Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
