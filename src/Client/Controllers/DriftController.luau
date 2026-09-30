@@ -154,6 +154,18 @@ end
 -- Camera: lin spre jumatatea drumului dintre tine si dar, cat il ai in raza; lin inapoi dupa.
 local function updateCamera(dt: number, gift: DriftMath.Gift?, giftX: number?)
     local d = deps :: Deps
+    -- [2026-09-30] Altcineva tine camera ("Look (V)", tutorialul): incadrarea darului ramane la zero, ca sa intre iar lin
+    -- dupa, nu dintr-un salt. Daca ne-a luat-o chiar din mana, n-o mai tinem (o reluam lin cand se elibereaza).
+    if CameraController.HasFocus() and not CameraController.Holds(focusGetter) then
+        ownsFocus = false
+        focusBlend = 0
+        return
+    end
+    if ownsFocus and not CameraController.Holds(focusGetter) then
+        -- camera golita de altcineva: o reluam de la zero, lin
+        ownsFocus = false
+        focusBlend = 0
+    end
     local target = if gift ~= nil then 1 else 0
     local step = if FOCUS_EASE > 0 then dt / FOCUS_EASE else 1
     focusBlend = if target > focusBlend

@@ -25,6 +25,7 @@ local WelcomeController = {}
 -- [D61, partea 2] `Double it`: produsul Welcome Back x2 se vinde DOAR aici (nota 41), o data pentru fiecare revenire.
 -- Butonul apare doar daca produsul exista pe universul asta si chiar e ceva de dublat.
 local onDoubled: ((number) -> ())? = nil
+local window: GuiObject? = nil
 
 local WIDTH = 460
 local HEIGHT = 330 -- incape varianta cea mai lunga: suma, durata, ce a venit la ponton si nota de plafon
@@ -48,6 +49,12 @@ function WelcomeController.OnDoubled(coins: number)
     end
 end
 
+-- [2026-09-30] Fereastra de revenire e pe ecran (nu e in Panels): anunturile cu buton o asteapta, ca pe un meniu.
+function WelcomeController.IsOpen(): boolean
+    local w = window
+    return w ~= nil and w.Visible
+end
+
 function WelcomeController.Init(deps: {
     HudGui: Frame,
     WelcomeBack: RemoteEvent,
@@ -61,11 +68,18 @@ function WelcomeController.Init(deps: {
         width = WIDTH,
         height = HEIGHT,
         z = Z,
-        onClose = function() end,
+        -- [2026-09-30] X-ul inchide fereastra, ca butonul de jos (anunturile o asteapta)
+        onClose = function()
+            local w = window
+            if w ~= nil then
+                w.Visible = false
+            end
+        end,
     })
     root.AnchorPoint = Vector2.new(0.5, 0.5)
     root.Position = UDim2.fromScale(0.5, 0.5)
     root.Visible = false
+    window = root
 
     -- Randurile stau intr-o coloana centrata deasupra butonului; cele goale se ascund si nu lasa gol.
     local column = Instance.new("Frame")

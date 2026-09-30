@@ -165,9 +165,12 @@ function CharacterController.Task(): string?
 end
 
 -- Joystick-ul de pe telefon. Magnitudinea conteaza: o impingere usoara merge incet.
+-- [2026-09-30] "Ai pornit la drum" doar la prima impingere, ca apasarea unei taste pe tastatura: degetul de pe joystick
+-- se misca aproape tot timpul, iar fiecare miscare anula pe loc privirea "Look (V)" pornita din mers.
 function CharacterController.SetStick(vx: number, vy: number)
+    local was = stickX ~= 0 or stickY ~= 0
     stickX, stickY = vx, vy
-    if (vx ~= 0 or vy ~= 0) and onPlayerInput ~= nil then
+    if not was and (vx ~= 0 or vy ~= 0) and onPlayerInput ~= nil then
         onPlayerInput()
     end
 end

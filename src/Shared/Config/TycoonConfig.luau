@@ -2069,6 +2069,36 @@ TycoonConfig.SURVEY_STAKES = {
     { x = 760, y = 905, frame = 1 },
     { x = 830, y = 905, frame = 0 },
 } :: { { x: number, y: number, frame: number } }
+-- [D70] "Look (V)": unde se uita camera cand vine o treapta a modernizarii (sau se aprind felinarele), in satul vechi
+-- (Landing), unde se vede schimbarea. `x, y` pe un ecran lat (1600 x 900 de lume: intra tot ce s-a schimbat); `narrow` pe
+-- unul ingust (telefonul, ~990 x 460), unde nu intra tot: acolo, lucrul din anunt. Testul privirii le masoara pe amandoua.
+TycoonConfig.LOOK_NARROW_W = 1300 -- sub atata lume pe latime, ecranul e ingust
+export type LookPoint = { x: number, y: number, narrow: { x: number, y: number }? }
+TycoonConfig.MODERN_LOOK_AT = {
+    { x = 1060, y = 1340 }, -- 1, sarma: stalpii de pe strada satului
+    { x = 1060, y = 1340 }, -- 2, carucioarele: oamenii pe strada si pe alei
+    -- 3, tabla si caramida: depozitul, gaterul, taverna, Scrap Shed, forja; pe telefon, gaterul si forja intregi, cu
+    -- strada sub ele (toate trei nu incap: de la acoperisul magaziei la talpa gaterului sunt 466 px)
+    { x = 1060, y = 1180, narrow = { x = 1330, y = 1310 } },
+    -- 4, geamurile: casele meseriilor (si tarusii de langa punte); pe telefon, casele din mijloc, deasupra joystick-ului si
+    -- a butonului E (toate sapte nu incap: se intind pe ~1080 px)
+    { x = 1100, y = 1300, narrow = { x = 1270, y = 1560 } },
+    -- 5, luminile: cladirile cu firmele, casele, felinarele strazii; pe telefon, casele si strada
+    { x = 1100, y = 1300, narrow = { x = 1270, y = 1540 } },
+} :: { LookPoint }
+
+-- Punctul privirii pentru o treapta, pe un ecran cu `visibleW` px de lume pe latime (nil = treapta n-are privire).
+function TycoonConfig.modernLookAt(stage: number, visibleW: number): { x: number, y: number }?
+    local at = TycoonConfig.MODERN_LOOK_AT[stage]
+    if at == nil then
+        return nil
+    end
+    local narrow = at.narrow
+    if narrow ~= nil and visibleW < TycoonConfig.LOOK_NARROW_W then
+        return narrow
+    end
+    return { x = at.x, y = at.y }
+end
 TycoonConfig.FIELD_PROPS = {
     { sprite = "cable_drums", x = 4020, y = 1250, stage = 1 },
     { sprite = "cable_drums", x = 4490, y = 1150, stage = 1 },

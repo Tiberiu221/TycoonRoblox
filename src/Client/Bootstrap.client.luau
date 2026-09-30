@@ -28,6 +28,7 @@ for _, line in StationConfig.LINE_ORDER do
 end
 local AudioLevels = require(ReplicatedStorage.Shared.Modules.AudioLevels)
 local LookMath = require(ReplicatedStorage.Shared.Modules.LookMath)
+local ModernMath = require(ReplicatedStorage.Shared.Modules.ModernMath)
 -- FOLDERELE DE LANGA SCRIPT SE ASTEAPTA. Roblox copiaza copiii lui StarterPlayerScripts in PlayerScripts pe rand, iar
 -- scriptul asta poate porni inainte ca `Controllers` si `UI` sa fi ajuns langa el. In Studio, pe 2026-09-19:
 -- "Controllers is not a valid member of PlayerScripts" la primul require, deci niciun controller pornit si doar cerul
@@ -48,6 +49,7 @@ local ForgeController = require(Controllers.ForgeController)
 local LineController = require(Controllers.LineController)
 local LampController = require(Controllers.LampController)
 local ModernController = require(Controllers.ModernController)
+local LookController = require(Controllers.LookController)
 local PadController = require(Controllers.PadController)
 local InteractController = require(Controllers.InteractController)
 local MusicController = require(Controllers.MusicController)
@@ -192,11 +194,57 @@ safeInit("CharacterController", function()
         Scroll = layers.Scroll,
         OnMove = CameraController.Follow,
         OnPlayerInput = function()
-            -- daca te misti tu, camera se intoarce la personajul tau
-            CameraController.SetFocus(nil)
+            -- daca te misti tu, camera se intoarce la personajul tau, lin [D70]. Incadrarea darului de pe rau ramane: te
+            -- urmeaza oricum (e socotita din pozitia ta) si se stinge singura, lin, cand darul trece; stearsa aici, camera
+            -- sarea ~140 px la primul pas [verificator, 2026-09-30].
+            LookController.Cancel()
         end,
     })
 end)
+safeInit("LookController", function()
+    LookController.Init({ CharacterPos = CharacterController.Position })
+end)
+
+-- [D70] Bannerul unei trepte a modernizarii (sau al felinarelor aprinse), cu butonul "Look (V)" cand locul schimbat, din
+-- satul vechi, nu e pe ecran: o privire de 4 s spre el (LookController).
+-- [2026-09-30] Un banner cu buton sau cu recompensa asteapta sa nu stea nimic in fata lui: un meniu, fereastra de revenire.
+local function screenClear(): boolean
+    return not Panels.AnyOpen() and not WelcomeController.IsOpen()
+end
+
+local function modernMoment(title: string, stage: number)
+    local visibleW = CameraController.VisibleSize()
+    local at = TycoonConfig.modernLookAt(stage, visibleW)
+    local action: CeremonyController.Action? = nil
+    if at ~= nil then
+        local origin = TycoonConfig.PLOT_ORIGIN
+        local x, y = at.x + origin.x, at.y + origin.y
+        local keyHint = if UserInputService.KeyboardEnabled then " (V)" else ""
+        action = {
+            text = Strings.lookAround(keyHint),
+            key = Enum.KeyCode.V,
+            run = function()
+                -- plasa de siguranta: butonul se vede doar fara meniu deschis, dar un meniu deschis in acelasi cadru cu V
+                -- nu ramane peste sat
+                Panels.CloseAll()
+                LookController.Look(x, y)
+            end,
+            -- hotarat cand bannerul chiar apare (poate asteapta la rand): locul nu se vede de unde stai
+            useful = function(): boolean
+                return LookController.OffScreen(x, y)
+            end,
+        }
+    end
+    CeremonyController.PlayMoment(title, nil, action, {
+        -- clopotelul suna odata cu bannerul, nu inaintea lui
+        onShow = function()
+            SoundController.Play("chime")
+        end,
+        -- anuntul asteapta sa inchizi meniul din care ai cumparat treapta (sau fereastra de revenire): peste el acoperea
+        -- capul meniului, sub el nu se vedea
+        ready = screenClear,
+    })
+end
 safeInit("RiverRenderController", function()
     RiverRenderController.Init({
         Layers = layers,
@@ -225,8 +273,8 @@ safeInit("LampController", function()
     LampController.Init({
         Plot = layers.Plot,
         OnFirstLight = function()
-            HUDController.Toast(Strings.LAMPS_ON)
-            SoundController.Play("chime")
+            -- felinarele se aprind si in satul vechi: privirea e cea a treptei luminilor
+            modernMoment(Strings.LAMPS_ON, ModernMath.stageOf("lights") or 0)
         end,
     })
 end)
@@ -245,8 +293,7 @@ safeInit("ModernController", function()
         OnStage = function(stage: number)
             local line = Strings.MODERN_STAGE[stage]
             if line ~= nil then
-                HUDController.Toast(line)
-                SoundController.Play("chime")
+                modernMoment(line, stage)
             end
         end,
     })
@@ -427,6 +474,8 @@ safeInit("InteractController", function()
         CharacterPos = CharacterController.Position,
         OpenStation = openStation,
         OnToast = HUDController.Toast,
+        -- [2026-09-30] cat tine o privire "Look", cardul nu se vede (camera nu e pe tine)
+        Looking = LookController.Active,
         ViewTop = function(): number
             local _, camY = CameraController.WorldOrigin()
             return camY - TycoonConfig.PLOT_ORIGIN.y
@@ -434,6 +483,8 @@ safeInit("InteractController", function()
     })
 end)
 
+-- [2026-09-30] toast-urile ies sub bannerul de pe ecran (HUDController nu poate cere CeremonyController: bucla prin Juice)
+HUDController.SetToastFloor(CeremonyController.BottomY)
 HUDController.Init({
     HudGui = hudCanvas,
     SetStick = CharacterController.SetStick,
@@ -483,8 +534,14 @@ safeInit("QuestController", function()
         OpenStation = openStation,
         PearlFly = JuiceController.PearlFly,
         OnChapterDone = function(title: string, subtitle: string)
-            SoundController.PlayMilestone()
-            CeremonyController.PlayMoment(title, subtitle)
+            -- bannerul capitolului (si fanfara lui) vine cand inchizi Quests, din care l-ai revendicat: sub panou nu se
+            -- vedea; perlele zboara pe loc
+            CeremonyController.PlayMoment(title, subtitle, nil, {
+                onShow = function()
+                    SoundController.PlayMilestone()
+                end,
+                ready = screenClear,
+            })
         end,
     })
 end)

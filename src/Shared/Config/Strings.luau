@@ -700,6 +700,10 @@ end
 Strings.LAMPS_ON = "Your first power is sold — the street lamps are on!"
 -- [D70] treptele modernizarii satului vechi, anuntate cand vin. A cincea tace cand vine odata cu primul curent vandut
 -- (atunci o anunta LAMPS_ON); altfel (al doilea Works Porter luat dupa primul curent) are fraza ei.
+-- [D70] butonul de pe bannerul unei trepte: o privire de 4 s spre satul vechi, unde s-a schimbat ceva
+function Strings.lookAround(keyHint: string): string
+    return `Look{keyHint}`
+end
 Strings.MODERN_STAGE = {
     "Wire comes to every street!",
     "Iron carts for everyone!",

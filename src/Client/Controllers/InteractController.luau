@@ -49,6 +49,8 @@ export type Deps = {
     OnToast: (string) -> (),
     -- [2026-09-29] y-ul (pe teren) al marginii de sus a ecranului: cardul nu iese pe sus (pe telefon, cel al Pietei)
     ViewTop: (() -> number)?,
+    -- [2026-09-30] o privire "Look (V)" tine camera departe de tine: niciun card, iar E nu apuca nimic nevazut
+    Looking: (() -> boolean)?,
 }
 
 export type StationRow = { kind: string, id: string?, costs: { number } }
@@ -147,6 +149,14 @@ local function update()
     if Panels.AnyOpen() then
         current = nil
         PadController.SetApproachSuppressed(false)
+        hide()
+        return
+    end
+    local looking = deps.Looking
+    if looking ~= nil and looking() then
+        -- undita aruncata mulineaza mai departe (rig-ul citeste tasta singur); cartonasul platformei tace si el
+        current = nil
+        PadController.SetApproachSuppressed(true)
         hide()
         return
     end

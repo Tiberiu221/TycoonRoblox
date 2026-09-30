@@ -158,11 +158,31 @@ function CameraController.HasFocus(): boolean
     return focus ~= nil
 end
 
+-- [2026-09-30] Camera e tinuta chiar de getter-ul dat (DriftController afla asa ca i-a luat-o altcineva).
+function CameraController.Holds(getter: () -> (number?, number?)): boolean
+    return focus == getter
+end
+
 -- [D62] Lasa camera doar daca inca o tii TU: cine a luat-o intre timp (tutorialul, o ceremonie) n-o pierde.
 function CameraController.ReleaseFocus(getter: () -> (number?, number?))
     if focus == getter then
         focus = nil
     end
+end
+
+-- Coltul camerei cand urmareste punctul (x, y) din lume, fara focus si fara smucitura: aceeasi socoteala ca Follow.
+-- [2026-09-30] "Look (V)" judeca dupa el daca un loc se vede de unde stai, nu dupa o privire in curs.
+function CameraController.OriginFor(worldX: number, worldY: number): (number, number)
+    -- clamp pe cat de multa lume incape efectiv pe ecranul asta
+    local maxX = math.max(0, worldW - visibleW)
+    local maxY = math.max(0, worldH - visibleH)
+    local x = if centerSmall and worldW < visibleW
+        then worldX0 + (worldW - visibleW) / 2
+        else worldX0 + math.clamp(worldX - worldX0 - visibleW / 2, 0, maxX)
+    local y = if centerSmall and worldH < visibleH
+        then worldY0 + (worldH - visibleH) / 2
+        else worldY0 + math.clamp(worldY - worldY0 - visibleH / 2, 0, maxY)
+    return x, y
 end
 
 function CameraController.Follow(worldX: number, worldY: number)
@@ -174,15 +194,7 @@ function CameraController.Follow(worldX: number, worldY: number)
             focus = nil
         end
     end
-    -- clamp pe cat de multa lume incape efectiv pe ecranul asta
-    local maxX = math.max(0, worldW - visibleW)
-    local maxY = math.max(0, worldH - visibleH)
-    camX = if centerSmall and worldW < visibleW
-        then worldX0 + (worldW - visibleW) / 2
-        else worldX0 + math.clamp(worldX - worldX0 - visibleW / 2, 0, maxX)
-    camY = if centerSmall and worldH < visibleH
-        then worldY0 + (worldH - visibleH) / 2
-        else worldY0 + math.clamp(worldY - worldY0 - visibleH / 2, 0, maxY)
+    camX, camY = CameraController.OriginFor(worldX, worldY)
     -- smucitura se stinge liniar; `camX/camY` raman curate, ca IsVisible/WorldOrigin sa nu
     -- tresara si ele odata cu efectul
     local ox, oy = 0, 0

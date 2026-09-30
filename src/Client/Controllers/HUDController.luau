@@ -103,6 +103,8 @@ local STICK_DEADZONE = 10
 local STICK_MARGIN = 44
 local ACTION_SIZE = 108
 local toastToken = 0
+-- [2026-09-30] marginea de jos (px de ecran) a bannerului de pe ecran, sau nil: toast-ul iese sub el, nu sub placa lui
+local toastFloor: (() -> number?)? = nil
 local fps = 60
 local touchButtons: { TextButton } = {}
 -- [D59] atingerea care tine apasat butonul de actiune (undita se mulineaza tinand apasat); nil = nimeni
@@ -808,11 +810,36 @@ end
 
 -- `color`: implicit auriu (D40/D43 -- mesajele scurte sunt mereu vizibile). Optional, ca sa poata
 -- purta culoarea tierului la o gasire cu nume [F1 spec 5.5, L4] fara sa schimbe apelantii vechi.
+function HUDController.SetToastFloor(floor: () -> number?)
+    toastFloor = floor
+end
+
+-- Unde sta toast-ul acum: in treimea de sus, sau sub bannerul de pe ecran (cel cu Look sta 7 s).
+local function toastHome(): UDim2
+    local floorOf = toastFloor
+    local bottom = if floorOf ~= nil then floorOf() else nil
+    local canvas = toastLabel.Parent
+    if bottom == nil or canvas == nil or not canvas:IsA("GuiObject") then
+        return TOAST_HOME
+    end
+    local frame = canvas :: GuiObject
+    local units = frame.Size.Y.Offset
+    local scale = if units > 0 then frame.AbsoluteSize.Y / units else 1
+    local homeY = frame.AbsolutePosition.Y + TOAST_HOME.Y.Scale * frame.AbsoluteSize.Y
+    local half = math.max(toastLabel.AbsoluteSize.Y, 46 * scale) / 2
+    local need = bottom + 8 * scale + half
+    if homeY >= need or scale <= 0 then
+        return TOAST_HOME
+    end
+    return TOAST_HOME + UDim2.fromOffset(0, (need - homeY) / scale)
+end
+
 function HUDController.Toast(message: string, color: Color3?)
     toastToken += 1
     local token = toastToken
     toastLabel.Text = message
-    toastLabel.Position = TOAST_HOME
+    local home = toastHome()
+    toastLabel.Position = home
     toastLabel.TextTransparency = 0
     toastLabel.TextColor3 = color or Theme.COLOR.gold
     toastLabel.BackgroundTransparency = 0.2
@@ -835,7 +862,7 @@ function HUDController.Toast(message: string, color: Color3?)
         -- urca si se stinge, nu dispare brusc: ochiul urmareste miscarea si citeste pana la capat
         local away = TweenInfo.new(0.55, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
         TweenService:Create(toastLabel, away, {
-            Position = TOAST_HOME - UDim2.fromOffset(0, 44),
+            Position = home - UDim2.fromOffset(0, 44),
             TextTransparency = 1,
             BackgroundTransparency = 1,
         }):Play()

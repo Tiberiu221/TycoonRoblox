@@ -114,7 +114,8 @@ stylua/selene o prind. Rulează-le mereu pe toate, nu înlănțuite după o eroa
 - **Modernizarea** (`docs/PLAN-HARTA.md` §5, „Făcut"): cinci trepte din `ModernMath`, citite de `ModernController`.
   Desenul se alege în `UI/Modern`, recuzita (stâlpi, sârmă, tamburi, Dam Plans, țăruși) se face în `UI/ModernProps`, iar
   locurile, testate să nu calce nimic, stau în `TycoonConfig`. Toate 18 imagini sunt urcate și aprobate. Macheta din bâlci
-  arată treapta gazdei. Nefăcute: `PlayMoment` și „Look (V)".
+  arată treapta gazdei. Fiecare treaptă vine cu un banner și, când locul nu se vede, cu „Look (V)": o privire de ~4 s spre satul vechi
+  (`LookController` + `GlanceMath`, locurile în `TycoonConfig.modernLookAt`).
 - **Motorul** (`docs/PLAN-MOTOR-UNIRE.md`, pașii a–c): chei opționale pe linii (`closeFlag`, `inputs`, `into`, `value`,
   `pool`); Erele 1–3 ies neschimbate la bit, iar `check_lines` fixează 22 de reguli. **Urmează pașii d–l**, cu hotărârile
   din D70 „Runda 4": piesele se vând doar unite, startul e 35T cu AWAY 0 până la cei 6 oameni, cristalul se vinde și în

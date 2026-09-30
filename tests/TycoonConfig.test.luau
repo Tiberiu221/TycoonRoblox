@@ -1240,5 +1240,110 @@ return function()
             check.equal(Strings.padBuyFor("orice", "5.5K"), "Build for 5.5K")
             check.equal(Strings.padTakeFree("cast"), "Cast it — free")
         end)
+
+        test.case(
+            "[D70] Look (V): privirea arata ce s-a schimbat, pe ecranul mare si pe telefon",
+            function()
+                local W, H = RiverConfig.WORLD_WIDTH, RiverConfig.WORLD_HEIGHT
+                -- camera centrata pe loc si tinuta in lume (CameraController.OriginFor); ecranul mare = 1600 x 900 de lume
+                -- (REFERENCE_HEIGHT 900), telefonul ~990 x 460 (MIN_SCALE 0.85 pe ~390 pt de inaltime)
+                local BIG_W, BIG_H, PHONE_W, PHONE_H = 1600, 900, 990, 460
+                local function sees(
+                    stage: number,
+                    w: number,
+                    h: number,
+                    x: number,
+                    y: number
+                ): boolean
+                    local at = TycoonConfig.modernLookAt(stage, w)
+                    assert(at ~= nil, "treapta fara privire")
+                    local x0 = math.clamp(at.x - w / 2, 0, W - w)
+                    local y0 = math.clamp(at.y - h / 2, 0, H - h)
+                    return x >= x0 and x <= x0 + w and y >= y0 and y <= y0 + h
+                end
+                check.equal(#TycoonConfig.MODERN_LOOK_AT, 5)
+                check.equal(TycoonConfig.modernLookAt(6, BIG_W), nil)
+                local street = nil
+                for _, road in TycoonConfig.ROADS do
+                    if road.id == "street" then
+                        street = road
+                    end
+                end
+                assert(street ~= nil, "strada satului")
+                for stage = 1, 5 do
+                    for _, w in { BIG_W, PHONE_W } do
+                        local at = TycoonConfig.modernLookAt(stage, w) :: { x: number, y: number }
+                        check.is_true(at.x >= street.x0 and at.x <= street.x1) -- in satul vechi
+                    end
+                end
+                -- 1: stalpii satului
+                for _, x in TycoonConfig.WIRE_POLE_XS do
+                    check.is_true(sees(1, BIG_W, BIG_H, x, TycoonConfig.WIRE_POLE_BASE_Y))
+                end
+                -- 3 si 5: cladirile care trec la tabla si caramida, apoi la firme si becuri, pe ecranul mare
+                local buildings: { { x: number, y: number } } = {}
+                for _, b in { TycoonConfig.TAVERN, TycoonConfig.STORAGE, TycoonConfig.SAWMILL } do
+                    table.insert(buildings, { x = b.x, y = b.y })
+                end
+                for _, id in { "scrap_shed", "workshop" } do
+                    local p = TycoonConfig.byId[id]
+                    table.insert(buildings, { x = p.x :: number, y = TycoonConfig.buildingBase(p) })
+                end
+                for _, b in buildings do
+                    check.is_true(sees(3, BIG_W, BIG_H, b.x, b.y))
+                    check.is_true(sees(5, BIG_W, BIG_H, b.x, b.y))
+                end
+                -- 3 pe telefon: gaterul si forja intregi (acoperisul si talpa), si pe un Android mai scund (941 x 424)
+                local saw = TycoonConfig.SAWMILL
+                local forge = TycoonConfig.byId.workshop
+                local forgeBase = TycoonConfig.buildingBase(forge)
+                local forgeH = Assets.tycoon.workshop_e1.height * Assets.PIXEL_SCALE
+                local forgeW = Assets.tycoon.workshop_e1.width * Assets.PIXEL_SCALE
+                for _, size in { { PHONE_W, PHONE_H }, { 941, 424 } } do
+                    local w, h = size[1], size[2]
+                    check.is_true(sees(3, w, h, saw.x - saw.w / 2, saw.y - saw.h))
+                    check.is_true(sees(3, w, h, saw.x + saw.w / 2, saw.y))
+                    check.is_true(
+                        sees(3, w, h, (forge.x :: number) - forgeW / 2, forgeBase - forgeH)
+                    )
+                    check.is_true(sees(3, w, h, (forge.x :: number) + forgeW / 2, forgeBase))
+                end
+                -- 4: tarusii de langa punte, pe ecranul mare
+                for _, stake in TycoonConfig.SURVEY_STAKES do
+                    check.is_true(sees(4, BIG_W, BIG_H, stake.x, stake.y))
+                end
+                -- 4 si 5: casele meseriilor, cu geamurile lor. Pe ecranul mare toate; pe telefon (si pe unul mai scund), casele din
+                -- mijloc intregi (toate sapte se intind pe ~1080 px), cu talpa deasupra joystick-ului si a butonului E: pe 844x390,
+                -- cu HUD-ul la 0,62 si camera la 0,85, ele urca ~156 px de lume de la marginea de jos
+                local huts: { TycoonConfig.Pad } = {}
+                for _, p in TycoonConfig.PADS do
+                    if p.era == 1 and string.sub(p.id, 1, 5) == "hire_" and p.x ~= nil then
+                        table.insert(huts, p)
+                    end
+                end
+                check.is_true(#huts >= 5)
+                table.sort(huts, function(a, b)
+                    return (a.x :: number) < (b.x :: number)
+                end)
+                local HUT_W, HUT_H = 120, 102 -- coliba cu doi oameni (40 x 34, x3)
+                for i, p in huts do
+                    local x, base = p.x :: number, TycoonConfig.buildingBase(p)
+                    for _, stage in { 4, 5 } do
+                        check.is_true(sees(stage, BIG_W, BIG_H, x, base))
+                        if i > 1 and i < #huts then
+                            for _, size in { { PHONE_W, PHONE_H }, { 941, 424 } } do
+                                local w, h = size[1], size[2]
+                                check.is_true(sees(stage, w, h, x - HUT_W / 2, base - HUT_H))
+                                check.is_true(sees(stage, w, h, x + HUT_W / 2, base))
+                            end
+                            local at =
+                                TycoonConfig.modernLookAt(stage, PHONE_W) :: { x: number, y: number }
+                            local bottom = math.clamp(at.y - PHONE_H / 2, 0, H - PHONE_H) + PHONE_H
+                            check.is_true(base <= bottom - 150)
+                        end
+                    end
+                end
+            end
+        )
     end)
 end

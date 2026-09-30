@@ -65,6 +65,16 @@ function ModernMath.stage(f: Facts): number
     return stage
 end
 
+-- Treapta care aduce cheia data ("lights" -> 5), sau nil.
+function ModernMath.stageOf(key: string): number?
+    for i, step in ModernMath.STAGES do
+        if step.key == key then
+            return i
+        end
+    end
+    return nil
+end
+
 -- Treapta are cel putin cheia data ("brick" -> 3 sau mai mult).
 function ModernMath.has(stage: number, key: string): boolean
     for i, step in ModernMath.STAGES do

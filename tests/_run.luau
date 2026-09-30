@@ -43,6 +43,7 @@ require("./PearlBudget.test")()
 require("./LookMath.test")()
 require("./VillageLook.test")()
 require("./ModernMath.test")() -- [D70]
+require("./GlanceMath.test")() -- [D70] Look (V)
 require("./ModernConfig.test")() -- [D70]
 require("./VisitMath.test")()
 require("./AmbitionMath.test")()

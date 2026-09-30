@@ -777,15 +777,21 @@ function Overlay.Init(d: Deps)
                 end
             end
             if milestone ~= nil then
-                SoundController.PlayMilestone()
                 JuiceController.CameraPunch()
-                CeremonyController.PlayMoment(
+                -- [2026-09-30] fanfara odata cu bannerul ei (poate asteapta la rand in spatele altuia); pana atunci,
+                -- clicul are sunetul unui nivel obisnuit
+                local shownNow = CeremonyController.PlayMoment(
                     Strings.milestoneTitle(name, milestone),
                     Strings.milestoneNow(
                         TycoonConfig.wordsKindOf(kind, id),
                         StationConfig.MILESTONE_MULT
-                    )
+                    ),
+                    nil,
+                    { onShow = SoundController.PlayMilestone }
                 )
+                if not shownNow then
+                    SoundController.PlayLevelUp()
+                end
             else
                 SoundController.PlayLevelUp()
             end

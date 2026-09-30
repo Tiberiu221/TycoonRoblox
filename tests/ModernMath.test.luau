@@ -87,5 +87,13 @@ return function()
                 end
             end
         end)
+
+        test.case("stageOf: treapta care aduce o cheie", function()
+            for i, step in ModernMath.STAGES do
+                check.equal(ModernMath.stageOf(step.key), i)
+            end
+            check.equal(ModernMath.stageOf("lights"), #ModernMath.STAGES) -- felinarele: ultima treapta
+            check.equal(ModernMath.stageOf("nimic"), nil)
+        end)
     end)
 end
