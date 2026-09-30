@@ -1045,4 +1045,153 @@ return function()
             end
         end)
     end)
+
+    test.suite("GuideMath - langa tinta, cardul E al tintei [2026-09-30]", function()
+        local function dist(ax: number, ay: number, bx: number, by: number): number
+            return math.sqrt((ax - bx) ^ 2 + (ay - by) ^ 2)
+        end
+        local function place(key: string, x: number, y: number): GuideMath.Goal
+            return { kind = "goto", key = key, text = "", x = x, y = y, immediate = true }
+        end
+
+        test.case("capatul pontonului: pescuitul bate barca cat ghidajul s-a retras", function()
+            -- cardul pontonului se masoara din FISH_STAND, al barcii din FERRY_BOARD (fara `at`: nu e un loc-tinta)
+            local fish, ferry = TycoonConfig.FISH_STAND, TycoonConfig.FERRY_BOARD
+            local goal = place("quest:catch_fish", fish.x, fish.y)
+            local band = 0
+            for y = fish.y, fish.y + GuideMath.NEAR_DISTANCE - 1 do
+                local px, py = fish.x, y
+                local cards: { GuideMath.CardCandidate } = {
+                    { distance = dist(px, py, ferry.x, ferry.y), content = true },
+                    { distance = dist(px, py, fish.x, fish.y), at = fish, content = true },
+                }
+                local pick, why = GuideMath.pickCard(cards, goal, px, py)
+                check.equal(pick, 2)
+                check.equal(why, "goal")
+                -- undita aruncata tine E: cardul pontonului (fara nimic de aratat) bate barca [verificator]
+                local busy: { GuideMath.CardCandidate } = {
+                    cards[1],
+                    { distance = cards[2].distance, at = fish, content = false, holds = true },
+                }
+                local busyPick, busyWhy = GuideMath.pickCard(busy, goal, px, py)
+                check.equal(busyPick, 2)
+                check.equal(busyWhy, "holds")
+                check.equal((GuideMath.pickCard(busy, nil, px, py)), 2)
+                local ferryNearer = cards[1].distance < cards[2].distance
+                if ferryNearer then
+                    band += 1
+                end
+                -- fara tinta acolo (alt pas), ramane cel mai apropiat
+                check.equal((GuideMath.pickCard(cards, nil, px, py)), if ferryNearer then 1 else 2)
+            end
+            check.equal(band > 0, true) -- fasia exista: fara regula, aici se vedea doar barca
+            -- din dreptul barcii (mai departe de tinta decat NEAR_DISTANCE) barca e iar a ta
+            local bx, by = ferry.x, ferry.y
+            check.equal(GuideMath.nearGoal(goal, bx, by), false)
+            local atBoat: { GuideMath.CardCandidate } = {
+                { distance = 0, content = true },
+                { distance = dist(bx, by, fish.x, fish.y), at = fish, content = true },
+            }
+            check.equal((GuideMath.pickCard(atBoat, goal, bx, by)), 1)
+        end)
+
+        test.case("avizierul: cardul lui bate placuta rotii langa tinta", function()
+            -- amandoua se masoara de la 20 px deasupra locului; tinta ghidajului e locul avizierului
+            local board, wheel = TycoonConfig.VILLAGE_BOARD, TycoonConfig.WHEEL_STAND
+            local goal = place("quest:buy_decor", board.x, board.y)
+            local boardAt = { x = board.x, y = board.y - 20 }
+            local band = 0
+            for x = board.x - GuideMath.NEAR_DISTANCE + 1, board.x do
+                local px, py = x, board.y
+                local cards: { GuideMath.CardCandidate } = {
+                    { distance = dist(px, py, wheel.x, wheel.y - 20), content = true },
+                    { distance = dist(px, py, boardAt.x, boardAt.y), at = boardAt, content = true },
+                }
+                if cards[1].distance < cards[2].distance then
+                    band += 1
+                end
+                check.equal((GuideMath.pickCard(cards, goal, px, py)), 2)
+            end
+            check.equal(band > 0, true)
+        end)
+
+        test.case("cardul tintei fara nimic de aratat nu castiga; cel mai apropiat, da", function()
+            local goal = place("step:cut", 100, 100)
+            local cards: { GuideMath.CardCandidate } = {
+                { distance = 30, content = true },
+                { distance = 10, at = { x = 100, y = 100 }, content = false },
+                { distance = 50, content = true },
+            }
+            local pick, why = GuideMath.pickCard(cards, goal, 100, 110)
+            check.equal(pick, 2) -- cel mai apropiat; InteractController il ascunde (n-are ce arata)
+            check.equal(why, "near")
+            check.equal((GuideMath.pickCard({}, goal, 100, 110)), nil)
+        end)
+
+        test.case("darul de pe rau bate cardul tintei si undita aruncata", function()
+            -- ghidajul arata plasa (Collect / Filling up), iar pe rau trece un butoi: E il prinde, ca inainte
+            local goal = place("net:first_net", 620, 812)
+            local cards: { GuideMath.CardCandidate } = {
+                { distance = 12, at = { x = 620, y = 812 }, content = true },
+                { distance = 2, content = true, urgent = true },
+                { distance = 1, content = true, urgent = true },
+            }
+            local pick, why = GuideMath.pickCard(cards, goal, 620, 800)
+            check.equal(pick, 3) -- cel mai apropiat dar
+            check.equal(why, "urgent")
+            local quiet = table.clone(cards)
+            quiet[3] = { distance = 1, content = false, urgent = true } -- un dar fara nimic de aratat nu ia nimic
+            check.equal((GuideMath.pickCard(quiet, goal, 620, 800)), 2)
+            -- cat astepti muscatura trece un butoi: E il ia (si, tinut, mulineaza mai departe) [verificator]
+            local fishing = table.clone(cards)
+            table.insert(fishing, { distance = 40, content = false, holds = true })
+            local fp, fw = GuideMath.pickCard(fishing, goal, 620, 800)
+            check.equal(fp, 3)
+            check.equal(fw, "urgent")
+            -- fara dar, undita aruncata tine E inaintea cardului tintei
+            local rod: { GuideMath.CardCandidate } = {
+                cards[1],
+                { distance = 40, content = false, holds = true },
+            }
+            local rp, rw = GuideMath.pickCard(rod, goal, 620, 800)
+            check.equal(rp, 2)
+            check.equal(rw, "holds")
+        end)
+
+        test.case(
+            "acelasi loc: 24 px de toleranta, iar o platforma de cumparat n-are card E",
+            function()
+                local goal = place("quest:x", 200, 300)
+                check.equal(GuideMath.isGoalCard(goal, 224, 276), true)
+                check.equal(GuideMath.isGoalCard(goal, 225, 300), false)
+                check.equal(GuideMath.isGoalCard(nil, 200, 300), false)
+                local pad = table.clone(goal)
+                pad.padId = "second_net"
+                check.equal(GuideMath.isGoalCard(pad, 200, 300), false)
+            end
+        )
+
+        test.case(
+            "platforma-tinta: cartonasul ei bate cardul unui obiect, doar langa ea",
+            function()
+                local goal: GuideMath.Goal = {
+                    kind = "buy",
+                    key = "pad:x",
+                    text = "",
+                    x = 500,
+                    y = 500,
+                    immediate = true,
+                    padId = "hire_merchant",
+                }
+                check.equal(GuideMath.padIsGoal(goal, 540, 540, "hire_merchant"), true)
+                check.equal(GuideMath.padIsGoal(goal, 540, 540, "hire_clerk"), false)
+                check.equal(GuideMath.padIsGoal(goal, 540, 540, nil), false)
+                check.equal(GuideMath.padIsGoal(goal, 600, 500, "hire_merchant"), false) -- 100 px: ghidajul inca arata
+                local save = table.clone(goal)
+                save.kind = "save" -- "strangi pentru X" nu e un loc: nimic nu castiga din cauza lui
+                check.equal(GuideMath.padIsGoal(save, 500, 500, "hire_merchant"), false)
+                check.equal(GuideMath.nearGoal(save, 500, 500), false)
+            end
+        )
+    end)
 end

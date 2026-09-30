@@ -66,6 +66,13 @@ export type Options = {
     OnState: ((string) -> ())?, -- balciul: eticheta ta si semnul de pescuit
     LineZ: number, -- firul, plutitorul, stropii
     Z: number, -- bara si cartonasul, deasupra cardului obiectului
+    -- [2026-09-30] stratul pieselor de sus (bara, semnul muscaturii, cartonasul prinderii) si coltul lui in lume. In sat,
+    -- stratul lumii: cardul E sta acolo, peste teren, iar piesele trebuie sa-l acopere. Lipsa = acelasi strat cu firul.
+    Over: Frame?,
+    OverOrigin: Vector2?,
+    -- [2026-09-30] marginea de jos a cardului E al locului (in coordonatele lui `Layer`), pentru omul din (px, py):
+    -- cartonasul prinderii iese deasupra lui. Lipsa = cartonasul sta la 84 px deasupra ta.
+    CardBottom: ((px: number, py: number) -> number)?,
 }
 
 export type Rig = {
@@ -76,6 +83,9 @@ export type Rig = {
 
 local LEAVE_DISTANCE = 40 -- te-ai miscat de unde ai aruncat: aruncarea se anuleaza
 local CAST_TIMEOUT = 5 -- fara raspuns de la server, cardul revine
+-- [2026-09-30] fara raspunsul scoaterii (o eroare pe server), undita nu ramane agatata: firul intins peste sat si tasta E
+-- tinuta de undita. Perlele platite ajung oricum cu starea.
+local LAND_TIMEOUT = 12
 -- varful batului fata de picioare, cu fata spre dreapta: celula (15, hy-8) din randul `fish` al tinutelor jucatorului,
 -- la PIXEL_SCALE 3 (scripts/art/settlers.py)
 local ROD_TIP_X, ROD_TIP_Y = 22, -58
@@ -102,8 +112,15 @@ function FishingRig.new(o: Options): Rig
     local progress = 0
     local side = "right"
     local castSentAt = 0
+    local landSentAt = 0
     local castFromX, castFromY = 0, 0
     local lastReelSound = 0
+
+    -- piesele de sus: stratul lor si cat se muta pozitiile din `Layer` in el
+    local top = o.Over or o.Layer
+    local topShift = if o.Over ~= nil
+        then o.Origin - (o.OverOrigin or Vector2.zero)
+        else Vector2.zero
 
     -- ---- piesele, facute o singura data ----
     local function line(): Frame
@@ -150,7 +167,7 @@ function FishingRig.new(o: Options): Rig
     splashHost.Parent = o.Layer
 
     local biteMark =
-        Widgets.Label(o.Layer, Strings.FISH_BITE, Theme.TEXT.title, Theme.COLOR.gold, "display")
+        Widgets.Label(top, Strings.FISH_BITE, Theme.TEXT.title, Theme.COLOR.gold, "display")
     biteMark.Name = "BiteMark"
     biteMark.AnchorPoint = Vector2.new(0.5, 1)
     biteMark.Size = UDim2.fromOffset(40, 36)
@@ -166,7 +183,7 @@ function FishingRig.new(o: Options): Rig
     bar.BackgroundTransparency = 1
     bar.ZIndex = o.Z
     bar.Visible = false
-    bar.Parent = o.Layer
+    bar.Parent = top
     Widgets.PillBackground(bar, o.Z)
 
     local zone = Instance.new("Frame")
@@ -248,7 +265,7 @@ function FishingRig.new(o: Options): Rig
         local spec = ReelMath.spec(c.difficulty)
         -- deasupra lucrului de pe fir, de partea lui: in aval pentru pesti, in amonte pentru ce aduce raul
         local cx = if c.kind == "treasure" then tx + 10 else tx + 35
-        bar.Position = UDim2.fromOffset(cx, ty - 84)
+        bar.Position = UDim2.fromOffset(cx + topShift.X, ty - 84 + topShift.Y)
         zone.Size = UDim2.fromOffset(math.max(12, spec.zone * 2 * (BAR_W - 20)), BAR_H - 10)
         local sprite = if c.kind == "treasure" and c.treasure ~= nil
             then (Assets.treasure :: any)[c.treasure :: string]
@@ -276,7 +293,7 @@ function FishingRig.new(o: Options): Rig
         SoundController.Play("bite")
         splashHost.Position = UDim2.fromOffset(tx, ty)
         SceneArt.Splash(splashHost, 0.5, 0.6)
-        biteMark.Position = UDim2.fromOffset(tx, ty - 26)
+        biteMark.Position = UDim2.fromOffset(tx + topShift.X, ty - 26 + topShift.Y)
         biteMark.Visible = true
         local scale = biteMark:FindFirstChildOfClass("UIScale") or Instance.new("UIScale")
         scale.Parent = biteMark
@@ -300,16 +317,22 @@ function FishingRig.new(o: Options): Rig
         color: Color3
     ): (number, number)
         local px, py = characterAt()
-        local wx, wy = px, py - 84
+        -- [2026-09-30] deasupra cardului E al locului ("Cast (E)", 44 px): placa e pe jumatate transparenta, iar butonul se
+        -- vedea prin ea. Locul spune unde e cardul lui (pontonul: fix la capat; iazul: deasupra ta).
+        local cardBottom = o.CardBottom
+        local wx = px
+        local wy = if cardBottom ~= nil
+            then math.min(py - 84, cardBottom(px, py) - 44 - 8)
+            else py - 84
         local card = Instance.new("Frame")
         card.Name = "CatchResult"
         card.AnchorPoint = Vector2.new(0.5, 1)
-        card.Position = UDim2.fromOffset(wx, wy)
+        card.Position = UDim2.fromOffset(wx + topShift.X, wy + topShift.Y)
         card.Size = UDim2.fromOffset(250, 62)
         card.BackgroundColor3 = Theme.COLOR.plate
         card.BackgroundTransparency = Theme.PLATE_TRANSPARENCY
         card.ZIndex = o.Z + 2
-        card.Parent = o.Layer
+        card.Parent = top
         local corner = Instance.new("UICorner")
         corner.CornerRadius = UDim.new(0, 10)
         corner.Parent = card
@@ -355,11 +378,12 @@ function FishingRig.new(o: Options): Rig
             { Scale = 1 }
         ):Play()
         task.delay(RESULT_SECONDS, function()
-            TweenService:Create(
-                card,
-                TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
-                { Position = UDim2.fromOffset(wx, wy - 30), BackgroundTransparency = 1 }
-            ):Play()
+            TweenService
+                :Create(card, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+                    Position = UDim2.fromOffset(wx + topShift.X, wy - 30 + topShift.Y),
+                    BackgroundTransparency = 1,
+                })
+                :Play()
             for _, child in card:GetDescendants() do
                 if child:IsA("TextLabel") then
                     TweenService:Create(child, TweenInfo.new(0.4), { TextTransparency = 1 }):Play()
@@ -445,6 +469,11 @@ function FishingRig.new(o: Options): Rig
             end
             return
         end
+        if state == "landing" and os.clock() - landSentAt > LAND_TIMEOUT then
+            reset()
+            o.OnToast(Strings.fishRejected(""), Theme.COLOR.bad)
+            return
+        end
         local c = cast :: Cast
         local tx, ty = o.Target(c, side)
         local now = Workspace:GetServerTimeNow()
@@ -493,6 +522,7 @@ function FishingRig.new(o: Options): Rig
             SoundController.Play("reel")
         end
         if progress >= 1 then
+            landSentAt = os.clock()
             setState("landing")
             o.Remotes.Land:FireServer(c.castId)
         end

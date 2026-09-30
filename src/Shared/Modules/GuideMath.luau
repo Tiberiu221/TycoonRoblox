@@ -861,4 +861,102 @@ function GuideMath.labelPlacement(q: LabelQuery): (string, number)
     return "hidden", shift
 end
 
+-- ---- langa tinta: al cui card se vede [2026-09-30] ---------------------------------------------------
+-- Sub NEAR_DISTANCE de tinta ghidajul se retrage (n-ar mai arata nimic util), deci acolo cardul E trebuie sa fie chiar
+-- al tintei. InteractController alegea cel mai apropiat card, iar intre doua locuri ramanea o fasie fara sageata si
+-- fara cardul tintei: la capatul pontonului se vedea doar barca (E te trimitea la balci in loc sa pescuiesti), la
+-- avizier doar placuta rotii. Acum, langa tinta, cardul ei castiga cat e in raza lui, iar ghidajul ramane aprins cat
+-- se vede cardul altui loc.
+GuideMath.NEAR_DISTANCE = 70
+-- Cat de aproape e punctul unui card (campul `at`) de tinta ca sa fie acelasi loc. Avizierul isi masoara cardul de
+-- la 20 px mai sus decat tinta, de aici toleranta.
+GuideMath.SAME_PLACE = 24
+
+-- Esti destul de aproape de tinta cat ghidajul sa se retraga. Un pas fara loc ("save", sau fara x/y) n-are unde.
+function GuideMath.nearGoal(goal: Goal?, px: number, py: number): boolean
+    if goal == nil or goal.kind == "save" or goal.x == nil or goal.y == nil then
+        return false
+    end
+    local dx, dy = px - (goal.x :: number), py - (goal.y :: number)
+    return math.sqrt(dx * dx + dy * dy) < GuideMath.NEAR_DISTANCE
+end
+
+-- Cardul masurat din (x, y) e chiar al locului tintei: inelul unui atelier, usa, pontonul, avizierul, plasa din care
+-- culegi. O platforma de cumparat (padId) n-are card E: cartonasul ei e al PadController.
+function GuideMath.isGoalCard(goal: Goal?, x: number, y: number): boolean
+    if goal == nil or goal.padId ~= nil or goal.x == nil or goal.y == nil then
+        return false
+    end
+    return math.abs(x - (goal.x :: number)) <= GuideMath.SAME_PLACE
+        and math.abs(y - (goal.y :: number)) <= GuideMath.SAME_PLACE
+end
+
+export type CardCandidate = {
+    distance: number,
+    at: { x: number, y: number }?,
+    content: boolean, -- are ce arata: actiune, stare sau Upgrade
+    holds: boolean?, -- o treaba in curs tine tasta E (undita aruncata)
+    urgent: boolean?, -- ceva trecator (darul de pe rau)
+}
+
+-- Care card E se vede, si de ce. In ordine:
+--   "urgent" -- ceva trecator (darul de pe rau, cel mai apropiat): trece pe langa tine o singura data, deci se ia si cat
+--             pescuiesti (E il ia, iar tinut mai departe mulineaza).
+--   "holds"  -- o treaba in curs tine tasta E (undita aruncata: E mulineaza); cardul nu se arata, iar E nu face altceva.
+--             Fara ea, dupa aruncare castiga barca de langa ponton, iar E-ul de mulinat te ducea in balci.
+--   "goal"   -- langa tinta, cardul ei, daca sursa lui l-a dat (e in raza lui) si are ce arata.
+--   "near"   -- altfel, cel mai apropiat.
+-- "urgent" si "goal" bat si cartonasul unei platforme mai apropiate; "near" se masoara cu el (InteractController).
+function GuideMath.pickCard(
+    cards: { CardCandidate },
+    goal: Goal?,
+    px: number,
+    py: number
+): (number?, string)
+    local near = GuideMath.nearGoal(goal, px, py)
+    local best: number? = nil
+    local urgent: number? = nil
+    local holds: number? = nil
+    local own: number? = nil
+    for i, c in cards do
+        if c.holds and holds == nil then
+            holds = i
+        end
+        if
+            c.urgent
+            and c.content
+            and (urgent == nil or c.distance < cards[urgent :: number].distance)
+        then
+            urgent = i
+        end
+        local at = c.at
+        if
+            own == nil
+            and near
+            and c.content
+            and at ~= nil
+            and GuideMath.isGoalCard(goal, at.x, at.y)
+        then
+            own = i
+        end
+        if best == nil or c.distance < cards[best :: number].distance then
+            best = i
+        end
+    end
+    if urgent ~= nil then
+        return urgent, "urgent"
+    elseif holds ~= nil then
+        return holds, "holds"
+    elseif own ~= nil then
+        return own, "goal"
+    end
+    return best, "near"
+end
+
+-- Langa o platforma-tinta, cartonasul ei de cumparare bate cardul unui obiect mai apropiat (usa unui vanzator, la
+-- 129 px de coliba meseriei): E cumpara ce arata ghidajul.
+function GuideMath.padIsGoal(goal: Goal?, px: number, py: number, padId: string?): boolean
+    return padId ~= nil and goal ~= nil and goal.padId == padId and GuideMath.nearGoal(goal, px, py)
+end
+
 return GuideMath

@@ -600,7 +600,7 @@ function Overlay.Init(d: Deps)
         CharacterPos = deps.CharacterPos,
         WorldToHud = deps.WorldToHud,
         TagTop = PadController.TagTop,
-        CardAt = InteractController.ShownAt,
+        Card = InteractController.Shown,
     })
 
     -- [39, Sistem] "Loading your river..." -- doar daca prima stare chiar intarzie (0.3s), ca sa

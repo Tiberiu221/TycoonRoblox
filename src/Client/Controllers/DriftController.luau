@@ -295,6 +295,7 @@ function DriftController.Focus(px: number, _py: number): Focus.Focus?
         y = gift.y - 30,
         action = Strings.driftCard(keyHint),
         act = grab,
+        urgent = true, -- [2026-09-30] trece o singura data: bate si cardul tintei ghidajului, si cartonasul platformei
     }
 end
 

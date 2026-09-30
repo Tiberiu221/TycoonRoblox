@@ -423,7 +423,7 @@ end)
 -- [D51] cardul obiectului de langa tine: E, U si butoanele lui
 safeInit("InteractController", function()
     InteractController.Init({
-        Plot = layers.Plot,
+        Scroll = layers.Scroll,
         CharacterPos = CharacterController.Position,
         OpenStation = openStation,
         OnToast = HUDController.Toast,
@@ -886,6 +886,7 @@ end)
 safeInit("PierController", function()
     PierController.Init({
         Plot = layers.Plot,
+        Scroll = layers.Scroll,
         CharacterPos = CharacterController.Position,
         WorldToHud = worldToHud,
         Remotes = {

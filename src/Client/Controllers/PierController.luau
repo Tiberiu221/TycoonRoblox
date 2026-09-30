@@ -33,6 +33,7 @@ local Theme = require(script.Parent.Parent.UI.Theme)
 
 export type Deps = {
     Plot: Frame,
+    Scroll: Frame, -- stratul lumii: bara si cartonasul prinderii, peste cardul E
     CharacterPos: () -> (number, number),
     WorldToHud: (number, number) -> (number, number),
     Remotes: {
@@ -60,12 +61,20 @@ function PierController.Focus(px: number, py: number): Focus.Focus?
         return nil
     end
     local d = Focus.distance(px, py, STAND.x, STAND.y)
-    if d > math.min(SPOT_DISTANCE, RiverConfig.INTERACT_DISTANCE) then
-        return nil
-    end
     local f: Focus.Focus = { key = "pier", at = STAND, distance = d, x = STAND.x, y = STAND.y - 84 }
+    local reach = math.min(SPOT_DISTANCE, RiverConfig.INTERACT_DISTANCE)
     if r.state() ~= "idle" then
+        -- [2026-09-30] undita aruncata tine tasta E (mulinezi tinand E): altfel, pe capatul dinspre mal, cardul barcii lua
+        -- locul pontonului, iar E-ul de mulinat te ducea in balci. Doar pe ponton: arunci de cel mult `reach` de capat,
+        -- iar rig-ul anuleaza aruncarea la LEAVE_DISTANCE (40) de locul ei; o undita ramasa agatata nu tine E in tot satul.
+        if d > reach + 40 then
+            return nil
+        end
+        f.holds = true
         return f
+    end
+    if d > reach then
+        return nil
     end
     local keyHint = if UserInputService.KeyboardEnabled then " (E)" else ""
     local first = waiting[1]
@@ -132,7 +141,15 @@ function PierController.Init(d: Deps)
             end)
         end,
         LineZ = 8,
-        Z = 50, -- peste cardul obiectului (48) si textul lumii (46/47): bara si cartonasul prinderii conteaza [D67, audit]
+        -- [2026-09-30] bara, semnul muscaturii si cartonasul prinderii stau in stratul lumii (Scroll), peste cardul E (Scroll,
+        -- 12) si sageata ghidajului (9): cartonasul prinderii conteaza [D67, audit]
+        Over = d.Scroll,
+        OverOrigin = Vector2.zero,
+        -- cardul pontonului sta fix la capat (Focus: STAND.y - 84), oriunde ai aruncat
+        CardBottom = function(_px: number, _py: number): number
+            return STAND.y - 84
+        end,
+        Z = 13,
     })
 end
 

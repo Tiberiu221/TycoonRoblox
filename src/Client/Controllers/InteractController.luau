@@ -40,7 +40,9 @@ local Widgets = require(script.Parent.Parent.UI.Widgets)
 local Focus = require(script.Parent.Parent.UI.Focus)
 
 export type Deps = {
-    Plot: Frame,
+    -- stratul lumii (CameraController, "Scroll"): cardul sta peste teren si peste ghidaj; pozitia e cea din teren
+    -- mutata cu PLOT_ORIGIN
+    Scroll: Frame,
     CharacterPos: () -> (number, number),
     OpenStation: (string, string?) -> (),
     -- E pe un card fara actiune spune de ce (starea lui), nu tace [D43]
@@ -70,6 +72,7 @@ local coins = 0
 local rows: { StationRow } = {}
 
 local ACTION_W, UPGRADE_W, CARD_H = 240, 180, 44
+local CARD_Z = 12 -- in Scroll: peste teren (5) si ghidaj (9), sub pasari (60)
 -- pictograma de nivel (Widgets.Button: min(28, inaltime - 10)), distanta pana la text si marginea ramei, pe o parte
 local UPGRADE_ICON, UPGRADE_GAP, UPGRADE_SIDE = 28, Theme.SPACE.sm, 18
 
@@ -149,20 +152,46 @@ local function update()
     end
     local cx, cy = deps.CharacterPos()
     local px, py = cx - TycoonConfig.PLOT_ORIGIN.x, cy - TycoonConfig.PLOT_ORIGIN.y
-    local best: Focus.Focus? = nil
+    local focuses: { Focus.Focus } = {}
+    local cards: { GuideMath.CardCandidate } = {}
     for _, source in SOURCES do
-        local f = source(px, py)
-        if f ~= nil and (best == nil or f.distance < (best :: Focus.Focus).distance) then
-            best = f
+        local found = source(px, py)
+        if found ~= nil then
+            local withUpgrade = found.upgradeKind ~= nil and firstSale
+            table.insert(focuses, found)
+            table.insert(cards, {
+                distance = found.distance,
+                at = found.at,
+                content = found.action ~= nil or found.status ~= nil or withUpgrade,
+                holds = found.holds,
+                urgent = found.urgent,
+            })
         end
+    end
+    -- [2026-09-30] cel mai apropiat card, dar langa tinta ghidajului cel al tintei (GuideMath.pickCard): acolo ghidajul
+    -- se retrage, deci cardul de pe ecran trebuie sa fie al locului spre care arata. Inaintea lor, darul de pe rau (trece
+    -- o data), apoi undita aruncata (tine E).
+    local pick, why = GuideMath.pickCard(cards, goal, px, py)
+    local f = if pick ~= nil then focuses[pick] else nil
+    if why == "holds" then
+        -- E e al treburii in curs: niciun card, niciun cartonas de cumparare
+        current = f
+        PadController.SetApproachSuppressed(true)
+        hide()
+        return
     end
 
     -- un card fara nimic de aratat nu ia locul cartonasului de cumparare
-    local f = best
     local hasUpgrade = f ~= nil and f.upgradeKind ~= nil and firstSale
-    local hasContent = f ~= nil and (f.action ~= nil or f.status ~= nil or hasUpgrade)
-    local _, padDistance = PadController.ApproachCandidate()
-    local objectWins = hasContent and f ~= nil and f.distance <= padDistance
+    local hasContent = pick ~= nil and cards[pick].content
+    local padId, padDistance = PadController.ApproachCandidate()
+    -- langa o platforma-tinta, cartonasul ei bate cardul unui obiect mai apropiat (nu si darul de pe rau); cardul unui
+    -- loc-tinta bate orice platforma (cele doua nu se intalnesc: un loc-tinta n-are padId)
+    local padWins = why ~= "urgent" and GuideMath.padIsGoal(goal, px, py, padId)
+    local objectWins = hasContent
+        and f ~= nil
+        and not padWins
+        and (why ~= "near" or f.distance <= padDistance)
     PadController.SetApproachSuppressed(objectWins)
     if not objectWins or f == nil then
         current = if hasContent then nil else f
@@ -177,7 +206,8 @@ local function update()
     if viewTop ~= nil then
         y = math.max(y, viewTop() + CARD_H + 8)
     end
-    card.Position = UDim2.fromOffset(math.round(f.x), math.round(y))
+    local origin = TycoonConfig.PLOT_ORIGIN
+    card.Position = UDim2.fromOffset(math.round(f.x + origin.x), math.round(y + origin.y))
     local action = f.action
     if action ~= shownAction then
         shownAction = action
@@ -235,17 +265,23 @@ function InteractController.SetContext(
     rows = newRows or {}
 end
 
--- E si butonul rotund de pe telefon: ce scrie pe card; fara card, cumpararea de pe cartonas.
--- [2026-09-29] Punctul locului al carui card e pe ecran acum (campul `at` al cardului), sau nil: ghidajul isi retrage sageata cand
--- cardul e chiar al locului spre care arata (altfel eticheta lui se desena peste butoanele cardului).
-function InteractController.ShownAt(): (number?, number?)
+-- [2026-09-29] Se vede un card acum, si punctul locului lui (campul `at` al cardului; nil la barca, la indicatorul rotii):
+-- ghidajul isi retrage sageata cand cardul e chiar al locului spre care arata, iar langa tinta ramane aprins cat se vede
+-- cardul altui loc [2026-09-30].
+function InteractController.Shown(): (boolean, number?, number?, boolean)
     local f = current
-    if card == nil or not card.Visible or f == nil or f.at == nil then
-        return nil, nil
+    if card == nil or not card.Visible or f == nil then
+        return false, nil, nil, false
     end
-    local at = f.at :: { x: number, y: number }
-    return at.x, at.y
+    local urgent = f.urgent == true -- al patrulea: un card trecator (darul de pe rau)
+    local at = f.at
+    if at == nil then
+        return true, nil, nil, urgent
+    end
+    return true, at.x, at.y, urgent
 end
+
+-- E si butonul rotund de pe telefon: ce scrie pe card; fara card, cumpararea de pe cartonas.
 
 function InteractController.Interact()
     local f = current
@@ -280,9 +316,12 @@ function InteractController.Init(d: Deps)
     card.AnchorPoint = Vector2.new(0.5, 1)
     card.BackgroundTransparency = 1
     card.Size = UDim2.fromOffset(ACTION_W + Theme.SPACE.sm + UPGRADE_W, CARD_H)
-    card.ZIndex = 48 -- [D67, audit] peste textul lumii (nume 46, placi si replici 47): e interfata, se apasa
+    -- [D67, audit] peste textul lumii: e interfata, se apasa. [2026-09-30] Si peste sageata ghidajului: sta in stratul
+    -- lumii (Scroll), deasupra terenului (Plot, 5) si a marcajului ghidajului (9); sageata spre alt loc (a doua plasa,
+    -- avizierul) se desena peste butonul Upgrade al primei plase si peste placuta rotii.
+    card.ZIndex = CARD_Z
     card.Visible = false
-    card.Parent = deps.Plot
+    card.Parent = deps.Scroll
     local layout = Instance.new("UIListLayout")
     layout.FillDirection = Enum.FillDirection.Horizontal
     layout.HorizontalAlignment = Enum.HorizontalAlignment.Center

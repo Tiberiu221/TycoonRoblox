@@ -73,6 +73,11 @@ local function update()
     local best: Focus.Focus? = nil
     for _, source in sources do
         local f = source(px, py)
+        if f ~= nil and f.holds then
+            -- [2026-09-30] o treaba in curs (undita aruncata) tine E: niciun card, E nu face altceva
+            best = f
+            break
+        end
         if f ~= nil and (best == nil or f.distance < (best :: Focus.Focus).distance) then
             best = f
         end

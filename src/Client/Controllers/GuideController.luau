@@ -34,8 +34,8 @@ export type Deps = {
     WorldToHud: (number, number) -> (number, number),
     -- [2026-09-29] varful placii de pret a unei platforme (PadController.TagTop), ca sageata sa stea deasupra ei
     TagTop: ((padId: string) -> number?)?,
-    -- [2026-09-29] punctul locului al carui card E e pe ecran (InteractController.ShownAt), sau nil
-    CardAt: (() -> (number?, number?))?,
+    -- [2026-09-29] se vede un card E, punctul locului lui si daca e trecator (InteractController.Shown)
+    Card: (() -> (boolean, number?, number?, boolean))?,
 }
 
 local GuideController = {}
@@ -63,7 +63,6 @@ local routePoints: { RoadGraph.Point } = {}
 local routeLens: { number } = {}
 local routeTotal = 0
 
-local NEAR_DISTANCE = 70 -- destul de aproape cat ghidajul nu mai adauga nimic
 -- Sageata sta chiar peste placuta platformei (care urca ~44px peste centrul ei), nu mai sus: la 118
 -- ajungea deasupra liniei apei si parea ca arata spre rau [vazut in Studio, 2026-09-12].
 local WORLD_ARROW_Y_OFFSET = 78
@@ -79,7 +78,6 @@ local TRAIL_END_GAP = 40 -- se opreste inainte de inel
 local ROUTE_REFRESH = 0.5
 local ROUTE_MOVE = 24
 local RING_W, RING_H = 96, 48
-local SAME_PLACE = 24 -- cat de aproape e punctul cardului de tinta ca sa fie acelasi loc (px de lume)
 local ARROW_BOX_H = 104 -- inaltimea marcajului: eticheta sus, sageata jos
 -- [D52] Unde poate sta eticheta: deasupra marcajului (implicit, varful lui e la ARROW_BOX_H peste baza sagetii) sau sub
 -- inel, la LABEL_BELOW px sub mijlocul lui. GuideMath.labelPlacement alege, ca textul sa nu ramana sub panourile HUD-ului.
@@ -490,9 +488,25 @@ local function updateGuideVisuals()
 
     local cx, cy = deps.CharacterPos()
     local px, py = cx - TycoonConfig.PLOT_ORIGIN.x, cy - TycoonConfig.PLOT_ORIGIN.y
-    local dxp, dyp = gx - px, gy - py
-    if math.sqrt(dxp * dxp + dyp * dyp) < NEAR_DISTANCE then
-        -- esti deja acolo -- ghidajul n-ar mai arata nimic util [P3]
+    -- [2026-09-29] Cand cardul E de pe ecran e chiar al locului spre care arata ghidajul (inelul unui atelier, magazia,
+    -- usa vanzatorului, plasa, pontonul, avizierul: campul `at` al cardului e punctul tintei), cardul spune ce e de facut,
+    -- iar sageata si eticheta ghidajului i-ar acoperi butoanele: se retrag, inelul si dara raman. Cardul altui obiect
+    -- (barca, indicatorul rotii, casa vecina) nu retrage nimic.
+    local card = deps.Card
+    local shown, shownX, shownY, shownUrgent = false, nil, nil, false
+    if card ~= nil then
+        shown, shownX, shownY, shownUrgent = card()
+    end
+    local ownCard = shown
+        and shownX ~= nil
+        and shownY ~= nil
+        and GuideMath.isGoalCard(goal, shownX :: number, shownY :: number)
+    -- esti deja acolo -- ghidajul n-ar mai arata nimic util [P3]. [2026-09-30] Doar daca nu se vede cardul altui loc: langa
+    -- tinta, cardul ei castiga (GuideMath.pickCard), iar cand totusi se vede altul (cardul tintei n-are ce arata, alt
+    -- obiect bate platforma), ghidajul ramane aprins, ca sa nu ramai fara nicio indicatie.
+    -- Darul de pe rau (trecator) trece in ~2,5 s: langa tinta ghidajul nu revine pentru el, altfel eticheta ghidajului
+    -- iesea sub cardul care aluneca odata cu darul.
+    if GuideMath.nearGoal(goal, px, py) and (ownCard or not shown or shownUrgent) then
         hideGuide()
         return
     end
@@ -538,24 +552,9 @@ local function updateGuideVisuals()
         end
     end
     worldArrow.Position = UDim2.fromOffset(gx, arrowY)
-    -- [2026-09-29] Cand cardul E de pe ecran e chiar al locului spre care arata ghidajul (inelul unui atelier, magazia,
-    -- usa vanzatorului, plasa, pontonul, avizierul: campul `at` al cardului e punctul tintei), cardul spune ce e de facut, iar sageata si
-    -- eticheta ghidajului (desenate peste teren, deci si peste card) i-ar acoperi butoanele: se retrag, inelul si dara
-    -- raman. Cardul altui obiect (barca, indicatorul rotii, casa vecina) nu retrage nimic. Avizierul isi masoara cardul de
-    -- la 20 px mai sus decat tinta, de aici toleranta.
-    local cardAt = deps.CardAt
-    local shownX, shownY = nil, nil
-    if cardAt ~= nil then
-        shownX, shownY = cardAt()
-    end
-    local atPlace = goal.padId == nil
-        and shownX ~= nil
-        and shownY ~= nil
-        and math.abs(shownX - gx) <= SAME_PLACE
-        and math.abs(shownY - gy) <= SAME_PLACE
-    worldArrow.Visible = onScreen and not atPlace
+    worldArrow.Visible = onScreen and not ownCard
     edgeGroup.Visible = not onScreen
-    if onScreen and not atPlace then
+    if onScreen and not ownCard then
         placeLabel(gx, arrowY, ringY, w, h)
     end
     if not onScreen then

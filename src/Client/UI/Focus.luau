@@ -16,6 +16,11 @@ export type Focus = {
     status: string?, -- in locul actiunii, cand nu se poate face nimic ("Sack full")
     upgradeKind: string?, -- meniul pe care il deschide Upgrade: "net" | "saw" | "forge" | "dock" | "crew"
     upgradeId: string?,
+    -- [2026-09-30] o treaba in curs tine tasta E (undita aruncata: E mulineaza): nimic altceva nu ia E, cardul nu se vede
+    holds: boolean?,
+    -- [2026-09-30] ceva trecator (darul de pe rau): bate cardul tintei ghidajului, undita aruncata si cartonasul unei
+    -- platforme
+    urgent: boolean?,
 }
 
 local Focus = {}

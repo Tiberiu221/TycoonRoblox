@@ -125,8 +125,13 @@ stylua/selene o prind. Rulează-le mereu pe toate, nu înlănțuite după o eroa
   (fum, fir, card, inel, nume) o citește de acolo. Cine o socotea singur greșea cu 48 px: fumul Power House, roata de apă
   pe scânduri, planșele Morii. Sweep-ul și reparațiile din 2026-09-29 sunt în commit, cu cinci runde de verificator.
 - **Ghidajul și cardul E:** cardul unui loc are `at` (punctul din care se măsoară). Ghidajul își retrage săgeata doar
-  pentru cardul locului spre care arată (`InteractController.ShownAt`). O regulă după geometria cardului a produs cazuri noi
-  la fiecare rundă. Rămâne o sarcină separată: cardul țintei să câștige tasta E lângă țintă (ponton, avizier).
+  pentru cardul locului spre care arată (`InteractController.Shown`). O regulă după geometria cardului a produs cazuri noi
+  la fiecare rundă. **Ce card ia tasta E** e în `GuideMath.pickCard` (2026-09-30): darul de pe râu, apoi undița aruncată
+  (ține E cât mulinezi), apoi, lângă țintă (70 px), cardul țintei, altfel cel mai apropiat. Lângă o platformă-țintă,
+  cartonașul ei bate cardul unui obiect.
+- **Capcană de straturi:** cardul E stă în `Scroll` (Z 12), peste tot `Plot`-ul (Z 5) și peste săgeata ghidajului (Z 9).
+  Ce trebuie să stea peste el se pune tot în `Scroll`, peste 12 (vezi `FishingRig` cu `Over`/`OverOrigin`: bara și
+  cartonașul prinderii). Un ZIndex mare în `Plot` nu ajunge.
 
 ## Stare (2026-09-24) [D67 după audit, D68]
 

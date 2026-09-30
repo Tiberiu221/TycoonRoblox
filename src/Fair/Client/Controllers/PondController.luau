@@ -266,12 +266,22 @@ end
 -- Cardul iazului: pe jetiu, deasupra apei. Cat arunci, astepti sau mulinezi, cardul se ascunde (E strange firul).
 function PondController.Focus(px: number, py: number): Focus.Focus?
     local r = rig
-    if r == nil or not FairLayout.inRect(FairLayout.CAST_ZONE, px, py) then
+    if r == nil then
         return nil
     end
     local f: Focus.Focus = { key = "pond", distance = CARD_DISTANCE, x = px, y = py - 84 }
     if r.state() ~= "idle" then
+        -- [2026-09-30] undita aruncata tine tasta E (mulinezi tinand E): altfel cardul omului de langa tine ("Look at ...")
+        -- lua locul iazului, iar E-ul de mulinat ii deschidea cartea. Si la un pas in afara zonei: rig-ul anuleaza
+        -- aruncarea abia la 40 px (LEAVE_DISTANCE) de locul ei.
+        if not FairLayout.inRect(FairLayout.CAST_ZONE, px, py, 40) then
+            return nil
+        end
+        f.holds = true
         return f
+    end
+    if not FairLayout.inRect(FairLayout.CAST_ZONE, px, py) then
+        return nil
     end
     local keyHint = if UserInputService.KeyboardEnabled then " (E)" else ""
     f.action = Strings.fishCast(keyHint)
@@ -324,6 +334,10 @@ function PondController.Init(d: Deps)
         end,
         LineZ = FairScene.Z.SPARKS - 2,
         Z = FairScene.Z.CARD + 2,
+        -- [2026-09-30] cardul iazului sta deasupra ta (Focus: py - 84): cartonasul prinderii iese peste el
+        CardBottom = function(_px: number, py: number): number
+            return py - 84
+        end,
     })
 
     d.Remotes.PondState.OnClientEvent:Connect(function(raw: any)
