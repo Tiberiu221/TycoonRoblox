@@ -76,6 +76,11 @@ end
 -- (ex. viitorul "The Charter") ramane doar numele -- nu invizibil, doar mai putin elegant. Folosit
 -- doar cand nu exista o zona urmatoare cunoscuta (vezi zoneOpenText) -- adica azi, niciodata.
 local function ceremonyTitle(pad: TycoonConfig.Pad): string
+    -- [2026-09-30] numele cartierului, ca pe gard si pe cartonase ("The Wire Works", nu "The Works")
+    local zone = TycoonConfig.eraName(pad.era)
+    if zone ~= nil then
+        return `{zone} is complete!`
+    end
     local base = (pad.name:gsub(" Bell$", ""))
     return `The {base} is complete!`
 end

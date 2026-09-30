@@ -1273,6 +1273,11 @@ function PadController.TagTop(padId: string): number?
 end
 
 -- Platforma pe care ar arata-o cartonasul de cumparare acum si cat de departe e (math.huge = niciuna).
+-- [2026-09-30] Platforma e cumparata (StationMenu: un clopot tras nu mai e trimis ca pas urmator).
+function PadController.IsBought(padId: string): boolean
+    return statuses[padId] == "bought"
+end
+
 function PadController.ApproachCandidate(): (string?, number)
     return candidateId, candidateDistance
 end

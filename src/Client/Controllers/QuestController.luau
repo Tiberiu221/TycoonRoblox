@@ -12,6 +12,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Strings = require(ReplicatedStorage.Shared.Config.Strings)
 local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
 local QuestConfig = require(ReplicatedStorage.Shared.Config.QuestConfig)
+local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 local QuestMath = require(ReplicatedStorage.Shared.Modules.QuestMath)
 
 local Panels = require(script.Parent.Panels)
@@ -81,6 +82,14 @@ type RowView = {
 }
 
 local views: { RowView } = {}
+-- [2026-09-30] randul de final, deasupra listei: ultimul capitol din joc e revendicat tot, iar era urmatoare vine
+-- intr-o actualizare. Fara el, lista ramanea pe 9/9, cu toate randurile "done", si nimic dupa.
+local finale: Frame
+local finaleTitle: TextLabel
+local FINALE_H = 64
+-- latimea textului in rand: panoul minus rama (lg pe laturi), marginea listei (16) si bara de derulare (8), minus
+-- marginea randului (md pe laturi); cutiile: scripts/art/check_panel_rows.py (QUEST_FINALE)
+local FINALE_TEXT_W = PANEL_W - Theme.SPACE.lg * 2 - 16 - 8 - Theme.SPACE.md * 2
 -- Randurile in ordinea din panou: butonul unui rand citeste de aici, nu din ordinea capitolului.
 local shown: { QuestState } = {}
 
@@ -248,7 +257,24 @@ local function refresh(snap: Snapshot)
     for i = #shown + 1, #views do
         views[i].frame.Visible = false
     end
-    list.CanvasSize = UDim2.fromOffset(0, #shown * (ROW_H + Theme.SPACE.sm))
+    -- rand de final: ultimul capitol din joc, revendicat tot, si o era care vine
+    local coming = TycoonConfig.comingEra()
+    local last = QuestConfig.CHAPTERS[#QuestConfig.CHAPTERS]
+    local allClaimed = #shown > 0
+    for _, row in shown do
+        if row.state ~= "claimed" then
+            allClaimed = false
+        end
+    end
+    local showFinale = coming ~= nil and last ~= nil and snap.chapter.id == last.id and allClaimed
+    finale.Visible = showFinale
+    if showFinale and coming ~= nil then
+        finaleTitle.Text = Strings.eraComing(coming.name)
+        finaleTitle.TextSize =
+            Theme.fitSize(finaleTitle.Text, Theme.TEXT.body, "display", FINALE_TEXT_W)
+    end
+    local extra = if showFinale then FINALE_H + Theme.SPACE.sm else 0
+    list.CanvasSize = UDim2.fromOffset(0, #shown * (ROW_H + Theme.SPACE.sm) + extra)
 end
 
 function QuestController.Apply(snap: Snapshot?)
@@ -330,6 +356,33 @@ function QuestController.Init(d: Deps)
     listHolder.Position = UDim2.fromOffset(0, 52)
     listHolder.Size = UDim2.new(1, 0, 1, -52)
 
+    -- [2026-09-30] randul de final (vezi refresh): primul in lista, fara buton
+    finale = Instance.new("Frame")
+    finale.Name = "Finale"
+    finale.BackgroundTransparency = 1
+    finale.Size = UDim2.new(1, 0, 0, FINALE_H)
+    finale.LayoutOrder = 0
+    finale.ZIndex = Z + 2
+    finale.Visible = false
+    finale.Parent = list
+    Widgets.PillBackground(finale, Z + 2)
+    finaleTitle = Widgets.Label(finale, "", Theme.TEXT.body, Theme.COLOR.gold, "display")
+    finaleTitle.Position = UDim2.fromOffset(Theme.SPACE.md, 8)
+    finaleTitle.Size = UDim2.fromOffset(FINALE_TEXT_W, 24)
+    finaleTitle.ZIndex = Z + 3
+    local finaleLine = Widgets.Label(
+        finale,
+        Strings.ERA_COMING_QUESTS,
+        Theme.TEXT.tiny,
+        Theme.COLOR.onDarkSoft,
+        "strong"
+    )
+    finaleLine.Position = UDim2.fromOffset(Theme.SPACE.md, 36)
+    finaleLine.Size = UDim2.fromOffset(FINALE_TEXT_W, 20)
+    finaleLine.TextSize =
+        Theme.fitSize(Strings.ERA_COMING_QUESTS, Theme.TEXT.tiny, "strong", FINALE_TEXT_W)
+    finaleLine.ZIndex = Z + 3
+
     -- [D62] Serverul a platit: perlele zboara de la butonul apasat (sau din mijlocul ferestrei) spre contor. Pozitia
     -- butonului e pe ecran; panza HUD e scalata (UIScale), deci se imparte la scara ei.
     deps.Remotes.QuestClaimed.OnClientEvent:Connect(
@@ -357,6 +410,11 @@ function QuestController.Init(d: Deps)
                 local nextSubtitle = if typeof(paid.nextSubtitle) == "string"
                     then paid.nextSubtitle
                     else nil
+                -- [2026-09-30] ultimul capitol din joc: "Next" spune era care vine, nu tace
+                local coming = TycoonConfig.comingEra()
+                if nextSubtitle == nil and coming ~= nil then
+                    nextSubtitle = Strings.eraComingNext(coming.name)
+                end
                 onChapter(
                     Strings.chapterDone(title, subtitle),
                     Strings.chapterDoneReward(chapterPearls, nextSubtitle)

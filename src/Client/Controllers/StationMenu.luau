@@ -21,6 +21,7 @@ local TweenService = game:GetService("TweenService")
 local ChainMath = require(ReplicatedStorage.Shared.Modules.ChainMath)
 local HeldBack = require(ReplicatedStorage.Shared.Modules.HeldBack)
 local StationConfig = require(ReplicatedStorage.Shared.Config.StationConfig)
+local EraWords = require(ReplicatedStorage.Shared.Modules.EraWords)
 local Strings = require(ReplicatedStorage.Shared.Config.Strings)
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
@@ -89,6 +90,8 @@ export type Deps = {
         UpgradeRejected: RemoteEvent,
     },
     OnToast: (string, Color3?) -> (),
+    -- [2026-09-30] platforma e cumparata (PadController): un clopot tras nu mai e trimis ca pas urmator
+    IsBought: ((padId: string) -> boolean)?,
 }
 
 local StationMenu = {}
@@ -266,16 +269,12 @@ local function unitOf(link: string, line: string?): string
     return Strings.menuUnit(line, link == "nets" or StationConfig.BEFORE_PROCESSOR[link] == true)
 end
 
--- Clopotul erei unei meserii: acolo trimite un echipaj ajuns la maxim ("ring the Landing Bell").
-local function bellOf(padId: string): string
-    local pad = TycoonConfig.byId[padId]
-    local era = if pad ~= nil then pad.era else 1
-    for _, p in TycoonConfig.PADS do
-        if p.era == era and p.motive == "D" then
-            return p.name
-        end
-    end
-    return "Bell"
+-- Un echipaj la maxim pe veriga slaba: textul vine din EraWords (acelasi in panoul Upgrades) [2026-09-30].
+local function maxedText(plural: string, padId: string): string
+    local isBought = deps.IsBought
+    return EraWords.maxedCrew(plural, padId, function(id: string): boolean
+        return isBought ~= nil and isBought(id)
+    end)
 end
 
 -- Debitul dupa `count` niveluri. Debitul unei cladiri e proportional cu ChainMath.levelOutput (oamenii
@@ -462,7 +461,7 @@ local function renderCrew(crew: CrewRow, snap: Snapshot)
         showStatus(Strings.crewBlock("no_person", StationConfig.SECOND_AT_TIER), Theme.COLOR.ink)
     elseif crew.maxed and crew.bottleneck then
         -- ECHIPAJ LA MAXIM PE VERIGA SLABA: nimic de cumparat aici -- trimite la clopot [D40, D49]
-        showStatus(Strings.crewMaxed(crew.plural, bellOf(crew.pad)), Theme.COLOR.warnInk)
+        showStatus(maxedText(crew.plural, crew.pad), Theme.COLOR.warnInk)
     elseif crew.tierGain > 0 then
         showStatus(Strings.menuEarnsTier(perMinuteGain(crew.tierGain)), Theme.COLOR.goodInk)
     elseif crew.secondGain > 0 then

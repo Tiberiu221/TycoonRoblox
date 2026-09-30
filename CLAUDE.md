@@ -121,6 +121,12 @@ stylua/selene o prind. Rulează-le mereu pe toate, nu înlănțuite după o eroa
   din D70 „Runda 4" (piesele se vând doar unite, startul e 35T cu AWAY 0 până la cei 6 oameni, cristalul se vinde și în
   Era 4) și „Runda 5" (veteranii pe butoaie, cablul de mână, Pylon Runner, fără găsiri sub baraj, pauza reparată din
   cifre).
+- **Finalul ce e în joc (2026-09-30):** după clopotul ultimei ere din joc vine bannerul „The Dam is coming soon!”, iar
+  ultimul capitol, lista de quest-uri (rândul de final) și masa „Dam Plans” spun același lucru. Toate citesc
+  `TycoonConfig.comingEra()`, deci tac singure când Era 4 intră în joc. **Plafonul de după clopot** (verificatorul, cu
+  simulatorul): cu oamenii la 2 × treapta 5, venitul se oprește la ~1,63B/s (+35% față de clopot), atins în ~45 de minute
+  reale. Orice nivel peste plafon aduce 0. Textele nu promit creștere; dacă merită un joc real după clopot, e o decizie de
+  economie a owner-ului.
 - **Capcana sondei:** dacă Studio nu e conectat la Rojo, Play-ul rulează codul vechi, fără nicio eroare. Verifică înainte:
   `lsof -nP -iTCP:34872` trebuie să arate o legătură `ESTABLISHED`, nu doar `LISTEN`.
 - **Baza unei clădiri de pe platformă e `TycoonConfig.buildingBase(p)`** (y + 48 + 8). Orice desen pus față de o clădire

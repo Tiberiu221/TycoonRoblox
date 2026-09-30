@@ -140,6 +140,8 @@ export type Snapshot = {
 }
 export type Deps = {
     HudGui: Frame,
+    -- [2026-09-30] niciun meniu si nicio fereastra de revenire deschise: anuntul de dupa clopot le asteapta
+    ScreenClear: (() -> boolean)?,
     WorldScroll: Frame,
     Plot: Frame,
     CharacterPos: () -> (number, number),
@@ -733,6 +735,22 @@ function Overlay.Init(d: Deps)
 
         if pad.motive == "D" then
             CeremonyController.Play(padId)
+            -- [2026-09-30] clopotul ultimei ere din joc: dupa bannerul lui, ce vine (la rand, cu clopotelul lui)
+            local coming = TycoonConfig.comingEra()
+            if coming ~= nil and coming.era == pad.era + 1 then
+                CeremonyController.PlayMoment(
+                    Strings.eraComing(coming.name),
+                    Strings.ERA_COMING_SUB,
+                    nil,
+                    {
+                        onShow = function()
+                            SoundController.Play("chime")
+                        end,
+                        -- dupa clopot revendici quest-ul lui: anuntul vine cand inchizi Quests, nu sub fereastra
+                        ready = deps.ScreenClear,
+                    }
+                )
+            end
         else
             local text = effectAnnouncement(pad)
             if text ~= nil then

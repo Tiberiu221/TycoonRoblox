@@ -44,6 +44,7 @@ require("./LookMath.test")()
 require("./VillageLook.test")()
 require("./ModernMath.test")() -- [D70]
 require("./GlanceMath.test")() -- [D70] Look (V)
+require("./EraWords.test")() -- [2026-09-30] finalul Erei 3
 require("./ModernConfig.test")() -- [D70]
 require("./VisitMath.test")()
 require("./AmbitionMath.test")()

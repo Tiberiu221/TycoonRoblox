@@ -7,8 +7,13 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local ModernMath = require(ReplicatedStorage.Shared.Modules.ModernMath)
+local Assets = require(ReplicatedStorage.Shared.Config.Assets)
+local RiverConfig = require(ReplicatedStorage.Shared.Config.RiverConfig)
+local Strings = require(ReplicatedStorage.Shared.Config.Strings)
+local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 local Modern = require(script.Parent.Parent.UI.Modern)
 local ModernProps = require(script.Parent.Parent.UI.ModernProps)
+local Focus = require(script.Parent.Parent.UI.Focus)
 
 local ModernController = {}
 
@@ -24,6 +29,15 @@ local deps: Deps? = nil
 local props: ModernProps.Props? = nil
 local current: number? = nil -- nil = inca nicio stare de la server
 local lastPower: boolean? = nil
+-- [2026-09-30] masa cu planurile barajului: treapta de la care e desenata si clopotul dupa care vorbeste (vezi Focus)
+local PLANS_STAGE = ModernMath.stageOf("glass") or 4
+local plansBell: string? = nil
+for _, p in TycoonConfig.PADS do
+    if p.motive == "D" and p.era == TycoonConfig.DAM_PLANS.era - 1 then
+        plansBell = p.id
+    end
+end
+local bellRung = false
 
 -- Anunturile vin pe rand, fiecare dupa cel dinainte: primul dupa toastul cumparaturii care a urcat treapta (serverul
 -- trimite PadBought / CrewUpgraded inaintea starii, iar HUDController.Toast tine 2,6 s), iar un salt peste mai multe
@@ -45,6 +59,8 @@ end
 
 function ModernController.Apply(facts: ModernMath.Facts)
     local stage = ModernMath.stage(facts)
+    local bell = plansBell
+    bellRung = bell ~= nil and facts.pads[bell] == true
     -- primul curent s-a vandut chiar in starea asta: felinarele il anunta deja (LAMPS_ON), deci treapta 5 tace
     local lampsJustLit = lastPower == false and facts.powerSold
     lastPower = facts.powerSold
@@ -76,6 +92,37 @@ function ModernController.Apply(facts: ModernMath.Facts)
             queueAnnouncement(announce, s)
         end
     end
+end
+
+-- [2026-09-30] Masa cu planurile barajului (de la treapta 4, la capatul Wire Works) are cardul ei: barajul vine, cat
+-- Era 4 nu e inca in joc. Apare abia dupa clopotul erei dinainte: pana atunci, pe drumul spre clopot, placa ascundea
+-- cartonasul de cumparare al clopotului, iar E dadea un toast in loc sa-l traga. E ii spune pe un toast, ca placuta rotii.
+
+function ModernController.Focus(px: number, py: number): Focus.Focus?
+    local stage = current
+    local plans = TycoonConfig.DAM_PLANS
+    local name = TycoonConfig.eraName(plans.era)
+    if
+        stage == nil
+        or stage < PLANS_STAGE
+        or not bellRung
+        or name == nil
+        or TycoonConfig.eraIsLive(plans.era)
+    then
+        return nil
+    end
+    local distance = Focus.distance(px, py, plans.x, plans.y - 20)
+    if distance > RiverConfig.INTERACT_DISTANCE then
+        return nil
+    end
+    local h = Assets.tycoon.dam_plans.height * TycoonConfig.PROP_SCALE
+    return {
+        key = "dam_plans",
+        distance = distance,
+        x = plans.x,
+        y = plans.y - h - 8,
+        status = Strings.comingPlans(name :: string),
+    }
 end
 
 return ModernController

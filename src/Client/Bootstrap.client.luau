@@ -297,6 +297,8 @@ safeInit("ModernController", function()
             end
         end,
     })
+    -- [2026-09-30] masa cu planurile barajului: cardul ei spune ce vine
+    InteractController.AddSource(ModernController.Focus)
 end)
 safeInit("PadController", function()
     PadController.Init({
@@ -555,6 +557,7 @@ safeInit("StationMenu", function()
             UpgradeRejected = Net.Get("UpgradeRejected"),
         },
         OnToast = HUDController.Toast,
+        IsBought = PadController.IsBought,
     })
 end)
 safeInit("StationPanel", function()
@@ -566,6 +569,7 @@ safeInit("StationPanel", function()
         },
         OnToast = HUDController.Toast,
         CharacterPos = CharacterController.Position, -- [D65] panoul se deschide pe cartierul in care stai
+        IsBought = PadController.IsBought,
     })
 end)
 safeInit("IndexController", function()
@@ -984,6 +988,7 @@ if Overlay ~= nil then
     safeInit("Overlay", function()
         Overlay.Init({
             HudGui = hudCanvas,
+            ScreenClear = screenClear,
             WorldScroll = layers.Scroll,
             Plot = layers.Plot, -- dara de ghidaj si inelul tintei stau pe jos [D50]
             CharacterPos = CharacterController.Position,

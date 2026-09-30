@@ -54,6 +54,16 @@ QUEST_ROW = dict(
 )
 
 
+# [2026-09-30] randul de final al listei de quest-uri: ultimul capitol din joc revendicat, era urmatoare vine
+QUEST_FINALE = dict(
+    panel="Quests, finale row (QuestController)", panel_w=560, row_h=64,
+    boxes=lambda w: [
+        ("title", md, 8, w - 2 * md, 24, None),
+        ("line", md, 36, w - 2 * md, 20, None),
+    ],
+)
+
+
 # Cartonasul de la apropiere (HUDController): NU e un rand de lista -- e un cartonas fix, deci fara
 # rama de panou, fara marginea listei si fara bara de derulare. 440x204 minus insetul 30/20.
 # `gain` / `nogain`: cand platforma nu apasa pe veriga slaba, mesajul ia tot randul si nota se
@@ -369,7 +379,7 @@ def check(spec):
 
 
 def main():
-    bad = sum(check(spec) for spec in (STATION_ROW, QUEST_ROW, APPROACH_CARD, STATION_MENU, INTERACT_CARD, AUDIO_PANEL,
+    bad = sum(check(spec) for spec in (STATION_ROW, QUEST_ROW, QUEST_FINALE, APPROACH_CARD, STATION_MENU, INTERACT_CARD, AUDIO_PANEL,
                                       WHEEL_PANEL, WHEEL_ROW, BOARD_ROW, JOURNAL_ROW,
                                       TITLE_ROW, TITLE_HEAD, MARKET_ROW, LEADERBOARD_ROW, STAGE_PANEL,
                                       PLAYER_CARD, BOOTH_PANEL,

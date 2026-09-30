@@ -1906,6 +1906,28 @@ function TycoonConfig.eraIsLive(era: number): boolean
     return liveEras[era] == true
 end
 
+-- Numele zonei unei ere ("The Wire Works"), din ZONES; nil pentru o era fara zona.
+function TycoonConfig.eraName(era: number): string?
+    for _, zone in TycoonConfig.ZONES do
+        if zone.era == era then
+            return zone.name
+        end
+    end
+    return nil
+end
+
+-- [2026-09-30] FINALUL CE E IN JOC. Era care urmeaza si nu e inca in joc (numele zonei ei: "The Dam"), sau nil cand toate
+-- erele cu zona sunt in joc. Finalul erei de acum spune ce vine (bannerul de dupa clopot, capitolul, lista de quest-uri,
+-- masa cu planurile), nu tace.
+function TycoonConfig.comingEra(): { era: number, name: string }?
+    for _, zone in TycoonConfig.ZONES do
+        if not TycoonConfig.eraIsLive(zone.era) then
+            return { era = zone.era, name = zone.name }
+        end
+    end
+    return nil
+end
+
 -- [D65] CASELE OAMENILOR SI NUMELE DE SUB ELE, ca locuri pe care decorul imprastiat (copaci, tufe) n-are voie sa le
 -- acopere (WorldDecor.village). Casa mare are 120 x 102 cu baza la TycoonConfig.buildingBase, patratelele treptei stau
 -- la 10 + 6 px deasupra acoperisului, numele imediat sub ea [D58], pana la baza + 20. [2026-09-29] Dreptunghiul era
@@ -2062,7 +2084,8 @@ end
 -- tarusii topografilor pe linia viitorului zid, intre punte si curtea depozitului (treapta 4), si curtea goala din
 -- mijlocul Wire Works: tamburii de cablu (treapta 1) si statia de transformare (treapta 4). Toate in spatele firelor,
 -- cu baza deasupra lor (testul recuzitei): o recuzita prin care trece sarma pare agatata de ea.
-TycoonConfig.DAM_PLANS = { x = 5150, y = 1200 }
+-- `era`: a cui sunt planurile (barajul, Era 4): cardul mesei tace cand era aceea intra in joc
+TycoonConfig.DAM_PLANS = { x = 5150, y = 1200, era = 4 }
 TycoonConfig.SURVEY_STAKES = {
     { x = 620, y = 905, frame = 2 },
     { x = 690, y = 905, frame = 0 },

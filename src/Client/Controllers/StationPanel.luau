@@ -16,6 +16,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
 local HeldBack = require(ReplicatedStorage.Shared.Modules.HeldBack)
 local StationConfig = require(ReplicatedStorage.Shared.Config.StationConfig)
+local EraWords = require(ReplicatedStorage.Shared.Modules.EraWords)
 local Strings = require(ReplicatedStorage.Shared.Config.Strings)
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 
@@ -48,6 +49,8 @@ export type Snapshot = {
     lines: { [string]: HeldBack.LineView },
     linkRates: { [string]: number },
     eraBottleneck: { string }?,
+    -- [2026-09-30] oamenii (acelasi obiect ca pentru StationMenu): un echipaj la maxim pe veriga nu e sfatuit sa angajeze
+    crews: { { role: string, plural: string, pad: string, maxed: boolean } }?,
 }
 
 export type Deps = {
@@ -56,6 +59,8 @@ export type Deps = {
     OnToast: (string, Color3?) -> (),
     -- [D65] unde esti (coordonatele lumii): panoul se deschide pe cartierul in care stai
     CharacterPos: (() -> (number, number))?,
+    -- [2026-09-30] platforma e cumparata (PadController): un clopot tras nu mai e trimis ca pas urmator
+    IsBought: ((padId: string) -> boolean)?,
 }
 
 local StationPanel = {}
@@ -408,6 +413,16 @@ local function refreshChain(snap: Snapshot)
         then eraBottleneck
         else snap.bottleneck
     advice.Text = Strings.stationsAdvice(holds)
+    -- [2026-09-30] veriga e un echipaj deja la maxim (2 oameni, treapta 5): "hire or upgrade" ar minti, deci acelasi text
+    -- ca meniul lui (EraWords)
+    for _, crew in snap.crews or {} do
+        if crew.maxed and StationConfig.LINK_OF[crew.role] == holds then
+            local isBought = deps.IsBought
+            advice.Text = EraWords.maxedCrew(crew.plural, crew.pad, function(id: string): boolean
+                return isBought ~= nil and isBought(id)
+            end)
+        end
+    end
     -- plasa de sub frazele scurtate in Strings: pe un panou strans (telefon), randul se micsoreaza, nu iese din rama
     local width = window.Size.X.Offset - Theme.SPACE.lg * 2
     advice.TextSize = Theme.fitSize(advice.Text, Theme.TEXT.small, "strong", width)

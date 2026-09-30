@@ -1242,6 +1242,39 @@ return function()
         end)
 
         test.case(
+            "[2026-09-30] finalul ce e in joc: era urmatoare, dupa ultima era din joc",
+            function()
+                local coming = TycoonConfig.comingEra()
+                assert(coming ~= nil, "azi o era urmeaza (Era 4, The Dam)")
+                check.equal(TycoonConfig.eraIsLive(coming.era), false)
+                -- toate erele cu zona dinaintea ei sunt in joc: e chiar urmatoarea, nu una de peste doua
+                for _, zone in TycoonConfig.ZONES do
+                    if zone.era < coming.era then
+                        check.equal(TycoonConfig.eraIsLive(zone.era), true)
+                    end
+                end
+                check.equal(coming.era, 4)
+                check.equal(coming.name, "The Dam")
+                -- clopotul ultimei ere din joc e cel dupa care vine anuntul
+                local bells = 0
+                for _, p in TycoonConfig.PADS do
+                    if p.motive == "D" and p.era == coming.era - 1 and p.live then
+                        bells += 1
+                    end
+                end
+                check.equal(bells, 1)
+                check.equal(Strings.eraComing(coming.name), "The Dam is coming soon!")
+                check.equal(TycoonConfig.eraName(3), "The Wire Works")
+                -- masa cu planuri e a barajului (Era 4), nu a "erei care urmeaza": cand barajul intra in joc, tace
+                check.equal(TycoonConfig.DAM_PLANS.era, 4)
+                check.equal(TycoonConfig.eraName(TycoonConfig.DAM_PLANS.era), "The Dam")
+                -- cardul ei pe un singur rand: 320 px, 18 px pe litera la 0,56 em, 16 px de margine (InteractController)
+                local plans = Strings.comingPlans("The Dam")
+                check.is_true((utf8.len(plans) :: number) * 18 * 0.5586 + 16 <= 320)
+            end
+        )
+
+        test.case(
             "[D70] Look (V): privirea arata ce s-a schimbat, pe ecranul mare si pe telefon",
             function()
                 local W, H = RiverConfig.WORLD_WIDTH, RiverConfig.WORLD_HEIGHT

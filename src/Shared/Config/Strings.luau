@@ -141,6 +141,21 @@ end
 function Strings.zoneLocked(zoneName: string, bellName: string): string
     return `{zoneName} — opens with the {bellName}`
 end
+-- [2026-09-30] finalul ce e in joc: era urmatoare vine intr-o actualizare (TycoonConfig.comingEra). Nu promite crestere:
+-- dupa clopot, cu oamenii la 2 x treapta 5, venitul are un plafon, iar un nivel peste el aduce 0 [D40, verificator]. Nici
+-- "until then": absenta se plateste doar 8 h (16 cu Long Nights), iar actualizarea n-are data.
+function Strings.eraComing(zoneName: string): string
+    return `{zoneName} is coming soon!`
+end
+Strings.ERA_COMING_SUB = "It comes in a future update. Your village keeps earning while you play."
+function Strings.eraComingNext(zoneName: string): string
+    return `{zoneName} (coming soon)`
+end
+Strings.ERA_COMING_QUESTS = "All quests done! Your village keeps earning while you play."
+-- pe un singur rand in cardul E (320 px la 18 px, 0,56 em pe litera)
+function Strings.comingPlans(zoneName: string): string
+    return `{zoneName} plans · coming soon`
+end
 function Strings.zoneSoon(zoneName: string): string
     return `{zoneName} — coming soon`
 end
@@ -1466,6 +1481,16 @@ end
 -- sugerat ca ceva de pe meniul asta ar ajuta [D40, D49].
 function Strings.crewMaxed(plural: string, bell: string): string
     return `{plural} are at their best here — ring the {bell}`
+end
+-- [2026-09-30] clopotul e deja tras: nu mai trimite la el, ci la cartierul unde mai e de crescut (EraWords)
+function Strings.crewMaxedNext(plural: string, zoneName: string): string
+    return `{plural} are at their best here — build up {zoneName}`
+end
+function Strings.crewMaxedComing(plural: string, zoneName: string): string
+    return `{plural} are at their best — more comes with {zoneName}`
+end
+function Strings.crewMaxedDone(plural: string): string
+    return `{plural} are at their best here`
 end
 Strings.MENU_TIER_UP = "Level up"
 -- De ce nu se poate apasa un buton de meserie. Acelasi cuvant pe care il intoarce serverul.
