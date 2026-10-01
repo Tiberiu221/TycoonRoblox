@@ -83,12 +83,18 @@ CATCH += {"dam": (("charge", 1.0),), "cable_ore": (("cable_ore", 1.0),), "crysta
 - **Scrierea constantelor:** `1.65 * ERA4_MULT` se scrie la fel în Python și în Luau, nu ca literal `4.455e10`. Altfel se poate muta un ulp.
 
 **Oamenii și bazele lor:**
-- `ROLE_BASE`:
-  - linia bateriilor: damCollector 4,0, damPorter 6,0, barrelHauler 7,5;
-  - linia cablului: cableCollector **4,0** (vezi riscul 1), cablePorter 5,0, cableHauler 7,0;
-  - unirea: pylonRunner 7,0;
-  - cristalul: crystalCollector 2,0, crystalPorter 2,5, ingotHauler 6,5.
-- `ERA4_ROLES` au `ROLE_COST_MULT = M4`.
+- `ROLE_BASE` (după verificator, 2026-10-01; prototipul avea 4,0 / 6,0 / 7,5 / 4,0 / 5,0 / 7,0 / 7,0):
+  - linia bateriilor: damCollector 4,7, damPorter 6,3, barrelHauler 7,3;
+  - linia cablului: cableCollector 4,0 (vezi riscul 1), cablePorter 5,4, cableHauler 6,7;
+  - unirea: pylonRunner 6,5 (ultimul drum al unirii duce tot timpul tău, 5,4, și la −15%: `check_hire_order`);
+  - cristalul: crystalCollector 2,0, crystalPorter **2,7** (nu 2,5 ca bateria din Era 3: 2,0 × 5 = 2,5 × 4 ținea linia
+    la egalitate jumătate de eră), ingotHauler 6,5.
+
+  Cei șapte oameni care intră în minimul unirii, și cei trei de drum ai cristalului, nu pot avea același debit (bază ×
+  treaptă × oameni): `walker_ties` din `check_lines.py` pică pe orice egalitate.
+- `ERA4_ROLES` au `ROLE_COST_MULT = 2 × M4`: uneltele barajului costă dublu față de cadru (`ERA_TOOL_MULT[4] = 2`). În joc
+  factorul are nume, `StationConfig.TOOL_COST_MULT[4] = 2`, iar `check_config_constants` îl compară pe fiecare eră din
+  configurație.
 - Scutiri noi în `BOTTLENECK_EXEMPT`: `crystalPort` și `ingotHaul`, în oglindă cu `batteryPort` și `powerHaul`.
 
 **Plasele primesc rang explicit, nu loc în listă.** Turbinele și plasele de cablu se cumpără amestecat, deci `NETS_PER_ERA` rămâne doar pentru plasele 1–15.
@@ -243,12 +249,12 @@ La fiecare pas: toată poarta din CLAUDE.md, apoi commit și push.
 | c | **`golden_chain.py`.** Blocurile de azi tipăresc doar liniile și vânzătorii Erelor 1–3 (azi buclele merg pe tot `LINE_ORDER`) | diferența față de `tests/ChainMath.test.luau` e goală |
 | d | **Simulatorul, Era 4** (după răspunsuri). Rândurile din §2; `ERA4_UNLOCKS` pe familii (6 oameni în rafală, plasele, Kiln doar cu toți cei 11, cristalul, Dam Bell); `dam_transform`; cele două rulări; `START_SUM`; porțile din §5; `LATE_LINE[4]`; `report_era(4)` pentru N linii | `--robust` verde, cu `check_flat`; porțiunea Erelor 1–3 identică la octet |
 | e | **`golden_chain.py --era4` → `GOLDEN_ERA4`.** Șase stări: startul barajului, după cei 6, butoaiele țin, egalitatea butoaie–cablu, Town plin, cristalul primul | tabelul generat |
-| f | **Configurația.** `StationConfig` (rânduri prin referință, derivate noi); `TycoonConfig` (GOODS, CATCH, PROCESSED, JOINED, platformele cu `netRank` și prețuri din simulator, `DAM_START_COINS`); `Strings`. Era 4 cu `live = false` | stylua, selene, `sim --robust` (`check_config_constants` și `check_config_prices` extinse) |
+| f | **Configurația.** `StationConfig` (rânduri prin referință, derivate noi, `TOOL_COST_MULT[4] = 2`, `CONFIG_ERAS` primește 4); `TycoonConfig` (GOODS, CATCH, PROCESSED, JOINED, platformele cu `netRank` și prețuri din simulator, `DAM_START_COINS`); pragurile pașilor de venit (`KILN_INCOME`, `DAM_LATE_INCOME`) ca scalari în `StationConfig`, citiți prin referință de `QuestConfig` și comparați de `check_config_constants` (regexul trebuie să accepte exponentul: azi `1e12` s-ar citi 1); `Strings`. Era 4 cu `live = false` | stylua, selene, `sim --robust` (`check_config_constants` și `check_config_prices` extinse) |
 | g | **`ChainMath`.** `model`, `flowWith` în trei treceri, `pickBottlenecks`, `valueWith`, totaluri, `empty`, `clone`, `supply`, `heldBy`, `netsLine`. Comparația veche–nouă pe 80.000 de stări, apoi scoasă | GOLDEN*, `GOLDEN_ERA4`, „liniile ca date” cu unirea de probă |
 | h | **`HeldBack`.** `among` = grupul liniei (ea, piesele, unirea); `nets` doar pe liniile de plase; gardă pentru un `seller` nil (azi :133/:135); textele „the Cable line is slower” / „just as slow as the Barrel line”; când `heldBy` e o linie închisă, `Strings.lineNotOpen(heldBy)` („cast the Cable Net first”) cu Go to spre plasă, nu „is slower” | teste noi |
 | i | **Modulele comune.** `FlowConfig` (`into`, `inputPiles`, `SELLERS.town`); `FlowMath.assemble` (`min(întregi, nA, nB)` perechi); `sellerOf(piesă) = nil`; refuzul `part_to_relay`; `split` primește piese la Relay; `HandRoutes` cu `job` pe pas, drumul pieselor la `inputIn` al Relay-ului | teste Lune |
 | j | **Serverul.** `EconomyService` (unirea merge doar cu ambele intrări nevide, `assemble`, `DropAt` pe fel de piesă, liniile închise fără tick); `HandService` (sare oamenii retrași); `NetService` (nu mai umple plasele închise); `StationService` (`StateFrom` cu `dam` și rangurile, garda din `BUILDING_ROWS`, `Snapshot` cu `supply` / `heldBy` / `netsLine`); `DamService` și profilul v18 după PLAN-HARTA, cu suma din §5 | teste: migrarea păstrează numele și chipul celor 5; `StateFrom` reproduce `dam_transform` |
-| k | **Clientul.** `LineController` pentru unire (două grămezi, „Waiting for cable/barrels”); `Overlay.DROP_AT`; `Bootstrap` copiază explicit câmpurile noi; `GuideMath` pentru primul tur (6 pași de mână); capitolele 10–12; indiciul AWAY | poarta și sonda pe texte |
+| k | **Clientul.** `LineController` pentru unire (două grămezi, „Waiting for cable/barrels”); `Overlay.DROP_AT`; `Bootstrap` copiază explicit câmpurile noi; `GuideMath` pentru primul tur (6 pași de mână); capitolele 10–12, în ordinea `DAM_CHAPTER`, cum le joacă a treia rulare din `DamRun`: a doua și a treia plasă de cablu, pasul „Earn 1T coins a second” (`KILN_INCOME`), Kiln-ul și cristalul, pasul „Earn 4T coins a second” (`DAM_LATE_INCOME`), a doua turbină, a patra plasă, Dam Bell. Pașii de venit sunt un fel nou de quest, pe venitul din HUD, cu pass-urile (2x Flow îi grăbește: banii cumpără viteză, ca la quest-ul AWAY). Contorul lor trece printr-o singură funcție, `QuestMath.counterText`, folosită și de lista de quest-uri (`QuestController`), și de linia NEXT (`HUDController`): „966B/1T”, cu `TycoonMath.formatNumber`, nu „966000000000/1000000000000”. Lista renunță la paranteze pentru toate quest-urile („3.99T/4T” are ~58 px la 13, cutia are 60; cu paranteze, ~73). `Theme.fitSize` nu ajută: contorul e deja la `TEXT.tiny`. Pe un quest de venit, pasul ghidat nu poartă `price`, deci `HUDController.SetStep` nu suprascrie bara: linia NEXT arată venitul spre prag, nu monedele unui nivel. Cât ține un pas de venit, ghidajul arată veriga cu câștig real pe care se mai poate cumpăra ceva: sare meseriile la `MAX_PEOPLE` × `TIER_MAX`, ca `AmbitionMath`, iar dacă nu rămâne nimic, trece la veriga slabă a celeilalte linii a vânzătorului. Spre plafon, veriga globală e un Crystal Collector deja plin. A doua turbină și a patra plasă aduc ~0 când le cumpără capitolul (și lacomul: +0,10% / 0%): sunt condiții ale clopotului, iar cartonașul lor spune asta („Needed for the Dam Bell”), în locul ramurii „câștig zero” a cartonașului de platformă (HeldBack ar numi altfel o verigă). Rămâne deschisă ordinea lor pe hartă (§11, runda a șasea). Regulă generală: `GuideMath` nu pune „While you save” și nici bara de preț pe un quest a cărui platformă nu e încă `available`; indiciul AWAY | poarta, sonda pe texte și testele Lune din §8 (QuestMath, GuideMath) |
 | l | **Sonda, cap-coadă, pe profil de probă:** Works Bell → Build the Dam → turul → cei 6 → Kiln → Dam Bell. Arta se face pe planșe și se urcă doar cu acordul owner-ului. `live = true` doar după Studio | `errors` e gol; niciun text nu iese din cutie |
 
 ## 8. Teste
@@ -273,6 +279,13 @@ La fiecare pas: toată poarta din CLAUDE.md, apoi commit și push.
   - `netsLine` numește plasele cablului;
   - o piesă fără vânzător nu crapă.
 - **Fizic:** `assemble` nu pierde nicio bucată și se oprește cu o intrare goală; drumurile pieselor se termină la intrarea Relay-ului; `loadFor` = rată × durată.
+- **Pașii de venit ai capitolului (pasul k):**
+  - `QuestMath`: progresul e venitul din HUD, cu pass-urile; quest-ul e gata la prag; fără câmpul de venit în `Facts`, progresul e 0, fără eroare;
+  - `QuestMath.counterText`: „966B/1T”, fără paranteze; la goal și la 0,999 × goal, `#s × 0,5585 × TEXT.tiny` ≤ 60 px (lista) și ≤ 80 px (NEXT), pentru `KILN_INCOME` și `DAM_LATE_INCOME`;
+  - `GuideMath`/HUD: pe un quest de venit, pasul ghidat n-are preț, iar bara NEXT rămâne venitul;
+  - `GuideMath`: un quest cu platforma ne-`available` nu primește preț și nici „While you save”; pe un pas de venit, ghidajul numește o verigă pe care se mai poate cumpăra ceva;
+  - pragurile din `QuestConfig` sunt exact `StationConfig.KILN_INCOME` / `DAM_LATE_INCOME`.
+- **Uneltele Erei 4 (pasul f):** `ChainMath.tierCost(1, "damCollector") == 25 * StationConfig.ERA4_MULT * 2`, cu 2 scris de mână, ca testele de la Erele 2–3.
 
 ## 9. Riscuri
 
@@ -333,7 +346,7 @@ Piesele au intenționat o valoare ne-zero, ca un venit care le-ar număra să pi
 
 **Rămâne pentru pasul d, pe bazin:** `check_hire_order`, `link_share` / `LATE_LINE`, `report_era` (banii doar pe liniile care vând) și `BOTTLENECK_EXEMPT`.
 
-## 11. Cum a ieșit pasul d (2026-09-30, după verificator)
+## 11. Cum a ieșit pasul d (2026-09-30, după verificator; rundele 2–5 pe 2026-10-01)
 
 **Era 4 e în simulator.** Erele 1–3 ies identice la octet: rularea simplă, `--table --chain`, cele trei blocuri din `golden_chain.py` și porțiunea lor din `--robust`. Singura diferență e că ieșirile au acum și Era 4, la coadă. `tune_tycoon.py eval` dă aceleași cifre; rândul cu toate verigile le listează acum și pe ale Erei 4, la 0%.
 
@@ -343,20 +356,23 @@ Piesele au intenționat o valoare ne-zero, ca un venit care le-ar număra să pi
 |---|---|---|
 | venitul la baraj | 19,6B/s (×16,2) | 19,57B/s (×16,2) |
 | cei șase oameni noi | 1,58T (4,5%) | 1,58T (4,5%) |
-| primele 5 minute (C5) | 8,13T | 7,48T |
+| primele 5 minute (C5) | 8,13T | 7,85T |
 | o noapte la Works Bell | 34,86T | 34,86T |
 | `START_SUM` | 35T | **35T** |
-| Era 4, cu suma | 41m49s | 1h05m reale (fără bani: 1h14m) |
-| cel mai lung platou (venit pe loc) | 16m41s (pica) | 7m51s (Erele 1–3: 6m28s / 9m10s / 10m51s) |
-| cel mai lung tronson cu creștere sub 10% | — | 20m06s (Erele 1–3: 9m30s / 15m25s / 20m58s) |
+| Era 4, cu suma | 41m49s | 54m48s reale (fără bani: 1h03m) |
+| cel mai lung platou (venit pe loc) | 16m41s (pica) | 6m32s (Erele 1–3: 6m28s / 9m10s / 10m51s) |
+| cel mai lung tronson cu creștere sub 10% | — | 17m38s (Erele 1–3: 9m30s / 15m25s / 20m58s) |
+| capitolul (plasele cum ai banii) | — | 41m33s, Kiln la 15m21s, platou 6m32s, creștere sub 10% 8m07s, pauza 2m38s lacome (4m44s reali; poarta: 3 minute lacome) |
+| plafoanele pașilor de venit (`dam_ceiling`) | — | 2,37T/s înainte de Kiln (pasul cere 1T/s), 4,89T/s înainte de clopot (pasul cere 4T/s) |
+| la Dam Bell | — | 5,38T/s; cristalul aduce 51,5% din bani |
 
 **Ce e în cod:**
 - **Tabelele** din §2: patru linii noi (`barrels`, `cable`, `grid`, `crystal`), `closeFlag = "dam"` pe cele șase vechi, cinci clădiri (Switchyard, Cable Works, Relay, Kiln, orașul), 15 oameni (`ERA4_ROLES`), bunurile și prinderile fără găsiri.
 - **`dam_transform`**, pe o clonă a stării de la Works Bell: barajul, cei cinci veterani pe treapta 1, turbina zidită (rang 5) și Cable Net 1 gratis, suma de start.
-- **`ERA4_UNLOCKS` pe familii:** cei șase în rafală (9–18 secunde de venit, ca oamenii capitolului 1), plasele de cablu și a doua turbină (după a treia plasă de cablu), Kiln doar cu toți cei 11 și a patra plasă de cablu, Crystal Net, **Crystal Shed** (în oglindă cu Battery Shed; planul nu-l numea), cei patru ai cristalului, al doilea om pe fiecare meserie a erei, Dam Bell. Al doilea om al erelor vechi nu mai e de cumpărat: liniile lor sunt închise.
-- **Quest-ul „nivelul 2 pe ultima plasă”, pe familii:** era își spune singură plasa (`quest_net`). Ca în Erele 2–3, capitolul cere nivelul 2 pe plasa dinaintea atelierului erei (aici a patra de cablu), apoi atelierul (Kiln-ul).
+- **`ERA4_UNLOCKS` pe familii:** cei șase în rafală (9–18 secunde de venit, ca oamenii capitolului 1), plasele de cablu și a doua turbină (după a treia plasă de cablu), Kiln doar cu toți cei 11 și a treia plasă de cablu (`KILN_CABLE_NETS`), Crystal Net, **Crystal Shed** (în oglindă cu Battery Shed; planul nu-l numea), cei patru ai cristalului, al doilea om pe fiecare meserie a erei, Dam Bell. Al doilea om al erelor vechi nu mai e de cumpărat: liniile lor sunt închise.
+- **Quest-ul „nivelul 2 pe ultima plasă”, pe familii:** era își spune singură plasa (`quest_net`). Ca în Erele 2–3, capitolul cere nivelul 2 pe plasa dinaintea atelierului erei (aici a treia de cablu), apoi atelierul (Kiln-ul), dar abia după pasul de venit de 1T/s.
 - **`AWAY`** și `away_income`, ca `idleOnly` din ChainMath: cât lipsești, pașii fără om nu merg, iar vânzătorul fără omul lui nu vinde.
-- **`DamRun` / `play_era4`:** cele două rulări din §5. Rularea cu suma primește prețurile celei fără bani (`seed_prices`).
+- **`DamRun` / `play_era4`:** cele două rulări din §5. Rularea cu suma primește prețurile celei fără bani (`seed_prices`). A treia rulare e capitolul: pe aceleași prețuri și cu aceeași sumă, plasele de cablu și a doua turbină se iau cum ai banii, în ordinea `DAM_CHAPTER`, după pașii de venit; pentru pasul curent strângi cât banii vin în cel mult 60 de secunde de venit (`DAM_CHAPTER_PATIENCE`; între 30 și 120, aceeași cronologie). O deblocare de după un pas de venit (`DAM_CHAPTER_STEPS`) nu se vede în rularea asta până la prag, nici pentru lacom: capitolul nu o arată.
 - **Porțile:** `check_run_era(4)` pe rularea cu suma, apoi `check_dam`:
   - suma sare cel mult 25%;
   - saltul la baraj e între 8 și 30;
@@ -364,27 +380,61 @@ Piesele au intenționat o valoare ne-zero, ca un venit care le-ar număra să pi
   - cei șase costă cel mult 10% din sumă;
   - platoul e cel mult cât cel mai lung din Erele 1–3;
   - tronsonul cu creștere sub 10% e cel mult cât cel mai lung din Erele 1–3;
-  - nicio meserie nu are mai mult de jumătate din treptele luate pe veriga arătată cu câștig zero.
-- **`robust_era4`:** 15 constante × 2, fiecare cu ambele rulări, cu pragul verigilor pe jumătate (ca la Erele 2–3) și cu marja `ROBUST_FLAT_SLACK = 1,35` pentru platou și pentru creșterea sub 10%. La ±15%, Era 4 ține între 45m34s și 1h08m, platoul iese cel mult 10m24s (sub 10m51s chiar fără marjă), iar creșterea sub 10% cel mult 23m16s.
-- **Testele de mână, în `check_lines.py`:** `nice_up`, `longest_flat`, `longest_crawl`, `spend_share`, `away_income` (și că `AWAY` revine după o eroare), `dead_tiers`.
+  - pe rularea capitolului: platoul, creșterea sub 10%, durata (40–75 de minute reale) și pauza (cel mult 3 minute);
+  - plafonul fiecărui pas de venit e cu cel puțin 10% peste prag (`DAM_STEP_MARGIN`): pentru Kiln, cel de dinaintea Kiln-ului (fără cristal), pentru turbina a doua, cel de dinaintea clopotului;
+  - nicio meserie nu are mai mult de jumătate din treptele luate pe veriga arătată cu câștig zero;
+  - al doilea om al unei meserii costă mai mult decât treapta ei 5. Podeaua din prețuri e 1,25 × treapta 5, înainte de rotunjire (`SECOND_FLOOR`, din `price_floor`); `nice()` poate lua până la 7%, deci Cable Collector-ul iese 45T, adică 1,23×.
+- **`robust_era4`:** 15 constante × 2, fiecare cu toate trei rulările, cu pragul verigilor pe jumătate (ca la Erele 2–3) și cu marja `ROBUST_FLAT_SLACK = 1,35` pentru platou și pentru creșterea sub 10%. La ±15%, Era 4 ține între 43m53s și 55m30s, platoul iese cel mult 6m34s, iar creșterea sub 10% cel mult 18m07s; amândouă sub cele mai lungi din Erele 1–3 (10m51s și 20m58s) chiar fără marjă. Capitolul ține între 41m16s și 44m38s, cu pauza cel mult 2m38s lacome. (Înainte de a doua rundă: 45m34s–1h08m, 10m24s, 23m16s.)
+- **Testele de mână, în `check_lines.py`:** `nice_up`, `longest_flat`, `longest_crawl`, `spend_share`, `away_income` (și că `AWAY` revine după o eroare, și zero cu linia lemnului plină fără Innkeeper), `dead_tiers`, `walker_ties` (bazele Erei 4 n-au nicio egalitate în unire și pe cristal; doi colectori la 4,0 o au, la fel cristalul în oglinda Erei 3), `Chain.solo` (la egalitate niciuna dintre verigi nu aduce singură).
 - **Raportul Erei 4:** suma și din ce vine, saltul, AWAY, platourile și creșterea sub 10% pe ere, banii pe linii, prețurile, apoi monedele Robux păstrate peste sumă (doar raport).
 
 **Ce a găsit verificatorul și cum s-a reparat:**
-- **Egalități permanente.** Dam Collector și Cable Collector aveau aceeași bază (4,0), la fel Cable Hauler și Pylon Runner (7,0). Pașii celor două piese intră în același minim al unirii, deci egalitatea ținea toată era, iar fiecare treaptă pe veriga arătată dădea zero. Bazele sunt acum diferite și nu se pot egala pe trepte: Dam Collector 4,4, Dam Porter 6,2, Pylon Runner 6,5.
+- **Egalități permanente.** Dam Collector și Cable Collector aveau aceeași bază (4,0), la fel Cable Hauler și Pylon Runner (7,0). Pașii celor două piese intră în același minim al unirii, deci egalitatea ținea toată era, iar fiecare treaptă pe veriga arătată dădea zero. Bazele au devenit diferite (Dam Collector 4,4, Dam Porter 6,2, Pylon Runner 6,5), dar se mai egalau pe trepte; a doua rundă le-a schimbat din nou (mai jos).
 - **Platoul măsura doar creșterea exact zero.** Un șir de niveluri de plasă de +0,3% repornea numărătoarea, deși pe ecran cifra abia se mișca. Cu uneltele la prețul Erelor 1–3, suma de start le cumpăra pe toate în primele minute. Cei doi colectori ajungeau la plafon (2 oameni × treapta 5) devreme, iar venitul creștea sub 10% timp de 26 de minute. Remediul, din cifre (D70 Runda 5):
   - **uneltele oamenilor barajului costă dublu** (`ROLE_COST_MULT = 2 × ERA4_MULT`);
-  - **scara Erei 4 pornește de la 7,0.**
+  - **scara Erei 4 pornește de la 7,0** (6,5 după a doua rundă).
 
-  Am încercat și Kiln după a treia plasă de cablu (platou mai scurt, dar Era 4 sub 40 de minute și jumătate din verigi decor) și a doua turbină după Kiln (Era 4 spre 75 de minute).
+  Am încercat și Kiln după a treia plasă de cablu (platou mai scurt, dar Era 4 sub 40 de minute și jumătate din verigi decor) și a doua turbină după Kiln (Era 4 spre 75 de minute). A doua rundă l-a adoptat totuși, cu uneltele scumpe, bazele noi și a doua măsură pentru decor.
 - **AWAY lăsa orașul să vândă fără om.** Jocul (`idleOnly`) nu o face; acum nici simulatorul.
-- **Quest-ul Kiln-ului nu se aprindea niciodată.** Acum capitolul cere nivelul 2 pe a patra plasă de cablu, apoi Kiln-ul.
+- **Quest-ul Kiln-ului nu se aprindea niciodată.** Acum capitolul cere nivelul 2 pe plasa de cablu dinaintea Kiln-ului (a patra în prima rundă, a treia după a doua), apoi Kiln-ul.
 - **O egalitate între piese dă uneori o treaptă cu zero** (riscul 3). E cinstit [D46], iar ecranul numește linia cealaltă. Poarta prinde doar egalitatea permanentă.
+
+**A doua rundă a verificatorului (2026-10-01) și ce s-a schimbat după ea:**
+- **Bazele din prima rundă se mai egalau pe trepte și oameni** (de pildă Barrel Hauler 7,5 × 2 = Cable Porter 5,0 × 3). Bazele noi n-au nicio egalitate între cei șapte oameni ai unirii, la orice treaptă (1–5) și oricâți oameni (1–2): Dam Collector 4,7, Dam Porter 6,3, Barrel Hauler 7,3, Cable Porter 5,4, Cable Hauler 6,7; Pylon Runner-ul rămâne la 6,5 (la 6,1, `check_hire_order` pica la −15%). Cu clădirile Erei 4 rămân câteva egalități la niveluri anume, trecătoare. `walker_ties` le fixează pe cele între oameni.
+- **Cu Kiln-ul după a patra plasă de cablu, „târârea” nu cobora sub 22 de minute,** oricum am fi pus scara sau uneltele (Erele 1–3: cel mult 20m58s). Kiln-ul vine acum după a treia plasă, iar scara Erei 4 pornește de la 6,5. A patra plasă și a doua turbină rămân pentru Dam Bell; lacomul le ia după cristal.
+- **Verigile pieselor ieșeau decor** cu Kiln-ul devreme: cristalul ține venitul o bună parte din eră, deci cota pieselor ca verigă care ține tot venitul scădea sub prag. Pentru Era 4, o verigă e decor doar dacă e sub prag și pe a doua măsură, `gain_time`: cât timp o treaptă sau un nivel doar pe ea ar fi adus câștig (după a treia rundă, fără secundele de egalitate: `Chain.solo`). Erele 1–3 nu folosesc măsura nouă, deci ies la fel.
+- **Al doilea om era mai ieftin decât treapta 5 a meseriei lui** (uneltele s-au scumpit, oamenii nu). Meniul ar fi lăudat treapta. Acum podeaua e 1,25 × treapta 5 (în Erele 1–3 primul al doilea om al erei costă de 1,6–2,5 ori cât treapta 5, ceilalți mult mai mult). La 1,5, „târârea” ieșea 22m12s.
+- **Factorul uneltelor n-avea nume în joc:** `StationConfig.TOOL_COST_MULT` (gol pentru Erele 1–3, deci aceleași prețuri), comparat de `check_config_constants`.
+- **Plasele de cablu nu sunt quest-uri în simulator.** Modelate ca quest-uri, cu prețurile derivate din nou, Era 4 cădea la 11 minute: suma de start cumpăra tot. Capitolele (pasul k) le cer totuși, în ordinea `DAM_CHAPTER`; a treia și a patra rundă au pus capitolul printre porți (mai jos).
+
+**A treia rundă a verificatorului (2026-10-01):**
+- **Cristalul stătea la egalitate ~31 de minute reale** (57% din eră): Crystal Collector pe treapta 5 și Crystal Porter pe treapta 4 duceau amândoi 10/s (2,0 × 5 = 2,5 × 4, oglinda compromisului D56). Jocul ar fi arătat Crystal Collector drept veriga care ține venitul, iar fiecare cumpărătură pe ea dădea zero. Lacomul nu le atingea deloc (al doilea Crystal Collector și Porter rămâneau necumpărați), iar în Erele 1–3 aceeași egalitate ține ~4 minute. Crystal Porter are acum baza 2,7, iar `walker_ties` verifică și linia cristalului. Lacomul ia acum ambii oameni secunzi ai cristalului. Cristalul aduce 51,5% din bani la Dam Bell (34,7% înainte), venitul final e 5,38T/s (3,99T/s), iar Dam Bell costă 700T (500T).
+- **Capitolul putea cumpăra a treia plasă din primul minut.** Plasa costă 5,5T din cei 35T ai sumei. Cine o ia atunci are Kiln-ul de 100T la 86B/s: cu regula quest-urilor din simulator (strângi și nu mai cumperi altceva), Era 4 ar fi ținut 1h42m, cu un platou de 1h07m. Prima reparație a fost un prag de venit pe platforma Kiln-ului (1T/s), cu a treia rulare din `DamRun` pentru capitol; runda a patra a schimbat-o (mai jos).
+- **Podeaua celui de-al doilea om nu era o poartă,** deși planul o trecea printre ele. Iar prin scara strict crescătoare, ea urcă și deblocările de după cei șapte oameni: Kiln-ul 80T → 100T, Crystal Net 100T → 120T, a doua turbină 75T → 90T, a patra plasă 90T → 110T (Era 4: 50m49s → 54m48s). Poarta din `check_dam` cere acum ce contează pentru meniu: omul e mai scump decât treapta 5. Fără podea ar pica (al doilea Dam Collector la 35T, al doilea Cable Collector la 30T, treapta 5 la 36,45T).
+- **`gain_time` număra și egalitățile drept câștig** (`credit` dă câștig fiecărei verigi egale). Acum numără doar `Chain.solo`: verigile care aduc ceva singure, ca în meniul jocului.
+
+**A patra rundă a verificatorului (2026-10-01):**
+- **Pragul de pe platformă îl prindea pe cine urmează quest-ul.** „Build the Kiln” se aprindea din minutul 0, cu Kiln-ul încuiat până la 1T/s. Cine strânge pentru quest, cum l-au învățat Erele 1–3, ajungea la 100T după ~25 de minute, cu venitul pe loc, și găsea Kiln-ul tot încuiat. Iar pragul pe platformă cerea în joc ca toți cititorii condițiilor (`meetsNeeds`, `padStatuses`, `padBlocker`, `PadService.Statuses` / `Buy` / `Deltas`, `PadController.ruinNeeds`) să primească venitul. **Acum pragul e un pas de capitol, nu o condiție pe platformă:** „Make 1T coins a second” înaintea Kiln-ului (quest-ul Kiln-ului din simulator îl cere), cu ghidajul pe veriga slabă cât ține. Kiln-ul rămâne o platformă obișnuită. A treia plasă îl duce pe lacom peste prag (966B/s → 1,01T/s), deci cronologia lui nu se schimbă.
+- **Rularea capitolului scăpa de porțile duratei și ale pauzei, și le-ar fi picat.** Cine lua a doua turbină și a patra plasă cum avea banii ajungea la clopot cu 3,2T/s și strângea 700T aproape 4 minute fără nimic de apăsat (216 s, peste cele 180). Capitolul cere acum și un pas de venit înaintea lor (`DAM_LATE_INCOME`; 4,5T în runda a patra, 4T după a cincea), iar rularea capitolului trece prin porțile duratei și pauzei.
+- **Ce venit compară pasul:** cel din HUD, cu pass-urile (2x Flow îl grăbește, ca la quest-ul AWAY). Owner-ul, ca și creator, are toate pass-urile în Studio: ritmul Erei 4 se judecă după ce le stinge din rândul `robux` al consolei de dev.
+
+**A cincea rundă a verificatorului (2026-10-01):**
+- **Pragul de 4,5T stătea la 92% din plafon** (4,89T/s: toți oamenii la 2 × treapta 5, plasele și clădirile la nivelul 400). Cu Crystal Collector la −15%, plafonul coboară la 4,51T: pasul abia se mai mișca, iar rularea capitolului l-a sărit fără ca vreo poartă să vadă (lacomul a cumpărat turbina sub prag). Acum pragul e 4T (82%), deblocările de după un pas de venit nu se văd în rularea capitolului până la prag, iar `check_dam` cere ca plafonul (`dam_ceiling`) să fie cu 10% peste fiecare prag, și la `--robust`.
+- **A încercat și ordinea cealaltă** (turbina și a patra plasă imediat după cristal, pasul de venit înaintea clopotului). Iese mai rău: capitolul cumpără turbina înaintea Kiln-ului (o vede din a treia plasă), iar amândouă tot nu aduc nimic. Turbina și a patra plasă sunt doar condiții ale clopotului: la lacom aduc +0,10% și 0%. Cartonașul lor spune asta (rândul k).
+- **Ghidajul, contorul, puntea și testele** pentru pasul k sunt acum scrise în plan (corectate în runda a șasea): veriga arătată cât ține un pas de venit e una pe care se mai poate cumpăra ceva (spre plafon, veriga globală e un Crystal Collector plin); contorul „966B/1T” printr-o singură funcție, care încape în cutii; pragurile ca scalari în `StationConfig`, citiți de `QuestConfig` și comparați de simulator; testele din §8.
+
+**A șasea rundă a verificatorului (2026-10-01):**
+- **Reparate:** plafonul pasului Kiln-ului se socotește acum pe starea de dinaintea Kiln-ului (2,37T/s, fără cristal), nu pe cea de la clopot; pauza capitolului se scrie cu unitatea ei (lacomă, ca poarta); contorul din listă fără paranteze, verbul „Earn” (ca „Earn 1 coin a second while away”), linia NEXT fără preț pe un quest de venit, cartonașul „Needed for the Dam Bell” în locul ramurii „câștig zero”.
+- **DESCHIS, de hotărât de owner înainte de pasul k: a doua turbină și a patra plasă.** Pe hartă se pot cumpăra imediat după a treia plasă de cablu (ca orice platformă cu condiția împlinită), iar rularea capitolului le ascunde până la pasul de 4T/s. Cine le cumpără când apar, cum le arată harta, deschide Dam Bell pe la minutul 27, cu ~2,4T/s. Strânge apoi 700T: ~4m47s lacome, peste poarta de 3 minute. Sună clopotul pe la minutul 38, sub cele 40 de minute ale unei ere. Rădăcina e în economie: venitul Erei 4 se apropie de plafon (~4,9T/s) pe la minutul 40, iar clopotul e ținut în urmă doar de două platforme care nu aduc nimic (+0,10% / 0%). Variantele, ca pași de joc:
+  1. **Clopotul se deschide la un venit** („Dam Bell opens at 4T coins a second”, pe cartonaș), iar turbina a doua și a patra plasă dispar din eră, pentru că nu aduc nimic. Era 4 ar ține ~40 de minute.
+  2. **Turbina și plasa rămân, dar se deschid abia la pasul de venit** (cartonașul scrie pragul). Plătești 200T pe două lucruri care nu urcă venitul, apoi strângi pentru clopot aproape 3 minute.
+  3. **Era 4 primește loc de creștere la final** (de pildă o a treia treaptă a cristalului), ca venitul să nu stea lângă plafon. E mai multă muncă de economie, iar era rămâne pe la ~55 de minute.
 
 **Ce a ieșit altfel decât în plan:**
 - **`check_hire_order` rămâne pe linii, nu pe bazin.** Pe linie, ultimul drum al fiecărei linii trebuie să ducă tot timpul tău (5,4). Pe bazin i s-ar cere doar partea lui din pașii rămași. Regula pe linii e deci mai strictă și o acoperă pe cea pe bazin.
-- **`check_config_constants` compară `ROLE_BASE` doar pe erele din configurație** (`CONFIG_ERAS = (1, 2, 3)`). Era 4 intră în `StationConfig` la pasul f, iar atunci `CONFIG_ERAS` primește 4.
+- **`check_config_constants` compară `ROLE_BASE` doar pe erele din configurație** (`CONFIG_ERAS = (1, 2, 3)`), la fel `TOOL_COST_MULT`. Era 4 intră în `StationConfig` la pasul f, iar atunci `CONFIG_ERAS` primește 4.
 - **„~2–3 minute fără câștig cât lipsești” vine din rularea fără bani.** Cu suma de start, cei șase costă 4,5% din ea și se pot angaja din prima clipă. AWAY = 0 ține doar cât faci drumul la aviziere. Textul din joc (pasul k) spune ce faci („angajează cei 6”), nu minute.
 - **Marja de la `--robust`** (1,35) a fost aleasă după ce se văzuse cel mai rău caz al primei variante (14m04s). E o marjă de zgomot, nu o dovadă.
-- **Timpul simulatorului s-a dublat** (10,5 → ~23 s pentru rularea simplă, ~10 minute pentru `--robust`): Era 4 se joacă de două ori, iar lanțul are patru linii în plus.
+- **Timpul simulatorului s-a dublat** (10,5 → ~26 s pentru rularea simplă, peste 10 minute pentru `--robust`): Era 4 se joacă de trei ori (fără bani, cu suma, capitolul), iar lanțul are patru linii în plus.
 
 **Următorul pas: e** (`golden_chain.py --era4` → `GOLDEN_ERA4`).

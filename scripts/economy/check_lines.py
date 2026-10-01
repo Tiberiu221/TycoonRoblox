@@ -318,6 +318,11 @@ def join_problems(expect):
         return f
 
     expect("egalitate: doar Collector-ul bateriilor nu aduce nimic", T.gain_of(s, tier_up("probeBatCollector")), 0.0)
+    expect("egalitate: niciuna singura (`solo`)", c.solo & {"probeBatCollect", "probeWireCollect"}, set())
+    apart = T.clone(s)
+    tier_up("probeWireCollector")(apart)
+    expect("fara egalitate: Collector-ul bateriilor singur (`solo`)",
+           T.chain(apart).solo & {"probeBatCollect", "probeWireCollect"}, {"probeBatCollect"})
     expect("egalitate: doar Collector-ul cablului nu aduce nimic", T.gain_of(s, tier_up("probeWireCollector")), 0.0)
     expect("egalitate: amandoi aduc 0.8 x 50", T.gain_of(s, tier_up("probeBatCollector", "probeWireCollector")), 40.0)
     # amandoua piesele au castigul unei bucati in plus: dupa o treapta la bateriile, veriga ramasa e a cablului, iar
@@ -385,6 +390,7 @@ def join_problems(expect):
     expect("piesa cat releul: ce intra si releul", (grid.supply, dict(grid.rates)["probeRelay"]), (1.4, 1.4))
     expect("piesa cat releul: veriga unirii", (grid.bottleneck, grid.held_by), ("probeWireCollect", "probeWire"))
     expect("piesa cat releul: castigul pe amandoua", (c.gains["probeRelay"], c.gains["probeWireCollect"]), (50.0, 50.0))
+    expect("piesa cat releul: niciuna singura (`solo`)", c.solo & {"probeRelay", "probeWireCollect"}, set())
     expect("piesa cat releul: veriga care tine venitul", c.bottleneck, "probeWireCollect")
     expect("piesa cat releul: bateriile tinute de unire", (bat.by_consumer, bat.bottleneck, bat.held_by),
            (True, "probeWireCollect", "probeWire"))
@@ -474,6 +480,38 @@ def tool_problems(expect):
     expect("nice: peste 9 x 10^24 simulatorul se opreste", nice(1e26), "oprire")
 
 
+def walker_ties(T, bases=None):
+    """[D70] Oamenii care pot sta la egalitate in minimul unei uniri sau al unei linii a bazinului (de la Era 4): pasii
+    pieselor si ai unirii intra in acelasi minim, deci doi oameni cu acelasi produs baza x treapta x oameni tin unirea
+    impreuna, iar treapta luata pe veriga aratata de joc da zero (riscul 3 din plan). La fel pe o linie singura (cristalul).
+    Erele 1-3 raman cu compromisul lor (D56: Collector-ul pe treapta 5 cat Porter-ul pe 4, cateva minute la coada erei).
+    Intoarce (grupul, rolurile, cat duc) pentru fiecare egalitate; [] = niciuna."""
+    from fractions import Fraction
+
+    bases = T.ROLE_BASE if bases is None else bases
+    groups = {}
+    for name, spec in T.LINES.items():
+        if "inputs" in spec:
+            groups[name] = (*spec["inputs"], name)
+        elif "pool" in spec and "into" not in spec:
+            groups[name] = (name,)
+    found = []
+    for group, lines in groups.items():
+        carried = {}
+        for line in lines:
+            for role, _link, kind in T.LINES[line]["steps"]:
+                if kind != "walk":
+                    continue
+                for tier in range(1, T.TIER_MAX + 1):
+                    for count in range(1, T.MAX_PEOPLE + 1):
+                        rate = Fraction(str(bases[role])) * Fraction(str(T.tier_mult(tier))) * count
+                        carried.setdefault(rate, set()).add(role)
+        for rate, roles in sorted(carried.items()):
+            if len(roles) > 1:
+                found.append((group, tuple(sorted(roles)), float(rate)))
+    return found
+
+
 def dam_gate_problems(expect):
     """[D70] Uneltele portilor barajului (pasul d), cu cifre socotite de mana: suma de start, platoul, "tararea",
     cheltuiala unui buget, venitul cat lipsesti si treptele moarte."""
@@ -510,6 +548,20 @@ def dam_gate_problems(expect):
     except Exception:
         pass
     expect("away_income: AWAY redevine fals si dupa o eroare", T.AWAY, False)
+    # un vanzator fara omul lui vinde zero cat lipsesti, chiar cu toata linia lemnului plina (ChainMath `idleOnly`)
+    s = era1_state(T)
+    staff(s, T, ("collector", "porter", "sawyer", "hauler"), 2, 5)
+    s.crews["trader"] = T.Crew()
+    expect("away_income: linia plina fara Innkeeper, zero cat lipsesti", (T.income(s) > 0, T.away_income(s)), (True, 0.0))
+    s.crews["trader"] = T.Crew(1, 1)
+    expect("away_income: cu Innkeeper, vinde si cat lipsesti", T.away_income(s) > 0, True)
+    # egalitatile din unire: bazele Erei 4 n-au niciuna, iar cele de dinainte de verificator (doi colectori la 4.0) da
+    expect("walker_ties: bazele Erei 4, nicio egalitate in unire", walker_ties(T), [])
+    tied = dict(T.ROLE_BASE, damCollector=T.ROLE_BASE["cableCollector"])
+    expect("walker_ties: doi colectori cu aceeasi baza", walker_ties(T, tied)[0], ("grid", ("cableCollector", "damCollector"), 4.0))
+    mirrored = dict(T.ROLE_BASE, crystalPorter=2.5)  # oglinda Erei 3: 2.0 x 5 = 2.5 x 4
+    expect("walker_ties: cristalul in oglinda Erei 3", walker_ties(T, mirrored)[0],
+           ("crystal", ("crystalCollector", "crystalPorter"), 10.0))
     # treptele moarte: doar cele luate cat meseria era veriga slaba aratata
     tiers = [
         ("Collector tier 2", "collect", 1, 1, 10.0, "collect"),

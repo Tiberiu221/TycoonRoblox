@@ -60,6 +60,9 @@ StationConfig.ERA3_MULT = 9000000.0
 -- (si de ERA3_MULT ori in Era 3: `ERA_MULT`).
 StationConfig.NETS_PER_ERA = 5
 StationConfig.ERA_MULT = { 1.0, StationConfig.ERA2_MULT, StationConfig.ERA3_MULT }
+-- [D70] uneltele unei ere pot costa mai mult decat cadrul ei (lipsa = 1). Era 4 le are la 2 (sim_tycoon.py,
+-- `ERA_TOOL_MULT`); intra aici odata cu era ei, iar check_config_constants compara fiecare era din configuratie.
+StationConfig.TOOL_COST_MULT = {} :: { [number]: number }
 -- pe ce banda sta fiecare plasa: Era 1, Era 2, Era 3
 StationConfig.NET_LANES = { 1, 1, 2, 2, 3, 1, 1, 2, 2, 3, 1, 1, 2, 2, 3 }
 -- [D55] ce prinde fiecare: ultima plasa a Erei 1, cea din larg, prinde scrap (TycoonConfig.CATCH). [D65] Plasele Morii
@@ -175,6 +178,7 @@ for era, roles in StationConfig.ERA_ROLES do
         eraOfRole[role] = era
         if era > 1 then
             roleCostMult[role] = StationConfig.ERA_MULT[era]
+                * (StationConfig.TOOL_COST_MULT[era] or 1)
         end
     end
 end
