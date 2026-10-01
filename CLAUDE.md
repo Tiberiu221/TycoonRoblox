@@ -121,9 +121,9 @@ stylua/selene o prind. Rulează-le mereu pe toate, nu înlănțuite după o eroa
   din D70 „Runda 4" (piesele se vând doar unite, startul e 35T cu AWAY 0 până la cei 6 oameni, cristalul se vinde și în
   Era 4) și „Runda 5" (veteranii pe butoaie, cablul de mână, Pylon Runner, fără găsiri sub baraj, pauza reparată din
   cifre).
-- **Pasul d (Era 4 în simulator) e făcut, cu șase runde de verificator** (2026-10-01, §11 din plan): Era 4 ține 54m48s
-  reali; capitolul, jucat a treia oară în `DamRun`, ține ~42 de minute, cu pași de venit („Earn 1T/4T coins a second”).
-  **Deschis pentru owner:** a doua turbină și a patra plasă nu aduc nimic, dar deschid Dam Bell (trei variante în §11).
+- **Pasul d (Era 4 în simulator) e făcut, cu șase runde de verificator** (2026-10-01, §11 din plan). Owner-ul a ales
+  varianta 1 (D70 Runda 6): Dam Bell se deschide la 4T/s, fără a doua turbină și a patra plasă. Era 4 ține 45m16s reali
+  (scara de la 8,5); capitolul, jucat a treia oară în `DamRun`, ~44 de minute, cu pasul „Earn 1T coins a second”.
 - **Finalul ce e în joc (2026-09-30):** după clopotul ultimei ere din joc vine bannerul „The Dam is coming soon!”, iar
   ultimul capitol, lista de quest-uri (rândul de final) și masa „Dam Plans” spun același lucru. Toate citesc
   `TycoonConfig.comingEra()`, deci tac singure când Era 4 intră în joc. **Plafonul de după clopot** (verificatorul, cu

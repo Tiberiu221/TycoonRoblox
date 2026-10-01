@@ -108,6 +108,12 @@ mai mare dintre costul primelor 5 minute ale Erei 4 și o noapte fără pass-uri
   oameni pe meserie rămâne.
 Rămân pentru mai târziu întrebările 5 (limita monedelor Robux) și 9–12 (Erele 5–8, numele).
 
+**Runda 6 (owner, 2026-10-01: „ia varianta recomandată”)**, după șase runde de verificator pe pasul d al motorului
+(`docs/PLAN-MOTOR-UNIRE.md` §11): **Dam Bell se deschide la un venit** (4T monede pe secundă, scris pe cartonaș), iar
+**a doua turbină și a patra plasă de cablu ies din Era 4**. Nu aduceau nimic (colectorii erau deja plini), iar pe hartă
+deschideau clopotul pe la minutul 27, urmat de minute de strâns fără nimic de apăsat. Între a treia plasă de cablu și
+Kiln, capitolul cere „Earn 1T coins a second”. Era 4 ține ~45 de minute în simulator (scara de la 8,5).
+
 **Regula „nimic nu se pierde”, amendată** (CLAUDE.md): la schimbarea de hartă aleasă de jucător („Build the Dam”, drumul
 spre Era 8) toți pornesc cu aceeași sumă. Ce e peste ea intră în construcție, e scris pe placă și e anunțat dinainte.
 Nimic plătit nu se taie, venitul crește, iar din profil nu se șterge nimic.

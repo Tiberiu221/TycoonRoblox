@@ -1199,7 +1199,7 @@ UNLOCK_STAGE.update({
     "powerhouse": "powerhouse", "batteryShed": "batteryCollect", "bell3": "depot",
     **{_role: LINK_OF[_role] for _role in ERA3_ROLES},
     # [D70] Era 4
-    "cableNet2": "nets", "cableNet3": "nets", "cableNet4": "nets", "damTurbine2": "nets", "crystalNet": "nets",
+    "cableNet2": "nets", "cableNet3": "nets", "crystalNet": "nets",
     "kiln": "kiln", "crystalShed": "crystalCollect", "bell4": "town",
     **{_role: LINK_OF[_role] for _role in ERA4_ROLES},
 })
@@ -1453,47 +1453,50 @@ ERA3 = {
 # ---- ERA 4, "THE DAM" [D70] ----------------------------------------------------------------------------------------
 # Planul: docs/PLAN-MOTOR-UNIRE.md (sectiunile 2 si 5), cu hotararile owner-ului din D70 Runda 4 si 5. Barajul nu e o
 # deblocare de pe scara: e schimbarea de harta pe care o alegi dupa Works Bell. `dam_transform` face din starea de la
-# clopot starea de la baraj, iar era se joaca de acolo, de doua ori (`play_era4`).
+# clopot starea de la baraj, iar era se joaca de acolo, de trei ori (`play_era4`: fara bani, cu suma, capitolul).
 #     cei cinci veterani lucreaza butoaiele; turbina din zid si Cable Net 1 vin gratis; tu faci turul cablului
-#     -> cei sase ai cablului si ai unirii, in rafala (capitolul 10) -> plasele de cablu si a doua turbina, pe familii
+#     -> cei sase ai cablului si ai unirii, in rafala (capitolul 10) -> plasele de cablu 2 si 3
 #     -> Kiln (doar cu toti cei 11, ca bazinul sa nu-ti imparta timpul) -> Crystal Net -> Crystal Shed -> cei patru
-#     -> Dam Bell
+#     -> Dam Bell, la DAM_BELL_INCOME
 DAM_VETERANS = ("damCollector", "damPorter", "switchman", "barrelHauler", "dispatcher")
 DAM_HIRES = ("cableCollector", "cablePorter", "cablemaker", "cableHauler", "relayKeeper", "pylonRunner")
 DAM_CREW = DAM_VETERANS + DAM_HIRES
-DAM_NETS = {"dam": 2, "cable_ore": 4, "crystal": 1}  # cate plase are fiecare familie la Dam Bell
+# cate plase are fiecare familie la Dam Bell. [owner, 2026-10-01, varianta 1 din PLAN-MOTOR-UNIRE §11] Fara a doua
+# turbina si a patra plasa de cablu: nu aduceau nimic (+0.10% / 0%, colectorii erau deja plini), iar pe harta deschideau
+# clopotul pe la minutul 27.
+DAM_NETS = {"dam": 1, "cable_ore": 3, "crystal": 1}
 # RISCUL 1 DIN PLAN, PLATOUL: cei doi colectori (butoaie si cablu) ajung la maxim (2 oameni x treapta 5) si tin unirea,
 # iar venitul se taraste (niveluri de plasa de +0.3%) pana la cristal. Cu Kiln-ul dupa a patra plasa de cablu, venitul
 # crestea sub 10% timp de 22-30 de minute (Erele 1-3: cel mult 20m58s), oricum ar fi fost scara sau uneltele. Dupa a
 # treia, cristalul vine inaintea zidului: platoul 6m32s, "tararea" 17m38s (cu uneltele la pret dublu, ERA_TOOL_MULT, si
-# scara de la 6.5). A patra plasa si a doua turbina raman, pentru Dam Bell; capitolul le cere dupa Kiln.
+# scara de la 6.5). A treia plasa e acum ultima de cablu.
 KILN_CABLE_NETS = 3
 # [verificator, 2026-10-01] PASII DE VENIT AI CAPITOLULUI. A treia plasa de cablu costa 5.5T, deci suma de start o
 # cumpara din primul minut. Daca dupa ea capitolul ar cere Kiln-ul de 100T, cine strange pentru el (regula quest-urilor)
 # ar sta la 86B/s: era 1h42m, platoul 1h07m. Intre plasa si Kiln capitolul cere deci un venit ("Earn 1T coins a
 # second"): cat tine pasul, ghidajul arata veriga slaba, nu pretul Kiln-ului, iar quest-ul Kiln-ului vine abia dupa.
-# La fel inainte de a doua turbina si a patra plasa, care deschid Dam Bell: cine le lua cum avea banii ajungea la
-# clopot cu 3.2T/s si strangea 700T fara nimic altceva de apasat. Pragurile sunt pasi de capitol, nu conditii pe
-# platforme: Kiln-ul ramane de cumparat oricand ai banii. DESCHIS (owner, inainte de pasul k): pe harta, turbina a doua
-# si a patra plasa se pot cumpara din a treia plasa de cablu, iar rularea capitolului le ascunde pana la prag. Cine le
-# ia cand apar suna clopotul pe la minutul 38, dupa ~4m47s lacome de strans (poarta: 3 min). Vezi PLAN-MOTOR-UNIRE §11. A treia plasa il duce pe lacom peste primul prag (966B/s ->
-# 1.01T/s), deci cronologia lui nu se schimba. Rularea capitolului e a treia din DamRun (DAM_CHAPTER).
-# Al doilea prag sta la ~82% din plafonul de dinaintea clopotului (dam_ceiling, 4.89T/s): la 4.5T (92%), cu o constanta
-# cu 15% mai jos, plafonul cobora la 4.51T si pasul abia se mai misca [verificator, 2026-10-01]. check_dam cere ca
-# plafonul sa fie cu DAM_STEP_MARGIN peste fiecare prag, si la --robust.
+# Pasul Kiln-ului e doar al capitolului: Kiln-ul ramane de cumparat oricand ai banii. A treia plasa il duce pe lacom
+# peste prag (966B/s -> 1.01T/s), deci cronologia lui nu se schimba. Rularea capitolului e a treia din DamRun.
+# DAM BELL SE DESCHIDE LA UN VENIT, scris pe cartonas ("Opens at 4T coins a second") [owner, 2026-10-01, varianta 1]:
+# venitul erei se apropie de plafon (dam_ceiling, 4.89T/s) pe la minutul 40, iar clopotul nu mai are alta platforma care
+# sa-l tina. Pragul sta la ~82% din plafon: la 4.5T (92%), cu o constanta cu 15% mai jos plafonul cobora la 4.51T si
+# pasul abia se mai misca [verificator, 2026-10-01]. check_dam cere ca plafonul fiecarui prag sa fie cu
+# DAM_STEP_MARGIN peste el, si la --robust.
 KILN_INCOME = 1e12
-DAM_LATE_INCOME = 4e12
+DAM_BELL_INCOME = 4e12
 DAM_STEP_MARGIN = 1.10
 # La +-15% pe o constanta (--robust), platoul si "tararea" pot iesi cu cel mult atat peste cele mai lungi din Erele 1-3,
 # cum pragul verigilor e pe jumatate la Erele 2-3. Poarta prinde o prapastie, nu zgomotul de +-15%. (Marja a fost aleasa
 # dupa ce se vazuse cel mai rau caz al primei variante, 14m04s: e o marja de zgomot, nu o dovada.)
 ROBUST_FLAT_SLACK = 1.35
-ERA4_LADDER_START = 6.5  # vezi KILN_CABLE_NETS
+# vezi KILN_CABLE_NETS; 8.5 din 2026-10-01: fara turbina a doua si a patra plasa, clopotul ajungea mai ieftin (450T) si
+# Era 4 tinea 38m49s, sub cele 40 de minute ale unei ere. La 8.5: 44-49 de minute la +-15%; la 10, prapastie (1h12m).
+ERA4_LADDER_START = 8.5
 # al doilea om al Erei 4: macar atatea trepte 5 ale meseriei lui (ERA4["price_floor"]), inainte de rotunjire; check_dam
-# cere doar ce conteaza pentru meniu: mai scump decat treapta 5. Scara preturilor e strict crescatoare, deci podeaua urca
-# si deblocarile de dupa cei sapte oameni: Kiln-ul 80T -> 100T, Crystal Net 100T -> 120T, a doua turbina 75T -> 90T, a
-# patra plasa 90T -> 110T (Era 4: 50m49s -> 54m48s). Fara podea, al doilea Dam Collector ar costa 35T si al doilea Cable
-# Collector 30T, sub treapta 5 (36.45T): poarta din check_dam pica. La 1.5 "tararea" iesea 22m12s.
+# cere doar ce conteaza pentru meniu: mai scump decat treapta 5. Scara preturilor e strict crescatoare, deci podeaua poate
+# urca si deblocarile de dupa cei sapte oameni. Cu scara de la 6.5 lega: fara ea, al doilea Dam Collector ar fi costat 35T
+# si al doilea Cable Collector 30T, sub treapta 5 (36.45T), iar Kiln-ul urca 80T -> 100T. Cu scara de la 8.5 aproape nu
+# mai leaga (Era 4: 45m12s fara, 45m16s cu); ramane plasa de siguranta.
 SECOND_FLOOR = 1.25
 
 
@@ -1540,16 +1543,6 @@ ERA4_UNLOCKS = [
         unlock_net_ranked("cable_ore", 3, 2, 4),
     ),
     (
-        "damTurbine2", "Second Dam Turbine", "C",
-        lambda s: dam_nets(s, "dam") == 1 and dam_nets(s, "cable_ore") >= 3,
-        unlock_net_ranked("dam", 6, 3, 4),
-    ),
-    (
-        "cableNet4", "Fourth Cable Net", "C",
-        lambda s: dam_nets(s, "cable_ore") == 3 and family_ready(s, "cable_ore"),
-        unlock_net_ranked("cable_ore", 4, 2, 4),
-    ),
-    (
         "kiln", "Kiln", "V",
         lambda s: dam_nets(s, "cable_ore") >= KILN_CABLE_NETS and all(people(s, r) >= 1 for r in DAM_CREW) and not s.kiln,
         set_flag("kiln"),
@@ -1580,7 +1573,8 @@ ERA4_UNLOCKS.append(
         lambda s: all(dam_nets(s, kind) == n for kind, n in DAM_NETS.items())
         and all(people(s, r) >= 1 for r in ERA4_ROLES)
         and s.kiln
-        and s.crystal_shed,
+        and s.crystal_shed
+        and income(s) >= DAM_BELL_INCOME,
         unlock_bell,
     )
 )
@@ -1589,8 +1583,8 @@ ERA4_OWN = {u[0] for u in ERA4_UNLOCKS}
 
 def era4_quest_net(s: State):
     """Quest-ul "nivelul 2 pe ultima plasa", pe familii: ultima plasa de cablu la nivelul 2. Ca in Erele 2-3, capitolul
-    cere nivelul 2 si pe plasa dinaintea atelierului erei (a treia de cablu, KILN_CABLE_NETS), apoi Kiln-ul (quest-ul
-    lui); a patra plasa, cumparata dupa, primeste si ea quest-ul."""
+    cere nivelul 2 si pe plasa dinaintea atelierului erei (a treia de cablu, KILN_CABLE_NETS, ultima), apoi Kiln-ul
+    (quest-ul lui)."""
     cable = [i for i, n in enumerate(s.nets) if n.kind == "cable_ore"]
     if 1 <= len(cable) <= DAM_NETS["cable_ore"] and s.nets[cable[-1]].level < PREV_NET_LEVEL:
         return cable[-1]
@@ -1601,10 +1595,10 @@ ERA4 = {
     "name": "Era 4",
     "unlocks": ERA4_UNLOCKS,
     "chapter_hires": DAM_HIRES,
-    # [D70, verificator] Plasele de cablu si a doua turbina NU sunt aici: lacomul le ia cand aduc ceva, iar preturile se
+    # [D70, verificator] Plasele de cablu NU sunt aici: lacomul le ia cand aduc ceva, iar preturile se
     # fixeaza pe cronologia lui. Modelate ca quest-uri, cu preturile derivate din nou, Era 4 cadea la 11 minute: suma de
     # start cumpara tot. Capitolele Erei 4 (pasul k) le cer totusi in ordinea DAM_CHAPTER, cu pasii de venit
-    # (KILN_INCOME, DAM_LATE_INCOME), iar cine le ia cum are banii e a treia rulare din DamRun.
+    # (KILN_INCOME), iar cine le ia cum are banii e a treia rulare din DamRun.
     "quest_unlocks": (
         # pasul de capitol "Earn 1T coins a second" sta inaintea Kiln-ului (KILN_INCOME)
         ("kiln", lambda s: dam_nets(s, "cable_ore") >= KILN_CABLE_NETS and family_ready(s, "cable_ore") and income(s) >= KILN_INCOME),
@@ -2487,12 +2481,6 @@ class DamRun:
         chapter = dict(era)
         chapter["eager_unlocks"] = DAM_CHAPTER
         chapter["patience"] = DAM_CHAPTER_PATIENCE
-        # dupa un pas de venit, deblocarea lui nu se vede (nici pentru lacom) pana la prag: capitolul nu o arata
-        chapter["unlocks"] = tuple(
-            (uid, name, why, (lambda st, c=cond, need=DAM_CHAPTER_STEPS[uid]: c(st) and income(st) >= need), effect)
-            if uid in DAM_CHAPTER_STEPS else (uid, name, why, cond, effect)
-            for uid, name, why, cond, effect in era["unlocks"]
-        )
         (self.s_chapter, self.rows_chapter, _prices, self.idle_chapter,
          *_) = run(era=chapter, start=clone(self.start), max_seconds=max_seconds)
 
@@ -2502,9 +2490,7 @@ def play_era4(s3: State, prior_prices: dict, max_seconds=200000) -> DamRun:
 
 
 # ce cumpara capitolul Erei 4 cum are banii, in ordine (Kiln-ul si cristalul sunt quest-urile erei)
-DAM_CHAPTER = ("cableNet2", "cableNet3", "damTurbine2", "cableNet4")
-# pasii de venit ai capitolului: deblocarea -> venitul cerut inaintea ei
-DAM_CHAPTER_STEPS = {"damTurbine2": DAM_LATE_INCOME, "cableNet4": DAM_LATE_INCOME}
+DAM_CHAPTER = ("cableNet2", "cableNet3")
 # cine urmeaza capitolul strange pentru pasul lui cand banii vin in cel mult atatea secunde de venit (30-120: aceeasi
 # cronologie). Fara rabdare deloc, a doua turbina venea la 47m, desi pasul de venit era atins la 37m.
 DAM_CHAPTER_PATIENCE = 60.0
@@ -2641,7 +2627,7 @@ def check_dam(d: DamRun, flat_before: float, crawl_before: float):
                 f"Era 4, capitolul (plasele cum ai banii): venitul {what} {fmt(got * REAL)} reali (maxim {fmt(limit * REAL)})"
             )
     steps = (("Earn coins (Kiln)", KILN_INCOME, dam_ceiling(d, before_kiln=True)),
-             *((f"Earn coins ({uid})", v, dam_ceiling(d)) for uid, v in DAM_CHAPTER_STEPS.items()))
+             ("Dam Bell", DAM_BELL_INCOME, dam_ceiling(d)))
     for what, need, ceiling in steps:
         if ceiling < need * DAM_STEP_MARGIN:
             problems.append(
@@ -2756,7 +2742,7 @@ def report_era4(d: DamRun, flats: dict, crawls: dict):
         f"{fmt((kiln_at - started) * REAL)}, platou {fmt(longest_flat(d.rows_chapter, started, income(d.start), d.s_chapter.t) * REAL)}, "
         f"tarare {fmt(longest_crawl(d.rows_chapter, started, income(d.start), d.s_chapter.t) * REAL)}, "
         f"pauza {fmt(d.idle_chapter)} lacom ({fmt(d.idle_chapter * REAL)} reali); pasii de venit {big(KILN_INCOME)}/s "
-        f"si {big(DAM_LATE_INCOME)}/s, plafoanele lor {big(dam_ceiling(d, before_kiln=True))}/s si {big(dam_ceiling(d))}/s"
+        f"si Dam Bell {big(DAM_BELL_INCOME)}/s, plafoanele lor {big(dam_ceiling(d, before_kiln=True))}/s si {big(dam_ceiling(d))}/s"
     )
     print("  venitul sta pe loc cel mai mult: " + " | ".join(f"Era {n} {fmt(v * REAL)}" for n, v in flats.items()) + " (real)")
     print("  venitul creste sub 10% cel mai mult: " + " | ".join(f"Era {n} {fmt(v * REAL)}" for n, v in crawls.items()) + " (real)")
