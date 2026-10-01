@@ -499,7 +499,7 @@ Mecanismele de celebrare la praguri sunt recomandate explicit de Roblox [onboard
 ### P. Monetizarea
 
 > **[D61 partea a doua, 2026-09-18] Colțul cu Robux, scris.** Catalogul de mai jos a fost adus la ce are jocul azi:
-> `2x Flow` (viteză), `Swift Boots` ×1,5 (viteză), `Long Nights` — offline până la 16 h, nu 8 (spațiu; 48 h până la D66), `Supporter` — titlu,
+> `2x Flow` (viteză), `Swift Boots` ×1,5 (viteză), `Long Nights` — offline la viteză întreagă 16 h, nu 8 (spațiu; 48 h până la D66; D71: apoi ca la toți, un sfert până la 24 h), `Supporter` — titlu,
 > nume auriu, ținută (aspect), plus produsele `One Hour of Flow` și `Welcome Back x2`. `Auto-Collect` și `Extra Hand` au
 > ieșit: de la D49 plasele le golește Collector-ul, iar oamenii sunt chiar lanțul — un om vândut pe Robux ar fi conținut
 > cumpărat, nu viteză. Prețurile se citesc de la Roblox; nimic nu se vinde până nu există ID-urile. Vezi D61 (partea a
@@ -561,7 +561,8 @@ P4 panoul Shop.
 Seiful (2–3 reveniri pe zi [16]) · scara renașterii (zile) · colecția (luni [21]) · **conținut nou la
 2–4 săptămâni** — colecțiile rețin doar cu cadență [20], iar un solo ține un update la 2 săptămâni –
 1 lună [37] · evenimente **cu preaviz**, care merg mai bine decât surprizele [20].
-**Nu:** recompense zilnice simple [16]; mecanici de tip „ratezi dacă nu vii" [addictive].
+**Nu:** recompense zilnice simple [16]; mecanici de tip „ratezi dacă nu vii" [addictive]. **[D71, owner 2026-10-01]** O
+serie zilnică, da, dar binevoitoare: o zi lipsă nu o rupe, cea mai lungă serie și titlurile ei rămân, nimic de cumpărat.
 
 **Sarcini:** Q1 calendarul de conținut · Q2 primul eveniment cu preaviz (un eveniment doar *aduce* ceva, niciodată nu ia
 [D69]) · ~~Q3 decizia D19 (Inundația)~~ **anulată 2026-09-24 [D69]: fără niciun dezastru**.

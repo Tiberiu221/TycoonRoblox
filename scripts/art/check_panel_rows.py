@@ -207,6 +207,16 @@ TITLE_ROW = dict(
         ("button", w - md - 150, 56 // 2 - 22, 150, 44, "wear"),
     ],
 )
+# [D71] randurile "Still to earn" n-au buton si nici stare: sub-eticheta ia tot randul (progresul seriei zilnice nu se
+# mai taie cu "...", verificator 2026-10-01)
+TITLE_TO_EARN = dict(
+    panel="Titles, de castigat (TitleController)", panel_w=600, row_h=56,
+    boxes=lambda w: [
+        ("icon", md, 14, 28, 28, None),
+        ("name", 56, 8, 280, 22, None),
+        ("sub", 56, 32, w - 56 - md, 18, None),
+    ],
+)
 TITLE_HEAD = dict(
     panel="Titles, titlul de parte (TitleController)", panel_w=600, row_h=28,
     boxes=lambda w: [("head", SPACE["xs"], 4, w - SPACE["xs"] * 2, 20, None)],
@@ -260,9 +270,10 @@ BOOTH_PANEL = dict(
     ],
 )
 
-# [D60] Cardul altui jucator (PlayerCardController): fereastra fixa 480x460 -> corpul 440x364 (rama lg, antetul 56).
+# [D60] Cardul altui jucator (PlayerCardController): fereastra fixa 480x492 -> corpul 440x396 (rama lg, antetul 56).
+# [D71] 492, nu 460: al saptelea rand e seria zilnica.
 PLAYER_CARD = dict(
-    panel="Player card (PlayerCardController)", width=480 - SPACE["lg"] * 2, row_h=460 - SPACE["lg"] * 2 - 56,
+    panel="Player card (PlayerCardController)", width=480 - SPACE["lg"] * 2, row_h=492 - SPACE["lg"] * 2 - 56,
     boxes=lambda w: [
         ("portrait", 0, 0, 96, 104, None),
         ("name", 112, 4, w - 112, 28, None),
@@ -270,14 +281,14 @@ PLAYER_CARD = dict(
         ("era", 112, 70, w - 112, 20, None),
     ] + [
         box
-        for i in range(6)  # [D61, partea 2] si like-urile satului: sase randuri, din 32 in 32
+        for i in range(7)  # [D61, partea 2] like-urile satului, [D71] seria zilnica: sapte randuri, din 32 in 32
         for box in (
             (f"label{i}", 0, 116 + i * 32, 200, 24, None),
             (f"value{i}", w - 220, 116 + i * 32, 220, 24, None),
         )
     ] + [
-        ("friend", 0, (460 - SPACE["lg"] * 2 - 56) - 48, 210, 48, None),
-        ("visit", w - 210, (460 - SPACE["lg"] * 2 - 56) - 48, 210, 48, None),
+        ("friend", 0, (492 - SPACE["lg"] * 2 - 56) - 48, 210, 48, None),
+        ("visit", w - 210, (492 - SPACE["lg"] * 2 - 56) - 48, 210, 48, None),
     ],
 )
 
@@ -381,7 +392,7 @@ def check(spec):
 def main():
     bad = sum(check(spec) for spec in (STATION_ROW, QUEST_ROW, QUEST_FINALE, APPROACH_CARD, STATION_MENU, INTERACT_CARD, AUDIO_PANEL,
                                       WHEEL_PANEL, WHEEL_ROW, BOARD_ROW, JOURNAL_ROW,
-                                      TITLE_ROW, TITLE_HEAD, MARKET_ROW, LEADERBOARD_ROW, STAGE_PANEL,
+                                      TITLE_ROW, TITLE_TO_EARN, TITLE_HEAD, MARKET_ROW, LEADERBOARD_ROW, STAGE_PANEL,
                                       PLAYER_CARD, BOOTH_PANEL,
                                       TAILOR_PANEL, TAILOR_LOOK_ROW, TAILOR_OUTFIT_ROW, VISIT_ROW,
                                       SHOP_ROW))

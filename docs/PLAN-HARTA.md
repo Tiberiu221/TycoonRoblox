@@ -93,7 +93,7 @@ Mă despart de tine într-un singur punct. „Partea mică din bani” nu se ob�
 `păstrat = min(monede − P, K + R)`
 - **P** e prețul lui „Build the Dam”, poarta erei, derivat în simulator ca celelalte porți. Water Wheel costă 7K la 111,65/s (63 s), Steam Engine 25M la 368,6K/s (68 s), deci P ≈ 65 s de venit ≈ **80B**.
 - **K** e o absență a ta: 8 h sau 16 h (Long Nights) × venitul de la Works Bell, cu 2x Flow dacă îl ai. Dă **34,8T**, 69,7T cu Long Nights și 139T cu Long Nights + 2x Flow. Un pass plătit nu-și pierde valoarea.
-- **R** sunt monedele cumpărate cu Robux (One Hour of Flow = 4,36T la finalul Erei 3, Welcome Back x2), numărate de la profilul v18. Producția nu e lansată, deci contorul e complet pentru orice jucător adevărat.
+- **R** sunt monedele cumpărate cu Robux (One Hour of Flow = 4,36T la finalul Erei 3, Welcome Back x2), numărate de la profilul v19 (v18 e seria zilnică, D71). Producția nu e lansată, deci contorul e complet pentru orice jucător adevărat.
 
 **De ce e semi-zero pentru toți:**
 - Copilul grăbit are aproape nimic după clopot. Strânge ~80B într-un minut, apasă și pornește de la ~0, fără să i se ia ceva.
@@ -198,7 +198,7 @@ Mă despart de tine într-un singur punct. „Partea mică din bani” nu se ob�
    - `formatNumber` peste Qi: Sx, Sp, Oc, No, Dc, Ud, Dd, Td (până la 10^42), apoi scriere științifică („1e45”), tot în cel mult 5 caractere (`TycoonMath.UNITS`, testat pe citire înapoi până la 10^60).
    - Tabla de venit din bâlci: sutimile se codează (`BoardMath.encodeIncome`: sub 10^12 chiar cifra, deci tabelele vechi rămân bune; peste, exponent × 10^12 + 12 cifre), ordinea se păstrează și codul rămâne sub 2^53. Panoul mare scrie venitul cu unitățile contorului (la Era 3 scria „1200000000.00/s”), iar cel de pe scenă încape în opt litere și cu sufixele de două litere.
 4. **Filtrul pe lume.** `TycoonConfig.padsOfWorld(w)` se pune peste cele ~23 de bucle pe `PADS`, în controllerele Erei 1 scrise de mână (Dock, Storage, Sawmill, Shed, Forge, Pier, Treasure, Drift, Ferry, WheelSignpost) și în Overlay/GuideMath. Lumea 1 trebuie să iasă bit cu bit (tabelul de aur). Fiecare apelant primește un test pe un profil din lumea 2.
-5. **Profilul v18, aditiv:** `World`, `Memories.oldVillage` (`VillageLook.of` + treapta modernă), `Stats.damGift`, `Purchases.coinsBought`, medalia și legătura veteranului pe `Hands`.
+5. **Profilul v19, aditiv** (v18 e seria zilnică, D71): `World`, `Memories.oldVillage` (`VillageLook.of` + treapta modernă), `Stats.damGift`, `Purchases.coinsBought`, medalia și legătura veteranului pe `Hands`.
 6. **Simulatorul.**
    - Trecerea se scrie ca funcție în afara lui `buy()`: clopotele, sackBig, cinci veterani pe treapta 1, turbina gratuită, formula banilor.
    - Întâi pe un proxy (rândurile Erei 3 × 3000), ca să iasă P și K; apoi pe rândurile adevărate.

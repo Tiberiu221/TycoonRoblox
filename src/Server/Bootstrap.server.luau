@@ -56,16 +56,9 @@ StationService.Init({
     PushState = NetServer.PushState,
     Hands = HandService, -- al doilea om al unei meserii se angajeaza prin HandService [D49]
     -- "Raul tau a castigat N cat ai lipsit": banii sunt deja dati, asta e doar vestea. [D59] Si cate lucruri au venit pe rau.
-    OnWelcome = function(
-        player: Player,
-        coins: number,
-        seconds: number,
-        capped: boolean,
-        arrived: number,
-        capHours: number
-    )
-        -- [D61, partea 2] `capHours`: cat lucreaza satul fara tine (8, sau 16 cu Long Nights [D66]), pentru nota ferestrei
-        Net.Get("WelcomeBack"):FireClient(player, coins, seconds, capped, arrived, capHours)
+    -- [D71] un singur tabel (StationService.WelcomeInfo), copiat camp cu camp pe client
+    OnWelcome = function(player: Player, info: StationService.WelcomeInfo)
+        Net.Get("WelcomeBack"):FireClient(player, info)
     end,
     Treasures = TreasureService,
 })

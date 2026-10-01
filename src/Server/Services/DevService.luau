@@ -9,6 +9,7 @@ local ServerStorage = game:GetService("ServerStorage")
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
 local StationConfig = require(ReplicatedStorage.Shared.Config.StationConfig)
+local StreakMath = require(ReplicatedStorage.Shared.Modules.StreakMath) -- [D71]
 local QuestConfig = require(ReplicatedStorage.Shared.Config.QuestConfig)
 local VillageConfig = require(ReplicatedStorage.Shared.Config.VillageConfig)
 local QuestMath = require(ReplicatedStorage.Shared.Modules.QuestMath)
@@ -307,6 +308,44 @@ local HANDLERS: { [string]: Handler } = {
             return "usage: buy hour | welcome2x"
         end
         return `{key}: +{coins} coins`
+    end,
+
+    -- [D71] absenta de proba: `away 12` muta ultima vedere cu 12 ore in urma si face socoteala din nou (curba de 8/16/24
+    -- de ore si fereastra de revenire). Mock-ul din Studio n-are `lastSeenAt`, deci fara asta curba nu se vede.
+    away = function(player: Player, arg: unknown): string
+        local data = DataService.Get(player)
+        local hours = number(arg, 10)
+        if data == nil or hours <= 0 then
+            return "usage: away <hours>   (e.g. away 3, away 12, away 30)"
+        end
+        data.Meta.lastSeenAt = os.time() - math.floor(hours * 3600)
+        StationService.SettleOffline(player)
+        return `settled {hours} h away (see the Welcome back window)`
+    end,
+
+    -- [D71] seria zilnica de proba: `streak 6` = ieri a fost ziua 6, deci intrarea de azi ar fi a 7-a (titlul Regular).
+    -- Se vede la urmatoarea zi numarata; in balci, la urmatorul drum cu barca.
+    streak = function(player: Player, arg: unknown): string
+        local data = DataService.Get(player) :: any
+        local run = math.max(0, math.floor(number(arg, 6)))
+        if data == nil then
+            return "no profile"
+        end
+        local streak = StreakMath.clean(data.Streak)
+        local best = math.max(run, streak.best)
+        data.Streak = {
+            day = StreakMath.dayOf(os.time(), streak.offset) - 1,
+            run = run,
+            best = best,
+            total = math.max(run, best),
+            offset = streak.offset,
+            offsetDay = streak.offsetDay,
+        }
+        DataService.TouchStreak(player)
+        if deps.PushState ~= nil then
+            deps.PushState(player)
+        end
+        return `streak: yesterday was day {run}; today counted (now {data.Streak.run}, best {data.Streak.best})`
     end,
 
     village = function(player: Player, _arg: unknown): string

@@ -113,12 +113,14 @@ def main():
     print(f"Sfarsitul Erei 1 ({T.fmt(s1.t)} lacom): venit {inc1:.1f}/s. Era 2 azi: {len(rows2)} cumparaturi, "
           f"{total2:,.0f} monede, {T.fmt(s2.t - s1.t)} lacom.")
     print("\n1. AZI, o singura moneda: cat din Era 2 plateste absenta de la sfarsitul Erei 1")
+    # [D71] orele platite la viteza intreaga, pe curba de azi (plin 8 h / 16 h cu Long Nights, un sfert pana la 24 h)
     for label, hours, mult in (
-        ("o ora", 1, 1),
-        ("o noapte (8 h, plafonul de azi)", 8, 1),
-        ("Long Nights (16 h)", 16, 1),
-        ("Long Nights si 2x Flow", 16, 2),
-        ("o zi (24 h, plafonul de pana la D66)", 24, 1),
+        ("o ora", T.offline_equiv_hours(1), 1),
+        ("o noapte (8 h)", T.offline_equiv_hours(8), 1),
+        ("o zi (24 h, curba D71)", T.offline_equiv_hours(24), 1),
+        ("o zi cu Long Nights (D71)", T.offline_equiv_hours(24, True), 1),
+        ("o zi cu Long Nights si 2x Flow", T.offline_equiv_hours(24, True), 2),
+        ("o zi intreaga, plin (pana la D66)", 24, 1),
         ("48 h cu 2x Flow (pana la D66)", 48, 2),
     ):
         money = inc1 * mult * hours * 3600

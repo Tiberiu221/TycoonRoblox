@@ -22,11 +22,25 @@ export type Facts = {
     pondWins: number?, -- [D61] runde castigate la iaz (cu cel putin doi pescari)
     perfectGames: number?, -- [D61] jocuri perfecte la gherete
     supporter: boolean?, -- [D61, partea 2] are pass-ul Supporter (doar aspect)
+    streakBest: number?, -- [D71] cea mai lunga serie zilnica (StreakMath): nu scade niciodata, deci titlul nu cade
 }
 
 -- [D61] Pragurile titlurilor din balci: se castiga, nu se cumpara.
 TitleMath.POND_WINS = 3
 TitleMath.PERFECT_GAMES = 5
+-- [D71] seria zilnica: din cea mai lunga serie, nu din cea de acum (o serie care reincepe nu ia titlul)
+TitleMath.STREAK_REGULAR = 7
+TitleMath.STREAK_OLD_FRIEND = 30
+
+-- [D71] Titlul seriei castigat chiar acum (cea mai lunga serie a trecut de prag), ca sa fie spus [D43]; altfel nil.
+function TitleMath.streakTitleReached(bestBefore: number, bestAfter: number): string?
+    if bestBefore < TitleMath.STREAK_OLD_FRIEND and bestAfter >= TitleMath.STREAK_OLD_FRIEND then
+        return "Old Friend"
+    elseif bestBefore < TitleMath.STREAK_REGULAR and bestAfter >= TitleMath.STREAK_REGULAR then
+        return "Regular"
+    end
+    return nil
+end
 
 -- Titlurile din decor: cumperi lucrul, primesti titlul; asa se vad perlele cheltuite fara sa-ti viziteze cineva satul.
 TitleMath.FROM_DECOR = {
@@ -79,6 +93,10 @@ function TitleMath.label(id: string, facts: Facts): string?
     elseif id == "supporter" then
         -- [D61, partea 2] vine cu pass-ul Supporter: doar aspect, ca tot ce se vede in balci
         return if facts.supporter == true then "Supporter" else nil
+    elseif id == "regular" then
+        return if (facts.streakBest or 0) >= TitleMath.STREAK_REGULAR then "Regular" else nil
+    elseif id == "old_friend" then
+        return if (facts.streakBest or 0) >= TitleMath.STREAK_OLD_FRIEND then "Old Friend" else nil
     end
     local decorId = string.match(id, "^decor_(%w+)$")
     if decorId ~= nil then
@@ -100,7 +118,17 @@ function TitleMath.earned(facts: Facts): { { id: string, label: string } }
         table.insert(order, `decor_{decorId}`)
     end
     table.sort(order)
-    local ordered = { "era", "legend", "record", "champion", "pond", "sharpshooter", "supporter" }
+    local ordered = {
+        "era",
+        "legend",
+        "record",
+        "champion",
+        "pond",
+        "sharpshooter",
+        "regular",
+        "old_friend",
+        "supporter",
+    }
     for _, id in order do
         if string.sub(id, 1, 6) == "decor_" then
             table.insert(ordered, id)

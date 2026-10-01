@@ -41,6 +41,9 @@ export type Deps = {
         AudioLevels: (Player) -> (number, number),
         SetAudioLevel: (Player, string, number) -> (),
         FairVisits: (Player) -> number, -- [D60] barca arata Skip de la al doilea drum
+        -- [D71] seria zilnica (StreakMath), curatata: o zi noua in timpul jocului se anunta pe client
+        Streak: (Player) -> { day: number, run: number, best: number, total: number },
+        SetStreakClock: (Player, unknown) -> boolean, -- [D71]
     },
     Pads: {
         Buy: (Player, string) -> (boolean, string?),
@@ -213,7 +216,13 @@ local function buildTycoonState(player: Player): { [string]: any }
         -- [D54] preferintele: nivelul muzicii si al efectelor, 0..10
         settings = { musicLevel = musicLevel, soundLevel = soundLevel },
         -- [D60] de cate ori ai ajuns in balci
-        fair = { visits = deps.Data.FairVisits(player) },
+        fair = (function()
+            local streak = deps.Data.Streak(player)
+            return {
+                visits = deps.Data.FairVisits(player),
+                streak = { run = streak.run, best = streak.best },
+            }
+        end)(),
         -- [D61, partea 2] pass-urile tale, ce ar aduce produsele acum, cat de repede mergi
         robux = deps.Shop.Snapshot(player),
     }
@@ -401,6 +410,17 @@ function NetServer.Init(d: Deps)
             return
         end
         deps.Data.SetAudioLevel(player, kind, level)
+    end)
+
+    -- [D71] Fusul orar al jucatorului, pentru ziua seriei zilnice: numar validat (StreakMath.cleanOffset) si limitat; se
+    -- schimba cel mult o data pe zi UTC. Daca a numarat ziua de azi dupa el, starea pleaca din nou.
+    Net.Get("SetClock").OnServerEvent:Connect(function(player: Player, offset: any)
+        if typeof(offset) ~= "number" or not RateLimiter.Allow(player, "Clock") then
+            return
+        end
+        if deps.Data.SetStreakClock(player, offset) then
+            NetServer.PushState(player)
+        end
     end)
 
     -- [D59] UNDITA. Aruncarea nu are argumente: ce e in apa hotaraste serverul. Raspunsul spune doar clipa muscaturii si

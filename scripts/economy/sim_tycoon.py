@@ -1471,17 +1471,20 @@ DAM_NETS = {"dam": 1, "cable_ore": 3, "crystal": 1}
 # treia, cristalul vine inaintea zidului: platoul 6m32s, "tararea" 17m38s (cu uneltele la pret dublu, ERA_TOOL_MULT, si
 # scara de la 6.5). A treia plasa e acum ultima de cablu.
 KILN_CABLE_NETS = 3
-# [verificator, 2026-10-01] PASII DE VENIT AI CAPITOLULUI. A treia plasa de cablu costa 5.5T, deci suma de start o
-# cumpara din primul minut. Daca dupa ea capitolul ar cere Kiln-ul de 100T, cine strange pentru el (regula quest-urilor)
-# ar sta la 86B/s: era 1h42m, platoul 1h07m. Intre plasa si Kiln capitolul cere deci un venit ("Earn 1T coins a
-# second"): cat tine pasul, ghidajul arata veriga slaba, nu pretul Kiln-ului, iar quest-ul Kiln-ului vine abia dupa.
-# Pasul Kiln-ului e doar al capitolului: Kiln-ul ramane de cumparat oricand ai banii. A treia plasa il duce pe lacom
-# peste prag (966B/s -> 1.01T/s), deci cronologia lui nu se schimba. Rularea capitolului e a treia din DamRun.
+# [verificator, 2026-10-01] PASII DE VENIT AI CAPITOLULUI. A treia plasa de cablu (16T) se cumpara din suma de start in
+# primul minut. Daca dupa ea capitolul ar cere Kiln-ul (110T), cine strange pentru el (regula quest-urilor) ar sta la
+# ~86B/s: era peste o ora si jumatate, platoul peste o ora. Intre plasa si Kiln capitolul cere deci un venit ("Earn 1T
+# coins a second"): cat tine pasul, ghidajul arata veriga slaba, nu pretul Kiln-ului, iar quest-ul Kiln-ului vine abia
+# dupa. Pasul Kiln-ului e doar al capitolului: Kiln-ul ramane de cumparat oricand ai banii. Lacomul e deja peste 1T/s
+# inaintea celei de-a treia plase (1.07T/s -> 1.11T/s), deci cronologia lui nu se schimba. Rularea capitolului e a treia
+# din DamRun.
 # DAM BELL SE DESCHIDE LA UN VENIT, scris pe cartonas ("Opens at 4T coins a second") [owner, 2026-10-01, varianta 1]:
 # venitul erei se apropie de plafon (dam_ceiling, 4.89T/s) pe la minutul 40, iar clopotul nu mai are alta platforma care
-# sa-l tina. Pragul sta la ~82% din plafon: la 4.5T (92%), cu o constanta cu 15% mai jos plafonul cobora la 4.51T si
-# pasul abia se mai misca [verificator, 2026-10-01]. check_dam cere ca plafonul fiecarui prag sa fie cu
-# DAM_STEP_MARGIN peste el, si la --robust.
+# sa-l tina. Si capitolul cere pragul inaintea clopotului ("Earn 4T coins a second"), altfel "Ring the Dam Bell" ar sta
+# ~16 minute pe un clopot incuiat, fara contor (capcana Kiln-ului, verificator). Pragul sta la ~82% din plafon: la 4.5T
+# (92%), cu o constanta cu 15% mai jos plafonul cobora la 4.51T si pasul abia se mai misca. check_dam cere ca plafonul
+# fiecarui prag sa fie cu DAM_STEP_MARGIN peste el, si la --robust. In joc pragurile se compara cu venitul din HUD si se
+# inmultesc cu 2x Flow (ca era sa-si pastreze continutul, iar pass-ul sa dea tot jumatate din timp): rândul f din plan.
 KILN_INCOME = 1e12
 DAM_BELL_INCOME = 4e12
 DAM_STEP_MARGIN = 1.10
@@ -1490,7 +1493,8 @@ DAM_STEP_MARGIN = 1.10
 # dupa ce se vazuse cel mai rau caz al primei variante, 14m04s: e o marja de zgomot, nu o dovada.)
 ROBUST_FLAT_SLACK = 1.35
 # vezi KILN_CABLE_NETS; 8.5 din 2026-10-01: fara turbina a doua si a patra plasa, clopotul ajungea mai ieftin (450T) si
-# Era 4 tinea 38m49s, sub cele 40 de minute ale unei ere. La 8.5: 44-49 de minute la +-15%; la 10, prapastie (1h12m).
+# Era 4 tinea 38m49s, sub cele 40 de minute ale unei ere. La 8.5: 44m07s-1h03m la +-15% (cele lungi stau la
+# 3.4-3.55T/s, sub pragul de 4T); la 10, 1h12m pe cifrele de baza.
 ERA4_LADDER_START = 8.5
 # al doilea om al Erei 4: macar atatea trepte 5 ale meseriei lui (ERA4["price_floor"]), inainte de rotunjire; check_dam
 # cere doar ce conteaza pentru meniu: mai scump decat treapta 5. Scara preturilor e strict crescatoare, deci podeaua poate
@@ -2133,11 +2137,25 @@ def check_run(rows, longest_idle, shares, prices, scrap_time):
 # [D65] PORTILE EREI 2, in oglinda cu ale Erei 1. Tinta owner-ului: cam o ora. Roata si a sasea plasa vin inaintea
 # oamenilor, deci rafala celor cinci se masoara de la clopotul Erei 1 cu loc pentru ele.
 ERA2_MIN_REAL, ERA2_MAX_REAL = 40 * 60, 75 * 60
-# [D66] CAT LUCREAZA SATUL FARA TINE: o noapte (PassMath.OFFLINE_HOURS), dubla cu Long Nights. Absenta de la
-# sfarsitul unei ere, platita cu venitul de atunci, poate cumpara cel mult inceputul erei urmatoare.
+# [D66, D71] CAT LUCREAZA SATUL FARA TINE (PassMath, OfflineCalc): viteza intreaga o noapte (16 h cu Long Nights), apoi un
+# sfert din viteza pana la 24 h, apoi nimic pana revii (owner, 2026-10-01). Absenta de la sfarsitul unei ere, platita cu
+# venitul de atunci, poate cumpara cel mult inceputul erei urmatoare: poarta se masoara pe cea mai lunga absenta platita,
+# o zi intreaga fara pass-uri (12 h la viteza intreaga).
 OFFLINE_HOURS = 8.0
 OFFLINE_HOURS_LONG = 16.0
-WINDFALL_MAX_SHARE = 0.25  # partea din timpul erei urmatoare pe care o poate sari o noapte de absenta
+OFFLINE_STOP_HOURS = 24.0
+OFFLINE_SLOW = 0.25
+# [D70 Runda 4] "o noapte fara pass-uri la Works Bell", din care vine suma de start a barajului (35T): opt ore la viteza
+# intreaga, oricum s-ar schimba curba de mai sus.
+NIGHT_HOURS = 8.0
+WINDFALL_MAX_SHARE = 0.25  # partea din timpul erei urmatoare pe care o poate sari cea mai lunga absenta
+
+
+def offline_equiv_hours(away_hours: float, long_nights: bool = False) -> float:
+    """[D71] Orele platite la viteza intreaga pentru o absenta de `away_hours` (ca OfflineCalc.paidSeconds)."""
+    full = OFFLINE_HOURS_LONG if long_nights else OFFLINE_HOURS
+    away = max(0.0, away_hours)
+    return min(away, full) + max(0.0, min(away, OFFLINE_STOP_HOURS) - full) * OFFLINE_SLOW
 ERA2_MIN_FIRST_FIVE = 15
 ERA2_CREW_BURST_REAL = 360
 
@@ -2296,10 +2314,15 @@ def check_config_constants():
         os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "src", "Shared", "Modules", "PassMath.luau"),
         encoding="utf-8",
     ).read()
-    for name, want in (("OFFLINE_HOURS", OFFLINE_HOURS), ("OFFLINE_HOURS_LONG", OFFLINE_HOURS_LONG)):
+    for name, want in (
+        ("OFFLINE_HOURS", OFFLINE_HOURS),
+        ("OFFLINE_HOURS_LONG", OFFLINE_HOURS_LONG),
+        ("OFFLINE_STOP_HOURS", OFFLINE_STOP_HOURS),  # [D71]
+        ("OFFLINE_SLOW", OFFLINE_SLOW),
+    ):
         m = re.search(r"PassMath\." + name + r" = ([0-9.]+)", passmath)
         if m is None or float(m.group(1)) != want:
-            bad.append(f"PassMath.{name} = {m.group(1) if m else 'lipseste'}, simulatorul are {want:g} [D66]")
+            bad.append(f"PassMath.{name} = {m.group(1) if m else 'lipseste'}, simulatorul are {want:g} [D66, D71]")
     # [D70] factorul uneltelor, pe fiecare era din configuratie (lipsa = 1, de ambele parti)
     m = re.search(r"StationConfig\.TOOL_COST_MULT = \{([^}]*)\}", src)
     if m is None:
@@ -2442,21 +2465,23 @@ def windfall(income_at_end, rows, started_at, ended_at, hours, mult=1.0):
 
 
 def check_windfall(income1, rows, started_at, ended_at, era=2):
-    """[D66] O NOAPTE DE ABSENTA NU CUMPARA ERA URMATOARE. Cu cadrul de dinainte (40), la sfarsitul Erei 1 o noapte
-    platea 352 din 398 de cumparaturi ale Erei 2. Regula tine pentru orice era noua: cel mult WINDFALL_MAX_SHARE din
-    timpul ei, platit de o noapte (fara pass-uri) din venitul erei dinainte. `era` = era platita."""
-    _budget, _n, _nu, last, share = windfall(income1, rows, started_at, ended_at, OFFLINE_HOURS)
+    """[D66] O ABSENTA NU CUMPARA ERA URMATOARE. Cu cadrul de dinainte (40), la sfarsitul Erei 1 o noapte platea 352 din
+    398 de cumparaturi ale Erei 2. Regula tine pentru orice era noua: cel mult WINDFALL_MAX_SHARE din timpul ei, platit
+    de cea mai lunga absenta (o zi, fara pass-uri; [D71] curba ii plateste OFFLINE_STOP_HOURS) din venitul erei dinainte.
+    `era` = era platita."""
+    hours = offline_equiv_hours(OFFLINE_STOP_HOURS)
+    _budget, _n, _nu, last, share = windfall(income1, rows, started_at, ended_at, hours)
     if share > WINDFALL_MAX_SHARE:
         return [
-            f"o noapte de absenta ({OFFLINE_HOURS:g} h) la sfarsitul Erei {era - 1} sare {share * 100:.0f}% din Era {era} "
-            f"(pana la {last}; maxim {WINDFALL_MAX_SHARE * 100:.0f}%)"
+            f"o zi de absenta ({OFFLINE_STOP_HOURS:g} h, cat {hours:g} h la viteza intreaga) la sfarsitul Erei {era - 1} sare "
+            f"{share * 100:.0f}% din Era {era} (pana la {last}; maxim {WINDFALL_MAX_SHARE * 100:.0f}%)"
         ]
     return []
 
 
-# ---- ERA 4: cele doua rulari si portile barajului [D70] ------------------------------------------------------------
+# ---- ERA 4: cele trei rulari si portile barajului [D70] ------------------------------------------------------------
 class DamRun:
-    """Era 4, jucata de doua ori din starea de la Works Bell (plan, sectiunea 5)."""
+    """Era 4, jucata de trei ori din starea de la Works Bell (plan, sectiunea 5): fara bani, cu suma, capitolul."""
 
     def __init__(self, s3, prior_prices, max_seconds=200000):
         self.s3 = s3
@@ -2467,7 +2492,7 @@ class DamRun:
         # suma de start: cea mai mare dintre costul primelor 5 minute reale ale erei si o noapte fara pass-uri la clopot
         # (regula owner-ului, D70 Runda 4), rotunjita in sus
         self.c5 = sum(r[2] for r in self.rows_zero if (r[3] - self.start_zero.t) * REAL <= 300)
-        self.night = income(s3) * OFFLINE_HOURS * 3600
+        self.night = income(s3) * NIGHT_HOURS * 3600
         self.start_sum = nice_up(max(self.c5, self.night))
         # 2. CU SUMA: cronologia adevarata, pe aceleasi preturi
         era = dict(ERA4)
@@ -2476,8 +2501,8 @@ class DamRun:
         (self.s4, self.rows, _prices, self.idle, self.final, self.shares,
          _) = run(era=era, start=clone(self.start), max_seconds=max_seconds)
         self.late_time = self.s4.line_time[LATE_LINE[4]]
-        # 3. CAPITOLUL (pasul k): plasele si a doua turbina luate cum ai banii, in ordinea capitolului, pe aceleasi
-        # preturi. Suma de start le cumpara pe primele din primul minut; pasii de venit le tin pe celelalte.
+        # 3. CAPITOLUL (pasul k): plasele de cablu 2 si 3 luate cum ai banii, in ordinea capitolului, pe aceleasi preturi
+        # (suma de start le cumpara din primul minut); Kiln-ul asteapta pasul de venit, clopotul pragul lui.
         chapter = dict(era)
         chapter["eager_unlocks"] = DAM_CHAPTER
         chapter["patience"] = DAM_CHAPTER_PATIENCE
@@ -2491,8 +2516,9 @@ def play_era4(s3: State, prior_prices: dict, max_seconds=200000) -> DamRun:
 
 # ce cumpara capitolul Erei 4 cum are banii, in ordine (Kiln-ul si cristalul sunt quest-urile erei)
 DAM_CHAPTER = ("cableNet2", "cableNet3")
-# cine urmeaza capitolul strange pentru pasul lui cand banii vin in cel mult atatea secunde de venit (30-120: aceeasi
-# cronologie). Fara rabdare deloc, a doua turbina venea la 47m, desi pasul de venit era atins la 37m.
+# cine urmeaza capitolul strange pentru pasul lui cand banii vin in cel mult atatea secunde de venit. Azi nu schimba nimic
+# (0-120 s: aceeasi cronologie; ambele plase vin din suma de start). Cand capitolul avea si turbina a doua, fara rabdare
+# ea venea la 47m, desi pasul de venit era atins la 37m.
 DAM_CHAPTER_PATIENCE = 60.0
 ERA_JUMP_MIN, ERA_JUMP_MAX = 8.0, 30.0  # venitul la baraj / venitul la Works Bell
 DAM_HIRES_MAX_SHARE = 0.10  # cei sase costa cel mult atat din suma de start
@@ -2559,7 +2585,7 @@ def too_many_dead(dead: int, n: int) -> bool:
 
 def dam_ceiling(d: DamRun, before_kiln: bool = False) -> float:
     """[verificator, 2026-10-01] Plafonul spre care urca un pas de venit al capitolului; unul pus prea aproape se
-    taraste. Dupa Kiln (pasul dinaintea turbinei a doua): toti oamenii Erei 4 la 2 x treapta 5, plasele si cladirile ei
+    taraste. Dupa Kiln (pragul Dam Bell): toti oamenii Erei 4 la 2 x treapta 5, plasele si cladirile ei
     la nivelul 400, fara clopotul erei (x1.10). Inainte de Kiln (pasul lui): doar cei 11, trei plase de cablu, o turbina,
     fara cristal."""
     if before_kiln:
@@ -2765,8 +2791,9 @@ def report_era4(d: DamRun, flats: dict, crawls: dict):
     for label, extra in (
         ("doar suma", 0.0),
         ("+1 h Flow", bell * 3600),
-        (f"Welcome Back x2 dupa {OFFLINE_HOURS:g} h", bell * OFFLINE_HOURS * 3600),
-        (f"dupa {OFFLINE_HOURS_LONG:g} h cu 2x Flow", bell * 2 * OFFLINE_HOURS_LONG * 3600),
+        # [D71] cea mai lunga absenta platita: o zi (24 h) pe curba
+        ("Welcome Back x2 dupa o zi", bell * offline_equiv_hours(OFFLINE_STOP_HOURS) * 3600),
+        ("o zi cu Long Nights si 2x Flow", bell * 2 * offline_equiv_hours(OFFLINE_STOP_HOURS, True) * 3600),
     ):
         n, last, share = spend_share(d.start_sum + extra, d.rows_zero, d.start_zero.t, d.s_zero.t)
         print(f"  {label:34s} {big(d.start_sum + extra):>8}: {n:3d} cumparaturi (pana la {last[7:] if last.startswith('unlock:') else last}), {share * 100:4.1f}% din timpul erei")
@@ -2822,13 +2849,15 @@ def report_era(n, s_prev, s_n, rows, prices, longest_idle, final_income, shares,
     if never:
         print(f"  necumparate in Era {n} (pret din starea de la final): " + ", ".join(f"{uid} {big(prices[uid])}" for uid in never))
     print(f"\n[D66] absenta de la sfarsitul Erei {n - 1} ({income_prev:.1f}/s), cat din Era {n} plateste:")
+    day, day_long = offline_equiv_hours(OFFLINE_STOP_HOURS), offline_equiv_hours(OFFLINE_STOP_HOURS, True)
     for label, hours, mult in (
-        (f"o noapte ({OFFLINE_HOURS:g} h)", OFFLINE_HOURS, 1.0),
-        (f"Long Nights ({OFFLINE_HOURS_LONG:g} h)", OFFLINE_HOURS_LONG, 1.0),
-        (f"Long Nights si 2x Flow", OFFLINE_HOURS_LONG, 2.0),
+        (f"o noapte ({OFFLINE_HOURS:g} h)", offline_equiv_hours(OFFLINE_HOURS), 1.0),
+        (f"o zi ({OFFLINE_STOP_HOURS:g} h, cat {day:g} h)", day, 1.0),  # [D71] poarta
+        (f"o zi cu Long Nights ({day_long:g} h)", day_long, 1.0),
+        ("o zi cu Long Nights si 2x Flow", day_long, 2.0),
     ):
         budget, k, nu, last, share = windfall(income_prev, rows, started, s_n.t, hours, mult)
-        print(f"  {label:26s} {big(budget):>8}: {k:3d} din {len(rows)} cumparaturi, {nu:2d} din {len(unlocks)} deblocari"
+        print(f"  {label:32s} {big(budget):>8}: {k:3d} din {len(rows)} cumparaturi, {nu:2d} din {len(unlocks)} deblocari"
               f" (pana la {last}), {share * 100:4.1f}% din timpul erei")
 
 

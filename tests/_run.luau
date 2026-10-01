@@ -54,6 +54,7 @@ require("./ChainWords.test")() -- [D65]
 require("./FlowMath.test")()
 require("./PassMath.test")()
 require("./DriftMath.test")()
+require("./StreakMath.test")() -- [D71]
 
 local frktest = require("@frktest/frktest")
 local console_reporter = require("@frktest/reporters/console_reporter")

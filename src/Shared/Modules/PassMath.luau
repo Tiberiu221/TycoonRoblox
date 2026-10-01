@@ -12,8 +12,13 @@ local PassMath = {}
 
 PassMath.FLOW_FACTOR = 2 -- 2x Flow: venitul in monede, peste tot unde apare
 PassMath.SPEED_FACTOR = 1.5 -- Swift Boots (D60 zicea x2: la x2 traversezi balciul in 1,6 s si nu mai vezi nimic)
-PassMath.OFFLINE_HOURS = 8 -- cat lucreaza satul fara tine: o noapte [D66; pana atunci 24]
+-- [D66, D71] CAT LUCREAZA SATUL FARA TINE (OfflineCalc): la viteza intreaga o noapte, 16 h cu Long Nights; apoi un sfert
+-- din viteza pana la 24 h; dupa aceea satul se odihneste pana revii. Simulatorul citeste cifrele de aici
+-- (check_config_constants): raman numere scrise ca atare.
+PassMath.OFFLINE_HOURS = 8 -- viteza intreaga, fara pass [D66; pana atunci 24, si apoi nimic]
 PassMath.OFFLINE_HOURS_LONG = 16 -- ...cu Long Nights [D66; pana atunci 48]
+PassMath.OFFLINE_STOP_HOURS = 24 -- [D71] dupa atatea ore satul se odihneste (si cu Long Nights)
+PassMath.OFFLINE_SLOW = 0.25 -- [D71] intre viteza intreaga si oprire, satul merge la un sfert
 PassMath.HOUR_SECONDS = 3600
 PassMath.HOUR_MIN_COINS = 60 -- One Hour of Flow, pe un sat fara venit inca: macar cat primii oameni
 PassMath.PURCHASE_IDS_KEPT = 100 -- ultimele chitante tinute minte (tiparul ProfileStore pentru produse)
@@ -36,12 +41,17 @@ function PassMath.speedFactor(data: any): number
     return if PassMath.has(data, "swift") then PassMath.SPEED_FACTOR else 1
 end
 
--- Cat timp lucreaza satul cat lipsesti, in secunde.
-function PassMath.offlineCapSeconds(data: any): number
+-- [D71] Curba lui OfflineCalc pentru jucatorul asta, in secunde. Long Nights tine viteza intreaga 16 h (cat promitea),
+-- iar oprirea de la 24 h e aceeasi pentru toti: revenirea zilnica e rasplatita, nu cumparata.
+function PassMath.offlineCurve(data: any): { full: number, stop: number, slow: number }
     local hours = if PassMath.has(data, "nights")
         then PassMath.OFFLINE_HOURS_LONG
         else PassMath.OFFLINE_HOURS
-    return hours * 3600
+    return {
+        full = hours * 3600,
+        stop = PassMath.OFFLINE_STOP_HOURS * 3600,
+        slow = PassMath.OFFLINE_SLOW,
+    }
 end
 
 -- One Hour of Flow: monede cat o ora din venitul de acum (cel putin HOUR_MIN_COINS). Intreg, ca suma de pe buton sa fie

@@ -14,6 +14,7 @@ local Net = require(ReplicatedStorage.Net.Net)
 local RiverConfig = require(ReplicatedStorage.Shared.Config.RiverConfig)
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 local Strings = require(ReplicatedStorage.Shared.Config.Strings)
+local TitleMath = require(ReplicatedStorage.Shared.Modules.TitleMath) -- [D71] titlurile seriei zilnice
 local FlowConfig = require(ReplicatedStorage.Shared.Config.FlowConfig)
 local StationConfig = require(ReplicatedStorage.Shared.Config.StationConfig)
 -- [D65, D67] Platforma care deschide fiecare vanzator al erelor noi: a atelierului primei lui linii (FlowConfig).
@@ -601,6 +602,17 @@ end)
 -- [D61, partea 2] `Shop` apare abia dupa prima vanzare: un magazin aratat inainte de prima moneda castigata strica si
 -- jocul, si conversia (nota 41). Restul intrarilor sunt mereu acolo.
 local shopUnlocked = false
+-- [D71] seria zilnica vazuta ultima data (nil pana la prima stare)
+local streakSeen: { run: number, best: number }? = nil
+-- [D71] Fusul orar al jucatorului (secunde fata de UTC), din ceasul local: ziua seriei zilnice e ziua lui, nu cea UTC.
+-- Il spunem serverului o singura data, dupa prima stare (profilul e incarcat); serverul il valideaza.
+local function localClockOffset(): number
+    local now = DateTime.now()
+    local l = now:ToLocalTime()
+    return DateTime.fromUniversalTime(l.Year, l.Month, l.Day, l.Hour, l.Minute, l.Second).UnixTimestamp
+        - now.UnixTimestamp
+end
+
 local function isMenuUnlocked(name: string): boolean
     return name ~= "shop" or shopUnlocked
 end
@@ -1420,7 +1432,13 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
     }
 
     local rawFair: any = raw.fair or {}
-    local fair = { visits = rawFair.visits or 0 } -- [D60]
+    -- [D71] seria zilnica, copiata camp cu camp
+    local rawStreak: any = if typeof(rawFair.streak) == "table" then rawFair.streak else {}
+    local fair = {
+        visits = rawFair.visits or 0, -- [D60]
+        streakRun = if typeof(rawStreak.run) == "number" then rawStreak.run else 0,
+        streakBest = if typeof(rawStreak.best) == "number" then rawStreak.best else 0,
+    }
 
     local rawSettings: any = raw.settings or {}
     local snapshot = {
@@ -1501,6 +1519,19 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
         JournalController.SpeciesCaught(snapshot.fishing)
     )
     FerryController.Apply(snapshot.village.outfit, snapshot.fair.visits, snapshot.village.look)
+    -- [D71] o zi noua in timpul jocului (miezul noptii tale): seria creste si se spune. La intrare o spune fereastra de
+    -- revenire, deci prima stare doar retine seria.
+    local run, best = snapshot.fair.streakRun, snapshot.fair.streakBest
+    local seen = streakSeen
+    if seen ~= nil and run > seen.run and run >= 2 then
+        -- recordul si titlul, din cea mai lunga serie de dinainte (TitleMath: pragurile titlurilor seriei)
+        local title = TitleMath.streakTitleReached(seen.best, best)
+        HUDController.Toast(Strings.streakNext(run, run > seen.best, title), Theme.COLOR.gold)
+    end
+    if streakSeen == nil then
+        Net.Get("SetClock"):FireServer(localClockOffset())
+    end
+    streakSeen = { run = run, best = best }
     -- [D61, partea 2] pass-urile tale si ce ar aduce produsele acum; Swift Boots se simte pe loc
     ShopPanel.Apply(raw.robux)
     CharacterController.SetSpeedFactor(ShopPanel.State().speed)

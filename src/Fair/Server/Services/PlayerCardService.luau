@@ -27,6 +27,8 @@ export type Card = {
     treasures: number,
     decor: number,
     likes: number, -- [D61, partea 2] like-urile primite de satul lui
+    streakRun: number, -- [D71] seria zilnica de acum si cea mai lunga
+    streakBest: number,
     species: number,
     speciesTotal: number,
 }
@@ -69,6 +71,8 @@ function PlayerCardService.Of(userId: number): Card?
         likes = if typeof((data.Fair :: any).likes) == "number"
             then math.floor((data.Fair :: any).likes)
             else 0,
+        streakRun = DataService.Streak(target).run,
+        streakBest = DataService.Streak(target).best,
         species = facts.species,
         speciesTotal = #FishConfig.SPECIES,
     }

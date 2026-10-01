@@ -9,6 +9,7 @@ local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
 local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
+local Strings = require(ReplicatedStorage.Shared.Config.Strings)
 
 local SoundController = require(script.Parent.SoundController)
 local Theme = require(script.Parent.Parent.UI.Theme)
@@ -25,6 +26,9 @@ local FairHUDController = {}
 local hud: Frame? = nil
 local pearlPill: Frame
 local pearlValue: TextLabel
+-- [D71] seria zilnica, sub perle
+local streakPill: Frame
+local streakValue: TextLabel
 local toastLabel: TextLabel
 local toastToken = 0
 -- [D61] degetul care tine butonul rotund (bara undiței de la iaz) si banda de sus a concursului
@@ -44,6 +48,17 @@ function FairHUDController.SetPearls(n: number)
     if hud ~= nil then
         pearlValue.Text = TycoonMath.formatNumber(math.floor(n))
     end
+end
+
+-- [D71] Seria zilnica (StreakMath): cate zile vii, una dupa alta. Ascunsa pana la prima zi numarata.
+function FairHUDController.SetStreak(run: number)
+    if hud == nil then
+        return
+    end
+    streakPill.Visible = run >= 1
+    streakValue.Text = Strings.streakDays(run)
+    streakValue.TextSize =
+        Theme.fitSize(streakValue.Text, Theme.TEXT.body, "display", streakValue.Size.X.Offset)
 end
 
 -- Unde zboara perlele castigate: iconita din pastila, pe panza HUD.
@@ -178,6 +193,45 @@ function FairHUDController.Init(deps: Deps)
     pearlValue.Size = UDim2.fromOffset(PILL_W - 52, Theme.TEXT.heading + 6)
     pearlValue.TextXAlignment = Enum.TextXAlignment.Right
     pearlValue.ZIndex = 13
+
+    -- [D71] seria zilnica, sub pastila perlelor (nu in banda de sus: iazul o goleste cand esti departe de el)
+    streakPill = Instance.new("Frame")
+    streakPill.Name = "StreakPill"
+    streakPill.Position = UDim2.fromOffset(Theme.SPACE.lg, Theme.SPACE.md + PILL_H + Theme.SPACE.sm)
+    streakPill.Size = UDim2.fromOffset(PILL_W, PILL_H)
+    streakPill.ZIndex = 12
+    streakPill.Visible = false
+    Widgets.PillBackground(streakPill, 12)
+    streakPill.Parent = deps.HudGui
+    -- ca pastila AWAY din sat: iconita, apoi eticheta scurta in "strong" (Theme: "body" e pentru fraze)
+    local clock = Widgets.Icon(streakPill, "clock", 18)
+    local eyebrowX = Theme.SPACE.md
+    if clock ~= nil then
+        clock.AnchorPoint = Vector2.new(0, 0.5)
+        clock.Position = UDim2.fromOffset(Theme.SPACE.md, PILL_H / 2)
+        clock.ZIndex = 13
+        eyebrowX = Theme.SPACE.md + 18 + 4
+    end
+    local streakLabel = Widgets.Label(
+        streakPill,
+        Strings.STREAK_LABEL,
+        Theme.TEXT.tiny,
+        Theme.COLOR.onDark,
+        "strong"
+    )
+    streakLabel.AnchorPoint = Vector2.new(0, 0.5)
+    streakLabel.Position = UDim2.fromOffset(eyebrowX, PILL_H / 2)
+    streakLabel.Size = UDim2.fromOffset(44, Theme.TEXT.tiny + 6) -- "Streak": 6 litere x 13 x 0.56
+    streakLabel.TextXAlignment = Enum.TextXAlignment.Left
+    streakLabel.ZIndex = 13
+    -- ca valoarea pastilei AWAY: TEXT.body (cu "12 days" in 76 px nu se mai strange cand seria creste)
+    streakValue = Widgets.Label(streakPill, "", Theme.TEXT.body, Theme.COLOR.onDark, "display")
+    streakValue.AnchorPoint = Vector2.new(1, 0.5)
+    streakValue.Position = UDim2.fromOffset(PILL_W - Theme.SPACE.md, PILL_H / 2)
+    streakValue.Size =
+        UDim2.fromOffset(PILL_W - Theme.SPACE.md - (eyebrowX + 44 + 4), Theme.TEXT.body + 6)
+    streakValue.TextXAlignment = Enum.TextXAlignment.Right
+    streakValue.ZIndex = 13
 
     toastLabel = Widgets.PlateLabel(deps.HudGui, "", Theme.TEXT.heading, "display")
     toastLabel.Name = "Toast"

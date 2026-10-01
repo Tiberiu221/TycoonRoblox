@@ -10,6 +10,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local FishConfig = require(ReplicatedStorage.Shared.Config.FishConfig)
 local TitleMath = require(ReplicatedStorage.Shared.Modules.TitleMath)
 local PassMath = require(ReplicatedStorage.Shared.Modules.PassMath)
+local StreakMath = require(ReplicatedStorage.Shared.Modules.StreakMath)
 local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
 
 local Analytics = require(script.Parent.Analytics)
@@ -88,6 +89,8 @@ function TitleService.Facts(player: Player): TitleMath.Facts?
             else 0,
         -- [D61, partea 2] pass-ul Supporter (doar aspect): titlul lui
         supporter = PassMath.has(data, "supporter"),
+        -- [D71] cea mai lunga serie zilnica
+        streakBest = StreakMath.clean((data :: any).Streak).best,
     }
 end
 
@@ -117,6 +120,8 @@ export type Snapshot = {
     decor: { [string]: boolean },
     pondWins: number, -- [D61] progresul titlurilor din balci
     perfectGames: number,
+    streakBest: number, -- [D71]
+    streakRun: number,
 }
 
 function TitleService.Snapshot(player: Player): Snapshot
@@ -141,6 +146,11 @@ function TitleService.Snapshot(player: Player): Snapshot
         decor = if facts ~= nil then facts.decor else {},
         pondWins = if facts ~= nil then facts.pondWins or 0 else 0,
         perfectGames = if facts ~= nil then facts.perfectGames or 0 else 0,
+        streakBest = if facts ~= nil then facts.streakBest or 0 else 0,
+        streakRun = (function()
+            local data = DataService.Get(player)
+            return StreakMath.clean(if data ~= nil then (data :: any).Streak else nil).run
+        end)(),
     }
 end
 

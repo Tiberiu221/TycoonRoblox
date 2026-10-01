@@ -17,6 +17,7 @@ local NetFolder = script.Parent:WaitForChild("Net")
 local Net = require(ReplicatedStorage.Net.Net)
 local MonetizationConfig = require(ReplicatedStorage.Shared.Config.MonetizationConfig)
 local FairLayout = require(ReplicatedStorage.Shared.Modules.FairLayout)
+local StreakMath = require(ReplicatedStorage.Shared.Modules.StreakMath) -- [D71]
 local DataService = require(Services:WaitForChild("DataService"))
 local EconomyService = require(Services:WaitForChild("EconomyService"))
 local VillageService = require(Services:WaitForChild("VillageService"))
@@ -157,8 +158,42 @@ if RunService:IsStudio() then
             EconomyService.AddPearls(player, math.min(math.floor(raw), 100000), "dev")
             task.defer(FairNetServer.PushState, player)
         end
+        -- [D71] `DevStreak`: seria zilnica de azi (pastila, cardul, titlurile seriei)
+        local devStreak = Workspace:GetAttribute("DevStreak")
+        local data = DataService.Get(player) :: any
+        if
+            typeof(devStreak) == "number"
+            and devStreak == devStreak
+            and devStreak > 0
+            and data ~= nil
+        then
+            local n = math.min(math.floor(devStreak), 3650)
+            local streak = StreakMath.clean(data.Streak)
+            data.Streak = {
+                day = StreakMath.dayOf(os.time(), streak.offset),
+                run = n,
+                best = n,
+                total = n,
+                offset = streak.offset,
+                offsetDay = streak.offsetDay,
+            }
+            task.defer(FairNetServer.PushState, player)
+        end
     end)
 end
+
+-- [D71] seria zilnica si in balci: o zi noua in timpul jocului (miezul noptii tale) se numara si se spune, ca in sat
+-- (bucla din StationService). Altfel, cine iesea din joc direct de aici pierdea ziua in care a jucat.
+task.spawn(function()
+    while true do
+        task.wait(30)
+        for _, player in Players:GetPlayers() do
+            if DataService.TouchStreak(player) then
+                FairNetServer.PushState(player)
+            end
+        end
+    end
+end)
 
 -- [D61] gheretele de joc
 BoothService.Init({ PushState = FairNetServer.PushState, PositionOf = PresenceService.PositionOf })

@@ -21,12 +21,25 @@ local DataService = require(script.Parent.DataService)
 local EconomyService = require(script.Parent.EconomyService)
 
 local StationService = {}
+
+-- [D71] ce afla fereastra de revenire (copiat camp cu camp pe client, WelcomeController)
+export type WelcomeInfo = {
+    coins: number,
+    away: number, -- secunde, cat ai lipsit cu adevarat
+    phase: string, -- "full" | "slow" | "rested" (OfflineCalc)
+    arrived: number, -- [D59] cate lucruri au venit pe rau
+    fullHours: number, -- orele la viteza intreaga (8, sau 16 cu Long Nights)
+    stopHours: number, -- dupa atatea ore satul se odihneste (24)
+    -- seria zilnica, doar cand e ceva de spus (StreakMath.worthTelling): "next" sau "broke", un record nou, un titlu
+    streak: { run: number, best: number, event: string, record: boolean, title: string? }?,
+}
+
 local deps: {
     PushState: ((Player) -> ())?,
     Now: (() -> number)?,
-    -- fereastra "cat ai lipsit"; nil = nu se arata nimic (tot se plateste). [D59] Ultimul: cate lucruri au venit pe rau.
-    -- (jucatorul, monede, secunde, plafonat, lucruri venite pe rau, [D61] orele plafonului: 24 sau 48)
-    OnWelcome: ((Player, number, number, boolean, number, number) -> ())?,
+    -- fereastra "cat ai lipsit"; nil = nu se arata nimic (tot se plateste). [D71] Un tabel, nu argumente pe pozitii:
+    -- monedele, cat ai lipsit cu adevarat, bucata curbei, ce a venit pe rau [D59], orele curbei si vestea seriei zilnice.
+    OnWelcome: ((Player, WelcomeInfo) -> ())?,
     -- al doilea om al unei meserii se angajeaza tot prin HandService [D49]; primit, nu cerut (cerc)
     Hands: { Hire: (Player, string) -> boolean }?,
     -- [D59] ce a adus raul cat ai lipsit (TreasureService); se numara o singura data pe sesiune
@@ -792,34 +805,50 @@ local function settleOffline(player: Player)
     end
     StationService.Invalidate(player)
     local now = os.time()
-    -- [D61, partea 2] cu Long Nights satul lucreaza pana la 16 ore, nu 8 [D66; pana atunci 48 si 24]
-    local capSeconds = PassMath.offlineCapSeconds(data)
+    -- [D71] viteza intreaga 8 h (16 cu Long Nights), apoi un sfert pana la 24 h, apoi satul se odihneste
+    local curve = PassMath.offlineCurve(data)
     local result =
-        OfflineCalc.computeIdle(now, data.Meta.lastSeenAt, StationService.Idle(player), capSeconds)
+        OfflineCalc.computeIdle(now, data.Meta.lastSeenAt, StationService.Idle(player), curve)
     data.Meta.lastSeenAt = now
     -- [D59] si ce a venit pe rau cat ai lipsit: fereastra se arata si cand monedele sunt zero, daca te asteapta ceva
     local treasures = deps.Treasures
     local arrived = if treasures ~= nil then treasures.SettleOffline(player) else 0
-    if result.coins <= 0 and arrived <= 0 then
+    -- [D71] si seria zilnica, daca e ceva de spus (o ia o singura data)
+    local news = DataService.TakeStreakNews(player)
+    -- [D61, partea 2] suma platita acum: `Welcome Back x2` o mai da o data (o singura data pentru fiecare revenire).
+    -- [D71] o revenire fara monede pune 0, ca o suma de la o revenire veche sa nu mai poata fi dublata.
+    data.Meta.lastWelcome = if result.coins > 0 then math.floor(result.coins) else 0
+    if result.coins <= 0 and arrived <= 0 and news == nil then
         return
     end
     if result.coins > 0 then
         EconomyService.AddCoins(player, result.coins, "offline")
-        -- [D61, partea 2] suma platita acum: `Welcome Back x2` o mai da o data (o singura data pentru fiecare revenire)
-        data.Meta.lastWelcome = math.floor(result.coins)
     end
     local onWelcome = deps.OnWelcome
     if onWelcome ~= nil then
-        onWelcome(
-            player,
-            result.coins,
-            result.seconds,
-            result.cappedByTime,
-            arrived,
-            capSeconds / 3600
-        )
+        local streak = DataService.Streak(player)
+        onWelcome(player, {
+            coins = result.coins,
+            away = result.away,
+            phase = result.phase,
+            arrived = arrived,
+            fullHours = curve.full / 3600,
+            stopHours = curve.stop / 3600,
+            streak = if news ~= nil
+                then {
+                    run = streak.run,
+                    best = streak.best,
+                    event = news.event,
+                    record = news.record,
+                    title = news.title,
+                }
+                else nil,
+        })
     end
 end
+
+-- [D71] consola de dev (`away <ore>`): socoteala din nou, dupa ce `lastSeenAt` a fost mutat inapoi
+StationService.SettleOffline = settleOffline
 
 function StationService.Init(d: typeof(deps))
     deps = d
@@ -842,6 +871,11 @@ function StationService.Init(d: typeof(deps))
                 local data = DataService.Get(player)
                 if data ~= nil then
                     data.Meta.lastSeenAt = now
+                    -- [D71] o zi noua in timpul jocului (miezul noptii jucatorului): seria creste si se vede
+                    local push = deps.PushState
+                    if DataService.TouchStreak(player) and push ~= nil then
+                        push(player)
+                    end
                 end
             end
         end

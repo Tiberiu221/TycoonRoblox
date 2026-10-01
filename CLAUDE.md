@@ -108,6 +108,21 @@ stylua/selene o prind. Rulează-le mereu pe toate, nu înlănțuite după o eroa
   bâlciul doar în 114983498774894); serverul Rojo al satului rulează detașat pe 34872 și trebuie repornit ca să citească
   o schimbare de proiect. Ce a rulat în Studio se vede în `~/Library/Logs/Roblox/*_last.log` (`CreatorOutput`, `open place`).
 
+## Stare (2026-10-01) [D71]
+
+**Satul lucrează fără tine pe o curbă, iar seria zilnică se vede la bâlci.** Nimic nu e văzut încă în Studio.
+- **Curba** (`OfflineCalc`, `PassMath.offlineCurve`): viteză întreagă 8 h (16 h cu Long Nights), un sfert până la 24 h,
+  apoi odihnă. Poarta `check_windfall` se măsoară pe o zi întreagă (22,4% din Era 2). Suma barajului rămâne pe noaptea de
+  8 h (`NIGHT_HOURS`). Fereastra de revenire primește un tabel (`StationService.WelcomeInfo`), nu argumente pe poziții.
+- **Seria zilnică** (`StreakMath`, profil **v18** `Streak`; barajul trece pe v19): ziua jucătorului (fusul orar trimis de
+  client prin `SetClock`, validat, schimbat cel mult o dată pe zi), o zi lipsă nu o rupe, două da; titlurile Regular (7) și
+  Old Friend (30) din cea mai lungă serie, anunțate. Pastila de sub perle, rândul de pe card, toast-urile; se numără și în
+  timpul jocului, în sat și în bâlci.
+- **Unelte:** `dev away <ore>` (curba și fereastra), `dev streak <n>`; în `Balci.rbxl`, al treilea argument al
+  `build_balci` (`DevStreak`).
+- **Așteaptă owner-ul:** acordul pentru `python3 scripts/create_monetization.py --update nights` (descrierea Long Nights de
+  pe Roblox); judecata curbei se face cu pass-urile stinse (rândul `robux`).
+
 ## Stare (2026-09-29) [D70]
 
 **Modernizarea Erei 3 e în cod, iar motorul lanțului știe să unească piese.** Nimic nu e văzut încă în Studio.

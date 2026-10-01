@@ -127,5 +127,38 @@ return function()
                 "Of the Mill, River Legend, Pike 96 cm, Champion of the Week, Statue Patron, Old Salt"
             )
         end)
+
+        -- [D71] seria zilnica: din cea mai lunga serie, deci un titlu castigat nu cade cand seria reincepe
+        test.case("titlurile seriei zilnice vin din cea mai lunga serie", function()
+            local function facts(best: number?): any
+                return {
+                    era = 1,
+                    species = 0,
+                    speciesTotal = 12,
+                    decor = {},
+                    champion = false,
+                    bought = {},
+                    streakBest = best,
+                }
+            end
+            check.equal(TitleMath.label("regular", facts(nil)), nil)
+            check.equal(TitleMath.label("regular", facts(6)), nil)
+            check.equal(TitleMath.label("regular", facts(TitleMath.STREAK_REGULAR)), "Regular")
+            check.equal(TitleMath.label("old_friend", facts(29)), nil)
+            check.equal(
+                TitleMath.label("old_friend", facts(TitleMath.STREAK_OLD_FRIEND)),
+                "Old Friend"
+            )
+            local labels = {}
+            for _, entry in TitleMath.earned(facts(30)) do
+                table.insert(labels, entry.label)
+            end
+            check.equal(table.concat(labels, ", "), "Of the Landing, Regular, Old Friend")
+            -- se spune cand se castiga [D43]: o singura data, la trecerea pragului
+            check.equal(TitleMath.streakTitleReached(6, 7), "Regular")
+            check.equal(TitleMath.streakTitleReached(7, 8), nil)
+            check.equal(TitleMath.streakTitleReached(29, 30), "Old Friend")
+            check.equal(TitleMath.streakTitleReached(3, 2), nil)
+        end)
     end)
 end

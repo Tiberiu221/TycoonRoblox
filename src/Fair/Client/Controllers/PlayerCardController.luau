@@ -38,10 +38,11 @@ local values: { [string]: TextLabel } = {}
 local friendButton: TextButton
 local visitButton: TextButton
 
-local PANEL_W, PANEL_H = 480, 460
+-- [D71] 492: al saptelea rand (seria zilnica) intre portret si butoane
+local PANEL_W, PANEL_H = 480, 492
 local Z = 72
-local ROWS = { "income", "fish", "treasures", "decor", "likes", "journal" }
-local ROW_STEP = 32 -- sase randuri intre portret si butoane (cutiile: check_panel_rows.py, PLAYER_CARD)
+local ROWS = { "income", "fish", "treasures", "decor", "likes", "streak", "journal" }
+local ROW_STEP = 32 -- sapte randuri intre portret si butoane (cutiile: check_panel_rows.py, PLAYER_CARD)
 local BUTTON_W = 210
 
 -- Portretul: omul in tinuta lui si [D61] cu chipul lui, cadrul idle spre tine (UI/Portrait, comun cu avizierul).
@@ -63,6 +64,7 @@ local function show(card: { [string]: any })
     values.treasures.Text = tostring(card.treasures)
     values.decor.Text = tostring(card.decor)
     values.likes.Text = tostring(card.likes)
+    values.streak.Text = Strings.cardStreak(card.streakRun, card.streakBest)
     values.journal.Text = Strings.cardOf(card.species, card.speciesTotal)
     drawPortrait(card.outfit, card.look)
     local other = card.userId ~= Players.LocalPlayer.UserId
@@ -138,6 +140,7 @@ function PlayerCardController.Init(d: Deps)
         treasures = Strings.CARD_TREASURES,
         decor = Strings.CARD_DECOR,
         likes = Strings.CARD_LIKES,
+        streak = Strings.CARD_STREAK,
         journal = Strings.CARD_JOURNAL,
     }
     for i, key in ROWS do
@@ -210,6 +213,8 @@ function PlayerCardController.Init(d: Deps)
             look = LookMath.clean(card.look), -- [D61]
             era = if typeof(card.era) == "number" then card.era else 1,
             likes = if typeof(card.likes) == "number" then card.likes else 0, -- [D61, partea 2]
+            streakRun = if typeof(card.streakRun) == "number" then card.streakRun else 0, -- [D71]
+            streakBest = if typeof(card.streakBest) == "number" then card.streakBest else 0,
             incomePerSec = if typeof(card.incomePerSec) == "number" then card.incomePerSec else 0,
             fish = if typeof(card.fish) == "string" then card.fish else nil,
             fishCm = if typeof(card.fishCm) == "number" then card.fishCm else 0,

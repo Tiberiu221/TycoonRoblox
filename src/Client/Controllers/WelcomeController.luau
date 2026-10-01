@@ -28,13 +28,20 @@ local onDoubled: ((number) -> ())? = nil
 local window: GuiObject? = nil
 
 local WIDTH = 460
-local HEIGHT = 330 -- incape varianta cea mai lunga: suma, durata, ce a venit la ponton si nota de plafon
+-- incape varianta cea mai lunga: suma, durata, ce a venit la ponton, nota curbei (doua randuri) si [D71] seria zilnica,
+-- cu ~10 px pana la butoane (la 366 ramanea ~1,5 px: verificator, 2026-10-01)
+local HEIGHT = 384
 local BUTTON_H = 48
 local COIN = 30
 
+-- [D71] cu zile: fereastra spune acum cat ai lipsit cu adevarat, nu cat a lucrat satul (72 h scria "72h 0min")
 local function fmtDuration(seconds: number): string
-    local h = math.floor(seconds / 3600)
+    local d = math.floor(seconds / 86400)
+    local h = math.floor((seconds % 86400) / 3600)
     local m = math.floor((seconds % 3600) / 60)
+    if d > 0 then
+        return if h > 0 then `{d}d {h}h` else (if d == 1 then "1 day" else `{d} days`)
+    end
     if h > 0 then
         return `{h}h {m}min`
     end
@@ -134,10 +141,13 @@ function WelcomeController.Init(deps: {
     local away = line(3, Theme.TEXT.body, Theme.COLOR.inkSoft, "body")
     -- [D59] ce a venit pe rau cat ai lipsit
     local river = line(4, Theme.TEXT.body, Theme.COLOR.wood, "strong")
-    local note = line(5, Theme.TEXT.small, Theme.COLOR.bad, "body")
+    -- [D71] nota curbei: nu in rosu, nu e o pedeapsa [P2, nota 16]
+    local note = line(5, Theme.TEXT.small, Theme.COLOR.inkSoft, "body")
     note.Size = UDim2.fromScale(1, 0)
     note.AutomaticSize = Enum.AutomaticSize.Y
     note.TextWrapped = true
+    -- [D71] seria zilnica, cand e ceva de spus
+    local streakLine = line(6, Theme.TEXT.body, Theme.COLOR.wood, "strong")
 
     local button = Widgets.Button(body, {
         text = Strings.WELCOME_CONTINUE,
@@ -194,6 +204,7 @@ function WelcomeController.Init(deps: {
             Theme.fitSize(amount.Text, Theme.TEXT.title, "display", width - COIN - Theme.SPACE.sm)
         away.TextSize = Theme.fitSize(away.Text, Theme.TEXT.body, "body", width)
         river.TextSize = Theme.fitSize(river.Text, Theme.TEXT.body, "strong", width)
+        streakLine.TextSize = Theme.fitSize(streakLine.Text, Theme.TEXT.body, "strong", width)
     end
     -- fereastra se strange la rotirea telefonului (Widgets.Window), iar textul odata cu ea
     root:GetPropertyChangedSignal("Size"):Connect(fit)
@@ -211,49 +222,76 @@ function WelcomeController.Init(deps: {
         fit()
     end
 
-    deps.WelcomeBack.OnClientEvent:Connect(
-        function(
-            coins: number,
-            seconds: number,
-            capped: boolean,
-            arrived: number?,
-            capHours: number?
-        )
-            local things = if typeof(arrived) == "number" then arrived else 0
-            if coins <= 0 and things <= 0 then
-                return
+    -- [D71] un singur tabel de la server (StationService.WelcomeInfo), copiat camp cu camp: un camp necunoscut sau
+    -- stricat cade pe ceva cinstit, nu pe nil
+    local function num(x: unknown): number
+        return if typeof(x) == "number" and x == x then x else 0
+    end
+    deps.WelcomeBack.OnClientEvent:Connect(function(raw: unknown)
+        local info: any = if typeof(raw) == "table" then raw else {}
+        local coins = num(info.coins)
+        local things = num(info.arrived)
+        local awaySeconds = num(info.away)
+        local phase = if typeof(info.phase) == "string" then info.phase else "full"
+        local fullHours = if num(info.fullHours) > 0
+            then num(info.fullHours)
+            else PassMath.OFFLINE_HOURS
+        local stopHours = if num(info.stopHours) > 0
+            then num(info.stopHours)
+            else PassMath.OFFLINE_STOP_HOURS
+        local rawStreak: any = info.streak
+        local streakText = ""
+        if typeof(rawStreak) == "table" then
+            local run, best = num(rawStreak.run), num(rawStreak.best)
+            local title = if typeof(rawStreak.title) == "string" then rawStreak.title else nil
+            if rawStreak.event == "next" and run >= 2 then
+                streakText = Strings.streakNext(run, rawStreak.record == true, title)
+            elseif rawStreak.event == "broke" and best >= 2 then
+                streakText = Strings.streakAgain(best)
             end
-            -- [D59] fara monede, dar cu ceva la ponton: titlul e raul, nu "ai castigat 0"
-            lead.Text = if coins > 0 then Strings.WELCOME_EARNED else Strings.WELCOME_RIVER_TITLE
-            amount.Text = TycoonMath.formatNumber(coins)
-            amountRow.Visible = coins > 0
-            away.Text = Strings.welcomeAway(fmtDuration(seconds))
-            river.Text = if things > 0 then Strings.welcomeArrived(things) else ""
-            river.Visible = things > 0
-            -- [D61, partea 2] plafonul e de o noapte, sau de doua cu Long Nights [D66]: nota spune care
-            local hours = if typeof(capHours) == "number" then capHours else PassMath.OFFLINE_HOURS -- [D66]
-            note.Text = if capped and coins > 0 then Strings.welcomeCapped(hours) else ""
-            note.TextColor3 = Theme.COLOR.bad
-            note.Visible = note.Text ~= ""
-            shownCoins = coins
-            showDouble(deps.RobuxBuy ~= nil and coins >= 1 and ShopPanel.Exists("welcome2x"))
-            fit()
-            root.Visible = true
-            SoundController.Play("chime")
-            -- o mica intrare: fereastra care apare dintr-o data se citeste ca o eroare
-            local scale = Instance.new("UIScale")
-            scale.Scale = 0.9
-            scale.Parent = root
-            TweenService:Create(
-                scale,
-                TweenInfo.new(0.22, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
-                { Scale = 1 }
-            ):Play()
-            task.delay(0.5, function()
-                scale:Destroy()
-            end)
         end
-    )
+        if coins <= 0 and things <= 0 and streakText == "" then
+            return
+        end
+        -- [D59] fara monede, dar cu ceva la ponton: titlul e raul, nu "ai castigat 0"; [D71] doar seria: un salut
+        lead.Text = if coins > 0
+            then Strings.WELCOME_EARNED
+            elseif things > 0 then Strings.WELCOME_RIVER_TITLE
+            else Strings.WELCOME_STREAK_TITLE
+        amount.Text = TycoonMath.formatNumber(coins)
+        amountRow.Visible = coins > 0
+        away.Text = Strings.welcomeAway(fmtDuration(awaySeconds))
+        away.Visible = awaySeconds >= 60
+        river.Text = if things > 0 then Strings.welcomeArrived(things) else ""
+        river.Visible = things > 0
+        -- [D71] cat ai lipsit peste viteza intreaga: curba spusa pe nume (8 h, sau 16 cu Long Nights; apoi 24 h)
+        note.Text = if coins <= 0
+            then ""
+            elseif phase == "rested" then Strings.welcomeRested(fullHours, stopHours)
+            elseif phase == "slow" then Strings.welcomeSlow(fullHours, stopHours)
+            else ""
+        note.TextColor3 = Theme.COLOR.inkSoft
+        note.Visible = note.Text ~= ""
+        streakLine.Text = streakText
+        streakLine.Visible = streakText ~= ""
+        shownCoins = coins
+        showDouble(deps.RobuxBuy ~= nil and coins >= 1 and ShopPanel.Exists("welcome2x"))
+        fit()
+        root.Visible = true
+        SoundController.Play("chime")
+        -- o mica intrare: fereastra care apare dintr-o data se citeste ca o eroare
+        local scale = Instance.new("UIScale")
+        scale.Scale = 0.9
+        scale.Parent = root
+        TweenService:Create(
+            scale,
+            TweenInfo.new(0.22, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+            { Scale = 1 }
+        ):Play()
+        task.delay(0.5, function()
+            scale:Destroy()
+        end)
+    end)
 end
 
 return WelcomeController

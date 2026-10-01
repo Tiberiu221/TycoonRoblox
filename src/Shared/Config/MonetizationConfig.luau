@@ -49,7 +49,8 @@ MonetizationConfig.ITEMS = {
         key = "nights",
         kind = "pass",
         name = "Long Nights",
-        blurb = "While you're away, your village works for up to 16 hours, not 8.", -- [D66]
+        -- [D66, D71] viteza intreaga 16 h, nu 8; dupa aceea, ca la toti, un sfert pana la 24 h
+        blurb = "While you're away, your village works at full speed for 16 hours, not 8.",
         icon = "idle",
         art = "shop_nights",
         suggested = 349,

@@ -13,6 +13,10 @@ export type Deps = {
         ProfileLoaded: RBXScriptSignal,
         Get: (Player) -> any,
         FairVisits: (Player) -> number,
+        -- [D71] seria zilnica si vestea ei (o singura data, cine o ia o arata)
+        Streak: (Player) -> { day: number, run: number, best: number, total: number },
+        TakeStreakNews: (Player) -> { event: string, record: boolean, title: string? }?,
+        SetStreakClock: (Player, unknown) -> boolean,
         AudioLevels: (Player) -> (number, number),
         SetAudioLevel: (Player, string, number) -> (),
     },
@@ -97,6 +101,11 @@ local function buildState(player: Player): { [string]: any }
         likes = deps.Visits.LikesOf(player), -- [D61, partea 2] cate like-uri are satul tau
         robux = deps.Shop.Snapshot(player), -- [D61, partea 2] pass-urile tale, cat de repede mergi
         settings = { musicLevel = musicLevel, soundLevel = soundLevel },
+        -- [D71] seria zilnica; `news` doar in prima stare de dupa o zi noua numarata aici: { event, record, title }
+        streak = (function()
+            local streak = deps.Data.Streak(player)
+            return { run = streak.run, best = streak.best, news = deps.Data.TakeStreakNews(player) }
+        end)(),
     }
 end
 
@@ -330,6 +339,17 @@ function FairNetServer.Init(d: Deps)
             return
         end
         deps.Data.SetAudioLevel(player, kind, level)
+    end)
+
+    -- [D71] Fusul orar al jucatorului, pentru ziua seriei zilnice: numar validat (StreakMath.cleanOffset) si limitat; se
+    -- schimba cel mult o data pe zi UTC. Daca a numarat ziua de azi dupa el, starea pleaca din nou.
+    Net.Get("SetClock").OnServerEvent:Connect(function(player: Player, offset: any)
+        if typeof(offset) ~= "number" or not RateLimiter.Allow(player, "Clock") then
+            return
+        end
+        if deps.Data.SetStreakClock(player, offset) then
+            FairNetServer.PushState(player)
+        end
     end)
 
     Players.PlayerRemoving:Connect(function(player: Player)

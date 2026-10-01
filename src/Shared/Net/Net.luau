@@ -23,6 +23,7 @@ local REMOTE_NAMES = {
     -- Noi la pivotul tycoon (D45) [F0 spec 1.4]
     "TycoonState", -- S->C: instantaneul complet; clientul INLOCUIESTE starea, nu o combina
     "SetAudio", -- C->S {kind, level}: nivelul muzicii sau al efectelor, 0..10, tinut minte in profil [D54]
+    "SetClock", -- C->S {offset}: fusul orar al jucatorului (secunde fata de UTC), pentru ziua seriei zilnice [D71]
     -- [D60] SpinWheel/WheelResult s-au mutat in balci (src/Fair/Net), odata cu roata
     "ClaimQuest", -- C->S: {questId} -- ia recompensa unui quest terminat
     "QuestRejected", -- S->C: {reason}

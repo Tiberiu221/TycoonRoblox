@@ -143,7 +143,8 @@ function Strings.zoneLocked(zoneName: string, bellName: string): string
 end
 -- [2026-09-30] finalul ce e in joc: era urmatoare vine intr-o actualizare (TycoonConfig.comingEra). Nu promite crestere:
 -- dupa clopot, cu oamenii la 2 x treapta 5, venitul are un plafon, iar un nivel peste el aduce 0 [D40, verificator]. Nici
--- "until then": absenta se plateste doar 8 h (16 cu Long Nights), iar actualizarea n-are data.
+-- "until then": absenta se plateste doar pana la 24 h (D71: 8 h plin, 16 cu Long Nights, apoi un sfert), iar actualizarea
+-- n-are data.
 function Strings.eraComing(zoneName: string): string
     return `{zoneName} is coming soon!`
 end
@@ -1064,6 +1065,8 @@ end
 function Strings.welcomeAway(duration: string): string
     return `You were away for {duration}`
 end
+-- [D71] fara monede si fara ceva pe rau, dar cu o zi noua in serie: fereastra se deschide doar pentru ea
+Strings.WELCOME_STREAK_TITLE = "Good to see you again"
 
 -- [D60] Balciul de seara (place-ul al doilea)
 Strings.FAIR_ROW_HOME = "Row home"
@@ -1088,6 +1091,9 @@ Strings.TITLE_FROM = {
     champion = "Biggest fish of last week",
     pond = "Rounds won at the Contest Pond",
     sharpshooter = "Perfect games at the booths",
+    -- [D71] seria zilnica (cea mai lunga; o zi lipsa nu o rupe)
+    regular = "A 7-day streak",
+    old_friend = "A 30-day streak",
     decor = "From your village decor",
     sale = "Bought with pearls",
 }
@@ -1099,6 +1105,11 @@ function Strings.titlePondProgress(n: number, goal: number): string
 end
 function Strings.titleSharpshooterProgress(n: number, goal: number): string
     return `Play perfect booth games ({n}/{goal})`
+end
+-- [D71] din seria de acum (ce numara copilul zi de zi), cu regula blanda spusa dinainte [D43]. Pe randurile „Still to
+-- earn” sub-eticheta ia toata latimea randului (TitleController), deci textul nu se mai taie.
+function Strings.titleStreakProgress(run: number, goal: number): string
+    return `Streak {run}/{goal} days. A missed day won't break it.`
 end
 function Strings.titleDecorHint(decorName: string): string
     return `Build the {decorName} in your village`
@@ -1232,6 +1243,14 @@ Strings.CARD_FISH = "Biggest fish"
 Strings.CARD_NO_FISH = "None yet"
 Strings.CARD_TREASURES = "Pulled from the river"
 Strings.CARD_LIKES = "Village likes" -- [D61, partea 2]
+Strings.CARD_STREAK = "Daily streak" -- [D71]
+-- [D71] seria de acum si cea mai lunga; pe un rand de 220 la 15 px
+function Strings.cardStreak(run: number, best: number): string
+    if run <= 0 then
+        return "Not started"
+    end
+    return if best > run then `{Strings.streakDays(run)} (best {best})` else Strings.streakDays(run)
+end
 Strings.CARD_DECOR = "Village decor"
 Strings.CARD_JOURNAL = "Journal"
 Strings.CARD_ADD_FRIEND = "Add friend"
@@ -1352,9 +1371,34 @@ function Strings.welcomeDouble(price: number?): string
     return if price ~= nil then `Double it  R${price}` else "Double it"
 end
 Strings.WELCOME_DOUBLED = "Doubled!"
--- [D66] Orele adevarate (8, sau 16 cu Long Nights): pana la D66 scria "1 day" / "2 days".
-function Strings.welcomeCapped(hours: number): string
-    return `Your village works for {math.floor(hours + 0.5)} hours while you are away.`
+-- [D71] Curba de cand lipsesti, spusa cand ai trecut de viteza intreaga (OfflineCalc): orele adevarate (8, sau 16 cu Long
+-- Nights), apoi un sfert din viteza pana la 24 h, apoi odihna. Nu in rosu: nu e o pedeapsa [P2, nota 16].
+-- [verificator] nota „slow” spune si oprirea, dinainte [D43]: altfel afli de ea abia dupa prima zi pierduta
+function Strings.welcomeSlow(fullHours: number, stopHours: number): string
+    local full, stop = math.floor(fullHours + 0.5), math.floor(stopHours + 0.5)
+    return `Your village worked at full speed for {full} hours, then at quarter speed. It rests after {stop} hours.`
+end
+function Strings.welcomeRested(fullHours: number, stopHours: number): string
+    local full, stop = math.floor(fullHours + 0.5), math.floor(stopHours + 0.5)
+    return `Full speed for {full} hours, then quarter speed. After {stop} hours your village rests until you come back.`
+end
+-- [D71] Seria zilnica (StreakMath): o zi lipsa nu o rupe. Fara presiune: nicio numaratoare, nimic de pierdut.
+-- `record`: seria de acum a trecut de cea mai lunga (la egalitate, nu); `title`: un titlu al seriei castigat azi.
+function Strings.streakNext(run: number, record: boolean, title: string?): string
+    if title ~= nil then
+        return `Day {run} of your streak! New title: {title}`
+    end
+    return if record
+        then `Day {run} of your streak! Your best yet.`
+        else `Day {run} of your streak!`
+end
+function Strings.streakAgain(best: number): string
+    return `A new streak starts today. Your best is {best} days.`
+end
+-- pastila din balci: eticheta mica si valoarea
+Strings.STREAK_LABEL = "Streak"
+function Strings.streakDays(n: number): string
+    return if n == 1 then "1 day" else `{n} days`
 end
 
 -- [D61, partea 2] Poarta satelor: vizitezi satul altui om din balci, ca fotografie; un like pe zi pentru fiecare sat.

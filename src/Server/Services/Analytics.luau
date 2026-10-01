@@ -129,6 +129,19 @@ end
 
 -- [D61, partea 2] Monede cumparate cu Robux (One Hour of Flow, Welcome Back x2): sursa IAP, cu soldul de DUPA. Merge
 -- doar din server si doar in jocul publicat (nota 27): in Studio esueaza in tacere, ca restul.
+-- [D71] REVENIREA ZILNICA: o data pe zi numarata (ziua jucatorului, seria zilnica, StreakMath). Valoarea e seria de acum; cate zile
+-- au revenit jucatorii si cat de lungi sunt seriile se citesc din tabloul de analytics al experientei.
+function Analytics.DailyReturn(player: Player, run: number, total: number)
+    task.spawn(function()
+        local ok, err = pcall(function()
+            AnalyticsService:LogCustomEvent(player, "DailyReturn", run)
+        end)
+        if not ok then
+            print(`[Analytics] revenire zilnica {run} (din {total}) (nelivrat in Studio): {err}`)
+        end
+    end)
+end
+
 function Analytics.CoinsBought(player: Player, amount: number, balance: number, sku: string)
     task.spawn(function()
         local ok, err = pcall(function()

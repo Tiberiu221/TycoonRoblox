@@ -18,6 +18,8 @@ local LIMITS: { [string]: { capacity: number, refillPerSecond: number } } = {
     -- [D54] panoul "Sound", dupa 0.6 s de liniste pe fiecare canal; fara bucket propriu, un nume
     -- necunoscut ar fi refuzat in tacere
     SetAudio = { capacity = 6, refillPerSecond = 2 },
+    -- [D71] fusul orar, o data la intrare (si la o reincercare); serverul il schimba oricum cel mult o data pe zi
+    Clock = { capacity = 2, refillPerSecond = 0.05 },
     RequestState = { capacity = 2, refillPerSecond = 0.2 },
     -- [D59] undita: aruncarea si scoaterea (cu reincercarea cand scoaterea vine prea devreme) -- cel mai des la o
     -- secunda si ceva, deci 4 in rafala ajung si cu reincercari

@@ -19,6 +19,8 @@ local Workspace = game:GetService("Workspace")
 local ProfileStore = require(ServerStorage.ServerPackages.ProfileStore)
 local ProfileMigrate = require(ReplicatedStorage.Shared.Modules.ProfileMigrate)
 local AudioLevels = require(ReplicatedStorage.Shared.Modules.AudioLevels)
+local StreakMath = require(ReplicatedStorage.Shared.Modules.StreakMath)
+local TitleMath = require(ReplicatedStorage.Shared.Modules.TitleMath)
 local Analytics = require(script.Parent.Analytics)
 
 -- Catch = ce a prins o plasa: id-ul bunului; pentru "named", id-ul din catalog + tier-ul. `p` = trecut
@@ -191,6 +193,15 @@ export type ProfileData = {
     -- `incomePerSec` e ultimul venit masurat in sat (sutimi): balciul n-are lantul, dar cardul jucatorului il arata.
     Titles: { bought: { [string]: boolean }, worn: string },
     Fair: { firstVisit: number, visits: number },
+    -- [D71] seria zilnica (StreakMath): ziua UTC numarata ultima, seria de acum, cea mai lunga, zilele cu revenire
+    Streak: {
+        day: number,
+        run: number,
+        best: number,
+        total: number,
+        offset: number,
+        offsetDay: number,
+    },
     Records: {
         era1Seconds: number,
         incomePerSec: number,
@@ -203,7 +214,7 @@ export type ProfileData = {
 
 local PROFILE_TEMPLATE: ProfileData = {
     -- [D61, partea 2] `lastWelcome`: suma platita la ultima revenire (Welcome Back x2) -- ca ProfileMigrate.toV14
-    Meta = { version = 17, createdAt = 0, lastSeenAt = 0, lastWelcome = 0 },
+    Meta = { version = 18, createdAt = 0, lastSeenAt = 0, lastWelcome = 0 },
     Coins = 0,
     Pearls = 0,
     Pads = {},
@@ -341,6 +352,8 @@ local PROFILE_TEMPLATE: ProfileData = {
         likes = 0,
         liked = { day = 0, ids = {} },
     },
+    -- [D71] ACELEASI campuri ca ProfileMigrate.toV18
+    Streak = { day = 0, run = 0, best = 0, total = 0, offset = 0, offsetDay = 0 },
     Records = { era1Seconds = 0, incomePerSec = 0, weeklyFishMm = 0, weeklyFishWeek = "" },
     -- [D61, partea 2] ACELEASI campuri ca ProfileMigrate.toV14: chitantele onorate si copia pass-urilor
     Purchases = { ids = {}, passes = {} },
@@ -478,6 +491,75 @@ function DataService.Reset(player: Player): boolean
     return true
 end
 
+-- [D71] SERIA ZILNICA. Ziua de azi se numara la incarcarea profilului (in sat si in balci) si din cand in cand (bucla
+-- satului din StationService, bucla balciului din Bootstrap-ul lui), ca o sesiune care trece de miezul noptii (al jucatorului) sa
+-- numere ziua noua. Vestea (seria creste sau reincepe, un record, un titlu castigat) se tine pana o ia cine o arata:
+-- fereastra de revenire in sat, HUD-ul in balci.
+export type StreakNews = { event: string, record: boolean, title: string? }
+local streakNews: { [Player]: StreakNews } = {}
+
+local function touchStreak(player: Player, data: any, now: number)
+    local before = StreakMath.clean(data.Streak)
+    local bestBefore = before.best
+    -- ziua TA (fusul orar spus de client; pana atunci, ziua UTC)
+    local streak, event, record =
+        StreakMath.touch(data.Streak, StreakMath.dayOf(now, before.offset))
+    data.Streak = streak
+    if event == "same" then
+        return
+    end
+    Analytics.DailyReturn(player, streak.run, streak.total)
+    if StreakMath.worthTelling(streak, event) then
+        -- [D43] un titlu al seriei castigat azi (Regular, Old Friend) se spune, ca la iaz si la gherete
+        streakNews[player] = {
+            event = event,
+            record = record,
+            title = TitleMath.streakTitleReached(bestBefore, streak.best),
+        }
+    end
+end
+
+-- Din cand in cand: o zi noua in timpul jocului. Intoarce true daca s-a schimbat ceva (de impins starea).
+function DataService.TouchStreak(player: Player): boolean
+    local data = DataService.Get(player)
+    if data == nil then
+        return false
+    end
+    local before = StreakMath.clean((data :: any).Streak).day
+    touchStreak(player, data, os.time())
+    return (data :: any).Streak.day ~= before
+end
+
+-- Fusul orar spus de client (remote-ul SetClock, in sat si in balci): se tine minte si numara ziua de azi dupa el.
+-- Intoarce true daca s-a schimbat ceva (de impins starea).
+function DataService.SetStreakClock(player: Player, offset: unknown): boolean
+    local data = DataService.Get(player) :: any
+    if data == nil then
+        return false
+    end
+    local now = os.time()
+    local streak, changed = StreakMath.setOffset(data.Streak, offset, now)
+    if not changed then
+        return false
+    end
+    data.Streak = streak
+    touchStreak(player, data, now)
+    return true
+end
+
+-- Seria, curatata (o copie): ce arata HUD-ul balciului, cardul si titlurile.
+function DataService.Streak(player: Player): StreakMath.Streak
+    local data = DataService.Get(player)
+    return StreakMath.clean(if data ~= nil then (data :: any).Streak else nil)
+end
+
+-- Vestea seriei, o singura data: cine o ia o arata.
+function DataService.TakeStreakNews(player: Player): StreakNews?
+    local news = streakNews[player]
+    streakNews[player] = nil
+    return news
+end
+
 -- [D60] De cate ori ai ajuns in balci (0 = niciodata): barca arata Skip abia de la al doilea drum.
 function DataService.FairVisits(player: Player): number
     local data = DataService.Get(player)
@@ -600,6 +682,7 @@ local function onPlayerAdded(player: Player)
     ProfileMigrate.toV15(profile.Data) -- darurile raului [D62]: cate ai scos, care a fost ultimul -- aditiv
     ProfileMigrate.toV16(profile.Data) -- Era 2 [D65]: cladirile, gramezile si oamenii Morii -- aditiv
     ProfileMigrate.toV17(profile.Data) -- Era 3 [D67]: cladirile, gramezile si oamenii Wire Works -- aditiv
+    ProfileMigrate.toV18(profile.Data) -- seria zilnica [D71] -- aditiv
     profile:Reconcile()
     profile.OnSessionEnd:Connect(function()
         profiles[player] = nil
@@ -616,6 +699,8 @@ local function onPlayerAdded(player: Player)
     if data.Meta.createdAt == 0 then
         data.Meta.createdAt = os.time()
     end
+    -- [D71] ziua de azi in seria zilnica: o singura data pe zi, oricare place incarca profilul primul
+    touchStreak(player, data, os.time())
     if place == "fair" then
         -- [D60] o vizita in balci nu e o sesiune noua de joc: satul le numara doar pe ale lui
         local fair = data.Fair
@@ -657,6 +742,7 @@ function DataService.Init(deps: { Place: string? })
         studioFresh[player] = nil
         studioProbe[player] = nil
         teleporting[player] = nil
+        streakNews[player] = nil
         local profile = profiles[player]
         local started = sessionStartedAt[player]
         sessionStartedAt[player] = nil

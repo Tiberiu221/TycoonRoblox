@@ -1065,13 +1065,44 @@ return function()
                 "PowerhousePile = { counts = {}, processedAt = 0 },",
                 "drawn = 0,",
                 "cellsSold = 0,",
-                "version = 17",
                 "ProfileMigrate.toV17(profile.Data)",
             }
             for _, role in StationConfig.ERA3_ROLES do
                 table.insert(needles, role .. " = { tier = 1 },")
             end
             for _, needle in needles do
+                check.is_true(string.find(src, needle, 1, true) ~= nil)
+            end
+        end)
+    end)
+
+    -- [D71] seria zilnica: un singur tabel nou, aditiv
+    test.suite("ProfileMigrate.toV18 -- seria zilnica, aditiv [D71]", function()
+        test.case("un profil vechi primeste seria la zero; una existenta nu se atinge", function()
+            local data: { [string]: any } = { Meta = { version = 17 }, Coins = 42 }
+            ProfileMigrate.toV18(data)
+            check.equal(data.Meta.version, 18)
+            check.equal(data.Streak.run, 0)
+            check.equal(data.Streak.best, 0)
+            check.equal(data.Streak.total, 0)
+            check.equal(data.Streak.day, 0)
+            check.equal(data.Coins, 42)
+            data.Streak.best = 9
+            data.Meta.version = 17
+            ProfileMigrate.toV18(data)
+            check.equal(data.Streak.best, 9)
+        end)
+
+        test.case("sablonul si migrarea adauga aceleasi campuri", function()
+            local fs = require("@lune/fs")
+            local src = fs.readFile("src/Server/Services/DataService.luau")
+            for _, needle in
+                {
+                    "Streak = { day = 0, run = 0, best = 0, total = 0, offset = 0, offsetDay = 0 },",
+                    "version = 18",
+                    "ProfileMigrate.toV18(profile.Data)",
+                }
+            do
                 check.is_true(string.find(src, needle, 1, true) ~= nil)
             end
         end)

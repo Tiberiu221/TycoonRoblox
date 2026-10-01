@@ -27,7 +27,7 @@ return function()
                 do
                     check.equal(PassMath.flowFactor(data), 1)
                     check.equal(PassMath.speedFactor(data), 1)
-                    check.equal(PassMath.offlineCapSeconds(data), 8 * 3600) -- [D66] o noapte
+                    check.equal(PassMath.offlineCurve(data).full, 8 * 3600) -- [D66, D71] o noapte, plin
                 end
                 check.is_false(PassMath.has(nil, "flow2x"))
                 check.is_false(PassMath.has("x", "flow2x"))
@@ -39,8 +39,11 @@ return function()
             check.equal(PassMath.speedFactor(with("flow2x")), 1)
             check.equal(PassMath.speedFactor(with("swift")), 1.5)
             check.equal(PassMath.flowFactor(with("swift")), 1)
-            check.equal(PassMath.offlineCapSeconds(with("nights")), 16 * 3600)
-            check.equal(PassMath.offlineCapSeconds(with("flow2x", "swift", "supporter")), 8 * 3600)
+            check.equal(PassMath.offlineCurve(with("nights")).full, 16 * 3600)
+            check.equal(PassMath.offlineCurve(with("flow2x", "swift", "supporter")).full, 8 * 3600)
+            -- [D71] oprirea de la 24 h e aceeasi pentru toti: revenirea zilnica nu se cumpara
+            check.equal(PassMath.offlineCurve(with("nights")).stop, 24 * 3600)
+            check.equal(PassMath.offlineCurve(with()).stop, 24 * 3600)
             -- Supporter e doar aspect: niciun numar nu se misca
             check.equal(PassMath.flowFactor(with("supporter")), 1)
             check.equal(PassMath.speedFactor(with("supporter")), 1)
@@ -88,40 +91,38 @@ return function()
         end)
 
         test.case(
-            "Long Nights: satul lucreaza pana la 16 ore, nu 8 [D66]; fara pass, cat o noapte",
+            "Long Nights: viteza intreaga 16 ore, nu 8; apoi aceeasi curba pana la 24 h [D66, D71]",
             function()
-                local day = 8 * 3600 -- o "zi" de lucru a satului fara tine: o noapte
-                local base = OfflineCalc.computeIdle(3 * day, 1, 2)
-                check.equal(base.seconds, day)
-                check.is_true(base.cappedByTime)
-                local long = OfflineCalc.computeIdle(
-                    3 * day,
-                    1,
-                    2,
-                    PassMath.offlineCapSeconds(with("nights"))
-                )
-                check.equal(long.seconds, 2 * day)
-                check.equal(long.coins, 2 * day * 2)
-                check.is_true(long.cappedByTime)
-                -- sub plafon nu se schimba nimic
-                local short = OfflineCalc.computeIdle(3601, 1, 2, 2 * day)
-                check.equal(short.seconds, 3600)
-                check.is_false(short.cappedByTime)
-                -- un plafon stricat cade pe cel implicit, niciodata pe "fara plafon"
-                for _, cap in { 0, -5, 0 / 0 } do
-                    check.equal(OfflineCalc.computeIdle(3 * day, 1, 2, cap).seconds, day)
+                local H = 3600
+                local nights = PassMath.offlineCurve(with("nights"))
+                local free = PassMath.offlineCurve(with())
+                -- nimic platit nu se taie: Long Nights plateste macar cat inainte de D71 (plin pana la 16 h), la orice
+                -- absenta, si mai mult decat fara pass de la 8 h incolo
+                for h = 0, 40, 0.5 do
+                    local long = OfflineCalc.paidSeconds(h * H, nights)
+                    check.is_true(long >= math.min(h, 16) * H)
+                    check.is_true(long >= OfflineCalc.paidSeconds(h * H, free))
+                    if h > 8 then
+                        check.is_true(long > OfflineCalc.paidSeconds(h * H, free))
+                    end
                 end
-                -- implicitul modulului pur e chiar fereastra fara pass
-                check.equal(OfflineCalc.IDLE_DEFAULT_SECONDS, PassMath.OFFLINE_HOURS * 3600)
+                local r = OfflineCalc.computeIdle(1 + 72 * H, 1, 2, nights)
+                check.equal(r.paid, 16 * H + 8 * H * PassMath.OFFLINE_SLOW)
+                check.equal(r.coins, r.paid * 2)
+                check.equal(r.phase, "rested")
+                -- implicitul modulului pur e chiar curba fara pass
+                check.equal(OfflineCalc.DEFAULT_CURVE.full, free.full)
+                check.equal(OfflineCalc.DEFAULT_CURVE.stop, free.stop)
+                check.equal(OfflineCalc.DEFAULT_CURVE.slow, free.slow)
                 -- iar fereastra "Welcome back" spune orele adevarate [D40]
                 local Strings = require("../src/Shared/Config/Strings")
                 check.equal(
-                    Strings.welcomeCapped(PassMath.OFFLINE_HOURS),
-                    "Your village works for 8 hours while you are away."
+                    Strings.welcomeSlow(PassMath.OFFLINE_HOURS, PassMath.OFFLINE_STOP_HOURS),
+                    "Your village worked at full speed for 8 hours, then at quarter speed. It rests after 24 hours."
                 )
                 check.equal(
-                    Strings.welcomeCapped(PassMath.OFFLINE_HOURS_LONG),
-                    "Your village works for 16 hours while you are away."
+                    Strings.welcomeRested(PassMath.OFFLINE_HOURS_LONG, PassMath.OFFLINE_STOP_HOURS),
+                    "Full speed for 16 hours, then quarter speed. After 24 hours your village rests until you come back."
                 )
             end
         )

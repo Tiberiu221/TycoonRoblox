@@ -11,6 +11,48 @@ Convenție: în tot proiectul, „server" înseamnă o instanță Roblox efemer�
 
 ---
 
+## D71 — Satul lucrează fără tine o zi, tot mai încet; seria zilnică se vede la bâlci
+**DECIS de owner pe 2026-10-01:** *„nu uita să creezi un sistem care se oprește din a mai avea venit după 24h; după 8 ore
+doar încetinește. am intrat pe salvare și aveam trilioane. […] acest lucru avantajează intrarea zilnică în joc. și trebuie
+monitorizat, ca un fel de streak pe care jucătorul îl poate avea la hub-ul acela.”* Amendează D66 punctul 3, TYCOON §Q
+(„Nu: recompense zilnice simple; mecanici de tip «ratezi dacă nu vii»”) și nota 39 („fără streak-uri noi”).
+
+**Ce era înainte:** viteză întreagă 8 h (16 h cu Long Nights), apoi nimic. „Trilioanele” owner-ului veneau din pass-urile
+de creator (Long Nights și 2x Flow, adică 16 h × 2 × venitul Erei 3 ≈ 139T), nu din lipsa unei limite. Curba nouă
+plătește **mai mult**, nu mai puțin, pentru absențele de peste 8 h.
+
+**Curba** (`OfflineCalc`, `PassMath`, cifrele în `sim_tycoon.py`):
+- 0–8 h: viteză întreagă; cu Long Nights, 0–16 h (cât promitea pass-ul: nimic plătit nu se taie, test);
+- până la 24 h: un sfert din viteză (`OFFLINE_SLOW = 0,25`);
+- după 24 h satul se odihnește până revii. Oprirea e aceeași pentru toți: revenirea zilnică nu se cumpără.
+- O zi întreagă fără pass-uri plătește cât 12 h la viteză întreagă. La sfârșitul Erei 1 cumpără 22,4% din Era 2, la
+  sfârșitul Erei 2 19,6% din Era 3. Poarta `check_windfall` (25%) se măsoară acum pe ziua întreagă, nu pe noapte.
+  Cu Long Nights: 25,5% / 22,1%, raportat, nu poartă (banii cumpără viteză).
+- Suma de start a barajului (35T) rămâne „o noapte fără pass-uri la Works Bell” (`NIGHT_HOURS = 8`), cum a hotărât
+  D70 Runda 4.
+- Fereastra de revenire spune cât ai lipsit cu adevărat (cu zile) și, peste 8 h, curba pe nume, nu în roșu. Long Nights
+  scrie acum „works at full speed for 16 hours, not 8” (descrierea de pe Roblox se rescrie doar cu acordul owner-ului).
+
+**Seria zilnică** (`StreakMath`, profil v18 `Streak`):
+- **ziua e ziua jucătorului, nu cea UTC.** Pe ziua UTC, în California ziua s-ar fi schimbat la 17:00 („Day 2” în aceeași
+  după-amiază), iar o toleranță care să-l acopere pe cel care lipsește o zi a lui i-ar fi lăsat pe cei care vin o dată la
+  trei zile să ia aceleași titluri ca unul care vine zilnic. Clientul spune o dată fusul orar (`SetClock`); serverul îl
+  validează (−12 h … +14 h, rotunjit la 15 minute) și îl schimbă cel mult o dată pe zi UTC. Până îl spune, ziua e cea UTC.
+  Seria nu dă monede, deci un fus mințit câștigă cel mult o zi de titlu;
+- ziua se numără o singură dată, oricare place încarcă profilul primul, și în timpul jocului, la miezul nopții jucătorului
+  (în sat și în bâlci);
+- **o zi lipsă nu rupe seria, două da** (`GRACE_DAYS = 1`). Textul promite doar partea blândă, dinainte [D43]:
+  „A missed day won't break it”;
+- cea mai lungă serie și totalul zilelor doar cresc [P2]; titlurile **Regular** (7 zile) și **Old Friend** (30) vin din
+  cea mai lungă serie, deci nu cad când seria reîncepe, și se spun când se câștigă („New title: Regular”), ca la iaz;
+  progresul spre ele numără seria de acum;
+- se vede la bâlci: pastila de sub perle, rândul „Daily streak” pe cardul jucătorului, titlurile. În sat, fereastra de
+  revenire (sau un toast) spune ziua nouă;
+- fără presiune [D63, nota 41]: fără numărătoare inversă, fără „pierzi seria”, nimic de cumpărat pentru ea, nicio monedă;
+- monitorizare: evenimentul `DailyReturn` (Analytics), o dată pe zi numărată.
+
+---
+
 ## D70 — Harta se schimbă: modernizarea din Era 3, demolarea filmată la Era 4, harta SF la Era 8
 **DECIS de owner pe 2026-09-24** în regulile mari, după o dezbatere și trei runde de întrebări (mai jos). Produsele
 concrete ale Erelor 5–8 se propun la fiecare eră, iar Era 8 se mai discută. Owner-ul, după ce a văzut Era 3 în Studio: *„aș prefera ca de la Era 3 harta
@@ -112,7 +154,9 @@ Rămân pentru mai târziu întrebările 5 (limita monedelor Robux) și 9–12 (
 (`docs/PLAN-MOTOR-UNIRE.md` §11): **Dam Bell se deschide la un venit** (4T monede pe secundă, scris pe cartonaș), iar
 **a doua turbină și a patra plasă de cablu ies din Era 4**. Nu aduceau nimic (colectorii erau deja plini), iar pe hartă
 deschideau clopotul pe la minutul 27, urmat de minute de strâns fără nimic de apăsat. Între a treia plasă de cablu și
-Kiln, capitolul cere „Earn 1T coins a second”. Era 4 ține ~45 de minute în simulator (scara de la 8,5).
+Kiln, capitolul cere „Earn 1T coins a second”, iar înaintea clopotului „Earn 4T coins a second” (altfel quest-ul clopotului
+ar sta ~16 minute pe o ruină încuiată). Cu 2x Flow pragurile se dublează (cartonașul scrie 8T), ca era să-și păstreze
+conținutul și pass-ul să dea tot jumătate din timp. Era 4 ține ~45 de minute în simulator (scara de la 8,5).
 
 **Regula „nimic nu se pierde”, amendată** (CLAUDE.md): la schimbarea de hartă aleasă de jucător („Build the Dam”, drumul
 spre Era 8) toți pornesc cu aceeași sumă. Ce e peste ea intră în construcție, e scris pe placă și e anunțat dinainte.
@@ -784,7 +828,8 @@ satul tău nu-l vedea nimeni: bâlciul te lăsa să te etalezi doar cu o ținut�
      - `2x Flow` (pass, ~799): venitul în monede se dublează, pentru totdeauna, peste tot unde apare;
      - `Swift Boots` (pass, ~149): mergi și alergi de 1,5 ori mai repede, în sat și în bâlci. D60 zicea ×2; la ×2
        traversezi bâlciul în 1,6 s și nu mai vezi nimic;
-     - `Long Nights` (pass, ~349): cât lipsești, satul lucrează până la 48 de ore, nu 24;
+     - `Long Nights` (pass, ~349): cât lipsești, satul lucrează până la 48 de ore, nu 24 (D66: 16 h; D71: 16 h la viteză
+       întreagă, apoi ca la toți);
      - `Supporter` (pass, ~199): doar aspect — titlul `Supporter`, numele auriu în bâlci, ținuta `Supporter`;
      - `One Hour of Flow` (produs, ~99, doar în sat): monede cât o oră din venitul de acum; suma scrie pe rând;
      - `Welcome Back x2` (produs, ~79): doar pe fereastra „Welcome back" (`Double it`), o dată pentru fiecare revenire.
@@ -946,7 +991,7 @@ D59 n-aveau privitori, iar perlele rămâneau fără cheltuială după 8–10 or
    Place-ul în care ajungi ia sesiunea (ProfileStore cere prin MessagingService celei vechi să se închidă);
    `DataService.MarkTeleporting` oprește Kick-ul „another server took over" pentru cine e în drum și notează, la urcare,
    ora plecării și timpul jucat. **Bâlciul nu simulează satul și nu scrie `lastSeenAt`**: la întoarcere satul plătește,
-   exact ca offline, tot timpul cât ai lipsit (plafonul de 24 h rămâne). O vizită în bâlci nu numără o sesiune nouă; se
+   exact ca offline, tot timpul cât ai lipsit (pe curba de azi: D71). O vizită în bâlci nu numără o sesiune nouă; se
    numără în `Fair.visits`.
 4. **Roata s-a mutat în bâlci — amendează D59 pct. 6.** Stă pe stâlpul ei, cu baldachin și focuri; aceleași premii,
    aceleași șanse afișate, aceeași regulă de 24 h. În sat, unde era timonierul, un indicator (`WheelSignpostController`)

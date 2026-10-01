@@ -496,6 +496,17 @@ do
     end)
 end
 
+-- [D71] fusul orar, spus o data dupa prima stare
+local clockSent = false
+-- [D71] Fusul orar al jucatorului (secunde fata de UTC), din ceasul local: ziua seriei zilnice e ziua lui, nu cea UTC.
+-- Il spunem serverului o singura data, dupa prima stare (profilul e incarcat); serverul il valideaza.
+local function localClockOffset(): number
+    local now = DateTime.now()
+    local l = now:ToLocalTime()
+    return DateTime.fromUniversalTime(l.Year, l.Month, l.Day, l.Hour, l.Minute, l.Second).UnixTimestamp
+        - now.UnixTimestamp
+end
+
 -- Starea balciului, copiata camp cu camp.
 Net.Get("FairState").OnClientEvent:Connect(function(raw: { [string]: any })
     local rawVillage: any = raw.village or {}
@@ -540,6 +551,8 @@ Net.Get("FairState").OnClientEvent:Connect(function(raw: { [string]: any })
         perfectGames = if typeof(rawTitles.perfectGames) == "number"
             then rawTitles.perfectGames
             else 0,
+        streakBest = if typeof(rawTitles.streakBest) == "number" then rawTitles.streakBest else 0, -- [D71]
+        streakRun = if typeof(rawTitles.streakRun) == "number" then rawTitles.streakRun else 0,
     }
     -- [D61] gheretele: cate jocuri cu premiu mai ai azi
     local rawBooth: any = raw.booth or {}
@@ -562,8 +575,34 @@ Net.Get("FairState").OnClientEvent:Connect(function(raw: { [string]: any })
         }
     end
     local market = { secondsLeft = rawMarket.secondsLeft or 0, items = marketItems }
+    -- [D71] seria zilnica, copiata camp cu camp
+    local rawStreak: any = raw.streak or {}
+    local streakRun = if typeof(rawStreak.run) == "number" then rawStreak.run :: number else 0
+    local streakBest = if typeof(rawStreak.best) == "number" then rawStreak.best :: number else 0
+    -- vestea zilei noi numarate aici: { event, record, title }, copiata camp cu camp
+    local rawNews: any = rawStreak.news
+    local streakNews = if typeof(rawNews) == "table" and typeof(rawNews.event) == "string"
+        then {
+            event = rawNews.event :: string,
+            record = rawNews.record == true,
+            title = if typeof(rawNews.title) == "string" then rawNews.title :: string else nil,
+        }
+        else nil
 
     FairHUDController.SetPearls(pearls)
+    FairHUDController.SetStreak(streakRun)
+    if not clockSent then
+        clockSent = true
+        Net.Get("SetClock"):FireServer(localClockOffset())
+    end
+    if streakNews ~= nil and streakNews.event == "next" and streakRun >= 2 then
+        FairHUDController.Toast(
+            Strings.streakNext(streakRun, streakNews.record, streakNews.title),
+            Theme.COLOR.gold
+        )
+    elseif streakNews ~= nil and streakNews.event == "broke" and streakBest >= 2 then
+        FairHUDController.Toast(Strings.streakAgain(streakBest))
+    end
     TitleController.Apply(titles, pearls)
     MarketController.Apply(market, pearls)
     BoothController.Apply(booth)

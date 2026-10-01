@@ -30,7 +30,7 @@ Fiecare rând de mai jos tace azi sau arată un cuvânt tehnic. Regulă: scurt, 
 
 Tip: A text mic 0,6–0,9s ease-out; B text mare + sunet, ease-out-back; C bandă HUD 3–4s; D banner overshoot, până la tap; E etichetă persistentă; F panou modal, până la acțiune; G tooltip 1-dată, tap/~4s.
 
-Trei reguli: fără emoji/superlative — numele obiectului bate orice adjectiv; fără text la dublu-tap/rate-limit — se ignoră, nu se ceartă; fără streak-uri noi (decis, §Q) — „revino mâine" doar pe ecranul offline. „Low power" pulsează discret, niciodată roșu (P2).
+Trei reguli: fără emoji/superlative — numele obiectului bate orice adjectiv; fără text la dublu-tap/rate-limit — se ignoră, nu se ceartă; fără streak-uri noi (decis, §Q; **amendat de D71**: o serie zilnică binevoitoare, la bâlci) — „revino mâine" doar pe ecranul offline. „Low power" pulsează discret, niciodată roșu (P2).
 
 | Categorie | Moment | Text (EN) | Tip |
 |---|---|---|---|

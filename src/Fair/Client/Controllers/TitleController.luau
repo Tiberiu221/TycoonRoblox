@@ -27,6 +27,8 @@ export type Snapshot = {
     speciesTotal: number,
     decor: { [string]: boolean },
     pondWins: number, -- [D61]
+    streakBest: number, -- [D71] cea mai lunga serie (alege titlul) si cea de acum (progresul)
+    streakRun: number,
     perfectGames: number,
 }
 
@@ -73,6 +75,8 @@ local function iconFor(id: string): string
         return "fish"
     elseif id == "sharpshooter" then
         return "check"
+    elseif id == "regular" or id == "old_friend" then
+        return "clock" -- [D71] castigat din seria zilnica, nu cumparat (perla ar spune "cumparat")
     elseif string.sub(id, 1, 6) == "decor_" then
         return "build"
     end
@@ -204,6 +208,8 @@ local function asRow(view: RowView)
     view.icon.Visible = true
     view.name.Visible = true
     view.sub.Visible = true
+    -- randurile se refolosesc: sub-eticheta revine la latimea de langa buton (cele "Still to earn" o lungesc)
+    view.sub.Size = UDim2.fromOffset(280, 18)
 end
 
 local function refresh()
@@ -268,6 +274,19 @@ local function refresh()
             sub = Strings.titlePondProgress(snap.pondWins, TitleMath.POND_WINS),
         })
     end
+    -- [D71] seria zilnica: doar urmatorul titlu al ei (ales din cea mai lunga serie), cu progresul seriei de acum, ca
+    -- cifra sa urce in fiecare zi in care vii [verificator: din cea mai lunga statea pe loc dupa o serie reinceputa]
+    local streakGoal, streakName = TitleMath.STREAK_REGULAR, "Regular"
+    if snap.streakBest >= TitleMath.STREAK_REGULAR then
+        streakGoal, streakName = TitleMath.STREAK_OLD_FRIEND, "Old Friend"
+    end
+    if snap.streakBest < streakGoal then
+        table.insert(toEarn, {
+            icon = "clock",
+            name = streakName,
+            sub = Strings.titleStreakProgress(snap.streakRun, streakGoal),
+        })
+    end
     if snap.perfectGames < TitleMath.PERFECT_GAMES then
         table.insert(toEarn, {
             icon = "check",
@@ -301,6 +320,8 @@ local function refresh()
             setIcon(view, e.icon)
             view.name.Text = e.name
             view.sub.Text = e.sub
+            -- fara buton si fara stare: sub-eticheta ia tot randul (check_panel_rows.py, TITLE_TO_EARN)
+            view.sub.Size = UDim2.new(1, -56 - Theme.SPACE.md, 0, 18)
             view.state.Visible = false
             view.button.Visible = false
         end

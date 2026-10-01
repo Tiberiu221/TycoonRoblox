@@ -500,4 +500,18 @@ function ProfileMigrate.toV17(data: { [string]: any })
     data.Meta.version = 17
 end
 
+-- [D71] SERIA ZILNICA (StreakMath): ziua numarata ultima, seria de acum, cea mai lunga, totalul zilelor cu revenire si
+-- fusul orar al jucatorului (spus de client). Aditiv: profilurile vechi pornesc de la zero, iar prima intrare de dupa
+-- numara ziua de azi.
+function ProfileMigrate.toV18(data: { [string]: any })
+    local version = if data.Meta ~= nil and data.Meta.version ~= nil then data.Meta.version else 1
+    if version >= 18 then
+        return
+    end
+    if typeof(data.Streak) ~= "table" then
+        data.Streak = { day = 0, run = 0, best = 0, total = 0, offset = 0, offsetDay = 0 }
+    end
+    data.Meta.version = 18
+end
+
 return ProfileMigrate

@@ -14,6 +14,7 @@ local REMOTE_NAMES = {
     "SpinWheel", -- C->S
     "WheelResult", -- S->C {prizeId, pearls, converted} sau {nil, 0, false, reason}
     "SetAudio", -- C->S {kind, level}: panoul "Sound", acelasi profil ca in sat [D54]
+    "SetClock", -- C->S {offset}: fusul orar, pentru ziua seriei zilnice, ca in sat [D71]
     -- titlurile (TitleService)
     "BuyTitle", -- C->S {titleId}: unul din cele trei de vanzare, pe perle (il si porti)
     "WearTitle", -- C->S {titleId}: schimbi intre titlurile tale
