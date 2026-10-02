@@ -444,4 +444,40 @@ Piesele au intenționat o valoare ne-zero, ca un venit care le-ar număra să pi
 - **Marja de la `--robust`** (1,35) a fost aleasă după ce se văzuse cel mai rău caz al primei variante (14m04s). E o marjă de zgomot, nu o dovadă.
 - **Timpul simulatorului s-a dublat** (10,5 → ~26 s pentru rularea simplă, peste 10 minute pentru `--robust`): Era 4 se joacă de trei ori (fără bani, cu suma, capitolul), iar lanțul are patru linii în plus.
 
-**Următorul pas: e** (`golden_chain.py --era4` → `GOLDEN_ERA4`).
+## 12. Cum a ieșit pasul e (2026-10-02)
+
+`python3 scripts/economy/golden_chain.py --era4` scrie blocul `local GOLDEN_ERA4`. Stările pornesc din Era 3 încheiată
+(plasele și oamenii Erelor 1–3 la final) și trec prin `dam_transform`, ca barajul jocului: liniile vechi se închid,
+veteranii intră pe butoaie, turbina din zid și Cable Net 1 vin gratis. Apoi fiecare stare își pune nivelurile pe cele
+două plase date și își adaugă restul plaselor barajului: fel, rang, bandă, nivel (`unlock_net_ranked`).
+
+Pentru fiecare stare se tipăresc liniile barajului (`barrels`, `cable`, `grid`, `crystal`) și lemnul, ca linie veche
+închisă:
+- prinderea, ce intră (`supply`), debitele pașilor, livratul;
+- veriga liniei, a cui e veriga (`heldBy`), dacă piesa e ținută de unire (`byConsumer`);
+- capacitatea orașului, veriga care ține venitul, ale cui plase (`netsLine`);
+- câștigul unei bucăți în plus pe verigile cu câștig (`gains`) și verigile care îl aduc și singure (`solo`);
+- venitul.
+
+**Nouă stări**, nu șase:
+- startul barajului (cifrele din §8: drumurile 0,9, Cable Works 0,333, Relay 0,467, livrat 0,33);
+- după cei șase și a doua plasă de cablu (prima la nivelul 2, cum cere jocul);
+- butoaiele țin unirea;
+- cablul ține unirea, iar butoaiele așteaptă;
+- **egalitatea butoaie–cablu**, între clădiri: Switchyard-ul cu un Switchman pe treapta 5 duce 12/s, cât Cable Works-ul
+  cu doi Cablemaker pe treapta 3. Amândouă au câștig, `solo` e gol: fiecare singură dă 0 [D46], iar ecranul trebuie să
+  numească linia cealaltă (pasul h);
+- Kiln fără Crystal Net;
+- turul de mână al cristalului;
+- orașul plin: cristalul întâi, curentul din ce rămâne;
+- toți oamenii la maxim, cu pragul 25.
+
+**Egalitatea vine din clădiri, nu din oamenii de drum:** bazele oamenilor de drum ai Erei 4 sunt alese fără egalități
+(`walker_ties` din `check_lines.py` se uită doar la ei), dar o clădire cu oamenii ei poate duce cât alta (bază × treaptă
+× oameni). Starea de mai sus o fixează pentru portul din pasul g [verificator, 2026-10-02].
+
+Venitul nu are clopotele (`bells = 1`), ca starea să se refacă în Luau fără ele. La baraj, cu clopotele celor trei ere,
+iese 19,57B/s. Blocurile Erelor 1–3, formatate cu stylua, sunt identice cu cele din `tests/ChainMath.test.luau`. Blocul
+nou intră în test la pasul g, odată cu `ChainMath`.
+
+**Următorul pas: f** (configurația: `StationConfig`, `TycoonConfig`, `Strings`, cu Era 4 `live = false`).

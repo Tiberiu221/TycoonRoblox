@@ -7,6 +7,7 @@ multe campuri, copiatul de mana devenea locul in care se strecoara o greseala; a
     python3 scripts/economy/golden_chain.py > /tmp/golden.luau
     python3 scripts/economy/golden_chain.py --era2 > /tmp/golden_era2.luau     # [D65] blocul `local GOLDEN_ERA2`
     python3 scripts/economy/golden_chain.py --era3 > /tmp/golden_era3.luau     # [D67] blocul `local GOLDEN_ERA3`
+    python3 scripts/economy/golden_chain.py --era4 > /tmp/golden_era4.luau     # [D70] blocul `local GOLDEN_ERA4`
 
 si blocul `local GOLDEN = { ... }` din test se inlocuieste cu iesirea. Starile sunt construite exact ca
 `state()` din test: plasa i are baza NET_BASE_RATE * NET_BASE_GROWTH^(i-1), banda si felul din NET_LANES /
@@ -221,11 +222,112 @@ def main_era3():
     print("}")
 
 
+# ---- [D70] Era 4, "The Dam": stari pe liniile barajului (butoaiele si cablul, piese; curentul, unirea lor; cristalul),
+# pornite din Era 3 incheiata si trecute prin `dam_transform` (liniile vechi se inchid, veteranii trec pe butoaie).
+# Plasele barajului au RANG (unlock_net_ranked), nu loc in lista: fiecare stare le spune pe ale ei. Pasul g al planului
+# (ChainMath) le reface in Luau din campurile de aici. Oamenii de drum ai Erei 4 n-au egalitati intre ei (`walker_ties`),
+# dar cladirile pot avea: Switchyard-ul cu un Switchman pe treapta 5 face 12/s, cat Cable Works-ul cu doi Cablemaker pe
+# treapta 3. Starea aceea e aici, cu castigul si verigile cu castig singure (`solo`): fiecare singura da 0 [D46], iar
+# ecranul numeste linia cealalta.
+ERA3_DONE = dict(ERA2_DONE, **ALL_COILS, **ALL_POWER)
+E123 = E12 + [40, 38, 36, 34, 30]  # plasele Erelor 1-3 la Works Bell
+SIX = {"cableCollector": (1, 1), "cablePorter": (1, 1), "cablemaker": (1, 1), "cableHauler": (1, 1),
+       "relayKeeper": (1, 1), "pylonRunner": (1, 1)}
+VETERANS = {"damCollector": (1, 1), "damPorter": (1, 1), "switchman": (1, 1), "barrelHauler": (1, 1), "dispatcher": (1, 1)}
+ALL_DAM = {r: (2, 5) for r in T.DAM_CREW}
+ALL_CRYSTAL = {"crystalCollector": (2, 5), "crystalPorter": (2, 5), "crystalsmith": (2, 5), "ingotHauler": (2, 5)}
+START_NETS = [("dam", 5, 3, 1), ("cable_ore", 1, 1, 1)]
+THREE_CABLE = [("dam", 5, 3, 30), ("cable_ore", 1, 1, 30), ("cable_ore", 2, 1, 25), ("cable_ore", 3, 2, 20)]
+WITH_CRYSTAL = THREE_CABLE + [("crystal", 5, 3, 20)]
+B1 = {"switchyard": 1, "cableworks": 1, "relay": 1, "kiln": 1, "town": 1}
+
+# (nume, plasele barajului (fel, rang, banda, nivel), oamenii Erei 4, nivelurile cladirilor, Kiln, Crystal Shed)
+CASES_ERA4 = [
+    ("startul barajului: veteranii pe butoaie, cablul de mana", START_NETS, dict(VETERANS), dict(B1), False, False),
+    ("dupa cei sase si a doua plasa de cablu: cablul si unirea au oameni, pe treapta 1",
+     [("dam", 5, 3, 1), ("cable_ore", 1, 1, 2), ("cable_ore", 2, 1, 1)], dict(VETERANS, **SIX), dict(B1), False, False),
+    ("butoaiele tin unirea: cablul cu oameni pe treapta 5, butoaiele pe 1", THREE_CABLE,
+     dict(VETERANS, **{r: (2, 5) for r in SIX}), dict(B1, cableworks=25, relay=25, town=25), False, False),
+    ("cablul tine unirea: butoaiele asteapta (tinute de unire)", THREE_CABLE,
+     dict({r: (2, 5) for r in VETERANS}, **SIX), dict(B1, switchyard=25, relay=25, town=25), False, False),
+    ("egalitate intre cladiri: Switchyard si Cable Works duc la fel, fiecare singura nu aduce nimic",
+     [("dam", 5, 3, 50), ("cable_ore", 1, 1, 50), ("cable_ore", 2, 1, 50), ("cable_ore", 3, 2, 50)],
+     {**{r: (2, 5) for r in VETERANS}, **{r: (2, 5) for r in SIX}, "switchman": (1, 5), "cablemaker": (2, 3)},
+     dict(B1, relay=25, town=25), False, False),
+    ("Kiln fara Crystal Net: cristalul nu exista", THREE_CABLE, dict(ALL_DAM), dict(B1, switchyard=25, cableworks=25,
+     relay=25, town=25), True, False),
+    ("turul de mana al cristalului: patru pasi, timpul tau intreg pe ei", WITH_CRYSTAL, dict(ALL_DAM),
+     dict(B1, switchyard=25, cableworks=25, relay=25, town=25), True, True),
+    ("orasul plin: cristalul intai, curentul din ce ramane", WITH_CRYSTAL, dict(ALL_DAM, **ALL_CRYSTAL, dispatcher=(1, 3)),
+     dict(B1, switchyard=40, cableworks=40, relay=40, kiln=40, town=1), True, True),
+    ("toti oamenii la maxim, prag 25 pe tot barajul", WITH_CRYSTAL, dict(ALL_DAM, **ALL_CRYSTAL),
+     dict(switchyard=25, cableworks=25, relay=25, kiln=25, town=25), True, True),
+]
+
+
+def build_era4(nets, crews, buildings, kiln, crystal_shed):
+    # chiar barajul jocului (`dam_transform`): liniile vechi inchise, veteranii, turbina din zid si Cable Net 1 gratis;
+    # apoi cazul isi pune nivelurile pe cele doua plase date si isi adauga restul
+    s = T.dam_transform(build_era3(E123, dict(ERA3_DONE), True, True, 40, 40, 40), 0.0)
+    given = s.nets[-2:]
+    assert [(n.kind, n.base_lane) for n in given] == [(k, ln) for k, _r, ln, _lv in nets[:2]], "plasele date de baraj"
+    for net, (_kind, _rank, _lane, level) in zip(given, nets[:2]):
+        net.level = level
+    for kind, rank, lane, level in nets[2:]:
+        T.unlock_net_ranked(kind, rank, lane, 4)(s)
+        s.nets[-1].level = level
+    s.kiln, s.crystal_shed = kiln, crystal_shed
+    for role, (count, tier) in crews.items():
+        s.crews[role] = T.Crew(count, tier)
+    for name, level in buildings.items():
+        attr = T.SELLERS[name]["level"] if name in T.SELLERS else T.PROCESSORS[name]["level"]
+        setattr(s, attr, level)
+    return s
+
+
+def main_era4():
+    lines = ("wood",) + T.ERA_LINES[4]  # lemnul: o linie veche, inchisa de baraj
+    print("local GOLDEN_ERA4 = {")
+    for name, nets, crews, buildings, kiln, crystal_shed in CASES_ERA4:
+        s = build_era4(nets, crews, buildings, kiln, crystal_shed)
+        c = T.chain(s)
+        crews_lua = ", ".join(f"{r} = {{ {n}, {t} }}" for r, (n, t) in crews.items())
+        nets_lua = ", ".join(f'{{ kind = "{k}", rank = {r}, lane = {ln}, level = {lv} }}' for k, r, ln, lv in nets)
+        print("    {")
+        print(f'        name = "{name}",')
+        print(f"        damNets = {{ {nets_lua} }},")
+        print(f"        crews = {{ {crews_lua} }},")
+        print(f"        buildings = {{ {', '.join(f'{k} = {v}' for k, v in buildings.items())} }},")
+        print(f"        kiln = {lua(kiln)},")
+        print(f"        crystalShed = {lua(crystal_shed)},")
+        print("        lines = {")
+        for line in lines:
+            f = c.lines[line]
+            values = ", ".join(lua(v) for _link, v in f.rates)
+            print(f"            {line} = {{ catch = {lua(f.catch)}, supply = {lua(f.supply)}, values = {{ {values} }},"
+                  f" delivered = {lua(f.delivered)}, bottleneck = \"{f.bottleneck}\", heldBy = \"{f.held_by}\","
+                  f" byConsumer = {lua(f.by_consumer)} }},")
+        print("        },")
+        print(f"        capacity = {{ town = {lua(c.capacity['town'])} }},")
+        print(f'        bottleneck = "{c.bottleneck}",')
+        print(f'        netsLine = "{c.nets_line}",')
+        # castigul unei bucati in plus pe verigile cu castig, si cele care il aduc si singure, in ordinea LINKS
+        gains = ", ".join(f"{link} = {lua(c.gains[link])}" for link in T.LINKS if c.gains[link] != 0.0)
+        solo = ", ".join(f'"{link}"' for link in T.LINKS if link in c.solo)
+        print(f"        gains = {{ {gains} }},")
+        print(f"        solo = {{ {solo} }},")
+        print(f"        income = {lua(T.income(s))},")
+        print("    },")
+    print("}")
+
+
 def main():
     if "--era2" in sys.argv:
         return main_era2()
     if "--era3" in sys.argv:
         return main_era3()
+    if "--era4" in sys.argv:
+        return main_era4()
     print("local GOLDEN = {")
     for name, levels, saw, dock, sack, crews, forge_owned, forge in CASES:
         s = build(levels, saw, dock, sack, crews, forge_owned, forge)
