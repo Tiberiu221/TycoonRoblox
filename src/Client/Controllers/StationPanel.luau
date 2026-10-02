@@ -368,10 +368,15 @@ local function refreshRows(snap: Snapshot)
             view.warn.Text = ""
         else
             local mine = if row.kind == "net" then "nets" else row.kind
-            local key, tie = HeldBack.by(snap, mine, row.line)
+            local key, tie, holder = HeldBack.by(snap, mine, row.line)
             view.warn.Text = if key == nil
-                then Strings.lineNotOpen(row.line)
-                else Strings.menuHeldBack(key, tie, HeldBack.netsLine(snap, row.line, mine))
+                then Strings.lineNotOpen(holder or row.line)
+                else Strings.menuHeldBack(
+                    key,
+                    tie,
+                    holder or HeldBack.netsLine(snap, row.line, mine),
+                    holder
+                )
         end
         view.gain.TextColor3 = if earns then Theme.COLOR.good else Theme.COLOR.onDarkSoft
 

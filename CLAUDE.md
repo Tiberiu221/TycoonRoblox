@@ -118,6 +118,8 @@ sună la fiecare eră. Nimic nu e auzit încă în Studio: judecata e a owner-ul
 - **Motorul, pașii e–g** (PLAN-MOTOR-UNIRE §12–13): Era 4 stă în `StationConfig` / `TycoonConfig`, dar jocul rulează
   doar erele din `StationConfig.ENGINE_ERAS` (3); listele `_ALL` și `ChainMath.FULL` au și barajul. `ChainMath` știe
   unirea, bazinul și liniile închise, verificat la bit pe `GOLDEN_ERA4`. Platformele Erei 4 vin cu harta (pașii j–k).
+  Pasul h (§14): `HeldBack` numește cealaltă piesă a unirii („the Cable line is slower”) și ce lipsește; cuvintele
+  barajului sunt propuneri. Urmează i (`FlowConfig`, `FlowMath.assemble`, `HandRoutes`).
 - **Harta [D73]:** bannerele atelierelor noi cu „Look (V)”, ruinele din cartiere închise spun clopotul, panoul barajului
   „will rise by your pier”, darurile râului la toate cartierele deschise, felinarele de la treapta „wire”, masa Dam Plans
   arată țărușii. Ce cere artă sau ritm (mijlocul erelor, cristalul pe râu, recuzita Morii, primul cadru) așteaptă owner-ul.

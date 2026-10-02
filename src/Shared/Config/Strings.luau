@@ -258,6 +258,8 @@ export type LineWords = {
     standHere: string,
     working: string, -- "Casting", "Smelting"
     byIt: string, -- "stay by the Foundry"
+    -- [D70] numele liniei, pentru o unire: „the Cable line is slower" (veriga e a altei piese din aceeasi unire)
+    name: string?,
 }
 Strings.LINE_WORDS = {
     -- Era 1: locurile ei au controllerele lor, cu textele lor; de aici se iau doar cuvintele marfii (meniuri)
@@ -327,6 +329,55 @@ Strings.LINE_WORDS = {
         standHere = "Stand here to charge",
         working = "Charging",
         byIt = "stay by the Power House",
+    },
+    -- [D70] Era 4, The Dam (numele sunt propuneri, PLAN-MOTOR-UNIRE §6 intrebarea 12): doua piese, unirea lor, cristalul
+    barrels = {
+        raw = "batteries",
+        done = "barrels",
+        doneOne = "barrel",
+        store = "Battery Store",
+        processor = "Switchyard",
+        verb = "Load",
+        standHere = "Stand here to load barrels",
+        working = "Loading barrels",
+        byIt = "stay by the Switchyard",
+        name = "Barrel",
+    },
+    cable = {
+        raw = "cable ore",
+        done = "cable",
+        doneOne = "cable",
+        store = "Cable Store",
+        processor = "Cable Works",
+        verb = "Spin",
+        standHere = "Stand here to spin cable",
+        working = "Spinning cable",
+        byIt = "stay by the Cable Works",
+        name = "Cable",
+    },
+    grid = {
+        raw = "barrels and cable",
+        done = "power",
+        doneOne = "power",
+        store = "Relay Station",
+        processor = "Relay Station",
+        verb = "Join",
+        standHere = "Stand here to join",
+        working = "Joining",
+        byIt = "stay by the Relay Station",
+        name = "Power",
+    },
+    crystal = {
+        raw = "crystal",
+        done = "ingots",
+        doneOne = "ingot",
+        store = "Crystal Shed",
+        processor = "Kiln",
+        verb = "Fire",
+        standHere = "Stand here to fire crystal",
+        working = "Firing crystal",
+        byIt = "stay by the Kiln",
+        name = "Crystal",
     },
 } :: { [string]: LineWords }
 Strings.MARKET_LABEL = "Market"
@@ -476,7 +527,7 @@ Strings.LINK_WORDS = {
         advice = "hauling coils — hire or upgrade Coil Haulers.",
     },
     batteryCollect = {
-        subject = "collecting batteries",
+        subject = "battery pickup", -- [2026-10-02] „collecting batteries” nu incapea pe randul panoului Upgrades
         goTo = "Battery Collector",
         label = "Collect power",
         advice = "batteries — hire or upgrade Battery Collectors.",
@@ -494,7 +545,7 @@ Strings.LINK_WORDS = {
         advice = "the Power House — upgrade it or Electricians.",
     },
     powerHaul = {
-        subject = "hauling power cells",
+        subject = "hauling cells", -- [2026-10-02] „hauling power cells” nu incapea pe randul panoului Upgrades
         goTo = "Power Hauler",
         label = "Haul cells",
         advice = "hauling cells — hire or upgrade Power Haulers.",
@@ -504,6 +555,97 @@ Strings.LINK_WORDS = {
         goTo = "Depot",
         label = "Depot",
         advice = "the Depot — upgrade it to earn more.",
+    },
+    -- [D70] Era 4, The Dam (propuneri): butoaiele, cablul, unirea lor, cristalul, orasul
+    damCollect = {
+        subject = "battery pickup",
+        goTo = "Dam Collector",
+        label = "Collect batteries",
+        advice = "battery pickup — hire or upgrade Dam Collectors.",
+    },
+    damPort = {
+        subject = "carrying batteries",
+        goTo = "Dam Porter",
+        label = "Carry batteries",
+        advice = "carrying batteries — hire or upgrade Dam Porters.",
+    },
+    switchyard = {
+        subject = "the Switchyard",
+        goTo = "Switchyard",
+        label = "Switchyard",
+        advice = "the Switchyard — upgrade it or Switchmen.",
+    },
+    barrelHaul = {
+        subject = "hauling barrels",
+        goTo = "Barrel Hauler",
+        label = "Haul barrels",
+        advice = "hauling barrels — hire or upgrade Barrel Haulers.",
+    },
+    cableCollect = {
+        subject = "collecting ore",
+        goTo = "Cable Collector",
+        label = "Collect ore",
+        advice = "cable ore — hire or upgrade Cable Collectors.",
+    },
+    cablePort = {
+        subject = "carrying cable ore",
+        goTo = "Cable Porter",
+        label = "Carry ore",
+        advice = "carrying ore — hire or upgrade Cable Porters.",
+    },
+    cableworks = {
+        subject = "the Cable Works",
+        goTo = "Cable Works",
+        label = "Cable Works",
+        advice = "the Cable Works — upgrade it or Cablemakers.",
+    },
+    cableHaul = {
+        subject = "hauling cable",
+        goTo = "Cable Hauler",
+        label = "Haul cable",
+        advice = "hauling cable — hire or upgrade Cable Haulers.",
+    },
+    relay = {
+        subject = "the Relay Station",
+        goTo = "Relay Station",
+        label = "Relay",
+        advice = "the Relay Station — upgrade it or Relay Keepers.",
+    },
+    pylonRun = {
+        subject = "running power",
+        goTo = "Pylon Runner",
+        label = "Run power",
+        advice = "running power — hire or upgrade Pylon Runners.",
+    },
+    crystalCollect = {
+        subject = "collecting crystal",
+        goTo = "Crystal Collector",
+        label = "Collect crystal",
+        advice = "crystal pickup — hire or upgrade Crystal Collectors.",
+    },
+    crystalPort = {
+        subject = "carrying crystal",
+        goTo = "Crystal Porter",
+        label = "Carry crystal",
+        advice = "carrying crystal — hire or upgrade Crystal Porters.",
+    },
+    kiln = {
+        subject = "the Kiln",
+        goTo = "Kiln",
+        label = "Kiln",
+        advice = "the Kiln — upgrade it or its Crystalsmiths.",
+    },
+    ingotHaul = {
+        subject = "hauling ingots",
+        goTo = "Ingot Hauler",
+        label = "Haul ingots",
+        advice = "hauling ingots — hire or upgrade Ingot Haulers.",
+    },
+    town = {
+        subject = "the Switch House",
+        goTo = "Switch House",
+        label = "Switch House",
+        advice = "the Switch House — upgrade it to earn more.",
     },
 } :: { [string]: LinkWords }
 -- Plasele au cate un nume pe linie: "your nets" (mai multe) si "the scrap net" (una singura) nu se acorda la fel.
@@ -548,6 +690,26 @@ Strings.NET_WORDS = {
         castFirst = "the First Turbine",
         verb = "build",
     },
+    -- [D70] Era 4: turbina din zid umple butoaiele; unirea (`grid`) n-are plase
+    barrels = {
+        subject = "the Dam Turbine",
+        plural = false,
+        label = "Dam Turbine",
+        castFirst = "the Dam Turbine",
+        verb = "build",
+    },
+    cable = {
+        subject = "the cable nets",
+        plural = true,
+        label = "Cable nets",
+        castFirst = "a Cable Net",
+    },
+    crystal = {
+        subject = "the crystal net",
+        plural = false,
+        label = "Crystal net",
+        castFirst = "the Crystal Net",
+    },
 } :: { [string]: NetWords }
 -- O cladire cu niveluri: ce face (cu om / doar cat stai tu langa ea) si verbul pragurilor ("cuts twice as fast").
 export type BuildingWords = { does: string, alone: string, verb: string, much: boolean? }
@@ -587,6 +749,28 @@ Strings.BUILDING_WORDS = {
         verb = "charges",
     },
     depot = { does = "Sells", alone = "Sells at 35% until you hire a Clerk", verb = "sells" },
+    -- [D70] Era 4 (propuneri)
+    switchyard = {
+        does = "Loads batteries into barrels",
+        alone = "Loads only while you stand here",
+        verb = "loads",
+    },
+    cableworks = {
+        does = "Spins ore into cable",
+        alone = "Spins only while you stand here",
+        verb = "spins",
+    },
+    relay = {
+        does = "Joins barrels and cable",
+        alone = "Joins only while you stand here",
+        verb = "joins",
+    },
+    kiln = {
+        does = "Fires crystal into ingots",
+        alone = "Fires only while you stand here",
+        verb = "fires",
+    },
+    town = { does = "Sells", alone = "Sells at 35% until you hire a Dispatcher", verb = "sells" },
 } :: { [string]: BuildingWords }
 function Strings.promptStoreRaw(words: LineWords, keyHint: string): string
     return `Store {words.raw}{keyHint}`
@@ -1807,14 +1991,18 @@ function Strings.menuEarnsSecond(name: string, amount: string?): string
 end
 -- Cand cumparatura de aici nu aduce nimic: CINE tine venitul in loc. `tie` = veriga aia e doar la fel
 -- de lenta (egalitate): "slower" ar fi mintit tocmai atunci [D40]. [D56] `line` = pe linia fierului plasa e una.
-function Strings.menuHeldBack(link: string, tie: boolean, line: string?): string
+-- [D70] `holder` = linia careia ii apartine veriga, cand e alta piesa din aceeasi unire: „the Cable line is slower”.
+function Strings.menuHeldBack(link: string, tie: boolean, line: string?, holder: string?): string
     -- [D63] Pentru copii: aceleasi cuvinte ca in `stationNoEffect` ("No gain yet — ..."), fara contractie si fara
     -- drumul intreg ("carrying scrap to the Forge" era jumatate de rand). Subiectul ramane ACTIUNEA, nu omul: cat n-ai
     -- angajat pe nimeni, pasul il faci tu, iar "the Porter is slower" ar fi mintit [D40].
     local subject, verb = "the Tavern", "is"
+    local holderWords = if holder ~= nil then Strings.LINE_WORDS[holder] else nil
     if link == "nets" then
-        local nets = Strings.NET_WORDS[line or "wood"] or Strings.NET_WORDS.wood
+        local nets = Strings.NET_WORDS[holder or line or "wood"] or Strings.NET_WORDS.wood
         subject, verb = nets.subject, if nets.plural then "are" else "is"
+    elseif holderWords ~= nil and holderWords.name ~= nil then
+        subject = `the {holderWords.name} line`
     elseif Strings.LINK_WORDS[link] ~= nil then
         subject = Strings.LINK_WORDS[link].subject
     end

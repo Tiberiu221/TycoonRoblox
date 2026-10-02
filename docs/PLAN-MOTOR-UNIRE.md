@@ -543,3 +543,46 @@ tot ale Erelor 1–3, la fel ca înainte. Variantele `_ALL` (`ERA_ROLES_ALL`, `R
 **Următorul pas: h** (`HeldBack` pe grupul unirii; textele „the Cable line is slower” / „just as slow as the Barrel
 line”, „cast the Cable Net first”). Apoi i (`FlowConfig`, `FlowMath.assemble`, `HandRoutes`), j (serverul, `DamService`,
 profilul v19, `ENGINE_ERAS = 4`, platformele Erei 4 cu harta), k (clientul), l (sonda).
+
+## 14. Cum a ieșit pasul h (2026-10-02)
+
+**`HeldBack` știe unirea.** Ce vede jucătorul când o cumpărătură pe baraj nu aduce nimic (meniul obiectului, panoul
+Upgrades, cartonașul platformei):
+- **piesa ținută de cealaltă:** „No gain yet — the Barrel line is slower”, cu Go to spre veriga ei;
+- **la egalitate între piese:** „the Cable line is just as slow” (amândouă au câștig, niciuna singură);
+- **plasele celeilalte piese:** „the cable nets are slower”;
+- **plasa celeilalte piese lipsește:** „cast a Cable Net first” [D43]. La fel pe rândurile unirii (Relay Station, Pylon
+  Runner).
+- **veriga e a unirii sau a orașului:** se numește clădirea („the Relay Station is slower”, „the Switch House is slower”),
+  nu „the Power line”. Linia se numește doar când veriga e a celeilalte piese.
+- **rândul Switch House-ului:** plasele care chiar țin („the cable nets are slower”, apoi „the crystal net”), nu
+  cuvintele lemnului.
+
+**Cum:**
+- `HeldBack.by` întoarce și a treia valoare, linia care deține veriga (`heldBy` din lanț), când e cealaltă piesă a
+  aceleiași uniri. De la un vânzător se uită la prima lui linie deschisă, ca `lineBottleneck`.
+- `HeldBack.netsLine` caută, de la un vânzător, în ordinea lui (cum alege și `lineBottleneck`), iar o unire trimite la
+  piesa ale cărei plase țin. În Erele 1–3 se schimbă un singur caz: la Taverna cu ambele linii ținute de plase, plasele
+  numite sunt ale fierului, a cărui verigă o arată deja rândul (înainte, ale lemnului).
+- La egalitate, compară cu tot grupul unirii (`HeldBack.group`: unirea și piesele ei). Plasele se compară doar la liniile
+  cu plase, iar vânzătorul doar la liniile care vând.
+- `LineView.heldBy` e opțional. Serverul îl trimite de la pasul j, iar clientul îl copiază explicit (pasul k).
+- `viewOf` primește modelul (`FULL` în teste).
+- Cei trei cititori (`StationMenu`, `StationPanel`, `PadController`) trec linia mai departe, iar `Strings.menuHeldBack`
+  primește `holder`.
+
+**Cuvintele barajului** (`LINE_WORDS` cu `name`, `LINK_WORDS`, `NET_WORDS`, `BUILDING_WORDS`) sunt propuneri:
+Switchyard, Cable Works, Relay Station, Kiln, Switch House, Battery Store, Cable Store. Turbina din zid umple
+**baterii**, pe care Switchyard-ul le încarcă în butoaie („Load”). Un test cere ca orice „No gain yet” al oricărei
+verigi a oricărei ere să încapă pe rândul panoului Upgrades. Două texte ale Erei 3 se tăiau: au devenit „battery
+pickup” și „hauling cells”. Numele le hotărăște owner-ul
+(§6, întrebarea 12). Un test cere cuvinte pentru fiecare verigă a tuturor erelor și sfatul panoului pe rândul lui.
+
+**Verificat** pe stările barajului din `GOLDEN_ERA4`: egalitatea dintre clădiri, butoaiele care țin unirea, startul și
+plasa de cablu scoasă.
+
+**Rămâne pentru k:** `StationMenu.CHAIN` (azi verigile erelor din joc: o cheie a barajului ar cădea pe prima) și
+comutatorul de cartier al panoului.
+
+**Următorul pas: i** (`FlowConfig`, `FlowMath.assemble`, `HandRoutes` cu `job`).
+

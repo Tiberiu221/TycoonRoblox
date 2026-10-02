@@ -140,6 +140,68 @@ return function()
             end
         end)
 
+        test.case(
+            "[D70] si barajul: verigile, plasele, cladirile si orasul au cuvintele lor",
+            function()
+                for _, line in StationConfig.LINE_ORDER_ALL do
+                    local spec = StationConfig.LINES[line]
+                    check.is_true(Strings.LINE_WORDS[line] ~= nil)
+                    -- o unire n-are plase: intra ce aduc piesele ei
+                    check.equal(Strings.NET_WORDS[line] ~= nil, spec.netKind ~= nil)
+                    for _, step in spec.steps do
+                        check.is_true(Strings.LINK_WORDS[step.link] ~= nil)
+                        if step.kind == "processor" then
+                            check.is_true(Strings.BUILDING_WORDS[step.link] ~= nil)
+                        end
+                    end
+                    -- o piesa sau o unire se numeste dupa linia ei („the Cable line is slower”)
+                    if spec.into ~= nil or spec.inputs ~= nil then
+                        check.is_true(Strings.LINE_WORDS[line].name ~= nil)
+                    end
+                end
+                for _, seller in StationConfig.SELLER_ORDER_ALL do
+                    check.is_true(Strings.LINK_WORDS[seller] ~= nil)
+                    check.is_true(Strings.BUILDING_WORDS[seller] ~= nil)
+                    -- randul are 560 la marimea mica: 66 de litere de pixeli [2026-09-15]
+                    check.is_true(#Strings.stationsAdvice(seller) <= 72)
+                end
+                for _, line in StationConfig.LINE_ORDER_ALL do
+                    for _, step in StationConfig.LINES[line].steps do
+                        check.is_true(#Strings.stationsAdvice(step.link) <= 72)
+                    end
+                end
+            end
+        )
+
+        test.case(
+            "[D70] „No gain yet” incape pe randul panoului Upgrades, pe orice veriga a oricarei ere",
+            function()
+                -- randul de avertisment: 354 px la 13, fontul de pixeli are 0,56 em pe litera
+                local function fits(text: string)
+                    local n = utf8.len(text) :: number
+                    if n * 13 * 0.5585 > 354 then
+                        print(`nu incape: {text}`)
+                    end
+                    check.is_true(n * 13 * 0.5585 <= 354)
+                end
+                for _, line in StationConfig.LINE_ORDER_ALL do
+                    for _, step in StationConfig.LINES[line].steps do
+                        fits(Strings.menuHeldBack(step.link, true, line))
+                    end
+                    if StationConfig.LINES[line].netKind ~= nil then
+                        fits(Strings.menuHeldBack("nets", true, line))
+                    end
+                    local name = Strings.LINE_WORDS[line].name
+                    if name ~= nil then
+                        fits(Strings.menuHeldBack("relay", true, line, line))
+                    end
+                end
+                for _, seller in StationConfig.SELLER_ORDER_ALL do
+                    fits(Strings.menuHeldBack(seller, true, nil))
+                end
+            end
+        )
+
         test.case("sfatul panoului incape pe randul lui si numeste veriga intrebata", function()
             -- randul are 560 la marimea mica: 66 de litere de pixeli [2026-09-15]
             for _, link in StationConfig.LINKS do

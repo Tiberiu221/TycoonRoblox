@@ -322,16 +322,18 @@ end
 
 local function showHeldBack(snap: Snapshot, mine: string, line: string?)
     -- [D63] cine il tine pe loc: aceeasi regula ca in panoul Upgrades si pe cartonasul platformei (HeldBack)
-    local key, tie = HeldBack.by(snap, mine, line)
+    local key, tie, holder = HeldBack.by(snap, mine, line)
     if key == nil then
-        -- [D56] Forge fara plasa de scrap: nu e o veriga de reparat, doar nu vine inca nimic
-        showStatus(Strings.lineNotOpen(line), Theme.COLOR.warnInk)
+        -- [D56] Forge fara plasa de scrap: nu e o veriga de reparat, doar nu vine inca nimic; [D70] sau plasa celeilalte
+        -- piese a unirii lipseste
+        showStatus(Strings.lineNotOpen(holder or line), Theme.COLOR.warnInk)
         return
     end
     local link = linkByKey(key)
-    -- plasele carei linii: a obiectului; de la un vanzator, a liniei lui in care plasele tin
-    local netsLine = HeldBack.netsLine(snap, line, mine)
-    statusLabel.Text = Strings.menuHeldBack(link.key, tie, netsLine)
+    -- plasele carei linii: a obiectului (sau a piesei care o tine, la o unire); de la un vanzator, a liniei lui in care
+    -- plasele tin
+    local netsLine = holder or HeldBack.netsLine(snap, line, mine)
+    statusLabel.Text = Strings.menuHeldBack(link.key, tie, netsLine, holder)
     fitStatusText()
     statusLabel.TextColor3 = Theme.COLOR.warnInk
     goLink = link

@@ -7,6 +7,8 @@ local check = frktest.assert.check
 
 local StationConfig = require("../src/Shared/Config/StationConfig")
 local ChainMath = require("../src/Shared/Modules/ChainMath")
+local HeldBack = require("../src/Shared/Modules/HeldBack")
+local Strings = require("../src/Shared/Config/Strings")
 
 type CrewSpec = { [string]: { number } }
 
@@ -3077,6 +3079,110 @@ return function()
                 check.equal(ChainMath.valueWith(ChainMath.FULL, s, idle), 0)
             end
         )
+
+        -- [D70, pasul h] „DE CE NU ADUCE NIMIC” pe unire: veriga poate sta pe cealalta piesa, iar ecranul numeste linia ei
+        local function caseNamed(prefix: string): any
+            for _, g in GOLDEN_ERA4 do
+                if string.sub(g.name, 1, #prefix) == prefix then
+                    return g
+                end
+            end
+            error(prefix)
+        end
+        local function heldBack(s: ChainMath.State, mine: string, line: string?): string
+            local view = HeldBack.viewOf(ChainMath.flowWith(ChainMath.FULL, s), ChainMath.FULL)
+            local key, tie, holder = HeldBack.by(view, mine, line)
+            if key == nil then
+                return Strings.lineNotOpen(holder or line)
+            end
+            return Strings.menuHeldBack(
+                key,
+                tie,
+                holder or HeldBack.netsLine(view, line, mine),
+                holder
+            )
+        end
+
+        test.case(
+            "pe unire: la egalitate intre cladiri, linia cealalta e „just as slow”",
+            function()
+                local s = era4State(caseNamed("egalitate intre cladiri"))
+                check.equal(
+                    heldBack(s, "switchyard", "barrels"),
+                    "No gain yet — the Cable line is just as slow"
+                )
+                check.equal(
+                    heldBack(s, "cableworks", "cable"),
+                    "No gain yet — the Barrel line is just as slow"
+                )
+            end
+        )
+
+        test.case("pe unire: piesa tinuta de cealalta spune linia ei", function()
+            local s = era4State(caseNamed("butoaiele tin unirea"))
+            check.equal(
+                heldBack(s, "cableworks", "cable"),
+                "No gain yet — the Barrel line is slower"
+            )
+            local start = era4State(GOLDEN_ERA4[1])
+            check.equal(
+                heldBack(start, "switchyard", "barrels"),
+                "No gain yet — the cable nets are slower"
+            )
+        end)
+
+        test.case(
+            "pe unire: cand plasa celeilalte piese lipseste, spune ce lipseste [D43]",
+            function()
+                local s = era4State(GOLDEN_ERA4[1])
+                for i = #s.nets, 1, -1 do
+                    if s.nets[i].kind == "cable_ore" then
+                        table.remove(s.nets, i)
+                    end
+                end
+                check.equal(
+                    heldBack(s, "switchyard", "barrels"),
+                    "No gain yet — cast a Cable Net first"
+                )
+                -- si de pe randurile unirii insesi (Relay Station, Pylon Runner)
+                check.equal(heldBack(s, "relay", "grid"), "No gain yet — cast a Cable Net first")
+                check.equal(
+                    heldBack(s, "pylonRun", "grid"),
+                    "No gain yet — cast a Cable Net first"
+                )
+            end
+        )
+
+        test.case(
+            "pe unire: cand veriga e a unirii sau a orasului, se numeste cladirea, nu „the Power line”",
+            function()
+                local s = era4State(caseNamed("orasul plin"))
+                check.equal(
+                    heldBack(s, "switchyard", "barrels"),
+                    "No gain yet — the Switch House is slower"
+                )
+                check.equal(
+                    heldBack(s, "cableworks", "cable"),
+                    "No gain yet — the Switch House is slower"
+                )
+                local relayHeld = era4State(caseNamed("toti oamenii la maxim"))
+                relayHeld.relayLevel = 1
+                relayHeld.crews.relayKeeper = { count = 1, tier = 1 }
+                check.equal(
+                    heldBack(relayHeld, "switchyard", "barrels"),
+                    "No gain yet — the Relay Station is slower"
+                )
+            end
+        )
+
+        test.case("de la Switch House: plasele care chiar tin, nu cuvintele lemnului", function()
+            local start = era4State(GOLDEN_ERA4[1])
+            check.equal(heldBack(start, "town", nil), "No gain yet — the cable nets are slower")
+            local view = HeldBack.viewOf(ChainMath.flowWith(ChainMath.FULL, start), ChainMath.FULL)
+            check.equal(HeldBack.netsLine(view, nil, "town"), "cable")
+            local full = era4State(caseNamed("toti oamenii la maxim"))
+            check.equal(heldBack(full, "town", nil), "No gain yet — the crystal net is slower")
+        end)
 
         test.case("jocul ruleaza inca Erele 1-3; FULL are si barajul", function()
             check.equal(StationConfig.ENGINE_ERAS, 3)

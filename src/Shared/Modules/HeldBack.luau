@@ -20,7 +20,8 @@ local HeldBack = {}
 -- Ce stie clientul despre lant (StationService.Snapshot): VEDEREA PE LINII [D65], aceeasi pentru orice era. Pana la
 -- D65 era vederea plata a Erei 1 (`woodBottleneck`, `ironBottleneck`, `rates.sawing`...), iar regula de mai jos avea
 -- numele liniilor ei batute in cuie.
-export type LineView = { catch: number, bottleneck: string }
+-- [D70] `heldBy`: linia careia ii apartine veriga slaba, cand e alta piesa din aceeasi unire (nil = a liniei insesi)
+export type LineView = { catch: number, bottleneck: string, heldBy: string? }
 export type View = {
     bottleneck: string, -- veriga care tine TOT venitul
     lines: { [string]: LineView }, -- pe linie: cat prind plasele ei si veriga ei slaba ("" = linia e inca inchisa)
@@ -29,20 +30,40 @@ export type View = {
 }
 
 -- Vederea, din lantul motorului. Serverul trimite aceleasi campuri (StationService.Snapshot); testele o iau de aici.
-function HeldBack.viewOf(flow: ChainMath.Flow): View
+-- [D70] `model`: lantul socotit (implicit al jocului; ChainMath.FULL pentru baraj, in teste).
+function HeldBack.viewOf(flow: ChainMath.Flow, model: ChainMath.Model?): View
+    local m = model or ChainMath.GAME
     local lines: { [string]: LineView } = {}
     local linkRates: { [string]: number } = {}
-    for _, line in StationConfig.LINE_ORDER do
+    for _, line in m.lineOrder do
         local lf = flow.lines[line]
-        lines[line] = { catch = lf.catch, bottleneck = lf.bottleneck }
-        for k, step in StationConfig.LINES[line].steps do
+        lines[line] = { catch = lf.catch, bottleneck = lf.bottleneck, heldBy = lf.heldBy }
+        for k, step in m.lines[line].steps do
             linkRates[step.link] = lf.values[k]
         end
     end
-    for _, seller in StationConfig.SELLER_ORDER do
+    for _, seller in m.sellerOrder do
         linkRates[seller] = flow.capacity[seller]
     end
     return { bottleneck = flow.bottleneck, lines = lines, linkRates = linkRates }
+end
+
+-- [D70] Liniile care se tin una pe alta printr-o UNIRE: unirea si piesele ei, in ordinea liniilor. O linie fara unire e
+-- singura in grupul ei (regula de pana acum). O bucata in plus pe o piesa intra in unire doar cu una din cealalta, deci
+-- veriga care o tine poate sta pe alta linie a grupului.
+function HeldBack.group(line: string): { string }
+    local spec = StationConfig.LINES[line]
+    local union = if spec.inputs ~= nil then line else spec.into
+    if union == nil then
+        return { line }
+    end
+    local out: { string } = {}
+    for _, l in StationConfig.LINE_ORDER_ALL do
+        if l == union or StationConfig.LINES[l].into == union then
+            table.insert(out, l)
+        end
+    end
+    return out
 end
 
 -- Liniile unui vanzator, in ordinea in care vinde (intai marfa mai scumpa); nil = `key` nu e un vanzator.
@@ -54,6 +75,42 @@ end
 local function lineIsOpen(view: View, line: string): boolean
     local lv = view.lines[line]
     return lv ~= nil and lv.bottleneck ~= ""
+end
+
+-- [D70] `held` e o PIESA din unirea liniei `line` (nu unirea insasi, nici alta linie): doar atunci ecranul numeste linia
+-- ei („the Cable line is slower”). Cand veriga e a unirii (Relay Station) sau a vanzatorului, numele verigii spune mai mult.
+local function isPieceOf(held: string, line: string): boolean
+    if StationConfig.LINES[held] == nil or StationConfig.LINES[held].into == nil then
+        return false
+    end
+    return table.find(HeldBack.group(line), held) ~= nil
+end
+
+-- [D70] Prima piesa inchisa a unei uniri (plasa ei lipseste), sau nil pentru o linie care nu e unire.
+local function missingPiece(view: View, line: string): string?
+    local inputs = StationConfig.LINES[line].inputs
+    if inputs == nil then
+        return nil
+    end
+    for _, part in inputs do
+        if not lineIsOpen(view, part) then
+            return part
+        end
+    end
+    return nil
+end
+
+-- Prima linie deschisa din randul unui vanzator (cea pe care o intreaba lineBottleneck), sau nil.
+local function firstOpenOf(view: View, seller: string?): string?
+    local lines = sellerLines(seller)
+    if lines ~= nil then
+        for _, l in lines do
+            if lineIsOpen(view, l) then
+                return l
+            end
+        end
+    end
+    return nil
 end
 
 -- [D56] Debitul unei verigi, pe linia intrebata: plasele fiecarei linii sunt debite diferite. Fara linie, plasele
@@ -99,60 +156,114 @@ end
 -- multe marfuri debitele nu se compara intre linii: veriga slaba o spune serverul; comparatia de debite ramane pentru
 -- egalitati (eu sunt marcata slaba, dar alta merge exact la fel). Intoarce nil cand linia intrebata e inca inchisa:
 -- nu e o veriga de reparat, doar nu vine inca nimic.
-function HeldBack.by(view: View, mine: string?, line: string?): (string?, boolean)
+-- [D70] Al treilea raspuns: linia careia ii apartine veriga, cand e alta piesa din unirea liniei intrebate („the Cable
+-- line is slower”), sau nil. Cand acea piesa e inca inchisa (plasa ei lipseste), cheia e nil, iar linia spune ce
+-- lipseste („cast a Cable Net first”).
+function HeldBack.by(view: View, mine: string?, line: string?): (string?, boolean, string?)
     local bottleneck = HeldBack.lineBottleneck(view, line, mine)
     if line ~= nil and bottleneck == "" then
-        return nil, false
+        -- [D70] o unire inchisa: ii lipseste o piesa (plasa ei) — spune care
+        return nil, false, missingPiece(view, line)
+    end
+    -- linia a carei veriga se cere: cea intrebata, sau, de la un vanzator, prima lui linie deschisa (ca lineBottleneck)
+    local asked = line or firstOpenOf(view, mine)
+    local holder: string? = nil
+    if asked ~= nil then
+        local lv = view.lines[asked]
+        local held = if lv ~= nil then lv.heldBy else nil
+        if held ~= nil and held ~= asked and isPieceOf(held, asked) then
+            if not lineIsOpen(view, held) then
+                return nil, false, held
+            end
+            holder = held
+        end
     end
     if bottleneck ~= mine and bottleneck ~= "" then
-        return bottleneck, false
+        return bottleneck, false, holder
     end
-    -- Cu cine ma compar: plasele, pasii si vanzatorul liniei mele; de la un vanzator, liniile lui deschise. O linie
-    -- inchisa nu intra: debitul ei (0) ar iesi "cel mai lent" si ecranul ar trimite la o veriga care nu tine nimic.
+    -- Cu cine ma compar: plasele, pasii si vanzatorul liniei mele (si ale grupului ei, la o unire); de la un vanzator,
+    -- liniile lui deschise. O linie inchisa nu intra: debitul ei (0) ar iesi "cel mai lent" si ecranul ar trimite la o
+    -- veriga care nu tine nimic.
     local among: { string } = if line ~= nil
-        then { line }
+        then HeldBack.group(line)
         else sellerLines(mine) or StationConfig.LINE_ORDER
     local mineRate = if mine ~= nil then HeldBack.rateOf(view, mine, line) else math.huge
     local best: string? = nil
+    local bestLine: string? = nil
     local bestRate = math.huge
-    local function consider(link: string, rate: number)
-        if link ~= mine and rate < bestRate then
-            best, bestRate = link, rate
+    local function consider(link: string, rate: number, of: string?)
+        -- plasele fiecarei linii sunt alt debit: „nets” de pe alta piesa nu sunt plasele mele
+        local isMine = link == mine and (link ~= "nets" or of == line)
+        if not isMine and rate < bestRate then
+            best, bestLine, bestRate = link, of, rate
         end
     end
     for _, l in among do
         if lineIsOpen(view, l) then
-            consider("nets", view.lines[l].catch)
+            if StationConfig.LINES[l].netKind ~= nil then
+                consider("nets", view.lines[l].catch, l)
+            end
             for _, step in StationConfig.LINES[l].steps do
-                consider(step.link, view.linkRates[step.link] or 0)
+                consider(step.link, view.linkRates[step.link] or 0, l)
             end
         end
     end
+    local fallback: string? = nil
     for _, l in among do
-        local seller = StationConfig.LINES[l].seller
-        consider(seller, view.linkRates[seller] or 0)
+        local seller = StationConfig.LINES[l].seller -- o piesa n-are vanzator: se vinde prin unire
+        if seller ~= nil then
+            fallback = fallback or seller
+            consider(seller, view.linkRates[seller] or 0, nil)
+        end
     end
-    return best or StationConfig.LINES[among[1]].seller, bestRate >= mineRate - 1e-9
+    local other = if line ~= nil
+            and bestLine ~= nil
+            and bestLine ~= line
+            and isPieceOf(bestLine, line)
+        then bestLine
+        else nil
+    return best or fallback or "nets", bestRate >= mineRate - 1e-9, other
 end
 
 -- Plasele carei linii, cand veriga numita e "nets": a liniei intrebate; fara linie (de la un vanzator), a liniei lui in
--- care plasele chiar tin, in ordinea liniilor.
+-- care plasele chiar tin, in ORDINEA VANZATORULUI (ca lineBottleneck). [D70] O unire n-are plase: ale piesei care o tine.
 function HeldBack.netsLine(view: View, line: string?, mine: string?): string
     if line ~= nil then
         return line
     end
+    local function ownerOfNets(l: string): string?
+        local lv = view.lines[l]
+        if lv == nil or lv.bottleneck ~= "nets" then
+            return nil
+        end
+        local held = lv.heldBy
+        if
+            held ~= nil
+            and held ~= ""
+            and StationConfig.LINES[held] ~= nil
+            and StationConfig.LINES[held].netKind ~= nil
+        then
+            return held
+        end
+        return if StationConfig.LINES[l].netKind ~= nil then l else nil
+    end
     local mineLines = sellerLines(mine)
-    local first: string? = nil
-    for _, l in StationConfig.LINE_ORDER do
-        if mineLines == nil or table.find(mineLines, l) ~= nil then
-            first = first or l
-            local lv = view.lines[l]
-            if lv ~= nil and lv.bottleneck == "nets" then
-                return l
-            end
+    for _, l in mineLines or StationConfig.LINE_ORDER do
+        local owner = ownerOfNets(l)
+        if owner ~= nil then
+            return owner
         end
     end
-    return first or StationConfig.LINE_ORDER[1]
+    -- nicio linie cu plasele la rand: prima linie cu plase a vanzatorului, in ordinea liniilor
+    for _, l in StationConfig.LINE_ORDER_ALL do
+        if
+            (mineLines == nil or table.find(mineLines, l) ~= nil)
+            and StationConfig.LINES[l].netKind ~= nil
+        then
+            return l
+        end
+    end
+    return StationConfig.LINE_ORDER[1]
 end
 
 -- Veriga si linia unei PLATFORME, din efectele ei: o plasa tine de linia a ce prinde, un om de linia meseriei lui

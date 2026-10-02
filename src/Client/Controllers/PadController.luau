@@ -995,11 +995,11 @@ local function noGainText(pad: TycoonConfig.Pad): string
             if ofEra ~= nil and ofEra ~= "" then ofEra else view.bottleneck
         )
     end
-    local key, tie = HeldBack.by(view, link, line)
+    local key, tie, holder = HeldBack.by(view, link, line)
     if key == nil then
-        return Strings.lineNotOpen(line)
+        return Strings.lineNotOpen(holder or line)
     end
-    return Strings.menuHeldBack(key, tie, HeldBack.netsLine(view, line, link))
+    return Strings.menuHeldBack(key, tie, holder or HeldBack.netsLine(view, line, link), holder)
 end
 
 -- `nearestId`: platforma "available" cea mai apropiata aflata sub 220px, sau nil. Doar geometria
