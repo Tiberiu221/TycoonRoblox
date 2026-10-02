@@ -434,15 +434,25 @@ TycoonConfig.GOOD_NAMES = {
 TycoonConfig.PLOT_ORIGIN = { x = 0, y = 0 }
 
 -- Cartierele terenului, de la vest la est (aval). Zona unei ere se vede de la inceput, estompata
--- si ingradita, si se deschide cu clopotul erei dinainte [B, B4].
+-- si ingradita, si se deschide cu clopotul erei dinainte [B, B4]. `soon`: ce scrie panoul cat era nu e in joc (fara el,
+-- Strings.zoneSoon).
+export type Zone = { id: string, name: string, era: number, x0: number, x1: number, soon: string? }
 TycoonConfig.ZONES = {
     { id = "landing", name = "The Landing", era = 1, x0 = 200, x1 = 1860 },
     { id = "mill", name = "The Mill", era = 2, x0 = 1860, x1 = 3560 },
     -- [D67] Era 3, cat e in constructie: deschisa de clopotul Morii, dar estompata si cu "coming soon" (ZoneController)
     { id = "wire_works", name = "The Wire Works", era = 3, x0 = 3560, x1 = 5240 },
-    -- [D67] Era 4 e doar anuntata: gardul si ceata ei, pana la marginea lumii (RiverConfig.WORLD_WIDTH)
-    { id = "dam", name = "The Dam", era = 4, x0 = 5240, x1 = 5520 },
-}
+    -- [D67] Era 4 e doar anuntata: gardul si ceata ei, pana la marginea lumii (RiverConfig.WORLD_WIDTH). [D73] Barajul nu se
+    -- va ridica aici, ci langa ponton (PLAN-HARTA, sectiunea 6 punctul 7): panoul spune unde, cat era nu e in joc.
+    {
+        id = "dam",
+        name = "The Dam",
+        era = 4,
+        x0 = 5240,
+        x1 = 5520,
+        soon = "The Dam will rise by your pier — coming soon",
+    },
+} :: { Zone }
 
 -- Unde sta Negustorul: la tejgheaua tavernei, in piata din fata ei [D57], in dreapta usii (DOCK). Picioarele la
 -- y 1152, deci capul (y 1080) atinge baza tavernei fara sa intre peste ea: amandoua se ating cu
@@ -1592,8 +1602,9 @@ TycoonConfig.PADS = {
         id = "mill_bell",
         index = 36,
         blurb = "Ring it and The Mill is finished.",
-        -- fara "opens The Wire Works": Era 3 e doar anuntata, iar un cartonas nu promite ce nu exista inca [D40]
-        note = "+10% on every sale, forever",
+        -- [D73] ca Landing Bell: Era 3 e in joc, deci clopotul chiar deschide Wire Works (pana la D67 cartonasul tacea, ca
+        -- sa nu promita ce nu exista [D40]). Works Bell tace mai departe: Era 4 nu e in joc.
+        note = "+10%, opens The Wire Works",
         name = "Mill Bell",
         era = 2,
         motive = "D",
@@ -1904,6 +1915,26 @@ for _, p in TycoonConfig.PADS do
 end
 function TycoonConfig.eraIsLive(era: number): boolean
     return liveEras[era] == true
+end
+
+-- [D73] Puntea fiecarui cartier, pe X, cu era lui (darurile raului se scot de pe puntea oricarui cartier deschis).
+function TycoonConfig.deckSpans(): { { era: number, x0: number, x1: number } }
+    local out: { { era: number, x0: number, x1: number } } = {}
+    for _, d in TycoonConfig.DISTRICTS do
+        table.insert(out, { era = d.era, x0 = d.deck.x0, x1 = d.deck.x1 })
+    end
+    return out
+end
+
+-- Clopotul unei ere: platforma ei cu motivul D (Landing Bell pentru Era 1); nil pentru o era fara clopot. Zona erei
+-- `era + 1` o deschide clopotul asta.
+function TycoonConfig.bellOf(era: number): Pad?
+    for _, p in TycoonConfig.PADS do
+        if p.era == era and p.motive == "D" then
+            return p
+        end
+    end
+    return nil
 end
 
 -- Numele zonei unei ere ("The Wire Works"), din ZONES; nil pentru o era fara zona.

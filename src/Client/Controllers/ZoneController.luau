@@ -73,11 +73,12 @@ function ZoneController.Apply(zones: { [string]: string })
         view.status = status
         local open = status == "open"
         local built = isBuilt(zone.era)
-        -- deschisa si construita: nu mai e nimic de anuntat; deschisa dar inca nefacuta: "coming soon"
-        view.sign.Text = if not open
-            then Strings.zoneLocked(zone.name, bellNameBefore(zone.era))
-            elseif built then ""
-            else Strings.zoneSoon(zone.name)
+        -- deschisa si construita: nu mai e nimic de anuntat; nefacuta inca in joc: "coming soon", inchisa sau deschisa
+        -- [D73: "The Dam — opens with the Works Bell" mintea, clopotul spune doar ca vine]; facuta si inchisa: ce o deschide
+        view.sign.Text = if not built
+            then zone.soon or Strings.zoneSoon(zone.name)
+            elseif not open then Strings.zoneLocked(zone.name, bellNameBefore(zone.era))
+            else ""
         view.sign.Visible = view.sign.Text ~= ""
         -- panoul creste dupa text: "The Wire Works — opens with the Mill Bell" are 41 de litere, adica doua randuri
         -- la latimea asta (fontul de pixeli are 0.56 em pe litera) [CLAUDE.md, capcana textului care iese din cutie]

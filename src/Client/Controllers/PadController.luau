@@ -885,6 +885,12 @@ end
 
 -- [D53] Ce trebuie facut intai langa ruina asta, sau nil daca nimic (ar trebui sa fie cumparabila).
 local function ruinNeeds(pad: TycoonConfig.Pad): string?
+    -- [D73] intr-o zona inca inchisa, intai clopotul erei dinainte: la Moara, din primele minute, cartonasele spuneau
+    -- "Hire a Merchant first" sau "Cast the Sixth Net first", ca si cum s-ar putea face acum
+    local bell = TycoonConfig.bellOf(pad.era - 1)
+    if bell ~= nil and statuses[bell.id] ~= "bought" then
+        return Strings.refuseZoneLocked(bell.name)
+    end
     local bought: { [string]: boolean } = {}
     for id, status in statuses do
         if status == "bought" then

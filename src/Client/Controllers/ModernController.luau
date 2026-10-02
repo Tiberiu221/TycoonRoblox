@@ -5,6 +5,7 @@
 -- fiecare desen se reface o data si fiecare treapta urcata se anunta, pe rand [D43]; cine intra in joc cu satul deja
 -- modernizat nu mai primeste anuntul.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
 
 local ModernMath = require(ReplicatedStorage.Shared.Modules.ModernMath)
 local Assets = require(ReplicatedStorage.Shared.Config.Assets)
@@ -23,6 +24,9 @@ export type Deps = {
     Refresh: { () -> () },
     -- anuntul unei trepte noi, urcate chiar acum
     OnStage: ((stage: number) -> ())?,
+    -- [D73] o privire spre un loc al terenului (coordonatele lui TycoonConfig), cu o nota pe un toast: masa cu planurile
+    -- arata tarusii topografilor de langa ponton
+    Look: ((x: number, y: number, note: string) -> ())?,
 }
 
 local deps: Deps? = nil
@@ -116,12 +120,36 @@ function ModernController.Focus(px: number, py: number): Focus.Focus?
         return nil
     end
     local h = Assets.tycoon.dam_plans.height * TycoonConfig.PROP_SCALE
+    local status = Strings.comingPlans(name :: string)
+    local d = deps
+    local look = if d ~= nil then d.Look else nil
+    -- [D73] barajul se va ridica langa ponton (PLAN-HARTA, sectiunea 6): E arata unde, pe tarusii topografilor (treapta
+    -- "glass"), iar toastul spune ca vine
+    local stakes = TycoonConfig.SURVEY_STAKES
+    if look ~= nil and #stakes > 0 then
+        local sx = 0
+        for _, s in stakes do
+            sx += s.x
+        end
+        local x, y = sx / #stakes, stakes[1].y - 30
+        local keyHint = if UserInputService.KeyboardEnabled then " (E)" else ""
+        return {
+            key = "dam_plans",
+            distance = distance,
+            x = plans.x,
+            y = plans.y - h - 8,
+            action = Strings.plansLook(keyHint),
+            act = function()
+                look(x, y, Strings.DAM_SITE)
+            end,
+        }
+    end
     return {
         key = "dam_plans",
         distance = distance,
         x = plans.x,
         y = plans.y - h - 8,
-        status = Strings.comingPlans(name :: string),
+        status = status,
     }
 end
 

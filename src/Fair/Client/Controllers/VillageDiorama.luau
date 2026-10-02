@@ -20,6 +20,7 @@ local Assets = require(ReplicatedStorage.Shared.Config.Assets)
 local ChainMath = require(ReplicatedStorage.Shared.Modules.ChainMath)
 local HandMath = require(ReplicatedStorage.Shared.Modules.HandMath)
 local HandRoutes = require(ReplicatedStorage.Shared.Modules.HandRoutes)
+local ModernMath = require(ReplicatedStorage.Shared.Modules.ModernMath)
 local RiverConfig = require(ReplicatedStorage.Shared.Config.RiverConfig)
 local Strings = require(ReplicatedStorage.Shared.Config.Strings)
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
@@ -612,8 +613,9 @@ function VillageDiorama.Show(village: VillageLook.Snapshot)
         end
     end
     drawDecor(p, village)
-    -- [D67, audit] felinarele strazii, aprinse daca gazda a vandut deja curent (adancimea dupa baza, ca oamenii)
-    StreetLamps.draw(p, village.power)
+    -- [D67, audit] felinarele strazii, aprinse daca gazda a vandut deja curent (adancimea dupa baza, ca oamenii); [D73] se
+    -- vad de la treapta "wire" a modernizarii gazdei, ca acasa (LampController)
+    StreetLamps.draw(p, village.power).show(village.modern >= (ModernMath.stageOf("wire") or 1))
     ModernProps.draw(p, village.modern) -- [D70] stalpii cu sarma si recuzita modernizarii, pe treapta gazdei
     drawPeople(p, village)
 

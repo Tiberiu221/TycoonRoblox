@@ -80,6 +80,9 @@ local BOOK_DELAY = 4.2
 -- Butonul cu cartea sta la marginea din DREAPTA: mana si textul vin din stanga lui, spre el. Mana
 -- e desenata cu degetul in sus, deci rotita 90 de grade arata spre dreapta.
 local POINT_GAP = 10
+-- [D73] cat de aproape de marginea ecranului poate sta mana cand tinta e in afara lui; sus, sub blocul cifrelor din HUD
+local POINTER_EDGE = 40
+local POINTER_TOP = 190
 
 -- ---- desenul ---------------------------------------------------------------------------------
 
@@ -247,6 +250,14 @@ local function update(dt: number)
         end
         -- +40, nu -90: mana sta sub obiect si arata in sus spre el, la fel ca la jurnal.
         local hx, hy = deps.WorldToScreen(pad.x :: number, (pad.y :: number) + 40)
+        -- [D73] plasa e deasupra ecranului (pe telefon, de la locul de pornire, raul nu se vede): mana ramane pe ecran, la
+        -- marginea de sus, si arata tot in sus, spre ea. O singura margine, lina (fara salt cand plasa intra in cadru):
+        -- 12% din inaltime, deci pe un ecran mare mana sta aproape unde statea, iar pe telefon departe de personaj (la
+        -- mijlocul ecranului)
+        local size = root.AbsoluteSize
+        hx = math.clamp(hx, POINTER_EDGE, math.max(POINTER_EDGE, size.X - POINTER_EDGE))
+        local top = math.min(POINTER_TOP, size.Y * 0.12)
+        hy = math.clamp(hy, top, math.max(top, size.Y - POINTER_EDGE - 64))
         movePointer(hx, hy)
     end
 end

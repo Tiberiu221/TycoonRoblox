@@ -95,6 +95,13 @@ end
 -- ---- [19-24] Atelier / Forge -----------------------------------------------------------------
 -- [D56] Cladirea e acum Forge; colectia (reparatiile) e pusa deoparte -- textele ei raman, nefolosite.
 Strings.FORGE_LIT = "The Forge is lit." -- [F]
+-- [D73] platforma care porneste atelierul unei linii a unei ere noi (roata de apa, cuptorul de cupru, masina cu abur, Power
+-- House): bannerul spune ce s-a deschis; prima linie a erei deschide si vanzatorul ei (Piata, Depoul)
+function Strings.lineOpened(processor: string, seller: string?): string
+    return if seller ~= nil
+        then `The {processor} and the {seller} are open!`
+        else `The {processor} is open!`
+end
 function Strings.workshopRepaired(pct: number): string -- [B]
     return `Repaired. +{pct}% income. Forever.`
 end
@@ -157,6 +164,12 @@ Strings.ERA_COMING_QUESTS = "All quests done! Your village keeps earning while y
 function Strings.comingPlans(zoneName: string): string
     return `{zoneName} plans · coming soon`
 end
+-- [D73] butonul mesei cu planuri, dupa clopot: o privire spre tarusii topografilor de langa ponton, unde va fi barajul;
+-- toastul spune ce sunt tarusii
+function Strings.plansLook(keyHint: string): string
+    return `Where's the Dam?{keyHint}`
+end
+Strings.DAM_SITE = "The Dam will rise here — coming soon"
 function Strings.zoneSoon(zoneName: string): string
     return `{zoneName} — coming soon`
 end
@@ -1332,6 +1345,9 @@ function Strings.driftSeen(kind: string): string
     return `A {name} is drifting by. Run along the deck and grab it!`
 end
 Strings.DRIFT_GOLDEN = "A golden log is drifting by!"
+-- [D73] serverul n-a dat darul: a trecut de punte, sau ai scos deja unul mai nou (fiecare dar se plateste o data) [D43]
+Strings.DRIFT_GONE = "It drifted past the deck."
+Strings.DRIFT_NEWER = "You already caught a newer gift."
 
 -- [D61, partea 2] Coltul cu Robux. Numele si frazele lucrurilor stau in MonetizationConfig; pretul vine de la Roblox.
 Strings.SHOP_TITLE = "Shop"

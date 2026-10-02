@@ -4,6 +4,10 @@
 -- vandut, apoi aprinse, cu lumina lor calda dedesubt. Prima aprindere se anunta, ca nimic sa nu se intample in tacere
 -- [D43]; cine intra in joc cu ele deja aprinse nu mai primeste anuntul. Desenul lor e in UI/StreetLamps (comun cu
 -- satul vizitat din balci).
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local ModernMath = require(ReplicatedStorage.Shared.Modules.ModernMath)
+local Modern = require(script.Parent.Parent.UI.Modern)
 local StreetLamps = require(script.Parent.Parent.UI.StreetLamps)
 
 local LampController = {}
@@ -12,9 +16,22 @@ local lamps: StreetLamps.Lamps? = nil
 local lit: boolean? = nil -- nil = inca nicio stare de la server
 local onFirstLight: (() -> ())? = nil
 
+-- [D73] Felinarele apar odata cu stalpii si sarma (treapta "wire" a modernizarii, Clerk-ul Erei 3), nu din primul minut:
+-- pana atunci stateau stinse pe strazile tuturor cartierelor, doua ere la rand, fara sa faca nimic.
+local WIRE_STAGE = ModernMath.stageOf("wire") or 1
+
 function LampController.Init(deps: { Plot: GuiObject, OnFirstLight: (() -> ())? })
     onFirstLight = deps.OnFirstLight
     lamps = StreetLamps.draw(deps.Plot, false)
+    LampController.RefreshModern()
+end
+
+-- Dupa fiecare treapta noua a modernizarii (ModernController.Refresh): felinarele se vad de la treapta "wire".
+function LampController.RefreshModern()
+    local l = lamps
+    if l ~= nil then
+        l.show(Modern.stage >= WIRE_STAGE)
+    end
 end
 
 -- `on` = s-a vandut deja curent (TycoonState.firsts.power).

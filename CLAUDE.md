@@ -116,6 +116,9 @@ Clinchetul găsirilor se împarte de sus în jos, cam unul la 4 s pentru găsiri
 departe, iar „mythic” sună mereu. Turbina nu face stropi. Casa de marcat se aude după distanța până la vânzător. Clopotul
 sună la fiecare eră. Nimic nu e auzit încă în Studio: judecata e a owner-ului, cu plasele la nivel mare.
 - **Pasul e al motorului** e făcut: `golden_chain.py --era4`, nouă stări, între ele egalitatea dintre clădiri (§12).
+- **Harta [D73]:** bannerele atelierelor noi cu „Look (V)”, ruinele din cartiere închise spun clopotul, panoul barajului
+  „will rise by your pier”, darurile râului la toate cartierele deschise, felinarele de la treapta „wire”, masa Dam Plans
+  arată țărușii. Ce cere artă sau ritm (mijlocul erelor, cristalul pe râu, recuzita Morii, primul cadru) așteaptă owner-ul.
 
 ## Stare (2026-10-01) [D71]
 

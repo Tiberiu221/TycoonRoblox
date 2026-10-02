@@ -9,7 +9,8 @@ local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 
 local StreetLamps = {}
 
-export type Lamps = { set: (on: boolean) -> (), count: number }
+-- `set`: aprinse sau stinse; `show`: se vad sau nu [D73]: apar odata cu stalpii si sarma, treapta "wire" a modernizarii
+export type Lamps = { set: (on: boolean) -> (), show: (visible: boolean) -> (), count: number }
 
 -- capul felinarului, de la baza: foaia are 40 px, iar sticla sta pe randurile 4..11 (scripts/art/d67_works.py)
 local HEAD_ABOVE_BASE = (40 - 7) * Assets.PIXEL_SCALE
@@ -33,7 +34,11 @@ end
 function StreetLamps.draw(parent: GuiObject, on: boolean): Lamps
     local spots = TycoonConfig.streetLamps()
     if #spots == 0 or not Assets.has(Assets.tycoon.street_lamp) then
-        return { set = function(_on: boolean) end, count = 0 }
+        return {
+            set = function(_on: boolean) end,
+            show = function(_visible: boolean) end,
+            count = 0,
+        }
     end
     local posts: { ImageLabel } = {}
     local glows: { ImageLabel } = {}
@@ -55,17 +60,28 @@ function StreetLamps.draw(parent: GuiObject, on: boolean): Lamps
         table.insert(posts, post)
         table.insert(glows, glow)
     end
-    local function set(lit: boolean)
+    local lit = on
+    local shown = true
+    local function apply()
         local sprite = if lit and Assets.has(Assets.tycoon.street_lamp_lit)
             then Assets.tycoon.street_lamp_lit
             else Assets.tycoon.street_lamp
         for i, post in posts do
             post.Image = Assets.url(sprite)
-            glows[i].Visible = lit and Assets.has(Assets.tycoon.lamp_glow)
+            post.Visible = shown
+            glows[i].Visible = shown and lit and Assets.has(Assets.tycoon.lamp_glow)
         end
     end
-    set(on)
-    return { set = set, count = #posts }
+    local function show(visible: boolean)
+        shown = visible
+        apply()
+    end
+    local function set(value: boolean)
+        lit = value
+        apply()
+    end
+    apply()
+    return { set = set, show = show, count = #posts }
 end
 
 return StreetLamps

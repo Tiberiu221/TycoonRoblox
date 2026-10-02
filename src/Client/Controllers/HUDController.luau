@@ -52,6 +52,7 @@ local toastLabel: TextLabel
 -- si butonul de cumparare. Cutiile sunt verificate de scripts/art/check_panel_rows.py.
 local APPROACH_W, APPROACH_H = 440, 204
 local APPROACH_INSET_X, APPROACH_INSET_Y = 30, 20
+local APPROACH_LEFT_W = 140 -- [D73] coloana din stanga a cartonasului: castigul si pretul
 local APPROACH_BOTTOM_MARGIN = 132
 local approachCard: Frame
 local approachEyebrow: TextLabel
@@ -460,7 +461,10 @@ function HUDController.Init(
     approachContent.ZIndex = 10
     approachContent.Parent = approachCard
     local contentW = APPROACH_W - INSET_X * 2
-    local leftW, rightW = 180, contentW - 180 -- doua coloane, latimi fixe (numere curate, nu fractii)
+    -- doua coloane, latimi fixe (numere curate, nu fractii). [D73] Stanga 140, nu 180: tine doar „+X/s” (cel mult ~85 px
+    -- in fontul de pixeli) si pretul; nota din dreapta (Nunito 13) avea 200 px, iar „Copper reaches the Market on its
+    -- own” (218) sau nota Mill Bell (221) se taiau la capat
+    local leftW, rightW = APPROACH_LEFT_W, contentW - APPROACH_LEFT_W
 
     -- Randurile, de sus in jos. `y` e in coordonatele continutului (380 lat, 164 inalt).
     -- PERGAMENT, deci cerneala si lemn -- auriul pe pergament are contrast 1.9:1 si nu se citeste.
@@ -1046,7 +1050,7 @@ function HUDController.ShowApproachCard(
         approachDelta.Text = `+{TycoonMath.formatRate(deltaPerSec)}/s`
         approachDelta.TextSize = Theme.TEXT.small -- fraza de mai sus a putut-o micsora
         approachDelta.TextColor3 = Theme.COLOR.good
-        approachDelta.Size = UDim2.fromOffset(180, 20)
+        approachDelta.Size = UDim2.fromOffset(APPROACH_LEFT_W, 20)
     end
     approachNote.Visible = not noGain
     approachNote.Text = pad.note or ""

@@ -13,6 +13,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local DriftMath = require(ReplicatedStorage.Shared.Modules.DriftMath)
+local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 
 local DataService = require(script.Parent.DataService)
 local EconomyService = require(script.Parent.EconomyService)
@@ -26,6 +27,17 @@ export type Deps = {
     PushState: ((Player) -> ())?,
 }
 local deps: Deps? = nil
+
+-- [D73] Puntile cartierelor deschise ale jucatorului (si in joc): de pe oricare se poate scoate darul care trece.
+local function reachesOf(data: any): { DriftMath.Span }
+    return DriftMath.reaches(TycoonConfig.deckSpans(), function(era: number): boolean
+        if not TycoonConfig.eraIsLive(era) then
+            return false
+        end
+        local bell = TycoonConfig.bellOf(era - 1)
+        return era == 1 or (bell ~= nil and data.Pads[bell.id] == true)
+    end)
+end
 
 -- "no_profile" | "bad_id" | "taken" (l-ai scos deja) | "gone" (nu mai e in dreptul puntii) | "ok"
 function DriftService.Grab(player: Player, giftId: number): (boolean, string, string?, number?)
@@ -46,7 +58,7 @@ function DriftService.Grab(player: Player, giftId: number): (boolean, string, st
         return false, "taken", nil, nil
     end
     local gift = DriftMath.giftFor(d.Seed(), giftId)
-    if not DriftMath.canGrab(gift, now) then
+    if not DriftMath.canGrab(gift, now, reachesOf(data)) then
         return false, "gone", nil, nil
     end
     local coins = DriftMath.reward(gift.kind, d.Income(player))

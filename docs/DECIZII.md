@@ -11,6 +11,50 @@ Convenție: în tot proiectul, „server" înseamnă o instanță Roblox efemer�
 
 ---
 
+## D73 — Harta, de la primul minut la baraj: ce se deschide se spune, ce e închis spune de ce
+**DECIS pe 2026-10-02**, la cererea owner-ului: *„mai uită-te și la hartă, cum evoluează treptat până în Era 4”*. Trei
+cititori au mers pe hartă de la primul minut al Erei 1 până la clopotul Wire Works, iar un critic a verificat în cod.
+Aici intră doar ce nu cere artă nouă și nici o hotărâre a owner-ului. Toate reparațiile sunt amendamente mici la D43
+(„nimic nu se întâmplă în tăcere”) și D40 („textul nu minte”).
+
+**Reparate:**
+- **Atelierul unei ere noi se deschide cu un banner**, cu „Look (V)” dacă nu se vede de unde stai. Bannerele:
+  „The Foundry and the Market are open!” (roata de apă), „The Copper Furnace is open!”, „The Wire Works and the Depot are
+  open!”, „The Power House is open!”. Până acum roata de apă deschidea turnătoria și Piața Morii doar cu un „Built!” mic,
+  iar turnătoria stătea sub marginea ecranului. Forge își păstrează toastul din Era 1. Power House urcă și o treaptă a
+  modernizării („Glass in every window!”): bannerul e al treptei, iar atelierul se spune pe un toast, ca o cumpărătură să
+  nu aducă două bannere la rând.
+- **Ruinele dintr-un cartier încă închis** spun întâi clopotul care îl deschide („Opens after the Landing Bell”). Gardul
+  nu oprește mersul, iar la Moară, din primele minute, cartonașele scriau „Hire a Merchant first” sau „Cast the Sixth Net
+  first”, ca și cum s-ar putea face acum.
+- **Panoul barajului:** cât Era 4 nu e în joc, panoul și gardul scriu „The Dam will rise by your pier — coming soon”
+  (PLAN-HARTA, §6 punctul 7), nu „opens with the Works Bell”. Clopotul n-avea cum să-l deschidă.
+- **Cartonașul Mill Bell:** „+10%, opens The Wire Works”, ca la Landing Bell. Era 3 e în joc, deci promisiunea e
+  adevărată. Works Bell tace mai departe. Coloana notei de pe cartonașul de cumpărare are acum 240 px, nu 200 (cea din
+  stânga ține doar „+X/s” și prețul): câteva note mai vechi („Copper reaches the Market on its own”) se tăiau la capăt.
+- **Masa „Dam Plans”**, după clopot: butonul „Where's the Dam? (E)” mută camera spre țărușii topografilor de lângă
+  ponton (singurul semn al barajului pe hartă), iar toastul spune „The Dam will rise here — coming soon”.
+- **Darurile râului trec pe la toate cartierele** și se scot de pe puntea oricărui cartier deschis. Până acum ieșeau de pe
+  hartă la x 2940, în mijlocul Morii: din Era 2 nimeni nu mai prindea niciunul. Fiecare dar se plătește tot o singură
+  dată (`Stats.lastDrift`), deci estimarea D62 rămâne. Un dar mai vechi decât ultimul scos nu mai are card (serverul nu-l
+  mai plătește; din Era 3 îl poți ajunge din urmă pe puntea Wire Works), un refuz se spune pe un toast, iar anunțul unui
+  dar vine când se apropie de puntea pe care stai, nu la intrarea în The Landing.
+- **Felinarele străzii apar odată cu stâlpii și sârma** (treapta „wire” a modernizării, Clerk-ul Erei 3), acasă și în
+  satul vizitat. Până acum stăteau stinse pe toate străzile, din primul minut, două ere la rând.
+- **Mâna tutorialului** rămâne pe ecran când plasa e deasupra lui (pe telefon, de la locul de pornire, râul nu se vede) și
+  arată în sus spre ea: o margine de sus lină, la 12% din înălțime, departe de personaj, fără salt când plasa intră în
+  cadru.
+
+**Pentru owner** (cer artă sau sunt hotărâri de ritm; se vor descrie ca pași din joc):
+- **mijlocul erelor stă pe loc pe hartă:** ~11 minute în Moară și ~22 în Wire Works în care nu se schimbă nimic vizibil.
+  Se repară cu desene noi (a doua înfățișare a turnătoriei, Pieței și cuptorului) sau mutând o treaptă a modernizării;
+- **cristalul pe râu de la finalul Erei 3** (D68): cere un desen;
+- **Moara are recuzita ei** (grămezi de piese, lăzi, cărucioare de minereu): desene noi și pământul recopt;
+- **mai mult râu în primul cadru**, pe telefon mai ales: locul de pornire e în pământul copt (mutarea lui cere recoacerea
+  și urcarea imaginii), iar o cameră trasă spre râu se judecă doar în Studio.
+
+---
+
 ## D72 — Plasele rapide nu mai sună ca o rafală; clinchetul găsirilor rămâne rar în timp
 **DECIS pe 2026-10-02**, la întrebarea owner-ului: *„uită-te și la sunete, că acele plase pot deveni enervante când sunt
 prea rapide (se poate face ceva?)”*. Amendează D51 (stropii „doar aproape” rămân, dar nu mai e destul).

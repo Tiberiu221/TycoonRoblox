@@ -1271,6 +1271,10 @@ return function()
                 -- cardul ei pe un singur rand: 320 px, 18 px pe litera la 0,56 em, 16 px de margine (InteractController)
                 local plans = Strings.comingPlans("The Dam")
                 check.is_true((utf8.len(plans) :: number) * 18 * 0.5586 + 16 <= 320)
+                -- [D73] dupa clopot, butonul ei (240 px) arata tarusii topografilor de langa ponton
+                local look = Strings.plansLook(" (E)")
+                check.is_true((utf8.len(look) :: number) * 18 * 0.5586 + 16 <= 240)
+                check.is_true(#TycoonConfig.SURVEY_STAKES > 0)
             end
         )
 

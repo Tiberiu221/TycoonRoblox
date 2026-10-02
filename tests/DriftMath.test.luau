@@ -53,6 +53,42 @@ return function()
             end
         )
 
+        test.case(
+            "[D73] darul trece pe la toate cartierele si se scoate de pe puntea oricarui cartier deschis",
+            function()
+                check.is_true(DriftMath.EXIT_X > RiverConfig.WORLD_WIDTH)
+                local open = DriftMath.reaches(
+                    TycoonConfig.deckSpans(),
+                    function(era: number): boolean
+                        return era <= 2
+                    end
+                )
+                check.equal(#open, 2)
+                -- prima e chiar puntea din The Landing de pana acum
+                check.equal(open[1].x0, DriftMath.REACH_X0)
+                check.equal(open[1].x1, DriftMath.REACH_X1)
+                for window = 3003, 3030 do
+                    local g = DriftMath.giftFor(SEED, window)
+                    local from, to = DriftMath.reachWindow(g, open[2])
+                    local mid = (from + to) / 2
+                    check.is_true(DriftMath.xAt(g, mid) ~= nil) -- inca pe harta in dreptul Morii
+                    check.is_true(DriftMath.canGrab(g, mid, open))
+                    check.is_false(DriftMath.canGrab(g, mid)) -- fara punti, doar The Landing
+                    check.is_false(DriftMath.canGrab(g, mid, { open[1] })) -- Moara inca inchisa
+                    -- intre punti (in dreptul gardului) nu
+                    local _, landingTo = DriftMath.reachWindow(g, open[1])
+                    check.is_false(DriftMath.canGrab(g, (landingTo + from) / 2, open))
+                end
+                -- un cartier inchis nu da nicio punte
+                check.equal(
+                    #DriftMath.reaches(TycoonConfig.deckSpans(), function(_era: number): boolean
+                        return false
+                    end),
+                    0
+                )
+            end
+        )
+
         test.case("felurile: butoiul des, lada uneori, busteanul de aur rar", function()
             local counts: { [string]: number } = { barrel = 0, crate = 0, golden = 0 }
             local n = 4000

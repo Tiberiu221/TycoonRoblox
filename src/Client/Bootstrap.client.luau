@@ -213,9 +213,8 @@ local function screenClear(): boolean
     return not Panels.AnyOpen() and not WelcomeController.IsOpen()
 end
 
-local function modernMoment(title: string, stage: number)
-    local visibleW = CameraController.VisibleSize()
-    local at = TycoonConfig.modernLookAt(stage, visibleW)
+-- Un banner, cu „Look around (V)” spre un loc al terenului (coordonatele lui TycoonConfig) daca nu se vede de unde stai.
+local function lookMoment(title: string, at: { x: number, y: number }?)
     local action: CeremonyController.Action? = nil
     if at ~= nil then
         local origin = TycoonConfig.PLOT_ORIGIN
@@ -245,6 +244,10 @@ local function modernMoment(title: string, stage: number)
         -- capul meniului, sub el nu se vedea
         ready = screenClear,
     })
+end
+local function modernMoment(title: string, stage: number)
+    local visibleW = CameraController.VisibleSize()
+    lookMoment(title, TycoonConfig.modernLookAt(stage, visibleW))
 end
 safeInit("RiverRenderController", function()
     RiverRenderController.Init({
@@ -290,12 +293,19 @@ safeInit("ModernController", function()
             StorageController.RefreshModern,
             PadController.RefreshModern,
             HandRenderController.SetModern,
+            LampController.RefreshModern, -- [D73] felinarele apar odata cu stalpii
         },
         OnStage = function(stage: number)
             local line = Strings.MODERN_STAGE[stage]
             if line ~= nil then
                 modernMoment(line, stage)
             end
+        end,
+        Look = function(x: number, y: number, note: string)
+            Panels.CloseAll()
+            HUDController.Toast(note)
+            local origin = TycoonConfig.PLOT_ORIGIN
+            LookController.Look(x + origin.x, y + origin.y)
         end,
     })
     -- [2026-09-30] masa cu planurile barajului: cardul ei spune ce vine
@@ -1015,6 +1025,10 @@ if Overlay ~= nil then
                 CrewUpgraded = Net.Get("CrewUpgraded"),
             },
             CheerCrew = HandRenderController.Cheer,
+            -- [D73] atelierul unei linii noi s-a deschis: bannerul cu „Look around (V)” spre el
+            LookMoment = function(title: string, x: number, y: number)
+                lookMoment(title, { x = x, y = y })
+            end,
         })
         -- [D62] meniul deschis isi arata si el nivelul cumparat (sta de obicei peste obiectul din lume)
         Net.Get("StationUpgraded").OnClientEvent:Connect(
@@ -1642,6 +1656,7 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
     StationMenu.Apply(snapshot.stations)
     HandRenderController.Apply(snapshot.hands)
     ZoneController.Apply(snapshot.zones)
+    DriftController.SetZones(snapshot.zones) -- [D73] darurile se scot de pe puntea oricarui cartier deschis
     LampController.Apply(snapshot.firsts.power == true) -- [D67]
 
     if Overlay ~= nil then

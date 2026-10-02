@@ -57,6 +57,32 @@ local focusBlend = 0
 local ownsFocus = false
 local focusX, focusY = 0, 0
 local firstSeen = false
+-- [D73] puntile de pe care se poate scoate un dar: ale cartierelor deschise (SetZones), ca pe server (DriftService)
+local spans: { DriftMath.Span } = DriftMath.reaches(
+    TycoonConfig.deckSpans(),
+    function(era: number): boolean
+        return era == 1
+    end
+)
+-- [D73] cel mai nou dar platit: serverul nu mai da niciunul mai vechi (`Stats.lastDrift`), deci nici cardul nu-l ofera.
+-- Din Era 3, darul de dinainte se poate ajunge din urma pe puntea Wire Works, dupa ce l-ai scos pe urmatorul.
+local lastTaken = 0
+
+-- Puntea fata de care se anunta un dar: cea pe care stai, altfel prima din fata ta (darurile merg spre aval), altfel
+-- prima din lista. Anuntul la intrarea in The Landing nu folosea la nimic cuiva care asteapta pe puntea Wire Works.
+local function announceX(px: number): number
+    local ahead: number? = nil
+    for _, span in spans do
+        if px >= span.x0 - 120 and px <= span.x1 + 120 then
+            return span.x0
+        end
+        if ahead == nil and span.x0 > px then
+            ahead = span.x0
+        end
+    end
+    local first = spans[1]
+    return ahead or (if first ~= nil then first.x0 else DriftMath.REACH_X0)
+end
 
 -- acelasi getter cat tinem camera, ca ReleaseFocus sa stie ca e a noastra
 local function focusGetter(): (number?, number?)
@@ -227,7 +253,7 @@ local function render(dt: number)
             glow.BackgroundTransparency = 0.7 + math.sin(now * 3.1 + gift.id) * 0.1
         end
         -- primul dar al sesiunii si orice bustean de aur se anunta: altfel, pe un ecran mic, nici nu stii ca trece
-        if not announced[gift.id] and x >= DriftMath.REACH_X0 - 120 then
+        if not announced[gift.id] and x >= announceX(px) - 120 then
             announced[gift.id] = true
             if gift.kind == "golden" then
                 SoundController.Play("chime", 1.25)
@@ -238,7 +264,8 @@ local function render(dt: number)
             firstSeen = true
         end
         local reachable = onDeck
-            and DriftMath.canGrab(gift, now)
+            and gift.id > lastTaken
+            and DriftMath.canGrab(gift, now, spans)
             and math.abs(x - px) <= DriftMath.REACH
         if reachable and (best == nil or math.abs(x - px) < math.abs((bestX :: number) - px)) then
             best, bestX = gift, x
@@ -334,6 +361,7 @@ function DriftController.Init(d: Deps)
             pending[giftId] = nil
             if ok == true and typeof(coins) == "number" then
                 taken[giftId] = true
+                lastTaken = math.max(lastTaken, giftId)
                 local px, py = d.CharacterPos()
                 local toHud, fly = worldToHud, coinFly
                 if toHud ~= nil and fly ~= nil then
@@ -342,12 +370,34 @@ function DriftController.Init(d: Deps)
                 end
                 SoundController.Play(if kind == "golden" then "chime" else "coin")
             else
-                -- refuzat ("gone": a iesit din dreptul puntii; "taken": l-ai mai scos): fara monede, fara drama
+                -- refuzat ("gone": a iesit din dreptul puntii; "taken": ai scos deja unul mai nou, sau pe el): fara monede,
+                -- dar spus [D43]
                 taken[giftId] = if reason == "taken" then true else nil
+                if reason == "taken" then
+                    d.OnToast(Strings.DRIFT_NEWER)
+                elseif reason == "gone" then
+                    d.OnToast(Strings.DRIFT_GONE)
+                end
             end
         end
     )
     RunService.PreRender:Connect(render)
+end
+
+-- [D73] Starea cartierelor (TycoonState.zones: "open" | "locked"), la fiecare stare: din The Mill si din Wire Works se
+-- poate scoate darul care trece pe la puntea lor, cat cartierul e deschis.
+function DriftController.SetZones(zones: { [string]: string })
+    spans = DriftMath.reaches(TycoonConfig.deckSpans(), function(era: number): boolean
+        if not TycoonConfig.eraIsLive(era) then
+            return false
+        end
+        for _, zone in TycoonConfig.ZONES do
+            if zone.era == era then
+                return zones[zone.id] == "open"
+            end
+        end
+        return era == 1
+    end)
 end
 
 return DriftController

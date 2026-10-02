@@ -74,12 +74,13 @@ APPROACH_CARD = dict(
         ("eyebrow", 0, 0, w, 14, None),
         ("name", 0, 14, w, 24, None),
         ("blurb", 0, 38, w, 18, None),
-        ("delta", 0, 60, 180, 20, "gain"),
+        # [D73] coloana din stanga 140, nu 180: nota din dreapta are 240 si nu se mai taie
+        ("delta", 0, 60, 140, 20, "gain"),
         ("deltaWide", 0, 60, w, 20, "nogain"),
-        ("note", w - (w - 180), 62, w - 180, 18, "gain"),
+        ("note", w - (w - 140), 62, w - 140, 18, "gain"),
         ("coin", 0, 86, 18, 18, None),
-        ("price", 24, 84, 180 - 24, 22, None),
-        ("spend", w - (w - 180), 86, w - 180, 20, None),
+        ("price", 24, 84, 140 - 24, 22, None),
+        ("spend", w - (w - 140), 86, w - 140, 20, None),
         ("buyButton", 0, 114, w, 44, None),
     ],
 )

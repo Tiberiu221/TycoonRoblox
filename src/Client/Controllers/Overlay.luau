@@ -25,6 +25,7 @@ local GuideMath = require(ReplicatedStorage.Shared.Modules.GuideMath)
 local AmbitionMath = require(ReplicatedStorage.Shared.Modules.AmbitionMath)
 local ChainMath = require(ReplicatedStorage.Shared.Modules.ChainMath)
 local HandRoutes = require(ReplicatedStorage.Shared.Modules.HandRoutes)
+local ModernMath = require(ReplicatedStorage.Shared.Modules.ModernMath)
 local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
 local CeremonyController = require(script.Parent.CeremonyController)
 local GuideController = require(script.Parent.GuideController)
@@ -157,6 +158,8 @@ export type Deps = {
     },
     -- [D62] omul unei meserii se bucura cand ii cumperi o treapta (HandRenderController)
     CheerCrew: ((string) -> ())?,
+    -- [D73] un banner cu „Look around (V)” spre un loc al terenului (Bootstrap.lookMoment)
+    LookMoment: ((string, number, number) -> ())?,
 }
 
 local Overlay = {}
@@ -440,6 +443,31 @@ local function isNetPad(pad: TycoonConfig.Pad): boolean
     return false
 end
 
+-- [D73] Linia al carei atelier il porneste platforma asta (roata de apa -> piesele, Copper Furnace -> cuprul, ...), sau nil.
+-- Forge (`workshop`) isi are toastul ei din Era 1 (FORGE_LIT).
+local function openedLine(pad: TycoonConfig.Pad): string?
+    if pad.id == "workshop" then
+        return nil
+    end
+    for line, spec in FlowConfig.LINES do
+        if spec.processorPad == pad.id then
+            return line
+        end
+    end
+    return nil
+end
+
+-- [D73] Bannerul atelierului deschis: pana acum roata de apa deschidea turnatoria si Piata Morii cu un „Built!” mic, iar
+-- turnatoria statea sub marginea ecranului [D43]. Prima linie a unei ere deschide si vanzatorul ei.
+local function lineOpenedText(line: string): string
+    local era = StationConfig.ERA_OF_LINE[line] or 1
+    local seller = StationConfig.LINES[line].seller
+    local sellerLabel = if era > 1 and StationConfig.ERA_LINES[era][1] == line
+        then Strings.LINK_WORDS[seller].label
+        else nil
+    return Strings.lineOpened(Strings.LINE_WORDS[line].processor, sellerLabel)
+end
+
 -- O banda HUD in plus, dincolo de ceremonia scurta -- una singura per cumparare, aleasa dupa
 -- efectul care CHIAR se schimba in joc azi [F2, tabelul din nota 39]. nil pentru pad-urile fara
 -- un efect "de anuntat" (netele simple, banda noua) -- rata zburatoare le acopera deja pe alea.
@@ -547,19 +575,15 @@ local function checkProximityRefusals()
             atFence = true
             if now - lastZoneRefusalAt > PROXIMITY_COOLDOWN then
                 lastZoneRefusalAt = now
-                local bellName = "next Bell"
-                for _, p in TycoonConfig.PADS do
-                    if p.era == zone.era - 1 and p.motive == "D" then
-                        bellName = p.name
-                    end
-                end
+                local bell = TycoonConfig.bellOf(zone.era - 1)
+                -- [D73] o era care nu e inca in joc nu se deschide cu niciun clopot: spune doar ca vine [D40]
+                local text = if not TycoonConfig.eraIsLive(zone.era)
+                    then zone.soon or Strings.zoneSoon(zone.name)
+                    else Strings.refuseZoneLocked(
+                        if bell ~= nil then bell.name else "next Bell"
+                    )
                 local x, y = deps.WorldToHud(zone.x0 - 20, py)
-                JuiceController.FloatAt(
-                    x,
-                    y,
-                    Strings.refuseZoneLocked(bellName),
-                    Theme.COLOR.onDarkSoft
-                )
+                JuiceController.FloatAt(x, y, text, Theme.COLOR.onDarkSoft)
             end
             break
         end
@@ -770,9 +794,26 @@ function Overlay.Init(d: Deps)
                 )
             end
         else
-            local text = effectAnnouncement(pad)
-            if text ~= nil then
-                HUDController.Toast(text)
+            local line = openedLine(pad)
+            local lookMoment = deps.LookMoment
+            -- platforma urca si o treapta a modernizarii (Power House: „Glass in every window!”): bannerul e al treptei,
+            -- iar atelierul deschis se spune pe un toast, ca o cumparatura sa nu aduca doua bannere la rand
+            local stagePad = false
+            for _, step in ModernMath.STAGES do
+                if step.pad == pad.id or step.orPad == pad.id then
+                    stagePad = true
+                end
+            end
+            if line ~= nil and lookMoment ~= nil and not stagePad then
+                local at = TycoonConfig.LINE_PLACES[line].processorIn
+                lookMoment(lineOpenedText(line), at.x, at.y)
+            elseif line ~= nil then
+                HUDController.Toast(lineOpenedText(line))
+            else
+                local text = effectAnnouncement(pad)
+                if text ~= nil then
+                    HUDController.Toast(text)
+                end
             end
         end
 

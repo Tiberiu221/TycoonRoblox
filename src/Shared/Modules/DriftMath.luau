@@ -18,6 +18,8 @@ local Prng = require(script and script.Parent.Prng or "./Prng")
 local DriftMath = {}
 
 export type Kind = { id: string, weight: number, seconds: number, min: number }
+-- [D73] o bucata de punte de pe care se poate scoate un dar (coordonatele terenului, pe X)
+export type Span = { x0: number, x1: number }
 export type Gift = {
     id: number, -- fereastra de timp: un dar pe fereastra, deci si identitatea lui
     kind: string,
@@ -41,13 +43,17 @@ end
 -- de jos punct al malului de nord (488, RiverConfig.SHORE_FAR): un desen de 32 px inaltime ramane cu totul in apa.
 DriftMath.Y = 520
 DriftMath.ENTER_X = -60
-DriftMath.EXIT_X = 2940 -- dincolo de marginea lumii (2880)
+-- [D73] dincolo de marginea lumii (RiverConfig.WORLD_WIDTH, 5520): darul trece pe la toate cartierele. Pana acum iesea la
+-- 2940, in mijlocul Morii, si disparea sub ochii tai; din Era 2 nimeni nu mai prindea niciunul.
+DriftMath.EXIT_X = 5580
 DriftMath.SPEED_MIN = 62
 DriftMath.SPEED_MAX = 78
 DriftMath.START_JITTER = 14 -- darul nu intra fix la inceputul ferestrei: fara metronom
--- De unde se poate scoate: cat e in dreptul puntii tale (TycoonConfig.DECK: x 240..1560), cu o mica marja.
+-- De unde se poate scoate: cat e in dreptul puntii (TycoonConfig.DECK: x 240..1560), cu o mica marja. Asta e puntea din
+-- The Landing; [D73] puntea fiecarui cartier deschis se socoteste la fel (`reaches`).
 DriftMath.REACH_X0 = 200
 DriftMath.REACH_X1 = 1600
+DriftMath.REACH_MARGIN = 40
 DriftMath.REACH = 90 -- cat de aproape in X trebuie sa fii (clientul; serverul nu stie unde stai in sat)
 DriftMath.GRACE = 1.5 -- secunde de ingaduinta la capetele ferestrei de prins (drumul cererii pana la server)
 
@@ -97,17 +103,43 @@ function DriftMath.xAt(gift: Gift, now: number): number?
     return x
 end
 
--- Intre ce momente se poate scoate: cat trece prin dreptul puntii.
-function DriftMath.reachWindow(gift: Gift): (number, number)
-    local from = gift.enterAt + (DriftMath.REACH_X0 - DriftMath.ENTER_X) / gift.speed
-    local to = gift.enterAt + (DriftMath.REACH_X1 - DriftMath.ENTER_X) / gift.speed
+-- [D73] Bucatile de punte de pe care se poate scoate un dar: puntea fiecarui cartier deschis, cu marja. `decks`: puntile
+-- cartierelor, cu era lor (TycoonConfig.deckSpans); `isOpen(era)`: cartierul e deschis (clopotul erei dinainte e tras).
+function DriftMath.reaches(
+    decks: { { era: number, x0: number, x1: number } },
+    isOpen: (number) -> boolean
+): { Span }
+    local out: { Span } = {}
+    for _, d in decks do
+        if isOpen(d.era) then
+            table.insert(out, {
+                x0 = d.x0 - DriftMath.REACH_MARGIN,
+                x1 = d.x1 + DriftMath.REACH_MARGIN,
+            })
+        end
+    end
+    return out
+end
+
+-- Intre ce momente se poate scoate: cat trece prin dreptul puntii (fara `span`, puntea din The Landing).
+function DriftMath.reachWindow(gift: Gift, span: Span?): (number, number)
+    local x0 = if span ~= nil then span.x0 else DriftMath.REACH_X0
+    local x1 = if span ~= nil then span.x1 else DriftMath.REACH_X1
+    local from = gift.enterAt + (x0 - DriftMath.ENTER_X) / gift.speed
+    local to = gift.enterAt + (x1 - DriftMath.ENTER_X) / gift.speed
     return from, to
 end
 
--- Serverul: se poate scoate darul asta ACUM? (cu ingaduinta pentru drumul cererii)
-function DriftMath.canGrab(gift: Gift, now: number): boolean
-    local from, to = DriftMath.reachWindow(gift)
-    return now >= from - DriftMath.GRACE and now <= to + DriftMath.GRACE
+-- Serverul: se poate scoate darul asta ACUM, din dreptul uneia dintre punti (fara `spans`, puntea din The Landing)?
+-- (cu ingaduinta pentru drumul cererii)
+function DriftMath.canGrab(gift: Gift, now: number, spans: { Span }?): boolean
+    for _, span in spans or { { x0 = DriftMath.REACH_X0, x1 = DriftMath.REACH_X1 } } do
+        local from, to = DriftMath.reachWindow(gift, span)
+        if now >= from - DriftMath.GRACE and now <= to + DriftMath.GRACE then
+            return true
+        end
+    end
+    return false
 end
 
 -- Darurile care pot fi pe harta la `now`: al ferestrei curente si, cat inca mai pluteste, al celei dinainte.
