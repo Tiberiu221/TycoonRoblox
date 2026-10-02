@@ -55,6 +55,7 @@ require("./FlowMath.test")()
 require("./PassMath.test")()
 require("./DriftMath.test")()
 require("./StreakMath.test")() -- [D71]
+require("./CatchSound.test")() -- [D72]
 
 local frktest = require("@frktest/frktest")
 local console_reporter = require("@frktest/reporters/console_reporter")

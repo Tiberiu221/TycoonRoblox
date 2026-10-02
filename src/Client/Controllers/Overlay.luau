@@ -589,6 +589,24 @@ local function refreshGuide(snapshot: Snapshot)
     )
 end
 
+-- [D72] Prinderile vin si de 50–170 de ori pe secunda spre finalul erelor: ghidajul (GuideController.Apply, tinta, linia
+-- NEXT, cardul E) se reface cel mult o data la GUIDE_EVERY secunde, nu la fiecare bucata.
+local GUIDE_EVERY = 0.1
+local guidePending = false
+local function refreshGuideSoon()
+    if guidePending then
+        return
+    end
+    guidePending = true
+    task.delay(GUIDE_EVERY, function()
+        guidePending = false
+        local snap = lastSnapshot
+        if snap ~= nil then
+            refreshGuide(snap)
+        end
+    end)
+end
+
 function Overlay.Init(d: Deps)
     deps = d
 
@@ -640,7 +658,7 @@ function Overlay.Init(d: Deps)
                     n.count = count
                 end
             end
-            refreshGuide(snap)
+            refreshGuideSoon()
             if catalog == nil then
                 return
             end

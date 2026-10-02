@@ -12,6 +12,7 @@ local SoundService = game:GetService("SoundService")
 
 local Assets = require(ReplicatedStorage.Shared.Config.Assets)
 local AudioLevels = require(ReplicatedStorage.Shared.Modules.AudioLevels)
+local CatchSound = require(ReplicatedStorage.Shared.Modules.CatchSound)
 local RiverConfig = require(ReplicatedStorage.Shared.Config.RiverConfig)
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 
@@ -29,29 +30,38 @@ for i, t in RiverConfig.TIERS do
     tierPitch[t.id] = 1 + 0.14 * (i - 1)
 end
 
--- Mai multe plase pot prinde in aceeasi bataie de ceas a serverului -- fara prag, ar suna ca o
--- rafala de stropi in loc de un rau care curge.
-local SPLASH_MIN_GAP = 0.12
-local lastSplashAt = 0
--- [D51] Stropii se aud doar langa plasa care a prins, tot mai incet spre margine. Owner-ul: "cand prind
--- net-urile sunetul devine si acolo enervant, se poate face doar ca atunci cand te apropii?". Cu cinci
--- plase la nivel mare, prinderile vin de cateva ori pe secunda: auzite de oriunde, erau un zgomot.
-local SPLASH_RANGE = 420
--- Clinchetul unei gasiri cu nume e rar si inseamna ceva: se aude oricum, doar mai incet de departe.
-local CHIME_FAR_GAIN = 0.5
+-- [D72] Ce se aude la o prindere (stropul, clinchetul gasirii, sau nimic) decide CatchSound: o plasa rapida nu mai
+-- suna ca o rafala, iar clinchetul ramane rar in timp. Raza stropilor [D51] sta tot acolo.
+local catchSound = CatchSound.new()
+local rng = Random.new()
 local characterPos: (() -> (number, number))? = nil
+-- [D72] Turbina sta in rau ca o plasa, dar umple baterii (TycoonConfig.CATCH.turbine): nu face stropi de apa la fiecare
+-- bucata, si nici nu intra in socoteala malului aglomerat. La fel turbina barajului (`charge`, Era 4).
+local QUIET_GOODS: { [string]: boolean } = { battery = true, charge = true }
+-- [D72] Casa de marcat si monedele: tare langa vanzatorul care a vandut, mai incet de departe (din Era 2 vand doi sau
+-- trei deodata, fiecare o data la 1,2–8 s), si nu de doua ori in aceeasi clipa.
+local SALE_NEAR = 420
+local SALE_FAR = 1200
+local SALE_FAR_GAIN = 0.4
+local SALE_GAP = 0.6
+local lastSaleAt = -math.huge
 
--- Cat de departe e personajul de stalpul plasei (coordonatele terenului); math.huge fara pozitie.
-local function distanceToNet(padId: string): number
+-- Cat de departe e personajul de un punct al terenului (coordonatele lui TycoonConfig); math.huge fara pozitie.
+local function distanceTo(x: number?, y: number?): number
     local pos = characterPos
-    local pad = TycoonConfig.byId[padId]
-    if pos == nil or pad == nil or pad.x == nil or pad.y == nil then
+    if pos == nil or x == nil or y == nil then
         return math.huge
     end
     local cx, cy = pos()
-    local dx = cx - TycoonConfig.PLOT_ORIGIN.x - (pad.x :: number)
-    local dy = cy - TycoonConfig.PLOT_ORIGIN.y - (pad.y :: number)
+    local dx = cx - TycoonConfig.PLOT_ORIGIN.x - x
+    local dy = cy - TycoonConfig.PLOT_ORIGIN.y - y
     return math.sqrt(dx * dx + dy * dy)
+end
+
+-- Cat de departe e personajul de stalpul plasei.
+local function distanceToNet(padId: string): number
+    local pad = TycoonConfig.byId[padId]
+    return if pad ~= nil then distanceTo(pad.x, pad.y) else math.huge
 end
 
 -- 3 trepte de pret [F2, docs/research/38-purchase-feel.md pct.3]: mic = usor/ascutit, mare = greu/
@@ -192,37 +202,58 @@ function SoundController.Init(remotes: Remotes, pos: (() -> (number, number))?)
             padId: string,
             _count: number,
             _capacity: number,
-            _good: string,
+            good: string,
             catalog: string?,
             tier: string?
         )
-            local away = distanceToNet(padId)
-            if catalog ~= nil then
-                local gain = if away <= SPLASH_RANGE then 1 else CHIME_FAR_GAIN
-                SoundController.Play("chime", if tier ~= nil then tierPitch[tier] else 1, gain)
+            if QUIET_GOODS[good] then
                 return
             end
-            if away > SPLASH_RANGE then
-                return
-            end
-            if os.clock() - lastSplashAt >= SPLASH_MIN_GAP then
-                lastSplashAt = os.clock()
-                SoundController.Play("splash", nil, 1 - 0.65 * away / SPLASH_RANGE)
+            local sound = CatchSound.onCatch(
+                catchSound,
+                RiverConfig.TIERS,
+                padId,
+                distanceToNet(padId),
+                if catalog ~= nil then tier or "common" else nil,
+                os.clock(),
+                rng:NextNumber(),
+                rng:NextNumber(),
+                rng:NextNumber()
+            )
+            if sound.kind == "chime" then
+                SoundController.Play(
+                    "chime",
+                    if tier ~= nil then tierPitch[tier] else 1,
+                    sound.gain
+                )
+            elseif sound.kind == "splash" then
+                SoundController.Play("splash", sound.pitch, sound.gain)
             end
         end
     )
 
     -- Banii suna doar cand chiar se vinde. Cand un om isi lasa marfa (HandDelivered) nu se aude
     -- nimic: aduce busteni sau scanduri, nu monede -- casa de marcat la fiecare predare minte [D40].
-    remotes.Sold.OnClientEvent:Connect(function(_total: number, _itemCount: number)
-        SoundController.Play("register")
-        SoundController.Play("coin")
+    remotes.Sold.OnClientEvent:Connect(function(_total: number, _itemCount: number, seller: string?)
+        local now = os.clock()
+        if now - lastSaleAt < SALE_GAP then
+            return -- doi vanzatori in aceeasi clipa: monedele zboara de la amandoi, casa suna o data
+        end
+        lastSaleAt = now
+        local place = TycoonConfig.SELLER_PLACES[seller or "dock"]
+            or TycoonConfig.SELLER_PLACES.dock
+        local away = distanceTo(place.door.x, place.door.y)
+        local far = math.clamp((away - SALE_NEAR) / (SALE_FAR - SALE_NEAR), 0, 1)
+        local gain = 1 - (1 - SALE_FAR_GAIN) * far
+        SoundController.Play("register", nil, gain)
+        SoundController.Play("coin", nil, gain)
     end)
 
     remotes.PadBought.OnClientEvent:Connect(function(padId: string)
         local pad = TycoonConfig.byId[padId]
         SoundController.PlayBuild(if pad ~= nil then pad.price else 0)
-        if padId == "landing_bell" then
+        -- [D72] clopotul fiecarei ere (motivul D), nu doar al primei: Mill Bell si Works Bell sunau ca orice cumparatura
+        if pad ~= nil and pad.motive == "D" then
             SoundController.Play("bell")
         end
     end)

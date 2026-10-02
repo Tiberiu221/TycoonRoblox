@@ -863,6 +863,11 @@ end
 -- ultimul "+N marfa" al fiecarei plase, cat e inca proaspat (vezi OnCaught)
 local FLOAT_MERGE_SECONDS = 0.25
 local lastFloat: { [string]: { tag: TextLabel, good: string, count: number, at: number } } = {}
+-- [D72] Stropii de apa (particulele) de pe plasa: cel mult unul la SPLASH_EVERY secunde pe plasa. La finalul Erei 1 o
+-- plasa prinde 7–16 bucati pe secunda, iar fiecare prindere arunca 4 particule; plasa ramane vie, fara ploaie de stropi.
+-- Fiecare prindere isi are in continuare cifra ei ("+N", mai sus) [D43].
+local SPLASH_EVERY = 0.2
+local lastSplash: { [string]: number } = {}
 
 function NetController.OnCaught(
     padId: string,
@@ -883,7 +888,11 @@ function NetController.OnCaught(
     tugAt[padId] = Workspace:GetServerTimeNow() -- plasa e trasa in jos de ce tocmai a cazut in ea
     local assembly = assemblies[padId]
     if assembly ~= nil then
-        SceneArt.Splash(assembly.body, 0.5, 0.5)
+        local clock = os.clock()
+        if clock - (lastSplash[padId] or -math.huge) >= SPLASH_EVERY then
+            lastSplash[padId] = clock
+            SceneArt.Splash(assembly.body, 0.5, 0.5)
+        end
         if TycoonMath.isFind(good) then
             local item = if catalog ~= nil then ItemConfig.get(catalog) else nil
             local name = if item ~= nil then item.name else "Find"

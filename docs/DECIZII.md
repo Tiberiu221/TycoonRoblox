@@ -11,6 +11,43 @@ Convenție: în tot proiectul, „server" înseamnă o instanță Roblox efemer�
 
 ---
 
+## D72 — Plasele rapide nu mai sună ca o rafală; clinchetul găsirilor rămâne rar în timp
+**DECIS pe 2026-10-02**, la întrebarea owner-ului: *„uită-te și la sunete, că acele plase pot deveni enervante când sunt
+prea rapide (se poate face ceva?)”*. Amendează D51 (stropii „doar aproape” rămân, dar nu mai e destul).
+
+**De ce:** simulatorul dă, la finalul Erei 1, 7–16 prinderi pe secundă pe plasă (~51 toate cinci); la finalul Erei 3,
+~170–190 pe toate plasele. Pragul de 0,12 s, pe ceasul de 10 Hz al serverului, lăsa ~5 stropi pe secundă fără pauză,
+mereu același sunet, la tărie întreagă. Mai rău, fiecare găsire (5% din prinderi) suna un clinchet **de oriunde**, fără
+nicio limită: ~2,5 pe secundă la finalul Erei 1, ~8 la finalul Erei 3. Clinchetul, care trebuia să însemne „ai prins ceva
+rar”, devenise zgomot.
+
+**Regulile** (`CatchSound`, pur, cu teste; `SoundController` doar îl întreabă):
+- **cât malul e liniștit** (cel mult 3 prinderi pe secundă în rază: începutul jocului, două-trei plase la nivel mic) se
+  aude fiecare prindere, ca până acum; doar prinderile din aceeași bătaie de ceas a serverului fac un singur strop;
+- **pe un mal aglomerat** o plasă se aude cel mult o dată la ~0,75 s, toate la un loc cel mult de ~2 ori pe secundă,
+  fiecare strop puțin altfel (înălțime ±8%, tărie cu până la 15% mai mică) și ceva mai încet (până la 70%). Stropul
+  rămâne peste casa de marcat, deci prinderea rămâne sunetul principal, cum a cerut owner-ul în D50;
+- spre marginea razei (420) stropul se stinge lin, nu se taie, iar clinchetul coboară lin spre jumătate;
+- **clinchetele găsirilor din raza ta** se împart de sus în jos, cam unul la 4 s: întâi treptele cele mai rare, apoi, cât
+  mai rămâne loc, cele de sub ele. La început sună orice găsire; la finalul Erei 1 de la „epic” în sus (și „rare”
+  uneori), la finalul Erei 3 „legendary” și „mythic”. **Găsirile de departe** au bugetul lor, mai mic (cam unul la 12 s),
+  la jumătate de tărie: clinchetul ține de ce vezi. O treaptă mai rară decât ultimul clinchet trece peste pauza dintre
+  clinchete, iar „mythic” sună mereu (test). O găsire care nu sună e tot o prindere: lângă plasă se aude stropul ei;
+- turbina umple baterii, deci nu face stropi de apă;
+- nimic nu se ascunde [D43]: fiecare prindere își are cifra ei pe plasă; sunetul doar nu le mai numără pe toate.
+
+**Tot aici, ce se mai auzea sau se vedea prea des:**
+- **Casa de marcat** sună tare lângă vânzătorul care a vândut și mai încet de departe (până la 40%), cel mult o dată la
+  0,6 s. Din Era 2 vând doi sau trei vânzători deodată, fiecare o dată la 1,2–8 s, și se auzeau toți de oriunde.
+- **Clopotul** sună la fiecare clopot de eră, nu doar la Landing Bell. Mill Bell și Works Bell sunau ca orice cumpărătură.
+- **Stropii de apă de pe plasă** (particulele): cel mult unul la 0,2 s pe plasă.
+- **Ghidajul** se reface cel mult de 10 ori pe secundă, nu la fiecare prindere (spre final, 50–170 pe secundă).
+
+Fără sunete noi de urcat. Un strat continuu de apă („fâșâitul” plaselor rapide) ar cere un sunet nou, deci planșă și
+acordul owner-ului; nu s-a făcut. Ce se aude cu adevărat judecă doar owner-ul, în Studio.
+
+---
+
 ## D71 — Satul lucrează fără tine o zi, tot mai încet; seria zilnică se vede la bâlci
 **DECIS de owner pe 2026-10-01:** *„nu uita să creezi un sistem care se oprește din a mai avea venit după 24h; după 8 ore
 doar încetinește. am intrat pe salvare și aveam trilioane. […] acest lucru avantajează intrarea zilnică în joc. și trebuie

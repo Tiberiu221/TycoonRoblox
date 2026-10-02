@@ -108,6 +108,15 @@ stylua/selene o prind. Rulează-le mereu pe toate, nu înlănțuite după o eroa
   bâlciul doar în 114983498774894); serverul Rojo al satului rulează detașat pe 34872 și trebuie repornit ca să citească
   o schimbare de proiect. Ce a rulat în Studio se vede în `~/Library/Logs/Roblox/*_last.log` (`CreatorOutput`, `open place`).
 
+## Stare (2026-10-02) [D72]
+
+**Plasele rapide nu mai sună ca o rafală** (`CatchSound`, pur, cu teste; `SoundController` doar îl întreabă). Cât malul e
+liniștit, se aude fiecare prindere; aglomerat, cel mult ~2 stropi pe secundă, mai încet, dar peste casa de marcat.
+Clinchetul găsirilor se împarte de sus în jos, cam unul la 4 s pentru găsirile din rază și unul la 12 s pentru cele de
+departe, iar „mythic” sună mereu. Turbina nu face stropi. Casa de marcat se aude după distanța până la vânzător. Clopotul
+sună la fiecare eră. Nimic nu e auzit încă în Studio: judecata e a owner-ului, cu plasele la nivel mare.
+- **Pasul e al motorului** e făcut: `golden_chain.py --era4`, nouă stări, între ele egalitatea dintre clădiri (§12).
+
 ## Stare (2026-10-01) [D71]
 
 **Satul lucrează fără tine pe o curbă, iar seria zilnică se vede la bâlci.** Nimic nu e văzut încă în Studio.
