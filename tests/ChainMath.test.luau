@@ -3184,6 +3184,32 @@ return function()
             check.equal(heldBack(full, "town", nil), "No gain yet — the crystal net is slower")
         end)
 
+        test.case(
+            "[§8] clone pastreaza campurile barajului; randul turbinei; o piesa fara vanzator nu crapa",
+            function()
+                local s = era4State(GOLDEN_ERA4[1])
+                local copy: any = ChainMath.clone(s)
+                check.equal(copy.dam, true)
+                check.equal(copy.townLevel, s.townLevel)
+                check.equal(copy.switchyardLevel, s.switchyardLevel)
+                check.equal(
+                    ChainMath.valueWith(
+                        ChainMath.FULL,
+                        copy,
+                        ChainMath.flowWith(ChainMath.FULL, copy)
+                    ),
+                    ChainMath.valueWith(ChainMath.FULL, s, ChainMath.flowWith(ChainMath.FULL, s))
+                )
+                -- randul turbinei din zid (plasele butoaielor): o tin plasele cablului
+                check.equal(
+                    heldBack(s, "nets", "barrels"),
+                    "No gain yet — the cable nets are slower"
+                )
+                -- un om al unei piese (fara vanzator) primeste un raspuns, nu o eroare
+                check.equal(type(heldBack(s, "barrelHaul", "barrels")), "string")
+            end
+        )
+
         test.case("jocul ruleaza inca Erele 1-3; FULL are si barajul", function()
             check.equal(StationConfig.ENGINE_ERAS, 3)
             check.equal(table.find(ChainMath.GAME.lineOrder, "barrels"), nil)

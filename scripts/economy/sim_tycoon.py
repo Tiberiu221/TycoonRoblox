@@ -1958,6 +1958,12 @@ def run(rebirths=0, index_found=0, max_seconds=36000, era=None, start=None):
             income_now = income(s)
             for label, price, effect, kind, uid in opts:
                 g = gain_of(s, effect, income_now)
+                # [D70, plan §8] MONOTONIA PE STARILE ATINSE: nicio optiune de pe ecran nu scade venitul, nu doar cele pe
+                # care le cumpara lacomul (verificarea din `buy`). O singura data pe era, pe fel si pe deblocare, ca sa nu umple raportul.
+                if g < -1e-9 * max(1.0, income_now):
+                    tag = f"[monotonie {era['name']} {kind} {uid}]"
+                    if not any(tag in v for v in VIOLATIONS):  # VIOLATIONS se goleste intre variantele din --robust
+                        VIOLATIONS.append(f"{tag} {label} ar SCADEA venitul cu {big(-g)}/s")
                 if price <= 0:
                     scored.append((float("inf"), label, price, effect, kind, uid, g))
                 elif g > 1e-9:
@@ -2617,9 +2623,40 @@ def dam_ceiling(d: DamRun, before_kiln: bool = False) -> float:
     return income(c)
 
 
+def check_hire_guard(s3: State) -> list:
+    """[D70, plan §8] PAZA NEGATIVA. Monotonia (nicio optiune nu scade venitul, `run`) o tine ORDINEA angajarilor, nu
+    cifrele singure: Cable Collector-ul angajat ultimul, cand drumul lui e singurul pas de mana al bazinului (partea ta
+    5.4 > baza lui 4.0), chiar scade venitul. Daca regula ar tine si fara ordine, verificarea monotoniei n-ar dovedi nimic
+    despre conditiile platformelor; daca n-ar mai scadea, poarta se poate scoate. Si conditiile chiar opresc ordinea asta:
+    Cable Porter-ul cere Cable Collector-ul."""
+    problems = []
+    s = dam_transform(s3, 0.0)
+    unlock_net_ranked("cable_ore", 2, 1, 4)(s)
+    unlock_net_ranked("cable_ore", 3, 2, 4)(s)
+    for n in s.nets:
+        if n.kind in ("dam", "cable_ore"):
+            n.level = 30
+    for role in DAM_HIRES:
+        if role != "cableCollector":
+            s.crews[role].count = 1
+    s.crews["cablemaker"].tier = s.crews["relayKeeper"].tier = TIER_MAX
+    for role in DAM_VETERANS:
+        s.crews[role].tier = TIER_MAX
+    before = income(s)
+    late = clone(s)
+    late.crews["cableCollector"].count = 1
+    if not income(late) < before:
+        problems.append("Era 4, paza negativa: Cable Collector-ul angajat ultimul nu mai scade venitul (poarta se poate scoate)")
+    porter = next(u for u in ERA4_UNLOCKS if u[0] == "cablePorter")
+    fresh = dam_transform(s3, 0.0)
+    if porter[3](fresh):
+        problems.append("Era 4: Cable Porter-ul se poate angaja inaintea Cable Collector-ului (ordinea tine monotonia)")
+    return problems
+
+
 def check_dam(d: DamRun, flat_before: float, crawl_before: float):
     """[D70] Portile barajului (plan, sectiunea 5), pe cele doua rulari."""
-    problems = []
+    problems = check_hire_guard(d.s3)
     # suma sare cel mult WINDFALL_MAX_SHARE din cronologia fara bani
     _n, last, share = spend_share(d.start_sum, d.rows_zero, d.start_zero.t, d.s_zero.t)
     if share > WINDFALL_MAX_SHARE:
