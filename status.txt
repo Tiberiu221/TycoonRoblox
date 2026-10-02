@@ -1,9 +1,9 @@
-run: 36852281966
-sha: ddf29e5ab6e37c4d581eef3d2f02d3c41d2b8ac4
-finished: 2026-10-01T11:15:28Z
+run: 37004867415
+sha: f257032816611317ed7e56303a29c04552e702bc
+finished: 2026-10-02T12:23:25Z
 lint-format-test: success
-publish-staging: success
-smoke-test-staging: success
+publish-staging: failure
+smoke-test-staging: skipped
 steps:
   lint-format-test / Set up job: success
   lint-format-test / Run actions/checkout@v4: success
@@ -33,13 +33,8 @@ steps:
   publish-staging / Run bash scripts/ci_retry.sh wally install: success
   publish-staging / Build place: success
   publish-staging / Build fair place: success
-  publish-staging / Publish to Driftwood-Staging (Open Cloud): success
+  publish-staging / Publish to Driftwood-Staging (Open Cloud): failure
   publish-staging / Publish fair place to Driftwood-Staging (Open Cloud): success
-  publish-staging / Upload artifact tagged with versionNumber: success
+  publish-staging / Upload artifact tagged with versionNumber: skipped
   publish-staging / Post Run actions/checkout@v4: success
   publish-staging / Complete job: success
-  smoke-test-staging / Set up job: success
-  smoke-test-staging / Run actions/checkout@v4: success
-  smoke-test-staging / Run smoke tests via Open Cloud Luau Execution: success
-  smoke-test-staging / Post Run actions/checkout@v4: success
-  smoke-test-staging / Complete job: success
