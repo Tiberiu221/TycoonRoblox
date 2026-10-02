@@ -461,8 +461,10 @@ end
 -- turnatoria statea sub marginea ecranului [D43]. Prima linie a unei ere deschide si vanzatorul ei.
 local function lineOpenedText(line: string): string
     local era = StationConfig.ERA_OF_LINE[line] or 1
-    local seller = StationConfig.LINES[line].seller
-    local sellerLabel = if era > 1 and StationConfig.ERA_LINES[era][1] == line
+    local seller = StationConfig.LINES[line].seller -- [D70] nil la o piesa: se vinde doar prin unirea ei
+    local sellerLabel = if seller ~= nil
+            and era > 1
+            and StationConfig.ERA_LINES[era][1] == line
         then Strings.LINK_WORDS[seller].label
         else nil
     return Strings.lineOpened(Strings.LINE_WORDS[line].processor, sellerLabel)

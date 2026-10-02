@@ -87,10 +87,13 @@ local function chainRowsFor(era: number): { ChainRow }
     local out: { ChainRow } = {}
     local sellersSeen: { [string]: boolean } = {}
     for _, line in StationConfig.ERA_LINES[era] do
-        table.insert(
-            out,
-            { key = "nets", line = line, icon = "net", label = Strings.NET_WORDS[line].label }
-        )
+        -- [D70] o unire n-are plase (intra ce aduc piesele ei), iar o piesa n-are vanzator (se vinde prin unire)
+        if StationConfig.LINES[line].netKind ~= nil then
+            table.insert(
+                out,
+                { key = "nets", line = line, icon = "net", label = Strings.NET_WORDS[line].label }
+            )
+        end
         for k, step in StationConfig.LINES[line].steps do
             table.insert(out, {
                 key = step.link,
@@ -103,7 +106,7 @@ local function chainRowsFor(era: number): { ChainRow }
             })
         end
         local seller = StationConfig.LINES[line].seller
-        if not sellersSeen[seller] then
+        if seller ~= nil and not sellersSeen[seller] then
             sellersSeen[seller] = true
             table.insert(
                 out,

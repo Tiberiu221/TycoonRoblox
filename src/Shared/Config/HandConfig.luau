@@ -85,6 +85,11 @@ HandConfig.WORKING_POSE = {
     electrician = "right",
     founder = "left",
     wiredrawer = "left",
+    -- [D70] Era 4: propuse, ca in Erele 2-3 (prima linie spre stanga, a doua spre dreapta); harta barajului le poate muta
+    switchman = "left",
+    cablemaker = "right",
+    relayKeeper = "left",
+    crystalsmith = "right",
 } :: { [string]: string }
 
 -- [D50] Clientii tavernei: tinute pe care nu le poarta nicio meserie (fara palarie, prun si ardezie),

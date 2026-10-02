@@ -287,6 +287,12 @@ def build_era4(nets, crews, buildings, kiln, crystal_shed):
 
 def main_era4():
     lines = ("wood",) + T.ERA_LINES[4]  # lemnul: o linie veche, inchisa de baraj
+    # de unde pornesc toate starile: Era 3 incheiata (plasele si oamenii Erelor 1-3), inainte de baraj
+    crews_from = ", ".join(f"{r} = {{ {n}, {t} }}" for r, (n, t) in ERA3_DONE.items())
+    print("local GOLDEN_ERA4_FROM = {")
+    print(f"    nets = {{ {', '.join(str(x) for x in E123)} }},")
+    print(f"    crews = {{ {crews_from} }},")
+    print("}")
     print("local GOLDEN_ERA4 = {")
     for name, nets, crews, buildings, kiln, crystal_shed in CASES_ERA4:
         s = build_era4(nets, crews, buildings, kiln, crystal_shed)

@@ -23,6 +23,14 @@
 -- motorul de mai jos (`flow`) merge peste un `Model`, deci duce oricate linii si oricati vanzatori: Era 2 adauga
 -- randuri in tabel, nu ramuri in cod. `Rates` ramane VEDEREA PLATA a Erei 1 peste `Flow` (woodCatch, sawing, sales,
 -- ...): asa o citesc serverul, meniurile si tabelul de aur al simulatorului. Planul: docs/PLAN-MOTOR-N-LINII.md.
+--
+-- [D70] UNIREA (docs/PLAN-MOTOR-UNIRE.md, pasul g). Cheile optionale ale liniilor (StationConfig): o linie poate fi
+-- inchisa de un camp (`closeFlag`: barajul opreste satul vechi), o PIESA care merge intr-o unire (`into`), o UNIRE cu
+-- reteta 1:1 (`inputs`: intra cat aduce cea mai inceata piesa), cu bunul ei (`value`), iar liniile cu acelasi `pool` isi
+-- impart timpul tau. Lantul se socoteste in TREI TRECERI: inainte (piesele inaintea unirii), vanzatorii, inapoi (o piesa
+-- livreaza cat ia unirea de la ea). Fara piese (Erele 1-3) a treia trecere nu atinge nimic, iar `supply` e chiar `catch`:
+-- tabelele de aur ale Erelor 1-3 ies neschimbate. `GAME` e lantul erelor din joc (StationConfig.ENGINE_ERAS), `FULL`
+-- are si barajul (testele de aur ale Erei 4, pana cand serverul il porneste).
 local StationConfig =
     require(script and script.Parent.Parent.Config.StationConfig or "../Config/StationConfig")
 local TycoonConfig =
@@ -52,8 +60,17 @@ export type State = {
     wireworksLevel: number,
     powerhouseLevel: number,
     depotLevel: number,
+    -- [D70] Era 4: barajul (inchide liniile vechi, deschide butoaiele, cablul si unirea), Kiln-ul (porneste cristalul),
+    -- nivelurile cladirilor ei
+    dam: boolean,
+    kiln: boolean,
+    switchyardLevel: number,
+    cableworksLevel: number,
+    relayLevel: number,
+    kilnLevel: number,
+    townLevel: number,
     sackBig: boolean,
-    -- cheile: toate meseriile din StationConfig.ROLES, mereu toate
+    -- cheile: toate meseriile din StationConfig.ROLES, mereu toate (ale modelului socotit; FULL vrea si pe ale barajului)
     crews: { [string]: Crew },
     priceMult: number,
     bells: number,
@@ -84,7 +101,17 @@ export type Rates = {
 
 -- [D64] Forma liniilor (oglinda tipurilor din StationConfig; `require`-ul cu doua cai nu le poate aduce de acolo).
 export type Step = { role: string, link: string, kind: string } -- kind: "walk" | "processor"
-export type Line = { netKind: string, openFlag: string?, seller: string, steps: { Step } }
+export type Line = {
+    netKind: string?,
+    openFlag: string?,
+    closeFlag: string?,
+    seller: string?,
+    inputs: { string }?,
+    into: string?,
+    value: string?,
+    pool: string?,
+    steps: { Step },
+}
 export type Processor = { base: number, levelField: string }
 export type Seller = { role: string, base: number, levelField: string, priority: { string } }
 
@@ -98,30 +125,40 @@ export type Model = {
     sellers: { [string]: Seller },
     roleBase: { [string]: number },
     avg: { [string]: number }, -- valoarea medie a unei bucati, pe fel de plasa
+    goods: { [string]: number }, -- [D70] valoarea fiecarui bun (pentru `value`, la o unire)
     links: { string }, -- derivat: plasele, liniile in ordine, vanzatorii; la egalitate castiga veriga dinainte
     lineOfRole: { [string]: string }, -- derivat
     roleOfLink: { [string]: string }, -- derivat: omul fiecarei verigi (si al vanzatorilor)
-    lineOfNetKind: { [string]: string }, -- derivat: pe ce linie curge ce prinde un fel de plasa
+    lineOfNetKind: { [string]: string }, -- derivat: pe ce linie curge ce prinde un fel de plasa (doar liniile cu plase)
+    consumerOf: { [string]: string }, -- [D70] derivat: piesa -> unirea in care merge
+    poolLines: { [string]: { string } }, -- [D70] derivat: liniile care impart timpul tau cu ea, in ordine (fara `pool`: ea)
 }
 
 -- Ce curge pe o linie, pe secunda.
 export type LineFlow = {
-    catch: number, -- cat prind plasele ei (0 cat linia e inchisa)
+    catch: number, -- cat prind plasele ei (0 cat linia e inchisa; 0 la o unire: plasele sunt ale liniilor de plase)
+    supply: number, -- [D70] ce intra pe linie: plasele ei, sau la o unire cat aduce cea mai inceata piesa
     values: { number }, -- debitul fiecarui pas, in ordinea `lines[linie].steps`
-    ownMax: number, -- marginea liniei inaintea vanzatorului: minimul dintre plase si pasi
-    active: boolean, -- intra in socoteala verigilor: mereu pentru o linie fara conditie, altfel doar cat prinde ceva
+    ownMax: number, -- marginea liniei inaintea vanzatorului: minimul dintre ce intra si pasi
+    isOpen: boolean, -- [D70] linia e deschisa (la o unire, si toate piesele ei)
+    active: boolean, -- intra in socoteala verigilor: mereu pentru o linie fara conditie, altfel doar cat intra ceva
     room: number, -- cat mai avea vanzatorul cand i-a venit randul
-    delivered: number, -- bucati livrate
+    delivered: number, -- bucati livrate (la o piesa: cate ia unirea de la ea)
     bySeller: boolean, -- vanzatorul e marginea liniei
+    byConsumer: boolean, -- [D70] piesa e tinuta de unirea ei: unirea ia mai putin decat poate aduce piesa
     bottleneck: string, -- veriga slaba a liniei; "" cat nu e activa
+    heldBy: string, -- [D70] linia careia ii apartine veriga slaba; "" cat nu e activa
 }
 
 export type Flow = {
     lines: { [string]: LineFlow },
     capacity: { [string]: number }, -- cat vinde fiecare vanzator
     catch: number, -- tot ce prind plasele, pe toate liniile
-    delivered: number, -- tot ce se livreaza
+    delivered: number, -- tot ce se livreaza la vanzatori (piesele intra doar prin unirea lor)
     bottleneck: string, -- veriga care tine venitul
+    netsLine: string, -- [D70] ale cui plase tin venitul, cand veriga e "nets" (""altfel)
+    gains: { [string]: number }, -- [D70] castigul unei bucati in plus pe fiecare veriga (0 = "No gain yet")
+    solo: { [string]: boolean }, -- [D70] verigile care aduc castigul si singure (la egalitate, niciuna)
 }
 
 -- ---- scara nivelurilor -----------------------------------------------------------------------
@@ -314,7 +351,8 @@ end
 -- ---- modelul [D64] ---------------------------------------------------------------------------
 
 -- Face un model din tabelele liniilor si deriva ce se poate deriva. Pica pe un tabel care nu se leaga: o linie care
--- lipseste din randul vanzatorului ei n-ar livra niciodata nimic, in tacere.
+-- lipseste din randul vanzatorului ei n-ar livra niciodata nimic, in tacere. [D70] Aceleasi invariante ca
+-- `derive_tables` din simulator: o sursa (plase sau piese), un capat (vanzator sau unire), piesele inaintea unirii.
 function ChainMath.model(
     lineOrder: { string },
     lines: { [string]: Line },
@@ -322,24 +360,77 @@ function ChainMath.model(
     sellerOrder: { string },
     sellers: { [string]: Seller },
     roleBase: { [string]: number },
-    avg: { [string]: number }
+    avg: { [string]: number },
+    goods: { [string]: number }?
 ): Model
     local links: { string } = { "nets" }
     local lineOfRole: { [string]: string } = {}
     local roleOfLink: { [string]: string } = {}
     local lineOfNetKind: { [string]: string } = {}
-    for _, line in lineOrder do
+    local consumerOf: { [string]: string } = {}
+    local poolLines: { [string]: { string } } = {}
+    for i, line in lineOrder do
         local spec = lines[line]
-        lineOfNetKind[spec.netKind] = line
         assert(
-            table.find(sellers[spec.seller].priority, line) ~= nil,
-            `linia {line} lipseste din randul vanzatorului ei`
+            (spec.netKind == nil) ~= (spec.inputs == nil),
+            `linia {line}: are exact una dintre netKind (plase) si inputs (unire)`
         )
+        assert(
+            (spec.seller == nil) ~= (spec.into == nil),
+            `linia {line}: are exact unul dintre seller si into`
+        )
+        local inputs = spec.inputs
+        if inputs ~= nil then
+            assert(spec.value ~= nil and #inputs > 0, `unirea {line} n-are value sau piese`)
+            for _, part in inputs do
+                local partSpec = lines[part]
+                assert(
+                    table.find(lineOrder, part) ~= nil and partSpec ~= nil and partSpec.into == line,
+                    `unirea {line}: piesa {part} nu merge in ea`
+                )
+            end
+        end
+        local into = spec.into
+        if into ~= nil then
+            local consumer = lines[into]
+            local at = table.find(lineOrder, into)
+            assert(
+                at ~= nil
+                    and consumer ~= nil
+                    and consumer.inputs ~= nil
+                    and table.find(consumer.inputs, line) ~= nil,
+                `piesa {line}: nu sta in inputs ale unirii {into}`
+            )
+            assert(i < (at :: number), `piesa {line} sta dupa unirea ei ({into})`)
+            consumerOf[line] = into
+        end
+        local kind = spec.netKind
+        if kind ~= nil then
+            assert(lineOfNetKind[kind] == nil, `doua linii prind acelasi fel de plasa ({kind})`)
+            lineOfNetKind[kind] = line
+        end
+        local seller = spec.seller
+        if seller ~= nil then
+            assert(
+                sellers[seller] ~= nil and table.find(sellers[seller].priority, line) ~= nil,
+                `linia {line} lipseste din randul vanzatorului ei`
+            )
+        end
         for _, step in spec.steps do
             table.insert(links, step.link)
             lineOfRole[step.role] = line
             roleOfLink[step.link] = step.role
         end
+    end
+    for _, line in lineOrder do
+        local pool = lines[line].pool
+        local members: { string } = {}
+        for _, other in lineOrder do
+            if if pool ~= nil then lines[other].pool == pool else other == line then
+                table.insert(members, other)
+            end
+        end
+        poolLines[line] = members
     end
     for _, seller in sellerOrder do
         table.insert(links, seller)
@@ -356,14 +447,27 @@ function ChainMath.model(
         sellers = sellers,
         roleBase = roleBase,
         avg = avg,
+        goods = goods or goodValue,
         links = links,
         lineOfRole = lineOfRole,
         roleOfLink = roleOfLink,
         lineOfNetKind = lineOfNetKind,
+        consumerOf = consumerOf,
+        poolLines = poolLines,
     }
 end
 
--- Modelul jocului: liniile din StationConfig.
+-- [D70] Cat valoreaza o bucata livrata pe linia asta: bunul ei (`value`; o unire il are mereu), altfel media plasei ei.
+local function lineAvg(m: Model, line: string): number
+    local spec = m.lines[line]
+    local value = spec.value
+    if value ~= nil then
+        return m.goods[value]
+    end
+    return m.avg[spec.netKind :: string]
+end
+
+-- Modelul jocului: liniile din StationConfig ale erelor din joc (ENGINE_ERAS).
 local GAME: Model = ChainMath.model(
     StationConfig.LINE_ORDER,
     StationConfig.LINES,
@@ -374,6 +478,16 @@ local GAME: Model = ChainMath.model(
     AVG
 )
 ChainMath.GAME = GAME
+-- [D70] Toate erele, cu barajul: testele de aur ale Erei 4 (GOLDEN_ERA4), pana cand serverul il porneste (pasul j).
+ChainMath.FULL = ChainMath.model(
+    StationConfig.LINE_ORDER_ALL,
+    StationConfig.LINES,
+    StationConfig.PROCESSORS,
+    StationConfig.SELLER_ORDER_ALL,
+    StationConfig.SELLERS,
+    StationConfig.ROLE_BASE,
+    AVG
+)
 
 -- Linia fiecarei meserii cu pasi de mana [D56]: "wood" sau "iron".
 ChainMath.LINE_OF_ROLE = GAME.lineOfRole
@@ -386,9 +500,27 @@ end
 
 -- O linie fara conditie e deschisa de la inceput. Una cu conditie cere campul ei din State si o plasa de felul ei.
 -- [D56] Pana la oamenii ei, culesul si dusul sunt pasii tai de mana, ca turul de lemn din capitolul 1.
+-- [D70] Una inchisa (`closeFlag`) nu e deschisa, orice ar zice restul; o unire cere in loc de plasa toate piesele ei
+-- deschise.
 local function lineOpen(m: Model, s: State, line: string): boolean
     local spec = m.lines[line]
+    local close = spec.closeFlag
+    if close ~= nil and field(s, close) == true then
+        return false
+    end
     local flag = spec.openFlag
+    local inputs = spec.inputs
+    if inputs ~= nil then
+        if flag ~= nil and field(s, flag) ~= true then
+            return false
+        end
+        for _, part in inputs do
+            if not lineOpen(m, s, part) then
+                return false
+            end
+        end
+        return true
+    end
     if flag == nil then
         return true
     end
@@ -403,11 +535,8 @@ local function lineOpen(m: Model, s: State, line: string): boolean
     return false
 end
 
--- Cati din pasii unei linii n-au inca om; 0 cat linia e inchisa.
-local function manualSteps(m: Model, s: State, line: string): number
-    if not lineOpen(m, s, line) then
-        return 0
-    end
+-- Pasii fara om ai unei linii.
+local function unmanned(m: Model, s: State, line: string): number
     local n = 0
     for _, step in m.lines[line].steps do
         if s.crews[step.role].count == 0 then
@@ -417,30 +546,62 @@ local function manualSteps(m: Model, s: State, line: string): number
     return n
 end
 
+-- Cati pasi n-au inca om in BAZINUL liniei; 0 cat linia e inchisa. [D70] Bazinul = liniile care impart timpul tau
+-- (`pool`): se numara pasii fara om ai tuturor liniilor DESCHISE din el. Fara `pool`, linia e bazinul ei, deci socoteala
+-- e cea de pana acum. `isOpen`, daca apelantul stie deja daca linia e deschisa.
+local function manualSteps(m: Model, s: State, line: string, isOpen: boolean?): number
+    local open = if isOpen == nil then lineOpen(m, s, line) else isOpen
+    if not open then
+        return 0
+    end
+    local pool = m.poolLines[line]
+    if #pool == 1 then
+        return unmanned(m, s, line)
+    end
+    local n = 0
+    for _, other in pool do
+        if other == line or lineOpen(m, s, other) then
+            n += unmanned(m, s, other)
+        end
+    end
+    return n
+end
+
 -- Cat face jucatorul pe fiecare pas fara om al unei linii: timpul lui, impartit la cati pasi a lasat nepreluati
--- in linia aia [D56 -- fiecare linie are timpul tau intreg]. Fara pasi de mana, 0.
-local function playerShare(m: Model, s: State, line: string): number
-    local n = manualSteps(m, s, line)
-    if n == 0 then
+-- in bazinul ei [D56: fiecare linie are timpul tau intreg; D70: liniile unui bazin il impart]. Fara pasi de mana, 0.
+-- `n`, daca apelantul a socotit deja pasii de mana.
+local function playerShare(m: Model, s: State, line: string, n: number?): number
+    local manual = if n == nil then manualSteps(m, s, line) else n
+    if manual == 0 then
         return 0
     end
     local labor = StationConfig.PLAYER_LABOR * (if s.sackBig then StationConfig.SACK_BONUS else 1.0)
-    return labor / n
+    return labor / manual
 end
 
 -- Debitul unui pas de drum: oamenii lui, sau partea ta din timp pe linia lui.
-local function walkRate(m: Model, s: State, role: string): number
+local function walkRate(m: Model, s: State, role: string, n: number?): number
     local crew = s.crews[role]
     if crew.count > 0 then
         return m.roleBase[role] * ChainMath.tierMult(crew.tier) * crew.count
     end
-    return playerShare(m, s, m.lineOfRole[role])
+    return playerShare(m, s, m.lineOfRole[role], n)
 end
 
 -- Veriga unei cladiri cu niveluri (gaterul [D49], forja [D56]): oamenii ei o tin pornita tot timpul; fara ei merge
--- doar cat stai tu langa ea, adica partea ta din timp. Cat linia e inchisa, nimic.
-local function processorLink(m: Model, s: State, line: string, role: string, link: string): number
-    if not lineOpen(m, s, line) then
+-- doar cat stai tu langa ea, adica partea ta din timp. Cat linia e inchisa, nimic. `n` si `isOpen`, daca apelantul
+-- le-a socotit deja.
+local function processorLink(
+    m: Model,
+    s: State,
+    line: string,
+    role: string,
+    link: string,
+    n: number?,
+    isOpen: boolean?
+): number
+    local open = if isOpen == nil then lineOpen(m, s, line) else isOpen
+    if not open then
         return 0
     end
     local spec = m.processors[link]
@@ -449,7 +610,7 @@ local function processorLink(m: Model, s: State, line: string, role: string, lin
     if crew.count > 0 then
         return cap * ChainMath.tierMult(crew.tier) * crew.count
     end
-    return cap / manualSteps(m, s, line)
+    return cap / (if n == nil then manualSteps(m, s, line) else n)
 end
 
 -- Veriga unui vanzator (taverna): cu oamenii lui, tot timpul; fara, singur, la o treime. E singurul pas pe care
@@ -587,36 +748,102 @@ end
 --   marginea ei. Fara linia fierului iese PRIMUL minim din cele sase -- regula de dinainte [D49].
 -- Trei sau mai multe linii la acelasi vanzator nu exista inca: regula "prima linie tinuta de dupa ea" e exacta
 -- pentru doua. Inainte de a treia, intai teste socotite de mana.
+--
+-- [D70] UNIREA. Castigul unei bucati in plus pe o linie ajunge la verigile ei prin `credit`: fiecare veriga cu debitul
+-- egal cu ce livreaza linia il primeste (ca maxim), iar la o unire tinuta de piese (`supply` == livrat) il primeste si
+-- fiecare piesa cu marginea egala, mai departe prin verigile ei. La egalitate il primesc toate cele egale, iar fiecare
+-- singura da zero (`solo` le tine doar pe cele care il aduc si singure): e cinstit [D46], iar ecranul numeste linia
+-- cealalta. Veriga unei linii: "" daca e inactiva; vanzatorul, daca el e marginea; veriga unirii, daca piesa e tinuta
+-- de unirea ei (cat unirea nu merge inca, plasa piesei care lipseste); altfel primul minim al ei, care la o unire tinuta
+-- de piese e al primei piese, in ordinea din `inputs`, care o tine. `heldBy` spune a cui e veriga, iar `netsLine` ale cui
+-- plase, cand venitul il tin plasele.
 local function pickBottlenecks(m: Model, f: Flow): string
     local gains: { [string]: number } = {}
     for _, link in m.links do
         gains[link] = 0
     end
+    local netsGain: { [string]: number } = {}
+    local solo: { [string]: boolean } = {}
+
+    -- verigile liniei, cu plasele in fata (o unire n-are plase: in locul lor stau piesele, socotite separat)
+    local function credit(line: string, x: number, g: number)
+        local lf = f.lines[line]
+        local spec = m.lines[line]
+        if spec.inputs == nil and lf.catch == x then
+            gains.nets = math.max(gains.nets, g)
+            netsGain[line] = math.max(netsGain[line] or 0, g)
+        end
+        for k, step in spec.steps do
+            if lf.values[k] == x then
+                gains[step.link] = math.max(gains[step.link], g)
+            end
+        end
+        local inputs = spec.inputs
+        if inputs ~= nil and lf.supply == x then
+            for _, part in inputs do
+                if f.lines[part].ownMax == x then
+                    credit(part, x, g)
+                end
+            end
+        end
+    end
+
+    -- ca `credit`, dar doar cand minimul e al unui singur lucru (o veriga, sau o piesa la unire): altfel nimeni
+    local function creditSolo(line: string, x: number)
+        local lf = f.lines[line]
+        local spec = m.lines[line]
+        local tied: { string } = {}
+        if spec.inputs == nil and lf.catch == x then
+            table.insert(tied, "nets")
+        end
+        for k, step in spec.steps do
+            if lf.values[k] == x then
+                table.insert(tied, step.link)
+            end
+        end
+        local parts: { string } = {}
+        local inputs = spec.inputs
+        if inputs ~= nil and lf.supply == x then
+            for _, part in inputs do
+                if f.lines[part].ownMax == x then
+                    table.insert(parts, part)
+                end
+            end
+        end
+        if #tied + #parts ~= 1 then
+            return
+        end
+        if #tied == 1 then
+            solo[tied[1]] = true
+        else
+            creditSolo(parts[1], x)
+        end
+    end
+
     for _, seller in m.sellerOrder do
         local order = m.sellers[seller].priority
         for i, line in order do
             local lf = f.lines[line]
             if lf.active and not lf.bySeller then
-                local gain = m.avg[m.lines[line].netKind]
+                local gain = lineAvg(m, line)
                 for j = i + 1, #order do
                     if f.lines[order[j]].bySeller then
-                        gain -= m.avg[m.lines[order[j]].netKind]
+                        gain -= lineAvg(m, order[j])
                         break
                     end
                 end
-                if lf.catch == lf.delivered then
-                    gains.nets = math.max(gains.nets, gain)
-                end
-                for k, step in m.lines[line].steps do
-                    if lf.values[k] == lf.delivered then
-                        gains[step.link] = math.max(gains[step.link], gain)
-                    end
+                credit(line, lf.delivered, gain)
+                if gain > 0 then
+                    creditSolo(line, lf.delivered)
                 end
             end
         end
         for _, line in order do
             if f.lines[line].bySeller then
-                gains[seller] = m.avg[m.lines[line].netKind]
+                gains[seller] = lineAvg(m, line)
+                if gains[seller] > 0 then
+                    solo[seller] = true
+                end
                 break
             end
         end
@@ -627,24 +854,74 @@ local function pickBottlenecks(m: Model, f: Flow): string
             best = link
         end
     end
-    for _, line in m.lineOrder do
+    f.gains = gains
+    f.solo = solo
+    f.netsLine = ""
+    if best == "nets" and gains.nets > 0 then
+        for _, line in m.lineOrder do
+            if (netsGain[line] or 0) == gains.nets then
+                f.netsLine = line
+                break
+            end
+        end
+    end
+
+    -- (veriga, linia ei): primul minim al liniei (la egalitate, cel dinainte, cu plasele in fata); la o unire tinuta de
+    -- piese, al primei piese care o tine
+    local function ownFirst(line: string): (string, string)
         local lf = f.lines[line]
+        local spec = m.lines[line]
+        local inputs = spec.inputs
+        if inputs ~= nil and lf.supply == lf.ownMax then
+            for _, part in inputs do
+                if f.lines[part].ownMax == lf.supply then
+                    return ownFirst(part)
+                end
+            end
+        end
+        if inputs == nil and lf.catch == lf.ownMax then
+            return "nets", line
+        end
+        for k, step in spec.steps do
+            if lf.values[k] == lf.ownMax then
+                return step.link, line
+            end
+        end
+        return "nets", line
+    end
+
+    -- in ordinea inversa: unirea isi stie veriga inaintea pieselor care o mostenesc
+    for i = #m.lineOrder, 1, -1 do
+        local line = m.lineOrder[i]
+        local lf = f.lines[line]
+        local spec = m.lines[line]
         if not lf.active then
-            lf.bottleneck = ""
+            lf.bottleneck, lf.heldBy = "", ""
         elseif lf.bySeller then
-            lf.bottleneck = m.lines[line].seller
-        else
-            -- primul minim din linie (la egalitate, cel dinainte), cu plasele in fata
-            local first = "nets"
-            if lf.catch ~= lf.ownMax then
-                for k, step in m.lines[line].steps do
-                    if lf.values[k] == lf.ownMax then
-                        first = step.link
+            lf.bottleneck, lf.heldBy = spec.seller :: string, line
+        elseif lf.byConsumer then
+            local consumerLine = spec.into :: string
+            local consumer = f.lines[consumerLine]
+            if consumer.active then
+                lf.bottleneck, lf.heldBy = consumer.bottleneck, consumer.heldBy
+            else
+                -- unirea nu merge inca: ii lipseste o piesa (turbina fara plasa de cablu). Piesa asta asteapta dupa plasa
+                -- celeilalte [D43]; daca nu lipseste nicio piesa, veriga ramane "".
+                local missing: string? = nil
+                for _, part in m.lines[consumerLine].inputs :: { string } do
+                    if not f.lines[part].isOpen then
+                        missing = part
                         break
                     end
                 end
+                if missing ~= nil then
+                    lf.bottleneck, lf.heldBy = "nets", missing
+                else
+                    lf.bottleneck, lf.heldBy = "", ""
+                end
             end
-            lf.bottleneck = first
+        else
+            lf.bottleneck, lf.heldBy = ownFirst(line)
         end
     end
     return best
@@ -658,42 +935,63 @@ end
 -- `idleOnly` = CE MERGE FARA TINE. Plasele se umplu singure, dar fiecare pas de dupa ele are nevoie de cineva: fara
 -- tine, un pas fara om sta, iar vanzatorul fara omul lui nu vinde. Deci venitul pasiv cere TOATE meseriile unei linii
 -- [D49] -- si de aceea pastila "AWAY" apare abia atunci: se CASTIGA.
+--
+-- [D70] TREI TRECERI: inainte, in ordinea liniilor (piesele stau inaintea unirii lor): ce intra pe fiecare linie si
+-- marginea ei. Apoi vanzatorii, neschimbati. Inapoi, in ordinea inversa: o piesa livreaza cat ia unirea ei, si e tinuta
+-- de ea cand ar putea aduce mai mult.
 function ChainMath.flowWith(m: Model, s: State, idleOnly: boolean?): Flow
     local lines: { [string]: LineFlow } = {}
     local totalCatch = 0.0
     for _, line in m.lineOrder do
         local spec = m.lines[line]
+        local isOpen = lineOpen(m, s, line)
+        local manual = manualSteps(m, s, line, isOpen) -- o data pe linie, nu la fiecare pas de mana
+        local inputs = spec.inputs
         local catch = 0.0
-        if lineOpen(m, s, line) then
+        if isOpen and inputs == nil then
             for _, n in s.nets do
                 if n.kind == spec.netKind then
                     catch += ChainMath.netRate(n)
                 end
             end
         end
+        local supply = catch
+        if inputs ~= nil then
+            supply = 0.0
+            if isOpen then
+                supply = math.huge
+                for _, part in inputs do
+                    supply = math.min(supply, lines[part].ownMax)
+                end
+            end
+        end
         local values: { number } = {}
-        local ownMax = catch
+        local ownMax = supply
         for k, step in spec.steps do
             local value: number
             if idleOnly and s.crews[step.role].count == 0 then
                 value = 0
             elseif step.kind == "walk" then
-                value = walkRate(m, s, step.role)
+                value = walkRate(m, s, step.role, manual)
             else
-                value = processorLink(m, s, line, step.role, step.link)
+                value = processorLink(m, s, line, step.role, step.link, manual, isOpen)
             end
             values[k] = value
             ownMax = math.min(ownMax, value)
         end
         lines[line] = {
             catch = catch,
+            supply = supply,
             values = values,
             ownMax = ownMax,
-            active = spec.openFlag == nil or catch > 0,
+            isOpen = isOpen,
+            active = isOpen and (spec.openFlag == nil or supply > 0),
             room = 0,
             delivered = 0,
             bySeller = false,
+            byConsumer = false,
             bottleneck = "",
+            heldBy = "",
         }
         totalCatch += catch
     end
@@ -713,9 +1011,22 @@ function ChainMath.flowWith(m: Model, s: State, idleOnly: boolean?): Flow
             room -= lf.delivered
         end
     end
+    if next(m.consumerOf) ~= nil then -- fara piese (Erele 1-3) nu e nimic de dus inapoi
+        for i = #m.lineOrder, 1, -1 do
+            local line = m.lineOrder[i]
+            local consumer = m.consumerOf[line]
+            if consumer ~= nil then
+                local lf = lines[line]
+                lf.delivered = lines[consumer].delivered
+                lf.byConsumer = lf.active and lf.delivered < lf.ownMax
+            end
+        end
+    end
     local delivered = 0.0
     for _, line in m.lineOrder do
-        delivered += lines[line].delivered
+        if m.consumerOf[line] == nil then
+            delivered += lines[line].delivered
+        end
     end
     local f: Flow = {
         lines = lines,
@@ -723,6 +1034,9 @@ function ChainMath.flowWith(m: Model, s: State, idleOnly: boolean?): Flow
         catch = totalCatch,
         delivered = delivered,
         bottleneck = "nets",
+        netsLine = "",
+        gains = {},
+        solo = {},
     }
     f.bottleneck = pickBottlenecks(m, f)
     return f
@@ -732,11 +1046,14 @@ function ChainMath.flow(s: State, idleOnly: boolean?): Flow
     return ChainMath.flowWith(GAME, s, idleOnly)
 end
 
--- Venitul unui lant: fiecare linie, in ORDINEA FIXA a modelului (aceeasi suma, bit cu bit, ca in simulator).
+-- Venitul unui lant: fiecare linie, in ORDINEA FIXA a modelului (aceeasi suma, bit cu bit, ca in simulator). [D70] O
+-- piesa nu se vinde: bucata ei intra in venit doar prin unire.
 function ChainMath.valueWith(m: Model, s: State, f: Flow): number
     local gross = 0.0
     for _, line in m.lineOrder do
-        gross += f.lines[line].delivered * m.avg[m.lines[line].netKind]
+        if m.consumerOf[line] == nil then
+            gross += f.lines[line].delivered * lineAvg(m, line)
+        end
     end
     return gross * s.priceMult * s.bells * (1 + 0.01 * s.indexFound) * (1 + 0.5 * s.rebirths)
 end
@@ -871,6 +1188,13 @@ function ChainMath.empty(): State
         wireworksLevel = 1,
         powerhouseLevel = 1,
         depotLevel = 1,
+        dam = false,
+        kiln = false,
+        switchyardLevel = 1,
+        cableworksLevel = 1,
+        relayLevel = 1,
+        kilnLevel = 1,
+        townLevel = 1,
         sackBig = false,
         crews = ChainMath.emptyCrews(),
         priceMult = 1.0,

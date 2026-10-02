@@ -481,3 +481,65 @@ iese 19,57B/s. Blocurile Erelor 1–3, formatate cu stylua, sunt identice cu cel
 nou intră în test la pasul g, odată cu `ChainMath`.
 
 **Următorul pas: f** (configurația: `StationConfig`, `TycoonConfig`, `Strings`, cu Era 4 `live = false`).
+
+## 13. Cum au ieșit pașii f și g (2026-10-02)
+
+**Împărțirea:** pasul f s-a tăiat în două. Partea de acum e ce-i trebuie motorului. Platformele Erei 4 (prețuri,
+`netRank`, `Needs.income`, textele lor) vin cu harta barajului (pașii j–k): fără loc pe hartă n-au unde sta, iar
+cititorii platformelor (cartonașul, ruinele, `padStatuses`) se schimbă tot atunci.
+
+**Era 4 stă în tabele, dar jocul n-o rulează încă.** `StationConfig.ENGINE_ERAS = 3`. Listele pe care le citesc serverul,
+meniurile și ghidajul (`ERA_ROLES`, `ROLES`, `ERA_LINES`, `LINE_ORDER`, `SELLER_ORDER` și tot ce se derivă din ele) sunt
+tot ale Erelor 1–3, la fel ca înainte. Variantele `_ALL` (`ERA_ROLES_ALL`, `ROLES_ALL`, `ERA_LINES_ALL`, `LINE_ORDER_ALL`,
+`SELLER_ORDER_ALL`) au și barajul. Pasul j pune `ENGINE_ERAS = 4`.
+
+**Pasul f, partea de acum:**
+- `StationConfig`:
+  - liniile barajului (`barrels`, `cable`, `grid`, `crystal`) cu cheile noi, iar `closeFlag = "dam"` pe cele șase vechi;
+  - cele patru clădiri și orașul;
+  - `ROLE_BASE` și `LEVEL_INC` ale Erei 4, `ERA4_MULT`, `TOOL_COST_MULT[4] = 2`;
+  - pragurile `KILN_INCOME` și `DAM_BELL_INCOME`, scrise întregi.
+- `TycoonConfig`: bunurile (`charge`, `barrel`, `cable_ore`, `cable` la 0; `grid`, `crystal`, `ingot` scrise ca produs, ca
+  în simulator), `CATCH` (fără găsiri), `PROCESSED`, `JOINED`.
+- `HandConfig`: pozele celor patru oameni de atelier ai barajului.
+- Simulatorul: `CONFIG_ERAS = (1, 2, 3, 4)`. `check_config_constants` compară și constantele Erei 4, iar regex-ul citește
+  exponentul.
+
+**Pasul g:** `ChainMath` e portul lui `chain` / `bottlenecks` din simulator:
+- `model` cu invariantele lui `derive_tables`, plus `consumerOf` și `poolLines`;
+- `lineOpen` cu `closeFlag` și uniri;
+- pașii de mână pe bazin, trei treceri;
+- `credit` / `creditSolo` / `ownFirst`, `heldBy`, `netsLine`, `gains`, `solo`;
+- venitul fără piese, cu `value`;
+- câmpurile Erei 4 în `empty()`.
+
+`ChainMath.GAME` e lanțul erelor din joc, `ChainMath.FULL` pe cel cu barajul.
+
+**Verificat:**
+- Toate tabelele de aur ale Erelor 1–3 trec neschimbate.
+- `GOLDEN_ERA4` (nouă stări, plus `GOLDEN_ERA4_FROM`, Era 3 încheiată) trece la bit pe `FULL`: debite, `supply`, livrat,
+  veriga și a cui e, piesele ținute de unire, capacitatea orașului, `netsLine`, câștigurile, `solo` și venitul. La
+  startul barajului, venitul fără tine e 0 (§8).
+- Suita „unirea ca date” e oglinda probei de unire din `check_lines.py`, cu aceleași cifre socotite de mână:
+  - înainte de baraj;
+  - startul (bazinul de 6);
+  - bazinul fără niciun om;
+  - o piesă închisă;
+  - egalitatea pe plase și pe oameni (`solo`), plus `idleOnly`;
+  - modelul care pică pe o unire care nu se leagă.
+- `tierCost(1, "damCollector") == 25 × ERA4_MULT × 2`.
+- **Comparația veche–nouă pe 80.000 de stări nu s-a rulat.** Paritatea Erelor 1–3 o țin tabelele de aur, iar regulile
+  unirii, cele nouă stări ale barajului și proba de unire.
+- `luau-analyze` nu rezolvă `require(script and … or "…")`: modulele comune ajung `any`, deci tipurile cititorilor nu
+  sunt verificate de el.
+
+**Cititorii unui `seller` / `netKind` care acum poate fi nil:**
+- `StationPanel.chainRowsFor` și `Overlay.lineOpenedText` sunt apărați de acum;
+- `HeldBack` (:133/:135) intră la pasul h;
+- `HandRoutes.netKindOf` întoarce deja `string?`.
+
+Înainte de pasul j se mai caută o dată `.seller` / `.netKind` în tot `src/`.
+
+**Următorul pas: h** (`HeldBack` pe grupul unirii; textele „the Cable line is slower” / „just as slow as the Barrel
+line”, „cast the Cable Net first”). Apoi i (`FlowConfig`, `FlowMath.assemble`, `HandRoutes`), j (serverul, `DamService`,
+profilul v19, `ENGINE_ERAS = 4`, platformele Erei 4 cu harta), k (clientul), l (sonda).

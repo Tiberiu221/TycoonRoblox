@@ -1587,6 +1587,748 @@ local GOLDEN_ERA3 = {
     },
 }
 
+-- [D70] Starile barajului (Era 4), pe liniile lui: butoaiele si cablul (piese), curentul (unirea lor), cristalul, plus
+-- lemnul ca linie veche inchisa. Le tipareste `python3 scripts/economy/golden_chain.py --era4`; pornesc din Era 3
+-- incheiata (GOLDEN_ERA4_FROM) si trec prin barajul simulatorului (`dam_transform`). Se socotesc pe ChainMath.FULL.
+local GOLDEN_ERA4_FROM = {
+    nets = { 32, 30, 28, 26, 27, 40, 38, 36, 34, 30, 40, 38, 36, 34, 30 },
+    crews = {
+        collector = { 2, 5 },
+        porter = { 2, 5 },
+        sawyer = { 2, 5 },
+        hauler = { 2, 5 },
+        trader = { 2, 5 },
+        scrapCollector = { 2, 5 },
+        scrapPorter = { 2, 5 },
+        smelter = { 2, 3 },
+        ironHauler = { 2, 4 },
+        millCollector = { 2, 5 },
+        millPorter = { 2, 5 },
+        founder = { 2, 5 },
+        partsHauler = { 2, 5 },
+        merchant = { 2, 5 },
+        oreCollector = { 2, 5 },
+        orePorter = { 2, 5 },
+        coppersmith = { 2, 5 },
+        copperHauler = { 2, 5 },
+        worksCollector = { 2, 5 },
+        worksPorter = { 2, 5 },
+        wiredrawer = { 2, 5 },
+        coilHauler = { 2, 5 },
+        clerk = { 2, 5 },
+        batteryCollector = { 2, 5 },
+        batteryPorter = { 2, 5 },
+        electrician = { 2, 5 },
+        powerHauler = { 2, 5 },
+    },
+}
+local GOLDEN_ERA4 = {
+    {
+        name = "startul barajului: veteranii pe butoaie, cablul de mana",
+        damNets = {
+            { kind = "dam", rank = 5, lane = 3, level = 1 },
+            { kind = "cable_ore", rank = 1, lane = 1, level = 1 },
+        },
+        crews = {
+            damCollector = { 1, 1 },
+            damPorter = { 1, 1 },
+            switchman = { 1, 1 },
+            barrelHauler = { 1, 1 },
+            dispatcher = { 1, 1 },
+        },
+        buildings = { switchyard = 1, cableworks = 1, relay = 1, kiln = 1, town = 1 },
+        kiln = false,
+        crystalShed = false,
+        lines = {
+            wood = {
+                catch = 0.0,
+                supply = 0.0,
+                values = { 40.0, 60.0, 0.0, 90.0 },
+                delivered = 0.0,
+                bottleneck = "",
+                heldBy = "",
+                byConsumer = false,
+            },
+            barrels = {
+                catch = 1.4587670625,
+                supply = 1.4587670625,
+                values = { 4.7, 6.3, 2.4, 7.3 },
+                delivered = 0.33,
+                bottleneck = "nets",
+                heldBy = "cable",
+                byConsumer = true,
+            },
+            cable = {
+                catch = 0.33,
+                supply = 0.33,
+                values = { 0.9, 0.9, 0.3333333333333333, 0.9 },
+                delivered = 0.33,
+                bottleneck = "nets",
+                heldBy = "cable",
+                byConsumer = false,
+            },
+            grid = {
+                catch = 0.0,
+                supply = 0.33,
+                values = { 0.4666666666666666, 0.9 },
+                delivered = 0.33,
+                bottleneck = "nets",
+                heldBy = "cable",
+                byConsumer = false,
+            },
+            crystal = {
+                catch = 0.0,
+                supply = 0.0,
+                values = { 0.0, 0.0, 0.0, 0.0 },
+                delivered = 0.0,
+                bottleneck = "",
+                heldBy = "",
+                byConsumer = false,
+            },
+        },
+        capacity = { town = 3.0 },
+        bottleneck = "nets",
+        netsLine = "cable",
+        gains = { nets = 44550000000.0 },
+        solo = { "nets" },
+        income = 14701500000.0,
+    },
+    {
+        name = "dupa cei sase si a doua plasa de cablu: cablul si unirea au oameni, pe treapta 1",
+        damNets = {
+            { kind = "dam", rank = 5, lane = 3, level = 1 },
+            { kind = "cable_ore", rank = 1, lane = 1, level = 2 },
+            { kind = "cable_ore", rank = 2, lane = 1, level = 1 },
+        },
+        crews = {
+            damCollector = { 1, 1 },
+            damPorter = { 1, 1 },
+            switchman = { 1, 1 },
+            barrelHauler = { 1, 1 },
+            dispatcher = { 1, 1 },
+            cableCollector = { 1, 1 },
+            cablePorter = { 1, 1 },
+            cablemaker = { 1, 1 },
+            cableHauler = { 1, 1 },
+            relayKeeper = { 1, 1 },
+            pylonRunner = { 1, 1 },
+        },
+        buildings = { switchyard = 1, cableworks = 1, relay = 1, kiln = 1, town = 1 },
+        kiln = false,
+        crystalShed = false,
+        lines = {
+            wood = {
+                catch = 0.0,
+                supply = 0.0,
+                values = { 40.0, 60.0, 0.0, 90.0 },
+                delivered = 0.0,
+                bottleneck = "",
+                heldBy = "",
+                byConsumer = false,
+            },
+            barrels = {
+                catch = 1.4587670625,
+                supply = 1.4587670625,
+                values = { 4.7, 6.3, 2.4, 7.3 },
+                delivered = 0.8184,
+                bottleneck = "nets",
+                heldBy = "cable",
+                byConsumer = true,
+            },
+            cable = {
+                catch = 0.8184,
+                supply = 0.8184,
+                values = { 4.0, 5.4, 2.0, 6.7 },
+                delivered = 0.8184,
+                bottleneck = "nets",
+                heldBy = "cable",
+                byConsumer = false,
+            },
+            grid = {
+                catch = 0.0,
+                supply = 0.8184,
+                values = { 2.8, 6.5 },
+                delivered = 0.8184,
+                bottleneck = "nets",
+                heldBy = "cable",
+                byConsumer = false,
+            },
+            crystal = {
+                catch = 0.0,
+                supply = 0.0,
+                values = { 0.0, 0.0, 0.0, 0.0 },
+                delivered = 0.0,
+                bottleneck = "",
+                heldBy = "",
+                byConsumer = false,
+            },
+        },
+        capacity = { town = 3.0 },
+        bottleneck = "nets",
+        netsLine = "cable",
+        gains = { nets = 44550000000.0 },
+        solo = { "nets" },
+        income = 36459720000.0,
+    },
+    {
+        name = "butoaiele tin unirea: cablul cu oameni pe treapta 5, butoaiele pe 1",
+        damNets = {
+            { kind = "dam", rank = 5, lane = 3, level = 30 },
+            { kind = "cable_ore", rank = 1, lane = 1, level = 30 },
+            { kind = "cable_ore", rank = 2, lane = 1, level = 25 },
+            { kind = "cable_ore", rank = 3, lane = 2, level = 20 },
+        },
+        crews = {
+            damCollector = { 1, 1 },
+            damPorter = { 1, 1 },
+            switchman = { 1, 1 },
+            barrelHauler = { 1, 1 },
+            dispatcher = { 1, 1 },
+            cableCollector = { 2, 5 },
+            cablePorter = { 2, 5 },
+            cablemaker = { 2, 5 },
+            cableHauler = { 2, 5 },
+            relayKeeper = { 2, 5 },
+            pylonRunner = { 2, 5 },
+        },
+        buildings = { switchyard = 1, cableworks = 25, relay = 25, kiln = 1, town = 25 },
+        kiln = false,
+        crystalShed = false,
+        lines = {
+            wood = {
+                catch = 0.0,
+                supply = 0.0,
+                values = { 40.0, 60.0, 0.0, 90.0 },
+                delivered = 0.0,
+                bottleneck = "",
+                heldBy = "",
+                byConsumer = false,
+            },
+            barrels = {
+                catch = 10.9115776275,
+                supply = 10.9115776275,
+                values = { 4.7, 6.3, 2.4, 7.3 },
+                delivered = 2.4,
+                bottleneck = "switchyard",
+                heldBy = "barrels",
+                byConsumer = false,
+            },
+            cable = {
+                catch = 7.939090500000001,
+                supply = 7.939090500000001,
+                values = { 40.0, 54.0, 195.2, 67.0 },
+                delivered = 2.4,
+                bottleneck = "switchyard",
+                heldBy = "barrels",
+                byConsumer = true,
+            },
+            grid = {
+                catch = 0.0,
+                supply = 2.4,
+                values = { 273.28, 65.0 },
+                delivered = 2.4,
+                bottleneck = "switchyard",
+                heldBy = "barrels",
+                byConsumer = false,
+            },
+            crystal = {
+                catch = 0.0,
+                supply = 0.0,
+                values = { 0.0, 0.0, 0.0, 0.0 },
+                delivered = 0.0,
+                bottleneck = "",
+                heldBy = "",
+                byConsumer = false,
+            },
+        },
+        capacity = { town = 29.28 },
+        bottleneck = "switchyard",
+        netsLine = "",
+        gains = { switchyard = 44550000000.0 },
+        solo = { "switchyard" },
+        income = 106920000000.0,
+    },
+    {
+        name = "cablul tine unirea: butoaiele asteapta (tinute de unire)",
+        damNets = {
+            { kind = "dam", rank = 5, lane = 3, level = 30 },
+            { kind = "cable_ore", rank = 1, lane = 1, level = 30 },
+            { kind = "cable_ore", rank = 2, lane = 1, level = 25 },
+            { kind = "cable_ore", rank = 3, lane = 2, level = 20 },
+        },
+        crews = {
+            damCollector = { 2, 5 },
+            damPorter = { 2, 5 },
+            switchman = { 2, 5 },
+            barrelHauler = { 2, 5 },
+            dispatcher = { 2, 5 },
+            cableCollector = { 1, 1 },
+            cablePorter = { 1, 1 },
+            cablemaker = { 1, 1 },
+            cableHauler = { 1, 1 },
+            relayKeeper = { 1, 1 },
+            pylonRunner = { 1, 1 },
+        },
+        buildings = { switchyard = 25, cableworks = 1, relay = 25, kiln = 1, town = 25 },
+        kiln = false,
+        crystalShed = false,
+        lines = {
+            wood = {
+                catch = 0.0,
+                supply = 0.0,
+                values = { 40.0, 60.0, 0.0, 90.0 },
+                delivered = 0.0,
+                bottleneck = "",
+                heldBy = "",
+                byConsumer = false,
+            },
+            barrels = {
+                catch = 10.9115776275,
+                supply = 10.9115776275,
+                values = { 47.0, 63.0, 234.24, 73.0 },
+                delivered = 2.0,
+                bottleneck = "cableworks",
+                heldBy = "cable",
+                byConsumer = true,
+            },
+            cable = {
+                catch = 7.939090500000001,
+                supply = 7.939090500000001,
+                values = { 4.0, 5.4, 2.0, 6.7 },
+                delivered = 2.0,
+                bottleneck = "cableworks",
+                heldBy = "cable",
+                byConsumer = false,
+            },
+            grid = {
+                catch = 0.0,
+                supply = 2.0,
+                values = { 27.328, 6.5 },
+                delivered = 2.0,
+                bottleneck = "cableworks",
+                heldBy = "cable",
+                byConsumer = false,
+            },
+            crystal = {
+                catch = 0.0,
+                supply = 0.0,
+                values = { 0.0, 0.0, 0.0, 0.0 },
+                delivered = 0.0,
+                bottleneck = "",
+                heldBy = "",
+                byConsumer = false,
+            },
+        },
+        capacity = { town = 292.8 },
+        bottleneck = "cableworks",
+        netsLine = "",
+        gains = { cableworks = 44550000000.0 },
+        solo = { "cableworks" },
+        income = 89100000000.0,
+    },
+    {
+        name = "egalitate intre cladiri: Switchyard si Cable Works duc la fel, fiecare singura nu aduce nimic",
+        damNets = {
+            { kind = "dam", rank = 5, lane = 3, level = 50 },
+            { kind = "cable_ore", rank = 1, lane = 1, level = 50 },
+            { kind = "cable_ore", rank = 2, lane = 1, level = 50 },
+            { kind = "cable_ore", rank = 3, lane = 2, level = 50 },
+        },
+        crews = {
+            damCollector = { 2, 5 },
+            damPorter = { 2, 5 },
+            switchman = { 1, 5 },
+            barrelHauler = { 2, 5 },
+            dispatcher = { 2, 5 },
+            cableCollector = { 2, 5 },
+            cablePorter = { 2, 5 },
+            cablemaker = { 2, 3 },
+            cableHauler = { 2, 5 },
+            relayKeeper = { 2, 5 },
+            pylonRunner = { 2, 5 },
+        },
+        buildings = { switchyard = 1, cableworks = 1, relay = 25, kiln = 1, town = 25 },
+        kiln = false,
+        crystalShed = false,
+        lines = {
+            wood = {
+                catch = 0.0,
+                supply = 0.0,
+                values = { 40.0, 60.0, 0.0, 90.0 },
+                delivered = 0.0,
+                bottleneck = "",
+                heldBy = "",
+                byConsumer = false,
+            },
+            barrels = {
+                catch = 28.825237154999996,
+                supply = 28.825237154999996,
+                values = { 47.0, 63.0, 12.0, 73.0 },
+                delivered = 12.0,
+                bottleneck = "switchyard",
+                heldBy = "barrels",
+                byConsumer = false,
+            },
+            cable = {
+                catch = 29.685941999999997,
+                supply = 29.685941999999997,
+                values = { 40.0, 54.0, 12.0, 67.0 },
+                delivered = 12.0,
+                bottleneck = "cableworks",
+                heldBy = "cable",
+                byConsumer = false,
+            },
+            grid = {
+                catch = 0.0,
+                supply = 12.0,
+                values = { 273.28, 65.0 },
+                delivered = 12.0,
+                bottleneck = "switchyard",
+                heldBy = "barrels",
+                byConsumer = false,
+            },
+            crystal = {
+                catch = 0.0,
+                supply = 0.0,
+                values = { 0.0, 0.0, 0.0, 0.0 },
+                delivered = 0.0,
+                bottleneck = "",
+                heldBy = "",
+                byConsumer = false,
+            },
+        },
+        capacity = { town = 292.8 },
+        bottleneck = "switchyard",
+        netsLine = "",
+        gains = { switchyard = 44550000000.0, cableworks = 44550000000.0 },
+        solo = {},
+        income = 534600000000.0,
+    },
+    {
+        name = "Kiln fara Crystal Net: cristalul nu exista",
+        damNets = {
+            { kind = "dam", rank = 5, lane = 3, level = 30 },
+            { kind = "cable_ore", rank = 1, lane = 1, level = 30 },
+            { kind = "cable_ore", rank = 2, lane = 1, level = 25 },
+            { kind = "cable_ore", rank = 3, lane = 2, level = 20 },
+        },
+        crews = {
+            damCollector = { 2, 5 },
+            damPorter = { 2, 5 },
+            switchman = { 2, 5 },
+            barrelHauler = { 2, 5 },
+            dispatcher = { 2, 5 },
+            cableCollector = { 2, 5 },
+            cablePorter = { 2, 5 },
+            cablemaker = { 2, 5 },
+            cableHauler = { 2, 5 },
+            relayKeeper = { 2, 5 },
+            pylonRunner = { 2, 5 },
+        },
+        buildings = { switchyard = 25, cableworks = 25, relay = 25, kiln = 1, town = 25 },
+        kiln = true,
+        crystalShed = false,
+        lines = {
+            wood = {
+                catch = 0.0,
+                supply = 0.0,
+                values = { 40.0, 60.0, 0.0, 90.0 },
+                delivered = 0.0,
+                bottleneck = "",
+                heldBy = "",
+                byConsumer = false,
+            },
+            barrels = {
+                catch = 10.9115776275,
+                supply = 10.9115776275,
+                values = { 47.0, 63.0, 234.24, 73.0 },
+                delivered = 7.939090500000001,
+                bottleneck = "nets",
+                heldBy = "cable",
+                byConsumer = true,
+            },
+            cable = {
+                catch = 7.939090500000001,
+                supply = 7.939090500000001,
+                values = { 40.0, 54.0, 195.2, 67.0 },
+                delivered = 7.939090500000001,
+                bottleneck = "nets",
+                heldBy = "cable",
+                byConsumer = false,
+            },
+            grid = {
+                catch = 0.0,
+                supply = 7.939090500000001,
+                values = { 273.28, 65.0 },
+                delivered = 7.939090500000001,
+                bottleneck = "nets",
+                heldBy = "cable",
+                byConsumer = false,
+            },
+            crystal = {
+                catch = 0.0,
+                supply = 0.0,
+                values = { 0.0, 0.0, 0.0, 0.0 },
+                delivered = 0.0,
+                bottleneck = "",
+                heldBy = "",
+                byConsumer = false,
+            },
+        },
+        capacity = { town = 292.8 },
+        bottleneck = "nets",
+        netsLine = "cable",
+        gains = { nets = 44550000000.0 },
+        solo = { "nets" },
+        income = 353686481775.00006,
+    },
+    {
+        name = "turul de mana al cristalului: patru pasi, timpul tau intreg pe ei",
+        damNets = {
+            { kind = "dam", rank = 5, lane = 3, level = 30 },
+            { kind = "cable_ore", rank = 1, lane = 1, level = 30 },
+            { kind = "cable_ore", rank = 2, lane = 1, level = 25 },
+            { kind = "cable_ore", rank = 3, lane = 2, level = 20 },
+            { kind = "crystal", rank = 5, lane = 3, level = 20 },
+        },
+        crews = {
+            damCollector = { 2, 5 },
+            damPorter = { 2, 5 },
+            switchman = { 2, 5 },
+            barrelHauler = { 2, 5 },
+            dispatcher = { 2, 5 },
+            cableCollector = { 2, 5 },
+            cablePorter = { 2, 5 },
+            cablemaker = { 2, 5 },
+            cableHauler = { 2, 5 },
+            relayKeeper = { 2, 5 },
+            pylonRunner = { 2, 5 },
+        },
+        buildings = { switchyard = 25, cableworks = 25, relay = 25, kiln = 1, town = 25 },
+        kiln = true,
+        crystalShed = true,
+        lines = {
+            wood = {
+                catch = 0.0,
+                supply = 0.0,
+                values = { 40.0, 60.0, 0.0, 90.0 },
+                delivered = 0.0,
+                bottleneck = "",
+                heldBy = "",
+                byConsumer = false,
+            },
+            barrels = {
+                catch = 10.9115776275,
+                supply = 10.9115776275,
+                values = { 47.0, 63.0, 234.24, 73.0 },
+                delivered = 7.939090500000001,
+                bottleneck = "nets",
+                heldBy = "cable",
+                byConsumer = true,
+            },
+            cable = {
+                catch = 7.939090500000001,
+                supply = 7.939090500000001,
+                values = { 40.0, 54.0, 195.2, 67.0 },
+                delivered = 7.939090500000001,
+                bottleneck = "nets",
+                heldBy = "cable",
+                byConsumer = false,
+            },
+            grid = {
+                catch = 0.0,
+                supply = 7.939090500000001,
+                values = { 273.28, 65.0 },
+                delivered = 7.939090500000001,
+                bottleneck = "nets",
+                heldBy = "cable",
+                byConsumer = false,
+            },
+            crystal = {
+                catch = 4.58052857625,
+                supply = 4.58052857625,
+                values = { 1.35, 1.35, 0.3, 1.35 },
+                delivered = 0.3,
+                bottleneck = "kiln",
+                heldBy = "crystal",
+                byConsumer = false,
+            },
+        },
+        capacity = { town = 292.8 },
+        bottleneck = "kiln",
+        netsLine = "",
+        gains = { nets = 44550000000.0, kiln = 94500000000.0 },
+        solo = { "nets", "kiln" },
+        income = 382036481775.00006,
+    },
+    {
+        name = "orasul plin: cristalul intai, curentul din ce ramane",
+        damNets = {
+            { kind = "dam", rank = 5, lane = 3, level = 30 },
+            { kind = "cable_ore", rank = 1, lane = 1, level = 30 },
+            { kind = "cable_ore", rank = 2, lane = 1, level = 25 },
+            { kind = "cable_ore", rank = 3, lane = 2, level = 20 },
+            { kind = "crystal", rank = 5, lane = 3, level = 20 },
+        },
+        crews = {
+            damCollector = { 2, 5 },
+            damPorter = { 2, 5 },
+            switchman = { 2, 5 },
+            barrelHauler = { 2, 5 },
+            dispatcher = { 1, 3 },
+            cableCollector = { 2, 5 },
+            cablePorter = { 2, 5 },
+            cablemaker = { 2, 5 },
+            cableHauler = { 2, 5 },
+            relayKeeper = { 2, 5 },
+            pylonRunner = { 2, 5 },
+            crystalCollector = { 2, 5 },
+            crystalPorter = { 2, 5 },
+            crystalsmith = { 2, 5 },
+            ingotHauler = { 2, 5 },
+        },
+        buildings = { switchyard = 40, cableworks = 40, relay = 40, kiln = 40, town = 1 },
+        kiln = true,
+        crystalShed = true,
+        lines = {
+            wood = {
+                catch = 0.0,
+                supply = 0.0,
+                values = { 40.0, 60.0, 0.0, 90.0 },
+                delivered = 0.0,
+                bottleneck = "",
+                heldBy = "",
+                byConsumer = false,
+            },
+            barrels = {
+                catch = 10.9115776275,
+                supply = 10.9115776275,
+                values = { 47.0, 63.0, 320.64, 73.0 },
+                delivered = 4.41947142375,
+                bottleneck = "town",
+                heldBy = "grid",
+                byConsumer = true,
+            },
+            cable = {
+                catch = 7.939090500000001,
+                supply = 7.939090500000001,
+                values = { 40.0, 54.0, 267.2, 67.0 },
+                delivered = 4.41947142375,
+                bottleneck = "town",
+                heldBy = "grid",
+                byConsumer = true,
+            },
+            grid = {
+                catch = 0.0,
+                supply = 7.939090500000001,
+                values = { 374.0799999999999, 65.0 },
+                delivered = 4.41947142375,
+                bottleneck = "town",
+                heldBy = "grid",
+                byConsumer = false,
+            },
+            crystal = {
+                catch = 4.58052857625,
+                supply = 4.58052857625,
+                values = { 20.0, 27.0, 160.32, 65.0 },
+                delivered = 4.58052857625,
+                bottleneck = "nets",
+                heldBy = "crystal",
+                byConsumer = false,
+            },
+        },
+        capacity = { town = 9.0 },
+        bottleneck = "nets",
+        netsLine = "crystal",
+        gains = { nets = 49950000000.0, town = 44550000000.0 },
+        solo = { "nets", "town" },
+        income = 629747402383.6875,
+    },
+    {
+        name = "toti oamenii la maxim, prag 25 pe tot barajul",
+        damNets = {
+            { kind = "dam", rank = 5, lane = 3, level = 30 },
+            { kind = "cable_ore", rank = 1, lane = 1, level = 30 },
+            { kind = "cable_ore", rank = 2, lane = 1, level = 25 },
+            { kind = "cable_ore", rank = 3, lane = 2, level = 20 },
+            { kind = "crystal", rank = 5, lane = 3, level = 20 },
+        },
+        crews = {
+            damCollector = { 2, 5 },
+            damPorter = { 2, 5 },
+            switchman = { 2, 5 },
+            barrelHauler = { 2, 5 },
+            dispatcher = { 2, 5 },
+            cableCollector = { 2, 5 },
+            cablePorter = { 2, 5 },
+            cablemaker = { 2, 5 },
+            cableHauler = { 2, 5 },
+            relayKeeper = { 2, 5 },
+            pylonRunner = { 2, 5 },
+            crystalCollector = { 2, 5 },
+            crystalPorter = { 2, 5 },
+            crystalsmith = { 2, 5 },
+            ingotHauler = { 2, 5 },
+        },
+        buildings = { switchyard = 25, cableworks = 25, relay = 25, kiln = 25, town = 25 },
+        kiln = true,
+        crystalShed = true,
+        lines = {
+            wood = {
+                catch = 0.0,
+                supply = 0.0,
+                values = { 40.0, 60.0, 0.0, 90.0 },
+                delivered = 0.0,
+                bottleneck = "",
+                heldBy = "",
+                byConsumer = false,
+            },
+            barrels = {
+                catch = 10.9115776275,
+                supply = 10.9115776275,
+                values = { 47.0, 63.0, 234.24, 73.0 },
+                delivered = 7.939090500000001,
+                bottleneck = "nets",
+                heldBy = "cable",
+                byConsumer = true,
+            },
+            cable = {
+                catch = 7.939090500000001,
+                supply = 7.939090500000001,
+                values = { 40.0, 54.0, 195.2, 67.0 },
+                delivered = 7.939090500000001,
+                bottleneck = "nets",
+                heldBy = "cable",
+                byConsumer = false,
+            },
+            grid = {
+                catch = 0.0,
+                supply = 7.939090500000001,
+                values = { 273.28, 65.0 },
+                delivered = 7.939090500000001,
+                bottleneck = "nets",
+                heldBy = "cable",
+                byConsumer = false,
+            },
+            crystal = {
+                catch = 4.58052857625,
+                supply = 4.58052857625,
+                values = { 20.0, 27.0, 117.12, 65.0 },
+                delivered = 4.58052857625,
+                bottleneck = "nets",
+                heldBy = "crystal",
+                byConsumer = false,
+            },
+        },
+        capacity = { town = 292.8 },
+        bottleneck = "nets",
+        netsLine = "crystal",
+        gains = { nets = 94500000000.0 },
+        solo = { "nets" },
+        income = 786546432230.625,
+    },
+}
+
 -- `forge` = {Forge cumparata, nivelul forjei} [D56]; fara el, fara Forge (lantul lemnului de dinainte)
 local function state(
     levels: { number },
@@ -2251,6 +2993,453 @@ return function()
                 check.equal(ChainMath.tierCost(1, "millCollector"), 25 * StationConfig.ERA2_MULT)
             end
         )
+    end)
+
+    test.suite("ChainMath - paritate cu simulatorul, Era 4, barajul [D70]", function()
+        -- Era 3 incheiata, apoi barajul (sim_tycoon.dam_transform): liniile vechi se inchid, veteranii trec pe butoaie,
+        -- plasele barajului au rang (unlock_net_ranked). Se socoteste pe ChainMath.FULL: jocul porneste Era 4 abia la
+        -- pasul j al planului motorului.
+        local function era4State(g: any): ChainMath.State
+            local from = GOLDEN_ERA4_FROM
+            local s = state(from.nets, 30, 30, true, from.crews :: any, { true, 20 })
+            for _, role in StationConfig.ROLES_ALL do
+                if s.crews[role] == nil then
+                    s.crews[role] = { count = 0, tier = 1 }
+                end
+            end
+            s.wheel, s.furnace = true, true
+            s.foundryLevel, s.furnaceLevel, s.marketLevel = 40, 40, 40
+            s.steam, s.powerhouse = true, true
+            s.wireworksLevel, s.powerhouseLevel, s.depotLevel = 40, 40, 40
+            s.dam, s.kiln = true, g.kiln
+            for _, n in g.damNets do
+                table.insert(s.nets, {
+                    base = StationConfig.NET_BASE_RATE
+                        * StationConfig.NET_BASE_GROWTH ^ (n.rank - 1),
+                    baseLane = n.lane,
+                    level = n.level,
+                    kind = n.kind,
+                })
+            end
+            for role, spec in g.crews :: CrewSpec do
+                s.crews[role] = { count = spec[1], tier = spec[2] }
+            end
+            local fields: any = s
+            for name, level in g.buildings :: { [string]: number } do
+                local spec = StationConfig.PROCESSORS[name] or StationConfig.SELLERS[name]
+                fields[spec.levelField] = level
+            end
+            return s
+        end
+
+        for _, g in GOLDEN_ERA4 do
+            test.case(g.name, function()
+                local s = era4State(g)
+                local f = ChainMath.flowWith(ChainMath.FULL, s)
+                for line, want in g.lines :: { [string]: any } do
+                    local got = f.lines[line]
+                    check.equal(got.catch, want.catch)
+                    check.equal(got.supply, want.supply)
+                    check.equal(got.delivered, want.delivered)
+                    check.equal(got.bottleneck, want.bottleneck)
+                    check.equal(got.heldBy, want.heldBy)
+                    check.equal(got.byConsumer, want.byConsumer)
+                    check.equal(#got.values, #want.values)
+                    for k, value in want.values do
+                        check.equal(got.values[k], value)
+                    end
+                end
+                for seller, capacity in g.capacity :: { [string]: number } do
+                    check.equal(f.capacity[seller], capacity)
+                end
+                check.equal(f.bottleneck, g.bottleneck)
+                check.equal(f.netsLine, g.netsLine)
+                for link, gain in f.gains do
+                    check.equal(gain, (g.gains :: any)[link] or 0)
+                end
+                local solo: { [string]: boolean } = {}
+                for _, link in g.solo :: { string } do
+                    solo[link] = true
+                    check.is_true(f.solo[link] == true)
+                end
+                for link in f.solo do
+                    check.is_true(solo[link] == true)
+                end
+                check.equal(ChainMath.valueWith(ChainMath.FULL, s, f), g.income)
+            end)
+        end
+
+        test.case(
+            "la startul barajului, fara tine nu vine nimic pana la cei sase [D70, AWAY]",
+            function()
+                local s = era4State(GOLDEN_ERA4[1])
+                local idle = ChainMath.flowWith(ChainMath.FULL, s, true)
+                check.equal(ChainMath.valueWith(ChainMath.FULL, s, idle), 0)
+            end
+        )
+
+        test.case("jocul ruleaza inca Erele 1-3; FULL are si barajul", function()
+            check.equal(StationConfig.ENGINE_ERAS, 3)
+            check.equal(table.find(ChainMath.GAME.lineOrder, "barrels"), nil)
+            check.not_nil(table.find(ChainMath.FULL.lineOrder, "grid"))
+            check.equal(ChainMath.FULL.consumerOf.barrels, "grid")
+            check.equal(ChainMath.FULL.consumerOf.cable, "grid")
+            check.equal(#ChainMath.FULL.poolLines.grid, 4)
+            check.equal(#ChainMath.GAME.poolLines.wood, 1)
+        end)
+    end)
+
+    -- [D70] OGLINDA PROBEI DE UNIRE din scripts/economy/check_lines.py (`join_problems`): doua piese (bateriile si cablul)
+    -- intr-o unire (curentul), toate in acelasi bazin, cu aceleasi cifre rotunde socotite de mana. Fixeaza regulile unirii
+    -- si pe stari pe care tabelele de aur ale barajului nu le ating.
+    test.suite("ChainMath - unirea ca date [D70]", function()
+        local GAME = ChainMath.GAME
+        local BAT = { "probeBatCollector", "probeBatPorter", "probeSwitchman", "probeBatHauler" }
+        local WIRE =
+            { "probeWireCollector", "probeWirePorter", "probeWiremaker", "probeWireHauler" }
+        local GRID = { "probeRelayKeeper", "probeRunner" }
+
+        local function joinLines(): { [string]: ChainMath.Line }
+            local lines: { [string]: ChainMath.Line } = {}
+            for _, line in { "wood", "iron" } do
+                local spec: any = table.clone(GAME.lines[line])
+                spec.closeFlag = "probeDam"
+                lines[line] = spec
+            end
+            lines.probeBat = {
+                netKind = "probe_bat",
+                openFlag = "probeDam",
+                into = "probeGrid",
+                pool = "probeDam",
+                steps = {
+                    { role = "probeBatCollector", link = "probeBatCollect", kind = "walk" },
+                    { role = "probeBatPorter", link = "probeBatPort", kind = "walk" },
+                    { role = "probeSwitchman", link = "probeYard", kind = "processor" },
+                    { role = "probeBatHauler", link = "probeBatHaul", kind = "walk" },
+                },
+            }
+            lines.probeWire = {
+                netKind = "probe_wire",
+                openFlag = "probeDam",
+                into = "probeGrid",
+                pool = "probeDam",
+                steps = {
+                    { role = "probeWireCollector", link = "probeWireCollect", kind = "walk" },
+                    { role = "probeWirePorter", link = "probeWirePort", kind = "walk" },
+                    { role = "probeWiremaker", link = "probeWorks", kind = "processor" },
+                    { role = "probeWireHauler", link = "probeWireHaul", kind = "walk" },
+                },
+            }
+            lines.probeGrid = {
+                inputs = { "probeBat", "probeWire" },
+                openFlag = "probeDam",
+                seller = "booth",
+                value = "probe_grid",
+                pool = "probeDam",
+                steps = {
+                    { role = "probeRelayKeeper", link = "probeRelay", kind = "processor" },
+                    { role = "probeRunner", link = "probeRun", kind = "walk" },
+                },
+            }
+            return lines
+        end
+
+        local function joinModel(
+            lines: { [string]: ChainMath.Line },
+            order: { string },
+            sellerOrder: { string }?
+        ): ChainMath.Model
+            local processors: { [string]: ChainMath.Processor } = table.clone(GAME.processors)
+            processors.probeYard = { base = 2.4, levelField = "probeYardLevel" }
+            processors.probeWorks = { base = 2.0, levelField = "probeWorksLevel" }
+            processors.probeRelay = { base = 2.8, levelField = "probeRelayLevel" }
+            local sellers: { [string]: ChainMath.Seller } = table.clone(GAME.sellers)
+            sellers.booth = {
+                role = "probeDispatcher",
+                base = 3.0,
+                levelField = "boothLevel",
+                priority = { "probeGrid" },
+            }
+            local roleBase = table.clone(GAME.roleBase)
+            roleBase.probeBatCollector, roleBase.probeBatPorter, roleBase.probeBatHauler =
+                4.0, 6.0, 7.5
+            roleBase.probeWireCollector, roleBase.probeWirePorter, roleBase.probeWireHauler =
+                4.0, 5.0, 7.0
+            roleBase.probeRunner = 7.0
+            local avg = table.clone(GAME.avg)
+            -- piesele NU se vand: media lor e pusa intentionat ne-zero, ca un venit care le-ar numara sa iasa altul
+            avg.probe_bat, avg.probe_wire = 5.0, 7.0
+            return ChainMath.model(
+                order,
+                lines,
+                processors,
+                sellerOrder or { "dock", "booth" },
+                sellers,
+                roleBase,
+                avg,
+                {
+                    probe_grid = 50.0,
+                }
+            )
+        end
+
+        local ORDER = { "wood", "iron", "probeBat", "probeWire", "probeGrid" }
+        local M = joinModel(joinLines(), ORDER)
+
+        local function staff(s: any, roles: { string }, count: number, tier: number)
+            for _, role in roles do
+                s.crews[role] = { count = count, tier = tier }
+            end
+        end
+
+        -- un sat de Era 1 la jumatatea drumului, plus campurile probei; barajul (`probeDam`) cum se cere
+        local function baseState(dam: boolean): any
+            local s: any = state({ 14, 11, 9, 6, 8 }, 8, 8, true, {
+                collector = { 2, 5 },
+                porter = { 1, 3 },
+                sawyer = { 1, 2 },
+                hauler = { 1, 4 },
+                trader = { 1, 2 },
+                scrapCollector = { 1, 2 },
+                scrapPorter = { 1, 1 },
+                smelter = { 1, 1 },
+                ironHauler = { 1, 1 },
+            }, { true, 4 })
+            s.probeDam = dam
+            s.probeYardLevel, s.probeWorksLevel, s.probeRelayLevel, s.boothLevel = 1, 1, 1, 1
+            staff(s, BAT, 0, 1)
+            staff(s, WIRE, 0, 1)
+            staff(s, GRID, 0, 1)
+            staff(s, { "probeDispatcher" }, 0, 1)
+            return s
+        end
+
+        local function rankNet(s: any, kind: string, rank: number)
+            table.insert(s.nets, {
+                base = StationConfig.NET_BASE_RATE * StationConfig.NET_BASE_GROWTH ^ (rank - 1),
+                baseLane = 1,
+                level = 1,
+                kind = kind,
+            })
+        end
+
+        -- startul barajului, in mic: turbina din zid (rangul 5), prima plasa de cablu (rangul 1), veteranii pe baterii
+        local function damStart(): any
+            local s = baseState(true)
+            rankNet(s, "probe_bat", 5)
+            rankNet(s, "probe_wire", 1)
+            staff(s, BAT, 1, 1)
+            staff(s, { "probeDispatcher" }, 1, 1)
+            return s
+        end
+
+        local function near(got: number, want: number)
+            check.is_true(math.abs(got - want) < 1e-9)
+        end
+
+        local function rate(f: ChainMath.Flow, line: string, link: string): number
+            for k, step in M.lines[line].steps do
+                if step.link == link then
+                    return f.lines[line].values[k]
+                end
+            end
+            error(link)
+        end
+
+        test.case(
+            "inainte de baraj: totul ca pe lantul fara unire, iar unirea nu livreaza",
+            function()
+                local s = baseState(false)
+                local plain = joinModel(joinLines(), { "wood", "iron" }, { "dock" })
+                local f = ChainMath.flowWith(M, s)
+                local g = ChainMath.flowWith(plain, s)
+                check.equal(ChainMath.valueWith(M, s, f), ChainMath.valueWith(plain, s, g))
+                check.equal(f.bottleneck, g.bottleneck)
+                check.equal(f.lines.probeGrid.delivered, 0)
+                check.equal(f.lines.probeGrid.bottleneck, "")
+                check.is_true(f.bottleneck ~= "nets" and f.netsLine == "")
+            end
+        )
+
+        test.case(
+            "startul barajului: bazinul de 6, bateriile tinute de unire, unirea de plasa cablului",
+            function()
+                local s = damStart()
+                local f = ChainMath.flowWith(M, s)
+                local bat, wire, grid = f.lines.probeBat, f.lines.probeWire, f.lines.probeGrid
+                for _, line in { "wood", "iron" } do
+                    check.equal(f.lines[line].delivered, 0)
+                    check.equal(f.lines[line].bottleneck, "")
+                end
+                near(rate(f, "probeWire", "probeWireCollect"), 0.9)
+                near(rate(f, "probeWire", "probeWorks"), 2.0 / 6)
+                near(rate(f, "probeGrid", "probeRelay"), 2.8 / 6)
+                near(rate(f, "probeGrid", "probeRun"), 0.9)
+                near(bat.supply, 1.4587670625)
+                near(grid.supply, 0.33)
+                check.equal(grid.catch, 0)
+                near(bat.delivered, 0.33)
+                near(wire.delivered, 0.33)
+                near(grid.delivered, 0.33)
+                check.equal(bat.byConsumer, true)
+                check.equal(wire.byConsumer, false)
+                check.equal(bat.bottleneck, "nets")
+                check.equal(wire.bottleneck, "nets")
+                check.equal(grid.bottleneck, "nets")
+                check.equal(bat.heldBy, "probeWire")
+                check.equal(wire.heldBy, "probeWire")
+                check.equal(grid.heldBy, "probeWire")
+                check.equal(f.bottleneck, "nets")
+                check.equal(f.netsLine, "probeWire")
+                -- doar curentul se vinde (0.33 x 50); piesele, cu media lor ne-zero, nu intra
+                near(ChainMath.valueWith(M, s, f), 16.5)
+                near(f.delivered, 0.33)
+            end
+        )
+
+        test.case(
+            "bazinul fara niciun om: 10 pasi de mana, unirea tinuta de atelierul cablului",
+            function()
+                local s = damStart()
+                staff(s, BAT, 0, 1)
+                staff(s, { "probeDispatcher" }, 0, 1)
+                local f = ChainMath.flowWith(M, s)
+                near(rate(f, "probeBat", "probeBatCollect"), 0.54)
+                near(rate(f, "probeBat", "probeYard"), 0.24)
+                near(rate(f, "probeWire", "probeWorks"), 0.2)
+                near(rate(f, "probeGrid", "probeRelay"), 0.28)
+                near(f.lines.probeGrid.delivered, 0.2)
+                check.equal(f.lines.probeBat.bottleneck, "probeWorks")
+                check.equal(f.lines.probeBat.heldBy, "probeWire")
+                check.equal(f.lines.probeGrid.bottleneck, "probeWorks")
+                check.equal(f.lines.probeGrid.heldBy, "probeWire")
+                check.equal(f.bottleneck, "probeWorks")
+                near(ChainMath.valueWith(M, s, f), 10.0)
+            end
+        )
+
+        test.case(
+            "o piesa inchisa: bazinul fara ea, unirea nu vinde, bateriile asteapta plasa cablului",
+            function()
+                local s = baseState(true)
+                rankNet(s, "probe_bat", 5)
+                local f = ChainMath.flowWith(M, s)
+                near(rate(f, "probeBat", "probeBatCollect"), 1.35)
+                near(rate(f, "probeBat", "probeYard"), 0.6)
+                check.equal(rate(f, "probeWire", "probeWireCollect"), 0)
+                check.equal(f.lines.probeGrid.delivered, 0)
+                check.equal(ChainMath.valueWith(M, s, f), 0)
+                local bat = f.lines.probeBat
+                check.equal(bat.active, true)
+                check.equal(bat.bottleneck, "nets")
+                check.equal(bat.heldBy, "probeWire")
+                check.equal(f.bottleneck, "nets")
+                check.equal(f.netsLine, "")
+            end
+        )
+
+        test.case("egalitate pe plase: netsLine si unirea numesc prima piesa", function()
+            local s = baseState(true)
+            rankNet(s, "probe_bat", 1)
+            rankNet(s, "probe_wire", 1)
+            staff(s, BAT, 1, 1)
+            staff(s, { "probeDispatcher" }, 1, 1)
+            local f = ChainMath.flowWith(M, s)
+            near(f.lines.probeGrid.delivered, 0.33)
+            check.equal(f.lines.probeGrid.bottleneck, "nets")
+            check.equal(f.lines.probeGrid.heldBy, "probeBat")
+            check.equal(f.bottleneck, "nets")
+            check.equal(f.netsLine, "probeBat")
+        end)
+
+        test.case(
+            "egalitate pe oameni: amandoua piesele au castig, niciuna singura (`solo`)",
+            function()
+                local s = damStart()
+                s.nets[6].level, s.nets[7].level = 25, 50
+                staff(s, BAT, 1, 1)
+                staff(s, WIRE, 1, 1)
+                staff(s, { "probeSwitchman" }, 1, 2)
+                staff(s, { "probeWiremaker" }, 1, 3)
+                staff(s, GRID, 2, 5)
+                staff(s, { "probeDispatcher" }, 2, 5)
+                local f = ChainMath.flowWith(M, s)
+                local bat, wire, grid = f.lines.probeBat, f.lines.probeWire, f.lines.probeGrid
+                check.equal(bat.ownMax, 4.0)
+                check.equal(wire.ownMax, 4.0)
+                check.equal(grid.delivered, 4.0)
+                check.equal(bat.bottleneck, "probeBatCollect")
+                check.equal(wire.bottleneck, "probeWireCollect")
+                check.equal(grid.bottleneck, "probeBatCollect")
+                check.equal(grid.heldBy, "probeBat")
+                check.equal(bat.byConsumer, false)
+                check.equal(wire.byConsumer, false)
+                check.equal(f.gains.probeBatCollect, 50.0)
+                check.equal(f.gains.probeWireCollect, 50.0)
+                check.is_true(f.solo.probeBatCollect ~= true and f.solo.probeWireCollect ~= true)
+                check.equal(f.bottleneck, "probeBatCollect")
+                check.equal(ChainMath.valueWith(M, s, f), 200.0)
+                -- cine lipseste: niciun pas fara om, deci venitul fara tine e chiar venitul
+                local idle = ChainMath.flowWith(M, s, true)
+                check.equal(ChainMath.valueWith(M, s, idle), 200.0)
+                -- fara egalitate, Collector-ul bateriilor aduce si singur
+                s.crews.probeWireCollector.tier += 1
+                local apart = ChainMath.flowWith(M, s)
+                check.equal(apart.solo.probeBatCollect, true)
+                check.is_true(apart.solo.probeWireCollect ~= true)
+            end
+        )
+
+        test.case(
+            "cat lipsesti: fara omul unui pas al unirii, nu vine nimic [D70, AWAY]",
+            function()
+                local s = damStart()
+                local idle = ChainMath.flowWith(M, s, true)
+                check.equal(ChainMath.valueWith(M, s, idle), 0)
+            end
+        )
+
+        test.case("modelul pica pe o unire care nu se leaga", function()
+            local function fails(
+                edit: (lines: { [string]: any }) -> (),
+                order: { string }?
+            ): boolean
+                local lines: any = joinLines()
+                edit(lines)
+                local ok = pcall(joinModel, lines, order or ORDER)
+                return not ok
+            end
+            -- un model bun trece
+            check.is_false(fails(function(_lines) end))
+            -- unire fara `value`
+            check.is_true(fails(function(lines)
+                lines.probeGrid.value = nil
+            end))
+            -- piesa dupa unirea ei
+            check.is_true(
+                fails(
+                    function(_lines) end,
+                    { "wood", "iron", "probeBat", "probeGrid", "probeWire" }
+                )
+            )
+            -- piesa cu `into` spre o unire care n-o are in `inputs`
+            check.is_true(fails(function(lines)
+                lines.probeGrid.inputs = { "probeBat" }
+            end))
+            -- linie si cu plase, si cu piese
+            check.is_true(fails(function(lines)
+                lines.probeGrid.netKind = "probe_grid"
+            end))
+            -- linie si cu vanzator, si cu unire
+            check.is_true(fails(function(lines)
+                lines.probeBat.seller = "booth"
+            end))
+        end)
+
+        test.case("uneltele barajului costa dublu fata de cadrul lui [D70]", function()
+            check.equal(ChainMath.tierCost(1, "damCollector"), 25 * StationConfig.ERA4_MULT * 2)
+            check.equal(StationConfig.ERA4_MULT, StationConfig.ERA3_MULT * 3000)
+        end)
     end)
 
     test.suite("ChainMath - scara nivelurilor si treptele", function()

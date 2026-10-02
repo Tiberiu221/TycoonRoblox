@@ -120,6 +120,18 @@ TycoonConfig.GOODS = {
     { id = "battery", value = 31500000.0 },
     { id = "cell", value = 31500000.0 },
     { id = "named3", value = 126000000.0 },
+    -- [D70] ERA 4, „The Dam", de StationConfig.ERA4_MULT (2,7e10) ori Era 1. PIESELE NU SE VAND (D70 Runda 4): sarcina
+    -- turbinei din baraj iese BUTOAIE, minereul de cablu iese CABLU, iar amandoua valoreaza doar unite, ca unitate de curent
+    -- livrata orasului (1,65 x: oglinda mediei primei linii a fiecarei ere). Cristalul iese LINGOU, cat bateria din Era 3,
+    -- si se vinde primul la oras. Scrise ca produs, ca in simulator: un literal ar putea muta un ulp. In joc abia de la
+    -- pasul j al planului motorului (StationConfig.ENGINE_ERAS).
+    { id = "charge", value = 0.0 },
+    { id = "barrel", value = 0.0 },
+    { id = "cable_ore", value = 0.0 },
+    { id = "cable", value = 0.0 },
+    { id = "grid", value = 1.65 * 27000000000.0 },
+    { id = "crystal", value = 3.5 * 27000000000.0 },
+    { id = "ingot", value = 3.5 * 27000000000.0 },
 } :: { Good }
 
 -- [D55] CE PRINDE O PLASA, dupa felul ei. In ordinea simulatorului (`CATCH` din sim_tycoon.py): ordinea sumei
@@ -134,6 +146,11 @@ TycoonConfig.CATCH = {
     -- [D67] plasele Wire Works (minereu de cupru, gasirile Erei 3) si turbina (doar baterii)
     works = { { id = "works_ore", share = 0.95 }, { id = "named3", share = 0.05 } },
     turbine = { { id = "battery", share = 1.0 } },
+    -- [D70] Era 4: turbina din baraj umple sarcina; plasele de sub baraj nu prind gasiri (D70 Runda 5: o gasire nu se poate
+    -- uni cu un butoi). Surprizele raman darurile raului si undita.
+    dam = { { id = "charge", share = 1.0 } },
+    cable_ore = { { id = "cable_ore", share = 1.0 } },
+    crystal = { { id = "crystal", share = 1.0 } },
 } :: { [string]: { CatchPart } }
 
 -- [D65] CUM SE DESENEAZA MARFA EREI 2 PANA LA ARTA EI (docs/PLAN-ERA2.md, pasul 7): cu desenele perechii din Era 1.
@@ -199,7 +216,14 @@ TycoonConfig.PROCESSED = {
     ore = "copper",
     works_ore = "coils", -- [D67]
     battery = "cell",
+    -- [D70] Era 4: sarcina iese butoi, minereul de cablu iese cablu, cristalul iese lingou
+    charge = "barrel",
+    cable_ore = "cable",
+    crystal = "ingot",
 } :: { [string]: string }
+-- [D70] Ce se UNESTE la Relay Station: un butoi si o bucata de cablu fac o unitate de curent pentru oras (reteta 1:1,
+-- StationConfig.LINES.grid.inputs). Il citeste unirea din FlowMath, la pasul i al planului motorului.
+TycoonConfig.JOINED = { grid = { "barrel", "cable" } } :: { [string]: { string } }
 
 -- Valoarea de vanzare a unui obiect cu nume, pe tier (ipoteza -- media ponderata ~14, cat cere GOODS.named)
 TycoonConfig.NAMED_VALUE = {

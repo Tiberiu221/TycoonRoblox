@@ -3,6 +3,8 @@
 -- inventate: testele din `tests/ChainMath.test.luau` verifica debitele la ultimul bit, iar
 -- simulatorul citeste fisierul asta si pica daca o constanta a oamenilor s-a despartit [D49].
 --
+-- [D70] ERA 4 („The Dam”) STA AICI, dar jocul n-o ruleaza inca: vezi ENGINE_ERAS mai jos.
+--
 -- PATRU CLADIRI CU NIVELURI, fiecare de la 1 si fara capat:
 --   nets   -- plasele. Cate una pe fiecare deblocare; toate urca separat.
 --   saw    -- gaterul. Driftwood-ul iese scanduri.
@@ -32,6 +34,12 @@ StationConfig.LEVEL_INC = {
     wireworks = 0.06,
     depot = 0.06,
     powerhouse = 0.06,
+    -- [D70] Era 4
+    switchyard = 0.06,
+    cableworks = 0.06,
+    relay = 0.06,
+    kiln = 0.06,
+    town = 0.06,
 }
 StationConfig.LEVEL_INC_DEFAULT = 0.03
 StationConfig.LEVEL_GROWTH = 1.09 -- cat se scumpeste fiecare nivel
@@ -55,14 +63,18 @@ StationConfig.NET_UPGRADE_BASE_COST = 1.0
 StationConfig.ERA2_MULT = 3000.0
 -- [D67] Era 3, „The Wire Works", pe aceeasi regula: de 3000 de ori Moara, deci de 3000 x 3000 de ori satul.
 StationConfig.ERA3_MULT = 9000000.0
+-- [D70] Era 4, „The Dam", tot pe regula asta: de 3000 de ori Wire Works (9e6 x 3000 = 2,7e10, exact).
+StationConfig.ERA4_MULT = 27000000000.0
 -- [D65] CINCI PLASE PE ERA, in aceeasi schema: patru pentru marfa cu care pornesti era si una, in larg, pentru marfa
 -- noua. A k-a plasa a unei ere are baza celei de-a k-a plase a Erei 1; nivelurile ei costa de ERA2_MULT ori in Era 2
 -- (si de ERA3_MULT ori in Era 3: `ERA_MULT`).
 StationConfig.NETS_PER_ERA = 5
-StationConfig.ERA_MULT = { 1.0, StationConfig.ERA2_MULT, StationConfig.ERA3_MULT }
--- [D70] uneltele unei ere pot costa mai mult decat cadrul ei (lipsa = 1). Era 4 le are la 2 (sim_tycoon.py,
--- `ERA_TOOL_MULT`); intra aici odata cu era ei, iar check_config_constants compara fiecare era din configuratie.
-StationConfig.TOOL_COST_MULT = {} :: { [number]: number }
+StationConfig.ERA_MULT =
+    { 1.0, StationConfig.ERA2_MULT, StationConfig.ERA3_MULT, StationConfig.ERA4_MULT }
+-- [D70] uneltele unei ere pot costa mai mult decat cadrul ei (lipsa = 1). Ale barajului costa dublu (sim_tycoon.py,
+-- `ERA_TOOL_MULT`): cu suma de start, la pretul cadrului colectorii ajungeau la treapta 5 in ~10 minute.
+-- check_config_constants compara fiecare era din configuratie.
+StationConfig.TOOL_COST_MULT = { [4] = 2.0 } :: { [number]: number }
 -- pe ce banda sta fiecare plasa: Era 1, Era 2, Era 3
 StationConfig.NET_LANES = { 1, 1, 2, 2, 3, 1, 1, 2, 2, 3, 1, 1, 2, 2, 3 }
 -- [D55] ce prinde fiecare: ultima plasa a Erei 1, cea din larg, prinde scrap (TycoonConfig.CATCH). [D65] Plasele Morii
@@ -119,6 +131,24 @@ StationConfig.POWERHOUSE_BASE_RATE = 1.2
 StationConfig.POWERHOUSE_UPGRADE_BASE = 540000000.0
 StationConfig.DEPOT_BASE_RATE = 3.0
 StationConfig.DEPOT_UPGRADE_BASE = 81000000.0
+-- [D70] CLADIRILE EREI 4 (docs/PLAN-MOTOR-UNIRE.md, sectiunea 2): Switchyard-ul umple butoaiele din sarcina turbinei, Cable
+-- Works face cablul, Relay Station-ul le uneste (un butoi si o bucata de cablu fac o unitate de curent), Kiln-ul topeste
+-- cristalul, iar orasul (Switch House) cumpara. Nivelurile de ERA4_MULT ori mai scumpe (7 / 7 / 8 / 60 / 9 x 2,7e10).
+StationConfig.SWITCHYARD_BASE_RATE = 2.4
+StationConfig.SWITCHYARD_UPGRADE_BASE = 189000000000.0
+StationConfig.CABLEWORKS_BASE_RATE = 2.0
+StationConfig.CABLEWORKS_UPGRADE_BASE = 189000000000.0
+StationConfig.RELAY_BASE_RATE = 2.8
+StationConfig.RELAY_UPGRADE_BASE = 216000000000.0
+StationConfig.KILN_BASE_RATE = 1.2
+StationConfig.KILN_UPGRADE_BASE = 1620000000000.0
+StationConfig.TOWN_BASE_RATE = 3.0
+StationConfig.TOWN_UPGRADE_BASE = 243000000000.0
+-- [D70] PRAGURILE DE VENIT ALE BARAJULUI (sim_tycoon.py): capitolul cere „Earn 1T coins a second" inaintea Kiln-ului, iar
+-- Dam Bell se deschide la 4T pe secunda. In joc se inmultesc cu 2x Flow (PassMath.flowFactor), ca era sa-si pastreze
+-- continutul. Scrise intregi, ca regex-ul simulatorului sa le citeasca la fel.
+StationConfig.KILN_INCOME = 1000000000000.0
+StationConfig.DAM_BELL_INCOME = 4000000000000.0
 -- NEGUSTORUL FACE DEBARCADERUL SA MEARGA, NU SA PLATEASCA MAI BINE. Fara el, debarcaderul vinde
 -- singur la o treime; cu el, merge tot timpul. E singurul pas pe care nu-l faci tu.
 StationConfig.NO_TRADER_FACTOR = 0.35
@@ -163,18 +193,52 @@ StationConfig.ERA3_ROLES = {
     "electrician",
     "powerHauler",
 }
--- Meseriile fiecarei ere, apoi toate, in ordinea erelor.
+-- [D70] Era 4: cei cinci veterani ai butoaielor (si Dispatcher-ul orasului, fostul hangiu), cei sase ai cablului si ai
+-- unirii (angajati in rafala), cei patru ai cristalului.
+StationConfig.ERA4_ROLES = {
+    "damCollector",
+    "damPorter",
+    "switchman",
+    "barrelHauler",
+    "dispatcher",
+    "cableCollector",
+    "cablePorter",
+    "cablemaker",
+    "cableHauler",
+    "relayKeeper",
+    "pylonRunner",
+    "crystalCollector",
+    "crystalPorter",
+    "crystalsmith",
+    "ingotHauler",
+}
+-- [D70] ERELE PE CARE LE RULEAZA JOCUL AZI. Era 4 sta in tabele (liniile, cladirile, oamenii, cifrele), dar o porneste abia
+-- serverul, la pasul j al planului motorului (docs/PLAN-MOTOR-UNIRE.md: barajul, profilul v19). Pana atunci listele pe care
+-- le citesc serverul, meniurile si ghidajul (ERA_ROLES, ROLES, ERA_LINES, LINE_ORDER, SELLER_ORDER si tot ce se deriva din
+-- ele) sunt ale Erelor 1-3, iar cele `_ALL` au si barajul: din ele socoteste ChainMath.FULL (testele de aur ale barajului).
+StationConfig.ENGINE_ERAS = 3
+StationConfig.ERA_ROLES_ALL = {
+    StationConfig.ERA1_ROLES,
+    StationConfig.ERA2_ROLES,
+    StationConfig.ERA3_ROLES,
+    StationConfig.ERA4_ROLES,
+}
+-- Meseriile fiecarei ere din joc, apoi toate, in ordinea erelor.
 StationConfig.ERA_ROLES =
-    { StationConfig.ERA1_ROLES, StationConfig.ERA2_ROLES, StationConfig.ERA3_ROLES }
+    table.move(StationConfig.ERA_ROLES_ALL, 1, StationConfig.ENGINE_ERAS, 1, {})
 local allRoles: { string } = {}
 -- [D65] Treptele costa fix (25 / 75 / 225 / 675) pentru oamenii Erei 1; ai erelor noi muta marfa de ERA_MULT ori mai
 -- scumpa, deci si uneltele lor costa pe masura.
 local roleCostMult: { [string]: number } = {}
 -- [D67] Era fiecarei meserii.
 local eraOfRole: { [string]: number } = {}
-for era, roles in StationConfig.ERA_ROLES do
+local everyRole: { string } = {}
+for era, roles in StationConfig.ERA_ROLES_ALL do
     for _, role in roles do
-        table.insert(allRoles, role)
+        table.insert(everyRole, role)
+        if era <= StationConfig.ENGINE_ERAS then
+            table.insert(allRoles, role)
+        end
         eraOfRole[role] = era
         if era > 1 then
             roleCostMult[role] = StationConfig.ERA_MULT[era]
@@ -183,6 +247,7 @@ for era, roles in StationConfig.ERA_ROLES do
     end
 end
 StationConfig.ROLES = allRoles
+StationConfig.ROLES_ALL = everyRole
 StationConfig.ROLE_COST_MULT = roleCostMult
 StationConfig.ERA_OF_ROLE = eraOfRole
 -- ---- liniile, ca date [D64] --------------------------------------------------------------------
@@ -194,23 +259,59 @@ StationConfig.ERA_OF_ROLE = eraOfRole
 --     fara ei merge doar cat stai tu langa ea.
 --   * `openFlag`: campul din ChainMath.State care deschide linia (nil = deschisa de la inceput). O linie cu conditie
 --     mai cere si o plasa de felul ei.
+--   * [D70] CHEILE PENTRU UNIRE SI BARAJ, toate optionale (oglinda din sim_tycoon.py; docs/PLAN-MOTOR-UNIRE.md):
+--       - `closeFlag`: campul care INCHIDE linia (barajul opreste satul vechi);
+--       - `inputs`: linia e o UNIRE, cu reteta 1:1 (o bucata din fiecare piesa face una); n-are `netKind`;
+--       - `into`: linia e o PIESA si merge in unirea numita, nu la un vanzator; n-are `seller`;
+--       - `value`: bunul (TycoonConfig.GOODS) livrat de linie; obligatoriu la o unire, altfel media plasei ei;
+--       - `pool`: liniile cu acelasi `pool` IMPART timpul tau (pasii de mana ai tuturor celor deschise din bazin).
 --   * `levelField`: campul din ChainMath.State cu nivelul cladirii.
 --   * CIFRELE NU SE COPIAZA AICI: `base` trimite la constanta de mai sus (simulatorul o citeste de acolo, cu regex).
 --   * LINE_ORDER e ordinea in care se aduna ORICE suma pe linii (virgula mobila: alta ordine ar muta ultimii biti ai
 --     venitului) si in care stau verigile in LINKS. `priority` e ALTA ordine, a vanzatorului: cine ia primul din
 --     capacitatea lui (marfa mai scumpa intai). Azi sunt una inversul celeilalte doar din intamplare.
 export type Step = { role: string, link: string, kind: string }
-export type Line = { netKind: string, openFlag: string?, seller: string, steps: { Step } }
+export type Line = {
+    netKind: string?,
+    openFlag: string?,
+    closeFlag: string?,
+    seller: string?,
+    inputs: { string }?,
+    into: string?,
+    value: string?,
+    pool: string?,
+    steps: { Step },
+}
 export type Processor = { base: number, levelField: string }
 export type Seller = { role: string, base: number, levelField: string, priority: { string } }
 
-StationConfig.LINE_ORDER = { "wood", "iron", "parts", "copper", "coils", "power" }
--- Liniile fiecarei ere: in fiecare, a doua apare spre final, cu plasa, atelierul si oamenii ei [D64].
-StationConfig.ERA_LINES = { { "wood", "iron" }, { "parts", "copper" }, { "coils", "power" } }
+-- Liniile fiecarei ere: in fiecare, a doua apare spre final, cu plasa, atelierul si oamenii ei [D64]. [D70] Barajul are
+-- doua piese (butoaiele si cablul), unirea lor (curentul pentru oras) si cristalul; piesele stau inaintea unirii.
+StationConfig.ERA_LINES_ALL = {
+    { "wood", "iron" },
+    { "parts", "copper" },
+    { "coils", "power" },
+    { "barrels", "cable", "grid", "crystal" },
+}
+StationConfig.ERA_LINES =
+    table.move(StationConfig.ERA_LINES_ALL, 1, StationConfig.ENGINE_ERAS, 1, {})
+local function concat(eras: { { string } }): { string }
+    local out: { string } = {}
+    for _, lines in eras do
+        for _, line in lines do
+            table.insert(out, line)
+        end
+    end
+    return out
+end
+-- ordinea liniilor: a erelor, una dupa alta (Erele 1-3: wood, iron, parts, copper, coils, power)
+StationConfig.LINE_ORDER = concat(StationConfig.ERA_LINES)
+StationConfig.LINE_ORDER_ALL = concat(StationConfig.ERA_LINES_ALL)
 local LINES: { [string]: Line } = {
     wood = {
         netKind = "wood",
         openFlag = nil,
+        closeFlag = "dam",
         seller = "dock",
         steps = {
             { role = "collector", link = "collect", kind = "walk" },
@@ -222,6 +323,7 @@ local LINES: { [string]: Line } = {
     iron = {
         netKind = "scrap",
         openFlag = "workshop",
+        closeFlag = "dam",
         seller = "dock",
         steps = {
             { role = "scrapCollector", link = "scrapCollect", kind = "walk" },
@@ -234,6 +336,7 @@ local LINES: { [string]: Line } = {
     parts = {
         netKind = "mill",
         openFlag = "wheel",
+        closeFlag = "dam",
         seller = "market",
         steps = {
             { role = "millCollector", link = "millCollect", kind = "walk" },
@@ -245,6 +348,7 @@ local LINES: { [string]: Line } = {
     copper = {
         netKind = "ore",
         openFlag = "furnace",
+        closeFlag = "dam",
         seller = "market",
         steps = {
             { role = "oreCollector", link = "oreCollect", kind = "walk" },
@@ -257,6 +361,7 @@ local LINES: { [string]: Line } = {
     coils = {
         netKind = "works",
         openFlag = "steam",
+        closeFlag = "dam",
         seller = "depot",
         steps = {
             { role = "worksCollector", link = "worksCollect", kind = "walk" },
@@ -268,12 +373,64 @@ local LINES: { [string]: Line } = {
     power = {
         netKind = "turbine",
         openFlag = "powerhouse",
+        closeFlag = "dam",
         seller = "depot",
         steps = {
             { role = "batteryCollector", link = "batteryCollect", kind = "walk" },
             { role = "batteryPorter", link = "batteryPort", kind = "walk" },
             { role = "electrician", link = "powerhouse", kind = "processor" },
             { role = "powerHauler", link = "powerHaul", kind = "walk" },
+        },
+    },
+    -- [D70] Era 4, „The Dam": doua PIESE (butoaiele si cablul) si UNIREA lor (curentul pentru oras), toate in bazinul
+    -- barajului, plus cristalul. Barajul le deschide si inchide liniile vechi (`closeFlag` de mai sus). Veteranii lucreaza
+    -- butoaiele; cablul il faci tu, pana vin cei sase.
+    barrels = {
+        netKind = "dam",
+        openFlag = "dam",
+        into = "grid",
+        pool = "dam",
+        steps = {
+            { role = "damCollector", link = "damCollect", kind = "walk" },
+            { role = "damPorter", link = "damPort", kind = "walk" },
+            { role = "switchman", link = "switchyard", kind = "processor" },
+            { role = "barrelHauler", link = "barrelHaul", kind = "walk" },
+        },
+    },
+    cable = {
+        netKind = "cable_ore",
+        openFlag = "dam",
+        into = "grid",
+        pool = "dam",
+        steps = {
+            { role = "cableCollector", link = "cableCollect", kind = "walk" },
+            { role = "cablePorter", link = "cablePort", kind = "walk" },
+            { role = "cablemaker", link = "cableworks", kind = "processor" },
+            { role = "cableHauler", link = "cableHaul", kind = "walk" },
+        },
+    },
+    -- Pylon Runner-ul duce curentul pe podul cu stalpi pana la Switch House (fiecare pas are omul lui)
+    grid = {
+        inputs = { "barrels", "cable" },
+        openFlag = "dam",
+        seller = "town",
+        value = "grid",
+        pool = "dam",
+        steps = {
+            { role = "relayKeeper", link = "relay", kind = "processor" },
+            { role = "pylonRunner", link = "pylonRun", kind = "walk" },
+        },
+    },
+    crystal = {
+        netKind = "crystal",
+        openFlag = "kiln",
+        seller = "town",
+        pool = "dam",
+        steps = {
+            { role = "crystalCollector", link = "crystalCollect", kind = "walk" },
+            { role = "crystalPorter", link = "crystalPort", kind = "walk" },
+            { role = "crystalsmith", link = "kiln", kind = "processor" },
+            { role = "ingotHauler", link = "ingotHaul", kind = "walk" },
         },
     },
 }
@@ -285,10 +442,17 @@ local PROCESSORS: { [string]: Processor } = {
     furnace = { base = StationConfig.FURNACE_BASE_RATE, levelField = "furnaceLevel" },
     wireworks = { base = StationConfig.WIREWORKS_BASE_RATE, levelField = "wireworksLevel" },
     powerhouse = { base = StationConfig.POWERHOUSE_BASE_RATE, levelField = "powerhouseLevel" },
+    -- [D70] Era 4
+    switchyard = { base = StationConfig.SWITCHYARD_BASE_RATE, levelField = "switchyardLevel" },
+    cableworks = { base = StationConfig.CABLEWORKS_BASE_RATE, levelField = "cableworksLevel" },
+    relay = { base = StationConfig.RELAY_BASE_RATE, levelField = "relayLevel" },
+    kiln = { base = StationConfig.KILN_BASE_RATE, levelField = "kilnLevel" },
 }
 StationConfig.PROCESSORS = PROCESSORS
 -- Vanzatorii, cu ordinea lor (o harta cu chei text n-are ordine in Luau; in simulator e ordinea din dictionar).
-StationConfig.SELLER_ORDER = { "dock", "market", "depot" }
+StationConfig.SELLER_ORDER_ALL = { "dock", "market", "depot", "town" }
+-- vanzatorii erelor din joc (ENGINE_ERAS): cei ai caror linii sunt in LINE_ORDER
+StationConfig.SELLER_ORDER = {} :: { string }
 local SELLERS: { [string]: Seller } = {
     dock = {
         role = "trader",
@@ -310,8 +474,20 @@ local SELLERS: { [string]: Seller } = {
         levelField = "depotLevel",
         priority = { "power", "coils" },
     },
+    -- [D70] orasul (Switch House), cu Dispatcher-ul, fostul hangiu: cristalul intai, apoi curentul unit
+    town = {
+        role = "dispatcher",
+        base = StationConfig.TOWN_BASE_RATE,
+        levelField = "townLevel",
+        priority = { "crystal", "grid" },
+    },
 }
 StationConfig.SELLERS = SELLERS
+for _, seller in StationConfig.SELLER_ORDER_ALL do
+    if table.find(StationConfig.LINE_ORDER, SELLERS[seller].priority[1]) ~= nil then
+        table.insert(StationConfig.SELLER_ORDER, seller)
+    end
+end
 
 -- Tabelele de mai jos se DERIVA din LINES / SELLERS, ca sa nu existe doua liste care sa se desparta.
 -- LINE_STEPS: meseriile fiecarei linii, in ordinea angajarilor. MANUAL_ROLES: toti pasii pe care ii poti face tu.
@@ -351,8 +527,8 @@ for era, eraLines in StationConfig.ERA_LINES do
         end
     end
     for _, line in eraLines do
-        local seller = LINES[line].seller
-        if not sellersSeen[seller] then
+        local seller = LINES[line].seller -- [D70] o piesa n-are vanzator: se vinde doar prin unirea ei
+        if seller ~= nil and not sellersSeen[seller] then
             sellersSeen[seller] = true
             table.insert(list, seller)
         end
@@ -420,6 +596,19 @@ StationConfig.ROLE_BASE = {
     batteryCollector = 2.0,
     batteryPorter = 2.5,
     powerHauler = 6.5,
+    -- [D70] Era 4 (sim_tycoon.py): baze fara egalitati intre oamenii de drum (check_lines, `walker_ties`); Pylon
+    -- Runner-ul duce macar tot timpul tau (check_hire_order); Crystal Porter-ul la 2.7, nu 2.5: Collector-ul pe treapta
+    -- cinci ducea cat Porter-ul pe patru si tinea linia la egalitate jumatate de era
+    damCollector = 4.7,
+    damPorter = 6.3,
+    barrelHauler = 7.3,
+    cableCollector = 4.0,
+    cablePorter = 5.4,
+    cableHauler = 6.7,
+    pylonRunner = 6.5,
+    crystalCollector = 2.0,
+    crystalPorter = 2.7,
+    ingotHauler = 6.5,
 }
 StationConfig.TIER_STEP = 1.0 -- fiecare treapta adauga inca o data baza: treapta 5 = de 5 ori
 StationConfig.TIER_MAX = 5

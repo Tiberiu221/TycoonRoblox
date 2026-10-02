@@ -2272,9 +2272,9 @@ def check_config_prices(prices, pad_ids=None, roles=None):
     return bad
 
 
-# [D70] Erele scrise deja in configuratia jocului. Era 4 intra in StationConfig / TycoonConfig la pasul f al planului
-# motorului; pana atunci, constantele ei traiesc doar aici.
-CONFIG_ERAS = (1, 2, 3)
+# [D70] Erele scrise in configuratia jocului (StationConfig). Era 4 a intrat la pasul f al planului motorului, cu liniile si
+# constantele ei; jocul o porneste abia la pasul j (StationConfig.ENGINE_ERAS), iar platformele ei vin cu harta barajului.
+CONFIG_ERAS = (1, 2, 3, 4)
 
 
 def check_config_constants():
@@ -2303,9 +2303,18 @@ def check_config_constants():
         "WIREWORKS_BASE_RATE": WIREWORKS_BASE_RATE, "WIREWORKS_UPGRADE_BASE": WIREWORKS_UPGRADE_BASE,
         "POWERHOUSE_BASE_RATE": POWERHOUSE_BASE_RATE, "POWERHOUSE_UPGRADE_BASE": POWERHOUSE_UPGRADE_BASE,
         "DEPOT_BASE_RATE": DEPOT_BASE_RATE, "DEPOT_UPGRADE_BASE": DEPOT_UPGRADE_BASE,
+        # [D70] Era 4: cadrul, cladirile, pragurile de venit ale capitolului si ale clopotului
+        "ERA4_MULT": ERA4_MULT,
+        "SWITCHYARD_BASE_RATE": SWITCHYARD_BASE_RATE, "SWITCHYARD_UPGRADE_BASE": SWITCHYARD_UPGRADE_BASE,
+        "CABLEWORKS_BASE_RATE": CABLEWORKS_BASE_RATE, "CABLEWORKS_UPGRADE_BASE": CABLEWORKS_UPGRADE_BASE,
+        "RELAY_BASE_RATE": RELAY_BASE_RATE, "RELAY_UPGRADE_BASE": RELAY_UPGRADE_BASE,
+        "KILN_BASE_RATE": KILN_BASE_RATE, "KILN_UPGRADE_BASE": KILN_UPGRADE_BASE,
+        "TOWN_BASE_RATE": TOWN_BASE_RATE, "TOWN_UPGRADE_BASE": TOWN_UPGRADE_BASE,
+        "KILN_INCOME": KILN_INCOME, "DAM_BELL_INCOME": DAM_BELL_INCOME,
     }
     for name, want in scalars.items():
-        m = re.search(r"StationConfig\." + name + r" = ([0-9.]+)", src)
+        # cu exponent: 1e12 s-ar fi citit 1
+        m = re.search(r"StationConfig\." + name + r" = ([0-9.]+(?:[eE][+-]?[0-9]+)?)\b", src)
         if m is None:
             bad.append(f"StationConfig: lipseste {name}")
         elif float(m.group(1)) != float(want):
