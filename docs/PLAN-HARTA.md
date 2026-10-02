@@ -260,3 +260,62 @@ Mă despart de tine într-un singur punct. „Partea mică din bani” nu se ob�
 - `/Users/tiberiubojan/Desktop/Driftwood/docs/TYCOON.md` (§K, rândul 329)
 - `/Users/tiberiubojan/Desktop/Driftwood/src/Shared/Config/TycoonConfig.luau` (coordonatele de la rândurile 267–475 și ceața `dam` de la rândul 440)
 - raportul simulatorului: `/private/tmp/claude-501/-Users-tiberiubojan-Desktop-Driftwood/b9d4df87-0fc9-4d56-a2d7-bd3169d84806/scratchpad/sim_plain.txt`
+
+## 9. Propunerea de așezare a cartierului barajului (2026-10-03, NEAPROBATĂ)
+
+Făcută cu un workflow: trei cititori (planurile, așezarea Erelor 1–3, testele de așezare), trei propuneri independente
+(compactă pe canal, lată, pe terase) și un judecător care le-a verificat cu un verificator de așezare refăcut după
+testele jocului. Coordonatele, la pixel, sunt în `scripts/art/preview_dam_layout.py`. Rulat, scriptul desenează planșa
+`dam_layout_preview.png` și scrie `dam_layout.json` în scratchpad. Nimic din joc nu se schimbă până o aprobi.
+
+**Cum se merge, de la vest la est:**
+1. Ieși din film la piciorul zidului, la (800, 1180).
+2. **Butoaiele:** turbina pe punte, la x 980, zidită în fața barajului. Dam Store și Switchyard stau dedesubt, una sub
+   alta, iar veteranii coboară pe aleea zidului.
+3. **Cablul:** trei plase deasupra Cable Store-ului, iar Cable Works stă sub el.
+4. Butoaiele și cablul merg pe stradă spre est, până la cele două grămezi din stânga Relay-ului.
+5. **Relay Station** e o casă-pod peste capătul unui canal scurt (x 2193–2257) care intră din râu.
+6. **Pylon Runner-ul** urcă pe aleea cu stâlpi și trece podul spre vest, până la ușa Switch House-ului. Switch House
+   stă deasupra intrărilor Relay-ului.
+7. **Cristalul** e la capătul de est: plasa, Crystal Shed, Kiln. Ingot Hauler-ul duce lingourile spre vest, peste
+   același pod.
+8. **Dam Bell** e în colțul de nord-est, lângă ceața Erei 5.
+
+**Mărimi și drumuri:**
+- Cartierul ocupă x 880–3065 (2185 px, nu 1680), deci lumea 2 are 3385 px.
+- Toți oamenii merg pe drumuri, cu cicluri de 4,5–19,4 s, cât în Erele 1–3.
+- Turul de mână are 2996 px (~9,4 s); în Era 1 avea 2208.
+- Pe verificatorul judecătorului: 0 încălcări, un singur graf de drumuri, niciun drum prin apa canalului.
+
+**Ce mai cere, la pasul j:**
+- un filtru pe lume peste PADS, LINE/JOIN/SELLER_PLACES, DISTRICTS, ZONES, `homeClearRects`, `streetLamps`, RoadGraph,
+  cache-ul de drumuri al HandRoutes și testele de așezare;
+- canalul în `WorldMap.blockedRects` (CharacterController și VillageDiorama trimit azi `nil`);
+- testul felinarelor generalizat dincolo de `for era = 1, 3`;
+- fără gard la prima zonă a lumii 2;
+- `PadArt.isTurbine` pentru turbina din zid;
+- pământul copt în două felii.
+
+**Riscuri:**
+- puntea are porțiuni fără plase (x 1028–1332 și cheiul x 1828–2577);
+- pe telefon, de la acoperișul Switch House-ului până la ieșirea Relay-ului sunt 476 px, peste cei 460 pe care îi
+  arată telefonul;
+- Cablemaker-ul și Relay Keeper-ul au pozele inversate față de HandConfig.
+
+**Întrebări pentru owner (ca pași din joc):**
+1. Ieși din film lângă zid. Până la Relay sunt ~2.600 px de mers (~8 s), iar harta lumii 2 iese de 3.385 px, nu de 2.880.
+   Rămâi la asta, sau o vrei mai strânsă, cu drumuri de ~3 s?
+2. Stai în inelul Relay-ului și iese curentul. Îl duci pe aleea cu stâlpi, peste podul canalului, până la ușa Switch
+   House-ului, care stă chiar deasupra Relay-ului. Așa vrei „podul cu stâlpi”, cu un canal scurt sub Relay? Sau fără
+   canal: stâlpii doar desenați, iar Pylon Runner-ul merge pe stradă?
+3. Ajungi la baraj. Casele celor patru veterani stau deja în rând sub zid, cu „veteran” sub nume. Taraba Dispatcher-ului
+   e la colțul pieței, iar ceilalți oameni din satul vechi locuiesc în căsuțele din Dam Town. Te bucură așa?
+4. Pe punte, primul lucru e turbina gratis, zidită în fața barajului, nu plutind ca o plasă. Dam Collector-ul ia
+   bateriile de la piciorul zidului. E bine?
+5. Ultimul pas al erei e Dam Bell (la 4T pe secundă). Îl cauți la capătul din dreapta, lângă ceață, ca la celelalte
+   ere, sau sus pe zid, lângă cele trei clopote vechi?
+6. Un butoi plutește pe râu. Îl prinzi doar de pe lacul de lângă ponton, sau și de pe puntea de sub baraj, ca azi pe
+   toate punțile (D73)?
+7. Pe clădirea unde Dam Collector-ul lasă bateriile scrie „Dam Store” sau „Battery Store”? Rămân numele Switchman, Relay
+   Keeper, Pylon Runner, Switch House și Dispatcher?
+
