@@ -806,6 +806,11 @@ Strings.SELLER_WORDS = {
         buys = "coils and power cells",
         rawOnly = "The Depot buys coils and power cells, not ore or batteries",
     },
+    -- [D70] orasul barajului (Switch House; numele sunt propuneri)
+    town = {
+        buys = "ingots and power",
+        rawOnly = "The Switch House buys ingots and power, not crystal",
+    },
 } :: { [string]: SellerWords }
 -- Ce a facut un gest la un loc al Erei 2 (`UseResult`), ca `useResult` pentru Era 1. nil = locul nu e al ei.
 function Strings.placeResult(

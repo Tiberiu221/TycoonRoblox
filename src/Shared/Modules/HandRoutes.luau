@@ -61,45 +61,94 @@ HandRoutes.SCRAP_NET = scrapNet
 -- `elseif` pe fiecare meserie; Era 2 ar fi dublat totul.
 --   job = "collect" | "port" | "work" | "haul"; vanzatorii au meseria lor ("sell"), tot statica.
 export type Job = { line: string?, seller: string?, job: string }
-local JOB_OF_STEP = { "collect", "port", "work", "haul" }
-local jobs: { [string]: Job } = {}
-for _, line in StationConfig.LINE_ORDER do
-    for i, step in StationConfig.LINES[line].steps do
-        jobs[step.role] = { line = line, job = JOB_OF_STEP[i] }
+-- [D70] CONTEXTUL in care merg oamenii: liniile (FlowConfig.GAME sau FULL), meseriile lor, locurile de pe harta si daca se
+-- merge pe drumuri. Fiecare functie primeste la coada un context optional; fara el, al jocului, ca inainte. Testele barajului
+-- dau locuri inventate (harta lui vine la pasul j), cu `roads = false`: drum drept.
+export type Context = {
+    flow: FlowConfig.Model,
+    jobs: { [string]: Job },
+    linePlaces: { [string]: TycoonConfig.LinePlaces },
+    joinPlaces: { [string]: TycoonConfig.JoinPlaces },
+    sellerPlaces: { [string]: TycoonConfig.SellerPlaces },
+    roads: boolean,
+}
+-- [D70] Meseria unui pas: StationConfig.STEP_JOBS (`job` cand e scrisa, ca la pasii unirii: Relay Keeper-ul sta,
+-- Pylon Runner-ul duce; altfel dupa pozitie, ca in Erele 1-3), verificata la incarcare.
+local function jobsFrom(lineOrder: { string }, sellerOrder: { string }): { [string]: Job }
+    local out: { [string]: Job } = {}
+    for _, line in lineOrder do
+        local jobs = StationConfig.STEP_JOBS[line]
+        for i, step in StationConfig.LINES[line].steps do
+            out[step.role] = { line = line, job = jobs[i] }
+        end
     end
+    for _, seller in sellerOrder do
+        out[StationConfig.SELLERS[seller].role] = { seller = seller, job = "sell" }
+    end
+    return out
 end
-for _, seller in StationConfig.SELLER_ORDER do
-    jobs[StationConfig.SELLERS[seller].role] = { seller = seller, job = "sell" }
+
+function HandRoutes.context(
+    flow: FlowConfig.Model,
+    linePlaces: { [string]: TycoonConfig.LinePlaces },
+    joinPlaces: { [string]: TycoonConfig.JoinPlaces },
+    sellerPlaces: { [string]: TycoonConfig.SellerPlaces },
+    roads: boolean
+): Context
+    return {
+        flow = flow,
+        jobs = jobsFrom(flow.lineOrder, flow.sellerOrder),
+        linePlaces = linePlaces,
+        joinPlaces = joinPlaces,
+        sellerPlaces = sellerPlaces,
+        roads = roads,
+    }
 end
-function HandRoutes.jobOf(role: string): Job?
-    return jobs[role]
+-- Contextul jocului: erele din joc (StationConfig.ENGINE_ERAS), locurile de pe harta, drumurile. Barajul n-are inca locuri.
+local GAME = HandRoutes.context(
+    FlowConfig.GAME,
+    TycoonConfig.LINE_PLACES,
+    TycoonConfig.JOIN_PLACES,
+    TycoonConfig.SELLER_PLACES,
+    true
+)
+HandRoutes.GAME = GAME
+
+function HandRoutes.jobOf(role: string, w: Context?): Job?
+    return (w or GAME).jobs[role]
 end
 
 -- Unde lasa fiecare meserie de drum ce duce, la CAPATUL drumului: un loc din FlowConfig sau un vanzator.
-function HandRoutes.endPlace(role: string): string?
-    local j = jobs[role]
+function HandRoutes.endPlace(role: string, w: Context?): string?
+    local ctx = w or GAME
+    local j = ctx.jobs[role]
     if j == nil or j.line == nil then
         return nil
     end
-    local flow = FlowConfig.LINES[j.line]
+    local flow = ctx.flow.lines[j.line]
     if j.job == "collect" then
         return flow.store
     elseif j.job == "port" then
         return flow.processor
     elseif j.job == "haul" then
+        -- [D70] o piesa nu se vinde: merge la atelierul unirii ei (Relay-ul)
+        local into = flow.into
+        if into ~= nil then
+            return ctx.flow.lines[into].processor
+        end
         return flow.seller
     end
     return nil
 end
 
-function HandRoutes.isWalker(role: string): boolean
-    return HandRoutes.endPlace(role) ~= nil
+function HandRoutes.isWalker(role: string, w: Context?): boolean
+    return HandRoutes.endPlace(role, w) ~= nil
 end
 
 -- [D56] Ce fel de plase goleste o meserie de culegator: Collector-ul pe cele de lemn, Scrap Collector-ul pe cea de
 -- scrap, [D65] Mill Collector-ul pe ale Morii, Ore Collector-ul pe cea de minereu. nil = meseria nu goleste plase.
-function HandRoutes.netKindOf(role: string): string?
-    local j = jobs[role]
+function HandRoutes.netKindOf(role: string, w: Context?): string?
+    local j = (w or GAME).jobs[role]
     if j == nil or j.line == nil or j.job ~= "collect" then
         return nil
     end
@@ -108,8 +157,9 @@ end
 
 -- De unde ia un om la o oprire care nu e plasa: numele opririi e chiar locul din FlowConfig (magazia liniei sau
 -- iesirea atelierului ei). nil = oprirea e o plasa.
-function HandRoutes.takePlace(stopId: string): string?
-    if FlowConfig.BY_STORE[stopId] ~= nil or FlowConfig.BY_OUTPUT[stopId] ~= nil then
+function HandRoutes.takePlace(stopId: string, w: Context?): string?
+    local flow = (w or GAME).flow
+    if flow.byStore[stopId] ~= nil or flow.byOutput[stopId] ~= nil then
         return stopId
     end
     return nil
@@ -122,9 +172,10 @@ function HandRoutes.collectorNets(
     ownedNetIds: { string },
     index: number,
     count: number,
-    role: string?
+    role: string?,
+    w: Context?
 ): { string }
-    local kind = HandRoutes.netKindOf(role or "collector") or "wood"
+    local kind = HandRoutes.netKindOf(role or "collector", w) or "wood"
     local mine: { string } = {}
     for _, id in ownedNetIds do
         local pad = TycoonConfig.byId[id]
@@ -175,54 +226,99 @@ local function viaBetween(from: HandMath.Point, to: HandMath.Point): { HandMath.
 end
 
 -- O ruta pe drumuri: fiecare oprire isi primeste drumul de la locul dinainte, iar capatul pe cel
--- de la ultima oprire. `face` = incotro sta omul la capat (spre gramada unde lasa).
-local function onRoads(stops: { HandMath.Stop }, endpoint: HandMath.Point, face: string?): Route
+-- de la ultima oprire. `face` = incotro sta omul la capat (spre gramada unde lasa). [D70] `roads = false`: drum drept.
+local function onRoads(
+    stops: { HandMath.Stop },
+    endpoint: HandMath.Point,
+    face: string?,
+    roads: boolean
+): Route
+    local function via(from: HandMath.Point, to: HandMath.Point): { HandMath.Point }
+        return if roads then viaBetween(from, to) else {}
+    end
     local here = endpoint
     for _, s in stops do
         local at = { x = s.x, y = s.y }
-        s.via = viaBetween(here, at)
+        s.via = via(here, at)
         here = at
     end
-    local back = if #stops > 0 then viaBetween(here, endpoint) else nil
+    local back = if #stops > 0 then via(here, endpoint) else nil
     return { stops = stops, endpoint = endpoint, returnVia = back, face = face }
 end
 
 -- Drumul unei meserii de drum [D49, D56, D65]: opririle (de luat) si capatul (unde lasa). Locurile vin din
 -- TycoonConfig.LINE_PLACES / SELLER_PLACES, numele opririlor din FlowConfig (serverul stie din ele de unde ia).
+-- [D70] nil si pentru o linie fara loc pe harta (barajul, pana la harta lui).
 function HandRoutes.routeFor(
     role: string,
     index: number,
     count: number,
-    ownedNetIds: { string }
+    ownedNetIds: { string },
+    w: Context?
 ): Route?
-    local j = jobs[role]
+    local ctx = w or GAME
+    local j = ctx.jobs[role]
     if j == nil or j.line == nil then
         return nil
     end
-    local places = TycoonConfig.LINE_PLACES[j.line]
-    local flow = FlowConfig.LINES[j.line]
-    if j.job == "collect" then
-        local stops: { HandMath.Stop } = {}
-        for _, id in HandRoutes.collectorNets(ownedNetIds, index, count, role) do
-            local pad = TycoonConfig.byId[id]
-            if pad ~= nil and pad.x ~= nil and pad.y ~= nil then
-                -- la plasa sta cu roaba spre dreapta, pe punte
-                table.insert(stops, stop({ x = pad.x :: number, y = pad.y :: number }, id, "right"))
-            end
+    local flow = ctx.flow.lines[j.line]
+    if j.job == "collect" or j.job == "port" then
+        local places = ctx.linePlaces[j.line]
+        if places == nil then
+            return nil
         end
-        -- la magazie rastoarna spre dreapta, unde e gramada ei [D57: magazia e in dreapta aleii]
-        return onRoads(stops, point(places.storeStand), "right")
-    elseif j.job == "port" then
+        if j.job == "collect" then
+            local stops: { HandMath.Stop } = {}
+            for _, id in HandRoutes.collectorNets(ownedNetIds, index, count, role, ctx) do
+                local pad = TycoonConfig.byId[id]
+                if pad ~= nil and pad.x ~= nil and pad.y ~= nil then
+                    -- la plasa sta cu roaba spre dreapta, pe punte
+                    table.insert(
+                        stops,
+                        stop({ x = pad.x :: number, y = pad.y :: number }, id, "right")
+                    )
+                end
+            end
+            -- la magazie rastoarna spre dreapta, unde e gramada ei [D57: magazia e in dreapta aleii]
+            return onRoads(stops, point(places.storeStand), "right", ctx.roads)
+        end
         -- ia de la magazie (gramada in dreapta), lasa la gramada de la intrarea atelierului (in dreapta capatului)
         return onRoads(
-            { stop(places.storeStand, flow.store, "right") },
+            { stop(places.storeStand, flow.store :: string, "right") },
             point(places.processorIn),
-            "right"
+            "right",
+            ctx.roads
         )
     elseif j.job == "haul" then
-        -- ia marfa gata din dreapta atelierului (gramada in stanga opririi), o lasa la usa vanzatorului
-        local door = TycoonConfig.SELLER_PLACES[flow.seller].door
-        return onRoads({ stop(places.processorOut, flow.output, "left") }, point(door), "left")
+        -- ia marfa gata din dreapta atelierului (gramada in stanga opririi): al liniei, sau al unirii (Pylon Runner-ul)
+        local line = ctx.linePlaces[j.line]
+        local union = ctx.joinPlaces[j.line]
+        local out = if line ~= nil
+            then line.processorOut
+            elseif union ~= nil then union.processorOut
+            else nil
+        if out == nil then
+            return nil
+        end
+        local pickUp = { stop(out, flow.output, "left") }
+        local into = flow.into
+        if into ~= nil then
+            -- [D70] o piesa: la intrarea ei in Relay, cu fata spre gramada ei
+            local join = ctx.joinPlaces[into]
+            local drop = if join ~= nil then join.inputIn[j.line] else nil
+            if join == nil or drop == nil then
+                return nil
+            end
+            local pile = join.inPiles[j.line]
+            local face = if pile ~= nil and pile.x < drop.x then "left" else "right"
+            return onRoads(pickUp, point(drop), face, ctx.roads)
+        end
+        -- o lasa la usa vanzatorului
+        local seller = ctx.sellerPlaces[flow.seller :: string]
+        if seller == nil then
+            return nil
+        end
+        return onRoads(pickUp, point(seller.door), "left", ctx.roads)
     end
     return nil
 end
@@ -232,9 +328,10 @@ function HandRoutes.cycleFor(
     role: string,
     index: number,
     count: number,
-    ownedNetIds: { string }
+    ownedNetIds: { string },
+    w: Context?
 ): HandMath.Cycle
-    local route = HandRoutes.routeFor(role, index, count, ownedNetIds)
+    local route = HandRoutes.routeFor(role, index, count, ownedNetIds, w)
     if route == nil then
         return { legs = {}, duration = 0 }
     end
@@ -257,18 +354,29 @@ function HandRoutes.loadFor(rate: number, duration: number): number
 end
 
 -- Locul unui om static [D56, D65]: omul atelierului langa atelierul liniei lui, omul vanzatorului la tejgheaua lui.
--- Al doilea sta alaturi (`secondOffset`).
-function HandRoutes.standFor(role: string, index: number): HandMath.Point?
-    local j = jobs[role]
+-- Al doilea sta alaturi (`secondOffset`). [D70] Relay Keeper-ul sta la Relay (locurile unirii); nil fara loc pe harta.
+function HandRoutes.standFor(role: string, index: number, w: Context?): HandMath.Point?
+    local ctx = w or GAME
+    local j = ctx.jobs[role]
     if j == nil then
         return nil
     end
     local stand, offset
     if j.job == "work" and j.line ~= nil then
-        local places = TycoonConfig.LINE_PLACES[j.line]
-        stand, offset = places.workerStand, places.secondOffset
+        local line = ctx.linePlaces[j.line]
+        local union = ctx.joinPlaces[j.line]
+        if line ~= nil then
+            stand, offset = line.workerStand, line.secondOffset
+        elseif union ~= nil then
+            stand, offset = union.workerStand, union.secondOffset
+        else
+            return nil
+        end
     elseif j.job == "sell" and j.seller ~= nil then
-        local places = TycoonConfig.SELLER_PLACES[j.seller]
+        local places = ctx.sellerPlaces[j.seller]
+        if places == nil then
+            return nil
+        end
         stand, offset = places.stand, places.secondOffset
     else
         return nil

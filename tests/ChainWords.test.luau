@@ -162,6 +162,8 @@ return function()
                 for _, seller in StationConfig.SELLER_ORDER_ALL do
                     check.is_true(Strings.LINK_WORDS[seller] ~= nil)
                     check.is_true(Strings.BUILDING_WORDS[seller] ~= nil)
+                    -- fara ele, refuzul unui vanzator ar fi spus textul Pietei
+                    check.is_true(Strings.SELLER_WORDS[seller] ~= nil)
                     -- randul are 560 la marimea mica: 66 de litere de pixeli [2026-09-15]
                     check.is_true(#Strings.stationsAdvice(seller) <= 72)
                 end

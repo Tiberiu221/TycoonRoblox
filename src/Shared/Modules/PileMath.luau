@@ -71,8 +71,10 @@ function PileMath.addItems(counts: Counts, items: { Catch })
 end
 
 -- Scoate cel mult `n` bucati, in ordinea cheilor: aceeasi gramada da mereu aceleasi bucati, pe server
--- si in teste. `cut` = bucatile ies marcate ca taiate (din gramezile de marfa taiata).
-function PileMath.take(counts: Counts, n: number, cut: boolean?): { Catch }
+-- si in teste. `cut` = bucatile ies marcate ca taiate (din gramezile de marfa taiata). [D70] `first`: cheile luate
+-- intai, in ordinea data (orasul vinde lingourile inaintea curentului, ca `priority`); restul dupa ele, in ordinea
+-- cheilor. Fara `first`, exact ca inainte.
+function PileMath.take(counts: Counts, n: number, cut: boolean?, first: { string }?): { Catch }
     local out: { Catch } = {}
     local want = math.floor(n)
     if want <= 0 then
@@ -80,11 +82,21 @@ function PileMath.take(counts: Counts, n: number, cut: boolean?): { Catch }
     end
     local keys: { string } = {}
     for key, v in counts do
-        if v > 0 then
+        if v > 0 and (first == nil or table.find(first, key) == nil) then
             table.insert(keys, key)
         end
     end
     table.sort(keys)
+    if first ~= nil then
+        local ordered: { string } = {}
+        for _, key in first do
+            if (counts[key] or 0) > 0 then
+                table.insert(ordered, key)
+            end
+        end
+        table.move(keys, 1, #keys, #ordered + 1, ordered)
+        keys = ordered
+    end
     for _, key in keys do
         local take = math.min(counts[key], want - #out)
         for _ = 1, take do

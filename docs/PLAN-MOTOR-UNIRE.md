@@ -586,3 +586,109 @@ comutatorul de cartier al panoului.
 
 **Următorul pas: i** (`FlowConfig`, `FlowMath.assemble`, `HandRoutes` cu `job`).
 
+## 15. Cum a ieșit pasul i (2026-10-02)
+
+**Cum s-a ales forma:** un workflow cu trei cititori (cine citește modulele, ce îi trebuie serverului la pasul j,
+simulatorul și harta), două variante independente (minimală și „datele întâi”) și un judecător. S-a luat varianta
+minimală, cu bucăți din cealaltă.
+
+**Ce e nou:**
+- **`FlowConfig`:**
+  - Rândurile tuturor erelor stau în `LINES_ALL` / `SELLERS_ALL`, iar `model(lineOrder, sellerOrder)` face
+    `GAME` (erele din joc) și `FULL` (cu barajul).
+  - `LINES`, `SELLERS`, `BY_*` și `PILES` sunt cele ale lui `GAME`, ca până acum.
+  - Barajul are rândurile lui:
+    - **barrels:** `damStore`, `switchyard`, `barrel`;
+    - **cable:** `cableStore`, `cableworks`, `cable`;
+    - **grid**, unirea: fără magazie; `inputPiles` pe linia piesei, `RelayBarrelPile` / `RelayCablePile`; `relay`;
+      `grid`; refuzul `part_to_relay`;
+    - **crystal:** `crystalShed`, `kiln`, `ingot`;
+    - orașul (`TownPile`), fără găsiri.
+- **Verificări la încărcare**, pe toate erele:
+  - unirea n-are magazie, marfă brută sau găsiri;
+  - produsul ei e `value`, iar piesele, în ordinea rețetei, sunt `TycoonConfig.JOINED`;
+  - locurile și grămezile nu se repetă.
+- **`takeOrder` e derivat:** ordinea în care vinde orașul (`ingot` înaintea lui `grid`, ca `priority`). Cheile
+  alfabetice ar fi vândut întâi curentul, mai ieftin: -28% în starea „orașul plin”. La vânzătorii Erelor 1–3 ordinea
+  cheilor e chiar `priority`, deci nu primesc nimic.
+- **`FlowMath` primește modelul la coadă** (implicit `GAME`) și funcții noi:
+  - `partOf` (piesa → unirea ei);
+  - `split` primește piesele gata la Relay, iar un rând al barajului cu modelul jocului pică;
+  - `dropJoin` (o grămadă lipsă pică, nu pierde bucăți);
+  - `useJoin`;
+  - `joinWaiting` („Waiting for cable”);
+  - `assemble`: `min(întregi, butoaie, cablu)`; restul sub 1 nu se strânge și se pierde cu o intrare goală;
+  - `deliver` refuză piesele cu `part_to_relay`;
+  - `drainOrder`.
+- **`PileMath.take`** primește ordinea opțional.
+- **`StationConfig.stepJobs` / `STEP_JOBS` / `STEP_OF_JOB`:** meseria fiecărui pas (`job` scris pe pașii unirii,
+  altfel după poziție), verificată la încărcare. O unire viitoare fără `job` ar fi primit „collect” pe atelier.
+- **`HandRoutes` primește un context** (liniile, meseriile, locurile, drumurile):
+  - cărăușii pieselor duc la intrarea lor în Relay;
+  - Pylon Runner-ul duce de la Relay la oraș;
+  - fără loc pe hartă, niciun drum, fără eroare.
+  
+  `TycoonConfig.JOIN_PLACES` e gol până la harta barajului.
+
+**Verificat:**
+- 744 de teste. Între ele:
+  - convergența unirii pe multe tick-uri;
+  - „orașul plin” pe grămezi (cristalul întâi, ca `GOLDEN_ERA4` × 1000);
+  - drumurile pe locuri inventate;
+  - gardurile.
+- **A/B:** modulele din HEAD față de cele noi, pe tot ce citește jocul (Erele 1–3, toate meseriile, 54 de plase): 131.754
+  de comparații, 0 diferențe.
+
+**Pentru pasul j** (lista judecătorului, plus verificatorul). `ENGINE_ERAS = 4` intră abia când e făcut tot ce urmează,
+altfel primul push strică jocul tuturor:
+- **pornirea:** `ENGINE_ERAS = 4`; testele de adormire se rescriu (`#PILES` 34, ChainMath.test).
+- **profilul v19:** cele 13 grămezi și numărătorile noi, în șablon și în migrare.
+- **`EconomyService`:**
+  - tick-ul face `assemble` pe uniri și sare liniile închise;
+  - `processorSpeed` folosește `joinWaiting`, `UseProcessor` → `useJoin`;
+  - `DropAt("relay")` → `dropJoin`, iar `HandService.drop` șterge `hand.carry` abia după ce `DropAt` întoarce și păstrează
+    restul;
+  - `DropAt` la un vânzător filtrează piesele;
+  - scurgerea folosește `drainOrder`;
+  - câmpul `waiting` („Waiting for cable”);
+  - `stamp`-ul unirii; `DevFillPile` pentru unire.
+- **`SackSnapshot`:** piesele gata se numără separat (de pildă `partBy[unire]`, prin `FlowMath.partOf`), nu în `rawBy`.
+  Altfel butoaiele gata trimit la Switchyard („take the batteries to the Switchyard”), iar cardul magaziei oferă „Drop”.
+- **Instantaneele** (`StoreSnapshotOf`, `ProcessorSnapshotOf`, `NetServer.flowSnapshot`) știu de unire: fără magazie,
+  intrările din `joins`. Altfel `pileOf(data, nil)` crapă la fiecare stare trimisă.
+- **`StationService`:** garda pe `seller` nil în `BUILDING_ROWS`; steagul `dam` din profil; platformele Kiln și Crystal
+  Shed. Un test cere ca fiecare `pad` din FULL să existe, iar nicio platformă să nu poarte numele unui loc din FlowConfig.
+- **Platformele angajărilor barajului** poartă lanțul `needs.after` din `ERA4_UNLOCKS` (cableCollector → cablePorter →
+  cablemaker → cableHauler → relayKeeper → pylonRunner; cristalul după Crystal Shed). Paza negativă arată că ordinea ține
+  monotonia. Testul de lanț din TycoonConfig.test se extinde, iar simulatorul citește `needs.after` și pică dacă
+  ordinea diferă.
+- **Clientul, înainte de pornire:**
+  - `Bootstrap` (bucla `sellerOpenPad` sare `seller` nil);
+  - `Overlay.luau` :273 și :810, cu locul unirii din `JOIN_PLACES`;
+  - `GuideMath`, care indexează `LINE_PLACES` pe linie, ia rolul din `STEP_OF_JOB`.
+  
+  Un test Lune rulează aceste bucle pe ordinea FULL.
+- **Harta:** `LINE_PLACES` pentru barrels, cable, crystal; `JOIN_PLACES.grid`; `SELLER_PLACES.town`. Cu ele,
+  `lampHitsWorker` și testele de așezare trec și pe `JOIN_PLACES`, iar `HandRoutes` primește graful de drumuri al lumii
+  2 (cheia cache-ului pe graf).
+- **`DamService`:** marfa și găsirile erelor vechi din traistă, grămezile vânzătorilor vechi, `hand.carry` al veteranilor.
+
+**Pentru k:**
+- `Strings` pentru codurile noi de refuz;
+- `placeResult` cu `part_to_relay` („Barrels and cable go to the Relay Station”);
+- `hint` / `hintedBy` pe liniile barajului;
+- indiciul la livrarea parțială [D43];
+- `LineController` pentru unire (două grămezi la Relay);
+- copierea explicită a lui `waiting`;
+- `GuideMath` și `LineController` trec de la `steps[n]` la `STEP_OF_JOB`.
+
+**Deja făcute în i:**
+- bucla `DROP_AT` din `Overlay` sare liniile fără loc, iar la o unire ia intrarea primei piese;
+- iconițele din panou și din meniul obiectului vin din `STEP_JOBS`, nu din poziție;
+- `SELLER_WORDS.town`.
+
+**Simulatorul, tot azi (6aeb879 și pasul i):**
+- **monotonia:** pe fiecare stare nouă (după fiecare cumpărătură), înaintea scurtăturilor capitolului și ale
+  quest-urilor, nicio opțiune de pe ecran nu scade venitul;
+- **paza negativă:** Cable Collector-ul angajat ultimul (§8).
+

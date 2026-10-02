@@ -270,7 +270,9 @@ StationConfig.ERA_OF_ROLE = eraOfRole
 --   * LINE_ORDER e ordinea in care se aduna ORICE suma pe linii (virgula mobila: alta ordine ar muta ultimii biti ai
 --     venitului) si in care stau verigile in LINKS. `priority` e ALTA ordine, a vanzatorului: cine ia primul din
 --     capacitatea lui (marfa mai scumpa intai). Azi sunt una inversul celeilalte doar din intamplare.
-export type Step = { role: string, link: string, kind: string }
+--   * [D70] `job` (optional): meseria omului pasului (HandRoutes). Fara ea, dupa pozitie: collect, port, work, haul. O
+--     unire are doar doi pasi (atelierul, drumul la vanzator), deci ii scrie.
+export type Step = { role: string, link: string, kind: string, job: string? }
 export type Line = {
     netKind: string?,
     openFlag: string?,
@@ -417,8 +419,8 @@ local LINES: { [string]: Line } = {
         value = "grid",
         pool = "dam",
         steps = {
-            { role = "relayKeeper", link = "relay", kind = "processor" },
-            { role = "pylonRunner", link = "pylonRun", kind = "walk" },
+            { role = "relayKeeper", link = "relay", kind = "processor", job = "work" },
+            { role = "pylonRunner", link = "pylonRun", kind = "walk", job = "haul" },
         },
     },
     crystal = {
@@ -568,6 +570,63 @@ StationConfig.MANUAL_ROLES = manualRoles
 StationConfig.LINK_OF = linkOf
 StationConfig.LINKS = links
 StationConfig.LINE_OF = lineOf
+
+-- [D70] CE FACE OMUL FIECARUI PAS (HandRoutes): `step.job`, sau dupa pozitie (collect, port, work, haul). `courier` e
+-- rezervat curierului din Era 5 (plan, sectiunea 4). Toate liniile, si cele ale barajului, trec pe aici la incarcare:
+-- o unire viitoare fara `job` ar fi primit in tacere „collect” pe atelier si ar fi golit plasele de lemn.
+StationConfig.JOB_OF_STEP = { "collect", "port", "work", "haul" }
+local JOBS = { collect = true, port = true, work = true, haul = true }
+-- Meseriile pe pozitii, sau nil si de ce nu se leaga. Pur, ca testele sa-l poata intreba pe linii de proba.
+function StationConfig.stepJobs(spec: Line): ({ string }, string?)
+    local out: { string } = {}
+    local seen: { [string]: boolean } = {}
+    local workAt: number? = nil
+    for i, step in spec.steps do
+        local job = step.job or StationConfig.JOB_OF_STEP[i]
+        if job == nil or not JOBS[job] then
+            return out, `pasul {i} ({step.role}): meserie necunoscuta {job}`
+        end
+        if seen[job] then
+            return out, `pasul {i} ({step.role}): {job} de doua ori`
+        end
+        if (job == "work") ~= (step.kind == "processor") then
+            return out, `pasul {i} ({step.role}): doar atelierul are „work”`
+        end
+        seen[job] = true
+        if job == "work" then
+            workAt = i
+        end
+        out[i] = job
+    end
+    if workAt == nil or not seen.haul then
+        return out, "linia n-are atelier sau drum spre capat"
+    end
+    for i, job in out do
+        if (job == "collect" or job == "port") and (i > workAt or spec.netKind == nil) then
+            return out, `pasul {i}: {job} doar inaintea atelierului, pe o linie cu plase`
+        end
+        if job == "haul" and i < workAt then
+            return out, `pasul {i}: haul doar dupa atelier`
+        end
+    end
+    return out, nil
+end
+-- linia -> meseria pe pozitie; linia -> meserie -> pas
+local stepJobs: { [string]: { string } } = {}
+local stepOfJob: { [string]: { [string]: Step } } = {}
+for _, line in StationConfig.LINE_ORDER_ALL do
+    local spec = LINES[line]
+    local jobs, err = StationConfig.stepJobs(spec)
+    assert(err == nil, `StationConfig: linia {line}: {err}`)
+    stepJobs[line] = jobs
+    local byJob: { [string]: Step } = {}
+    for i, step in spec.steps do
+        byJob[jobs[i]] = step
+    end
+    stepOfJob[line] = byJob
+end
+StationConfig.STEP_JOBS = stepJobs
+StationConfig.STEP_OF_JOB = stepOfJob
 
 -- Timpul tau, impartit la pasii fara om. 3.6, nu 1.2 (caratul tau din D48): cu 1.2 impartit la
 -- patru, tu erai veriga slaba din prima secunda si 24 din 27 de cumparaturi din primele 5 minute

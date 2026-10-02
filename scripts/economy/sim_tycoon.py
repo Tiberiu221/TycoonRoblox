@@ -1876,11 +1876,24 @@ def run(rebirths=0, index_found=0, max_seconds=36000, era=None, start=None):
         last_buy_at = s.t
         rows.append((label, kind, price, s.t, after, chain(s).bottleneck))
 
+    scanned = -1  # cate cumparaturi avea starea scanata ultima data (monotonia, mai jos)
     while era["bell"] not in s.bought:
         reprice()
 
         # cumpara tot ce merita, cat timp merita
         while True:
+            # [D70, plan §8] MONOTONIA PE STARILE ATINSE: nicio optiune de pe ecran nu scade venitul, nu doar cele pe care
+            # le cumpara lacomul (verificarea din `buy`). O data pe fiecare stare noua (dupa fiecare cumparatura), inaintea
+            # scurtaturilor capitolului si ale quest-urilor, si o singura data pe era, fel si deblocare in raport.
+            if len(rows) != scanned:
+                scanned = len(rows)
+                income_now = income(s)
+                for label, _price, effect, kind, uid in options(s, prices, era):
+                    g = gain_of(s, effect, income_now)
+                    if g < -1e-9 * max(1.0, income_now):
+                        tag = f"[monotonie {era['name']} {kind} {uid}]"
+                        if not any(tag in v for v in VIOLATIONS):  # VIOLATIONS se goleste intre variantele --robust
+                            VIOLATIONS.append(f"{tag} {label} ar SCADEA venitul cu {big(-g)}/s")
             # OAMENII CAPITOLULUI 1, IN ORDINE, INAINTEA ORICAREI ALTE CUMPARATURI [D52]. Cu o singura
             # plasa, un om adauga ZERO venit (plasa e veriga slaba), deci lacomul nu l-ar lua niciodata;
             # iar fara sa strangi, nivelurile de 1-2 monede ale plasei ar manca banii la nesfarsit. Deci:
@@ -1958,12 +1971,6 @@ def run(rebirths=0, index_found=0, max_seconds=36000, era=None, start=None):
             income_now = income(s)
             for label, price, effect, kind, uid in opts:
                 g = gain_of(s, effect, income_now)
-                # [D70, plan §8] MONOTONIA PE STARILE ATINSE: nicio optiune de pe ecran nu scade venitul, nu doar cele pe
-                # care le cumpara lacomul (verificarea din `buy`). O singura data pe era, pe fel si pe deblocare, ca sa nu umple raportul.
-                if g < -1e-9 * max(1.0, income_now):
-                    tag = f"[monotonie {era['name']} {kind} {uid}]"
-                    if not any(tag in v for v in VIOLATIONS):  # VIOLATIONS se goleste intre variantele din --robust
-                        VIOLATIONS.append(f"{tag} {label} ar SCADEA venitul cu {big(-g)}/s")
                 if price <= 0:
                     scored.append((float("inf"), label, price, effect, kind, uid, g))
                 elif g > 1e-9:

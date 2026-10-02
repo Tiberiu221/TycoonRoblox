@@ -128,7 +128,9 @@ local BULK: { Bulk } = {
 -- veriga cu cladirea lui: "Go to" duce la cladire, al carei nivel e reparatia. Plasele sunt ale tuturor liniilor.
 -- [D65] Din tabelul liniilor, pentru orice era: pana aici lista era scrisa de mana, cu cele zece verigi ale Erei 1.
 type Link = { key: string, kind: string, role: string?, icon: string }
-local WALK_ICONS = { "capacity", "carry", "hammer", "speed" } -- dupa locul pasului in linie: aduna, cara, (atelier), duce
+-- dupa meseria pasului (StationConfig.STEP_JOBS): aduna, cara, duce. [D70] Nu dupa pozitie: la unire, Pylon Runner-ul
+-- e al doilea pas, dar duce.
+local JOB_ICONS = { collect = "capacity", port = "carry", haul = "speed" }
 local CHAIN: { Link } = { { key = "nets", kind = "net", icon = "net" } }
 -- omul cladirii (Sawyer, Smelter, Founder...; Innkeeper, Merchant): fara el, cladirea merge doar cu tine / incet
 local ROLE_OF_BUILDING: { [string]: string } = {}
@@ -146,7 +148,7 @@ for _, line in StationConfig.LINE_ORDER do
                 key = step.link,
                 kind = "crew",
                 role = step.role,
-                icon = WALK_ICONS[k] or "carry",
+                icon = JOB_ICONS[StationConfig.STEP_JOBS[line][k]] or "carry",
             })
         end
     end

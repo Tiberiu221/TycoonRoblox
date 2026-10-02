@@ -716,11 +716,22 @@ function Overlay.Init(d: Deps)
     -- Unde isi lasa un om marfa [D49]: Collector-ul la depozit, Porter-ul la intrarea gaterului,
     -- Hauler-ul la usa tavernei [D50]. "+N" apare chiar acolo, ca drumul marfii sa se vada.
     -- [D65] Din tabelele drumului marfii, pentru orice linie: magazia, intrarea atelierului, usa vanzatorului.
+    -- [D70] o linie fara loc pe harta (barajul, pana la harta lui) nu are unde: sare. O unire n-are magazie; la atelierul
+    -- ei, „+N” apare la intrarea primei piese (fiecare piesa isi are intrarea, JOIN_PLACES).
     local DROP_AT: { [string]: { x: number, y: number } } = {}
     for line, spec in FlowConfig.LINES do
         local places = TycoonConfig.LINE_PLACES[line]
-        DROP_AT[spec.store] = places.storeStand
-        DROP_AT[spec.processor] = places.processorIn
+        local join = TycoonConfig.JOIN_PLACES[line]
+        local store = spec.store
+        if places ~= nil then
+            if store ~= nil then
+                DROP_AT[store] = places.storeStand
+            end
+            DROP_AT[spec.processor] = places.processorIn
+        elseif join ~= nil and spec.joins ~= nil then
+            local first = (spec.joins :: { FlowConfig.Join })[1]
+            DROP_AT[spec.processor] = join.inputIn[first.line]
+        end
     end
     for seller, places in TycoonConfig.SELLER_PLACES do
         DROP_AT[seller] = places.door

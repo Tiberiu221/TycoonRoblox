@@ -569,6 +569,18 @@ export type LinePlaces = {
     outPile: { x: number, y: number },
     secondOffset: { x: number, y: number },
 }
+-- [D70] LOCURILE UNEI UNIRI (Relay-ul): n-are magazie; fiecare piesa isi are intrarea (unde o lasa omul ei) si gramada.
+-- Cheile din `inputIn` / `inPiles` sunt liniile pieselor (StationConfig.LINES[unire].inputs). Datele vin cu harta
+-- barajului (pasul j); pana atunci HandRoutes primeste locuri inventate, in teste.
+export type JoinPlaces = {
+    inputIn: { [string]: { x: number, y: number } },
+    inPiles: { [string]: { x: number, y: number } },
+    processorOut: { x: number, y: number },
+    playerStand: { x: number, y: number },
+    workerStand: { x: number, y: number },
+    outPile: { x: number, y: number },
+    secondOffset: { x: number, y: number },
+}
 export type SellerPlaces = {
     door: { x: number, y: number }, -- locul de vanzare: usa cladirii, pe drum
     stand: { x: number, y: number }, -- unde sta omul vanzatorului
@@ -717,6 +729,10 @@ TycoonConfig.SELLER_PLACES = {
         customerEntry = shifted(TAVERN_CUSTOMER_ENTRY, WORKS_DX),
     },
 } :: { [string]: SellerPlaces }
+-- [D70] Locurile fiecarei UNIRI (Relay-ul barajului), dupa linia ei. Gol pana la harta barajului (pasul j): HandRoutes
+-- nu da drum niciunui om fara loc, iar testele isi aduc locuri inventate. Nu sta in LINE_PLACES: felinarele (lampHitsWorker)
+-- si testele de asezare le parcurg pe toate.
+TycoonConfig.JOIN_PLACES = {} :: { [string]: JoinPlaces }
 
 -- CARTIERELE: puntea, drumurile si curtile fiecaruia. Primul e The Landing, cu tabelele lui de mai sus (DECK, ROADS,
 -- YARDS); al doilea e Moara, aceeasi asezare mutata cu MILL_DX. Strada Morii incepe unde se termina strada satului

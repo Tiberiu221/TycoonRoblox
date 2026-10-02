@@ -7,6 +7,7 @@ local check = frktest.assert.check
 local TycoonConfig = require("../src/Shared/Config/TycoonConfig")
 local StationConfig = require("../src/Shared/Config/StationConfig")
 local HandRoutes = require("../src/Shared/Modules/HandRoutes")
+local TycoonMath = require("../src/Shared/Modules/TycoonMath")
 local CrewMath = require("../src/Shared/Modules/CrewMath")
 
 local function era1Nets(): { string }
@@ -486,5 +487,259 @@ return function()
             local merchant = HandRoutes.standFor("merchant", 1) :: any
             check.equal(merchant.x, TycoonConfig.TRADER_STAND.x + TycoonConfig.MILL_DX)
         end)
+    end)
+    -- [D70] Pasul i: meseriile si drumurile barajului, pe locuri inventate (harta lui vine la pasul j). Jocul nu le vede.
+    test.suite("HandRoutes.GAME - fiecare om al jocului are unde sa fie [D70, pasul i]", function()
+        test.case(
+            "cine merge are drum, cine sta are loc (altfel ar aparea in coltul hartii)",
+            function()
+                local nets = era1Nets()
+                for _, p in TycoonConfig.PADS do
+                    if p.live and p.era > 1 and TycoonMath.netKind(p) ~= nil then
+                        table.insert(nets, p.id)
+                    end
+                end
+                for _, role in StationConfig.ROLES do
+                    local job = HandRoutes.jobOf(role)
+                    check.not_nil(job)
+                    for i = 1, StationConfig.MAX_PEOPLE do
+                        if HandRoutes.isWalker(role) then
+                            check.not_nil(HandRoutes.routeFor(role, i, 2, nets))
+                        elseif job ~= nil and (job.job == "work" or job.job == "sell") then
+                            check.not_nil(HandRoutes.standFor(role, i))
+                        end
+                    end
+                end
+            end
+        )
+    end)
+
+    test.suite("StationConfig.stepJobs - meseria fiecarui pas [D70, pasul i]", function()
+        test.case("pe toate liniile: dupa pozitie, iar unirea isi scrie pasii", function()
+            for _, line in StationConfig.LINE_ORDER_ALL do
+                local want = if line == "grid"
+                    then { "work", "haul" }
+                    else { "collect", "port", "work", "haul" }
+                local jobs = StationConfig.STEP_JOBS[line]
+                check.equal(#jobs, #want)
+                for i, job in want do
+                    check.equal(jobs[i], job)
+                end
+                check.equal(StationConfig.STEP_OF_JOB[line].work.kind, "processor")
+            end
+        end)
+
+        test.case("un rand care nu se leaga e prins la incarcare", function()
+            local grid = table.clone(StationConfig.LINES.grid) :: any
+            grid.steps = {
+                { role = "probeKeeper", link = "probeRelay", kind = "processor" },
+                { role = "probeRunner", link = "probeRun", kind = "walk" },
+            }
+            -- fara `job`, pe pozitie: atelierul ar fi „collect” -> eroare
+            local _, err = StationConfig.stepJobs(grid)
+            check.not_nil(err)
+            local wood = table.clone(StationConfig.LINES.wood) :: any
+            wood.steps = table.clone(wood.steps)
+            wood.steps[4] = table.clone(wood.steps[4])
+            wood.steps[4].job = "courier" -- rezervat Erei 5
+            local _, err2 = StationConfig.stepJobs(wood)
+            check.not_nil(err2)
+            local _, ok = StationConfig.stepJobs(StationConfig.LINES.wood)
+            check.equal(ok, nil)
+        end)
+    end)
+
+    test.suite("HandRoutes - barajul, cu locuri inventate [D70, pasul i]", function()
+        local FlowConfig = require("../src/Shared/Config/FlowConfig")
+        local ChainMath = require("../src/Shared/Modules/ChainMath")
+        local function at(x: number, y: number): { x: number, y: number }
+            return { x = x, y = y }
+        end
+        local function line(x: number): TycoonConfig.LinePlaces
+            return {
+                storeStand = at(x, 100),
+                processorIn = at(x + 100, 100),
+                processorOut = at(x + 200, 100),
+                playerStand = at(x + 150, 140),
+                workerStand = at(x + 150, 60),
+                storePile = at(x + 30, 100),
+                inPile = at(x + 130, 100),
+                outPile = at(x + 170, 100),
+                secondOffset = at(60, 0),
+            }
+        end
+        local relay: TycoonConfig.JoinPlaces = {
+            inputIn = { barrels = at(4000, 100), cable = at(4000, 160) },
+            inPiles = { barrels = at(4030, 100), cable = at(3970, 160) },
+            processorOut = at(4100, 100),
+            playerStand = at(4050, 140),
+            workerStand = at(4050, 60),
+            outPile = at(4080, 100),
+            secondOffset = at(60, 0),
+        }
+        local town: TycoonConfig.SellerPlaces = {
+            door = at(5000, 100),
+            stand = at(5050, 60),
+            pile = at(5030, 100),
+            building = { x = 5000, y = 0, w = 192, h = 144 },
+            secondOffset = at(60, 0),
+            customerSpots = {},
+            customerEntry = at(5200, 100),
+        }
+        local W = HandRoutes.context(
+            FlowConfig.FULL,
+            { barrels = line(1000), cable = line(2000), crystal = line(3000) },
+            { grid = relay },
+            { town = town },
+            false
+        )
+
+        test.case("fiecare pas isi stie meseria: `job` scris, altfel dupa pozitie", function()
+            local JOB_OF_STEP = { "collect", "port", "work", "haul" }
+            for _, l in StationConfig.LINE_ORDER_ALL do
+                local seenProcessor = false
+                for i, step in StationConfig.LINES[l].steps do
+                    local job = (HandRoutes.jobOf(step.role, W) :: HandRoutes.Job).job
+                    check.equal(job, step.job or JOB_OF_STEP[i])
+                    -- atelierul are omul lui care sta; inaintea lui se aduna si se cara, dupa el se duce marfa gata
+                    if step.kind == "processor" then
+                        check.equal(job, "work")
+                        seenProcessor = true
+                    else
+                        check.equal(
+                            job,
+                            if seenProcessor then "haul" elseif i == 1 then "collect" else "port"
+                        )
+                    end
+                end
+            end
+            for _, seller in StationConfig.SELLER_ORDER_ALL do
+                check.equal(
+                    (HandRoutes.jobOf(StationConfig.SELLERS[seller].role, W) :: any).job,
+                    "sell"
+                )
+            end
+        end)
+
+        test.case(
+            "Relay Keeper-ul sta, Pylon Runner-ul duce la oras, carausii pieselor la Relay",
+            function()
+                check.equal(HandRoutes.endPlace("barrelHauler", W), "relay")
+                check.equal(HandRoutes.endPlace("cableHauler", W), "relay")
+                check.equal(HandRoutes.endPlace("pylonRunner", W), "town")
+                check.equal(HandRoutes.endPlace("ingotHauler", W), "town")
+                check.equal(HandRoutes.endPlace("damCollector", W), "damStore")
+                check.equal(HandRoutes.endPlace("cablePorter", W), "cableworks")
+                check.is_false(HandRoutes.isWalker("relayKeeper", W))
+                check.is_false(HandRoutes.isWalker("dispatcher", W))
+                check.equal(HandRoutes.netKindOf("damCollector", W), "dam")
+                check.equal(HandRoutes.netKindOf("cableCollector", W), "cable_ore")
+                check.equal(HandRoutes.netKindOf("crystalCollector", W), "crystal")
+                check.is_true(HandRoutes.netKindOf("pylonRunner", W) == nil)
+                check.is_true(HandRoutes.netKindOf("relayKeeper", W) == nil)
+                local keeper = HandRoutes.standFor("relayKeeper", 1, W) :: any
+                check.equal(keeper.x, relay.workerStand.x)
+                local second = HandRoutes.standFor("relayKeeper", 2, W) :: any
+                check.equal(second.x - keeper.x, relay.secondOffset.x)
+                check.equal((HandRoutes.standFor("dispatcher", 1, W) :: any).x, town.stand.x)
+                check.equal(HandRoutes.takePlace("barrel", W), "barrel")
+                check.equal(HandRoutes.takePlace("grid", W), "grid")
+                check.equal(HandRoutes.takePlace("damStore", W), "damStore")
+            end
+        )
+
+        test.case(
+            "drumul unei piese: de la iesirea atelierului ei la intrarea ei in Relay",
+            function()
+                for part, good in { barrels = "barrel", cable = "cable" } do
+                    local role = if part == "barrels" then "barrelHauler" else "cableHauler"
+                    local route = HandRoutes.routeFor(role, 1, 1, {}, W) :: HandRoutes.Route
+                    check.equal(#route.stops, 1)
+                    check.equal(route.stops[1].padId, good)
+                    check.equal(route.stops[1].x, W.linePlaces[part].processorOut.x)
+                    check.equal(route.endpoint.x, relay.inputIn[part].x)
+                    check.equal(route.endpoint.y, relay.inputIn[part].y)
+                    -- cu fata spre gramada piesei
+                    check.equal(
+                        route.face,
+                        if relay.inPiles[part].x < relay.inputIn[part].x then "left" else "right"
+                    )
+                end
+            end
+        )
+
+        test.case("Pylon Runner-ul: de la iesirea Relay-ului la usa orasului", function()
+            local route = HandRoutes.routeFor("pylonRunner", 1, 1, {}, W) :: HandRoutes.Route
+            check.equal(#route.stops, 1)
+            check.equal(route.stops[1].padId, "grid")
+            check.equal(route.stops[1].x, relay.processorOut.x)
+            check.equal(route.endpoint.x, town.door.x)
+        end)
+
+        test.case("ce duce un om al barajului pe drum e debitul meseriei", function()
+            for _, role in
+                {
+                    "damPorter",
+                    "barrelHauler",
+                    "cablePorter",
+                    "cableHauler",
+                    "pylonRunner",
+                    "crystalPorter",
+                    "ingotHauler",
+                }
+            do
+                for tier = 1, StationConfig.TIER_MAX do
+                    local rate = ChainMath.walkerRate(role, { count = 1, tier = tier })
+                    local cycle = HandRoutes.cycleFor(role, 1, 1, {}, W)
+                    check.is_true(cycle.duration > 0)
+                    local load = HandRoutes.loadFor(rate, cycle.duration)
+                    check.is_true(
+                        math.abs(load / cycle.duration - rate) <= 0.5 / cycle.duration + 1e-9
+                    )
+                end
+            end
+        end)
+
+        test.case("fara locuri pe harta: niciun drum si niciun loc, fara erori", function()
+            local bare = HandRoutes.context(FlowConfig.FULL, {}, {}, {}, false)
+            for _, role in StationConfig.ERA4_ROLES do
+                check.is_true(HandRoutes.routeFor(role, 1, 1, {}, bare) == nil)
+                check.equal(HandRoutes.cycleFor(role, 1, 1, {}, bare).duration, 0)
+                check.is_true(HandRoutes.standFor(role, 1, bare) == nil)
+            end
+        end)
+
+        test.case(
+            "jocul nu-i vede pe oamenii barajului; ai Erelor 1-3 merg exact ca in lumea FULL",
+            function()
+                if StationConfig.ENGINE_ERAS < 4 then
+                    for _, role in StationConfig.ERA4_ROLES do
+                        check.is_true(HandRoutes.jobOf(role) == nil)
+                        check.is_false(HandRoutes.isWalker(role))
+                        check.is_true(HandRoutes.standFor(role, 1) == nil)
+                    end
+                end
+                local full = HandRoutes.context(
+                    FlowConfig.FULL,
+                    TycoonConfig.LINE_PLACES,
+                    {},
+                    TycoonConfig.SELLER_PLACES,
+                    true
+                )
+                local nets = { "first_net", "second_net", "third_net", "far_lane_net", "fifth_net" }
+                for _, role in StationConfig.ROLES do
+                    check.equal(
+                        (HandRoutes.jobOf(role) :: any).job,
+                        (HandRoutes.jobOf(role, full) :: any).job
+                    )
+                    check.equal(HandRoutes.endPlace(role), HandRoutes.endPlace(role, full))
+                    check.equal(HandRoutes.netKindOf(role), HandRoutes.netKindOf(role, full))
+                    local a, b =
+                        HandRoutes.cycleFor(role, 1, 1, nets),
+                        HandRoutes.cycleFor(role, 1, 1, nets, full)
+                    check.equal(a.duration, b.duration)
+                end
+            end
+        )
     end)
 end

@@ -82,7 +82,8 @@ local Z = 60
 -- Panoul arata cartierul ales (The Landing / The Mill), cu verigile si cladirile lui; comutatorul apare abia cand ai
 -- ceva la Moara, deci in Era 1 panoul e exact cel de pana acum. Verigile vin din tabelul liniilor.
 type ChainRow = { key: string, line: string?, icon: string, label: string }
-local WALK_ICONS = { "capacity", "carry", "hammer", "speed" }
+-- dupa meseria pasului (StationConfig.STEP_JOBS), nu dupa pozitie [D70: la unire, al doilea pas duce]
+local JOB_ICONS = { collect = "capacity", port = "carry", haul = "speed" }
 local function chainRowsFor(era: number): { ChainRow }
     local out: { ChainRow } = {}
     local sellersSeen: { [string]: boolean } = {}
@@ -99,7 +100,7 @@ local function chainRowsFor(era: number): { ChainRow }
                 key = step.link,
                 line = line,
                 icon = if step.kind ~= "processor"
-                    then WALK_ICONS[k] or "carry"
+                    then JOB_ICONS[StationConfig.STEP_JOBS[line][k]] or "carry"
                     elseif step.link == "saw" then "saw"
                     else "hammer",
                 label = Strings.LINK_WORDS[step.link].label,
