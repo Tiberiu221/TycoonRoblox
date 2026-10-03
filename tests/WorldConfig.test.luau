@@ -111,6 +111,58 @@ return function()
         end)
 
         test.case(
+            "[D70, pasul k1] in client, nicio accesorie de lume chemata fara lume in corpul unui modul",
+            function()
+                -- Corpul modulului = ce ruleaza la `require`, inainte ca lumea sa vina de la Bootstrap (Init). Functiile de la
+                -- coloana 0 (`function` / `local function` ... `end`) se sar; restul (si blocurile `do` / `if` de sus) se
+                -- citeste. O accesorie chemata acolo fara lume ar fi luat mereu satul.
+                local CALLS = {
+                    "padsOfWorld()",
+                    "districtsOf()",
+                    "zonesOf()",
+                    "decorOf()",
+                    "spawnOf()",
+                    "linePlacesOf()",
+                    "joinPlacesOf()",
+                    "sellerPlacesOf()",
+                    "deckSpans()",
+                    "streetLamps()",
+                    "wirePoles()",
+                    "homeClearRects()",
+                    "comingEra()",
+                    "VillageDecor.items()",
+                    "WorldMap.forWorld()",
+                    "RoadGraph.forWorld()",
+                    "HandRoutes.forWorld()",
+                }
+                local files = luauFiles("src/Client", {})
+                check.is_true(#files > 40)
+                for _, path in files do
+                    local inFunction = false
+                    for line in string.gmatch(fs.readFile(path), "[^\n]+") do
+                        if
+                            string.match(line, "^function ") ~= nil
+                            or string.match(line, "^local function ") ~= nil
+                        then
+                            inFunction = true
+                        elseif inFunction and string.match(line, "^end") ~= nil then
+                            inFunction = false
+                        elseif not inFunction and string.sub(line, 1, 2) ~= "--" then
+                            for _, call in CALLS do
+                                if string.find(line, call, 1, true) ~= nil then
+                                    print(
+                                        `[WorldConfig] {path}: {call} in corpul modulului: {line}`
+                                    )
+                                    check.is_true(false)
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        )
+
+        test.case(
             "comutatorul local al Erei 4 nu e niciodata comis (scripts/era4_flip.py)",
             function()
                 for _, path in luauFiles("src", {}) do

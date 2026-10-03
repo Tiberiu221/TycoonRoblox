@@ -191,6 +191,8 @@ local function buildTycoonState(player: Player): { [string]: any }
         -- [D65, D67] La fel zona fiecarei ere urmatoare, cu clopotul erei dinainte (ZONE_BELL). Una deschisa dar inca
         -- nefacuta (platformele ei nu sunt `live`) ramane estompata si scrie "coming soon": asta o decide clientul.
         zones = WorldMath.zoneStatuses(deps.Pads.World(player), pads),
+        -- [D70, pasul k1] lumea profilului: clientul e construit pentru o singura lume si ingheata o stare a altei lumi
+        world = deps.Pads.World(player),
         workshop = pads.workshop == "bought",
         -- [D56] parcat odata cu colectia: clientul nu-l mai citeste (insigna atelierului a iesit)
         pile = deps.Workshop.PileCount(player),

@@ -17,14 +17,17 @@ local Strings = require(ReplicatedStorage.Shared.Config.Strings)
 local TitleMath = require(ReplicatedStorage.Shared.Modules.TitleMath) -- [D71] titlurile seriei zilnice
 local FlowConfig = require(ReplicatedStorage.Shared.Config.FlowConfig)
 local StationConfig = require(ReplicatedStorage.Shared.Config.StationConfig)
+local WorldConfig = require(ReplicatedStorage.Shared.Config.WorldConfig) -- [D70, pasul k1]
 -- [D65, D67] Platforma care deschide fiecare vanzator al erelor noi: a atelierului primei lui linii (FlowConfig).
 local sellerOpenPad: { [string]: string } = {}
 local sellerSeen: { [string]: boolean } = {}
 for _, line in StationConfig.LINE_ORDER do
     local spec = FlowConfig.LINES[line]
-    if not sellerSeen[spec.seller] then
-        sellerSeen[spec.seller] = true
-        sellerOpenPad[spec.seller] = spec.processorPad -- nil pentru taverna: e deschisa de la inceput
+    -- [D70] o piesa a unei uniri n-are vanzator (se vinde doar unita): fara garda, `sellerSeen[nil]` oprea tot clientul
+    local seller = spec.seller
+    if seller ~= nil and not sellerSeen[seller] then
+        sellerSeen[seller] = true
+        sellerOpenPad[seller] = spec.processorPad -- nil pentru taverna: e deschisa de la inceput
     end
 end
 local AudioLevels = require(ReplicatedStorage.Shared.Modules.AudioLevels)
@@ -129,6 +132,22 @@ backdrop.Parent = worldGui
 
 local hudCanvas = attachHudScale(hudGui)
 
+-- [D70, pasul k1] LUMEA, CITITA O SINGURA DATA, dupa profil: serverul pune atributul `World` inaintea lui `SaveLoaded`
+-- (DataService). Cat profilul nu vine (cel mult 25 s, ca ecranul de incarcare), satul. De aici o primesc controllerele,
+-- explicit (`Init({ World = world })`); nimic din client nu citeste atributul singur. O stare a altei lumi (ridicarea
+-- barajului, o unealta de proba) nu se deseneaza peste harta asta: clientul asteapta reincarcarea (k8).
+local world: number
+do
+    local started = os.clock()
+    while player:GetAttribute("SaveLoaded") ~= true and os.clock() - started < 25 do
+        task.wait(0.1)
+    end
+    world = WorldConfig.sanitize(player:GetAttribute("World"))
+    if player:GetAttribute("SaveLoaded") ~= true then
+        warn("[Driftwood] profilul n-a venit in 25 s: clientul porneste pe harta satului")
+    end
+end
+
 local CameraController = require(Controllers.CameraController)
 local CharacterController = require(Controllers.CharacterController)
 local DevPanelController = require(Controllers.DevPanelController)
@@ -168,7 +187,7 @@ local DriftController = require(Controllers.DriftController) -- [D62, pasul 3]
 local DamController = require(Controllers.DamController) -- [D70, pasul j15]
 local AmbientController = require(Controllers.AmbientController) -- [D62, pasul 5]
 local Theme = require(UI.Theme)
-local layers = CameraController.Init({ WorldGui = worldGui })
+local layers = CameraController.Init({ WorldGui = worldGui, World = world })
 
 -- Agentul F scrie Overlay.luau chiar acum, in paralel -- daca fisierul inca nu exista cand
 -- rulez poarta, ramanem fara el in loc sa picam tot bootstrap-ul [F1 spec 4.9].
@@ -201,11 +220,16 @@ safeInit("CharacterController", function()
             -- sarea ~140 px la primul pas [verificator, 2026-09-30].
             LookController.Cancel()
         end,
+        World = world, -- [D70, pasul k1] spawn-ul si zidurile hartii tale
     })
 end)
-safeInit("LookController", function()
-    LookController.Init({ CharacterPos = CharacterController.Position })
-end)
+-- [D70, pasul k1] privirea spre satul vechi (treptele modernizarii) e doar a satului: la baraj nu porneste, iar fara ea
+-- butonul „Look (V)” nu apare (LookController e tacut fara Init)
+if world == 1 then
+    safeInit("LookController", function()
+        LookController.Init({ CharacterPos = CharacterController.Position })
+    end)
+end
 
 -- [D70] Bannerul unei trepte a modernizarii (sau al felinarelor aprinse), cu butonul "Look (V)" cand locul schimbat, din
 -- satul vechi, nu e pe ecran: o privire de 4 s spre el (LookController).
@@ -254,11 +278,12 @@ safeInit("RiverRenderController", function()
     RiverRenderController.Init({
         Layers = layers,
         RiverConfig = Net.Get("RiverConfig"),
+        World = world, -- [D70, pasul k1] fundalul, raul si decorul din larg ale hartii tale
     })
 end)
 -- [D62, pasul 5] pasarile care trec peste sat (doar desen)
 safeInit("AmbientController", function()
-    AmbientController.Init({ Scroll = layers.Scroll })
+    AmbientController.Init({ Scroll = layers.Scroll, World = world })
 end)
 -- [D62, pasul 3] darurile raului: devreme, ca sa prinda configul raului (samanta); zborul monedelor se leaga mai jos
 safeInit("DriftController", function()
@@ -268,6 +293,7 @@ safeInit("DriftController", function()
         RiverConfig = Net.Get("RiverConfig"),
         Remotes = { GrabDrift = Net.Get("GrabDrift"), DriftGrabbed = Net.Get("DriftGrabbed") },
         OnToast = HUDController.Toast,
+        World = world, -- [D70, pasul k1] puntile de pe care se scoate un dar si zidul peste care nu se vede
     })
 end)
 safeInit("ZoneController", function()
@@ -285,33 +311,36 @@ safeInit("LampController", function()
 end)
 -- [D70] satul vechi se modernizeaza pe trepte in Era 3; fiecare treapta noua se anunta [D43], pe rand, dupa toastul
 -- cumparaturii care a urcat-o (ModernController o tine la coada)
-safeInit("ModernController", function()
-    ModernController.Init({
-        Plot = layers.Plot,
-        Refresh = {
-            SawmillController.RefreshModern,
-            DockController.RefreshModern,
-            StorageController.RefreshModern,
-            PadController.RefreshModern,
-            HandRenderController.SetModern,
-            LampController.RefreshModern, -- [D73] felinarele apar odata cu stalpii
-        },
-        OnStage = function(stage: number)
-            local line = Strings.MODERN_STAGE[stage]
-            if line ~= nil then
-                modernMoment(line, stage)
-            end
-        end,
-        Look = function(x: number, y: number, note: string)
-            Panels.CloseAll()
-            HUDController.Toast(note)
-            local origin = TycoonConfig.PLOT_ORIGIN
-            LookController.Look(x + origin.x, y + origin.y)
-        end,
-    })
-    -- [2026-09-30] masa cu planurile barajului: cardul ei spune ce vine
-    InteractController.AddSource(ModernController.Focus)
-end)
+-- [D70, pasul k1] doar in sat: treptele lui, stalpii, masa Dam Plans
+if world == 1 then
+    safeInit("ModernController", function()
+        ModernController.Init({
+            Plot = layers.Plot,
+            Refresh = {
+                SawmillController.RefreshModern,
+                DockController.RefreshModern,
+                StorageController.RefreshModern,
+                PadController.RefreshModern,
+                HandRenderController.SetModern,
+                LampController.RefreshModern, -- [D73] felinarele apar odata cu stalpii
+            },
+            OnStage = function(stage: number)
+                local line = Strings.MODERN_STAGE[stage]
+                if line ~= nil then
+                    modernMoment(line, stage)
+                end
+            end,
+            Look = function(x: number, y: number, note: string)
+                Panels.CloseAll()
+                HUDController.Toast(note)
+                local origin = TycoonConfig.PLOT_ORIGIN
+                LookController.Look(x + origin.x, y + origin.y)
+            end,
+        })
+        -- [2026-09-30] masa cu planurile barajului: cardul ei spune ce vine
+        InteractController.AddSource(ModernController.Focus)
+    end)
+end
 safeInit("PadController", function()
     PadController.Init({
         Plot = layers.Plot,
@@ -329,28 +358,27 @@ end)
 -- [D65] liniile si vanzatorii Erei 2 (LineController), dupa numele liniei si al vanzatorului
 local millLines: { [string]: LineController.Line } = {}
 local millSellers: { [string]: LineController.Seller } = {}
-safeInit("StorageController", function()
-    StorageController.Init({
-        Plot = layers.Plot,
-        Remotes = { UseStorage = Net.Get("UseStorage") },
-        CharacterPos = CharacterController.Position,
-        OpenCrew = openCrew,
-    })
-end)
+-- [D70, pasul k1] LUCRURILE SATULUI (depozitul, shed-ul, forja, Moara, Wire Works, gaterul, taverna) pornesc doar in sat:
+-- la baraj locurile lor sunt ale altor cladiri. Starea nu le mai cere nimic acolo (vezi `world == 1` din TycoonState).
+if world == 1 then
+    safeInit("StorageController", function()
+        StorageController.Init({
+            Plot = layers.Plot,
+            Remotes = { UseStorage = Net.Get("UseStorage") },
+            CharacterPos = CharacterController.Position,
+            OpenCrew = openCrew,
+        })
+    end)
+end
 -- [D55, D56] Shed-ul de scrap si forja: gramezile lor si gestul tau pe E. Fara Smelter, forja topeste doar cat stai
 -- in inelul ei, ca gaterul.
-safeInit("ShedController", function()
-    ShedController.Init({ Plot = layers.Plot, Remotes = { UseShed = Net.Get("UseShed") } })
-end)
-safeInit("ForgeController", function()
-    ForgeController.Init({
-        Plot = layers.Plot,
-        Remotes = { UseForge = Net.Get("UseForge"), AtForge = Net.Get("AtForge") },
-        CharacterPos = CharacterController.Position,
-    })
-    -- [D65] ERA 2, The Mill: locurile liniilor ei, dupa tabel. Magazia Morii, turnatoria si Piata sunt cladiri fixe
-    -- (apar cu roata de apa); magazia de minereu si cuptorul de cupru sunt platforme, deci le deseneaza PadController.
-    -- Pana la arta lor (docs/PLAN-ERA2.md, pasul 7) poarta desenele perechii din Era 1.
+if world == 1 then
+    safeInit("ShedController", function()
+        ShedController.Init({ Plot = layers.Plot, Remotes = { UseShed = Net.Get("UseShed") } })
+    end)
+end
+-- [D65] liniile dupa tabel (LineController): in ambele lumi; ce linii si vanzatori se deseneaza, dupa lume (k3 = barajul)
+safeInit("LineController", function()
     LineController.Init({
         Plot = layers.Plot,
         Remotes = {
@@ -360,85 +388,102 @@ safeInit("ForgeController", function()
         },
         CharacterPos = CharacterController.Position,
     })
-    -- `own` = desenul cladirii (scripts/art/d65_mill.py), `borrowed` = al perechii din Era 1, purtat cat al ei nu e
-    -- urcat; ruina se vede pe locul ei cat Moara e inchisa
-    local function fixedBuilding(
-        spot: { x: number, y: number, w: number, h: number },
-        own: string,
-        borrowed: string,
-        label: string
-    ): LineController.Building
-        return {
-            x = spot.x,
-            y = spot.y,
-            w = spot.w,
-            h = spot.h,
-            sprite = own,
-            borrowed = borrowed,
-            ruin = "ruin_" .. own,
-            label = label,
-        }
-    end
-    millLines.parts = LineController.line(
-        "parts",
-        fixedBuilding(
-            TycoonConfig.MILL_STORE,
-            "mill_store",
-            "storage",
-            Strings.LINE_WORDS.parts.store
-        ),
-        fixedBuilding(
-            TycoonConfig.FOUNDRY,
-            "foundry",
-            "sawmill",
-            Strings.LINE_WORDS.parts.processor
-        )
-    )
-    millLines.copper = LineController.line("copper", nil, nil)
-    millSellers.market = LineController.seller(
-        "market",
-        fixedBuilding(TycoonConfig.MARKET, "market", "tavern", Strings.MARKET_LABEL)
-    )
-    -- [D67] ERA 3, The Wire Works, la fel: Works Store, Wire Works si Depot sunt cladiri fixe (apar cu masina cu abur);
-    -- Battery Shed si Power House sunt platforme. Pana la arta lor (docs/PLAN-ERA3.md, pasul 7) poarta desenele Morii.
-    millLines.coils = LineController.line(
-        "coils",
-        fixedBuilding(
-            TycoonConfig.WORKS_STORE,
-            "works_store",
-            "mill_store",
-            Strings.LINE_WORDS.coils.store
-        ),
-        fixedBuilding(
-            TycoonConfig.WIRE_WORKS,
-            "wire_works",
-            "foundry",
-            Strings.LINE_WORDS.coils.processor
-        )
-    )
-    millLines.power = LineController.line("power", nil, nil)
-    millSellers.depot = LineController.seller(
-        "depot",
-        fixedBuilding(TycoonConfig.DEPOT, "depot", "market", Strings.LINK_WORDS.depot.label)
-    )
-    for _, line in millLines do
-        InteractController.AddSource(line.FocusStore)
-        InteractController.AddSource(line.FocusProcessor)
-    end
-    for _, seller in millSellers do
-        InteractController.AddSource(seller.Focus)
-    end
 end)
--- Gaterul [D48, D49]: aici se taie; fara Sawyer, doar cat stai langa el.
-safeInit("SawmillController", function()
-    SawmillController.Init({
-        Plot = layers.Plot,
-        Remotes = { UseSawmill = Net.Get("UseSawmill"), AtSawmill = Net.Get("AtSawmill") },
-        CharacterPos = CharacterController.Position,
-        OpenStation = openStation,
-    })
-end)
+if world == 1 then
+    safeInit("ForgeController", function()
+        ForgeController.Init({
+            Plot = layers.Plot,
+            Remotes = { UseForge = Net.Get("UseForge"), AtForge = Net.Get("AtForge") },
+            CharacterPos = CharacterController.Position,
+        })
+        -- [D65] ERA 2, The Mill: locurile liniilor ei, dupa tabel. Magazia Morii, turnatoria si Piata sunt cladiri fixe
+        -- (apar cu roata de apa); magazia de minereu si cuptorul de cupru sunt platforme, deci le deseneaza PadController.
+        -- Pana la arta lor (docs/PLAN-ERA2.md, pasul 7) poarta desenele perechii din Era 1.
+        -- `own` = desenul cladirii (scripts/art/d65_mill.py), `borrowed` = al perechii din Era 1, purtat cat al ei nu e
+        -- urcat; ruina se vede pe locul ei cat Moara e inchisa
+        local function fixedBuilding(
+            spot: { x: number, y: number, w: number, h: number },
+            own: string,
+            borrowed: string,
+            label: string
+        ): LineController.Building
+            return {
+                x = spot.x,
+                y = spot.y,
+                w = spot.w,
+                h = spot.h,
+                sprite = own,
+                borrowed = borrowed,
+                ruin = "ruin_" .. own,
+                label = label,
+            }
+        end
+        millLines.parts = LineController.line(
+            "parts",
+            fixedBuilding(
+                TycoonConfig.MILL_STORE,
+                "mill_store",
+                "storage",
+                Strings.LINE_WORDS.parts.store
+            ),
+            fixedBuilding(
+                TycoonConfig.FOUNDRY,
+                "foundry",
+                "sawmill",
+                Strings.LINE_WORDS.parts.processor
+            )
+        )
+        millLines.copper = LineController.line("copper", nil, nil)
+        millSellers.market = LineController.seller(
+            "market",
+            fixedBuilding(TycoonConfig.MARKET, "market", "tavern", Strings.MARKET_LABEL)
+        )
+        -- [D67] ERA 3, The Wire Works, la fel: Works Store, Wire Works si Depot sunt cladiri fixe (apar cu masina cu abur);
+        -- Battery Shed si Power House sunt platforme. Pana la arta lor (docs/PLAN-ERA3.md, pasul 7) poarta desenele Morii.
+        millLines.coils = LineController.line(
+            "coils",
+            fixedBuilding(
+                TycoonConfig.WORKS_STORE,
+                "works_store",
+                "mill_store",
+                Strings.LINE_WORDS.coils.store
+            ),
+            fixedBuilding(
+                TycoonConfig.WIRE_WORKS,
+                "wire_works",
+                "foundry",
+                Strings.LINE_WORDS.coils.processor
+            )
+        )
+        millLines.power = LineController.line("power", nil, nil)
+        millSellers.depot = LineController.seller(
+            "depot",
+            fixedBuilding(TycoonConfig.DEPOT, "depot", "market", Strings.LINK_WORDS.depot.label)
+        )
+        for _, line in millLines do
+            InteractController.AddSource(line.FocusStore)
+            InteractController.AddSource(line.FocusProcessor)
+        end
+        for _, seller in millSellers do
+            InteractController.AddSource(seller.Focus)
+        end
+    end)
+    -- Gaterul [D48, D49]: aici se taie; fara Sawyer, doar cat stai langa el.
+    safeInit("SawmillController", function()
+        SawmillController.Init({
+            Plot = layers.Plot,
+            Remotes = { UseSawmill = Net.Get("UseSawmill"), AtSawmill = Net.Get("AtSawmill") },
+            CharacterPos = CharacterController.Position,
+            OpenStation = openStation,
+        })
+    end)
+end
+-- [D70, pasul k1] la baraj, din taverna ramane doar pontonul (acelasi loc, pe malul lacului)
 safeInit("DockController", function()
+    if world ~= 1 then
+        DockController.BuildPier(layers.Plot)
+        return
+    end
     DockController.Init({
         Plot = layers.Plot,
         Remotes = {
@@ -462,6 +507,7 @@ safeInit("NetController", function()
         CharacterPos = CharacterController.Position,
         OnToast = HUDController.Toast,
         OpenStation = openStation,
+        World = world, -- [D70, pasul k1] de unde pornesc plutitorii spre plase (fata zidului, la baraj)
     })
 end)
 safeInit("HandRenderController", function()
@@ -547,8 +593,8 @@ safeInit("DamController", function()
             DamRejected = Net.Get("DamRejected"),
             DamFilmSeen = Net.Get("DamFilmSeen"),
         },
-        OnToast = function(text: string)
-            HUDController.Toast(text)
+        OnToast = function(text: string, color: Color3?)
+            HUDController.Toast(text, color)
         end,
     })
 end)
@@ -1046,6 +1092,7 @@ if Overlay ~= nil then
             LookMoment = function(title: string, x: number, y: number)
                 lookMoment(title, { x = x, y = y })
             end,
+            World = world, -- [D70, pasul k1]
         })
         -- [D62] meniul deschis isi arata si el nivelul cumparat (sta de obicei peste obiectul din lume)
         Net.Get("StationUpgraded").OnClientEvent:Connect(
@@ -1064,7 +1111,20 @@ end
 -- doar campurile de care are nevoie, copiate explicit. `snapshot` string acelasi tabel, cu TOATE
 -- campurile din F1 spec 2.1, e cel trimis mai departe la Overlay.Apply -- un singur loc unde se
 -- construieste, ca sa nu se dezalinieze de ce vad propriile mele controllere [F1 spec 4.9].
+-- [D70, pasul k1] GARDA LUMII: clientul e construit pentru o singura harta. Daca lumea profilului se schimba (ridicarea
+-- barajului, o unealta de proba), starea noua nu se mai deseneaza peste harta asta: ramane ultima stare a ei pana la
+-- reincarcare (k8). Si atributul, si campul `world` din stare o spun.
+local frozen = false
+Players.LocalPlayer:GetAttributeChangedSignal("World"):Connect(function()
+    if WorldConfig.sanitize(Players.LocalPlayer:GetAttribute("World")) ~= world then
+        frozen = true
+    end
+end)
 Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
+    if frozen or WorldConfig.sanitize(raw.world) ~= world then
+        frozen = true
+        return
+    end
     -- `pads` e o harta plata (id -> statut): table.clone o inlocuieste in intregime dintr-o
     -- lovitura, exact "wholesale". Buclele explicite de mai jos raman pentru ca acolo fiecare
     -- intrare are mai multe campuri numite -- genul de structura unde s-au pierdut campuri
@@ -1122,9 +1182,10 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
             },
         }
     end
-    -- [D65] fiecare zona din TycoonConfig.ZONES, copiata dupa id (o zona pe care serverul n-o trimite ramane inchisa)
+    -- [D65] fiecare zona a hartii tale, copiata dupa id (o zona pe care serverul n-o trimite ramane inchisa). [D70] Pe
+    -- lumea ta: la baraj, Dam Town si ceata Erei 5
     local zones: { [string]: string } = {}
-    for _, zone in TycoonConfig.ZONES do
+    for _, zone in TycoonConfig.zonesOf(world) do
         local status = raw.zones[zone.id]
         zones[zone.id] = if typeof(status) == "string" then status else "locked"
     end
@@ -1204,6 +1265,8 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
             claimable = rawQuests.claimable,
             everClaimed = rawQuests.everClaimed == true, -- [D51] reflectorul pe carte, o singura data
             lastOfWorld = rawQuests.lastOfWorld == true, -- [D70] ultimul capitol al lumii tale: randul de final
+            -- [D70] era care vine pe harta ta (de la server), pentru randul de final
+            coming = if typeof(rawQuests.coming) == "string" then rawQuests.coming else nil,
             active = if a == nil
                 then nil
                 else {
@@ -1474,6 +1537,7 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
 
     local rawSettings: any = raw.settings or {}
     local snapshot = {
+        world = world, -- [D70, pasul k1] harta pentru care e construit clientul (starea altei harti nu ajunge aici)
         -- [D54] nivelurile sunetului, copiate explicit; o valoare lipsa sau stricata cade pe implicit
         settings = {
             musicLevel = if AudioLevels.valid(rawSettings.musicLevel)
@@ -1535,7 +1599,8 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
     SoundController.Apply(snapshot.settings.soundLevel)
     AudioPanel.Refresh()
     TutorialController.Apply({
-        firstNetBought = snapshot.pads.first_net == "bought",
+        -- [D70] la baraj tutorialul satului e de mult trecut (First Net nici nu e in statusurile hartii)
+        firstNetBought = world ~= 1 or snapshot.pads.first_net == "bought",
         firstSale = snapshot.firsts.sell == true,
         everClaimed = snapshot.quests ~= nil and snapshot.quests.everClaimed,
         claimable = if snapshot.quests ~= nil then snapshot.quests.claimable else 0,
@@ -1589,11 +1654,13 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
     for _, crew in snapshot.stations.crews do
         crewCountsNow[crew.role] = crew.count
     end
-    ModernController.Apply({
-        pads = boughtPads,
-        crews = crewCountsNow,
-        powerSold = snapshot.firsts.power == true,
-    })
+    if world == 1 then
+        ModernController.Apply({
+            pads = boughtPads,
+            crews = crewCountsNow,
+            powerSold = snapshot.firsts.power == true,
+        })
+    end
     -- [D62, pasul 5] nivelul cladirilor lantului, pentru a doua lor infatisare de la pragul 25. Inainte de
     -- PadController.Apply, ca prima desenare a forjei sa aleaga deja desenul potrivit (altfel ar "creste" la intrare).
     for _, row in snapshot.stations.rows do
@@ -1620,9 +1687,11 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
     )
     -- [D55, D65] ce pluteste in larg: marfa pe care plasele tale inca n-o prind. Scrap-ul pana la Fifth Net; minereul
     -- de cand porneste Moara pana la Tenth Net (marfa noua apare cand o poti folosi [D64]).
+    -- [D70] la baraj, nimic promis inca (marfa lui o aduc plasele lui)
     RiverRenderController.SetPromise(
-        if snapshot.pads.fifth_net ~= "bought"
-            then "scrap"
+        if world ~= 1
+            then nil
+            elseif snapshot.pads.fifth_net ~= "bought" then "scrap"
             elseif
                 snapshot.pads.water_wheel == "bought" and snapshot.pads.tenth_net ~= "bought"
             then "ore"
@@ -1640,14 +1709,17 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
         sackState.iron,
         sackState.finds
     )
-    StorageController.Apply(sackState, snapshot.storage, snapshot.stations.woodBottleneck)
-    ShedController.Apply(
-        sackState,
-        snapshot.shed,
-        snapshot.pads.scrap_shed == "bought",
-        snapshot.stations.ironBottleneck
-    )
-    ForgeController.Apply(sackState, snapshot.forge, snapshot.workshop == true)
+    -- [D70, pasul k1] lucrurile satului, doar in sat (la baraj nu sunt pornite)
+    if world == 1 then
+        StorageController.Apply(sackState, snapshot.storage, snapshot.stations.woodBottleneck)
+        ShedController.Apply(
+            sackState,
+            snapshot.shed,
+            snapshot.pads.scrap_shed == "bought",
+            snapshot.stations.ironBottleneck
+        )
+        ForgeController.Apply(sackState, snapshot.forge, snapshot.workshop == true)
+    end
     -- [D65] locurile Morii: fiecare linie isi ia gramezile, platformele care o deschid si veriga ei slaba
     for line, controller in millLines do
         local entry = snapshot.flow.lines[line]
@@ -1668,13 +1740,16 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
             snapshot.pads[sellerOpenPad[seller] or ""] == "bought"
         )
     end
-    SawmillController.Apply(sackState, snapshot.sawmill)
-    DockController.Apply(sackState, snapshot.dock)
+    if world == 1 then
+        SawmillController.Apply(sackState, snapshot.sawmill)
+        DockController.Apply(sackState, snapshot.dock)
+    end
     StationPanel.Apply(snapshot.stations)
     StationMenu.Apply(snapshot.stations)
     HandRenderController.Apply(snapshot.hands)
     ZoneController.Apply(snapshot.zones)
-    DriftController.SetZones(snapshot.zones) -- [D73] darurile se scot de pe puntea oricarui cartier deschis
+    -- [D73] darurile se scot de pe puntea oricarui cartier deschis; [D70] aceeasi regula ca serverul, din platforme
+    DriftController.SetPads(boughtPads)
     LampController.Apply(snapshot.firsts.power == true) -- [D67]
 
     if Overlay ~= nil then

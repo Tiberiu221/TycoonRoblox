@@ -10,6 +10,7 @@ local RunService = game:GetService("RunService")
 
 local Assets = require(ReplicatedStorage.Shared.Config.Assets)
 local RiverConfig = require(ReplicatedStorage.Shared.Config.RiverConfig)
+local worldWidth = RiverConfig.WORLD_WIDTH -- [D70] satul, pana la Init
 
 local AmbientController = {}
 
@@ -80,7 +81,7 @@ local function step(dt: number)
     for i = #birds, 1, -1 do
         local b = birds[i]
         b.x += b.speed * dt
-        if b.x > RiverConfig.WORLD_WIDTH + 60 then
+        if b.x > worldWidth + 60 then
             b.img:Destroy()
             b.shadow:Destroy()
             table.remove(birds, i)
@@ -94,7 +95,9 @@ local function step(dt: number)
     end
 end
 
-function AmbientController.Init(deps: { Scroll: Frame })
+function AmbientController.Init(deps: { Scroll: Frame, World: number? })
+    -- [D70, pasul k1] pasarile ies din harta ta (barajul are 3385 px)
+    worldWidth = ((RiverConfig.WORLDS :: any)[deps.World or 1] or RiverConfig).WORLD_WIDTH
     if not Assets.has(Assets.props.bird) then
         return -- desenul inca neurcat: fara pasari, fara nimic de calculat
     end

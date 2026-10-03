@@ -141,6 +141,10 @@ end
 -- [D51] Cardul tavernei, la usa: vinzi scandurile, cu valoarea lor; cu busteni bruti cardul spune de
 -- ce nu se poate [D43]. Upgrade = nivelul tavernei.
 function DockController.Focus(px: number, py: number): Focus.Focus?
+    -- [D70, pasul k1] nepornit (la baraj, unde locul lui nu exista): niciun card
+    if deps == nil then
+        return nil
+    end
     local d = Focus.distance(px, py, DOCK.x, DOCK.y)
     if d > RiverConfig.INTERACT_DISTANCE then
         return nil
@@ -178,9 +182,10 @@ function DockController.Focus(px: number, py: number): Focus.Focus?
     }
 end
 
-local function buildPier()
-    -- [D59] pontonul lung, pe care mergi pana la capat ca sa pescuiesti; pier3 (scurt, cu baza in acelasi loc) ramane
-    -- plasa de siguranta cat desenul nou nu e inca pe platforma, iar `pier` (vechiul) dupa el
+-- [D59] pontonul lung, pe care mergi pana la capat ca sa pescuiesti; pier3 (scurt, cu baza in acelasi loc) ramane
+-- plasa de siguranta cat desenul nou nu e inca pe platforma, iar `pier` (vechiul) dupa el. [D70, pasul k1] Si la baraj,
+-- pe acelasi loc de pe malul lacului (`DockController.BuildPier`), unde taverna si barca vanzarii nu mai sunt.
+local function pierImage(plot: Frame)
     local long = Assets.has(Assets.tycoon.pier_long)
     local pierSprite = if long
         then Assets.tycoon.pier_long
@@ -200,8 +205,17 @@ local function buildPier()
             pierSprite.height * Assets.PIXEL_SCALE
         )
         img.ZIndex = 3
-        img.Parent = deps.Plot
+        img.Parent = plot
     end
+end
+
+-- Doar pontonul, fara taverna: pe harta barajului (Init nu porneste acolo)
+function DockController.BuildPier(plot: Frame)
+    pierImage(plot)
+end
+
+local function buildPier()
+    pierImage(deps.Plot)
 
     -- barca vanzarii: un singur exemplar, ascuns pana la prima vanzare [research 42 pct.6]
     if Assets.has(Assets.props.boat) then

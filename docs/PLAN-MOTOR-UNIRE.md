@@ -1047,6 +1047,21 @@ la granița CREWS / `DAM_START_COINS`.
   - plutitorii spre plase pornesc de la `CatchFloat.SPAWN_X_BY_WORLD[w]` (x 880 la baraj, fața zidului). La fel decorul din
     larg (`RiverRenderController`), care la baraj pornește de la piciorul deversorului (PLAN-HARTA §5), nu de la marginea
     lacului. Piciorul zidului și spuma se desenează deasupra plutitorilor.
+- **[Făcut, 2026-10-03]** `Bootstrap.client` citește lumea o dată, după `SaveLoaded` (cel mult 25 s, apoi satul, cu
+  avertisment), și o dă explicit: `CameraController` / `CharacterController` (mărimea, spawn-ul și zidurile din
+  `WorldMap.forWorld`), `RiverRenderController` (configul, fundalul, decorul din larg de la `SPAWN_X_BY_WORLD`),
+  `AmbientController`, `DriftController` (`SetPads` cu regula serverului, `xAt` / `activeAt` / `hiddenAt` pe lume),
+  `NetController` (plutitorii), `Overlay` (ghidajul pe meseriile hărții). Garda lumii: o stare cu alt `world` (câmp nou, de
+  la server) sau atributul schimbat îngheață clientul până la reîncărcare (k8). Gaterul, taverna, depozitul, shed-ul, forja,
+  Moara / Wire Works, modernizarea și privirea „Look” nu pornesc la baraj (iar Apply-urile lor rulează doar în sat); din
+  taverna rămâne pontonul (`DockController.BuildPier`); cardurile Storage / Sawmill / Dock tac nepornite; `LineController.Init`
+  e în ambele lumi. `SceneArt.BuildBackground(layers, world)`: lățimea și malurile lumii, fără pământul copt al satului,
+  cu lacul, zidul, deversorul (alb, pulsând), canalul și spuma de la piciorul zidului (în `Plot`, peste plutitori), toate
+  provizorii; legătura `PreRender` se desface când desenul iese din lume (macheta bâlciului). `VillageDecor.items(world)`.
+  Fără garda pe vânzătorul nil, primul rând din Bootstrap ar fi oprit tot clientul la l3. Zonele se copiază după
+  `zonesOf(world)`; tutorialul și promisiunea râului știu de baraj. Rândul de final și „Next” vin de la server (`coming`, pe
+  lume). Test: în `src/Client`, nicio accesorie de lume fără lume în corpul unui modul. **Nevăzut în Studio** (Rojo
+  neconectat): proba din l1 pornește lumea 2 cu comutatorul și se uită la zid, canal, spawn și erori.
 **k2. Platformele, zonele, Overlay și ghidajul pe lume.** Depinde de: k1.
 - Cele 4 bucle din PadController; Overlay (refuzurile, `DROP_AT` cu rezerva de la DOCK); ZoneController (prima zonă a unei
   lumi fără gard); StationPanel; CeremonyController; GuideMath cu țintele lumii 1 doar în lumea 1; Sound și Dock; felinarele pe

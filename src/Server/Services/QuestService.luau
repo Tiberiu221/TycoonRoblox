@@ -8,6 +8,14 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local FlowConfig = require(ReplicatedStorage.Shared.Config.FlowConfig)
 local QuestConfig = require(ReplicatedStorage.Shared.Config.QuestConfig)
+local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
+
+-- [D70, verificatorul fixurilor j10-j12] numele erei care vine pe harta jucatorului (randul de final al listei, „Next” din
+-- bannerul capitolului), socotit pe server: clientul nu mai ghiceste lumea
+local function comingName(world: number?): string?
+    local coming = TycoonConfig.comingEra(world)
+    return if coming ~= nil then coming.name else nil
+end
 local QuestMath = require(ReplicatedStorage.Shared.Modules.QuestMath)
 local VillageLook = require(ReplicatedStorage.Shared.Modules.VillageLook)
 local PassMath = require(ReplicatedStorage.Shared.Modules.PassMath)
@@ -95,6 +103,7 @@ export type Snapshot = {
     everClaimed: boolean,
     -- [D70, pasul j11] capitolul e ultimul din LUMEA jucatorului: randul de final al listei (ce urmeaza) il citeste de aici
     lastOfWorld: boolean,
+    coming: string?, -- [D70] era care vine pe harta ta, sau nil
     -- quest-ul activ, gata de folosit ca obiectiv de ghidaj: un singur adevar pentru sageata,
     -- pentru linia din HUD si pentru banner
     active: {
@@ -136,6 +145,7 @@ function QuestService.Snapshot(player: Player): Snapshot?
         claimable = QuestMath.claimable(chapter, facts),
         everClaimed = next(facts.claimed) ~= nil,
         lastOfWorld = QuestMath.isLastOfWorld(chapter, facts.world),
+        coming = comingName(facts.world),
         active = if active == nil
             then nil
             else {
@@ -172,6 +182,7 @@ export type Claimed = {
     chapterPearls: number,
     chapterCoins: number,
     nextSubtitle: string?,
+    coming: string?, -- [D70] era care vine pe harta ta: „Next” cand capitolul era ultimul al ei
 }
 
 -- Revendicarea unei recompense. Intoarce (reusit, motiv, ce s-a platit) -- motivul ajunge la client ca text, deci
@@ -219,6 +230,7 @@ function QuestService.Claim(player: Player, questId: string): (boolean, string, 
         chapterPearls = 0,
         chapterCoins = 0,
         nextSubtitle = nil,
+        coming = comingName(facts.world),
     }
     -- [D62] ultimul quest al capitolului: se plateste si capitolul
     local closed = QuestMath.chapterClosedBy(questId, data.Quests.claimed)
@@ -233,9 +245,11 @@ function QuestService.Claim(player: Player, questId: string): (boolean, string, 
         if paid.chapterPearls > 0 then
             EconomyService.AddPearls(player, paid.chapterPearls, "chapter")
         end
-        for i, chapter in QuestConfig.CHAPTERS do
-            if chapter == closed and QuestConfig.CHAPTERS[i + 1] ~= nil then
-                paid.nextSubtitle = QuestConfig.CHAPTERS[i + 1].subtitle
+        -- [D70] capitolul urmator pe harta ta (dupa capitolul 9 din sat, barajul e alta harta: „Next” spune era care vine)
+        local chapters = QuestConfig.chaptersOfWorld(facts.world)
+        for i, chapter in chapters do
+            if chapter.id == closed.id and chapters[i + 1] ~= nil then
+                paid.nextSubtitle = chapters[i + 1].subtitle
             end
         end
     end

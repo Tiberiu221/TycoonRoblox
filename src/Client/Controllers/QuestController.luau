@@ -12,7 +12,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Strings = require(ReplicatedStorage.Shared.Config.Strings)
 local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
 local QuestConfig = require(ReplicatedStorage.Shared.Config.QuestConfig)
-local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 local QuestMath = require(ReplicatedStorage.Shared.Modules.QuestMath)
 
 local Panels = require(script.Parent.Panels)
@@ -36,6 +35,7 @@ export type Snapshot = {
     total: number,
     claimable: number,
     lastOfWorld: boolean?, -- [D70] capitolul e ultimul al lumii tale
+    coming: string?, -- [D70] era care vine pe harta ta (serverul o stie), sau nil
     active: { id: string, text: string, progress: number, goal: number }?,
 }
 
@@ -260,7 +260,7 @@ local function refresh(snap: Snapshot)
     end
     -- rand de final: ultimul capitol al lumii tale (serverul il stie, dupa capitolele lumii), revendicat tot, si o era
     -- care vine
-    local coming = TycoonConfig.comingEra()
+    local coming = snap.coming
     local allClaimed = #shown > 0
     for _, row in shown do
         if row.state ~= "claimed" then
@@ -270,7 +270,7 @@ local function refresh(snap: Snapshot)
     local showFinale = coming ~= nil and snap.lastOfWorld == true and allClaimed
     finale.Visible = showFinale
     if showFinale and coming ~= nil then
-        finaleTitle.Text = Strings.eraComing(coming.name)
+        finaleTitle.Text = Strings.eraComing(coming)
         finaleTitle.TextSize =
             Theme.fitSize(finaleTitle.Text, Theme.TEXT.body, "display", FINALE_TEXT_W)
     end
@@ -412,9 +412,9 @@ function QuestController.Init(d: Deps)
                     then paid.nextSubtitle
                     else nil
                 -- [2026-09-30] ultimul capitol din joc: "Next" spune era care vine, nu tace
-                local coming = TycoonConfig.comingEra()
+                local coming = if typeof(paid.coming) == "string" then paid.coming else nil
                 if nextSubtitle == nil and coming ~= nil then
-                    nextSubtitle = Strings.eraComingNext(coming.name)
+                    nextSubtitle = Strings.eraComingNext(coming)
                 end
                 onChapter(
                     Strings.chapterDone(title, subtitle),

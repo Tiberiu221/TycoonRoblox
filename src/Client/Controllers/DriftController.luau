@@ -30,6 +30,7 @@ export type Deps = {
     RiverConfig: RemoteEvent, -- de aici vine samanta raului, ca la RiverRenderController
     Remotes: { GrabDrift: RemoteEvent, DriftGrabbed: RemoteEvent },
     OnToast: (string, Color3?) -> (),
+    World: number?, -- [D70, pasul k1] harta: iesirea darului, zidul peste care nu se vede, puntile ei
 }
 -- Zborul monedelor spre contor are nevoie de panza HUD-ului, care in bootstrap apare mai tarziu decat raul: se leaga
 -- dupa (SetHud). Init trebuie sa ruleze devreme, ca sa prinda configul raului (samanta).
@@ -57,13 +58,10 @@ local focusBlend = 0
 local ownsFocus = false
 local focusX, focusY = 0, 0
 local firstSeen = false
--- [D73] puntile de pe care se poate scoate un dar: ale cartierelor deschise (SetZones), ca pe server (DriftService)
-local spans: { DriftMath.Span } = DriftMath.reaches(
-    TycoonConfig.deckSpans(),
-    function(era: number): boolean
-        return era == 1
-    end
-)
+-- [D73] puntile de pe care se poate scoate un dar: ale cartierelor deschise (SetPads), ca pe server (DriftService). [D70,
+-- pasul k1] pe lumea data la Init; pana atunci niciuna (nicio citire a lumii la incarcare)
+local world = 1
+local spans: { DriftMath.Span } = {}
 -- [D73] cel mai nou dar platit: serverul nu mai da niciunul mai vechi (`Stats.lastDrift`), deci nici cardul nu-l ofera.
 -- Din Era 3, darul de dinainte se poate ajunge din urma pe puntea Wire Works, dupa ce l-ai scos pe urmatorul.
 local lastTaken = 0
@@ -226,7 +224,7 @@ local function render(dt: number)
         return
     end
     local now = serverNow()
-    local active = DriftMath.activeAt(s, now)
+    local active = DriftMath.activeAt(s, now, world)
     local seen: { [number]: boolean } = {}
     local px, py = d.CharacterPos()
     local onDeck = py >= STAND_Y0 and py <= STAND_Y1
@@ -236,8 +234,9 @@ local function render(dt: number)
         if taken[gift.id] then
             continue
         end
-        local x = DriftMath.xAt(gift, now)
-        if x == nil then
+        local x = DriftMath.xAt(gift, now, world)
+        -- [D70] peste zidul barajului darul nu se vede: reapare cand cade pe deversor
+        if x == nil or DriftMath.hiddenAt(x, world) then
             continue
         end
         seen[gift.id] = true
@@ -322,8 +321,8 @@ function DriftController.Focus(px: number, _py: number): Focus.Focus?
     if deps == nil or gift == nil or s == nil or taken[gift.id] then
         return nil
     end
-    local x = DriftMath.xAt(gift, serverNow())
-    if x == nil then
+    local x = DriftMath.xAt(gift, serverNow(), world)
+    if x == nil or DriftMath.hiddenAt(x, world) then
         return nil
     end
     local keyHint = if UserInputService.KeyboardEnabled then " (E)" else ""
@@ -348,6 +347,8 @@ end
 
 function DriftController.Init(d: Deps)
     deps = d
+    world = d.World or 1
+    spans = DriftMath.reachesFor(world, {}) -- doar prima era a hartii, pana vine starea
     d.RiverConfig.OnClientEvent:Connect(function(config: { [string]: any })
         if typeof(config) == "table" and typeof(config.seed) == "number" then
             seed = config.seed
@@ -384,20 +385,10 @@ function DriftController.Init(d: Deps)
     RunService.PreRender:Connect(render)
 end
 
--- [D73] Starea cartierelor (TycoonState.zones: "open" | "locked"), la fiecare stare: din The Mill si din Wire Works se
--- poate scoate darul care trece pe la puntea lor, cat cartierul e deschis.
-function DriftController.SetZones(zones: { [string]: string })
-    spans = DriftMath.reaches(TycoonConfig.deckSpans(), function(era: number): boolean
-        if not TycoonConfig.eraIsLive(era) then
-            return false
-        end
-        for _, zone in TycoonConfig.ZONES do
-            if zone.era == era then
-                return zones[zone.id] == "open"
-            end
-        end
-        return era == 1
-    end)
+-- [D73] La fiecare stare: din The Mill si din Wire Works se poate scoate darul care trece pe la puntea lor, cat cartierul e
+-- deschis. [D70, pasul k1] Aceeasi regula ca serverul (DriftMath.reachesFor), din platformele cumparate, pe lumea ta.
+function DriftController.SetPads(pads: { [string]: boolean })
+    spans = DriftMath.reachesFor(world, pads)
 end
 
 return DriftController

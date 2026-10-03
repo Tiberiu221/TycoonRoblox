@@ -94,6 +94,10 @@ end
 
 -- [D51] Cardul depozitului: lasi brutul sau iei busteni, cand are sens; Upgrade = meniul meseriei.
 function StorageController.Focus(px: number, py: number): Focus.Focus?
+    -- [D70, pasul k1] nepornit (la baraj, unde locul lui nu exista): niciun card
+    if deps == nil then
+        return nil
+    end
     local d = Focus.distance(px, py, STAND.x, STAND.y)
     if d > RiverConfig.INTERACT_DISTANCE then
         return nil

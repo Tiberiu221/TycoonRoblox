@@ -10,6 +10,7 @@ local Assets = require(ReplicatedStorage.Shared.Config.Assets)
 local GoodArt = require(script.Parent.Parent.UI.GoodArt)
 local CatchFloat = require(ReplicatedStorage.Shared.Modules.CatchFloat)
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
+local WorldConfig = require(ReplicatedStorage.Shared.Config.WorldConfig)
 local SceneArt = require(script.Parent.SceneArt)
 local CameraController = require(script.Parent.CameraController)
 
@@ -47,8 +48,11 @@ local function schedule(windowIndex: number): { RiverSim.RiverObject }
     return cached
 end
 
+-- [D70, pasul k1] harta pe care curge raul: satul (1) sau barajul (2), data la Init
+local world = 1
+
 local function buildScene(layers: SceneArt.Layers)
-    SceneArt.BuildBackground(layers)
+    SceneArt.BuildBackground(layers, world)
     local layer = Instance.new("Frame")
     layer.Name = "RiverLayer"
     layer.BackgroundTransparency = 1
@@ -147,7 +151,8 @@ local function render()
             if obj.lane ~= 1 or now < obj.spawnAt then
                 continue
             end
-            local x = CatchFloat.SPAWN_X + (now - obj.spawnAt) * CatchFloat.SPEED
+            -- [D70] la baraj, decorul din larg apare la piciorul deversorului (fata zidului)
+            local x = CatchFloat.SPAWN_X_BY_WORLD[world] + (now - obj.spawnAt) * CatchFloat.SPEED
             if x > cfg.WORLD_WIDTH + cfg.OBJECT_WIDTH then
                 continue
             end
@@ -208,12 +213,17 @@ end
 function RiverRenderController.Init(deps: {
     Layers: SceneArt.Layers,
     RiverConfig: RemoteEvent,
+    World: number?,
 })
+    world = WorldConfig.sanitize(deps.World)
+    local base = (RiverConfig.WORLDS :: any)[world]
+    cfg = base
     buildScene(deps.Layers)
     deps.RiverConfig.OnClientEvent:Connect(function(config: { [string]: any })
         baseSeed = config.seed
-        local c = table.clone(RiverConfig) :: any
-        c.SPAWNS_PER_WINDOW = config.spawnsPerWindow or RiverConfig.SPAWNS_PER_WINDOW
+        -- [D70] configul hartii tale (latimea lumii barajului e 3385), cu ritmul trimis de server
+        local c = table.clone(base) :: any
+        c.SPAWNS_PER_WINDOW = config.spawnsPerWindow or base.SPAWNS_PER_WINDOW
         cfg = c
         table.clear(scheduleCache)
     end)

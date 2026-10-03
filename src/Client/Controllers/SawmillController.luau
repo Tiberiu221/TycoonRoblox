@@ -145,6 +145,10 @@ end
 -- scandurile NU se ofera: placuta spune "Cutting — N left", iar un "Take planks" aici te-ar trimite
 -- la taverna cu treaba pe jumatate [owner, 2026-09-13]. Upgrade = nivelul gaterului.
 function SawmillController.Focus(px: number, py: number): Focus.Focus?
+    -- [D70, pasul k1] nepornit (la baraj, unde locul lui nu exista): niciun card
+    if deps == nil then
+        return nil
+    end
     local d = Focus.distance(px, py, STAND.x, STAND.y)
     if d > RiverConfig.INTERACT_DISTANCE then
         return nil

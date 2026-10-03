@@ -6,6 +6,7 @@ local TweenService = game:GetService("TweenService")
 local AnimConfig = require(ReplicatedStorage.Shared.Config.AnimConfig)
 local RiverConfig = require(ReplicatedStorage.Shared.Config.RiverConfig)
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
+local WorldConfig = require(ReplicatedStorage.Shared.Config.WorldConfig)
 local LookMath = require(ReplicatedStorage.Shared.Modules.LookMath)
 local Prng = require(ReplicatedStorage.Shared.Modules.Prng)
 local Shoreline = require(ReplicatedStorage.Shared.Modules.Shoreline)
@@ -82,7 +83,9 @@ local function rounded(parent: Instance, radius: number)
 end
 
 -- Cer, soare, dealuri, mal, apa cu valuri. Returneaza stratul de apa (pentru animatie).
-export type Layers = { Fixed: Frame, Parallax: Frame, Scroll: Frame }
+-- [D70, pasul k1] `Plot` (optional): stratul platformelor si al plutitorilor; spuma de la piciorul zidului barajului sta
+-- peste plutitori, deci acolo. Balciul (macheta) nu-l da.
+export type Layers = { Fixed: Frame, Parallax: Frame, Scroll: Frame, Plot: Frame? }
 
 -- Harta de sus. Straturile, de jos in sus: iarba, nisip la maluri, apa care curge, spuma la
 -- linia apei, drum, terenul jucatorului, apoi decorul (copaci, tufe, pietre, papura).
@@ -99,10 +102,10 @@ local function decorSprite(kind: string): Assets.Sprite?
     return nil
 end
 
-local function buildDecor(scroll: Frame)
+local function buildDecor(scroll: Frame, world: number)
     -- [D65] partea veche a satului isi tine copacii pe loc, fasia noua isi primeste ai ei (WorldDecor.village)
     -- [D70, pasul j1] samanta si argumentele stau in VillageDecor (le citesc si pamantul copt si martorul lumii 1)
-    local items = VillageDecor.items()
+    local items = VillageDecor.items(world)
 
     local layer = Instance.new("Frame")
     layer.Name = "DecorLayer"
@@ -166,8 +169,13 @@ local function buildGrass(groundLayer: Frame, W: number, H: number)
     end
 end
 
-function SceneArt.BuildBackground(layers: Layers)
-    local W, H = RiverConfig.WORLD_WIDTH, RiverConfig.WORLD_HEIGHT
+-- [D70, pasul k1] `world`: harta (fara ea, satul; balciul o cheama asa pentru macheta). La baraj: latimea si malurile lui,
+-- fara pamantul copt al satului (BAKED_DISTRICTS, imaginea satului), cu lacul, zidul, deversorul si canalul desenate
+-- provizoriu din TycoonConfig.WORLDS[2] pana la pamantul lui copt (k12).
+function SceneArt.BuildBackground(layers: Layers, world: number?)
+    local worldId = WorldConfig.sanitize(world)
+    local river = (RiverConfig.WORLDS :: any)[worldId]
+    local W, H = river.WORLD_WIDTH, river.WORLD_HEIGHT
     local scroll = layers.Scroll
     local pixel = Assets.has(Assets.water_tile)
     if not pixel then
@@ -176,9 +184,9 @@ function SceneArt.BuildBackground(layers: Layers)
         local water = frame(
             scroll,
             0,
-            RiverConfig.RIVER_TOP,
+            river.RIVER_TOP,
             W,
-            RiverConfig.RIVER_BOTTOM - RiverConfig.RIVER_TOP,
+            river.RIVER_BOTTOM - river.RIVER_TOP,
             Color3.new(1, 1, 1),
             1
         )
@@ -213,7 +221,7 @@ function SceneArt.BuildBackground(layers: Layers)
     -- (Shoreline, TycoonConfig). Raul animat curge pe dedesubt si se vede prin partea ei transparenta, unde imaginea
     -- are doar tentele apei: apa mica langa maluri si canalul adanc, dupa forma malurilor. Din desenul vechi raman
     -- doar ce se misca (apa, spuma) si obiectele asezate peste. Pana la urcare, harta se deseneaza ca inainte.
-    local baked = Assets.has(Assets.tycoon.village_ground)
+    local baked = worldId == 1 and Assets.has(Assets.tycoon.village_ground)
     if not baked then
         buildGrass(groundLayer, W, H)
     end
@@ -249,8 +257,8 @@ function SceneArt.BuildBackground(layers: Layers)
     -- uscatul nu are voie sa intre peste benzile bunurilor, iar apa nu are voie sa atinga
     -- pontonul. Malul de nord se retrage spre nord (raul se latește pe alocuri), cel de sud spre
     -- sud, iar in dreptul terenului construit ramane aproape drept -- e malul tau, amenajat.
-    local FAR: Shoreline.Edge = RiverConfig.SHORE_FAR
-    local NEAR: Shoreline.Edge = RiverConfig.SHORE_NEAR
+    local FAR: Shoreline.Edge = river.SHORE_FAR
+    local NEAR: Shoreline.Edge = river.SHORE_NEAR
     local STEP = 32
     local sandTileH = Assets.sand_tile.height * Assets.PIXEL_SCALE
     local hasSand = Assets.has(Assets.sand_tile)
@@ -424,9 +432,81 @@ function SceneArt.BuildBackground(layers: Layers)
         end
     end
 
+    -- [D70, pasul k1] LUMEA BARAJULUI, provizoriu (pana la pamantul ei copt, k12): lacul linistit din spatele zidului, zidul
+    -- de piatra, apa alba a deversorului pe fata lui si canalul care taie cartierul. Spuma de la piciorul zidului sta peste
+    -- plutitorii care ies de acolo (stratul Plot), ca marfa sa para ca vine de sub apa alba.
+    local spill: Frame? = nil
+    local data = TycoonConfig.WORLDS[worldId]
+    if data ~= nil and data.wall ~= nil then
+        local lake = data.water.lake
+        local still =
+            frame(waterLayer, lake.x, lake.y, lake.w, lake.h, Color3.fromRGB(40, 88, 120), 4)
+        still.Name = "Lake"
+        still.BackgroundTransparency = 0.55
+        local wall = data.wall
+        local stone =
+            frame(builtLayer, wall.x, wall.y, wall.w, wall.h, Color3.fromRGB(128, 124, 116), 8)
+        stone.Name = "DamWall"
+        if Assets.has(Assets.tile_plaza) then
+            local face = tiled(builtLayer, Assets.tile_plaza, wall.x, wall.y, wall.w, wall.h, 9)
+            face.ImageColor3 = Color3.fromRGB(170, 164, 152)
+        end
+        local cap = frame(
+            builtLayer,
+            wall.x - 6,
+            wall.y - 10,
+            wall.w + 12,
+            18,
+            Color3.fromRGB(92, 88, 82),
+            10
+        )
+        cap.Name = "DamCap"
+        local sp = data.water.spillway
+        local white = frame(builtLayer, sp.x, sp.y, sp.w, sp.h, Color3.fromRGB(226, 240, 248), 11)
+        white.Name = "Spillway"
+        gradient(white, Color3.fromRGB(255, 255, 255), Color3.fromRGB(150, 196, 220))
+        spill = white
+        local canal = data.water.canal
+        tiled(trimLayer, Assets.water_tile, canal.x, canal.y, canal.w, canal.h, 4).Name = "Canal"
+        local deep =
+            frame(trimLayer, canal.x, canal.y, canal.w, canal.h, Color3.fromRGB(8, 34, 62), 5)
+        deep.BackgroundTransparency = 0.6
+        local plot = layers.Plot
+        if plot ~= nil then
+            local foot = frame(
+                plot,
+                wall.x + wall.w - 10,
+                river.RIVER_TOP,
+                64,
+                river.RIVER_BOTTOM - river.RIVER_TOP,
+                Color3.fromRGB(238, 249, 255),
+                8
+            )
+            foot.Name = "SpillFoam"
+            foot.BackgroundTransparency = 0.25
+            local fade = Instance.new("UIGradient")
+            fade.Transparency = NumberSequence.new({
+                NumberSequenceKeypoint.new(0, 0),
+                NumberSequenceKeypoint.new(1, 1),
+            })
+            fade.Parent = foot
+        end
+    end
+
+    -- [D70, pasul k1] o singura legatura pe desen, desfacuta cand desenul iese din lume (macheta balciului se face din
+    -- nou la fiecare vizita: fara asta, fiecare vizita lasa o legatura in plus)
     local t = 0
-    RunService.PreRender:Connect(function(dt: number)
+    local connection: RBXScriptConnection
+    connection = RunService.PreRender:Connect(function(dt: number)
+        if water.Parent == nil then
+            connection:Disconnect()
+            return
+        end
         t += dt
+        local spilling = spill
+        if spilling ~= nil then
+            spilling.BackgroundTransparency = 0.1 + math.abs(math.sin(t * 2.3)) * 0.15
+        end
         water.Position = UDim2.fromOffset(-tileW + ((t * 46) % tileW), waterTop)
         shimmer.Position = UDim2.fromOffset(-tileW + ((t * 22) % tileW), waterTop)
         -- spuma nu curge cu raul: se duce si se intoarce, ca valul mic de la mal
@@ -562,7 +642,7 @@ function SceneArt.BuildBackground(layers: Layers)
             end
         end
 
-        for _, district in TycoonConfig.DISTRICTS do
+        for _, district in TycoonConfig.districtsOf(worldId) do
             local inImage = baked and TycoonConfig.BAKED_DISTRICTS[district.id] == true
             if inImage or not TycoonConfig.eraIsLive(district.era) then
                 continue
@@ -598,7 +678,7 @@ function SceneArt.BuildBackground(layers: Layers)
 
     -- [D57] DECORUL ASEZAT DE MANA pe teren: fiecare lucru spune ceva despre locul lui (TycoonConfig.DECOR). Sub
     -- cladiri si oameni (stratul lor e deasupra), ordonat pe adancime intre el.
-    for _, item in TycoonConfig.DECOR do
+    for _, item in TycoonConfig.decorOf(worldId) do
         local sprite = decorSprite(item.sprite)
         if sprite ~= nil then
             local img = image(
@@ -617,7 +697,7 @@ function SceneArt.BuildBackground(layers: Layers)
         end
     end
 
-    buildDecor(scroll)
+    buildDecor(scroll, worldId)
 end
 
 -- Personajul jucatorului foloseste aceeasi foaie ca si colonistii; setter-ul isi tine singur

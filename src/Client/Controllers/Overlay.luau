@@ -161,6 +161,7 @@ export type Deps = {
     CheerCrew: ((string) -> ())?,
     -- [D73] un banner cu „Look around (V)” spre un loc al terenului (Bootstrap.lookMoment)
     LookMoment: ((string, number, number) -> ())?,
+    World: number?, -- [D70, pasul k1] harta ta: ghidajul asteapta doar oamenii ei (GuideMath.guidedRoles)
 }
 
 local Overlay = {}
@@ -322,7 +323,10 @@ local function toGuideState(s: Snapshot): GuideMath.State
     return {
         -- [D56, D65] oamenii unei linii conteaza doar din clipa in care ai platforma care o porneste (Forge, roata de
         -- apa, cuptorul de cupru): GuideMath.guidedRoles
-        allCrewsHired = GuideMath.allCrewsHired(counts, GuideMath.guidedRoles(openedPads(s))),
+        allCrewsHired = GuideMath.allCrewsHired(
+            counts,
+            GuideMath.guidedRoles(openedPads(s), deps.World)
+        ),
         crews = counts,
         sawIn = if s.sawmill ~= nil then s.sawmill.count else 0,
         sawOut = if s.sawmill ~= nil then s.sawmill.out else 0,

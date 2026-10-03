@@ -40,7 +40,6 @@ local onStand: (() -> ())? = nil
 -- Static: nu mai exista cladiri de colonie care sa blocheze mersul, iar platformele tycoon-ului
 -- NU blocheaza (trebuie sa poti calca pe ele ca sa le cumperi) -- doar raul opreste personajul.
 -- [D59] ...in afara pontonului lung: pe el mergi pana la capat, unde pescuiesti.
-local rects = WorldMap.blockedRects(RiverConfig, nil, TycoonConfig.PIER_WALK)
 
 local KEYMAP: { [Enum.KeyCode]: string } = {
     [Enum.KeyCode.A] = "left",
@@ -177,22 +176,24 @@ end
 
 -- [D60] Portitele balciului (implicit = satul, neschimbat): IsBlocked = unde nu se poate calca, Spawn = unde apari,
 -- ZIndexFor = adancimea omului dupa y (in balci, oamenii si obiectele se acopera dupa cine e mai jos).
-function CharacterController.Init(deps: {
-    Scroll: Frame,
-    OnMove: (number, number) -> (),
-    OnPlayerInput: (() -> ())?,
-    IsBlocked: ((number, number) -> boolean)?,
-    Spawn: { x: number, y: number }?,
-    ZIndexFor: ((number) -> number)?,
-})
+function CharacterController.Init(
+    deps: {
+        Scroll: Frame,
+        OnMove: (number, number) -> (),
+        OnPlayerInput: (() -> ())?,
+        IsBlocked: ((number, number) -> boolean)?,
+        Spawn: { x: number, y: number }?,
+        ZIndexFor: ((number) -> number)?,
+        World: number?, -- [D70, pasul k1] harta pe care mergi: zidul si canalul barajului opresc pasul; fara el, satul
+    }
+)
     onPlayerInput = deps.OnPlayerInput
-    local spawn = deps.Spawn
-    if spawn ~= nil then
-        x, y = spawn.x, spawn.y
-    end
+    local spawn = deps.Spawn or TycoonConfig.spawnOf(deps.World)
+    x, y = spawn.x, spawn.y
+    local rects, cfg = WorldMap.forWorld(deps.World)
     local isBlocked = deps.IsBlocked
         or function(px: number, py: number): boolean
-            return WorldMap.isBlocked(rects, RiverConfig, px, py)
+            return WorldMap.isBlocked(rects, cfg, px, py)
         end
     local zIndexFor = deps.ZIndexFor
     local sprite, setPose, setOutfit, setLook = SceneArt.MakeCharacter(deps.Scroll)

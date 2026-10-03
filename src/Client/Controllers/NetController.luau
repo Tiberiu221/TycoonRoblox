@@ -61,6 +61,7 @@ export type Deps = {
     OnToast: (string) -> (),
     -- plasa atinsa deschide panoul de niveluri pe ea; dat din Bootstrap
     OpenStation: ((string, string?) -> ())?,
+    World: number?, -- [D70, pasul k1] harta: la baraj, plutitorii pornesc de la fata zidului
 }
 
 -- [D53] Un bustean pe drum spre plasa, legat de MOMENTUL prinderii lui (ceasul plasei, CatchFloat).
@@ -797,7 +798,7 @@ local function updateFloaters()
                 TycoonMath.netTick(snap.nextCatchAt, snap.interval, now, snap.count, snap.capacity)
             snap.nextCatchAt = nextAt
         end
-        local travel = CatchFloat.travel(snap.x)
+        local travel = CatchFloat.travel(snap.x, CatchFloat.SPAWN_X_BY_WORLD[deps.World or 1])
         local stride = CatchFloat.stride(snap.interval, travel)
         -- bustenul aterizeaza unde e plasa ACUM, nu unde ar sta ea nemiscata
         local netY = snap.y + (netDy[padId] or 0)

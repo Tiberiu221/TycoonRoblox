@@ -7,6 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 local RiverConfig = require(ReplicatedStorage.Shared.Config.RiverConfig)
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
+local WorldMap = require(ReplicatedStorage.Shared.Modules.WorldMap)
 
 -- Cat de mare e un pixel de lume pe ecran. Podeaua tine sprite-urile citibile pe telefon.
 local REFERENCE_HEIGHT = 900 -- inaltime de lume vizibila pe un ecran mare
@@ -61,15 +62,18 @@ end
 -- UIScale scaleaza SI obiectul pe care e pus, nu doar copiii; daca era pe un cadru de marimea
 -- ecranului, pânza se micsora sub ecran si se vedea fundalul pe margini.
 -- [D60] Portitele balciului (implicit = satul, neschimbat): WorldWidth/WorldHeight = marimea lumii in care se
--- plimba camera, PlotOrigin = unde sta terenul.
+-- plimba camera, PlotOrigin = unde sta terenul. [D70, pasul k1] `World` = harta satului sau a barajului: marimea ei vine din
+-- RiverConfig.WORLDS (barajul are 3385 px). Fara el, satul. Ramane fixata in colt, ca satul (`centerSmall` e al balciului).
 function CameraController.Init(deps: {
     WorldGui: Frame,
     WorldWidth: number?,
     WorldHeight: number?,
     PlotOrigin: { x: number, y: number }?,
+    World: number?,
 }): { Fixed: Frame, Parallax: Frame, Scroll: Frame, Plot: Frame }
-    worldW = deps.WorldWidth or RiverConfig.WORLD_WIDTH
-    worldH = deps.WorldHeight or RiverConfig.WORLD_HEIGHT
+    local _, cfg = WorldMap.forWorld(deps.World)
+    worldW = deps.WorldWidth or cfg.WORLD_WIDTH
+    worldH = deps.WorldHeight or cfg.WORLD_HEIGHT
     homeW, homeH = worldW, worldH
     centerSmall = deps.WorldWidth ~= nil or deps.WorldHeight ~= nil
     local origin = deps.PlotOrigin or TycoonConfig.PLOT_ORIGIN

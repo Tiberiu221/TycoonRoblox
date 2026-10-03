@@ -18,6 +18,7 @@ local TycoonConfig =
     require(script and script.Parent.Parent.Config.TycoonConfig or "../Config/TycoonConfig")
 local WorldConfig =
     require(script and script.Parent.Parent.Config.WorldConfig or "../Config/WorldConfig")
+local WorldMath = require(script and script.Parent.WorldMath or "./WorldMath")
 
 local DriftMath = {}
 
@@ -160,8 +161,10 @@ function DriftMath.reachesFor(
         if not live(era) then
             return false
         end
-        local bell = TycoonConfig.bellOf(era - 1)
-        return era == 1 or (bell ~= nil and pads[bell.id] == true)
+        -- [D70, pasul k1] clopotul de dinaintea erei, pe lumea profilului (WorldMath.bellBefore): prima era a unei lumi
+        -- n-asteapta nimic (la baraj, Works Bell-ul sunat in sat nici nu e in statusurile clientului)
+        local bell = WorldMath.bellBefore(era, w)
+        return bell == nil or pads[bell.id] == true
     end)
     local hidden = DriftMath.hiddenSpan(w)
     if hidden ~= nil then
