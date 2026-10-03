@@ -82,8 +82,8 @@ KID_CORNER = [
 NETS = [
     {"id": "dam_turbine", "x": 980, "lane": 3, "label": "Dam Turbine", "note": "free, built into the wall"},
     {"id": "cable_net", "x": 1380, "lane": 1, "label": "Cable Net", "note": "free"},
-    {"id": "second_cable_net", "x": 1580, "lane": 1, "label": "2nd Cable Net", "note": "bought"},
-    {"id": "third_cable_net", "x": 1780, "lane": 2, "label": "3rd Cable Net", "note": "bought"},
+    {"id": "second_cable_net", "x": 1580, "lane": 1, "label": "Cable Net II", "note": "bought"},
+    {"id": "third_cable_net", "x": 1780, "lane": 2, "label": "Cable Net III", "note": "bought"},
     {"id": "crystal_net", "x": 2625, "lane": 3, "label": "Crystal Net", "note": "bought late"},
 ]
 LANE_Y = {1: 732, 2: 660, 3: 588}

@@ -1011,6 +1011,8 @@ la granița CREWS / `DAM_START_COINS`.
 - 6 clădiri fixe cu `borrowed`; `LineController` pentru unire (două grămezi, `waiting` copiat explicit); Overlay `DROP_AT` /
   `playerStand` la `:273, :721-743, :821`; GuideMath și `STEP_OF_JOB`.
 - Turbina din zid (824–880, 690–768); Dam Collector-ul ia de la piciorul zidului; oamenii retrași stau fără traseu.
+- **[Verificatorul j11, făcut]** săgeata unui quest pe un loc citește `LINE_PLACES[line] or JOIN_PLACES[line]` (Overlay), deci
+  „Join barrels and cable 10 times” arată spre inelul Relay-ului; testul de locuri din `QuestMath.test` citește la fel.
 
 - **[Verificatorul j7]** casele barajului, până la arta lor: `PadArt.bought` să încerce întâi `PadArt.home(padId, count)`
   (lanțul `PAD_LOOKS_LIKE` duce la colibele urcate ale erelor 2–3, fiecare alta), nu direct perechea din Era 1. Atunci și
@@ -1024,12 +1026,18 @@ la granița CREWS / `DAM_START_COINS`.
 - `counterText` și lista fără paranteze; `HUDController.SetStep` păstrează bara de venit; primul tur în 6 pași de mână; fără
   preț și fără „While you save” pe o platformă încuiată; ghidajul sare meseriile la maxim cât ține un pas de venit; indiciul
   AWAY. Teste Lune pe GuideMath și QuestMath.
+- **[Verificatorul j11, făcut]** eticheta quest-ului de venit vine de la server cu pragul înmulțit (`QuestMath.textOf`, același
+  șablon ca pe cartonașul clopotului, `Strings.earnPerSecond`): cu 2x Flow „Earn 8T coins a second”. Lista, linia NEXT și
+  bannerul citesc `text`, deci nu mai e nimic de făcut în client pentru ea.
 
 **k6. Intrarea din lumea 1.** Depinde de: k2, j15.
 - Steagul `damAvailable` în stare. Masa Dam Plans devine „Build the Dam (E)” (azi ar dispărea la `eraIsLive(4)`,
   `ModernController.luau:104-150`); bannerul de la Works Bell și linia NEXT; „Goes into the Dam when you build it” pe cardurile
   de nivel; „Welcome back” spune regula sumei de start; EraWords, Ceremony, `Overlay:794`, `comingEra(w)`.
 - Verificare: ambele ramuri (Era 4 în joc și nu) testate.
+- **[Verificatorul j11]** rândul de final al listei de quest-uri citește `snap.lastOfWorld` (serverul, după capitolele lumii; făcut
+  în j11), dar și `TycoonConfig.comingEra()`, care după l3 întoarce nil în lumea 1 (zona `dam` e a Erei 4). În sat, cu Era 4 în
+  joc, rândul trebuie să spună „Build the Dam” (aceeași ramură ca masa Dam Plans), nu să dispară.
 
 **k7. Ecranul „Build the Dam”.** Depinde de: k6.
 - Trei coloane cu cifrele din `DamPreviewResult`; `Widgets.HoldButton` nou (1,5 s); „Not yet”; `Theme.fitSize` pe fiecare cifră;

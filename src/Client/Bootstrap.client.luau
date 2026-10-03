@@ -1186,6 +1186,7 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
             total = rawQuests.total,
             claimable = rawQuests.claimable,
             everClaimed = rawQuests.everClaimed == true, -- [D51] reflectorul pe carte, o singura data
+            lastOfWorld = rawQuests.lastOfWorld == true, -- [D70] ultimul capitol al lumii tale: randul de final
             active = if a == nil
                 then nil
                 else {

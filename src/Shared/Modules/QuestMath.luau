@@ -11,6 +11,7 @@ local QuestConfig =
     require(script and script.Parent.Parent.Config.QuestConfig or "../Config/QuestConfig")
 local StationConfig =
     require(script and script.Parent.Parent.Config.StationConfig or "../Config/StationConfig")
+local Strings = require(script and script.Parent.Parent.Config.Strings or "../Config/Strings")
 local TycoonMath = require(script and script.Parent.TycoonMath or "./TycoonMath")
 local WorldConfig =
     require(script and script.Parent.Parent.Config.WorldConfig or "../Config/WorldConfig")
@@ -78,6 +79,15 @@ function QuestMath.goalOf(quest: QuestConfig.Quest, facts: Facts): number
         return TycoonMath.incomeGoal(quest.goal, facts.flowFactor)
     end
     return quest.goal
+end
+
+-- [D70, pasul j11] Textul unui quest, acelasi in lista, pe linia NEXT si in banner: la venit, pragul cu pass-ul ("Earn 8T
+-- coins a second" cu 2x Flow, aceeasi cifra ca pe cartonasul clopotului); altfel textul din config.
+function QuestMath.textOf(quest: QuestConfig.Quest, facts: Facts): string
+    if quest.kind == "income" then
+        return Strings.earnPerSecond(TycoonMath.formatNumber(QuestMath.goalOf(quest, facts)))
+    end
+    return quest.text
 end
 
 -- [D70, pasul j11] Contorul unui quest, acelasi in lista si pe linia NEXT: "3/10", iar la venit cu cifrele HUD-ului
@@ -157,7 +167,7 @@ function QuestMath.chapterStates(chapter: QuestConfig.Chapter, facts: Facts): { 
         end
         table.insert(out, {
             id = quest.id,
-            text = quest.text,
+            text = QuestMath.textOf(quest, facts),
             progress = math.min(progress, goal),
             goal = goal,
             state = state,
@@ -249,11 +259,13 @@ end
 
 -- [D70, pasul j11] Capitolele LUMII jucatorului. Un capitol e incheiat cand toate quest-urile lui sunt revendicate (R7: la
 -- baraj AWAY e 0, iar quest-ul AWAY din capitolul 1, revendicat demult, nu trebuie sa te intoarca acolo).
+local function chaptersOf(world: number?): { QuestConfig.Chapter }
+    local chapters = QuestConfig.chaptersOfWorld(world)
+    return if #chapters == 0 then QuestConfig.CHAPTERS else chapters
+end
+
 function QuestMath.currentChapter(facts: Facts): QuestConfig.Chapter
-    local chapters = QuestConfig.chaptersOfWorld(facts.world)
-    if #chapters == 0 then
-        chapters = QuestConfig.CHAPTERS
-    end
+    local chapters = chaptersOf(facts.world)
     for _, chapter in chapters do
         for _, quest in chapter.quests do
             if not facts.claimed[quest.id] then
@@ -262,6 +274,12 @@ function QuestMath.currentChapter(facts: Facts): QuestConfig.Chapter
         end
     end
     return chapters[#chapters]
+end
+
+-- [D70, pasul j11] Capitolul e ultimul al lumii jucatorului (randul de final al listei de quest-uri), nu ultimul din joc.
+function QuestMath.isLastOfWorld(chapter: QuestConfig.Chapter, world: number?): boolean
+    local chapters = chaptersOf(world)
+    return chapters[#chapters].id == chapter.id
 end
 
 -- [D70, pasul j11] LA "BUILD THE DAM": ce n-ai revendicat din capitolele satului se plateste acum, doar in perle (monedele

@@ -269,9 +269,12 @@ local function toGuideState(s: Snapshot): GuideMath.State
             -- [D65] un loc al Morii, dupa numele lui din FlowConfig: inelul atelierului sau usa vanzatorului
             local spec = FlowConfig.BY_PROCESSOR[active.place]
             local seller = TycoonConfig.SELLER_PLACES[active.place]
-            if spec ~= nil then
-                local stand = TycoonConfig.LINE_PLACES[spec.line].playerStand
-                x, y = stand.x, stand.y
+            -- [D70] locul unei uniri (Relay Station) sta in JOIN_PLACES, nu in LINE_PLACES
+            local places = if spec ~= nil
+                then TycoonConfig.LINE_PLACES[spec.line] or TycoonConfig.JOIN_PLACES[spec.line]
+                else nil
+            if places ~= nil and places.playerStand ~= nil then
+                x, y = places.playerStand.x, places.playerStand.y
             elseif seller ~= nil then
                 x, y = seller.door.x, seller.door.y
             end

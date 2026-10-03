@@ -93,6 +93,8 @@ export type Snapshot = {
     claimable: number,
     -- [D51] a revendicat vreodata ceva, in orice capitol: tutorialul arata cartea doar pana atunci
     everClaimed: boolean,
+    -- [D70, pasul j11] capitolul e ultimul din LUMEA jucatorului: randul de final al listei (ce urmeaza) il citeste de aici
+    lastOfWorld: boolean,
     -- quest-ul activ, gata de folosit ca obiectiv de ghidaj: un singur adevar pentru sageata,
     -- pentru linia din HUD si pentru banner
     active: {
@@ -133,11 +135,12 @@ function QuestService.Snapshot(player: Player): Snapshot?
         total = #chapter.quests,
         claimable = QuestMath.claimable(chapter, facts),
         everClaimed = next(facts.claimed) ~= nil,
+        lastOfWorld = QuestMath.isLastOfWorld(chapter, facts.world),
         active = if active == nil
             then nil
             else {
                 id = active.id,
-                text = active.text,
+                text = QuestMath.textOf(active, facts), -- [D70] la venit, pragul cu 2x Flow
                 progress = math.min(
                     QuestMath.progress(active, facts),
                     QuestMath.goalOf(active, facts)

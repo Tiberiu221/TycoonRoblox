@@ -973,7 +973,7 @@ local ALL_CHAPTERS: { Chapter } = {
                 -- turul de mana: culegi minereul din Cable Net, il duci la Cable Works si stai in inel cat se toarce; sageata
                 -- vine si daca ghidajul tace (o harta noua)
                 id = "spin_cable",
-                text = "Spin 10 cable at the Cable Works",
+                text = "Spin cable at the Cable Works",
                 kind = "cableSpun",
                 goal = 10,
                 reward = { pearls = 2 },
@@ -982,7 +982,7 @@ local ALL_CHAPTERS: { Chapter } = {
             },
             {
                 id = "join_power",
-                text = "Join 10 power at the Relay Station",
+                text = "Join barrels and cable 10 times",
                 kind = "gridJoined",
                 goal = 10,
                 reward = { pearls = 2 },
@@ -1081,7 +1081,7 @@ local ALL_CHAPTERS: { Chapter } = {
         quests = {
             {
                 id = "second_cable_two",
-                text = "Upgrade 2nd Cable Net to level 2",
+                text = "Upgrade Cable Net II to level 2",
                 kind = "level",
                 arg = "net:second_cable_net",
                 goal = 2,
@@ -1099,7 +1099,7 @@ local ALL_CHAPTERS: { Chapter } = {
             },
             {
                 id = "third_cable_two",
-                text = "Upgrade 3rd Cable Net to level 2",
+                text = "Upgrade Cable Net III to level 2",
                 kind = "level",
                 arg = "net:third_cable_net",
                 goal = 2,

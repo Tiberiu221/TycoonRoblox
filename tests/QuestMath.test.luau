@@ -117,18 +117,47 @@ return function()
                 -- Fontul de pixeli are 0,5585 em pe litera (CLAUDE.md). QuestController micsoreaza textul cat sa incapa
                 -- (Theme.fitSize), dar sub 14 randul ar parea altfel decat vecinii lui: "Cast a fourteenth net, further
                 -- out" (34 de litere) se taia in "..." inainte sa existe testul.
+                -- [D70] un quest de venit are si eticheta cu 2x Flow (QuestMath.textOf): se masoara si ea
+                local doubled = facts({ flowFactor = 2 })
                 for _, chapter in QuestConfig.ALL_CHAPTERS do
                     for _, q in chapter.quests do
-                        local width = #q.text * 0.5585 * 14
-                        if width > 270 then
-                            error(
-                                `"{q.text}" ({q.id}) are {math.ceil(width)} px la marimea 14, randul are 270`
-                            )
+                        for _, text in { q.text, QuestMath.textOf(q, doubled) } do
+                            local width = #text * 0.5585 * 14
+                            if width > 270 then
+                                error(
+                                    `"{text}" ({q.id}) are {math.ceil(width)} px la marimea 14, randul are 270`
+                                )
+                            end
                         end
                     end
                 end
             end
         )
+
+        test.case("un quest de nivel pe o plasa o numeste ca in lume", function()
+            local TycoonConfig = require("../src/Shared/Config/TycoonConfig")
+            local seen = 0
+            for _, chapter in QuestConfig.ALL_CHAPTERS do
+                for _, q in chapter.quests do
+                    local station, padId = QuestMath.stationTarget(q)
+                    -- prima plasa e "your net" in turul de mana: singura, n-are cu cine se confunda
+                    if
+                        q.kind == "level"
+                        and station == "net"
+                        and padId ~= nil
+                        and padId ~= "first_net"
+                    then
+                        local name = TycoonConfig.byId[padId].name
+                        if string.find(q.text, name, 1, true) == nil then
+                            print(`[QuestMath] {q.id}: "{q.text}" nu spune "{name}"`)
+                        end
+                        check.not_nil(string.find(q.text, name, 1, true))
+                        seen += 1
+                    end
+                end
+            end
+            check.is_true(seen >= 10)
+        end)
 
         test.case("Go! si bara de progres inteleg aceeasi statie din `arg`", function()
             -- Butonul Go! deschide panoul pe statia din stationTarget, iar bara citeste nivelul
@@ -347,12 +376,20 @@ return function()
                     end
                     -- [D65] un loc al Morii: atelierul unei linii sau un vanzator, din tabelul drumului marfii
                     -- [D70] si locurile barajului, scrise dar adormite (FlowConfig.FULL)
-                    if
-                        q.targetPlace ~= nil
-                        and FlowConfig.FULL.byProcessor[q.targetPlace] == nil
-                        and FlowConfig.FULL.sellers[q.targetPlace] == nil
-                    then
-                        missing += 1
+                    -- si exact cum il citeste clientul (Overlay): inelul atelierului sau al unirii, ori usa vanzatorului
+                    if q.targetPlace ~= nil then
+                        local spec = FlowConfig.FULL.byProcessor[q.targetPlace]
+                        local places = if spec ~= nil
+                            then TycoonConfig.LINE_PLACES[spec.line]
+                                or TycoonConfig.JOIN_PLACES[spec.line]
+                            else nil
+                        local seller = TycoonConfig.SELLER_PLACES[q.targetPlace]
+                        local stand = if places ~= nil then places.playerStand else nil
+                        local door = if seller ~= nil then seller.door else nil
+                        if stand == nil and door == nil then
+                            print(`[QuestMath] {q.id}: locul "{q.targetPlace}" n-are inel sau usa`)
+                            missing += 1
+                        end
                     end
                     if q.kind == "pad" and TycoonConfig.byId[q.arg :: string] == nil then
                         missing += 1
@@ -603,8 +640,10 @@ return function()
         end
 
         test.case("totul revendicat si AWAY 0: capitolul curent nu mai e 1 (R7)", function()
+            -- pe capitolele satului (fara lume in fapte), ca testul sa nu depinda de comutatorul l3
+            local village = QuestConfig.chaptersOfWorld(1)
             local claimed: { [string]: boolean } = {}
-            for _, ch in QuestConfig.CHAPTERS do
+            for _, ch in village do
                 for _, q in ch.quests do
                     claimed[q.id] = true
                 end
@@ -612,7 +651,9 @@ return function()
             local f = facts(claimed)
             local current = QuestMath.currentChapter(f)
             check.is_true(current.id ~= QuestConfig.CHAPTERS[1].id)
-            check.equal(current.id, QuestConfig.CHAPTERS[#QuestConfig.CHAPTERS].id)
+            check.equal(current.id, village[#village].id)
+            check.is_true(QuestMath.isLastOfWorld(current, nil))
+            check.is_false(QuestMath.isLastOfWorld(village[1], 1))
             -- quest-ul AWAY, revendicat demult si acum sub tinta, nu mai e activ
             check.equal(QuestMath.active(QuestConfig.CHAPTERS[1], f), nil)
         end)
@@ -642,18 +683,49 @@ return function()
                         chapter = ch
                     end
                 end
+                local seen = 0
                 for _, st in QuestMath.chapterStates(chapter :: any, doubled) do
                     if st.id == "earn_bell" then
                         check.equal(st.goal, 8e12)
+                        -- eticheta spune aceeasi cifra ca tinta si ca cartonasul clopotului (D40)
+                        check.equal(st.text, "Earn 8T coins a second")
+                        seen += 1
+                    end
+                end
+                check.equal(seen, 1)
+                check.equal(QuestMath.textOf(kiln, doubled), "Earn 2T coins a second")
+                -- fara pass, textul din config; iar textul din config e chiar pragul din StationConfig
+                local TycoonMath = require("../src/Shared/Modules/TycoonMath")
+                local Strings = require("../src/Shared/Config/Strings")
+                for _, ch in QuestConfig.ALL_CHAPTERS do
+                    for _, q in ch.quests do
+                        if q.kind == "income" then
+                            check.equal(
+                                q.text,
+                                Strings.earnPerSecond(TycoonMath.formatNumber(q.goal))
+                            )
+                            check.equal(QuestMath.textOf(q, plain), q.text)
+                            check.equal(QuestMath.textOf(q, facts({})), q.text)
+                        else
+                            check.equal(QuestMath.textOf(q, doubled), q.text)
+                        end
                     end
                 end
             end
         )
 
         test.case("capitolele pe lume: satul are 1-9, barajul (adormit) inca niciunul", function()
+            local TycoonConfig = require("../src/Shared/Config/TycoonConfig")
             local village = QuestConfig.chaptersOfWorld(1)
-            check.equal(#village, #QuestConfig.CHAPTERS)
-            check.equal(#QuestConfig.chaptersOfWorld(2), 0)
+            local villageInGame = 0
+            for _, ch in QuestConfig.CHAPTERS do
+                if ch.era <= 3 then
+                    villageInGame += 1
+                end
+            end
+            check.equal(#village, villageInGame)
+            -- independent de comutator: barajul are capitolele lui abia cand Era 4 e in joc (l3)
+            check.equal(#QuestConfig.chaptersOfWorld(2), if TycoonConfig.eraIsLive(4) then 3 else 0)
             check.is_true(QuestConfig.chaptersOfWorld(nil)[1] == village[1])
             -- toate capitolele scrise ale barajului sunt ale Erei 4, in ordinea simulatorului
             local dam = {}

@@ -35,6 +35,7 @@ export type Snapshot = {
     completed: number,
     total: number,
     claimable: number,
+    lastOfWorld: boolean?, -- [D70] capitolul e ultimul al lumii tale
     active: { id: string, text: string, progress: number, goal: number }?,
 }
 
@@ -257,16 +258,16 @@ local function refresh(snap: Snapshot)
     for i = #shown + 1, #views do
         views[i].frame.Visible = false
     end
-    -- rand de final: ultimul capitol din joc, revendicat tot, si o era care vine
+    -- rand de final: ultimul capitol al lumii tale (serverul il stie, dupa capitolele lumii), revendicat tot, si o era
+    -- care vine
     local coming = TycoonConfig.comingEra()
-    local last = QuestConfig.CHAPTERS[#QuestConfig.CHAPTERS]
     local allClaimed = #shown > 0
     for _, row in shown do
         if row.state ~= "claimed" then
             allClaimed = false
         end
     end
-    local showFinale = coming ~= nil and last ~= nil and snap.chapter.id == last.id and allClaimed
+    local showFinale = coming ~= nil and snap.lastOfWorld == true and allClaimed
     finale.Visible = showFinale
     if showFinale and coming ~= nil then
         finaleTitle.Text = Strings.eraComing(coming.name)

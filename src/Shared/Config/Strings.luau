@@ -1701,6 +1701,12 @@ function Strings.questRejected(reason: string): string
     return "Can't claim that"
 end
 
+-- [D70, pasul j11] Pragul de venit in cifrele HUD-ului ("Earn 4T coins a second"): textul unui quest de venit si, cu
+-- " first", cartonasul clopotului barajului. Un singur sablon, ca cele doua sa spuna mereu aceeasi cifra.
+function Strings.earnPerSecond(goalText: string): string
+    return `Earn {goalText} coins a second`
+end
+
 -- [Statii] Panoul de nivel. Textele sunt scurte pentru ca stau pe un rand ingust, langa cifre.
 -- Panoul se numeste dupa CE FACI acolo, nu dupa locul unde esti: "Riverbank" nu spunea nimic
 -- cuiva care tocmai l-a deschis. Sub cele trei debite sta o propozitie care explica de ce conteaza,
@@ -1821,7 +1827,7 @@ function Strings.padNeeds(b: {
     elseif b.kind == "level" then
         return `Upgrade {name} to level {b.level or 2} first`
     elseif b.kind == "income" then
-        return `Earn {b.goalText or "more"} coins a second first` -- [D70] Dam Bell
+        return `{Strings.earnPerSecond(b.goalText or "more")} first` -- [D70] Dam Bell
     end
     return `Rebuild everything else on {b.zone or "The Landing"} first`
 end

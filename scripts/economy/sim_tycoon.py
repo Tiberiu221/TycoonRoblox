@@ -1553,12 +1553,12 @@ ERA4_UNLOCKS = [
     ("relayKeeper", "Relay Keeper", "A", lambda s: people(s, "cableHauler") >= 1 and people(s, "relayKeeper") == 0, hire("relayKeeper")),
     ("pylonRunner", "Pylon Runner", "A", lambda s: people(s, "relayKeeper") >= 1 and people(s, "pylonRunner") == 0, hire("pylonRunner")),
     (
-        "cableNet2", "Second Cable Net", "C",
+        "cableNet2", "Cable Net II", "C",
         lambda s: dam_nets(s, "cable_ore") == 1 and family_ready(s, "cable_ore") and people(s, "pylonRunner") >= 1,
         dam_net("second_cable_net"),
     ),
     (
-        "cableNet3", "Third Cable Net", "C",
+        "cableNet3", "Cable Net III", "C",
         lambda s: dam_nets(s, "cable_ore") == 2 and family_ready(s, "cable_ore"),
         dam_net("third_cable_net"),
     ),
