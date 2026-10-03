@@ -779,6 +779,13 @@ def bake(G):
                 cv.blend(ix, iy, DEEP, 0.30)
                 if ix - cx0 < 2:
                     cv.blend(ix, iy, BANK_SHADE, 0.42 - 0.16 * (ix - cx0))
+        # lacul din spatele zidului e mai adanc si sta: mai intunecat decat raul, iar langa zid apa se loveste de piatra
+        for ix in range(0, wx0):
+            for iy in range(int(far["y"][ix] // D) - 1, int(near["y"][ix] // D) + 2):
+                if cv.inside(ix, iy) and cv.mat[iy * W + ix] == MAT_WATER:
+                    cv.blend(ix, iy, DEEP, 0.16)
+                    if ix >= wx0 - 2:
+                        cv.blend(ix, iy, SHALLOW, 0.45 if ix == wx0 - 1 else 0.2)
         # lacul din spatele zidului: stuf la ambele maluri, smocuri de doua-trei fire in apa mica
         for ix in range(0, wx0 - 1):
             for side, edge in ((-1, far), (1, near)):
@@ -800,7 +807,9 @@ class Sprite:
 
 
 # ---- previzualizarea: cum se vede in joc, cu raul dedesubt si cu desenele asezate peste ---------------------------
-def compose(G, ground_rows):
+def compose(G, ground_rows, wall=None):
+    """[k12] `wall`: la baraj, cine deseneaza zidul (o functie care primeste `over(x, y, rgba)`); fara ea, zidul provizoriu
+    din joc. Planse cu alte variante de zid: scripts/art/a0_dam.py."""
     W, H = G["world"]["w"] // D, G["world"]["h"] // D
     water = Sprite("water_tile")
     out = [[water.px[y % water.h][x % water.w] for x in range(W)] for y in range(H)]
@@ -867,7 +876,9 @@ def compose(G, ground_rows):
         if name:
             # baza cladirii de pe platforma, ca in joc: TycoonConfig.buildingBase = y + PAD_SIZE/2 + BUILDING_DROP
             things.append((p["y"] + 48 + 8, name, p["x"], 1.0))
-    if dam:
+    if dam and wall is not None:
+        wall(over)
+    elif dam:
         # [k12] zidul provizoriu, ca in joc (SceneArt, stratul Built: peste pamantul copt, sub cladiri si oameni): fata de piatra, coama si apa
         # alba a deversorului; turbina zidita in fata lui
         wall, sp_ = dam["wall"], dam["water"]["spillway"]

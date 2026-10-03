@@ -1390,6 +1390,16 @@ explicit.**
 | A3 | Pământul copt (k12) | 2 | Nu |
 | A4 | Clădirile, colibele, mărfurile, ținutele | ~14 + ~20–28 + ~12–15 + 10–15 | Da; pot veni și după lansare |
 
+**[2026-10-03] A0, planșele sunt gata și așteaptă owner-ul** (`python3 scripts/art/a0_dam.py [wall|film]`, în scratchpad):
+- **`a0_dam_wall.png`:** zidul la locul lui, în două variante. **A** e de piatră, zidit din satul vechi, cu fața în trepte (recomandat:
+  e ce spune filmul). **B** e de beton, cu trei stavile. Ambele au coama cu parapetul spre lac, fața din aval, panza
+  deversorului, spuma de la picior și gura turbinei.
+- **`a0_dam_film.png`:** șase cadre-cheie pe satul adevărat: clopotele, privirea de la Wire Works la Landing, oamenii la amurg
+  (siluete), barajul care crește peste râu (schele, zidul din ambele maluri; camera urcă la râu) și cartonașul.
+- **Pământul lumii 2:** `village_ground.py --world 2 --preview` (lacul e acum mai adânc decât râul și apa lovește zidul).
+
+Siluetele, schelele și zidul de aici sunt propunerea loturilor A1/A2. Nimic nu se urcă înainte de aprobare.
+
 Totalul, ~92–97 de imagini și 3 sunete până se joacă Era 4 (PLAN-HARTA §7).
 
 ### l: proba și comutatorul
