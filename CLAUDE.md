@@ -153,6 +153,14 @@ recomandările owner-ului luate (O1, provizoriu).
 - **Verificatorii k6–k11 sunt reparați** (pagina „Your people” era goală, filmul cădea la `Init`, oamenii retrași stăteau unul
   peste altul; notele sunt în PLAN §16). **Schimbări voite în sat:** cardul unui vânzător fără ce vinde spune unde merge marfa
   (`StateCopy.sellerNote`), iar eticheta de margine a ghidajului rămâne în ecran.
+- **Indicatorul de margine al ghidajului (în satul viu):** `GuideMath.edgePlacement` / `edgeIndicator` (pure, testate pe
+  șase ecrane). Indicatorul stă pe inelul marginilor și ocolește panourile fixe (atributul `GuideBlocker`). Capetele libere se
+  calculează exact. Între capete alege după unghiul spre țintă, cu histerezis. Eticheta trece pe două rânduri echilibrate,
+  iar pe telefonul cel mai mic rămâne doar săgeata. Unsprezece runde de verificator; limitele rămase (du-te-vino lângă
+  colțul cu cifre) le alege owner-ul în Studio (PLAN §16, a unsprezecea rundă).
+- **Capcane noi:** un verificator a lăsat odată legătura `src/src -> src`; buclele de legături strică testele („Too many
+  levels of symbolic links”), deci caut-o cu `find . -maxdepth 4 -type l`. Commit-ul se face doar după „GATE fail=0” explicit,
+  nu după un `grep` care trece și la eroare.
 - **Urmează:** aprobarea A0 de către owner, apoi A1–A4 (fiecare urcare cere acordul) și l1–l3. Proba l1 cere Studio conectat
   la Rojo (`lsof -nP -iTCP:34872` să arate ESTABLISHED).
 
