@@ -7,6 +7,7 @@
 -- grija si una generica. Coltul imaginii ramane nedeformat, mijlocul se intinde.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
 
 local Assets = require(ReplicatedStorage.Shared.Config.Assets)
 local Theme = require(script.Parent.Theme)
@@ -375,6 +376,85 @@ function Widgets.Button(parent: Instance, o: ButtonOptions): TextButton
     end)
     fitButtonRow(b)
     return b
+end
+
+-- [D70, pasul k7] BUTONUL CARE SE TINE APASAT („Build the Dam”): o alegere care nu se face dintr-o atingere scapata. Se
+-- umple cat il tii (mouse sau deget), iar dupa `seconds` cheama `onDone`, o singura data pe apasare; daca il lasi mai
+-- devreme sau iesi de pe el, se goleste. `SetEnabled(false)` il sterge si ignora apasarile (cat se salveaza).
+export type HoldButton = { button: TextButton, SetEnabled: (boolean) -> () }
+function Widgets.HoldButton(
+    parent: Instance,
+    o: {
+        text: string,
+        width: number,
+        height: number,
+        z: number,
+        seconds: number,
+        onDone: () -> (),
+    }
+): HoldButton
+    local button = Widgets.Button(parent, {
+        text = o.text,
+        width = o.width,
+        height = o.height,
+        z = o.z,
+        onClick = function() end,
+    })
+    local fill = Instance.new("Frame")
+    fill.Name = "HoldFill"
+    fill.BackgroundColor3 = Theme.COLOR.gold
+    fill.BackgroundTransparency = 0.45
+    fill.BorderSizePixel = 0
+    fill.Size = UDim2.fromScale(0, 1)
+    fill.ZIndex = o.z + 1
+    fill.Parent = button
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = fill
+    local enabled = true
+    local heldSince: number? = nil
+    local function stop()
+        heldSince = nil
+        fill.Size = UDim2.fromScale(0, 1)
+    end
+    button.InputBegan:Connect(function(input: InputObject)
+        local kind = input.UserInputType
+        if
+            enabled
+            and (kind == Enum.UserInputType.MouseButton1 or kind == Enum.UserInputType.Touch)
+        then
+            heldSince = os.clock()
+        end
+    end)
+    button.InputEnded:Connect(function(input: InputObject)
+        local kind = input.UserInputType
+        if kind == Enum.UserInputType.MouseButton1 or kind == Enum.UserInputType.Touch then
+            stop()
+        end
+    end)
+    button.MouseLeave:Connect(stop)
+    RunService.RenderStepped:Connect(function()
+        local since = heldSince
+        if since == nil then
+            return
+        end
+        local f = (os.clock() - since) / math.max(0.1, o.seconds)
+        fill.Size = UDim2.fromScale(math.clamp(f, 0, 1), 1)
+        if f >= 1 then
+            stop()
+            o.onDone()
+        end
+    end)
+    return {
+        button = button,
+        SetEnabled = function(on: boolean)
+            enabled = on
+            if not on then
+                stop()
+            end
+            Widgets.SetButtonTone(button, if on then Theme.COLOR.gold else Theme.COLOR.parchmentDim)
+        end,
+    }
 end
 
 -- TEXTUL UNUI Widgets.Button SE SCHIMBA DOAR AICI. Butonul isi deseneaza eticheta intr-un copil

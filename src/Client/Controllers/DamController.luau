@@ -41,6 +41,8 @@ export type Deps = {
     -- cine asculta (ecranul, k7): chitanta noua sau motivul; ridicarea gata
     OnPreview: ((Receipt?, string?) -> ())?,
     OnBuilt: ((Receipt) -> ())?,
+    -- [D70, pasul k7] ecranul spune refuzul unei ridicari pe randul lui (altfel, un toast)
+    OnRejected: ((string) -> ())?,
 }
 local deps: Deps? = nil
 local lastPreview: Receipt? = nil
@@ -149,7 +151,13 @@ function DamController.Init(d: Deps)
         end
     end)
     d.Remotes.DamRejected.OnClientEvent:Connect(function(reason: unknown)
-        refuse(d, if typeof(reason) == "string" then reason else "busy")
+        local why = if typeof(reason) == "string" then reason else "busy"
+        local onRejected = d.OnRejected
+        if onRejected ~= nil then
+            onRejected(why)
+        else
+            refuse(d, why)
+        end
         -- „changed”: monedele de pe ecran nu mai sunt cele adevarate, deci o chitanta noua
         if reason == "changed" then
             DamController.RequestPreview()

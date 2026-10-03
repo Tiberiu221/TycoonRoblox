@@ -1231,6 +1231,15 @@ la granița CREWS / `DAM_START_COINS`.
 - Trei coloane cu cifrele din `DamPreviewResult`; `Widgets.HoldButton` nou (1,5 s); „Not yet”; `Theme.fitSize` pe fiecare cifră;
   textele pentru refuzuri; chitanța.
 
+- **k7 (făcut):** `Controllers/DamScreen` (fereastră, `Panels` „dam”): masa Dam Plans îl deschide pe „Counting your village…” și
+  cere chitanța; cele trei coloane („Stays with you”, „Becomes the Dam”, „You gain”) vin din `Shared/Modules/DamWords` (pur,
+  testat: cel mult 5 rânduri pe coloană, fără rânduri cu 0, literele în Nunito; fără „→”, pe care Nunito nu-l are). Pe
+  calculator coloanele stau una lângă alta, pe telefon una sub alta (derulate); rândurile se rup. „Not yet” închide;
+  `Widgets.HoldButton` (nou) se ține 1,5 s, apoi `DamController.Build`; cât se salvează scrie „Saving…” și nu răspunde.
+  Refuzurile vin pe rândul de stare (`DamController.OnRejected`): „changed” așteaptă chitanța nouă, „save” / „built” închid
+  drumul fără „Try again” (`DamWords.canRetry`). După ridicare: „The Dam is built!” (filmul vine la k9, reîncărcarea la k8).
+  `check_panel_rows`: `DAM_SCREEN`.
+
 **k8. Reîncărcarea în lumea 2.** Depinde de: k7.
 - `FerryService.Depart(player, destination?)` (barca rămâne identică); salvare, `MarkTeleporting`, apoi teleport în același
   place; cartonașul „THE DAM” ca TeleportGui.

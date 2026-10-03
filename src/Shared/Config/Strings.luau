@@ -203,6 +203,53 @@ function Strings.damRejected(reason: string): string
     return DAM_REJECTED[reason] or DAM_REJECTED.busy
 end
 Strings.DAM_BUILT = "The Dam is built!"
+-- [D70, pasul k7] ECRANUL „Build the Dam” (PLAN-HARTA §2 pasul 4, §3): trei coloane, cifrele de la server (DamMath.preview)
+Strings.DAM_SCREEN_TITLE = "Build the Dam"
+Strings.DAM_STAYS = "Stays with you"
+Strings.DAM_BECOMES = "Becomes the Dam"
+Strings.DAM_GAIN = "You gain"
+function Strings.damCoins(start: string, bought: string?): string
+    return if bought ~= nil
+        then `You start with {start} + {bought} coins you bought`
+        else `You start with {start}`
+end
+Strings.DAM_STAYS_THINGS = "All your pearls, outfits and decor"
+Strings.DAM_STAYS_BELLS = "Your bells' bonus on every sale"
+Strings.DAM_STAYS_PEOPLE = "All your people, with their names"
+function Strings.damLastCart(coins: string, pieces: number): string
+    return if pieces == 1
+        then `Last cart: 1 good sold for {coins}`
+        else `Last cart: {pieces} goods sold for {coins}`
+end
+function Strings.damQuests(pearls: number): string
+    return if pearls == 1
+        then "Old quests finished: +1 pearl"
+        else `Old quests finished: +{pearls} pearls`
+end
+function Strings.damGiven(coins: string): string
+    return `Given to the Dam: {coins}`
+end
+Strings.DAM_BECOMES_BUILDINGS = "Your old buildings, nets and jobs"
+-- fara sageata: Nunito (fontul randurilor) n-o are
+function Strings.damIncome(before: string, after: string): string
+    return `Income {before}/s, then {after}/s`
+end
+function Strings.damTopUp(coins: string): string
+    return `The village adds: {coins}`
+end
+function Strings.damVeterans(working: number, retired: number): string
+    local who = if working == 1
+        then "1 veteran keeps working"
+        else `{working} veterans keep working`
+    return if retired > 0 then `{who}; {retired} retire by the lake` else who
+end
+Strings.DAM_GAIN_FREE = "A turbine and a Cable Net, free"
+Strings.DAM_HOLD = "Build the Dam"
+Strings.DAM_NOT_YET = "Not yet"
+Strings.DAM_CLOSE = "Close"
+Strings.DAM_HOLD_HINT = "Hold the button to build. Not yet costs nothing."
+Strings.DAM_COUNTING = "Counting your village…"
+Strings.DAM_SAVING = "Saving…"
 -- [D70, verificatorul j10] zona unei alte harti (barajul, vazut din sat), cand era ei e in joc: nu se deschide cu niciun
 -- clopot si nu mai "vine"; spune doar unde se ridica [D40, D73]
 function Strings.zoneAway(zoneName: string): string

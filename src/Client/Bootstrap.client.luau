@@ -216,6 +216,7 @@ local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
 local ShopPanel = require(Controllers.ShopPanel)
 local DriftController = require(Controllers.DriftController) -- [D62, pasul 3]
 local DamController = require(Controllers.DamController) -- [D70, pasul j15]
+local DamScreen = require(Controllers.DamScreen) -- [D70, pasul k7]
 local AmbientController = require(Controllers.AmbientController) -- [D62, pasul 5]
 local Theme = require(UI.Theme)
 local layers = CameraController.Init({ WorldGui = worldGui, World = world })
@@ -368,12 +369,12 @@ if world == 1 then
                 local origin = TycoonConfig.PLOT_ORIGIN
                 LookController.Look(x + origin.x, y + origin.y)
             end,
-            -- [D70, pasul k6] cu barajul in joc, masa il ridica: E cere chitanta (ecranul ei vine la k7)
+            -- [D70, pasul k6] cu barajul in joc, masa il ridica: E deschide ecranul „Build the Dam” (k7)
             DamAvailable = function(): boolean
                 return damAvailable
             end,
             OpenDam = function()
-                DamController.RequestPreview()
+                DamScreen.Open()
             end,
         })
         -- [2026-09-30] masa cu planurile barajului: cardul ei spune ce vine
@@ -701,7 +702,10 @@ safeInit("WelcomeController", function()
         RobuxBuy = Net.Get("RobuxBuy"), -- [D61, partea 2] `Double it`
     })
 end)
--- [D70, pasul j15] barajul: cererile si raspunsurile; ecranul vine la k7, masa Dam Plans il deschide la k6
+-- [D70, pasul k7] ecranul „Build the Dam” (il deschide masa Dam Plans, k6), apoi cererile si raspunsurile (j15)
+safeInit("DamScreen", function()
+    DamScreen.Init({ HudGui = hudCanvas })
+end)
 safeInit("DamController", function()
     DamController.Init({
         Remotes = {
@@ -715,6 +719,9 @@ safeInit("DamController", function()
         OnToast = function(text: string, color: Color3?)
             HUDController.Toast(text, color)
         end,
+        OnPreview = DamScreen.OnPreview,
+        OnBuilt = DamScreen.OnBuilt,
+        OnRejected = DamScreen.OnRejected,
     })
 end)
 safeInit("QuestController", function()

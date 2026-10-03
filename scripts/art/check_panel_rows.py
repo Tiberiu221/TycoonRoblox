@@ -113,6 +113,20 @@ STATION_MENU = dict(
 )
 
 
+# [D70, pasul k7] Ecranul „Build the Dam” (DamScreen), pe calculator: coloanele (derulate), randul de stare, „Not yet” si
+# butonul tinut apasat, unul langa altul, centrate (200 + 8 + 240).
+DAM_SCREEN_BODY_H = 540 - 56
+DAM_SCREEN = dict(
+    panel="Build the Dam (DamScreen)", width=640 - 20 * 2, row_h=DAM_SCREEN_BODY_H,
+    boxes=lambda w: [
+        ("columns", 0, 0, w, DAM_SCREEN_BODY_H - 48 - 40 - 8 * 2, None),
+        ("status", 0, DAM_SCREEN_BODY_H - 48 - 8 - 40, w, 40, None),
+        ("notYet", w // 2 - 224, DAM_SCREEN_BODY_H - 48, 200, 48, None),
+        ("hold", w // 2 - 224 + 208, DAM_SCREEN_BODY_H - 48, 240, 48, None),
+    ],
+)
+
+
 # Cardul obiectului (InteractController) [D51]: actiunea SAU starea (niciodata amandoua) si Upgrade. [D58] Butonul
 # Upgrade creste dupa eticheta (cel putin 180): cel mai lat text e "Upgrade (U) · 123.45K" (21 de caractere de 0.5586 em
 # la 18 px = 211 px) -> 28 pictograma + 8 + 211 + 2 x 18 margine = 284.
@@ -393,7 +407,7 @@ def check(spec):
 
 
 def main():
-    bad = sum(check(spec) for spec in (STATION_ROW, QUEST_ROW, QUEST_FINALE, APPROACH_CARD, STATION_MENU, INTERACT_CARD, AUDIO_PANEL,
+    bad = sum(check(spec) for spec in (STATION_ROW, QUEST_ROW, QUEST_FINALE, APPROACH_CARD, STATION_MENU, DAM_SCREEN, INTERACT_CARD, AUDIO_PANEL,
                                       WHEEL_PANEL, WHEEL_ROW, BOARD_ROW, JOURNAL_ROW,
                                       TITLE_ROW, TITLE_TO_EARN, TITLE_HEAD, MARKET_ROW, LEADERBOARD_ROW, STAGE_PANEL,
                                       PLAYER_CARD, BOOTH_PANEL,
