@@ -163,6 +163,40 @@ return function()
         )
 
         test.case(
+            "[D70, pasul k2] clientul nu citeste tabelele satului direct, ci prin accesoriile de lume",
+            function()
+                -- ZONES / DISTRICTS / DECK / ROADS / YARDS / DECOR sunt ale lumii 1: la baraj ar desena satul peste baraj.
+                -- Exceptii scrise aici, cu motiv: roata de apa e doar a satului (PadArt.WHEEL_FOOT).
+                local ALLOWED = { "local WHEEL_FOOT = TycoonConfig.DECK.y0" }
+                local TABLES = { "ZONES", "DISTRICTS", "DECK", "ROADS", "YARDS", "DECOR" }
+                for _, path in luauFiles("src/Client", {}) do
+                    for line in string.gmatch(fs.readFile(path), "[^\n]+") do
+                        local code = string.match(line, "^%s*(.-)$") or ""
+                        if string.sub(code, 1, 2) == "--" then
+                            continue
+                        end
+                        local allowed = false
+                        for _, ok in ALLOWED do
+                            allowed = allowed or string.find(line, ok, 1, true) ~= nil
+                        end
+                        if allowed then
+                            continue
+                        end
+                        for _, name in TABLES do
+                            -- numele exact (nu DECOR_STRIPS / DECK_SPANS): urmat de ceva ce nu e litera, cifra sau _
+                            if string.find(line, `TycoonConfig%.{name}[^%w_]`) ~= nil then
+                                print(
+                                    `[WorldConfig] {path}: TycoonConfig.{name} citit direct: {line}`
+                                )
+                                check.is_true(false)
+                            end
+                        end
+                    end
+                end
+            end
+        )
+
+        test.case(
             "comutatorul local al Erei 4 nu e niciodata comis (scripts/era4_flip.py)",
             function()
                 for _, path in luauFiles("src", {}) do

@@ -15,14 +15,16 @@ local LampController = {}
 local lamps: StreetLamps.Lamps? = nil
 local lit: boolean? = nil -- nil = inca nicio stare de la server
 local onFirstLight: (() -> ())? = nil
+local world = 1 -- [D70, pasul k2]
 
 -- [D73] Felinarele apar odata cu stalpii si sarma (treapta "wire" a modernizarii, Clerk-ul Erei 3), nu din primul minut:
 -- pana atunci stateau stinse pe strazile tuturor cartierelor, doua ere la rand, fara sa faca nimic.
 local WIRE_STAGE = ModernMath.stageOf("wire") or 1
 
-function LampController.Init(deps: { Plot: GuiObject, OnFirstLight: (() -> ())? })
+function LampController.Init(deps: { Plot: GuiObject, OnFirstLight: (() -> ())?, World: number? })
     onFirstLight = deps.OnFirstLight
-    lamps = StreetLamps.draw(deps.Plot, false)
+    world = deps.World or 1
+    lamps = StreetLamps.draw(deps.Plot, false, world)
     LampController.RefreshModern()
 end
 
@@ -30,7 +32,8 @@ end
 function LampController.RefreshModern()
     local l = lamps
     if l ~= nil then
-        l.show(Modern.stage >= WIRE_STAGE)
+        -- [D70] la baraj felinarele stau de la inceput (curentul e al lui); in sat, de la treapta „wire”
+        l.show(world ~= 1 or Modern.stage >= WIRE_STAGE)
     end
 end
 

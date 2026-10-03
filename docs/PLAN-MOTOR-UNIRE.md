@@ -1087,6 +1087,19 @@ la granița CREWS / `DAM_START_COINS`.
     în afara unei ramuri a lumii 1 sau a unui accesoriu de lume;
   - `firsts.runner` / `firsts.bell` vin din profil (`PadService.Owns`, făcut), deci rămân adevărate la baraj; `workshop`
     rămâne pe statusuri (atelierul parcat).
+- **[Făcut, 2026-10-03]** `PadController` (cele 4 bucle pe `padsOfWorld`, pământul pe `districtsOf`, ruina prin
+  `WorldMath.ruinNeeds`: clopotul de dinaintea erei pe harta ta, apoi condiția cu venitul și 2x Flow; serverul trimite
+  `flowFactor`, Bootstrap îl dă cu `PadController.SetIncome`), `ZoneController` (zonele hărții, prima zonă a ei fără gard,
+  `fence = false` fără gard, textele pe lume), `Overlay` (gardul pe lume, refuzul tavernei și „+N” de rezervă doar în sat,
+  vânzătorii hărții), `StationPanel` (cartierul de sub tine și filele doar ale hărții, prima eră a ei implicit),
+  `CeremonyController` (zona fiecărei ere pe harta ei; nimic „nu se deschide” peste hărți), `GuideController` (dâra pe
+  `RoadGraph.forWorld`), felinarele pe lume (la baraj, aprinse de la început), `VillageController` (la baraj, doar decorul de
+  pe apă și de pe ponton). `GuideMath` ia oamenii după meserie (`STEP_OF_JOB`), nu după poziție, și lasă unirea pe seama lui k5:
+  cele 16 căderi de pe linia unirii au dispărut (cu comutatorul pornit pică 16, toate adormiri sau lipsurile din HandConfig,
+  ChainWords, EraWords). Test: clientul nu citește direct `ZONES` / `DISTRICTS` / `DECK` / `ROADS` / `YARDS` / `DECOR`.
+- **k2b (de făcut, cu planșa):** cele 10 locuri ale decorului cumpărat în piața Dam Town (PLAN-HARTA §3) nu sunt în planșa
+  aprobată; se propun în `preview_dam_layout.py`, cu testul de așezare din `World2Layout`, apoi `VillageConfig.DECOR[*]` primește
+  locurile lumii 2 și rândul din panou își schimbă textul „where”.
 **k3. Liniile barajului în client.** Depinde de: k2, j13.
 - 6 clădiri fixe cu `borrowed`; `LineController` pentru unire (două grămezi, `waiting` copiat explicit); Overlay `DROP_AT` /
   `playerStand` la `:273, :721-743, :821`; GuideMath și `STEP_OF_JOB`.

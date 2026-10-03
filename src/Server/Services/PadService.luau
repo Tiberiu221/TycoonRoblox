@@ -280,6 +280,13 @@ function PadService.World(player: Player): number
     return WorldConfig.sanitize(if data ~= nil then data.World else nil)
 end
 
+-- [D70, pasul k2] Factorul 2x Flow al jucatorului (1 sau 2): cartonasul unei platforme cu conditie de venit (Dam Bell)
+-- spune acelasi prag ca serverul.
+function PadService.FlowFactor(player: Player): number
+    local data = DataService.Get(player)
+    return if data ~= nil then PassMath.flowFactor(data) else 1
+end
+
 -- [D70, verificatorul j10] Platforma e a ta, in orice lume (un „prim” care nu se pierde: Landing Bell sunat ramane sunat
 -- si la baraj). Statusurile spun doar ce e pe harta de acum.
 function PadService.Owns(player: Player, padId: string): boolean

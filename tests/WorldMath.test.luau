@@ -225,6 +225,30 @@ return function()
             check.equal(WorldMath.fenceText(fog, 2, five), Strings.refuseZoneLocked("Dam Bell"))
         end)
 
+        test.case("[pasul k2] ce scrie ruina unei platforme, pe harta ta", function()
+            -- la baraj, totul cumparat in afara de Dam Bell: venitul e conditia, nu Works Bell-ul satului
+            local statuses: { [string]: string } = {}
+            for _, p in TycoonConfig.padsOfWorld(2) do
+                statuses[p.id] = if p.id == "dam_bell" then "outline" else "bought"
+            end
+            local bell = TycoonConfig.byId.dam_bell
+            check.equal(
+                WorldMath.ruinNeeds(bell, statuses, 2, nil, 3.9e12, 1),
+                "Earn 4T coins a second first"
+            )
+            check.equal(
+                WorldMath.ruinNeeds(bell, statuses, 2, nil, 5e12, 2),
+                "Earn 8T coins a second first"
+            )
+            check.equal(WorldMath.ruinNeeds(bell, statuses, 2, nil, 8e12, 2), nil)
+            -- in sat, o platforma a Morii cu Landing Bell nesunat: clopotul intai
+            local mill = TycoonConfig.byId.water_wheel
+            check.equal(
+                WorldMath.ruinNeeds(mill, {}, 1, nil, 0, 1),
+                Strings.refuseZoneLocked("Landing Bell")
+            )
+        end)
+
         test.case("acordarea barajului nu angajeaza pe nimeni", function()
             local src = fs.readFile("src/Server/Services/PadService.luau")
             local grantBody = string.match(src, "function PadService%.Grant%(.-\nend") or ""

@@ -19,6 +19,7 @@ local StationConfig = require(ReplicatedStorage.Shared.Config.StationConfig)
 local EraWords = require(ReplicatedStorage.Shared.Modules.EraWords)
 local Strings = require(ReplicatedStorage.Shared.Config.Strings)
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
+local WorldConfig = require(ReplicatedStorage.Shared.Config.WorldConfig)
 
 local Panels = require(script.Parent.Panels)
 local SoundController = require(script.Parent.SoundController)
@@ -61,6 +62,7 @@ export type Deps = {
     CharacterPos: (() -> (number, number))?,
     -- [2026-09-30] platforma e cumparata (PadController): un clopot tras nu mai e trimis ca pas urmator
     IsBought: ((padId: string) -> boolean)?,
+    World: number?, -- [D70, pasul k2] harta: cartierele ei (la baraj, primul e al Erei 4)
 }
 
 local StationPanel = {}
@@ -137,6 +139,8 @@ type ChainHead = {
 }
 local heads: { ChainHead } = {}
 local shownEra = 1 -- cartierul ales
+local firstEra = 1 -- [D70, pasul k2] prima era a hartii tale (4 la baraj)
+local world = 1
 local shownRows: { Row } = {} -- randurile lui, in ordinea de pe ecran
 local tabRow: Frame
 local tabButtons: { TextButton } = {}
@@ -307,7 +311,7 @@ end
 -- Ai ceva la Moara? Atunci apare comutatorul de cartier; pana atunci panoul e cel al Erei 1, neschimbat.
 local function hasLaterEra(snap: Snapshot): boolean
     for _, row in snap.rows do
-        if eraOfRow(row) > 1 then
+        if eraOfRow(row) > firstEra then
             return true
         end
     end
@@ -400,7 +404,7 @@ end
 local function layoutTabs(snap: Snapshot)
     local tabs = hasLaterEra(snap)
     if not tabs then
-        shownEra = 1
+        shownEra = firstEra
     end
     tabRow.Visible = tabs
     local shift = if tabs then TABS_H else 0
@@ -494,7 +498,7 @@ local function eraUnderfoot(): number?
         return nil
     end
     local x = characterPos() - TycoonConfig.PLOT_ORIGIN.x
-    for _, zone in TycoonConfig.ZONES do
+    for _, zone in TycoonConfig.zonesOf(world) do
         if x >= zone.x0 and x < zone.x1 and CHAIN_BY_ERA[zone.era] ~= nil then
             return zone.era
         end
@@ -595,6 +599,9 @@ end
 
 function StationPanel.Init(d: Deps)
     deps = d
+    world = WorldConfig.sanitize(d.World)
+    firstEra = WorldConfig.FIRST_ERA[world]
+    shownEra = firstEra
     local root, content = Widgets.Window(deps.HudGui, {
         name = "StationPanel",
         title = Strings.STATIONS_TITLE,
@@ -618,9 +625,15 @@ function StationPanel.Init(d: Deps)
     tabRow.ZIndex = Z + 1
     tabRow.Visible = false
     tabRow.Parent = body
+    local tabIndex = 0
     for era in StationConfig.ERA_LINES do
+        -- [D70, pasul k2] doar cartierele hartii tale, de la stanga, cu numele zonei din lumea lor
+        if WorldConfig.worldOfEra(era) ~= world then
+            continue
+        end
+        tabIndex += 1
         local zoneName = `Era {era}`
-        for _, zone in TycoonConfig.ZONES do
+        for _, zone in TycoonConfig.zonesOf(world) do
             if zone.era == era then
                 zoneName = zone.name
             end
@@ -639,7 +652,7 @@ function StationPanel.Init(d: Deps)
                 end
             end,
         })
-        button.Position = UDim2.fromOffset((era - 1) * 208, 0)
+        button.Position = UDim2.fromOffset((tabIndex - 1) * 208, 0)
         tabButtons[era] = button
     end
 

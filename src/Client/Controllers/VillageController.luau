@@ -44,6 +44,9 @@ export type Deps = {
         ShopResult: RemoteEvent,
     },
     OnToast: (string, Color3?) -> (),
+    -- [D70, pasul k2] harta: la baraj, decorul de pe uscat isi asteapta locurile din piata Dam Town (k2b); ce sta pe apa si pe
+    -- ponton ramane la locul lui, pe malul lacului
+    World: number?,
 }
 
 local VillageController = {}
@@ -391,7 +394,11 @@ function VillageController.Apply(snap: Snapshot, pearlsNow: number, speciesCaugh
     pearls = math.floor(pearlsNow)
     caught = speciesCaught
     if deps ~= nil then
+        local onLand = (deps :: Deps).World == nil or (deps :: Deps).World == 1
         for _, decor in VillageConfig.DECOR do
+            if decor.ground == "land" and not onLand then
+                continue
+            end
             if village.decor[decor.id] and not decorShown[decor.id] then
                 -- la prima stare doar se aseaza ce ai deja; dupa, fiecare lucru nou apare cu ceremonia lui
                 showDecor(decor, applied)

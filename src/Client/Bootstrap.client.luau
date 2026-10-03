@@ -297,12 +297,13 @@ safeInit("DriftController", function()
     })
 end)
 safeInit("ZoneController", function()
-    ZoneController.Init({ Plot = layers.Plot })
+    ZoneController.Init({ Plot = layers.Plot, World = world })
 end)
 -- [D67] felinarele de pe strada: se aprind cu primul curent vandut, iar prima aprindere se anunta [D43]
 safeInit("LampController", function()
     LampController.Init({
         Plot = layers.Plot,
+        World = world, -- [D70, pasul k2] felinarele strazii hartii tale
         OnFirstLight = function()
             -- felinarele se aprind si in satul vechi: privirea e cea a treptei luminilor
             modernMoment(Strings.LAMPS_ON, ModernMath.stageOf("lights") or 0)
@@ -352,6 +353,7 @@ safeInit("PadController", function()
         CharacterPos = CharacterController.Position,
         OnToast = HUDController.Toast,
         OpenStation = openStation,
+        World = world, -- [D70, pasul k2] doar platformele hartii tale, cu conditiile ei
     })
 end)
 -- Depozitul [D49]: aici varsa Collector-ul ce strange din plase, de aici ia Porter-ul.
@@ -644,6 +646,7 @@ safeInit("StationPanel", function()
         OnToast = HUDController.Toast,
         CharacterPos = CharacterController.Position, -- [D65] panoul se deschide pe cartierul in care stai
         IsBought = PadController.IsBought,
+        World = world, -- [D70, pasul k2] cartierele hartii tale
     })
 end)
 safeInit("IndexController", function()
@@ -1055,6 +1058,7 @@ safeInit("VillageController", function()
             ShopResult = Net.Get("ShopResult"),
         },
         OnToast = HUDController.Toast,
+        World = world, -- [D70, pasul k2] la baraj, doar decorul de pe apa si de pe ponton (k2b: locurile din piata)
     })
 end)
 safeInit("JournalController", function()
@@ -1678,6 +1682,11 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
     end
     PadController.SetCrews(crewCounts, crewTiers) -- [D55] inainte de Apply: prima desenare alege deja casa potrivita
     PadController.SetChain(snapshot.stations) -- [D63] cartonasul unei platforme fara castig spune cine o tine, pe linia ei
+    -- [D70, pasul k2] venitul de acum si 2x Flow: conditia de venit a Dam Bell, spusa ca pe server
+    PadController.SetIncome(
+        snapshot.incomePerSec,
+        if typeof(raw.flowFactor) == "number" then raw.flowFactor else 1
+    )
     PadController.Apply(
         snapshot.pads,
         snapshot.coins,

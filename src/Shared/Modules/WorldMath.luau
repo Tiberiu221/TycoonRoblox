@@ -9,6 +9,7 @@ local StationConfig =
 local Strings = require(script and script.Parent.Parent.Config.Strings or "../Config/Strings")
 local TycoonConfig =
     require(script and script.Parent.Parent.Config.TycoonConfig or "../Config/TycoonConfig")
+local TycoonMath = require(script and script.Parent.TycoonMath or "./TycoonMath")
 local WorldConfig =
     require(script and script.Parent.Parent.Config.WorldConfig or "../Config/WorldConfig")
 
@@ -102,6 +103,38 @@ function WorldMath.zoneStatuses(
         out[zone.id] = if open then "open" else "locked"
     end
     return out
+end
+
+-- [D70, pasul k2] CE SCRIE RUINA UNEI PLATFORME (cartonasul de langa ea, tasta E): intai clopotul erei dinainte, pe harta
+-- ta (prima era a unei lumi n-asteapta nimic), apoi conditia ei (TycoonMath.padBlocker, pe lista hartii, cu venitul si 2x
+-- Flow, ca serverul). nil = nimic de facut intai. `statuses`: statusurile de la server (doar ale hartii tale).
+function WorldMath.ruinNeeds(
+    pad: TycoonConfig.Pad,
+    statuses: { [string]: string },
+    world: any,
+    levels: { [string]: number }?,
+    income: number?,
+    flowFactor: number?
+): string?
+    local bell = WorldMath.bellBefore(pad.era, world)
+    if bell ~= nil and statuses[bell.id] ~= "bought" then
+        return Strings.refuseZoneLocked(bell.name)
+    end
+    local bought: { [string]: boolean } = {}
+    for id, status in statuses do
+        if status == "bought" then
+            bought[id] = true
+        end
+    end
+    local blocker = TycoonMath.padBlocker(
+        pad,
+        bought,
+        levels,
+        TycoonConfig.padsOfWorld(world),
+        income,
+        flowFactor
+    )
+    return if blocker ~= nil then Strings.padNeeds(blocker) else nil
 end
 
 -- [D70, verificatorul j10] CE SCRIE O ZONA: panoul de la gardul ei (ZoneController) si textul care pluteste cand te apropii

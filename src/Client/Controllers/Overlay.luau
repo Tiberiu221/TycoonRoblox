@@ -20,6 +20,7 @@ local ItemConfig = require(ReplicatedStorage.Shared.Config.ItemConfig)
 local RiverConfig = require(ReplicatedStorage.Shared.Config.RiverConfig)
 local StationConfig = require(ReplicatedStorage.Shared.Config.StationConfig)
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
+local WorldConfig = require(ReplicatedStorage.Shared.Config.WorldConfig)
 local Strings = require(ReplicatedStorage.Shared.Config.Strings)
 local GuideMath = require(ReplicatedStorage.Shared.Modules.GuideMath)
 local AmbitionMath = require(ReplicatedStorage.Shared.Modules.AmbitionMath)
@@ -557,7 +558,9 @@ local function checkProximityRefusals()
     local py = cy - TycoonConfig.PLOT_ORIGIN.y
     local now = os.clock()
 
-    if snap.sack.count <= 0 then
+    -- [D70, pasul k2] taverna e doar a satului (la baraj, pe locul ei sta cantina)
+    local inVillage = (deps.World or 1) == 1
+    if snap.sack.count <= 0 and inVillage then
         local dx = px - TycoonConfig.DOCK.x
         local dy = py - TycoonConfig.DOCK.y
         -- doar chiar la usa tavernei [D50]: usa e acum langa drumul mare, iar la raza de interactiune
@@ -575,9 +578,10 @@ local function checkProximityRefusals()
 
     -- [D65] gardul oricarei zone inca inchise: cand te apropii, spune ce clopot o deschide
     local atFence = false
-    for _, zone in TycoonConfig.ZONES do
+    local world = WorldConfig.sanitize(deps.World)
+    for _, zone in TycoonConfig.zonesOf(world) do
         if
-            zone.era > 1
+            zone.era > WorldConfig.FIRST_ERA[world]
             and snap.zones[zone.id] ~= "open"
             and px < zone.x0
             and zone.x0 - px <= 90
@@ -586,8 +590,8 @@ local function checkProximityRefusals()
             if now - lastZoneRefusalAt > PROXIMITY_COOLDOWN then
                 lastZoneRefusalAt = now
                 -- [D73] o era care nu e inca in joc nu se deschide cu niciun clopot: spune doar ca vine [D40]. [D70] Regula e
-                -- in WorldMath.fenceText, aceeasi ca a panoului zonei (ZoneController). Lumea vine la k1.
-                local text = WorldMath.fenceText(zone, nil)
+                -- in WorldMath.fenceText, aceeasi ca a panoului zonei (ZoneController), pe harta ta.
+                local text = WorldMath.fenceText(zone, world)
                 local x, y = deps.WorldToHud(zone.x0 - 20, py)
                 JuiceController.FloatAt(x, y, text, Theme.COLOR.onDarkSoft)
             end
@@ -651,6 +655,7 @@ function Overlay.Init(d: Deps)
         WorldToHud = deps.WorldToHud,
         TagTop = PadController.TagTop,
         Card = InteractController.Shown,
+        World = deps.World, -- [D70, pasul k2] dara pe drumurile hartii tale
     })
 
     -- [39, Sistem] "Loading your river..." -- doar daca prima stare chiar intarzie (0.3s), ca sa
@@ -737,15 +742,19 @@ function Overlay.Init(d: Deps)
             DROP_AT[spec.processor] = join.inputIn[first.line]
         end
     end
-    -- [D70, pasul j6] vanzatorii lumii de acum (satul, pana cand clientul afla lumea la pasul k1)
-    for seller, places in TycoonConfig.sellerPlacesOf() do
+    -- [D70, pasul j6, k2] vanzatorii hartii tale
+    for seller, places in TycoonConfig.sellerPlacesOf(deps.World) do
         DROP_AT[seller] = places.door
     end
     deps.Remotes.HandDelivered.OnClientEvent:Connect(
         function(_handId: string, itemCount: number, place: string)
             -- UN OM ADUCE MARFA, NU BANI. Monedele le arunca scurgerea gramezii de la debarcader --
             -- daca le-am arunca si aici, aceiasi bani s-ar vedea de doua ori.
-            local at = DROP_AT[place] or TycoonConfig.DOCK
+            -- [D70] in sat, un loc necunoscut cade pe taverna, ca inainte; la baraj nu exista taverna: fara cifra
+            local at = DROP_AT[place] or (if (deps.World or 1) == 1 then TycoonConfig.DOCK else nil)
+            if at == nil then
+                return
+            end
             local fromX, fromY = deps.WorldToHud(at.x, at.y)
             JuiceController.FloatAt(fromX, fromY, `+{itemCount}`, Theme.COLOR.onDark)
         end

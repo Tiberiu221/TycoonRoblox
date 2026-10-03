@@ -31,8 +31,9 @@ end
 -- teren, fiecare cu adancimea bazei lui, pe aceeasi scara ca oamenii (PersonView) si cladirile liniilor
 -- (LineController): ce e mai jos acopera ce e mai sus. [D67, audit] Intr-un strat comun cu z 5, felinarul de langa Foundry si Wire Works isi pierdea
 -- varful sub cladire (z 26), desi sta in fata ei.
-function StreetLamps.draw(parent: GuiObject, on: boolean): Lamps
-    local spots = TycoonConfig.streetLamps()
+-- [D70, pasul k2] `world`: felinarele hartii (fara ea, satul; macheta din balci e mereu satul)
+function StreetLamps.draw(parent: GuiObject, on: boolean, world: number?): Lamps
+    local spots = TycoonConfig.streetLamps(world)
     if #spots == 0 or not Assets.has(Assets.tycoon.street_lamp) then
         return {
             set = function(_on: boolean) end,

@@ -36,6 +36,7 @@ export type Deps = {
     TagTop: ((padId: string) -> number?)?,
     -- [2026-09-29] se vede un card E, punctul locului lui si daca e trecator (InteractController.Shown)
     Card: (() -> (boolean, number?, number?, boolean))?,
+    World: number?, -- [D70, pasul k2] dara merge pe drumurile hartii tale (la baraj ocoleste zidul si canalul)
 }
 
 local GuideController = {}
@@ -424,7 +425,11 @@ local function refreshRoute(
     routeKey = goal.key
     routeFromX, routeFromY = px, py
     routeAt = now
-    routePoints = RoadGraph.route(RoadGraph.fromConfig(), { x = px, y = py }, { x = gx, y = gy })
+    routePoints = RoadGraph.route(
+        RoadGraph.forWorld(deps.World),
+        { x = px, y = py },
+        { x = gx, y = gy }
+    )
     routeLens = {}
     routeTotal = 0
     for i = 2, #routePoints do

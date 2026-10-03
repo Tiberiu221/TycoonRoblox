@@ -11,13 +11,17 @@ local Assets = require(ReplicatedStorage.Shared.Config.Assets)
 local RiverConfig = require(ReplicatedStorage.Shared.Config.RiverConfig)
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 local WorldMath = require(ReplicatedStorage.Shared.Modules.WorldMath)
+local WorldConfig = require(ReplicatedStorage.Shared.Config.WorldConfig)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
 
-export type Deps = { Plot: Frame }
+-- [D70, pasul k2] `World`: harta ta (fara ea, satul): zonele ei, iar prima zona a ei (Landing in sat, Dam Town la baraj)
+-- n-are gard
+export type Deps = { Plot: Frame, World: number? }
 
 local ZoneController = {}
 local deps: Deps
+local world = 1
 
 type ZoneView = {
     fade: Frame,
@@ -54,7 +58,7 @@ end
 -- "locked" -> "open" [F1 spec 4.6]: gardul si estomparea se sterg USOR, nu dispar brusc -- se schimba doar la o
 -- tranzitie reala, nu la fiecare TycoonState. `zones` = starea fiecarei zone, dupa id ("open" | "locked").
 function ZoneController.Apply(zones: { [string]: string })
-    for _, zone in TycoonConfig.ZONES do
+    for _, zone in TycoonConfig.zonesOf(world) do
         local view = views[zone.id]
         local status = zones[zone.id] or "locked"
         if view == nil or view.status == status then
@@ -66,7 +70,7 @@ function ZoneController.Apply(zones: { [string]: string })
         -- deschisa si construita: nu mai e nimic de anuntat; nefacuta inca in joc: "coming soon", inchisa sau deschisa
         -- [D73: "The Dam — opens with the Works Bell" mintea, clopotul spune doar ca vine]; facuta si inchisa: ce o deschide.
         -- [D70] Regula e in WorldMath.zoneSign (si barajul vazut din sat, dupa ce Era 4 intra in joc). Lumea vine la k1.
-        view.sign.Text = WorldMath.zoneSign(zone, status, nil)
+        view.sign.Text = WorldMath.zoneSign(zone, status, world)
         view.sign.Visible = view.sign.Text ~= ""
         -- panoul creste dupa text: "The Wire Works — opens with the Mill Bell" are 41 de litere, adica doua randuri
         -- la latimea asta (fontul de pixeli are 0.56 em pe litera) [CLAUDE.md, capcana textului care iese din cutie]
@@ -101,9 +105,7 @@ function ZoneController.Apply(zones: { [string]: string })
     end
 end
 
-local function buildZone(
-    zone: { id: string, name: string, era: number, x0: number, x1: number }
-): ZoneView
+local function buildZone(zone: TycoonConfig.Zone): ZoneView
     local fade = Instance.new("Frame")
     fade.Name = zone.id .. "Fade"
     -- Doar USCATUL de dincolo de gard se estompeaza. Cand acoperea si raul, jumatate de ecran
@@ -119,7 +121,9 @@ local function buildZone(
     fade.Parent = deps.Plot
 
     local fence: { GuiObject } = {}
-    if Assets.has(Assets.props.fence) then
+    -- [D70] o zona fara gard (ceata Erei 5 la baraj, chiar langa Dam Bell): doar ceata si panoul
+    local fenced = zone.fence ~= false
+    if fenced and Assets.has(Assets.props.fence) then
         -- gardul rotit 90 de grade: un sprite orizontal devine un stalp vertical, iar sirul lor
         -- de sus in jos deseneaza linia de granita
         local fw = Assets.props.fence.width * Assets.PIXEL_SCALE
@@ -139,7 +143,7 @@ local function buildZone(
             img.Parent = deps.Plot
             table.insert(fence, img)
         end
-    else
+    elseif fenced then
         -- fara sprite inca: o linie simpla de lemn tine locul gardului
         local line = Instance.new("Frame")
         line.Name = "FenceLine"
@@ -167,9 +171,10 @@ end
 
 function ZoneController.Init(d: Deps)
     deps = d
+    world = WorldConfig.sanitize(d.World)
     local locked: { [string]: string } = {}
-    for _, zone in TycoonConfig.ZONES do
-        if zone.era > 1 then
+    for _, zone in TycoonConfig.zonesOf(world) do
+        if zone.era > WorldConfig.FIRST_ERA[world] then
             views[zone.id] = buildZone(zone)
             locked[zone.id] = "locked"
         end

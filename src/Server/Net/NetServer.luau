@@ -37,6 +37,7 @@ export type Deps = {
         Lanes: (Player) -> number,
         World: (Player) -> number, -- [D70] lumea din profil, aceeasi ca a statusurilor
         Owns: (Player, string) -> boolean, -- [D70] platforma e a ta, in orice lume
+        FlowFactor: (Player) -> number, -- [D70, pasul k2] 2x Flow, pentru pragul de venit de pe cartonas
     },
     Stations: {
         Snapshot: (Player) -> { [string]: any },
@@ -157,6 +158,7 @@ local function buildTycoonState(player: Player): { [string]: any }
         coins = deps.Economy.GetCoins(player),
         pearls = deps.Economy.GetPearls(player),
         incomePerSec = deps.Economy.IncomePerSec(player),
+        flowFactor = deps.Pads.FlowFactor(player), -- [D70, pasul k2]
         sellMult = deps.Economy.SellMult(player),
         serverTime = deps.River.Now(),
         pads = pads,

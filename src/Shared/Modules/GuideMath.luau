@@ -176,11 +176,17 @@ end
 
 -- [D65] LINIILE MORII, din tabele: locurile din TycoonConfig.LINE_PLACES, oamenii din StationConfig.LINES, cuvintele
 -- din Strings.LINE_WORDS. Lemnul si fierul raman pe campurile si pe frazele lor, reglate cu owner-ul [D51, D56].
+-- [D70, pasul k2] Oamenii fiecarui pas dupa meserie (StationConfig.STEP_OF_JOB), nu dupa pozitie: o unire are doar
+-- atelierul si drumul spre oras, iar pozitia 3/4 ar fi fost nil. Unirea (Relay) nu e o linie cu magazie si plase: turul ei
+-- de mana vine la k5, deci aici nu intra.
 local EXTRA_LINES: { string } = {}
 for _, line in StationConfig.LINE_ORDER do
-    if line ~= "wood" and line ~= "iron" then
+    if line ~= "wood" and line ~= "iron" and StationConfig.LINES[line].inputs == nil then
         table.insert(EXTRA_LINES, line)
     end
+end
+local function stepOf(line: string, job: string): StationConfig.Step
+    return StationConfig.STEP_OF_JOB[line][job]
 end
 
 -- Marfa bruta a liniilor Morii din traista (nu sunt busteni: nu merg la gater).
@@ -210,7 +216,7 @@ local function rawGoal(line: string, full: boolean, immediate: boolean): Goal
     local words = Strings.LINE_WORDS[line]
     return {
         kind = "deliver",
-        key = StationConfig.LINES[line].steps[3].link,
+        key = stepOf(line, "work").link,
         text = if full then Strings.sackFullRaw(line) else Strings.guideRawTo(words),
         x = stand.x,
         y = stand.y,
@@ -389,7 +395,7 @@ function GuideMath.loopStep(s: State, quest: QuestGoal?): Goal
     -- 4b) [D65] la fel la atelierele Morii: marfa la intrare si niciun om al atelierului -> stai in inelul lui
     for _, line in EXTRA_LINES do
         local info = if s.lines ~= nil then s.lines[line] else nil
-        local step = StationConfig.LINES[line].steps[3]
+        local step = stepOf(line, "work")
         if info ~= nil and info.input > 0 and (crews[step.role] or 0) == 0 then
             local stand = TycoonConfig.LINE_PLACES[line].playerStand
             return {
@@ -427,7 +433,7 @@ function GuideMath.loopStep(s: State, quest: QuestGoal?): Goal
     -- 6b) [D65] marfa gata la un atelier al Morii, loc in traista, niciun om care s-o duca -> o iei
     for _, line in EXTRA_LINES do
         local info = if s.lines ~= nil then s.lines[line] else nil
-        local hauler = StationConfig.LINES[line].steps[4].role
+        local hauler = stepOf(line, "haul").role
         if info ~= nil and info.output > 0 and room > 0 and (crews[hauler] or 0) == 0 then
             local stand = TycoonConfig.LINE_PLACES[line].playerStand
             return {
@@ -475,7 +481,7 @@ function GuideMath.loopStep(s: State, quest: QuestGoal?): Goal
     -- 9b) [D65] marfa in magazia unei linii a Morii, niciun om care s-o duca la atelier -> o iei tu
     for _, line in EXTRA_LINES do
         local info = if s.lines ~= nil then s.lines[line] else nil
-        local porter = StationConfig.LINES[line].steps[2].role
+        local porter = stepOf(line, "port").role
         if info ~= nil and info.store > 0 and (crews[porter] or 0) == 0 and room > 0 then
             local st = TycoonConfig.LINE_PLACES[line].storeStand
             return {
@@ -494,7 +500,7 @@ function GuideMath.loopStep(s: State, quest: QuestGoal?): Goal
     for _, n in s.nets do
         local emptiers = if n.scrap then crews.scrapCollector else crews.collector
         if n.line ~= nil and n.line ~= "wood" and n.line ~= "iron" then
-            emptiers = crews[StationConfig.LINES[n.line].steps[1].role]
+            emptiers = crews[stepOf(n.line, "collect").role]
         end
         if (emptiers or 0) == 0 and (best == nil or n.count > (best :: NetInfo).count) then
             best = n

@@ -14,6 +14,7 @@ local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
+local WorldConfig = require(ReplicatedStorage.Shared.Config.WorldConfig)
 local Strings = require(ReplicatedStorage.Shared.Config.Strings)
 local JuiceController = require(script.Parent.JuiceController)
 local Theme = require(script.Parent.Parent.UI.Theme)
@@ -88,7 +89,8 @@ end
 -- Numele zonei ACESTEI ere (pentru bonusul "X pays Y% more"), din TycoonConfig.ZONES -- nu scris
 -- de mana [D40]. nil pentru erele fara zona inca definita (3-4, doar in plan azi).
 local function zoneNameFor(era: number): string?
-    for _, z in TycoonConfig.ZONES do
+    -- [D70, pasul k2] zona erei pe harta ei (Era 4 e Dam Town, la baraj)
+    for _, z in TycoonConfig.zonesOf(WorldConfig.worldOfEra(era)) do
         if z.era == era then
             return z.name
         end
@@ -104,6 +106,10 @@ end
 local function zoneOpenText(pad: TycoonConfig.Pad): string?
     local nextZone = zoneNameFor(pad.era + 1)
     if nextZone == nil or not TycoonConfig.eraIsLive(pad.era + 1) then
+        return nil
+    end
+    -- [D70] zona urmatoare e pe alta harta (Works Bell -> barajul): nu „se deschide” aici; ce urmeaza spune masa Dam Plans
+    if WorldConfig.worldOfEra(pad.era + 1) ~= WorldConfig.worldOfEra(pad.era) then
         return nil
     end
     return Strings.eraZoneOpen(nextZone)

@@ -13,6 +13,7 @@ local TweenService = game:GetService("TweenService")
 local RiverConfig = require(ReplicatedStorage.Shared.Config.RiverConfig)
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
+local WorldMath = require(ReplicatedStorage.Shared.Modules.WorldMath)
 local HeldBack = require(ReplicatedStorage.Shared.Modules.HeldBack)
 local Assets = require(ReplicatedStorage.Shared.Config.Assets)
 local Strings = require(ReplicatedStorage.Shared.Config.Strings)
@@ -38,6 +39,7 @@ export type Deps = {
     OnToast: (string) -> (),
     -- deschide panoul de niveluri pe o statie; dat din Bootstrap, ca sa nu cerem StationPanel aici
     OpenStation: ((string, string?) -> ())?,
+    World: number?, -- [D70, pasul k2] harta: doar platformele ei se deseneaza, cu conditiile ei
 }
 
 local PadController = {}
@@ -219,10 +221,14 @@ end
 -- [D62, pasul 5] nivelul cladirii de pe o platforma, din randurile statiilor: de la pragul 25 forja are a doua
 -- infatisare. [D65] Pe platforma, nu o singura cifra: cuptorul de cupru e si el o cladire cu niveluri.
 local buildingLevels: { [string]: number } = {}
+-- [D70, pasul k2] harta (data la Init), venitul de acum si 2x Flow (pentru Dam Bell, ca pe server)
+local world = 1
+local incomeNow = 0
+local flowNow = 1
 
 -- Cartierul erei are pamantul lui (drumuri si curti)? Atunci cladirile stau direct pe el.
 local function hasGround(era: number): boolean
-    for _, district in TycoonConfig.DISTRICTS do
+    for _, district in TycoonConfig.districtsOf(world) do
         if district.era == era then
             return true
         end
@@ -885,20 +891,8 @@ end
 
 -- [D53] Ce trebuie facut intai langa ruina asta, sau nil daca nimic (ar trebui sa fie cumparabila).
 local function ruinNeeds(pad: TycoonConfig.Pad): string?
-    -- [D73] intr-o zona inca inchisa, intai clopotul erei dinainte: la Moara, din primele minute, cartonasele spuneau
-    -- "Hire a Merchant first" sau "Cast the Sixth Net first", ca si cum s-ar putea face acum
-    local bell = TycoonConfig.bellOf(pad.era - 1)
-    if bell ~= nil and statuses[bell.id] ~= "bought" then
-        return Strings.refuseZoneLocked(bell.name)
-    end
-    local bought: { [string]: boolean } = {}
-    for id, status in statuses do
-        if status == "bought" then
-            bought[id] = true
-        end
-    end
-    local blocker = TycoonMath.padBlocker(pad, bought, netLevels)
-    return if blocker ~= nil then Strings.padNeeds(blocker) else nil
+    -- [D70, pasul k2] regula e pura (WorldMath.ruinNeeds), pe harta ta: clopotul erei dinainte, apoi conditia platformei
+    return WorldMath.ruinNeeds(pad, statuses, world, netLevels, incomeNow, flowNow)
 end
 
 local function tryBuy(padId: string)
@@ -1087,7 +1081,7 @@ function PadController.Apply(
     netLevels = newNetLevels or netLevels
     bottleneck = newBottleneck or bottleneck
     padDeltas = deltas
-    for _, pad in TycoonConfig.PADS do
+    for _, pad in TycoonConfig.padsOfWorld(world) do
         if pad.x == nil or pad.y == nil then
             continue -- erele 2-4 n-au inca lume construita
         end
@@ -1235,7 +1229,7 @@ end
 -- niveluri. [D55, D56] Forja are cardul ei (ForgeController.Focus): E lasa scrap-ul si ia fierul.
 function PadController.FocusBuilt(px: number, py: number): Focus.Focus?
     local best: Focus.Focus? = nil
-    for _, pad in TycoonConfig.PADS do
+    for _, pad in TycoonConfig.padsOfWorld(world) do
         if statuses[pad.id] ~= "bought" or pad.x == nil or pad.y == nil then
             continue
         end
@@ -1347,8 +1341,15 @@ function PadController.Flash(padId: string)
     end)
 end
 
+-- [D70, pasul k2] venitul de acum si 2x Flow, din fiecare stare: conditia de venit a Dam Bell, spusa ca pe server
+function PadController.SetIncome(income: number, flowFactor: number)
+    incomeNow = income
+    flowNow = flowFactor
+end
+
 function PadController.Init(d: Deps)
     deps = d
+    world = d.World or 1
     -- butonul de pe cartonas: aceeasi functie ca tasta E si ca apasarea obiectului
     HUDController.SetApproachBuy(function()
         PadController.TryBuyFocused()
@@ -1367,7 +1368,7 @@ function PadController.Init(d: Deps)
         local px, py = toPlotLocal(cx, cy)
         local nearestId: string? = nil
         local nearestD = math.huge -- cel mai mic INDEX de platforma din raza, nu cea mai mica distanta
-        for _, pad in TycoonConfig.PADS do
+        for _, pad in TycoonConfig.padsOfWorld(world) do
             if pad.x == nil or pad.y == nil or statuses[pad.id] ~= "available" then
                 continue
             end
@@ -1399,7 +1400,7 @@ function PadController.Init(d: Deps)
         local ruinId: string? = nil
         if nearestId == nil then
             local best = RUIN_RADIUS
-            for _, pad in TycoonConfig.PADS do
+            for _, pad in TycoonConfig.padsOfWorld(world) do
                 local frame = frames[pad.id]
                 if
                     not pad.live
