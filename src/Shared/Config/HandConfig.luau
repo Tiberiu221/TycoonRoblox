@@ -49,6 +49,23 @@ HandConfig.ROLE_OUTFIT = {
     batteryPorter = "Hodman",
     electrician = "Electrician",
     powerHauler = "Freighter",
+    -- [D70, pasul k10] Era 4, barajul: cei cinci veterani (butoaiele si orasul) si oamenii noi ai cablului, ai unirii si ai
+    -- cristalului. Pana la foile lor (lotul A4) poarta desenul perechii (OUTFIT_LOOKS_LIKE).
+    damCollector = "Turbineer",
+    damPorter = "Lugger",
+    switchman = "Switchman",
+    barrelHauler = "Cooper",
+    dispatcher = "Dispatcher",
+    cableCollector = "Spooler",
+    cablePorter = "Packer",
+    cablemaker = "Cablemaker",
+    cableHauler = "Reeler",
+    relayKeeper = "Relayman",
+    pylonRunner = "Linewalker",
+    crystalCollector = "Gemfinder",
+    crystalPorter = "Bearer",
+    crystalsmith = "Crystalsmith",
+    ingotHauler = "Bullioner",
 }
 
 -- [D65] DESENUL DE IMPRUMUT al unei tinute inca neurcate: tinuta meseriei-pereche din Era 1. Il intreaba doar cine
@@ -73,6 +90,23 @@ HandConfig.OUTFIT_LOOKS_LIKE = {
     Hodman = "Mucker",
     Electrician = "Coppersmith",
     Freighter = "Teamster",
+    -- [D70, pasul k10, O1] veteranii arata ca in Era 1 (aceiasi oameni, alta meserie)...
+    Turbineer = "Fisher",
+    Lugger = "Crafter",
+    Switchman = "Builder",
+    Cooper = "Gardener",
+    Dispatcher = "Innkeeper",
+    -- ...iar cei noi ca perechea lor din Era 3 sau din Moara (cablul pe bobine, unirea pe piese, cristalul pe cupru)
+    Spooler = "Dredger",
+    Packer = "Barrowman",
+    Cablemaker = "Wiredrawer",
+    Reeler = "Coiler",
+    Relayman = "Founder",
+    Linewalker = "Wheelwright",
+    Gemfinder = "Prospector",
+    Bearer = "Mucker",
+    Crystalsmith = "Coppersmith",
+    Bullioner = "Teamster",
 } :: { [string]: string }
 
 -- [D56, D65, D67] Meseriile care lucreaza cu ciocanul in mana langa atelierul lor (randul "work" e pe fiecare foaie de
@@ -174,6 +208,37 @@ HandConfig.MORE_NAMES = {
     "Tully",
     "Wynn",
     "Zinnia",
+    -- [D70, pasul k10] cu barajul sunt 42 de meserii, cate doi oameni: 84 de prenume. Tot la coada.
+    "Ash",
+    "Bram",
+    "Cora",
+    "Dex",
+    "Ember",
+    "Flint",
+    "Gale",
+    "Heath",
+    "Iris",
+    "Juniper",
+    "Knox",
+    "Laurel",
+    "Mabel",
+    "Nash",
+    "Oona",
+    "Piper",
+    "Reed",
+    "Saffron",
+    "Thatcher",
+    "Umber",
+    "Vale",
+    "Willa",
+    "Yarrow",
+    "Zola",
+    "Basil",
+    "Clover",
+    "Dove",
+    "Fern",
+    "Hawthorn",
+    "Ivy",
 }
 
 -- Prenumele unui om nou, ocolindu-le pe cele deja purtate in sat (`used`). Acelasi prenume ca `nameFor` cat e liber

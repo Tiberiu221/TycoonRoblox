@@ -1270,6 +1270,10 @@ la granița CREWS / `DAM_START_COINS`.
 **k10. Dam Town și oamenii retrași.** Depinde de: k9, j14.
 - Cantina, căsuțele, piața, clopotnița cu plăcile cu cifrele jucătorului, Memory Wall din `Memories.oldVillage`; oamenii
   retrași se plimbă pe graful lumii 2; o pagină „Your people”.
+- **k10a (făcut):** ținutele celor 15 meserii ale barajului (`HandConfig.ROLE_OUTFIT`, foile cu id 0 în `Assets.people.outfit`):
+  până la foile lor (A4), veteranii arată ca în Era 1, iar cei noi ca perechea lor din Era 3 sau din Moara (`OUTFIT_LOOKS_LIKE`,
+  O1). 30 de prenume în plus, la coada lui `MORE_NAMES`, pentru 84 de oameni (42 de meserii × 2). Harta comutatorului: 11, doar
+  adormirile și marcajul comutatorului.
 - **[Verificatorul k2b]** etichetele clădirilor lumii 2 scriu exact „Canteen” și „Memory Wall”: textele avizierului de la baraj
   le folosesc („Beside the Canteen”, „Beside the Memory Wall”), iar un test cere ca fiecare nume propriu din `whereByWorld[2]`
   să fie printre etichetele lumii 2 (azi: și „Battery Store”, eticheta de la k3). Orașul nu se numește „Dam Town” în textele

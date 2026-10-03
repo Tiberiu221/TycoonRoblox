@@ -70,6 +70,23 @@ local Assets = {
             Hodman = sprite(82882146900058, 64, 480),
             Electrician = sprite(77014023456104, 64, 480),
             Freighter = sprite(126028985144101, 64, 480),
+            -- [D70, pasul k10] oamenii barajului, pana la foile lor (lotul A4): id 0, deci omul poarta tinuta perechii
+            -- (HandConfig.OUTFIT_LOOKS_LIKE). Veteranii arata ca in Era 1, cei noi ca perechea lor din Era 3 (O1).
+            Turbineer = sprite(0, 64, 480),
+            Lugger = sprite(0, 64, 480),
+            Switchman = sprite(0, 64, 480),
+            Cooper = sprite(0, 64, 480),
+            Dispatcher = sprite(0, 64, 480),
+            Spooler = sprite(0, 64, 480),
+            Packer = sprite(0, 64, 480),
+            Cablemaker = sprite(0, 64, 480),
+            Reeler = sprite(0, 64, 480),
+            Relayman = sprite(0, 64, 480),
+            Linewalker = sprite(0, 64, 480),
+            Gemfinder = sprite(0, 64, 480),
+            Bearer = sprite(0, 64, 480),
+            Crystalsmith = sprite(0, 64, 480),
+            Bullioner = sprite(0, 64, 480),
             -- [D59] tinutele jucatorului, cumparate cu perle (angler, captain) sau din jurnalul complet (legend). Cheile
             -- cu litera mica, ca `keeper`: nu sunt meserii. Id 0 = inca neurcat -> personajul ramane in `keeper`.
             angler = sprite(77086694802414, 64, 480),
