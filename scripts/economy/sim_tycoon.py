@@ -2630,6 +2630,23 @@ def dam_ceiling(d: DamRun, before_kiln: bool = False) -> float:
     return income(c)
 
 
+# [D74] MONEDELE CUMPARATE CU ROBUX trec intregi peste suma de start (nimic platit nu se taie, D70). Ce le tine in frau e
+# poarta asta, nu o taiere la jucator: in cel mai rau caz (Welcome Back x2 dupa o zi, cu Long Nights si 2x Flow) nu sar
+# mai mult de atat din Era 4. Daca ar trece, se regleaza preturile aici.
+PAID_COINS_MAX_SHARE = 0.40
+
+
+def paid_coin_cases(d) -> list:
+    """(eticheta, monedele platite peste suma de start) pe care le poate aduce un jucator la baraj."""
+    bell = income(d.s3)
+    return [
+        ("+1 h Flow", bell * 3600),
+        # [D71] cea mai lunga absenta platita: o zi (24 h) pe curba; Welcome Back x2 o mai da o data
+        ("Welcome Back x2 dupa o zi", bell * offline_equiv_hours(OFFLINE_STOP_HOURS) * 3600),
+        ("o zi cu Long Nights si 2x Flow", bell * 2 * offline_equiv_hours(OFFLINE_STOP_HOURS, True) * 3600),
+    ]
+
+
 def check_hire_guard(s3: State) -> list:
     """[D70, plan §8] PAZA NEGATIVA. Monotonia (nicio optiune nu scade venitul, `run`) o tine ORDINEA angajarilor, nu
     cifrele singure: Cable Collector-ul angajat ultimul, cand drumul lui e singurul pas de mana al bazinului (partea ta
@@ -2664,6 +2681,14 @@ def check_hire_guard(s3: State) -> list:
 def check_dam(d: DamRun, flat_before: float, crawl_before: float):
     """[D70] Portile barajului (plan, sectiunea 5), pe cele doua rulari."""
     problems = check_hire_guard(d.s3)
+    # [D74] monedele platite, peste suma, sar cel mult PAID_COINS_MAX_SHARE din era
+    for label, extra in paid_coin_cases(d):
+        _n, last, share = spend_share(d.start_sum + extra, d.rows_zero, d.start_zero.t, d.s_zero.t)
+        if share > PAID_COINS_MAX_SHARE:
+            problems.append(
+                f"Era 4: {label} ({big(extra)} platite peste suma) sare {share * 100:.0f}% din era "
+                f"(pana la {last}; maxim {PAID_COINS_MAX_SHARE * 100:.0f}%) [D74]"
+            )
     # suma sare cel mult WINDFALL_MAX_SHARE din cronologia fara bani
     _n, last, share = spend_share(d.start_sum, d.rows_zero, d.start_zero.t, d.s_zero.t)
     if share > WINDFALL_MAX_SHARE:
@@ -2839,15 +2864,11 @@ def report_era4(d: DamRun, flats: dict, crawls: dict):
     never = [uid for uid, *_ in ERA4_UNLOCKS if uid not in d.s4.bought]
     if never:
         print("  necumparate in Era 4 (pret din starea de la final): " + ", ".join(f"{uid} {big(d.prices[uid])}" for uid in never))
-    print("\n[D70] suma de start si monedele Robux pastrate peste ea: cat din Era 4 (fara bani) sare")
-    bell = income(d.s3)
-    for label, extra in (
-        ("doar suma", 0.0),
-        ("+1 h Flow", bell * 3600),
-        # [D71] cea mai lunga absenta platita: o zi (24 h) pe curba
-        ("Welcome Back x2 dupa o zi", bell * offline_equiv_hours(OFFLINE_STOP_HOURS) * 3600),
-        ("o zi cu Long Nights si 2x Flow", bell * 2 * offline_equiv_hours(OFFLINE_STOP_HOURS, True) * 3600),
-    ):
+    print(
+        f"\n[D70, D74] suma de start si monedele Robux pastrate peste ea: cat din Era 4 (fara bani) sare "
+        f"(poarta: {PAID_COINS_MAX_SHARE * 100:.0f}%)"
+    )
+    for label, extra in [("doar suma", 0.0)] + paid_coin_cases(d):
         n, last, share = spend_share(d.start_sum + extra, d.rows_zero, d.start_zero.t, d.s_zero.t)
         print(f"  {label:34s} {big(d.start_sum + extra):>8}: {n:3d} cumparaturi (pana la {last[7:] if last.startswith('unlock:') else last}), {share * 100:4.1f}% din timpul erei")
 

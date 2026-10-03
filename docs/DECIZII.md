@@ -11,6 +11,28 @@ Convenție: în tot proiectul, „server" înseamnă o instanță Roblox efemer�
 
 ---
 
+## D74 — Cartierul barajului: așezarea propusă, cu recomandările
+**DECIS de owner pe 2026-10-03:** *„ia recomandatele și continuă”*, la cele opt întrebări din PLAN-HARTA §9 (planșa
+`scripts/art/preview_dam_layout.py`). Așezarea propusă devine planul hărții lumii 2. Coordonatele se pun în joc la pasul j.
+
+1. **Mărimea:** cartierul ocupă x 880–3065, deci lumea 2 are 3.385 px, nu 2.880. De la zid până la Relay sunt ~8 s de
+   mers, iar oamenii fac drumuri cât în Erele 1–3.
+2. **Podul cu stâlpi:** un canal scurt intră din râu sub Relay Station. Pylon Runner-ul duce curentul pe aleea cu stâlpi,
+   peste pod, până la ușa Switch House-ului, care stă deasupra Relay-ului.
+3. **Veteranii:** casele lor stau în rând sub zid, cu „veteran” sub nume. Taraba Dispatcher-ului e la colțul pieței, iar
+   ceilalți oameni ai satului vechi locuiesc în căsuțele din Dam Town.
+4. **Turbina din zid** e prima „plasă”, gratis, zidită în fața barajului, nu plutind ca o plasă.
+5. **Dam Bell** stă la capătul din dreapta, lângă ceața Erei 5, ca la celelalte ere.
+6. **Darurile râului** se scot și de pe lacul de lângă ponton, și de pe puntea de sub baraj, ca pe orice punte deschisă
+   (D73).
+7. **Numele:** Battery Store (unde Dam Collector-ul lasă bateriile), Switchyard, Cable Works, Relay Station, Kiln,
+   Switch House; oamenii Switchman, Relay Keeper, Pylon Runner, Dispatcher.
+8. **Monedele cumpărate cu Robux** trec întregi peste suma de start (35T), fiindcă nimic plătit nu se taie (D70).
+   Recomandarea „limită de 40%” devine **o poartă a simulatorului**, nu o tăiere: în cel mai rău caz, monedele plătite nu
+   sar mai mult de 40% din Era 4 (azi, ~33%). Dacă prețurile ar trece de prag, se reglează în simulator, nu la jucător.
+
+---
+
 ## D73 — Harta, de la primul minut la baraj: ce se deschide se spune, ce e închis spune de ce
 **DECIS pe 2026-10-02**, la cererea owner-ului: *„mai uită-te și la hartă, cum evoluează treptat până în Era 4”*. Trei
 cititori au mers pe hartă de la primul minut al Erei 1 până la clopotul Wire Works, iar un critic a verificat în cod.

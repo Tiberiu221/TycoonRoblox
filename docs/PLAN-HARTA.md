@@ -88,24 +88,22 @@ Mă despart de tine într-un singur punct. „Partea mică din bani” nu se ob�
 
 ## 4. Banii
 
-**Regula pentru copil:** *„You keep up to one night of coins. The rest builds the Dam.”*
+**Hotărât în D70 (Runda 4) și D74. Textul inițial al secțiunii, cu „păstrezi o noapte de monede”, e înlocuit.**
 
-`păstrat = min(monede − P, K + R)`
-- **P** e prețul lui „Build the Dam”, poarta erei, derivat în simulator ca celelalte porți. Water Wheel costă 7K la 111,65/s (63 s), Steam Engine 25M la 368,6K/s (68 s), deci P ≈ 65 s de venit ≈ **80B**.
-- **K** e o absență a ta: 8 h sau 16 h (Long Nights) × venitul de la Works Bell, cu 2x Flow dacă îl ai. Dă **34,8T**, 69,7T cu Long Nights și 139T cu Long Nights + 2x Flow. Un pass plătit nu-și pierde valoarea.
-- **R** sunt monedele cumpărate cu Robux (One Hour of Flow = 4,36T la finalul Erei 3, Welcome Back x2), numărate de la profilul v19 (v18 e seria zilnică, D71). Producția nu e lansată, deci contorul e complet pentru orice jucător adevărat.
+**Regula pentru copil:** *„Everyone starts the Dam with the same coins. The rest builds the Dam.”*
 
-**De ce e semi-zero pentru toți:**
-- Copilul grăbit are aproape nimic după clopot. Strânge ~80B într-un minut, apasă și pornește de la ~0, fără să i se ia ceva.
-- Copilul care a dormit o noapte vine cu 34,8T. Simulatorul arată un caz identic cu o eră mai devreme: o noapte de la finalul Morii cumpără **17,3%** din Era 3 (21,3% cu Long Nights, 26,0% cu Long Nights + 2x Flow).
-- Fără limită, o săptămână de „Not yet” sau o pauză între update-uri ar aduce de 7 ori mai mult sau chiar peste, iar Era 4 s-ar sări. Limita e singurul lucru care garantează „semi-zero”, și atinge doar pe cine a amânat mai mult de o noapte. Ecranul și Welcome back o spun dinainte.
+- **Toți pornesc cu aceeași sumă:** `START_SUM`, derivată în `sim_tycoon.py` (35T pe proba de azi). E cea mai mare dintre
+  costul primelor 5 minute ale erei și o noapte fără pass-uri la Works Bell (`NIGHT_HOURS`), rotunjită în sus.
+  - Cine are mai puțin primește diferența.
+  - Ce e peste ea intră în construcția barajului, e scris pe placă și e anunțat dinainte, pe ecranul „Build the Dam”.
+- **Monedele cumpărate cu Robux trec întregi peste sumă** (`Purchases.coinsBought`, profilul v19): nimic plătit nu se
+  taie. Le ține în frâu o poartă a simulatorului, nu o tăiere: în cel mai rău caz (Welcome Back x2 după o zi, cu Long
+  Nights și 2x Flow) sar cel mult 40% din Era 4 (`PAID_COINS_MAX_SHARE`). Azi: 32,7%.
+- **AWAY e 0 până la cei 6 oameni noi** (cablul și unirea). Ecranul și Welcome back o spun dinainte [D43].
+- **Bonusul permanent:** cele trei clopote (+33,1%) rămân. Fără +50%: acela rămâne la renașterea de după Era 8 (§K).
 
-**Bonusul permanent:** cele trei clopote (+33,1%), care există deja. **Fără +50%**: acela rămâne la renașterea de după Era 8 (§K).
-
-**Variante respinse:**
-- **O sumă fixă mică (60 de monede) și rebazarea.** Contorul ar coborî sub ochii copilului de la 34,8T la 60, exact când își vede satul desfăcut. S-ar șterge monedele cumpărate cu Robux. Venitul ar scădea la 0,92/s, iar pe tabla din bâlci ar ajunge sub un începător.
-- **„1 din 100”.** Textul ar minți pentru copilul grăbit, care ar primi pragul, nu 1%.
-- **Un preț după punga ta.** Ar pedepsi copilul care a strâns.
+**De ce așa:** o sumă egală face din Era 4 o eră pe care o joacă toți, nu una pe care o sare cine a dormit o săptămână.
+Copilul grăbit nu pierde nimic: primește suma întreagă. Nimic plătit nu se taie.
 
 ## 5. Harta
 
