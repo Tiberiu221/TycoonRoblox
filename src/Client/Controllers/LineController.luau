@@ -761,7 +761,11 @@ function LineController.seller(seller: string, building: Building): Seller
                 sack,
                 seller,
                 StationConfig.LINE_ORDER,
-                StationConfig.SELLER_ORDER
+                StationConfig.SELLER_ORDER,
+                function(line: string): string?
+                    local spec = StationConfig.LINES[line]
+                    return if spec ~= nil then spec.seller else nil
+                end
             )
             local words = if which ~= nil then Strings.LINE_WORDS[which] else nil
             if kind == "part" and words ~= nil then

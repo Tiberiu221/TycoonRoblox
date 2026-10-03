@@ -1386,6 +1386,13 @@ la granița CREWS / `DAM_START_COINS`.
   `publish_staging`). În joc: `SceneArt.BAKED_GROUND` pe lume; cu pământul copt, apa canalului trece sub imagine (altfel
   ar acoperi podurile). `Assets.tycoon.dam_ground*` au ID 0, iar testul World2Ground ține împreună urcarea și
   `BAKED_DISTRICTS` (`dam_town`, `dam`). Planșa (A0): `--preview`, cu zidul provizoriu și desenele de împrumut ale jocului.
+- **[Verificatorul k12, făcut]**
+  - **Copacii din fața caselor barajului:** `homeClearRects` numără și casele adormite ale lumilor de după sat. Înainte, la l3,
+    opt copaci ar fi dispărut, iar umbrele lor ar fi rămas coapte. Acum amprenta barajului e aceeași și cu comutatorul pornit,
+    iar lumea 1 iese identică.
+  - **Planșa** arată Kiln-ul, Crystal Shed-ul și Dam Bell-ul (perechile lor din `PAD_LOOKS_LIKE`).
+  - **Cardul unui vânzător, la marfa brută:** întâi atelierul de alături, apoi linia cu cele mai multe bucăți („scrap” și
+    „ore” sunt cuvintele a câte două linii). O traistă fără `partBy` nu mai cade.
 
 ### A: arta, în paralel, după O1
 

@@ -316,6 +316,30 @@ return function()
             end
         )
 
+        -- [verificatorul k12] „scrap” si „ore” sunt cuvintele a cate doua linii: la brut, intai atelierul de alaturi, apoi
+        -- linia cu cele mai multe bucati
+        test.case("traista amestecata: atelierul de alaturi, apoi cea mai multa marfa", function()
+            local function sellerOf(line: string): string?
+                local spec = StationConfig.LINES[line]
+                return if spec ~= nil then spec.seller else nil
+            end
+            local function raw(r: { [string]: number }, at: string): string?
+                local kind, which = StateCopy.sellerNote(sack(r), at, LINES, SELLERS, sellerOf)
+                check.equal(kind, "raw")
+                return which
+            end
+            check.equal(raw({ iron = 3, parts = 9 }, "market"), "parts")
+            check.equal(raw({ wood = 2, parts = 9 }, "market"), "parts")
+            check.equal(raw({ copper = 1, coils = 8 }, "depot"), "coils")
+            -- fara marfa de aici: cea mai multa (la egalitate, ordinea tabelului)
+            check.equal(raw({ wood = 2, iron = 5 }, "market"), "iron")
+            check.equal(raw({ wood = 4, iron = 4 }, "depot"), "wood")
+            check.equal(raw({ barrels = 1, cable = 3 }, "town"), "cable")
+            -- o traista fara `partBy` (inainte de prima stare) nu cade
+            local bare: StateCopy.SellerSack = { rawBy = { wood = 1 }, sellBy = {} }
+            check.equal(StateCopy.sellerNote(bare, "market", LINES, SELLERS, sellerOf), "raw")
+        end)
+
         test.case("textele incap pe placa cardului: cel mult doua randuri", function()
             -- placa: 320 px (InteractController.STATUS_MAX_W) minus marginile, fontul de pixeli la 18 px (0,56 em)
             local perLine = math.floor((320 - 2 * 8) / (18 * 0.56))

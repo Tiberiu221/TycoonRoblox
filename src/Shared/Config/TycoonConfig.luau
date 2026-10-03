@@ -2734,7 +2734,11 @@ export type HomeClear = { x0: number, x1: number, y0: number, y1: number, frontO
 function TycoonConfig.homeClearRects(w: number?): { HomeClear }
     local out = {}
     for _, p in TycoonConfig.padsOfWorld(w) do
-        if p.live and p.era > 1 and crewOfPad[p.id] ~= nil and p.x ~= nil and p.y ~= nil then
+        -- [verificatorul k12] si casele adormite ale lumilor de dupa sat: harta barajului le arata de azi (fantome) si le
+        -- coace pamantul fara copacii din fata lor; altfel la l3 opt copaci ar disparea, iar umbrele lor ar ramane coapte.
+        -- In sat toate erele sunt in joc, deci lumea 1 iese neschimbata (martorul).
+        local shown = p.live or WorldConfig.worldOfEra(p.era) ~= 1
+        if shown and p.era > 1 and crewOfPad[p.id] ~= nil and p.x ~= nil and p.y ~= nil then
             local x, y = p.x :: number, p.y :: number
             local base = TycoonConfig.buildingBase(p)
             table.insert(

@@ -94,6 +94,14 @@ BANK_SHADE = (16, 40, 66)
 
 REED = ((52, 74, 40), (84, 108, 52), (156, 160, 92))  # [k12] stuful lacului: radacina, tulpina, spicul
 
+# [verificatorul k12] platformele barajului care nu sunt plase sau case, cu perechea lor din TycoonConfig.PAD_LOOKS_LIKE
+# (pana la desenele lor, lotul A4): fara ele planse lasa goale curtile Kiln-ului, Crystal Shed-ului si Dam Bell-ului
+DAM_PAD_ART = {
+    "crystal_kiln": "prop_power_house",
+    "crystal_shed": "prop_battery_shed",
+    "dam_bell": "prop_works_bell",
+}
+
 # [k12] planse: desenele de imprumut ale cladirilor barajului, aceleasi ca in joc (Bootstrap WORLD_BUILDING_ART pentru
 # liniile lumii 2, DamTownController.BORROWED pentru oras)
 DAM_BORROWED = {
@@ -873,6 +881,8 @@ def compose(G, ground_rows, wall=None):
         name = "prop_workshop_e1" if p["id"] == "workshop" else ("prop_scrap_shed" if p["id"] == "scrap_shed" else None)
         if p["id"].startswith("hire_") or p["id"] == "first_runner":
             name = "prop_runner_hut"
+        if dam:
+            name = DAM_PAD_ART.get(p["id"], name)
         if name:
             # baza cladirii de pe platforma, ca in joc: TycoonConfig.buildingBase = y + PAD_SIZE/2 + BUILDING_DROP
             things.append((p["y"] + 48 + 8, name, p["x"], 1.0))

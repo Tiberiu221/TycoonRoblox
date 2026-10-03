@@ -193,18 +193,28 @@ end
 -- (FlowMath.deliver): o piesa a unei uniri ("part", unirea ei), marfa altui vanzator ("other", vanzatorul ei), apoi marfa
 -- bruta a ORICAREI linii ("raw", linia ei; si a liniilor fara vanzator, ca butoaiele si cablul barajului). Ordinea e cea
 -- din tabele, nu a unui `pairs`. (nil, nil): ai ce vinde aici, sau traista n-are nimic de spus.
+-- [verificatorul k12] La brut, intai liniile vanzatorului de aici (`sellerOf`: atelierul de alaturi), apoi linia cu cele mai
+-- multe bucati: „scrap” si „ore” sunt cuvintele a cate doua linii, iar cu amandoua in traista cardul Pietei trimitea la
+-- Forja pentru 3 bucati si tacea despre cele 9 ale Foundry-ului. `partBy` poate lipsi (traista goala, inainte de stare).
+export type SellerSack = {
+    rawBy: { [string]: number },
+    sellBy: { [string]: { count: number, value: number } },
+    partBy: { [string]: number }?,
+}
 function StateCopy.sellerNote(
-    sack: SackBy,
+    sack: SellerSack,
     seller: string,
     lineOrder: { string },
-    sellerOrder: { string }
+    sellerOrder: { string },
+    sellerOf: ((string) -> string?)?
 ): (string?, string?)
     local here = sack.sellBy[seller]
     if here ~= nil and here.count > 0 then
         return nil, nil
     end
+    local parts = sack.partBy or {}
     for _, line in lineOrder do
-        if (sack.partBy[line] or 0) > 0 then
+        if (parts[line] or 0) > 0 then
             return "part", line
         end
     end
@@ -214,10 +224,18 @@ function StateCopy.sellerNote(
             return "other", other
         end
     end
+    local best: string?, most = nil, 0
     for _, line in lineOrder do
-        if sack.partBy[line] == nil and (sack.rawBy[line] or 0) > 0 then
+        local n = if parts[line] == nil then sack.rawBy[line] or 0 else 0
+        if n > 0 and sellerOf ~= nil and sellerOf(line) == seller then
             return "raw", line
         end
+        if n > most then
+            best, most = line, n
+        end
+    end
+    if best ~= nil then
+        return "raw", best
     end
     return nil, nil
 end
