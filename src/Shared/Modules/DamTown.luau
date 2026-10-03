@@ -128,8 +128,8 @@ function DamTown.bellsPercent(): number
 end
 
 -- [D75] ORASELUL PICTAT de pe malul de nord: mijlocul lui (spre el se uita „Look (V)” la primul curent vandut) si daca
--- se vede din camera (x0, y0, w, h, in coordonatele terenului). Luminile se aprind abia cand mijlocul lui e in cadru:
--- aprinse fara martor, ar fi fost un lucru intamplat in tacere [D43].
+-- se vede din camera (x0, y0, w, h, in coordonatele terenului): mijlocul pe orizontala si cel putin jumatate din inaltime.
+-- Luminile se aprind abia cand se vede: aprinse fara martor, ar fi fost un lucru intamplat in tacere [D43].
 function DamTown.townCenter(): { x: number, y: number }?
     local world = TycoonConfig.WORLDS[DamTown.WORLD]
     local town = if world ~= nil then world.paintedTown else nil
@@ -140,9 +140,19 @@ function DamTown.townCenter(): { x: number, y: number }?
 end
 
 function DamTown.townInView(x0: number, y0: number, w: number, h: number): boolean
-    local c = DamTown.townCenter()
-    return c ~= nil and c.x >= x0 and c.x <= x0 + w and c.y >= y0 and c.y <= y0 + h
+    local world = TycoonConfig.WORLDS[DamTown.WORLD]
+    local town = if world ~= nil then world.paintedTown else nil
+    if town == nil or town.x < x0 or town.x > x0 + w then
+        return false
+    end
+    local shown = math.min(town.y, y0 + h) - math.max(town.y - town.h, y0)
+    return shown >= town.h / 2
 end
+
+-- [verificatorul A1] Cat asteapta luminile dupa ce bannerul lor a aparut: bannerul cu buton (7 s), o privire dusa (cel
+-- mult 1,6 s) si cateva clipe. Cine n-a apasat „Look” (pe telefon oraselul nu intra in cadru de pe malul de sud) le gaseste
+-- aprinse dupa banner: n-au asteptat la nesfarsit un martor care nu poate veni.
+DamTown.TOWN_WAIT_SECONDS = 10
 
 -- De cand merge ceasul plimbarii omului `index` (decalat, ca oamenii sa nu plece toti deodata). [verificatorii k10b] Pe
 -- fractia de aur a ciclului: doi oameni cu acelasi drum pleaca la o fractiune buna de ciclu unul de altul, nu la 0,9 s.

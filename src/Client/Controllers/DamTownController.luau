@@ -69,8 +69,9 @@ local PYLON_ART = {
 local TOWN_LIGHT_SECONDS = 2.5
 local townClip: Frame? = nil
 local townLit: boolean? = nil
--- aprinse in sesiunea asta, dar inca nevazute: trec abia cand oraselul intra in cadru
+-- aprinse in sesiunea asta, dar inca nevazute: trec abia cand oraselul intra in cadru, sau la townDeadline (dupa banner)
 local townPending = false
+local townDeadline: number? = nil
 
 local NAME_ABOVE = 4 + 18
 -- [verificatorii k10b] cat de inalt e desenul de imprumut, pe cladire: eticheta si cardul stau deasupra lui, nu deasupra
@@ -308,6 +309,7 @@ function DamTownController.SetTownLit(lit: boolean)
     townLit = lit
     if lit and wasDark then
         townPending = true
+        townDeadline = nil
         local onLit = if deps ~= nil then deps.OnTownLit else nil
         if onLit ~= nil then
             onLit()
@@ -316,6 +318,13 @@ function DamTownController.SetTownLit(lit: boolean)
     end
     townPending = false
     clip.Size = UDim2.fromOffset(if lit then town.w else 0, town.h)
+end
+
+-- [verificatorul A1] bannerul TOWN_LIT a aparut (onShow): de acum ceasul plasei de siguranta (DamTown.TOWN_WAIT_SECONDS)
+function DamTownController.TownBannerShown()
+    if townPending and townDeadline == nil then
+        townDeadline = os.clock() + DamTown.TOWN_WAIT_SECONDS
+    end
 end
 
 -- aprinderea amanata: porneste cand mijlocul oraselului intra in cadrul camerei
@@ -327,10 +336,13 @@ local function revealIfSeen()
     local camX, camY = CameraController.WorldOrigin()
     local w, h = CameraController.VisibleSize()
     local origin = TycoonConfig.PLOT_ORIGIN
-    if not DamTown.townInView(camX - origin.x, camY - origin.y, w, h) then
+    local deadline = townDeadline
+    local late = deadline ~= nil and os.clock() >= deadline
+    if not late and not DamTown.townInView(camX - origin.x, camY - origin.y, w, h) then
         return
     end
     townPending = false
+    townDeadline = nil
     local world = TycoonConfig.WORLDS[DamTown.WORLD]
     local town = if world ~= nil then world.paintedTown else nil
     if town == nil then

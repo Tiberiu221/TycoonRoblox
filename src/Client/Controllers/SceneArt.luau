@@ -463,14 +463,16 @@ function SceneArt.BuildBackground(layers: Layers, world: number?)
         local tycoon = Assets.tycoon
         -- [D75, lotul A1] desenele barajului stau pe grila zidului (un pixel de desen = 3 de lume): panza si spuma incep pe
         -- coloana si randul de desen cele mai apropiate de locul apei din config
+        -- [verificatorul A1] originea e pe grila pamantului copt (639, 393), ca zidul sa acopere exact piatra coapta de sub
+        -- el (village_ground.py rotunjeste la fel); la 640, 392 ramanea o dunga de 1 px pe latura lacului si sub picior
         local S = Assets.PIXEL_SCALE
-        local spillX = wall.x + math.round((sp.x - wall.x) / S) * S
-        local spillY = wall.y + math.round((sp.y - wall.y) / S) * S
+        local gx, gy = math.round(wall.x / S) * S, math.round(wall.y / S) * S
+        local spillX = gx + math.round((sp.x - gx) / S) * S
+        local spillY = gy + math.round((sp.y - gy) / S) * S
         if Assets.has(tycoon.dam_wall) then
             -- [D75, lotul A1] zidul de piatra (varianta A): trepte, coama cu parapet, gura turbinei
             local art = tycoon.dam_wall
-            image(builtLayer, art, wall.x, wall.y, art.width * S, art.height * S, 8).Name =
-                "DamWall"
+            image(builtLayer, art, gx, gy, art.width * S, art.height * S, 8).Name = "DamWall"
         else
             local stone =
                 frame(builtLayer, wall.x, wall.y, wall.w, wall.h, Color3.fromRGB(128, 124, 116), 8)
@@ -529,7 +531,7 @@ function SceneArt.BuildBackground(layers: Layers, world: number?)
             -- [D75, lotul A1] spuma de la piciorul deversorului, in rau (stratul Plot, sub turbina din zid)
             local foam = tycoon.dam_foam
             local fw = foam.width / 2 * Assets.PIXEL_SCALE
-            local sheet = image(plot, foam, wall.x + wall.w - 6, spillY, fw, foam.height * S, 8)
+            local sheet = image(plot, foam, gx + wall.w - 6, spillY, fw, foam.height * S, 8)
             sheet.Name = "SpillFoam"
             sheet.ImageRectSize = Vector2.new(foam.width / 2, foam.height)
             foamArt = sheet

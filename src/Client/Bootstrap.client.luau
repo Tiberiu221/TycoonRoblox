@@ -264,13 +264,11 @@ safeInit("CharacterController", function()
         World = world, -- [D70, pasul k1] spawn-ul si zidurile hartii tale
     })
 end)
--- [D70, pasul k1] privirea spre satul vechi (treptele modernizarii) e doar a satului: la baraj nu porneste, iar fara ea
--- butonul „Look (V)” nu apare (LookController e tacut fara Init)
-if world == 1 then
-    safeInit("LookController", function()
-        LookController.Init({ CharacterPos = CharacterController.Position })
-    end)
-end
+-- [D70] „Look (V)”: o privire spre un loc care nu se vede de unde stai. [verificatorul A1] Porneste in orice lume: la baraj
+-- o cer oraselul pictat (TOWN_LIT) si bannerele atelierelor noi (Overlay.LookMoment); fara Init, butonul n-ar aparea
+safeInit("LookController", function()
+    LookController.Init({ CharacterPos = CharacterController.Position })
+end)
 
 -- [D70] Bannerul unei trepte a modernizarii (sau al felinarelor aprinse), cu butonul "Look (V)" cand locul schimbat, din
 -- satul vechi, nu e pe ecran: o privire de 4 s spre el (LookController).
@@ -280,7 +278,7 @@ local function screenClear(): boolean
 end
 
 -- Un banner, cu „Look around (V)” spre un loc al terenului (coordonatele lui TycoonConfig) daca nu se vede de unde stai.
-local function lookMoment(title: string, at: { x: number, y: number }?)
+local function lookMoment(title: string, at: { x: number, y: number }?, shown: (() -> ())?)
     local action: CeremonyController.Action? = nil
     if at ~= nil then
         local origin = TycoonConfig.PLOT_ORIGIN
@@ -305,6 +303,9 @@ local function lookMoment(title: string, at: { x: number, y: number }?)
         -- clopotelul suna odata cu bannerul, nu inaintea lui
         onShow = function()
             SoundController.Play("chime")
+            if shown ~= nil then
+                shown()
+            end
         end,
         -- anuntul asteapta sa inchizi meniul din care ai cumparat treapta (sau fereastra de revenire): peste el acoperea
         -- capul meniului, sub el nu se vedea
@@ -724,7 +725,11 @@ if world ~= 1 then
             end,
             -- [D75] primul curent vandut la baraj: luminile oraselului de peste rau, cu privirea spre el
             OnTownLit = function()
-                lookMoment(Strings.TOWN_LIT, DamTown.townCenter())
+                lookMoment(
+                    Strings.TOWN_LIT,
+                    DamTown.townCenter(),
+                    DamTownController.TownBannerShown
+                )
             end,
         })
         InteractController.AddSource(DamTownController.Focus)

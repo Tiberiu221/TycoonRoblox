@@ -1452,21 +1452,47 @@ return function()
             check.is_true(seen > 0)
         end)
         -- [verificatorul A1] luminile pornesc abia cand oraselul e in cadru: privirea spre mijlocul lui (Look) il pune in
-        -- cadru si pe telefon (camera prinsa de marginile lumii, ca CameraController.OriginFor)
+        -- cadru pe orice ecran. Marimea vizibila e a camerei (CameraController: scara = clamp(inaltime / 900, 0.85, 2.2)),
+        -- iar camera e prinsa de marginile lumii, ca in CameraController.OriginFor.
         test.case("privirea spre orasel il pune in cadru", function()
             local DamTown = require("../src/Shared/Modules/DamTown")
             local c = DamTown.townCenter()
             check.not_nil(c)
             local center = c :: { x: number, y: number }
             local river = RiverConfig.WORLDS[W]
-            for _, view in { { 830, 459 }, { 1100, 620 }, { 1704, 809 } } do
-                local vw, vh = view[1], view[2]
+            for _, vp in
+                {
+                    { 844, 390 },
+                    { 1033, 581 },
+                    { 1100, 620 },
+                    { 1366, 768 },
+                    { 1704, 809 },
+                    { 2560, 1440 },
+                }
+            do
+                local scale = math.clamp(vp[2] / 900, 0.85, 2.2)
+                local vw, vh = vp[1] / scale, vp[2] / scale
                 local camX = math.clamp(center.x - vw / 2, 0, math.max(0, river.WORLD_WIDTH - vw))
                 local camY = math.clamp(center.y - vh / 2, 0, math.max(0, river.WORLD_HEIGHT - vh))
                 check.is_true(DamTown.townInView(camX, camY, vw, vh))
             end
-            -- departe (la Dam Town, langa zid) nu se vede
+            -- departe (la Dam Town, langa zid) nu se vede; o fasie subtire din el nu ajunge
             check.is_false(DamTown.townInView(0, 600, 830, 459))
+            local town = world.paintedTown :: TycoonConfig.Box
+            check.is_false(DamTown.townInView(town.x - 400, town.y - 30, 830, 459))
+            check.is_true(DamTown.townInView(town.x - 400, town.y - town.h / 2, 830, 459))
+            -- plasa de siguranta: dupa banner (7 s) si o privire (cel mult 1,6 s) luminile nu mai asteapta
+            check.is_true(DamTown.TOWN_WAIT_SECONDS >= 7 + 1.6)
+        end)
+        -- [verificatorul A1] la baraj bannerul oraselului si al atelierelor noi au „Look (V)” doar daca LookController
+        -- porneste si acolo (fara Init e tacut: butonul nu apare)
+        test.case("Look (V) porneste in orice lume", function()
+            local fs = require("@lune/fs")
+            local src = fs.readFile("src/Client/Bootstrap.client.luau")
+            local at = string.find(src, "LookController.Init(", 1, true)
+            check.not_nil(at)
+            local before = string.sub(src, math.max(1, (at :: number) - 400), at :: number)
+            check.is_true(string.find(before, "if world == 1 then", 1, true) == nil)
         end)
     end)
 
