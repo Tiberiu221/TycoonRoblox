@@ -296,6 +296,12 @@ local Assets = {
         -- dale pana atunci (SceneArt). Prima felie de mai sus e inca cea de dinainte de Moara (strada Morii lipseste
         -- din ea pana la urmatoarea urcare, cu acordul owner-ului).
         village_ground_2 = sprite(91716333663371, 880, 640),
+        -- [D70, pasul k12] pamantul copt al barajului (lumea 2, 3.385 px): aceleasi felii de 2.880 px de lume
+        -- (scripts/art/village_ground.py --world 2). 0 = coapta, inca neurcata: harta barajului se deseneaza din dale si
+        -- din zidul provizoriu. Se urca doar cu acordul owner-ului, iar odata cu ID-urile intra si cartierele barajului in
+        -- TycoonConfig.BAKED_DISTRICTS (testul din World2Layout le tine impreuna).
+        dam_ground = sprite(0, 960, 640),
+        dam_ground_2 = sprite(0, 168, 640),
         platform = sprite(136060284598059, 48, 24),
         weights = sprite(116698981575799, 24, 16),
         -- pier2 (64x48) a fost respins: se citea ca o lada cu capac. pier3 e pontonul inalt,

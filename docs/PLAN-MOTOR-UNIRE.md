@@ -1345,6 +1345,15 @@ la granița CREWS / `DAM_START_COINS`.
 - `village_geometry.luau` cu lumea ca argument (lumea 1 iese identică în JSON); `village_ground.py --world 2` scrie două felii
   (`prop_dam_ground`, `_2`) și `dam_ground.lock`; `--check` pe ambele lumi, în CI, `publish_staging` și CLAUDE.md;
   `BAKED_DISTRICTS` pentru lumea 2 abia după urcare.
+- **[2026-10-03, făcut, fără urcare]** `village_geometry.luau [lume]` (lumea 1 iese identică la byte, iar recoacerea ei nu
+  schimbă niciun pixel); `village_ground.py --world 2` coace `prop_dam_ground` (960 px) și `prop_dam_ground_2` (168 px), cu
+  `dam_ground.lock`. Față de sat: zidul de piatră peste râu, cu umbra lui în aval; stuful lacului; canalul tăiat în mal, cu
+  pereți de piatră, stăvila de bârne și cele două poduri pline (puntea și piața Switch House-ului); pe jos, zgura Kiln-ului,
+  așchiile de cupru de la Cable Works și prundișul de la Switchyard și Relay; cărările caselor pe cele două bucăți de rând și
+  cele spre clopotniță, Memory Wall și locul din care ieși din film. `--check` verifică ambele lumi (deci și CI-ul și
+  `publish_staging`). În joc: `SceneArt.BAKED_GROUND` pe lume; cu pământul copt, apa canalului trece sub imagine (altfel
+  ar acoperi podurile). `Assets.tycoon.dam_ground*` au ID 0, iar testul World2Ground ține împreună urcarea și
+  `BAKED_DISTRICTS` (`dam_town`, `dam`). Planșa (A0): `--preview`, cu zidul provizoriu și desenele de împrumut ale jocului.
 
 ### A: arta, în paralel, după O1
 

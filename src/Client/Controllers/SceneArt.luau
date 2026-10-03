@@ -94,6 +94,13 @@ export type Layers = { Fixed: Frame, Parallax: Frame, Scroll: Frame, Plot: Frame
 local PATCH_SEED = 771104
 local FOREST_SEED = 480917
 
+-- [D70, pasul k12] PAMANTUL COPT AL FIECAREI LUMI, pe felii de RiverConfig.BAKE_SLICE (scripts/art/village_ground.py):
+-- satul (Erele 1-3) si barajul (de la Era 4). Cartierele pe care imaginea urcata le contine stau in BAKED_DISTRICTS.
+local BAKED_GROUND: { [number]: { Assets.Sprite } } = {
+    [1] = { Assets.tycoon.village_ground, Assets.tycoon.village_ground_2 },
+    [2] = { Assets.tycoon.dam_ground, Assets.tycoon.dam_ground_2 },
+}
+
 local function decorSprite(kind: string): Assets.Sprite?
     local sprite = (Assets.props :: any)[kind]
     if sprite ~= nil and Assets.has(sprite) then
@@ -170,8 +177,8 @@ local function buildGrass(groundLayer: Frame, W: number, H: number)
 end
 
 -- [D70, pasul k1] `world`: harta (fara ea, satul; balciul o cheama asa pentru macheta). La baraj: latimea si malurile lui,
--- fara pamantul copt al satului (BAKED_DISTRICTS, imaginea satului), cu lacul, zidul, deversorul si canalul desenate
--- provizoriu din TycoonConfig.WORLDS[2] pana la pamantul lui copt (k12).
+-- cu lacul, zidul, deversorul si canalul desenate provizoriu din TycoonConfig.WORLDS[2]. [k12] Fiecare lume are pamantul ei
+-- copt (BAKED_GROUND); pana la urcarea celui al barajului, harta lui vine din dale, ca satul inainte de D62.
 function SceneArt.BuildBackground(layers: Layers, world: number?)
     local worldId = WorldConfig.sanitize(world)
     local river = (RiverConfig.WORLDS :: any)[worldId]
@@ -221,7 +228,9 @@ function SceneArt.BuildBackground(layers: Layers, world: number?)
     -- (Shoreline, TycoonConfig). Raul animat curge pe dedesubt si se vede prin partea ei transparenta, unde imaginea
     -- are doar tentele apei: apa mica langa maluri si canalul adanc, dupa forma malurilor. Din desenul vechi raman
     -- doar ce se misca (apa, spuma) si obiectele asezate peste. Pana la urcare, harta se deseneaza ca inainte.
-    local baked = worldId == 1 and Assets.has(Assets.tycoon.village_ground)
+    -- [k12] feliile lumii: satul are imaginea lui, barajul pe a lui; o lume fara felii urcate se deseneaza din dale
+    local slices = BAKED_GROUND[worldId] or {}
+    local baked = slices[1] ~= nil and Assets.has(slices[1])
     if not baked then
         buildGrass(groundLayer, W, H)
     end
@@ -470,10 +479,18 @@ function SceneArt.BuildBackground(layers: Layers, world: number?)
         gradient(white, Color3.fromRGB(255, 255, 255), Color3.fromRGB(150, 196, 220))
         spill = white
         local canal = data.water.canal
-        tiled(trimLayer, Assets.water_tile, canal.x, canal.y, canal.w, canal.h, 4).Name = "Canal"
-        local deep =
-            frame(trimLayer, canal.x, canal.y, canal.w, canal.h, Color3.fromRGB(8, 34, 62), 5)
-        deep.BackgroundTransparency = 0.6
+        if baked then
+            -- [k12] pamantul copt are canalul gol, cu peretii, cele doua poduri (puntea si piata) si stavila lui, plus
+            -- tenta apei adanci: apa se pune DEDESUBT, altfel ar acoperi podurile
+            tiled(waterLayer, Assets.water_tile, canal.x, canal.y, canal.w, canal.h, 5).Name =
+                "Canal"
+        else
+            tiled(trimLayer, Assets.water_tile, canal.x, canal.y, canal.w, canal.h, 4).Name =
+                "Canal"
+            local deep =
+                frame(trimLayer, canal.x, canal.y, canal.w, canal.h, Color3.fromRGB(8, 34, 62), 5)
+            deep.BackgroundTransparency = 0.6
+        end
         local plot = layers.Plot
         if plot ~= nil then
             local foot = frame(
@@ -523,7 +540,7 @@ function SceneArt.BuildBackground(layers: Layers, world: number?)
         -- (RiverConfig.ERA1_WORLD_WIDTH): prima e imaginea de dinainte de Moara, a doua acopera fasia noua. O felie
         -- inca neurcata isi primeste iarba din dale, ca fasia ei sa nu ramana goala.
         local sliceW = RiverConfig.BAKE_SLICE
-        for k, sprite in { Assets.tycoon.village_ground, Assets.tycoon.village_ground_2 } do
+        for k, sprite in slices do
             local x0 = (k - 1) * sliceW
             local w = math.min(sliceW, W - x0)
             if w <= 0 then

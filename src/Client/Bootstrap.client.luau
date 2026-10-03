@@ -156,6 +156,8 @@ do
             {
                 Assets.tycoon.village_ground,
                 Assets.tycoon.village_ground_2,
+                Assets.tycoon.dam_ground, -- [k12] lumea inca nu se stie aici; 0 pana la urcare, deci sarita
+                Assets.tycoon.dam_ground_2,
                 Assets.water_tile,
                 Assets.grass_tile,
                 Assets.sand_tile,

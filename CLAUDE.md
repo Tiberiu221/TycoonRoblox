@@ -72,7 +72,7 @@ rojo build fair.project.json --output /tmp/fair.rbxl        # [D60] balciul, pla
 lune run scripts/check_requires /tmp/fair.rbxl
 python3 scripts/economy/sim_tycoon.py --robust
 python3 scripts/art/check_panel_rows.py
-python3 scripts/art/village_ground.py --check              # [D62] pamantul copt e la zi cu harta
+python3 scripts/art/village_ground.py --check              # [D62] pamantul copt e la zi cu harta (ambele lumi)
 ```
 `rojo build` și `check_requires` **nu parsează Luau** — o eroare de sintaxă trece de ele; doar
 stylua/selene o prind. Rulează-le mereu pe toate, nu înlănțuite după o eroare.
@@ -406,7 +406,8 @@ săgeată spre avizier chiar dacă ghidajul tace. La pasul acela ai cel puțin 2
   uscatul opac, apa transparentă cu tente de adâncime, râul animat curge pe dedesubt. Geometria vine din joc prin
   `scripts/art/village_geometry.luau`. `SceneArt.BuildBackground` o folosește când e urcată; până atunci, dalele de azi.
 - **După orice mutare în `TycoonConfig` (DECK, ROADS, YARDS, DECOR) sau în malurile din `RiverConfig`:** rulează din nou
-  `python3 scripts/art/village_ground.py`, altfel pică poarta (`--check`, amprenta din `village_ground.lock`). După
+  `python3 scripts/art/village_ground.py`, altfel pică poarta (`--check`, amprenta din `village_ground.lock`). La baraj
+  (`WORLDS[2]`, `RiverConfig.WORLDS[2]`): `--world 2`, cu `dam_ground.lock` [k12]. După
   recoacere, imaginea trebuie urcată din nou, cu acordul owner-ului.
 - **Clădirile la pragul 25:** gaterul, taverna și forja au a doua înfățișare (`scripts/art/d62_grand.py`,
   `ChainMath.isGrand`, `PadArt.station`). Depozitul nu are niveluri, deci nici variantă.

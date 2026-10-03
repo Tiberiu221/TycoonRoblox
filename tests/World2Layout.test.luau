@@ -1326,4 +1326,42 @@ return function()
             check.equal(CatchFloat.travel(620), CatchFloat.travel(620, CatchFloat.SPAWN_X))
         end)
     end)
+
+    -- [D70, pasul k12] Pamantul copt al barajului (scripts/art/village_ground.py --world 2): feliile din Assets au marimea
+    -- fisierelor coapte (Roblox nu spune nimic daca o imagine urcata e mai ingusta: felia ar acoperi doar o bucata), iar
+    -- cartierele barajului trec in BAKED_DISTRICTS exact odata cu urcarea (altfel puntea si drumurile s-ar desena de doua
+    -- ori, sau deloc).
+    test.suite("World2Ground [D70, pasul k12]", function()
+        local fs = require("@lune/fs")
+        local function pngSize(path: string): (number, number)
+            local head = fs.readFile(path)
+            local w, h = string.unpack(">I4I4", head, 17)
+            return w, h
+        end
+
+        test.case("feliile barajului: marimea din Assets e cea a imaginilor coapte", function()
+            local river = (RiverConfig.WORLDS :: any)[W]
+            local slices = { Assets.tycoon.dam_ground, Assets.tycoon.dam_ground_2 }
+            local covered = 0
+            for k, sprite in slices do
+                local name = if k == 1 then "prop_dam_ground" else `prop_dam_ground_{k}`
+                local w, h = pngSize(`assets/sprites/{name}.png`)
+                check.equal(sprite.width, w)
+                check.equal(sprite.height, h)
+                check.equal(h * Assets.PIXEL_SCALE, river.WORLD_HEIGHT)
+                covered += w * Assets.PIXEL_SCALE
+            end
+            check.equal(Assets.tycoon.dam_ground.width * Assets.PIXEL_SCALE, river.BAKE_SLICE)
+            -- cele doua felii acopera lumea (pana la ultimul pixel intreg de imagine)
+            check.equal(covered, river.WORLD_WIDTH - river.WORLD_WIDTH % Assets.PIXEL_SCALE)
+        end)
+
+        test.case("cartierele barajului intra in BAKED_DISTRICTS doar odata cu urcarea", function()
+            local uploaded = Assets.has(Assets.tycoon.dam_ground)
+            check.equal(uploaded, Assets.has(Assets.tycoon.dam_ground_2))
+            for _, d in TycoonConfig.districtsOf(W) do
+                check.equal(TycoonConfig.BAKED_DISTRICTS[d.id] == true, uploaded)
+            end
+        end)
+    end)
 end

@@ -20,8 +20,14 @@ Ca sa nu ramana la tinut minte: la fiecare coacere scrie amprenta geometriei in 
 (in poarta si in CI) pica daca geometria jocului nu mai e cea din care s-a copt imaginea. Dupa o recoacere, imaginea
 trebuie si urcata din nou (python3 scripts/upload_assets.py prop_village_ground), cu acordul owner-ului.
 
-Rulare: python3 scripts/art/village_ground.py [--preview cale.png] [--zoom cale.png x y]
-        python3 scripts/art/village_ground.py --check
+[D70, pasul k12] BARAJUL (lumea 2) are pamantul lui, copt cu acelasi cod din geometria lui (`village_geometry.luau 2`):
+prop_dam_ground.png si prop_dam_ground_2.png, cu amprenta in `dam_ground.lock`. Ce are in plus fata de sat: zidul de
+piatra peste rau, cu umbra lui in aval; lacul linistit din spatele lui, cu stuf la maluri; canalul scurt de sub Relay, cu
+peretii de piatra, stavila si cele doua poduri (puntea si piata Switch House-ului); cararile caselor pe doua randuri si
+cele spre clopotnita, Memory Wall si locul din care iesi din film. `--check` verifica ambele lumi.
+
+Rulare: python3 scripts/art/village_ground.py [--world 2] [--preview cale.png] [--zoom cale.png x y]
+        python3 scripts/art/village_ground.py --check            (ambele lumi; cu --world N, doar una)
 """
 import hashlib
 import json
@@ -38,23 +44,29 @@ from preview_tycoon import load, write_png  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(HERE))
 SPRITES = os.path.join(ROOT, "assets", "sprites")
-OUT = os.path.join(SPRITES, "prop_village_ground.png")
+
+# [D70, pasul k12] fiecare lume cu imaginea si amprenta ei: (numele feliilor, lacatul, cum se numeste in mesaje)
+WORLDS = {
+    1: ("prop_village_ground", os.path.join(HERE, "village_ground.lock"), "satului"),
+    2: ("prop_dam_ground", os.path.join(HERE, "dam_ground.lock"), "barajului"),
+}
 
 
-def tile_paths(G):
+def tile_paths(G, world=1):
     """[D65] Feliile pamantului copt: Roblox micsoreaza orice imagine peste 1024 px, deci lumea (3840 / 3 = 1280 px) se
     coace pe felii de `tile` pixeli de lume (2880 -> 960 px). Prima isi tine numele de dinainte, urmatoarele primesc
-    numarul lor: prop_village_ground.png, prop_village_ground_2.png. Intoarce [(cale, x0, latime)] in pixeli de imagine."""
+    numarul lor: prop_village_ground.png, prop_village_ground_2.png. Intoarce [(cale, x0, latime)] in pixeli de imagine.
+    [k12] La baraj (3.385 px): prop_dam_ground.png (960 px) si prop_dam_ground_2.png (169 px)."""
+    base = WORLDS[world][0]
     tile = G["tile"] // D
     total = G["world"]["w"] // D
     out, x0, k = [], 0, 1
     while x0 < total:
-        name = "prop_village_ground.png" if k == 1 else f"prop_village_ground_{k}.png"
+        name = f"{base}.png" if k == 1 else f"{base}_{k}.png"
         out.append((os.path.join(SPRITES, name), x0, min(tile, total - x0)))
         x0 += tile
         k += 1
     return out
-LOCK = os.path.join(HERE, "village_ground.lock")
 
 D = 3
 BAYER = ((0, 8, 2, 10), (12, 4, 14, 6), (3, 11, 1, 9), (15, 7, 13, 5))
@@ -79,6 +91,30 @@ TIMBER = ((58, 46, 40), (96, 78, 60), (118, 96, 74), (142, 120, 94))
 SHALLOW = (128, 196, 204)
 DEEP = (8, 30, 58)
 BANK_SHADE = (16, 40, 66)
+
+REED = ((52, 74, 40), (84, 108, 52), (156, 160, 92))  # [k12] stuful lacului: radacina, tulpina, spicul
+
+# [k12] planse: desenele de imprumut ale cladirilor barajului, aceleasi ca in joc (Bootstrap WORLD_BUILDING_ART pentru
+# liniile lumii 2, DamTownController.BORROWED pentru oras)
+DAM_BORROWED = {
+    "canteen": "prop_tavern",
+    "bellTower": "prop_bell",
+    "memoryWall": "prop_village_board",
+    "damStore": "prop_works_store",
+    "switchyard": "prop_wire_works",
+    "cableStore": "prop_mill_store",
+    "cableworks": "prop_foundry",
+    "relay": "prop_copper_furnace",
+    "switchHouse": "prop_depot",
+}
+
+# [k12] ce se vede pe jos in curtile barajului, dupa curtea adevarata (restul: pamant batatorit si pietre)
+DAM_FLAVOUR = {
+    "kiln_yard": "forge",
+    "cableworks_yard": "copper",
+    "switchyard_yard": "gravel",
+    "relay_yard": "gravel",
+}
 
 MAT_WATER, MAT_GRASS, MAT_SAND, MAT_DIRT, MAT_BUILT, MAT_FOREST = 0, 1, 2, 3, 4, 5
 
@@ -121,9 +157,9 @@ def dither(ix, iy):
     return (BAYER[iy & 3][ix & 3] + 0.5) / 16.0
 
 
-def geometry():
+def geometry(world=1):
     res = subprocess.run(
-        ["lune", "run", os.path.join("scripts", "art", "village_geometry")],
+        ["lune", "run", os.path.join("scripts", "art", "village_geometry"), str(world)],
         cwd=ROOT, capture_output=True, text=True,
     )
     if res.returncode != 0:
@@ -146,19 +182,21 @@ def fingerprint(G):
     return hashlib.sha256(json.dumps(canon(G), sort_keys=True).encode()).hexdigest()
 
 
-def check(G):
+def check(G, world=1):
+    """Intoarce lista problemelor (goala = la zi). [k12] Pe lume: fiecare cu lacatul si feliile ei."""
+    _base, lock, label = WORLDS[world]
     problems = []
     try:
-        locked = open(LOCK).read().strip()
+        locked = open(lock).read().strip()
     except FileNotFoundError:
         locked = ""
     if locked != fingerprint(G):
         problems.append(
-            "geometria satului (maluri, punte, drumuri, curti, decor) s-a schimbat de la ultima coacere a pamantului"
+            f"geometria {label} (maluri, punte, drumuri, curti, decor) s-a schimbat de la ultima coacere a pamantului"
         )
     # Marimea se citeste direct din antetul PNG (IHDR), cu calea relativa la repo: `preview_tycoon.load` are scrisa in el
     # calea de pe Mac-ul owner-ului, iar verificarea asta ruleaza si in CI.
-    for path, _x0, width in tile_paths(G):
+    for path, _x0, width in tile_paths(G, world):
         name = os.path.basename(path)
         try:
             with open(path, "rb") as f:
@@ -169,10 +207,12 @@ def check(G):
         except (FileNotFoundError, struct.error):
             problems.append(f"lipseste assets/sprites/{name}")
     if problems:
+        flag = "" if world == 1 else f" --world {world}"
         print("village_ground: " + "; ".join(problems))
-        print("  -> ruleaza: python3 scripts/art/village_ground.py   (apoi imaginea trebuie urcata din nou)")
-        sys.exit(1)
-    print("village_ground: imaginea coapta e la zi cu harta")
+        print(f"  -> ruleaza: python3 scripts/art/village_ground.py{flag}   (apoi imaginea trebuie urcata din nou)")
+    else:
+        print(f"village_ground: imaginea coapta a {label} e la zi cu harta")
+    return problems
 
 
 class Canvas:
@@ -247,6 +287,7 @@ def rounded_sdf(wx, wy, r, radius):
 def bake(G):
     W, H = G["world"]["w"] // D, G["world"]["h"] // D
     cv = Canvas(W, H)
+    dam = G.get("dam")  # [k12] doar la baraj
     far, near = G["far"], G["near"]
     tree = G["treeLine"]
     # [D65] LUMEA S-A LATIT, DAR SATUL VECHI NU SE MISCA. Tot ce se imprastie la intamplare (pietricele, coroanele
@@ -456,6 +497,10 @@ def bake(G):
                     col = (204, 178, 128)  # rumegus
                 elif flavour == "forge" and h < 0.07:
                     col = (66, 58, 54)  # zgura si cenusa
+                elif flavour == "copper" and h < 0.06:
+                    col = (178, 104, 58)  # [k12] aschii de cupru, la Cable Works
+                elif flavour == "gravel" and h < 0.10:
+                    col = STONE[2] if h < 0.05 else STONE[1]  # [k12] prundis, la Switchyard si la Relay
                 elif h < 0.018:
                     col = STONE[1]
                 elif h > 0.985:
@@ -465,7 +510,9 @@ def bake(G):
     all_yards = [y for dist in G["districts"] for y in dist["yards"]]
     all_roads = [r for dist in G["districts"] for r in dist["roads"]]
     for yard in all_yards:
-        dirt_area(yard, 16, 12, 0.0, None, yard["id"])
+        # [k12] la baraj, ce se vede pe jos se alege dupa curtea adevarata (`own`), nu dupa perechea ei din The Landing
+        flavour = DAM_FLAVOUR.get(yard.get("own")) if dam else yard["id"]
+        dirt_area(yard, 16, 12, 0.0, None, flavour)
     for road in all_roads:
         wide = (road["x1"] - road["x0"]) >= (road["y1"] - road["y0"])
         if wide:
@@ -511,8 +558,81 @@ def bake(G):
         shed, bell = yards["shed"], yards["bell"]
         worn([(shed["x1"] - 8, (shed["y0"] + shed["y1"]) / 2), (bell["x0"] + 8, (bell["y0"] + bell["y1"]) / 2)], 28, 0.6)
 
-    for dist in G["districts"]:
-        district_paths(dist)
+    # [k12] La baraj, casele stau pe un singur rand lung sub strada, rupt la Relay: cate o carare in spatele fiecarei bucati
+    # de rand, cu treceri spre strada la capete si la fiecare cinci case; apoi cate o carare de la cel mai apropiat drum
+    # spre clopotnita, Memory Wall si locul din care iesi din film (piciorul zidului).
+    def dam_paths():
+        houses = sorted(
+            (y for dist in G["districts"] for y in dist["yards"] if y["id"] == "house_collector"), key=lambda h: h["x0"]
+        )
+        roads = [r for dist in G["districts"] for r in dist["roads"]]
+        street = next(r for r in roads if r["id"] == "street")
+        lane_y = max(h["y1"] for h in houses) + 14
+        runs, run = [], [houses[0]]
+        for h in houses[1:]:
+            if h["x0"] - run[-1]["x1"] > 120:
+                runs.append(run)
+                run = [h]
+            else:
+                run.append(h)
+        runs.append(run)
+        for run in runs:
+            worn([(run[0]["x0"] - 10, lane_y), (run[-1]["x1"] + 10, lane_y)], 30, 0.62)
+            xs = [run[0]["x0"] - 24, run[-1]["x1"] + 24]
+            xs += [(run[k - 1]["x1"] + run[k]["x0"]) / 2 for k in range(5, len(run), 5)]
+            for x in xs:
+                worn([(x, street["y1"] - 4), (x, lane_y)], 26, 0.66)
+        spots = list(dam["cards"].values()) + [G["spots"]["spawn"]]
+        for spot in spots:
+            cx, cy = spot["x"], spot["y"]
+            best = None
+            for r in roads:
+                px, py = min(max(cx, r["x0"]), r["x1"]), min(max(cy, r["y0"]), r["y1"])
+                d = math.hypot(px - cx, py - cy)
+                if best is None or d < best[0]:
+                    best = (d, px, py)
+            if best[0] > 0:
+                worn([(best[1], best[2]), (cx, cy)], 30, 0.7)
+
+    if dam:
+        dam_paths()
+    else:
+        for dist in G["districts"]:
+            district_paths(dist)
+
+    # ---- [k12] BARAJUL: canalul se taie in mal, zidul se aseaza peste rau ------------------------------------------
+    def clear(ix, iy):
+        """Inapoi la apa: transparent, ca raul (sau apa canalului) desenat dedesubt sa se vada."""
+        if cv.inside(ix, iy):
+            i = iy * W + ix
+            cv.a[i] = 0.0
+            p = cv.rgb[i]
+            p[0], p[1], p[2] = 0.0, 0.0, 0.0
+            cv.mat[i] = MAT_WATER
+
+    if dam:
+        wall, canal = dam["wall"], dam["water"]["canal"]
+        cx0, cx1 = round(canal["x"] / D), round((canal["x"] + canal["w"]) / D)
+        cy1 = round((canal["y"] + canal["h"]) / D)
+        for ix in range(cx0, cx1):
+            for iy in range(int(near["y"][ix] // D) - 1, cy1):
+                clear(ix, iy)
+        # zidul: blocuri de piatra (aceeasi dala si aceeasi tenta ca zidul provizoriu din joc), peste rau si peste maluri
+        wx0, wy0 = round(wall["x"] / D), round(wall["y"] / D)
+        wx1, wy1 = round((wall["x"] + wall["w"]) / D), round((wall["y"] + wall["h"]) / D)
+        face = Sprite("tile_plaza")
+        for iy in range(wy0, wy1):
+            for ix in range(wx0, wx1):
+                q = face.px[(iy - wy0) % face.h][(ix - wx0) % face.w]
+                cv.set(ix, iy, (q[0] * 170 / 255, q[1] * 164 / 255, q[2] * 152 / 255), MAT_BUILT)
+        # umbra zidului: lumina vine din stanga-sus, deci cade spre aval (dreapta) si spre sat (jos)
+        for k in range(10):
+            a = 0.42 * (1 - k / 10)
+            for iy in range(wy0 + 2, wy1 + 1):
+                cv.blend(wx1 + k, iy, (12, 24, 30), a)
+            for ix in range(wx0 + 2, wx1 + k + 1):
+                if k < 6:
+                    cv.blend(ix, wy1 + k, (20, 30, 24), 0.36 * (1 - k / 6))
 
     # ---- 5. piata de piatra si puntea: dalele aprobate, la pixelul lor -------------------------------------------
     def tile_rect(sprite, r, worn_edge):
@@ -561,6 +681,32 @@ def bake(G):
 
     for dist in G["districts"]:
         district_built(dist)
+
+    # [k12] cele doua poduri peste canal (puntea si piata Switch House-ului) sunt pline, fara pietre lipsa la margine;
+    # peretii canalului sunt de piatra, iar la capatul lui de jos sta stavila de barne
+    if dam:
+        plaza_tile = Sprite("tile_plaza")
+        for r in (r for dist in G["districts"] for r in dist["roads"] if r["id"] == "plaza"):
+            x0, y0 = round(r["x0"] / D), round(r["y0"] / D)
+            x1, y1 = round(r["x1"] / D), round(r["y1"] / D)
+            if x1 <= cx0 or x0 >= cx1:
+                continue
+            for iy in range(y0, y1):
+                for ix in range(max(x0, cx0 - 1), min(x1, cx1 + 1)):
+                    q = plaza_tile.px[(iy - y0) % plaza_tile.h][(ix - x0) % plaza_tile.w]
+                    cv.set(ix, iy, q if iy not in (y0, y1 - 1) else STONE[0], MAT_BUILT)  # parapetul podului
+            for k, a in ((0, 0.40), (1, 0.22)):
+                for ix in range(cx0, cx1):
+                    cv.blend(ix, y1 + k, (20, 26, 22), a)  # umbra podului pe apa
+        for iy in range(int(min(near["y"][cx0:cx1]) // D), cy1):
+            for ix in (cx0 - 1, cx1):
+                if cv.inside(ix, iy) and cv.mat[iy * W + ix] != MAT_BUILT:
+                    cv.set(ix, iy, STONE[0] if ix == cx0 - 1 else STONE[1], MAT_BUILT)
+        for iy in (cy1 - 2, cy1 - 1):
+            for ix in range(cx0 - 1, cx1 + 1):
+                cv.set(ix, iy, TIMBER[1] if iy == cy1 - 2 else TIMBER[0], MAT_BUILT)
+        for ix in range(cx0 - 1, cx1 + 1, 4):
+            cv.set(ix, cy1 - 2, TIMBER[3], MAT_BUILT)  # capetele barnelor stavilei
 
     # ---- 6. smocuri si flori pe iarba ramasa ----------------------------------------------------------------------
     flowers = ((244, 240, 226), (250, 214, 96), (236, 150, 170), (170, 190, 250))
@@ -623,6 +769,28 @@ def bake(G):
                 cv.blend(ix, iy, SHALLOW, 0.11 * step)
             if wy - fy < 7:
                 cv.blend(ix, iy, BANK_SHADE, 0.38)  # malul de nord isi lasa umbra pe apa
+
+    if dam:
+        # canalul: apa adanca si statuta intre doi pereti; peretele din stanga isi lasa umbra pe ea
+        for ix in range(cx0, cx1):
+            for iy in range(int(near["y"][ix] // D) + 2, cy1 - 2):
+                if cv.mat[iy * W + ix] != MAT_WATER:
+                    continue
+                cv.blend(ix, iy, DEEP, 0.30)
+                if ix - cx0 < 2:
+                    cv.blend(ix, iy, BANK_SHADE, 0.42 - 0.16 * (ix - cx0))
+        # lacul din spatele zidului: stuf la ambele maluri, smocuri de doua-trei fire in apa mica
+        for ix in range(0, wx0 - 1):
+            for side, edge in ((-1, far), (1, near)):
+                if hash01(ix, side, 41) > 0.22:
+                    continue
+                y_edge = int(edge["y"][ix] // D)
+                iy = y_edge + 1 if side < 0 else y_edge - 1
+                height = 2 + int(hash01(ix, side, 42) * 3)
+                for k in range(height):
+                    yy = iy - k if side > 0 else iy + height - 1 - k
+                    if cv.inside(ix, yy) and cv.mat[yy * W + ix] == MAT_WATER:
+                        cv.set(ix, yy, REED[2] if k == height - 1 else REED[0 if k == 0 else 1])
     return cv
 
 
@@ -636,6 +804,7 @@ def compose(G, ground_rows):
     W, H = G["world"]["w"] // D, G["world"]["h"] // D
     water = Sprite("water_tile")
     out = [[water.px[y % water.h][x % water.w] for x in range(W)] for y in range(H)]
+    dam = G.get("dam")
 
     def over(x, y, q):
         if not (0 <= x < W and 0 <= y < H) or q[3] == 0:
@@ -646,6 +815,11 @@ def compose(G, ground_rows):
             round(p[0] + (q[0] - p[0]) * a), round(p[1] + (q[1] - p[1]) * a), round(p[2] + (q[2] - p[2]) * a), 255,
         )
 
+    if dam:
+        # [k12] ca in joc (SceneArt): sub pamantul copt, lacul e apa care sta, cu o tenta peste dala raului
+        for y in range(368 // D, 848 // D):
+            for x in range(min(W, round(dam["wall"]["x"] / D))):
+                over(x, y, (40, 88, 120, 115))
     for y in range(H):
         for x in range(W):
             over(x, y, ground_rows[y][x])
@@ -661,12 +835,29 @@ def compose(G, ground_rows):
             for xx in range(w):
                 over(x0 + xx, y0 + yy, s.px[min(s.h - 1, int(yy / scale))][min(s.w - 1, int(xx / scale))])
 
+    def fitted(name, box):
+        """Un desen incadrat in cutia lui (ca DamTownController.drawFitted), cu baza la y-ul cutiei."""
+        try:
+            s = Sprite(name)
+        except FileNotFoundError:
+            return None
+        return (box["y"], name, box["x"], min(box["w"] / D / s.w, box["h"] / D / s.h))
+
     things = [(i["y"], "prop_" + i["kind"], i["x"], 1.0) for i in G["scattered"]]
     things += [(d["y"], "prop_" + d["sprite"], d["x"], d["scale"] / D) for d in G["decor"]]
     sp = G["spots"]
-    for key, name in (("tavern", "prop_tavern"), ("storage", "prop_storage"), ("sawmill", "prop_sawmill")):
-        r = sp[key]
-        things.append((r["y"], name, r["x"], 1.0))  # y-ul cladirilor fixe e deja baza lor (TycoonConfig)
+    if dam:
+        # [k12] desenele de imprumut din joc, pana la lotul A1/A4 (Bootstrap WORLD_BUILDING_ART, DamTownController)
+        for key, name in DAM_BORROWED.items():
+            box = dam["buildings"].get(key)
+            if box is not None:
+                things.append(fitted(name, box))
+        things += [fitted("prop_runner_hut", c) for c in dam["cottages"]]
+        things = [t for t in things if t is not None]
+    else:
+        for key, name in (("tavern", "prop_tavern"), ("storage", "prop_storage"), ("sawmill", "prop_sawmill")):
+            r = sp[key]
+            things.append((r["y"], name, r["x"], 1.0))  # y-ul cladirilor fixe e deja baza lor (TycoonConfig)
     for p in G["pads"]:
         if p["net"]:
             continue
@@ -676,8 +867,32 @@ def compose(G, ground_rows):
         if name:
             # baza cladirii de pe platforma, ca in joc: TycoonConfig.buildingBase = y + PAD_SIZE/2 + BUILDING_DROP
             things.append((p["y"] + 48 + 8, name, p["x"], 1.0))
+    if dam:
+        # [k12] zidul provizoriu, ca in joc (SceneArt, stratul Built: peste pamantul copt, sub cladiri si oameni): fata de piatra, coama si apa
+        # alba a deversorului; turbina zidita in fata lui
+        wall, sp_ = dam["wall"], dam["water"]["spillway"]
+        face = Sprite("tile_plaza")
+        wx0, wy0 = round(wall["x"] / D), round(wall["y"] / D)
+        for y in range(wy0, round((wall["y"] + wall["h"]) / D)):
+            for x in range(wx0, round((wall["x"] + wall["w"]) / D)):
+                q = face.px[(y - wy0) % face.h][(x - wx0) % face.w]
+                over(x, y, (round(q[0] * 170 / 255), round(q[1] * 164 / 255), round(q[2] * 152 / 255), 255))
+        for y in range(round((wall["y"] - 10) / D), round((wall["y"] + 8) / D)):
+            for x in range(round((wall["x"] - 6) / D), round((wall["x"] + wall["w"] + 6) / D)):
+                over(x, y, (92, 88, 82, 255))
+        y0, y1 = round(sp_["y"] / D), round((sp_["y"] + sp_["h"]) / D)
+        for y in range(y0, y1):
+            t = (y - y0) / max(1, y1 - y0 - 1)
+            col = (round(255 - 105 * t), round(255 - 59 * t), round(255 - 35 * t), 255)
+            for x in range(round(sp_["x"] / D), round((sp_["x"] + sp_["w"]) / D)):
+                over(x, y, col)
+        tb = dam["turbine"]
+        t = fitted("prop_turbine", {"x": tb["x"], "y": tb["y"] + tb["h"] / 2, "w": tb["w"], "h": tb["h"]})
+        if t is not None:
+            stamp(t[1], t[2], t[0], t[3])
     for _y, name, x, scale in sorted(things):
         stamp(name, x, _y, scale)
+
     return out
 
 
@@ -691,17 +906,24 @@ def zoom(rows, cx, cy, path, w=320, h=213, k=3):
 
 
 def main():
-    G = geometry()
     args = sys.argv[1:]
+    world = int(args[args.index("--world") + 1]) if "--world" in args else None
     if "--check" in args:
-        check(G)
+        # [k12] fara --world, ambele lumi: satul si barajul isi tin fiecare imaginea la zi cu harta lui
+        problems = []
+        for w in [world] if world is not None else sorted(WORLDS):
+            problems += check(geometry(w), w)
+        if problems:
+            sys.exit(1)
         return
+    world = world or 1
+    G = geometry(world)
     cv = bake(G)
     rows = cv.rows()
-    for path, x0, width in tile_paths(G):
+    for path, x0, width in tile_paths(G, world):
         write_png(path, width, cv.h, [row[x0 : x0 + width] for row in rows])
         print(f"  {os.path.basename(path)}  {width}x{cv.h}")
-    with open(LOCK, "w") as f:
+    with open(WORLDS[world][1], "w") as f:
         f.write(fingerprint(G) + "\n")
     if "--preview" in args or "--zoom" in args:
         full = compose(G, rows)
