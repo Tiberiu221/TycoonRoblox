@@ -119,14 +119,12 @@ local function chainRowsFor(era: number): { ChainRow }
     end
     return out
 end
+-- [D70, verificatorul k2] capul se masoara doar pe erele HARTII TALE (in Init, dupa lume): pe toate erele motorului, dupa
+-- comutator, cele 18 verigi ale barajului ar fi impins in sat lista cladirilor la un singur rand
 local CHAIN_BY_ERA: { { ChainRow } } = {}
 local CHAIN_MAX = 0
-for era in StationConfig.ERA_LINES do
-    CHAIN_BY_ERA[era] = chainRowsFor(era)
-    CHAIN_MAX = math.max(CHAIN_MAX, #CHAIN_BY_ERA[era])
-end
 local CHAIN_STEP = 20 -- unsprezece verigi [D56], cate 20
-local HEAD_SHIFT = (CHAIN_MAX - 7) * CHAIN_STEP -- tot ce sta sub cap coboara cu verigile adaugate dupa D55
+local HEAD_SHIFT = 0 -- tot ce sta sub cap coboara cu verigile adaugate dupa D55 (socotit in Init)
 local TABS_H = 44 -- randul comutatorului de cartier; 0 cat nu exista decat The Landing
 
 local advice: TextLabel
@@ -602,6 +600,13 @@ function StationPanel.Init(d: Deps)
     world = WorldConfig.sanitize(d.World)
     firstEra = WorldConfig.FIRST_ERA[world]
     shownEra = firstEra
+    for era in StationConfig.ERA_LINES do
+        if WorldConfig.worldOfEra(era) == world then
+            CHAIN_BY_ERA[era] = chainRowsFor(era)
+            CHAIN_MAX = math.max(CHAIN_MAX, #CHAIN_BY_ERA[era])
+        end
+    end
+    HEAD_SHIFT = (CHAIN_MAX - 7) * CHAIN_STEP
     local root, content = Widgets.Window(deps.HudGui, {
         name = "StationPanel",
         title = Strings.STATIONS_TITLE,

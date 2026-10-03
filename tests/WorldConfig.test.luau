@@ -97,6 +97,39 @@ return function()
             end
         )
 
+        test.case(
+            "[verificatorul k2] capul panoului Stations din sat ramane de 11 verigi, oricare ar fi erele motorului",
+            function()
+                -- StationPanel masoara capul doar pe erele hartii tale: lista cladirilor din sat pastreaza ~2,4 randuri. Barajul
+                -- (18 verigi) isi primeste aranjamentul la k4.
+                local StationConfig = require("../src/Shared/Config/StationConfig")
+                local function chainRows(era: number): number
+                    local n = 0
+                    local sellers: { [string]: boolean } = {}
+                    for _, line in StationConfig.ERA_LINES_ALL[era] do
+                        -- ca StationPanel.chainRowsFor: plasele liniei (daca are), pasii, vanzatorul o data
+                        if StationConfig.LINES[line].netKind ~= nil then
+                            n += 1
+                        end
+                        n += #StationConfig.LINES[line].steps
+                        local seller = StationConfig.LINES[line].seller
+                        if seller ~= nil and not sellers[seller] then
+                            sellers[seller] = true
+                            n += 1
+                        end
+                    end
+                    return n
+                end
+                local village = 0
+                for era in StationConfig.ERA_LINES_ALL do
+                    if WorldConfig.worldOfEra(era) == 1 then
+                        village = math.max(village, chainRows(era))
+                    end
+                end
+                check.equal(village, 11)
+            end
+        )
+
         test.case("raul lumii 1 e raul de azi, cheie cu cheie", function()
             local RiverConfig = require("../src/Shared/Config/RiverConfig")
             local one = RiverConfig.WORLDS[1] :: any
@@ -169,6 +202,14 @@ return function()
                 -- Exceptii scrise aici, cu motiv: roata de apa e doar a satului (PadArt.WHEEL_FOOT).
                 local ALLOWED = { "local WHEEL_FOOT = TycoonConfig.DECK.y0" }
                 local TABLES = { "ZONES", "DISTRICTS", "DECK", "ROADS", "YARDS", "DECOR" }
+                -- [verificatorul k2] tiparul prinde si o citire la capat de rand, dar nu un nume mai lung
+                check.not_nil(
+                    string.find("local zones = TycoonConfig.ZONES", "TycoonConfig%.ZONES%f[^%w_]")
+                )
+                check.equal(
+                    string.find("x = TycoonConfig.DECOR_STRIPS", "TycoonConfig%.DECOR%f[^%w_]"),
+                    nil
+                )
                 for _, path in luauFiles("src/Client", {}) do
                     for line in string.gmatch(fs.readFile(path), "[^\n]+") do
                         local code = string.match(line, "^%s*(.-)$") or ""
@@ -184,7 +225,7 @@ return function()
                         end
                         for _, name in TABLES do
                             -- numele exact (nu DECOR_STRIPS / DECK_SPANS): urmat de ceva ce nu e litera, cifra sau _
-                            if string.find(line, `TycoonConfig%.{name}[^%w_]`) ~= nil then
+                            if string.find(line, `TycoonConfig%.{name}%f[^%w_]`) ~= nil then
                                 print(
                                     `[WorldConfig] {path}: TycoonConfig.{name} citit direct: {line}`
                                 )

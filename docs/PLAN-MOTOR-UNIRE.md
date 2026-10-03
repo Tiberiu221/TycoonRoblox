@@ -1110,6 +1110,10 @@ la granița CREWS / `DAM_START_COINS`.
 - 6 clădiri fixe cu `borrowed`; `LineController` pentru unire (două grămezi, `waiting` copiat explicit); Overlay `DROP_AT` /
   `playerStand` la `:273, :721-743, :821`; GuideMath și `STEP_OF_JOB`.
 - Turbina din zid (824–880, 690–768); Dam Collector-ul ia de la piciorul zidului; oamenii retrași stau fără traseu.
+- **[Verificatorul k2]** `GuideMath` primește lumea: `logsGoal` / `scrapGoal` / `sellGoal` și pașii 3–9 ai lemnului și fierului
+  rulează doar în lumea 1, iar `logs` scade și piesele (`partBy`), cu pasul lor spre `JOIN_PLACES[unire].inputIn[linie]`. Azi, cu
+  comutatorul, trei cabluri în traistă la baraj dau „Take the logs to the Sawmill”. Test Lune în lumea 2: nicio țintă cu cheia
+  sawmill / forge / dock / storage / shed.
 - **[Verificatorul j13a]** clientul copiază explicit `sack.partBy[unire]` (0 implicit, pentru fiecare unire din `LINE_ORDER`) și
   `processor.inputs[piesă]` / `waiting` ale atelierului unirii; Overlay, GuideMath și LineController citesc `partBy` pentru cardul
   „Drop” al Relay-ului și pentru săgeată. Test Lune: copia din Bootstrap, rulată pe ordinea FULL, are fiecare câmp al traistei
@@ -1128,6 +1132,12 @@ la granița CREWS / `DAM_START_COINS`.
   amprenta din `World2Layout.test` (120×102) e cea desenată. Al doilea Dispatcher stă la 48 px de primul, iar clienții
   orașului vin de la y 1240 (abateri mici de la oglinda tavernei, puse și în planșă).
 **k4. Meniurile și cuvintele.** Depinde de: k3.
+- **[Verificatorul k2]** capul panoului Stations la baraj are 18 verigi (butoaie 5, cablu 5, unirea 2 + orașul 1, cristal 5):
+  lista clădirilor ar rămâne cu ~1,5 rânduri. Lanțul pe două coloane sau compactat (ori panoul mai înalt), cu un test pe
+  aritmetica înălțimii pe ambele lumi (`624 − (250 + HEAD_SHIFT + TABS_H) − 16 ≥ 2 · (ROW_H + 8)`). Satul rămâne pe 11 (test).
+- **[Verificatorul k2]** ruina unei platforme a barajului: eticheta `PAD_EYEBROW_NOT_BUILT`, nu „RUINS” (acolo n-a fost nimic de
+  reconstruit), iar ramura „all” din `Strings.padNeeds` spune „Build everything else in Dam Town first” (numele zonei din
+  `zonesOf(worldOfEra(era))`), cu test pe ramura „all” a lumii 2.
 - `StationMenu.CHAIN` pe lume și schimbarea de cartier în StationPanel; `Strings` pentru Era 4 (refuzurile, „Opens at 4T coins a
   second”, „Waiting for cable/barrels”, indiciile, AWAY 0); textele `HeldBack`; `check_panel_rows`.
 
