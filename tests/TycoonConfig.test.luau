@@ -157,6 +157,31 @@ return function()
             end
         )
 
+        test.case(
+            "descrierea fiecarei platforme incape pe randul cartonasului (Nunito, 15 px)",
+            function()
+                -- [D70, verificator 2026-10-03] Randul are 380 px (HUDController: cartonasul 440 minus 2 x 30), un singur rand.
+                -- 11 descrieri vii ieseau din el si se taiau cu "…". Latimile literelor sunt ale fontului din Studio
+                -- (scripts/art/nunito_widths.py); suma lor iese cu cel mult ~5 px fata de textul randat, deci limita e 376.
+                local widths = require("./fonts/NunitoWidths") :: { [string]: number }
+                local SIZE, LIMIT = 15, 376
+                for _, p in TycoonConfig.PADS do
+                    local w = 0
+                    for _, code in utf8.codes(p.blurb) do
+                        local ch = utf8.char(code)
+                        check.not_nil(widths[ch])
+                        w += (widths[ch] or 1000) * SIZE / 1000
+                    end
+                    if w > LIMIT then
+                        print(
+                            `[TycoonConfig] descrierea lui {p.id} are ~{math.floor(w)} px: {p.blurb}`
+                        )
+                    end
+                    check.is_true(w <= LIMIT)
+                end
+            end
+        )
+
         test.case("[D70] turbina barajului e turbina (cuvinte, verb, desen), plasele nu", function()
             check.is_true(TycoonConfig.isTurbine(TycoonConfig.byId.first_turbine))
             check.is_true(TycoonConfig.isTurbine(TycoonConfig.byId.dam_turbine))

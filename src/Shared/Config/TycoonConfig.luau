@@ -1249,7 +1249,7 @@ TycoonConfig.PADS = {
     pad({
         id = "hire_sawyer",
         index = 4,
-        blurb = "Someone to work the saw so you don't have to stand there.",
+        blurb = "Works the saw so you don't have to stand there.",
         note = "The sawmill runs without you",
         name = "Sawyer",
         era = 1,
@@ -1265,7 +1265,7 @@ TycoonConfig.PADS = {
     pad({
         id = "hire_hauler",
         index = 5,
-        blurb = "Someone to take the planks from the Sawmill to the Tavern.",
+        blurb = "Takes the planks from the Sawmill to the Tavern.",
         note = "Planks reach the Tavern on their own",
         name = "Hauler",
         era = 1,
@@ -1434,7 +1434,7 @@ TycoonConfig.PADS = {
     pad({
         id = "hire_scrap_porter",
         index = 15,
-        blurb = "Someone to carry scrap from the Scrap Shed to the Forge.",
+        blurb = "Carries scrap from the Scrap Shed to the Forge.",
         note = "The shed empties itself",
         name = "Scrap Porter",
         era = 1,
@@ -1450,7 +1450,7 @@ TycoonConfig.PADS = {
     pad({
         id = "hire_smelter",
         index = 16,
-        blurb = "Someone to work the Forge so you don't have to stand there.",
+        blurb = "Works the Forge so you don't have to stand there.",
         note = "The forge runs without you",
         name = "Smelter",
         era = 1,
@@ -1508,7 +1508,7 @@ TycoonConfig.PADS = {
     pad({
         id = "water_wheel",
         index = 19,
-        blurb = "Planks and iron, turned by the river. It wakes the old foundry.",
+        blurb = "Built from planks and iron. It wakes the old foundry.",
         note = "Starts the Foundry and the Market",
         name = "Water Wheel",
         era = 2,
@@ -1738,7 +1738,7 @@ TycoonConfig.PADS = {
     pad({
         id = "hire_coppersmith",
         index = 34,
-        blurb = "Keeps the Copper Furnace burning while you are away from it.",
+        blurb = "Keeps the Copper Furnace burning when you're away.",
         note = "Copper smelts on its own",
         name = "Coppersmith",
         era = 2,
@@ -1791,7 +1791,7 @@ TycoonConfig.PADS = {
     pad({
         id = "steam_engine",
         index = 37,
-        blurb = "Machine parts and copper, driven by steam. It runs the Wire Works.",
+        blurb = "Built from parts and copper. It runs the Wire Works.",
         note = "Starts the Wire Works and the Depot",
         name = "Steam Engine",
         era = 3,
@@ -1821,7 +1821,7 @@ TycoonConfig.PADS = {
     pad({
         id = "hire_works_collector",
         index = 39,
-        blurb = "Someone to empty the Works' nets into the Works Store.",
+        blurb = "Empties the Works' nets into the Works Store.",
         note = "Ore reaches the store on its own",
         name = "Works Collector",
         era = 3,
@@ -1851,7 +1851,7 @@ TycoonConfig.PADS = {
     pad({
         id = "hire_wiredrawer",
         index = 41,
-        blurb = "Keeps the Wire Works drawing while you are away from it.",
+        blurb = "Keeps the Wire Works drawing when you're away.",
         note = "Coils are drawn on their own",
         name = "Wiredrawer",
         era = 3,
@@ -2006,7 +2006,7 @@ TycoonConfig.PADS = {
     pad({
         id = "hire_battery_porter",
         index = 51,
-        blurb = "Carries batteries from the Battery Shed to the Power House.",
+        blurb = "Carries batteries from the shed to the Power House.",
         note = "The Power House is fed on its own",
         name = "Battery Porter",
         era = 3,
@@ -2021,7 +2021,7 @@ TycoonConfig.PADS = {
     pad({
         id = "hire_electrician",
         index = 52,
-        blurb = "Keeps the Power House running while you are away from it.",
+        blurb = "Keeps the Power House running when you're away.",
         note = "Power cells are made on their own",
         name = "Electrician",
         era = 3,
@@ -2112,7 +2112,7 @@ TycoonConfig.PADS = {
     pad({
         id = "hire_dam_porter",
         index = 58,
-        blurb = "Carries batteries from the Battery Store to the Switchyard.",
+        blurb = "Carries batteries from the store to the Switchyard.",
         note = "A veteran from the old village",
         name = "Dam Porter",
         era = 4,

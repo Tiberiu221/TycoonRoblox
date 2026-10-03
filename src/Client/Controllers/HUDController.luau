@@ -1013,6 +1013,14 @@ function HUDController.SetStep(goal: GuideMath.Goal?, coinsNow: number)
     objNeed.TextColor3 = if missing > 0 then Theme.COLOR.onDarkSoft else Theme.COLOR.good
 end
 
+-- [D70, verificator] Descrierea platformei sta pe un singur rand. Textele din config sunt masurate sa incapa la marimea
+-- lor (testul configuratiei, cu latimile Nunito); daca unul tot nu incape, se strange, nu se taie cu "…".
+local function setBlurb(text: string)
+    approachBlurb.Text = text
+    approachBlurb.TextSize =
+        Theme.fitSize(text, Theme.TEXT.small, "body", approachBlurb.Size.X.Offset)
+end
+
 function HUDController.ShowApproachCard(
     pad: TycoonConfig.Pad,
     deltaPerSec: number,
@@ -1033,7 +1041,7 @@ function HUDController.ShowApproachCard(
         Widgets.SetButtonIcon(approachBuy, true)
     end
     approachName.Text = pad.name
-    approachBlurb.Text = pad.blurb
+    setBlurb(pad.blurb)
     -- CARTONASUL NU MINTE. Cu lantul cu trei verigi, o platforma care nu apasa pe gatuire aduce
     -- exact zero -- si atunci scrie de ce, in loc sa arate "+0.0/s" ca si cum ar fi o cifra [D40].
     -- CAND SPUNE DE CE E ZERO, ARE NEVOIE DE TOT RANDUL. Mesajul e mai lung decat o cifra si
@@ -1109,7 +1117,7 @@ function HUDController.ShowRuinCard(pad: TycoonConfig.Pad, eyebrow: string, reas
     approachCanBuy = true
     approachEyebrow.Text = eyebrow
     approachName.Text = pad.name
-    approachBlurb.Text = pad.blurb
+    setBlurb(pad.blurb)
     approachDelta.Visible = false
     approachNote.Visible = false
     approachCoin.Visible = false
