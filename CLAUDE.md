@@ -108,7 +108,7 @@ stylua/selene o prind. Rulează-le mereu pe toate, nu înlănțuite după o eroa
   bâlciul doar în 114983498774894); serverul Rojo al satului rulează detașat pe 34872 și trebuie repornit ca să citească
   o schimbare de proiect. Ce a rulat în Studio se vede în `~/Library/Logs/Roblox/*_last.log` (`CreatorOutput`, `open place`).
 
-## Stare (2026-10-03) [D74, pașii j1–j15, k1–k11]
+## Stare (2026-10-03) [D74, pașii j1–j15, k1–k12, A0]
 
 **Barajul (lumea 2) e în date și în modulele pure, adormit; jocul viu e neschimbat.** Pașii, cu dependențe și verificări:
 `docs/PLAN-MOTOR-UNIRE.md` §16 (j1–j15, k1–k12, l1–l3); singurul commit care schimbă jocul viu e l3. D74: așezarea aprobată,
@@ -145,8 +145,16 @@ recomandările owner-ului luate (O1, provizoriu).
 - **Capcane noi:** `rojo serve` pica pe o legătură `Packages/Packages -> Packages` (ștearsă; caut-o întâi dacă serve nu
   pornește). Proba j13 cu Studio e amânată: pluginul Rojo se reconectează doar la Connect. `check_requires` ia drept câmp
   și un comentariu de forma `Modul.camp` (scrie altfel). Nunito n-are „→”.
-- **Urmează:** reparațiile verificatorilor k6–k11, k12 (pământul lumii 2, cu planșa A0 pentru owner), arta A0–A4 (aprobarea și
-  fiecare urcare cer owner-ul) și l1–l3.
+- **k12 (fără urcare):** `village_ground.py --world 2` coace `prop_dam_ground` / `_2` (`dam_ground.lock`; `--check` pe ambele lumi),
+  `SceneArt.BAKED_GROUND` pe lume. ID-urile rămân 0 până la acordul owner-ului. Odată cu urcarea intră și `BAKED_DISTRICTS` `dam_town`
+  / `dam` (testul World2Ground le ține împreună).
+- **A0, planșele (așteaptă owner-ul):** `python3 scripts/art/a0_dam.py` scrie în scratchpad `a0_dam_wall.png` (A piatră,
+  recomandat; B beton cu stavile) și `a0_dam_film.png` (șase cadre-cheie). Pământul lumii 2 se vede cu `--world 2 --preview`.
+- **Verificatorii k6–k11 sunt reparați** (pagina „Your people” era goală, filmul cădea la `Init`, oamenii retrași stăteau unul
+  peste altul; notele sunt în PLAN §16). **Schimbări voite în sat:** cardul unui vânzător fără ce vinde spune unde merge marfa
+  (`StateCopy.sellerNote`), iar eticheta de margine a ghidajului rămâne în ecran.
+- **Urmează:** aprobarea A0 de către owner, apoi A1–A4 (fiecare urcare cere acordul) și l1–l3. Proba l1 cere Studio conectat
+  la Rojo (`lsof -nP -iTCP:34872` să arate ESTABLISHED).
 
 ## Stare (2026-10-02) [D72]
 
