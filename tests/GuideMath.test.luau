@@ -1818,6 +1818,65 @@ return function()
                 `  [edgePlacement] cele mai multe schimbari eticheta/sageata pe un drum de 180 de grade: {worstFlips}`
             )
             check.is_true(worstFlips <= 6)
+
+            -- [a zecea runda] mers dus-intors (tremur de +-0,5 grade in jurul fiecarei directii, ca un jucator care face doi
+            -- pasi inainte si inapoi): niciun salt mare al indicatorului cu eticheta si niciun clipit de un cadru
+            local jumps, blinks = 0, 0
+            for _, size in
+                { { 896, 517 }, { 917, 517 }, { 960, 540 }, { 1033, 581 }, { 1076, 605 } }
+            do
+                local w, h = size[1], size[2]
+                local bs = blockersFor(w, h, true)
+                for width = 120, 330, 10 do
+                    local half = (width + 24) / 2
+                    local bottom = if width > GuideMath.EDGE_LABEL_MAX then 53 else 27
+                    for center = -180, 179, 3 do
+                        local prev: { x: number, y: number }? = nil
+                        local shown: boolean? = nil
+                        local before: boolean? = nil
+                        for k = 0, 40 do
+                            local deg = center + (if k % 2 == 0 then 0.5 else -0.5)
+                            local px, py = natural(w, h, deg)
+                            local function qq(hh: number, bt: number): GuideMath.EdgeQuery
+                                return {
+                                    x = px,
+                                    y = py,
+                                    w = w,
+                                    h = h,
+                                    half = hh,
+                                    top = 31,
+                                    bottom = bt,
+                                    blockers = bs,
+                                    margin = MARGIN,
+                                    previous = prev,
+                                }
+                            end
+                            local x, y, label = GuideMath.edgeIndicator(
+                                qq(half, bottom),
+                                qq(15, 0),
+                                if prev ~= nil then shown else nil
+                            )
+                            local p = prev
+                            if
+                                k > 2
+                                and p ~= nil
+                                and label
+                                and shown
+                                and math.abs(x - p.x) + math.abs(y - p.y) > 150
+                            then
+                                jumps += 1
+                            end
+                            if k > 2 and label and before and shown == false then
+                                blinks += 1
+                            end
+                            before, shown, prev = shown, label, { x = x, y = y }
+                        end
+                    end
+                end
+            end
+            print(`  [edgePlacement] la mersul dus-intors: {jumps} salturi mari, {blinks} clipiri`)
+            check.equal(jumps, 0)
+            check.equal(blinks, 0)
             -- o tinta aproape drept in sus ramane sus, cu eticheta, chiar cu eticheta cea mai lata (telefonul mic)
             local w, h = 1076, 605
             local _, uy, label = indicator(w, h, blockersFor(w, h, true), -94, { 177, 27 })

@@ -1073,7 +1073,9 @@ function GuideMath.edgeIndicator(
         local fresh = table.clone(q)
         fresh.previous = nil
         local fx, fy = GuideMath.edgePlacement(fresh)
-        if GuideMath.edgeOff(fx, fy, q) <= limit then
+        -- [a zecea runda] cu aceeasi banda de 10 grade ca revenirea etichetei: altfel doua capete aflate amandoua langa 60 de
+        -- grade isi luau locul unul altuia la fiecare 0,3 grade (salturi de ~500 px pe telefoanele mici)
+        if GuideMath.edgeOff(fx, fy, q) <= limit - math.rad(10) then
             return fx, fy, true
         end
     end

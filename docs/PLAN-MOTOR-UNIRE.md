@@ -1469,6 +1469,10 @@ Siluetele, schelele și zidul de aici sunt propunerea loturilor A1/A2. Nimic nu 
     (170 de schimbări pe un drum). Acum sunt cel mult 2, testat pe patru telefoane și pe lățimi de 240–305.
   - **Când capătul ținut de histerezis trece pragul de 60°,** se încearcă întâi cel mai bun capăt, apoi abia doar săgeata.
   - **Placa ruptă** are 8 px de rezervă la desen și crește în înălțime după text, contra rupturilor diferite sub UIScale.
+- **[A zecea rundă]** Reîncercarea celui mai bun capăt (din runda a noua) cere aceeași bandă de 10° ca revenirea etichetei.
+  Fără ea, pe telefoanele mici, două capete aflate amândouă lângă 60° își luau locul unul altuia la fiecare 0,3°: salturi de
+  ~500 px ale indicatorului cu etichetă. Un test nou face mersul dus-întors (±0,5° în jurul fiecărei direcții, pe cinci
+  telefoane și pe lățimi de 120–330) și cere 0 salturi mari și 0 clipiri. Cu pragul vechi ar da 114.
 
 Totalul, ~92–97 de imagini și 3 sunete până se joacă Era 4 (PLAN-HARTA §7).
 
