@@ -5,6 +5,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Strings = require(ReplicatedStorage.Shared.Config.Strings)
+local Theme = require(script.Parent.Parent.UI.Theme)
 
 local DamController = {}
 
@@ -36,7 +37,7 @@ export type Deps = {
         DamRejected: RemoteEvent,
         DamFilmSeen: RemoteEvent,
     },
-    OnToast: (string) -> (),
+    OnToast: (string, Color3?) -> (),
     -- cine asculta (ecranul, k7): chitanta noua sau motivul; ridicarea gata
     OnPreview: ((Receipt?, string?) -> ())?,
     OnBuilt: ((Receipt) -> ())?,
@@ -93,11 +94,26 @@ function DamController.RequestPreview()
     end
 end
 
--- Ridica barajul cu monedele de pe ultima chitanta vazuta. Fara chitanta, intai previzualizarea.
+-- [verificatorul j15] Refuzurile adevarate („bell”, „built”, „changed”, „soon”) in rosu, cele de asteptare in galben;
+-- vestea buna ramane aurie.
+local WAIT_REASONS: { [string]: boolean } =
+    { busy = true, settling = true, no_profile = true, save = true }
+local function refuse(d: Deps, reason: string)
+    d.OnToast(
+        Strings.damRejected(reason),
+        if WAIT_REASONS[reason] then Theme.COLOR.warn else Theme.COLOR.bad
+    )
+end
+
+-- Ridica barajul cu monedele de pe ultima chitanta vazuta. Fara chitanta, intai previzualizarea (ceruta acum).
 function DamController.Build(): boolean
     local d = deps
     local seen = lastPreview
-    if d == nil or seen == nil then
+    if d == nil then
+        return false
+    end
+    if seen == nil then
+        DamController.RequestPreview()
         return false
     end
     d.Remotes.BuildDam:FireServer(seen.coinsAfter)
@@ -119,17 +135,21 @@ function DamController.Init(d: Deps)
     deps = d
     d.Remotes.DamPreviewResult.OnClientEvent:Connect(function(raw: unknown, reason: unknown)
         local receipt = copyReceipt(raw)
-        lastPreview = receipt
         local why = if typeof(reason) == "string" then reason else nil
+        -- o previzualizare refuzata de limita („busy”) nu sterge chitanta buna de dinainte: serverul verifica oricum
+        -- „changed” la ridicare [verificatorul j15]
+        if receipt ~= nil or why ~= "busy" then
+            lastPreview = receipt
+        end
         local onPreview = d.OnPreview
         if onPreview ~= nil then
             onPreview(receipt, why)
         elseif receipt == nil then
-            d.OnToast(Strings.damRejected(why or "busy"))
+            refuse(d, why or "busy")
         end
     end)
     d.Remotes.DamRejected.OnClientEvent:Connect(function(reason: unknown)
-        d.OnToast(Strings.damRejected(if typeof(reason) == "string" then reason else "busy"))
+        refuse(d, if typeof(reason) == "string" then reason else "busy")
         -- „changed”: monedele de pe ecran nu mai sunt cele adevarate, deci o chitanta noua
         if reason == "changed" then
             DamController.RequestPreview()
@@ -145,7 +165,7 @@ function DamController.Init(d: Deps)
         if onBuilt ~= nil then
             onBuilt(receipt)
         else
-            d.OnToast(Strings.DAM_BUILT)
+            d.OnToast(Strings.DAM_BUILT, Theme.COLOR.gold)
         end
     end)
 end

@@ -134,6 +134,44 @@ return function()
             end
         )
 
+        test.case("un quest care cumpara o plasa a barajului o numeste ca in lume", function()
+            -- [verificatorul fixurilor j10-j12] „Cast a second cable net” langa „Cable Net II” pe ruina si pe cartonas
+            local TycoonConfig = require("../src/Shared/Config/TycoonConfig")
+            local seen = 0
+            for _, chapter in QuestConfig.ALL_CHAPTERS do
+                for _, q in chapter.quests do
+                    local pad = if q.kind == "pad" then TycoonConfig.byId[q.arg or ""] else nil
+                    if pad ~= nil and pad.era >= 4 and pad.netRank ~= nil then
+                        local name = string.lower(pad.name)
+                        check.not_nil(string.find(string.lower(q.text), name, 1, true))
+                        seen += 1
+                    end
+                end
+            end
+            check.is_true(seen >= 3)
+        end)
+
+        test.case(
+            "legatura server-client a listei: eticheta cu pass-ul si randul de final",
+            function()
+                -- [verificatorul fixurilor j10-j12] campurile se pierd usor intre server si client (CLAUDE.md)
+                local fs = require("@lune/fs")
+                local service = fs.readFile("src/Server/Services/QuestService.luau")
+                local snapshot = string.match(service, "function QuestService%.Snapshot%(.-\nend")
+                    or ""
+                check.not_nil(string.find(snapshot, "QuestMath.textOf(active, facts)", 1, true))
+                check.not_nil(
+                    string.find(snapshot, "QuestMath.isLastOfWorld(chapter, facts.world)", 1, true)
+                )
+                local boot = fs.readFile("src/Client/Bootstrap.client.luau")
+                check.not_nil(
+                    string.find(boot, "lastOfWorld = rawQuests.lastOfWorld == true", 1, true)
+                )
+                local controller = fs.readFile("src/Client/Controllers/QuestController.luau")
+                check.not_nil(string.find(controller, "snap.lastOfWorld == true", 1, true))
+            end
+        )
+
         test.case("un quest de nivel pe o plasa o numeste ca in lume", function()
             local TycoonConfig = require("../src/Shared/Config/TycoonConfig")
             local seen = 0

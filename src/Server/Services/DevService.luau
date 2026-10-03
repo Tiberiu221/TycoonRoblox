@@ -405,6 +405,10 @@ local HANDLERS: { [string]: Handler } = {
         if data == nil then
             return "no profile"
         end
+        -- [verificatorul j15] nu pe salvarea pastrata a owner-ului: o lume fara ridicare n-are oameni, nici daruri
+        if DataService.StudioSave(player) == "kept" then
+            return "refused: world N only on a probe or fresh save (this Play keeps your real save)"
+        end
         local w = number(arg, 0)
         if w ~= math.floor(w) or w < 1 or w > WorldConfig.COUNT then
             return `usage: world 1..{WorldConfig.COUNT}`
@@ -413,7 +417,7 @@ local HANDLERS: { [string]: Handler } = {
         player:SetAttribute("World", w)
         PadService.Invalidate(player)
         StationService.Invalidate(player)
-        return `world {w} (reload with Stop/Play and keep save to start there)`
+        return `world {w} on the server now (the client is built for one map: it follows on the next start)`
     end,
 
     -- [D70, pasul j15] BARAJUL: `dam` arata chitanta de acum (DamMath.preview); `dam build` il ridica pe drumul adevarat.
@@ -456,15 +460,16 @@ local HANDLERS: { [string]: Handler } = {
             return "no profile"
         end
         local upTo = math.clamp(math.floor(number(arg, 4)), 1, #QuestConfig.CHAPTERS + 1)
-        -- [D70] capitolele altei harti nu se pot sari de aici: barajul se ridica intai (`dam build`), iar capitolele satului
-        -- le-a inchis ridicarea (QuestMath.settleWorld)
+        -- [D70] doar capitolele hartii tale: un capitol al barajului cerut din sat face tot satul (pana la Works Bell) si lasa
+        -- ridicarea pe seama ta (`dam build`); unul al satului cerut de la baraj e refuzat (ridicarea l-a inchis)
         local world = WorldConfig.sanitize(data.World)
         local target = QuestConfig.CHAPTERS[upTo]
-        if target ~= nil and WorldConfig.worldOfEra(target.era) ~= world then
-            return `chapter {upTo} is on another map: build the Dam first (dam build), or world {WorldConfig.worldOfEra(
-                target.era
-            )}`
+        local targetWorld = if target ~= nil then WorldConfig.worldOfEra(target.era) else world
+        if targetWorld < world then
+            return `chapter {upTo} is in the village, and its chapters closed when the Dam was built`
         end
+        -- [verificatorul j15] din sat spre un capitol al barajului: tot satul (cu Works Bell), apoi ridicarea e a ta
+        local onlyVillage = targetWorld > world
         local stats: any = data.Stats
         local done = 0
         for index, chapter in QuestConfig.CHAPTERS do
@@ -507,6 +512,9 @@ local HANDLERS: { [string]: Handler } = {
         local pushState = deps.PushState
         if pushState ~= nil then
             pushState(player)
+        end
+        if onlyVillage then
+            return `{done} quests done and claimed: the village is done, Works Bell rung. Use "dam build" to start chapter {upTo}`
         end
         return `{done} quests done and claimed: now at chapter {upTo}`
     end,

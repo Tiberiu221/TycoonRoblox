@@ -1061,7 +1061,7 @@ local ALL_CHAPTERS: { Chapter } = {
             },
             {
                 id = "cast_second_cable",
-                text = "Cast a second cable net",
+                text = "Cast Cable Net II", -- numele din lume (ca „Cast the Crystal Net”)
                 kind = "pad",
                 arg = "second_cable_net",
                 goal = 1,
@@ -1090,7 +1090,7 @@ local ALL_CHAPTERS: { Chapter } = {
             },
             {
                 id = "cast_third_cable",
-                text = "Cast a third cable net",
+                text = "Cast Cable Net III",
                 kind = "pad",
                 arg = "third_cable_net",
                 goal = 1,

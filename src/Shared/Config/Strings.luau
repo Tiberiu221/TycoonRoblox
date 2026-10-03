@@ -183,7 +183,7 @@ local DAM_REJECTED: { [string]: string } = {
     changed = "Your coins changed. Look again",
     busy = "One moment, try again",
     no_profile = "Still loading your river",
-    save = "Couldn't save yet. Try again",
+    save = "The Dam is built. It saves when you leave", -- profilul s-a inchis inainte ca salvarea sa ajunga
 }
 function Strings.damRejected(reason: string): string
     return DAM_REJECTED[reason] or DAM_REJECTED.busy

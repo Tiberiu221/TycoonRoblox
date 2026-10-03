@@ -105,6 +105,12 @@ return function()
             check.is_false(has(purchase, "profile:Save()"))
             local data = fs.readFile("src/Server/Services/DataService.luau")
             check.is_true(has(data, "function DataService.SaveNow("))
+            check.is_true(
+                has(
+                    data,
+                    "SaveLoop.run(profile, isSaved, task.wait, DataService.SAVE_RETRY_SECONDS)"
+                )
+            )
         end)
 
         test.case("uneltele de proba: lumea doar 1..COUNT, barajul pe drumul adevarat", function()

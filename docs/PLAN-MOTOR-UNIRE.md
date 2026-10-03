@@ -1016,9 +1016,15 @@ la granița CREWS / `DAM_START_COINS`.
   ecranul (k7), masa Dam Plans (k6) și filmul (k9) se așază peste el prin `OnPreview` / `OnBuilt`.
 - **[Verificatorul j10]** odată cu `data.World = 2`, și `player:SetAttribute("World", 2)`. Serverul citește lumea din profil
   (`PadService.World`, pentru statusuri și zone, de la verificatorul j10), dar atributul îl citește clientul la k1.
-- Verificare: `check_requires` pe ambele proiecte (`DamService` nu intră în bâlci); probă pe comutator: `dev dam` arată cifrele
-  lui `DamMath`; `dev world:2`, apoi Stop/Play cu „keep save”: serverul e în lumea 2, AWAY 0, capitolul 10, plasele vechi
-  stau, fără erori.
+- Verificare: `check_requires` pe ambele proiecte (`DamService` nu intră în bâlci); probă pe comutator, **în același Play al
+  sondei** (un Play nou al sondei e mereu un profil nou, în lumea 1): `dev chapter 10` (face tot satul, cu Works Bell), `dev dam`
+  (cifrele lui `DamMath`), `dev dam build`, apoi starea, `dev away 8` și fereastra: serverul e în lumea 2, AWAY 0 cu cei șase
+  numiți, capitolul 10, plasele vechi stau, fără erori. `dev world N` scrie doar lumea (fără ridicare) și e refuzat pe salvarea
+  păstrată a owner-ului [verificatorul j15].
+- **[Verificatorul j15, făcut]** salvarea forțată e pură și testată (`Shared/Modules/SaveLoop`, cu termen la fiecare așteptare:
+  o salvare picată nu mai ține răspunsul până la autosave-ul de peste ~5 minute; comună cu chitanțele Robux); o previzualizare
+  refuzată de limită păstrează chitanța bună; refuzurile au culoarea lor; „save” spune adevărul („The Dam is built. It saves
+  when you leave”).
 
 ### k: clientul. Fără owner, cu desene de împrumut, în afară de k9 și k12.
 
@@ -1119,6 +1125,8 @@ la granița CREWS / `DAM_START_COINS`.
   joc, rândul trebuie să spună „Build the Dam” (aceeași ramură ca masa Dam Plans), nu să dispară.
 
 **k7. Ecranul „Build the Dam”.** Depinde de: k6.
+- **[Verificatorul j15]** cât n-a venit răspunsul la „Build” (salvarea poate dura), ecranul scrie „Saving…”, iar satul golit de
+  starea lumii 2 nu se desenează: clientul îngheață la schimbarea lumii (k1). Pe „save”, ecranul nu oferă „Try again”.
 - Trei coloane cu cifrele din `DamPreviewResult`; `Widgets.HoldButton` nou (1,5 s); „Not yet”; `Theme.fitSize` pe fiecare cifră;
   textele pentru refuzuri; chitanța.
 

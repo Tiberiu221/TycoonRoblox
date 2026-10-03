@@ -18,6 +18,7 @@ local ServerStorage = game:GetService("ServerStorage")
 local Workspace = game:GetService("Workspace")
 local ProfileStore = require(ServerStorage.ServerPackages.ProfileStore)
 local ProfileMigrate = require(ReplicatedStorage.Shared.Modules.ProfileMigrate)
+local SaveLoop = require(ReplicatedStorage.Shared.Modules.SaveLoop) -- [D70, verificatorul j15]
 local AudioLevels = require(ReplicatedStorage.Shared.Modules.AudioLevels)
 local WorldConfig = require(ReplicatedStorage.Shared.Config.WorldConfig)
 local StreakMath = require(ReplicatedStorage.Shared.Modules.StreakMath)
@@ -500,27 +501,12 @@ function DataService.Profile(player: Player): any
 end
 
 -- [D70, pasul j15] SALVAREA FORTATA: salveaza pana cand ce trebuia sa ajunga in DataStore chiar a ajuns (`isSaved` citeste
--- `LastSavedData`), cat profilul e inca al nostru. Scoasa din PurchaseService (chitantele Robux, tiparul ProfileStore),
--- folosita si la ridicarea barajului. true = ajuns; false = profilul s-a inchis inainte. Cedeaza (asteapta salvarea).
+-- `LastSavedData`), cat profilul e inca al nostru. Folosita de chitantele Robux si de ridicarea barajului. Bucla e pura si
+-- testata (Shared/Modules/SaveLoop), cu termen la fiecare asteptare [verificatorul j15]. true = ajuns; false = profilul
+-- s-a inchis inainte. Cedeaza.
 DataService.SAVE_RETRY_SECONDS = 10
 function DataService.SaveNow(profile: any, isSaved: (any) -> boolean): boolean
-    if isSaved(profile.LastSavedData) then
-        return true
-    end
-    while profile:IsActive() do
-        local before = profile.LastSavedData
-        profile:Save()
-        if profile.LastSavedData == before then
-            profile.OnAfterSave:Wait()
-        end
-        if isSaved(profile.LastSavedData) then
-            return true
-        end
-        if profile:IsActive() then
-            task.wait(DataService.SAVE_RETRY_SECONDS)
-        end
-    end
-    return false
+    return SaveLoop.run(profile, isSaved, task.wait, DataService.SAVE_RETRY_SECONDS)
 end
 
 function DataService.Get(player: Player): ProfileData?

@@ -62,6 +62,7 @@ require("./World2Layout.test")() -- [D70, pasul j7] asezarea barajului
 require("./WorldMath.test")() -- [D70, pasul j10] portile pe lume
 require("./DamMath.test")() -- [D70, pasul j14] ridicarea barajului, pura
 require("./DamService.test")() -- [D70, pasul j15] barajul pe server
+require("./SaveLoop.test")() -- [D70, verificatorul j15] salvarea fortata
 
 local frktest = require("@frktest/frktest")
 local console_reporter = require("@frktest/reporters/console_reporter")
