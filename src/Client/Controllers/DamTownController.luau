@@ -8,6 +8,7 @@
 -- dupa lansare (O1).
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 
@@ -50,6 +51,20 @@ local BORROWED = {
     memoryWall = "board_old",
 } :: { [string]: string }
 local COTTAGE = "runner_hut"
+-- [D75, lotul A1] desenele proprii ale orasului; pana la urcare (ID 0), cele de imprumut de mai sus
+local OWN = { bellTower = "old_bells", memoryWall = "memory_wall" } :: { [string]: string }
+local OWN_COTTAGES = { "dam_cottage_1", "dam_cottage_2", "dam_cottage_3" }
+-- stalpii lumii 2 (TycoonConfig.WORLDS[2].pylons), dupa nume: cel de langa rau, cel de pe alee, cei de pe pod
+local PYLON_ART = {
+    river_pylon = "pylon_tall",
+    lane_pylon = "pylon_lane",
+    bridge_pylon_w = "pylon_post",
+    bridge_pylon_e = "pylon_post",
+} :: { [string]: string }
+-- [D75] oraselul pictat de pe malul de nord: luminile lui, decupate de la stanga la dreapta
+local TOWN_LIGHT_SECONDS = 6
+local townClip: Frame? = nil
+local townLit: boolean? = nil
 
 local NAME_ABOVE = 4 + 18
 -- [verificatorii k10b] cat de inalt e desenul de imprumut, pe cladire: eticheta si cardul stau deasupra lui, nu deasupra
@@ -270,11 +285,46 @@ function DamTownController.Apply(retired: { Retired })
     end
 end
 
+-- [D75] Primul curent vandut la Switch House aprinde ferestrele oraselului pictat, de la stanga la dreapta, in
+-- TOWN_LIGHT_SECONDS; cine intra cu el deja vandut le gaseste aprinse. Fara desen (ID 0), nimic.
+function DamTownController.SetTownLit(lit: boolean)
+    local clip = townClip
+    if clip == nil or lit == townLit then
+        return
+    end
+    local world = TycoonConfig.WORLDS[DamTown.WORLD]
+    local town = if world ~= nil then world.paintedTown else nil
+    if town == nil then
+        return
+    end
+    local wasDark = townLit == false
+    townLit = lit
+    local full = UDim2.fromOffset(if lit then town.w else 0, town.h)
+    if lit and wasDark then
+        TweenService
+            :Create(
+                clip,
+                TweenInfo.new(TOWN_LIGHT_SECONDS, Enum.EasingStyle.Linear),
+                { Size = full }
+            )
+            :Play()
+    else
+        clip.Size = full
+    end
+end
+
 function DamTownController.Init(d: Deps)
     deps = d
     -- cladirile orasului, cu numele lor deasupra (textele avizierului le folosesc: „Beside the Canteen”)
     for _, b in DamTown.buildings() do
-        local art, h = drawFitted(d.Plot, BORROWED[b.key], b.x, b.y, b.w, b.h, b.label)
+        local own = OWN[b.key]
+        local art, h = nil, b.h
+        if own ~= nil then
+            art, h = drawFitted(d.Plot, own, b.x, b.y, b.w, b.h, b.label)
+        end
+        if art == nil then
+            art, h = drawFitted(d.Plot, BORROWED[b.key], b.x, b.y, b.w, b.h, b.label)
+        end
         drawnH[b.key] = h
         if art ~= nil then
             local label =
@@ -289,7 +339,50 @@ function DamTownController.Init(d: Deps)
     end
     local world = TycoonConfig.WORLDS[DamTown.WORLD]
     for i, c in (if world ~= nil then world.cottages or {} else {}) do
-        drawFitted(d.Plot, COTTAGE, c.x, c.y, c.w, c.h, `Cottage{i}`)
+        local own = OWN_COTTAGES[(i - 1) % #OWN_COTTAGES + 1]
+        if drawFitted(d.Plot, own, c.x, c.y, c.w, c.h, `Cottage{i}`) == nil then
+            drawFitted(d.Plot, COTTAGE, c.x, c.y, c.w, c.h, `Cottage{i}`)
+        end
+    end
+    -- [D75, lotul A1] stalpii curentului: doar cu desenul lor (nimic de imprumut nu seamana cu un stalp de zabrele)
+    for _, p in (if world ~= nil then world.pylons or {} else {}) do
+        local key = PYLON_ART[p.name]
+        if key ~= nil then
+            drawFitted(d.Plot, key, p.x, p.y, p.w, p.h, `Pylon_{p.name}`)
+        end
+    end
+    -- [D75, lotul A1] oraselul pictat, cu luminile intr-un cadru care se deschide de la stanga (DamTownController.SetTownLit)
+    local town = if world ~= nil then world.paintedTown else nil
+    local base, lights = Assets.tycoon.painted_town, Assets.tycoon.painted_town_lit
+    if town ~= nil and Assets.has(base) then
+        local img = Instance.new("ImageLabel")
+        img.Name = "PaintedTown"
+        img.BackgroundTransparency = 1
+        img.Image = Assets.url(base)
+        img.ResampleMode = Enum.ResamplerMode.Pixelated
+        img.AnchorPoint = Vector2.new(0.5, 1)
+        img.Position = UDim2.fromOffset(town.x, town.y)
+        img.Size = UDim2.fromOffset(town.w, town.h)
+        img.ZIndex = 5 + math.clamp(math.floor(town.y / 64), 0, 40)
+        img.Parent = d.Plot
+        if Assets.has(lights) then
+            local clip = Instance.new("Frame")
+            clip.Name = "PaintedTownLights"
+            clip.BackgroundTransparency = 1
+            clip.ClipsDescendants = true
+            clip.Position = UDim2.fromOffset(town.x - town.w / 2, town.y - town.h)
+            clip.Size = UDim2.fromOffset(0, town.h)
+            clip.ZIndex = img.ZIndex + 1
+            clip.Parent = d.Plot
+            local glow = Instance.new("ImageLabel")
+            glow.BackgroundTransparency = 1
+            glow.Image = Assets.url(lights)
+            glow.ResampleMode = Enum.ResamplerMode.Pixelated
+            glow.Size = UDim2.fromOffset(town.w, town.h)
+            glow.ZIndex = clip.ZIndex
+            glow.Parent = clip
+            townClip = clip
+        end
     end
 
     -- pagina „Your people”

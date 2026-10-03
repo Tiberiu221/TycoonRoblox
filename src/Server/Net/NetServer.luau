@@ -22,7 +22,15 @@ export type Deps = {
     -- au nevoie de un steag persistent) [F1 spec 2.1].
     Data: {
         ProfileLoaded: RBXScriptSignal,
-        Firsts: (Player) -> { collect: boolean, sell: boolean, named: boolean },
+        Firsts: (
+            Player
+        ) -> {
+            collect: boolean,
+            sell: boolean,
+            named: boolean,
+            power: boolean, -- [D67]
+            grid: boolean, -- [D75]
+        },
         AudioLevels: (Player) -> (number, number),
         SetAudioLevel: (Player, string, number) -> (),
         FairVisits: (Player) -> number, -- [D60] barca arata Skip de la al doilea drum
@@ -219,6 +227,7 @@ local function buildTycoonState(player: Player): { [string]: any }
             runner = deps.Pads.Owns(player, "first_runner"),
             bell = deps.Pads.Owns(player, "landing_bell"),
             power = firsts.power, -- [D67] felinarele de pe strada
+            grid = firsts.grid, -- [D75] ferestrele oraselului pictat de la baraj
         },
         -- [D54] preferintele: nivelul muzicii si al efectelor, 0..10
         settings = { musicLevel = musicLevel, soundLevel = soundLevel },

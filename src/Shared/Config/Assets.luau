@@ -302,6 +302,22 @@ local Assets = {
         -- TycoonConfig.BAKED_DISTRICTS (testul din World2Layout le tine impreuna).
         dam_ground = sprite(0, 960, 640),
         dam_ground_2 = sprite(0, 168, 640),
+        -- [D75, lotul A1] reperele lumii 2 (scripts/art/a1_*.py). 0 = desenate, inca neurcate: jocul pastreaza desenul
+        -- provizoriu (zidul din dale, cladirile de imprumut). Foile cu cadre au cadrele unul langa altul, pe orizontala.
+        dam_wall = sprite(0, 80, 189), -- zidul de piatra (varianta A, D75), cu gura turbinei
+        dam_spill = sprite(0, 141, 96), -- panza deversorului: 3 cadre de 47 x 96, peste zid
+        dam_foam = sprite(0, 52, 96), -- spuma de la picior: 2 cadre de 26 x 96
+        old_bells = sprite(0, 32, 80), -- clopotnita cu cele trei clopote vechi
+        memory_wall = sprite(0, 64, 32),
+        dam_cottage_1 = sprite(0, 40, 34),
+        dam_cottage_2 = sprite(0, 40, 34),
+        dam_cottage_3 = sprite(0, 40, 34),
+        pylon_tall = sprite(0, 16, 67), -- stalpul de zabrele de langa rau
+        pylon_lane = sprite(0, 8, 40),
+        pylon_post = sprite(0, 5, 23), -- stalpii de pe podul canalului
+        river_crystal = sprite(0, 36, 16), -- 2 cadre de 18 x 16: cristalul care pluteste de la finalul Erei 3
+        painted_town = sprite(0, 340, 44), -- oraselul pictat de pe malul de nord
+        painted_town_lit = sprite(0, 340, 44), -- doar luminile lui, peste el
         platform = sprite(136060284598059, 48, 24),
         weights = sprite(116698981575799, 24, 16),
         -- pier2 (64x48) a fost respins: se citea ca o lada cu capac. pier3 e pontonul inalt,

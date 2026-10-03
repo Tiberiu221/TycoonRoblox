@@ -520,12 +520,16 @@ end
 -- Getter ingust pentru NetServer (care nu are voie sa ceara servicii de stare, deci nici tot
 -- ProfileData): doar cele trei prime care NU se pot deduce din alta stare replicata [F1 spec 3.5].
 -- runner/bell nu sunt aici -- ele sunt doar "platforma asta e cumparata", se citesc din `pads`.
-function DataService.Firsts(
-    player: Player
-): { collect: boolean, sell: boolean, named: boolean, power: boolean }
+function DataService.Firsts(player: Player): {
+    collect: boolean,
+    sell: boolean,
+    named: boolean,
+    power: boolean,
+    grid: boolean,
+}
     local data = DataService.Get(player)
     if data == nil then
-        return { collect = false, sell = false, named = false, power = false }
+        return { collect = false, sell = false, named = false, power = false, grid = false }
     end
     return {
         collect = data.Firsts.FirstCollect == true,
@@ -533,6 +537,8 @@ function DataService.Firsts(
         named = data.Firsts.FirstNamed == true,
         -- [D67] primul curent vandut: de atunci felinarele de pe strada sunt aprinse (nu se pierde, ca orice numaratoare)
         power = (data.Stats.cellsSold or 0) > 0,
+        -- [D75] primul curent al barajului vandut la Switch House: se aprind ferestrele oraselului pictat
+        grid = (data.Stats.gridSold or 0) > 0,
     }
 end
 

@@ -2569,6 +2569,7 @@ export type World = {
     cottages: { Box }?,
     pylons: { Pylon }?,
     cards: { [string]: { x: number, y: number } }?,
+    paintedTown: Box?, -- [D75] oraselul pictat de pe malul de nord (x = mijlocul, y = baza)
 }
 TycoonConfig.WORLDS = {
     [1] = {
@@ -3337,6 +3338,9 @@ TycoonConfig.WORLDS[2] = {
         { name = "bridge_pylon_e", x = 2262, y = 1100, w = 16, h = 70, overRoad = true },
     },
     cards = { bellTower = { x = 760, y = 990 }, memoryWall = { x = 760, y = 1370 } },
+    -- [D75, lotul A1] oraselul pictat de pe malul de nord, peste rau de Relay Station: primul cumparator din afara satului
+    -- (PLAN-ERA4). Nu se viziteaza; ferestrele i se aprind cu primul curent vandut la Switch House. x = mijlocul, y = baza.
+    paintedTown = { x = 2200, y = 404, w = 1020, h = 132 },
 }
 
 return TycoonConfig

@@ -1378,6 +1378,57 @@ return function()
         end)
     end)
 
+    -- [D75, lotul A1] Desenele reperelor lumii 2 au marimea locurilor lor din config (un pixel de desen = 3 de lume), iar
+    -- oraselul pictat sta pe malul de nord, deasupra apei, departe de oamenii si cladirile cartierului.
+    test.suite("World2Landmarks [D75, lotul A1]", function()
+        local Shoreline = require("../src/Shared/Modules/Shoreline")
+        local S = Assets.PIXEL_SCALE
+        local function near(a: number, b: number): boolean
+            return math.abs(a - b) <= S
+        end
+        test.case("zidul, panza deversorului si spuma au marimea lor", function()
+            local t = Assets.tycoon
+            check.is_true(near(t.dam_wall.width * S, world.wall.w))
+            check.is_true(near(t.dam_wall.height * S, world.wall.h))
+            local spill = world.water.spillway
+            check.equal(t.dam_spill.width % 3, 0)
+            check.is_true(near(t.dam_spill.width / 3 * S, spill.w))
+            check.is_true(near(t.dam_spill.height * S, spill.h))
+            check.equal(t.dam_foam.width % 2, 0)
+            check.is_true(near(t.dam_foam.height * S, spill.h))
+            check.equal(t.river_crystal.width % 2, 0)
+        end)
+        test.case("stalpii au desenul cat cutia lor", function()
+            local art = {
+                river_pylon = Assets.tycoon.pylon_tall,
+                lane_pylon = Assets.tycoon.pylon_lane,
+                bridge_pylon_w = Assets.tycoon.pylon_post,
+                bridge_pylon_e = Assets.tycoon.pylon_post,
+            }
+            for _, p in world.pylons :: { TycoonConfig.Pylon } do
+                local sprite = art[p.name]
+                check.not_nil(sprite)
+                check.is_true(near(sprite.width * S, p.w) and near(sprite.height * S, p.h))
+            end
+        end)
+        test.case("oraselul pictat sta pe malul de nord, deasupra apei", function()
+            local town = world.paintedTown :: TycoonConfig.Box
+            check.not_nil(town)
+            check.equal(Assets.tycoon.painted_town.width * S, town.w)
+            check.equal(Assets.tycoon.painted_town.height * S, town.h)
+            check.equal(Assets.tycoon.painted_town_lit.width, Assets.tycoon.painted_town.width)
+            check.equal(Assets.tycoon.painted_town_lit.height, Assets.tycoon.painted_town.height)
+            local far = RiverConfig.WORLDS[W].SHORE_FAR
+            for x = town.x - town.w / 2, town.x + town.w / 2, 6 do
+                check.is_true(town.y <= Shoreline.edgeY(far, x) + 1)
+            end
+            check.is_true(town.y - town.h >= 0)
+            -- intreg in cartierul barajului, peste rau de Relay Station
+            check.is_true(town.x - town.w / 2 >= 880 and town.x + town.w / 2 <= 3065)
+            check.is_true(math.abs(town.x - world.buildings.relay.x) < town.w / 2)
+        end)
+    end)
+
     -- [D70, pasul k12] Pamantul copt al barajului (scripts/art/village_ground.py --world 2): feliile din Assets au marimea
     -- fisierelor coapte (Roblox nu spune nimic daca o imagine urcata e mai ingusta: felia ar acoperi doar o bucata), iar
     -- cartierele barajului trec in BAKED_DISTRICTS exact odata cu urcarea (altfel puntea si drumurile s-ar desena de doua

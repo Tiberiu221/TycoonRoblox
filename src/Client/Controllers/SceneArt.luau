@@ -445,6 +445,9 @@ function SceneArt.BuildBackground(layers: Layers, world: number?)
     -- de piatra, apa alba a deversorului pe fata lui si canalul care taie cartierul. Spuma de la piciorul zidului sta peste
     -- plutitorii care ies de acolo (stratul Plot), ca marfa sa para ca vine de sub apa alba.
     local spill: Frame? = nil
+    -- [D75, lotul A1] desenele barajului, cand sunt urcate: panza deversorului (3 cadre) si spuma (2 cadre), pe foi
+    local spillArt: ImageLabel? = nil
+    local foamArt: ImageLabel? = nil
     local data = TycoonConfig.WORLDS[worldId]
     if data ~= nil and data.wall ~= nil then
         -- [verificatorul k1] lacul tine toata apa din spatele zidului, de sus pana jos: coloanele de mal (stratul Shore) il
@@ -456,28 +459,42 @@ function SceneArt.BuildBackground(layers: Layers, world: number?)
         still.Name = "Lake"
         still.BackgroundTransparency = 0.55
         local wall = data.wall
-        local stone =
-            frame(builtLayer, wall.x, wall.y, wall.w, wall.h, Color3.fromRGB(128, 124, 116), 8)
-        stone.Name = "DamWall"
-        if Assets.has(Assets.tile_plaza) then
-            local face = tiled(builtLayer, Assets.tile_plaza, wall.x, wall.y, wall.w, wall.h, 9)
-            face.ImageColor3 = Color3.fromRGB(170, 164, 152)
-        end
-        local cap = frame(
-            builtLayer,
-            wall.x - 6,
-            wall.y - 10,
-            wall.w + 12,
-            18,
-            Color3.fromRGB(92, 88, 82),
-            10
-        )
-        cap.Name = "DamCap"
         local sp = data.water.spillway
-        local white = frame(builtLayer, sp.x, sp.y, sp.w, sp.h, Color3.fromRGB(226, 240, 248), 11)
-        white.Name = "Spillway"
-        gradient(white, Color3.fromRGB(255, 255, 255), Color3.fromRGB(150, 196, 220))
-        spill = white
+        local tycoon = Assets.tycoon
+        if Assets.has(tycoon.dam_wall) then
+            -- [D75, lotul A1] zidul de piatra (varianta A): trepte, coama cu parapet, gura turbinei
+            image(builtLayer, tycoon.dam_wall, wall.x, wall.y, wall.w, wall.h, 8).Name = "DamWall"
+        else
+            local stone =
+                frame(builtLayer, wall.x, wall.y, wall.w, wall.h, Color3.fromRGB(128, 124, 116), 8)
+            stone.Name = "DamWall"
+            if Assets.has(Assets.tile_plaza) then
+                local face = tiled(builtLayer, Assets.tile_plaza, wall.x, wall.y, wall.w, wall.h, 9)
+                face.ImageColor3 = Color3.fromRGB(170, 164, 152)
+            end
+            local cap = frame(
+                builtLayer,
+                wall.x - 6,
+                wall.y - 10,
+                wall.w + 12,
+                18,
+                Color3.fromRGB(92, 88, 82),
+                10
+            )
+            cap.Name = "DamCap"
+        end
+        if Assets.has(tycoon.dam_spill) then
+            local sheet = image(builtLayer, tycoon.dam_spill, sp.x, sp.y, sp.w, sp.h, 11)
+            sheet.Name = "Spillway"
+            sheet.ImageRectSize = Vector2.new(tycoon.dam_spill.width / 3, tycoon.dam_spill.height)
+            spillArt = sheet
+        else
+            local white =
+                frame(builtLayer, sp.x, sp.y, sp.w, sp.h, Color3.fromRGB(226, 240, 248), 11)
+            white.Name = "Spillway"
+            gradient(white, Color3.fromRGB(255, 255, 255), Color3.fromRGB(150, 196, 220))
+            spill = white
+        end
         local canal = data.water.canal
         if baked then
             -- [k12] pamantul copt are canalul gol, cu peretii, cele doua poduri (puntea si piata) si stavila lui, plus
@@ -492,7 +509,23 @@ function SceneArt.BuildBackground(layers: Layers, world: number?)
             deep.BackgroundTransparency = 0.6
         end
         local plot = layers.Plot
-        if plot ~= nil then
+        if plot ~= nil and Assets.has(tycoon.dam_foam) then
+            -- [D75, lotul A1] spuma de la piciorul deversorului, in rau (stratul Plot, sub turbina din zid)
+            local foam = tycoon.dam_foam
+            local fw = foam.width / 2 * Assets.PIXEL_SCALE
+            local sheet = image(
+                plot,
+                foam,
+                wall.x + wall.w - 6,
+                sp.y,
+                fw,
+                foam.height * Assets.PIXEL_SCALE,
+                8
+            )
+            sheet.Name = "SpillFoam"
+            sheet.ImageRectSize = Vector2.new(foam.width / 2, foam.height)
+            foamArt = sheet
+        elseif plot ~= nil then
             local foot = frame(
                 plot,
                 wall.x + wall.w - 10,
@@ -526,6 +559,15 @@ function SceneArt.BuildBackground(layers: Layers, world: number?)
         local spilling = spill
         if spilling ~= nil then
             spilling.BackgroundTransparency = 0.1 + math.abs(math.sin(t * 2.3)) * 0.15
+        end
+        -- [D75] cadrele apei: panza la 0,15 s, spuma la 0,25 s
+        local sheet = spillArt
+        if sheet ~= nil then
+            sheet.ImageRectOffset = Vector2.new(math.floor(t / 0.15) % 3 * sheet.ImageRectSize.X, 0)
+        end
+        local boil = foamArt
+        if boil ~= nil then
+            boil.ImageRectOffset = Vector2.new(math.floor(t / 0.25) % 2 * boil.ImageRectSize.X, 0)
         end
         water.Position = UDim2.fromOffset(-tileW + ((t * 46) % tileW), waterTop)
         shimmer.Position = UDim2.fromOffset(-tileW + ((t * 22) % tileW), waterTop)

@@ -226,6 +226,7 @@ local DamTownController = require(Controllers.DamTownController) -- [D70, pasul 
 -- [D70, pasul k10] oamenii care lucreaza (ultima stare), pentru pagina „Your people” din Dam Town
 local peopleNow: { DamTownController.Person } = {}
 local AmbientController = require(Controllers.AmbientController) -- [D62, pasul 5]
+local RiverCrystalController = require(Controllers.RiverCrystalController) -- [D68, D75 lotul A1]
 local Theme = require(UI.Theme)
 local layers = CameraController.Init({ WorldGui = worldGui, World = world })
 
@@ -324,6 +325,10 @@ end)
 -- [D62, pasul 5] pasarile care trec peste sat (doar desen)
 safeInit("AmbientController", function()
     AmbientController.Init({ Scroll = layers.Scroll, World = world })
+end)
+-- [D68, D75] cristalul care pluteste pe rau de la finalul Erei 3 (doar desen, doar in sat)
+safeInit("RiverCrystalController", function()
+    RiverCrystalController.Init({ Plot = layers.Plot })
 end)
 -- [D62, pasul 3] darurile raului: devreme, ca sa prinda configul raului (samanta); zborul monedelor se leaga mai jos
 safeInit("DriftController", function()
@@ -1398,6 +1403,7 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
         runner = raw.firsts.runner,
         bell = raw.firsts.bell,
         power = raw.firsts.power == true, -- [D67] copiat explicit, ca orice camp nou [CLAUDE.md, capcana 3]
+        grid = raw.firsts.grid == true, -- [D75] ferestrele oraselului pictat, copiat explicit
     }
     local sack = raw.sack
     local sackCount, sackCapacity, sackValue = sack.count, sack.capacity, sack.value
@@ -1961,11 +1967,14 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
         end
         peopleNow = people
         DamTownController.Apply(snapshot.retired)
+        DamTownController.SetTownLit(snapshot.firsts.grid == true) -- [D75] oraselul pictat
     end
     ZoneController.Apply(snapshot.zones, snapshot.damAvailable) -- [D70, pasul k6]
     -- [D73] darurile se scot de pe puntea oricarui cartier deschis; [D70] aceeasi regula ca serverul, din platforme
     DriftController.SetPads(boughtPads)
     LampController.Apply(snapshot.firsts.power == true) -- [D67]
+    -- [D68] dupa Works Bell (finalul Erei 3), in sat: cristalul de pe rau
+    RiverCrystalController.SetActive(world == 1 and snapshot.pads.works_bell == "bought")
 
     if Overlay ~= nil then
         local ok, err = pcall(Overlay.Apply, snapshot)
