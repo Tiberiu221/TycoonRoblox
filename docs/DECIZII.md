@@ -172,6 +172,9 @@ să dezbatem."*
   platformele, stațiile și oamenii; păstrează tot ce e plătit și cosmetic; aduce +50% venit pe tură; un ecran
   „Stays / Resets / You gain" o anunță dinainte. Prima renaștere s-ar muta la trecerea spre Era 4 și s-ar spune dinainte,
   pe clopot [D40, D43].
+  **[Înlocuit, 2026-10-03: Build the Dam NU e renaștere.** Se rezolvă ca excepție scrisă în „Nimic nu se pierde” (CLAUDE.md,
+  TYCOON P2): toți pornesc cu aceeași sumă (`START_SUM`), ce e peste intră în construcție, nimic plătit nu se taie, iar venitul
+  crește. `Rebirths` nu crește și nu există +50% (TYCOON §K); renașterea rămâne după Era 8.]
 - D64: renașterea venea abia după Era 8 („o planetă nouă").
 - D66: `check_windfall` și scara ×3000 pornesc de la ideea că banii trec întregi dintr-o eră în alta. Procentul păstrat se
   reglează în simulator, nu după ochi.
@@ -218,7 +221,7 @@ să dezbatem."*
   nimic plătit nu se pierde. Până acolo e un drum spre o hartă nouă, nu o a doua desfacere a satului.
 
 **Banii la „Build the Dam”: variantele din cercetare** (alte jocuri, verificate pe simulator, cifre pe proba Era 3 ×3000):
-1. **Toți pornesc cu 40T** (Theme Park Tycoon 2, Restaurant Tycoon 2, Lumber Inc). Cine are mai puțin e completat de
+1. **Toți pornesc cu 40T** [cifră de probă; suma adevărată: 35T din simulator, `START_SUM`] (Theme Park Tycoon 2, Restaurant Tycoon 2, Lumber Inc). Cine are mai puțin e completat de
    sat; ce e peste intră în piatra barajului, scris pe o placă. Sare ~11% din Era 4.
 2. **Cel puțin 40T, cel mult 150T** (Tycoon Simulator, Mall Tycoon). Nimeni nu pierde nimic după o noapte, dar cine
    amână câștigă.
@@ -228,7 +231,8 @@ să dezbatem."*
 Scoase: un bonus permanent pe vânzări, pentru că seamănă cu o a doua monedă și îndeamnă la amânare; barajul gata
 construit, cu banii la zero, pentru că contorul ar cădea exact la film.
 
-**Banii, hotărât:** *„Toți pornesc cu 40T.”* La „Build the Dam”, oricine are mai puțin e completat de sat, iar ce e peste
+**Banii, hotărât:** *„Toți pornesc cu 40T.”* [**Cifră de probă, înlocuită:** suma adevărată e `START_SUM`, derivată în
+`sim_tycoon.py`: 35T pe proba de azi (Runda 4 de mai jos).] La „Build the Dam”, oricine are mai puțin e completat de sat, iar ce e peste
 intră în piatra barajului, scris pe o placă. Ecranul și Welcome back spun asta dinainte. Monedele cumpărate cu Robux trec
 întregi, peste cei 40T. 40T e cifra pe proba de azi (Era 3 ×3000). Suma adevărată se stabilește în `sim_tycoon.py`: cea
 mai mare dintre costul primelor 5 minute ale Erei 4 și o noapte fără pass-uri de la finalul Erei 3, rotunjită în sus.
@@ -265,9 +269,12 @@ conținutul și pass-ul să dea tot jumătate din timp. Era 4 ține ~45 de minut
 spre Era 8) toți pornesc cu aceeași sumă. Ce e peste ea intră în construcție, e scris pe placă și e anunțat dinainte.
 Nimic plătit nu se taie, venitul crește, iar din profil nu se șterge nimic.
 
-**Propunerea din dezbatere** (în `docs/PLAN-HARTA.md`, neaprobată):
+**Propunerea din dezbatere** (în `docs/PLAN-HARTA.md`) **[ÎNLOCUITĂ, 2026-10-03, de Runda 4 de mai sus și de D74: „o noapte de
+monede” cade, toți pornesc cu `START_SUM`, 35T, plus monedele cumpărate cu Robux; așezarea hărții lumii 2 e aprobată. Ce a
+rămas valabil: punctele „Tu alegi momentul”, „Venitul crește”, „Nimic plătit sau cosmetic nu se atinge”, „Barajul stă în
+aval de ponton” și „La Era 8”. Textul de mai jos e păstrat ca istorie.]**
 - **Tu alegi momentul.** După Works Bell, butonul „Build the Dam” se ține apăsat, iar „Not yet” nu te costă nimic.
-- **Păstrezi monedele până la cât îți aduce o noapte.** Ce e peste intră în baraj și rămâne scris pe o placă.
+- **Păstrezi monedele până la cât îți aduce o noapte.** Ce e peste intră în baraj și rămâne scris pe o placă. [Înlocuit: toți pornesc cu `START_SUM`, plus R.]
 - **Venitul crește,** iar primii oameni lucrează deja la baraj.
 - **Nimic plătit sau cosmetic nu se atinge.**
 - **Barajul stă în aval de ponton,** deci pontonul, barca și avizierul rămân pe loc.
@@ -296,7 +303,12 @@ ca să pară bine — urcă ce mai este de urcat. Jocul final e ok Driftwood, pe
 ---
 
 ## D68 — Era 4, „The Dam": propunerea, și ce a hotărât owner-ul până acum
-**DE DECIS** (2026-09-24). Owner-ul: *„continuă dev-ul. În același timp lasă și un agent să verifice mereu ce s-a lucrat.
+**DE DECIS** (2026-09-24). **[ÎNLOCUIT, 2026-10-03, de D70 (regulile mari, rundele 1–6) și D74 (așezarea hărții lumii 2).** Era 4 e
+acum în simulator, în configurație (adormită, `live=false`) și pe un plan de pași (PLAN-MOTOR-UNIRE §16). Din propunerea de
+mai jos nu mai sunt valabile: trecerea cu „zidul peste tot râul” pe harta veche, „Spillway Gate”, „Second Turbine” (turbina
+e zidită în baraj, gratis; a doua a ieșit din eră), „Pylon Hauler” (Barrel Hauler; Pylon Runner e angajare nouă), „Dam
+Store” (Battery Store) și „Fifteenth Net” (Crystal Net). Întrebarea „ce vinde barajul” a primit răspuns: curentul, dus pe
+stâlpi (D70 Runda 2). Textul de mai jos e păstrat ca istorie.] Owner-ul: *„continuă dev-ul. În același timp lasă și un agent să verifice mereu ce s-a lucrat.
 Mă interesează mult logica și aspectul jocului."* Propunerea a ieșit dintr-un panou de trei designuri independente
 (logică și poveste întâi / aspect întâi / economie și construcție întâi), notate de trei judecători. A câștigat designul
 cu barajul ca zid peste tot râul, cu cele mai bune idei ale celorlalte două altoite pe el. Textul întreg al propunerii e în
@@ -467,6 +479,12 @@ acel idle miner știi cum funcționează?"*
   20% din eră.** Cu Long Nights: tot 8 (25%). Cu Long Nights și 2x Flow (cazul owner-ului): 15 (30%).
 - **Regula ține pentru orice eră:** poarta nouă `check_windfall` din simulator pică dacă o noapte de absență de la
   sfârșitul unei ere sare mai mult de 25% din era următoare.
+  **[Amendat 2026-10-03, D70/D74, PLAN-HARTA §6 punctul 5.** La baraj poarta e `check_dam`: suma de start sare cel mult 25%
+  (`WINDFALL_MAX_SHARE`), iar cazurile cu monede cumpărate cu Robux (+1 h Flow, Welcome Back x2 după o zi, o zi cu Long
+  Nights și 2x Flow) cel mult `PAID_COINS_MAX_SHARE` = 40% (azi ~33%); o poartă a simulatorului, nu o tăiere la jucător.
+  Pentru Erele 2–3, `check_windfall` rămâne pe o zi fără pass-uri; la 2026-09-24, cu Long Nights + 2x Flow, o noapte cumpăra
+  30,2% din Era 2 și 26,0% din Era 3 (peste 25%, cifre dinainte de curba D71, de re-măsurat), deci extinderea la pass-uri
+  pentru ele rămâne de făcut.]
 
 **Tot aici:** numerele mari au sufixe până la `Qi` (1e18), tot în cinci caractere. Nota ferestrei „Welcome back" spune
 orele adevărate („8 hours"), nu „1 day".
@@ -557,6 +575,10 @@ erele, vreau doar să știu roadmap-ul."* A ales și **Piață nouă în Era 2**
    cei patru oameni ai ei. Marfa asta devine marfa principală a erei următoare.
 4. **Clopotul erei** deschide tronsonul următor de râu, spre dreapta. Fiecare eră e un cartier de sine stătător: plasele,
    depozitul, atelierul și **clădirea lui de vânzare**.
+   **[Amendat 2026-10-03, D70/D74: două excepții scrise.** La **Era 4**, Works Bell nu deschide un tronson spre dreapta pe
+   aceeași hartă: deschide „Build the Dam”, alegerea jucătorului de a trece într-o hartă nouă, lumea 2 (3.385 px); de acolo
+   Erele 5–7 continuă spre dreapta, câte ~2.185 px. La **Era 8**, clopotul (Sky Dock Bell) deschide un drum spre o hartă
+   SF nouă, nu un tronson.]
 
 **Roadmap-ul (propunere, a treia variantă; se construiește doar Era 2):**
 
@@ -1855,6 +1877,9 @@ aceeași structură cu alte cifre.
    să crească venitul **atunci când țintește veriga slabă**, și niciodată nu-l scade.* Un upgrade
    pe o verigă care nu e gâtuirea dă **exact zero** — asta nu e un bug, e lecția jocului, și se
    scrie pe ecran în loc să se inventeze o cifră frumoasă [D40].
+   **[Amendat 2026-10-03, D70/D74: „niciodată nu-l scade” se citește „nicio cumpărătură și nicio schimbare de hartă nu scade
+   venitul”.** Build the Dam crește venitul (de ~16 ori la baraj) și nu scade nimic plătit; singurele monede care nu trec sunt
+   cele de peste suma de start, anunțate dinainte și scrise pe placă, niciodată cele cumpărate cu Robux.]
 4. **Două monede**: monede (din vânzare) și **perle** (premium). Perlele se cheltuie pe viteză,
    spațiu și aspect — niciodată pe putere, deci P4 rămâne intact **pe monedă**.
 5. **Roata norocului intră în joc**, cu premii aleatorii. Asta **restrânge P4**: de la „niciodată

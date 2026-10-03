@@ -1,9 +1,16 @@
+<!-- [D74, 2026-10-03] ÎNLOCUIT. Textul de mai jos e istoric: sinteza panoului din D68, păstrată ca să se poată relua. Ce e în
+vigoare: `docs/PLAN-MOTOR-UNIRE.md` §2, §11, §13 și §16 (motorul cu unire, cifrele, pașii j1–l3), `docs/PLAN-HARTA.md` §9
+(așezarea cartierului barajului, APROBATĂ în D74) și DECIZII D70 și D74. Nu mai sunt cele din joc: zidul și harta (lumea 2 are
+3.385 px, zidul stă la x 640–880, nu la x 5240–5520), „Spillway Gate” și „Second Turbine” (prima turbină e zidită în baraj,
+gratis; a doua a ieșit din eră), „Pylon Hauler” (veteranul se numește Barrel Hauler; Pylon Runner e o angajare nouă), „Dam Store”
+(Battery Store), „Fifteenth Net” (Crystal Net) și „Radio Beacon” (nu e în tabelele din simulator; Dam Bell se deschide la 4T/s,
+D70 Runda 6). Pasul 1 din „În pașii jucătorului” e înlocuit de Build the Dam (D70). -->
 <!-- [D68] PROPUNERE, NEAPROBATA. Owner-ul, 2026-09-24: „Nu încă" pentru construcție; marfa liniei întâi e deschisă
 (vezi DECIZII D68: varianta recomandată e „curentul, dus pe stâlpi", nu „din curent se fac stâlpi", cum scrie mai jos);
 cristalul apare de la finalul Erei 3, nu din Era 1 (amendează secțiunea 8, întrebarea 2). Textul de mai jos e sinteza
 panoului de trei designuri, păstrată întocmai ca să se poată relua.
 **ATENȚIE:** trecerea în Era 4 (pasul 1 de mai jos) e înlocuită de cererea owner-ului din D70: demolarea filmată și
-pornirea de la semi-zero, în dezbatere. -->
+pornirea de la semi-zero, în dezbatere [acum hotărâtă: Build the Dam, toți cu aceeași sumă de start, D70 și D74]. -->
 
 # Propunerea finală pentru Era 4, „The Dam"
 
@@ -68,7 +75,7 @@ Am verificat toate numele noi contra `HandConfig.ROLE_OUTFIT` și contra tuturor
 
 **Paletă, deliberat opusă lui Wire Works.** Wire Works e cald și închis: fier ruginiu-nituit, sticlă crem, alamă, portelan, cu albastrul curentului ca accent (confirmat în `scripts/art/d67_works.py`: IRON, BRASS, SPARK). The Dam trebuie să citească RECE și MASIV: beton turnat gri-albăstrui în planuri mari, oțel galvanizat argintiu pe turbine și stâlpi, apă turcoaz-adâncă cu spumă albă continuă pe deversor, accent de culoare ROȘU (avertizare, farul, geamurile calde ale orașului de peste apă) — nu albastru cald ca la Wire Works.
 
-**Silueta.** Barajul e primul reper din joc care nu e o „cutie" tip casă/șopron: un zid continuu peste toată banda apei, vizibil de departe cu mult înainte să ajungi acolo (confirmat: harta de azi merge de la `wire_works` 3560–5240 până la `dam` 5240–5520 — deci zidul s-ar vedea deja de la marginea Wire Works-ului). Turbinele stau într-un canal la baza zidului, cu apărătoare metalică — nu mai plutesc liber lângă mal, ca *First Turbine*. Switchyard e o curte cu gard de plasă și transformatoare, nu o hală. Relay Station atârnă la capătul unei punți înguste peste apă, cu geamurile ei mici privind spre orășelul pictat de pe malul celălalt. Electric Kiln n-are fum (arde electric): coș scurt și gros, gură portocalie care **pâlpâie și trosnește** — o „bătaie" de lumină, nu un glow constant ca Power House. Radio Beacon e un turn de zăbrele mai înalt decât orice construit până acum, lumină roșie intermitentă, antenă care se rotește o dată la activare.
+**Silueta.** Barajul e primul reper din joc care nu e o „cutie" tip casă/șopron: un zid continuu peste toată banda apei, vizibil de departe cu mult înainte să ajungi acolo (confirmat atunci: harta mergea de la `wire_works` 3560–5240 până la `dam` 5240–5520 — deci zidul s-ar fi văzut deja de la marginea Wire Works-ului) [înlocuit, D74: zidul stă în lumea 2, la x 640–880, în aval de ponton; harta Erelor 1–3 nu se lărgește]. Turbinele stau într-un canal la baza zidului, cu apărătoare metalică — nu mai plutesc liber lângă mal, ca *First Turbine*. Switchyard e o curte cu gard de plasă și transformatoare, nu o hală. Relay Station atârnă la capătul unei punți înguste peste apă, cu geamurile ei mici privind spre orășelul pictat de pe malul celălalt. Electric Kiln n-are fum (arde electric): coș scurt și gros, gură portocalie care **pâlpâie și trosnește** — o „bătaie" de lumină, nu un glow constant ca Power House. Radio Beacon e un turn de zăbrele mai înalt decât orice construit până acum, lumină roșie intermitentă, antenă care se rotește o dată la activare.
 
 **Corectare de nuanță pe punte.** Ambele judecăți au numit puntea „prima geometrie nord-sud din joc" — verificat, e fals: `TycoonConfig.ROADS` are deja `tavern_link` și `iron_lane`, drumuri nord-sud (îngust pe x, lung pe y) care leagă puntea (DECK, y 772–856) de stradă. Ce e cu adevărat nou e altceva: toate drumurile de azi se opresc la marginea uscatului (DECK, y ≥ 772); niciuna nu iese ÎN apă. Relay Station, la capătul punții, ar sta dincolo de acea limită, peste râu — asta cere puțină atenție la adâncimea de desenare (z-order) și la felul cum se randează barca/râul acolo, nu un tip nou de drum.
 
@@ -103,7 +110,7 @@ Am verificat toate numele noi contra `HandConfig.ROLE_OUTFIT` și contra tuturor
 **Tabele** (tiparul „N linii" de la D67, fără motor nou):
 - `sim_tycoon.py`: ERA4_MULT, ~18 platforme (Spillway Gate, 4 turbine, Dam Store, Switchyard, Relay Station, Fifteenth Net, Crystal Shed, Electric Kiln, Radio Beacon, Dam Bell + cei 9 oameni), stări de aur `--era4`, extinderea `--robust` și `check_windfall(era=4)`.
 - `StationConfig.luau`: `ERA_MULT[4]`, liniile „grid"/„crystal" în `LINE_ORDER`/`ERA_LINES`, `PROCESSORS` (Switchyard, Electric Kiln), `SELLERS` (Relay Station).
-- `TycoonConfig.luau`: `GOODS` (charge/pylon/crystal/ingot), `CATCH`, cele ~18 platforme cu prețuri din simulator, `CREWS`×9, `PAD_LOOKS_LIKE`/`GOOD_LOOKS_LIKE` (desen de împrumut până la artă), **lărgirea reală a hărții**: `ZONES.dam` e azi doar 280px (5240–5520, verificat) față de cei 1680px ai Wire Works — trebuie extins, cu `RiverConfig.WORLD_WIDTH` crescut și o nouă fâșie de ceață pentru Era 5 dincolo de el.
+- `TycoonConfig.luau`: `GOODS` (charge/pylon/crystal/ingot), `CATCH`, cele ~18 platforme cu prețuri din simulator, `CREWS`×9, `PAD_LOOKS_LIKE`/`GOOD_LOOKS_LIKE` (desen de împrumut până la artă), **lărgirea reală a hărții**: `ZONES.dam` e azi doar 280px (5240–5520, verificat) față de cei 1680px ai Wire Works — trebuie extins, cu `RiverConfig.WORLD_WIDTH` crescut și o nouă fâșie de ceață pentru Era 5 dincolo de el. [**Înlocuit, D74:** nu se mai lărgește harta veche. Era 4 are o lume a ei, `TycoonConfig.WORLDS[2]` și `RiverConfig.WORLDS[2]`, de 3.385 px (cartierul x 880–3065, ceața Erei 5 x 3065–3385); `ZONES.dam` și `WORLD_WIDTH` ale lumii 1 rămân neatinse, iar zona `dam` din lumea 1 rămâne încuiată cât timp Era 4 e în joc. PLAN-MOTOR-UNIRE §16, j6–j7.]
 - `FlowConfig.luau`, `Strings.luau` (LINE_WORDS, NET_WORDS, BUILDING_WORDS, SELLER_WORDS, CREW_HELLO×9), `QuestConfig.luau` — capitolele 10-12 (confirmat: azi sunt exact 9 capitole, ultimul „The Power Line"; propun „The Dam" / „Miles of Cable" / „Cold Fire"), `HandConfig.luau` (ROLE_OUTFIT×9). Profil nou (v19: v18 e seria zilnică, D71).
 
 **Cod nou, nu doar rânduri** (mic, dar real):

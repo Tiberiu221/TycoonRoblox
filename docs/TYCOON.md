@@ -31,7 +31,7 @@ Fiecare decizie de mai jos trimite la unul din ele. Dacă o decizie nu poate, e 
 | | Principiu | De unde |
 |---|---|---|
 | **P1** | **Un singur verb central:** prinde → vinde → cumpără → prinde mai mult. | Fisch: un om, ~4 luni, o buclă [37]; checklist-ul de alarmă, punctul 4 [anti] |
-| **P2** | **Nimic nu se pierde.** Fără dezastre, fără furt, fără scădere. Offline doar binevoitor. | regula owner-ului; aversiunea la pierdere nu funcționează fără risc real [addictive] |
+| **P2** | **Nimic nu se pierde.** Fără dezastre, fără furt, fără scădere. Offline doar binevoitor. **Singura excepție scrisă [D70]:** la schimbarea de hartă aleasă de jucător („Build the Dam”, drumul spre Era 8) toți pornesc cu aceeași sumă (35T pe proba de azi; se derivă în `sim_tycoon.py`, `START_SUM`). Ce e peste ea intră în construcție, e scris pe placă și e anunțat dinainte. Nimic plătit nu se taie (monedele cumpărate cu Robux trec întregi, D74), iar venitul crește. | regula owner-ului; aversiunea la pierdere nu funcționează fără risc real [addictive] |
 | **P3** | **Următorul pas e mereu vizibil și strălucește.** Zero tutorial de text. | „Plant": 70,48% pierduți la primul pas, rezolvat cu o iconiță [24]; „next step always visible" [factorio] |
 | **P4** | **Banii cumpără viteză, spațiu, aspect** — niciodată noroc sau conținut. | toate trei jocurile mari [19]; norocul e „cea mai clară linie roșie" [money] |
 | **P5** | **Râul e motorul, literal.** Obiectele vin pe curent, energia vine din curent. | „pierderea identității de râu" e riscul numit [dir04] |
@@ -343,6 +343,11 @@ relevantă. **Decizie: +50% venit per renaștere, aditiv.** Tura 2 e cu ~40% mai
 Doar la Charter (~6,5 h) = mulți nu o văd niciodată. După Era 1 = prea ieftin.
 **Decizie: scară de cerințe** — prima renaștere cere Era 2 (~1h15m), a doua Era 3, a treia Era 4.
 Recompensă devreme, coadă lungă. Fiecare tură merge o eră mai departe în ~2 h (§5).
+**[Scara de mai sus e depășită de D64: erele sunt cartiere, nu ture, iar renașterea vine abia după Era 8, la lansarea
+rachetei (D64, D70). Amendat 2026-10-03 (D70/D74): „Build the Dam” (trecerea la Era 4) NU e renaștere: `Rebirths` nu crește și
+nu există +50% venit. E o schimbare de hartă aleasă de jucător, cu excepția scrisă din P2: toți pornesc cu aceeași sumă
+(`START_SUM`), nimic plătit nu se taie, venitul crește de ~16 ori. Fraza din D70 „poate rămâne cinstită doar ca renaștere”
+e înlocuită.]**
 
 **Dezbatere 4 — cum să nu se simtă ca pierdere?**
 Reset impus și fără sens = respins (*„I want to start Diablo again. Not restart the Season."*

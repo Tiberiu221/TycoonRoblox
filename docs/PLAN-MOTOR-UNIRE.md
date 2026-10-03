@@ -1,6 +1,6 @@
 # Planul: motorul lanțului cu unire și baraj, pentru Era 4 și după [D70]
 
-**Stare (2026-09-29): propunere; pașii a–c sunt făcuți** (motorul general, fără Era 4; ce a ieșit altfel e la §10). Owner-ul a hotărât întrebările 2, 4 și 8 din §6 (piesele se vând doar unite, suma de start e cea din simulator, 35T, iar cristalul se vinde și în Era 4), apoi, pe 2026-09-30, 1, 3, 6 și 7 cu variantele recomandate. Pașii d–l pot porni; 5 și 9–12 așteaptă, fără să-i blocheze. Planul pornește de la designul B, cu barajul dat întreg și cablul lucrat de mână. Din designul A am luat patru lucruri: filtrul tabelelor de aur, locul de unde ia curierul, formula monedelor Robux și regula plaselor pe familii. Pe fiecare le-am verificat în cod. Cifrele vin din prototipuri (copii ale simulatorului, în afara repo-ului), rulate din nou de judecător. Cifrele finale se derivă doar în `sim_tycoon.py`.
+**Stare (2026-10-03): pașii a–i sunt făcuți** (a–c: motorul general, fără Era 4, §10; d: Era 4 în simulator, §11; e: `GOLDEN_ERA4`, §12; f–g: configurația și `ChainMath`, §13; h: `HeldBack`, §14; i: modulele comune, §15). **Pasul j e împărțit în j1–j15, k1–k12, l1–l3 (§16, 2026-10-03)**; singurul commit care schimbă jocul viu e l3. Harta lumii 2 e aprobată (D74, PLAN-HARTA §9). [Starea din 2026-09-29, păstrată: pașii a–c făcuți; owner-ul a hotărât întrebările 2, 4 și 8 din §6 (piesele se vând doar unite, suma de start e cea din simulator, 35T, iar cristalul se vinde și în Era 4), apoi, pe 2026-09-30, 1, 3, 6 și 7 cu variantele recomandate. Au rămas deschise 9–11; 5 și 12 le-a închis D74, punctele 8 și 7.] Planul pornește de la designul B, cu barajul dat întreg și cablul lucrat de mână. Din designul A am luat patru lucruri: filtrul tabelelor de aur, locul de unde ia curierul, formula monedelor Robux și regula plaselor pe familii. Pe fiecare le-am verificat în cod. Cifrele vin din prototipuri (copii ale simulatorului, în afara repo-ului), rulate din nou de judecător. Cifrele finale se derivă doar în `sim_tycoon.py`.
 
 ## 0. Întrebarea owner-ului, pe scurt
 
@@ -216,29 +216,37 @@ Aici se fixează doar forma, ca tabelele Erei 4 să nu-l blocheze.
 | obișnuite, pe rularea cu suma | `check_run_era(4)`, `--robust` pe `ROBUST_KNOBS_ERA4` | — |
 
 **În joc** se reiau pașii 5 și 7 din `PLAN-HARTA.md` (`WorldMath.buildDam`, `DamService`, profilul v19; v18 e seria zilnică, D71). Formula veche („păstrezi până la o noapte”) se înlocuiește cu suma fixă:
-- `R = min(monede, Purchases.coinsBought de la Works Bell)`: monedele Robux încă în mână, socotite ca ultimele cheltuite;
+- `R = min(monede, Purchases.coinsBought)`: monedele Robux încă în mână, socotite ca ultimele cheltuite [2026-10-03, R8: contorul se taie la cheltuire, nu există niciun reper „de la Works Bell”];
 - `monede' = START_SUM + R`;
 - `Stats.damGift = max(0, monede − R − START_SUM)`;
 - pe ecran se vede și cât completează satul.
 
 `TycoonConfig.DAM_START_COINS` trebuie să fie egal cu suma derivată. Simulatorul o verifică, la fel ca prețurile.
 
+**[2026-10-03] Ce s-a lămurit la pasul j (§16):**
+- **R, „ultimele cheltuite”, se ține cu un contor tăiat la cheltuire** (§16, R8): contorul crește la acordare și se taie la
+  `min(contor, Coins)` la fiecare scădere. Nu există niciun reper la Works Bell; contorul stă în `Purchases.coinsBought`.
+- **`DAM_START_COINS` nu există încă în cod:** vine în j2, ca `35000000000000`, iar simulatorul o compară cu suma lui.
+- **`START_SUM` din text se numește în cod `DamRun.start_sum`** (`sim_tycoon.py`, `self.start_sum`).
+- **Poarta monedelor Robux e a simulatorului** (D74, punctul 8): `PAID_COINS_MAX_SHARE = 0.40`, azi ~33%. Nu taie nimic la
+  jucător.
+
 ## 6. Întrebări pentru owner, de la Era 1 la Era 8
 
-Întrebările sunt puse în pașii jucătorului. Fiecare are recomandarea mea. **Pașii a–c de mai jos nu așteaptă răspunsurile. Pașii d–l le așteaptă.** Deja hotărât, nu mai întreb: Erele 1–3 rămân cum sunt, iar la baraj satul vechi se oprește. De la Era 4 fiecare eră are trei linii: două fac piese, a treia le unește, iar cumpărătorul e altul la fiecare eră.
+Întrebările sunt puse în pașii jucătorului. Fiecare are recomandarea mea. **Pașii a–i sunt făcuți. Pașii j–l (§16) pornesc fără alt răspuns: opțiunile rămase sunt luate provizoriu ca recomandate (§16, O1), iar doar arta (aprobarea și fiecare urcare) cere owner-ul, explicit.** [2026-10-03; înainte: „Pașii a–c nu așteaptă răspunsurile. Pașii d–l le așteaptă.”] Deja hotărât, nu mai întreb: Erele 1–3 rămân cum sunt, iar la baraj satul vechi se oprește. De la Era 4 fiecare eră are trei linii: două fac piese, a treia le unește, iar cumpărătorul e altul la fiecare eră.
 
 1. **Era 4, începutul.** Veteranii fac linia bateriilor, iar tu faci cablul de mână? *Recomandat: da.* Invers, n-ai avea ce face cu mâna pe linia bateriilor. **Hotărât (owner, 2026-09-30): da.**
 2. **Bateriile (butoaiele) se vând și singure?** Ai spus „bateriile se vând la preț bun”. În planul acesta ele valorează bani doar unite cu cablul, ca curent vândut orașului, iar singure așteaptă la Relay. *Recomandat: nu se vând singure.* Dacă vrei să se vândă, e nevoie de o a doua ieșire pentru ele, cu altă poartă de venit. **Hotărât (owner, 2026-09-29): se vând doar unite.** Butoaiele așteaptă cablul la Relay.
 3. **Cine duce curentul la oraș?** *Recomandat:* un Pylon Runner, pe podul cu stâlpi, până la Switch House, unde stă Dispatcher-ul. Varianta cealaltă: Relay-ul vinde direct, cu un om mai puțin. **Hotărât (owner, 2026-09-30): Pylon Runner.**
 4. **Suma de start e 35T, nu 40T:** e cifra scrisă de simulator. Fără tine câștigi 0 cam 2–3 minute, până la cei 6 oameni, iar ecranul spune asta dinainte. E în regulă? **Hotărât (owner, 2026-09-29): da.** Suma e cea derivată de simulator (35T pe proba de azi), iar AWAY e 0 până la cei 6 oameni noi.
-5. **Monedele Robux trec întregi.** În cel mai rău caz (Welcome Back x2 după 16 h cu 2x Flow), sar ~33% din Era 4. *Recomandat:* limită de 40% doar pentru monedele plătite, sau nicio limită. Tu alegi.
+5. **Monedele Robux trec întregi.** În cel mai rău caz (Welcome Back x2 după 16 h cu 2x Flow), sar ~33% din Era 4. *Recomandat:* limită de 40% doar pentru monedele plătite, sau nicio limită. Tu alegi. **Hotărât (owner, 2026-10-03, „ia recomandatele și continuă”): D74, punctul 8.** Monedele plătite trec întregi peste suma de start (nimic plătit nu se taie, D70), iar limita de 40% e o poartă a simulatorului (`PAID_COINS_MAX_SHARE`, azi ~33%), nu o tăiere la jucător.
 6. **Plasele de sub baraj nu mai prind găsiri** (o găsire nu se poate uni cu un butoi). Surprizele rămân darurile râului. *Recomandat: da.* **Hotărât (owner, 2026-09-30): da.**
 7. **Pe la minutul 29 al Erei 4, venitul poate sta pe loc ~16 minute:** Cable Collector-ii sunt la maxim (2 oameni, treapta 5). *Recomandat:* repar cu cifrele, în simulator. Varianta a doua: un al treilea om pe meserie de la Era 4 („progresiv cu jocul”). **Hotărât (owner, 2026-09-30): din cifre.**
 8. **Era 4, finalul.** Cristalul se vinde în Era 4, primul la oraș (ca fierul, cuprul și curentul), și tot cu el începe Era 5? *Recomandat: da.* Altfel ultimele ~11 minute ale erei nu aduc nimic. **Hotărât (owner, 2026-09-29): da.** Cristalul se vinde în Era 4, primul la oraș, și pornește Era 5.
 9. **Erele 5–7.** Curierul care aduce produsul erei vechi vine gratis cu poarta erei noi? Ia el întâi, iar clădirea veche vinde ce rămâne? *Recomandat: da, la amândouă.*
 10. **Era 6.** Un robot face cât un om, doar arată altfel? *Recomandat: da.* Motorul rămâne neschimbat.
 11. **Era 8.** Etapele rachetei se cumpără cu monede, ca un clopot, din banii tuturor liniilor, fără o linie nouă de marfă? Lansarea e renașterea: +50%, fără să pierzi ceva plătit. *Recomandat: da.*
-12. **Numele** (Switchman, Barrel Hauler, Cable Works, Relay Keeper, Pylon Runner, Switch House, Dispatcher) sunt propuneri.
+12. **Numele** (Switchman, Barrel Hauler, Cable Works, Relay Keeper, Pylon Runner, Switch House, Dispatcher) sunt propuneri. **Hotărât (owner, 2026-10-03): D74, punctul 7.** Rămân: Battery Store (unde Dam Collector-ul lasă bateriile; în §14 apărea „Dam Store”), Switchyard, Cable Works, Relay Station, Kiln, Switch House; oamenii Switchman, Relay Keeper, Pylon Runner, Dispatcher.
 
 ## 7. Pașii
 
@@ -255,9 +263,9 @@ La fiecare pas: toată poarta din CLAUDE.md, apoi commit și push.
 | g | **`ChainMath`.** `model`, `flowWith` în trei treceri, `pickBottlenecks`, `valueWith`, totaluri, `empty`, `clone`, `supply`, `heldBy`, `netsLine`. Comparația veche–nouă pe 80.000 de stări, apoi scoasă | GOLDEN*, `GOLDEN_ERA4`, „liniile ca date” cu unirea de probă |
 | h | **`HeldBack`.** `among` = grupul liniei (ea, piesele, unirea); `nets` doar pe liniile de plase; gardă pentru un `seller` nil (azi :133/:135); textele „the Cable line is slower” / „just as slow as the Barrel line”; când `heldBy` e o linie închisă, `Strings.lineNotOpen(heldBy)` („cast the Cable Net first”) cu Go to spre plasă, nu „is slower” | teste noi |
 | i | **Modulele comune.** `FlowConfig` (`into`, `inputPiles`, `SELLERS.town`); `FlowMath.assemble` (`min(întregi, nA, nB)` perechi); `sellerOf(piesă) = nil`; refuzul `part_to_relay`; `split` primește piese la Relay; `HandRoutes` cu `job` pe pas, drumul pieselor la `inputIn` al Relay-ului | teste Lune |
-| j | **Serverul.** `EconomyService` (unirea merge doar cu ambele intrări nevide, `assemble`, `DropAt` pe fel de piesă, liniile închise fără tick); `HandService` (sare oamenii retrași); `NetService` (nu mai umple plasele închise); `StationService` (`StateFrom` cu `dam` și rangurile, garda din `BUILDING_ROWS`, `Snapshot` cu `supply` / `heldBy` / `netsLine`); `DamService` și profilul v19 după PLAN-HARTA, cu suma din §5 | teste: migrarea păstrează numele și chipul celor 5; `StateFrom` reproduce `dam_transform` |
-| k | **Clientul.** `LineController` pentru unire (două grămezi, „Waiting for cable/barrels”); `Overlay.DROP_AT`; `Bootstrap` copiază explicit câmpurile noi; `GuideMath` pentru primul tur (6 pași de mână); capitolele 10–12, în ordinea `DAM_CHAPTER`, cum le joacă a treia rulare din `DamRun`: a doua și a treia plasă de cablu, pasul „Earn 1T coins a second” (`KILN_INCOME`), Kiln-ul și cristalul, pasul „Earn 4T coins a second” (`DAM_BELL_INCOME`, același prag ca platforma), Dam Bell. Fără pasul ăsta, „Ring the Dam Bell” ar sta ~16 minute pe un clopot încuiat, cu 0/1 și fără contor (capcana Kiln-ului; verificator, 2026-10-01). Testul de ordine din `QuestMath` („niciun quest nu cere ceva ce încă nu se poate cumpăra”) învață că un quest de venit împlinește un `Needs.income` de după el. Pasul de venit e un fel nou de quest, pe venitul din HUD; ținta și eticheta lui sunt pragul platformei înmulțit cu `PassMath.flowFactor`, din aceeași funcție ca cartonașul clopotului (cu 2x Flow: „Earn 8T coins a second”). Pass-ul tot înjumătățește timpul, pentru că banii vin dublu. Numele pașilor de mai sus sunt etichetele fără pass. Nu ca la quest-ul AWAY, al cărui prag (1) nu se scalează: altfel, cu 2x Flow, quest-ul s-ar bifa la 4T pe HUD, iar clopotul ar cere 8T. Contorul lor trece printr-o singură funcție, `QuestMath.counterText`, folosită și de lista de quest-uri (`QuestController`), și de linia NEXT (`HUDController`): „966B/1T”, cu `TycoonMath.formatNumber`, nu „966000000000/1000000000000”. Lista renunță la paranteze pentru toate quest-urile („3.99T/4T” are ~58 px la 13, cutia are 60; cu paranteze, ~73). `Theme.fitSize` nu ajută: contorul e deja la `TEXT.tiny`. Pe un quest de venit, pasul ghidat nu poartă `price`, deci `HUDController.SetStep` nu suprascrie bara: linia NEXT arată venitul spre prag, nu monedele unui nivel. Cât ține un pas de venit, și cât Dam Bell așteaptă pragul, ghidajul arată veriga cu câștig real pe care se mai poate cumpăra ceva: sare meseriile la `MAX_PEOPLE` × `TIER_MAX`, ca `AmbitionMath`, iar dacă nu rămâne nimic, trece la veriga slabă a celeilalte linii a vânzătorului. Spre plafon, veriga globală e un Crystal Collector deja plin. Regulă generală: `GuideMath` nu pune „While you save” și nici bara de preț pe un quest a cărui platformă nu e încă `available`; indiciul AWAY | poarta, sonda pe texte și testele Lune din §8 (QuestMath, GuideMath) |
-| l | **Sonda, cap-coadă, pe profil de probă:** Works Bell → Build the Dam → turul → cei 6 → Kiln → Dam Bell. Arta se face pe planșe și se urcă doar cu acordul owner-ului. `live = true` doar după Studio | `errors` e gol; niciun text nu iese din cutie |
+| j | **[2026-10-03: împărțit în j1–j15, vezi §16; rândul de mai jos rămâne lista inițială, incompletă.]** **Serverul.** `EconomyService` (unirea merge doar cu ambele intrări nevide, `assemble`, `DropAt` pe fel de piesă, liniile închise fără tick); `HandService` (sare oamenii retrași); `NetService` (nu mai umple plasele închise); `StationService` (`StateFrom` cu `dam` și rangurile, garda din `BUILDING_ROWS`, `Snapshot` cu `supply` / `heldBy` / `netsLine`); `DamService` și profilul v19 după PLAN-HARTA, cu suma din §5 | teste: migrarea păstrează numele și chipul celor 5; `StateFrom` reproduce `dam_transform` |
+| k | **[2026-10-03: împărțit în k1–k12, vezi §16; rândul rămâne lista inițială.]** **Clientul.** `LineController` pentru unire (două grămezi, „Waiting for cable/barrels”); `Overlay.DROP_AT`; `Bootstrap` copiază explicit câmpurile noi; `GuideMath` pentru primul tur (6 pași de mână); capitolele 10–12, în ordinea `DAM_CHAPTER`, cum le joacă a treia rulare din `DamRun`: a doua și a treia plasă de cablu, pasul „Earn 1T coins a second” (`KILN_INCOME`), Kiln-ul și cristalul, pasul „Earn 4T coins a second” (`DAM_BELL_INCOME`, același prag ca platforma), Dam Bell. Fără pasul ăsta, „Ring the Dam Bell” ar sta ~16 minute pe un clopot încuiat, cu 0/1 și fără contor (capcana Kiln-ului; verificator, 2026-10-01). Testul de ordine din `QuestMath` („niciun quest nu cere ceva ce încă nu se poate cumpăra”) învață că un quest de venit împlinește un `Needs.income` de după el. Pasul de venit e un fel nou de quest, pe venitul din HUD; ținta și eticheta lui sunt pragul platformei înmulțit cu `PassMath.flowFactor`, din aceeași funcție ca cartonașul clopotului (cu 2x Flow: „Earn 8T coins a second”). Pass-ul tot înjumătățește timpul, pentru că banii vin dublu. Numele pașilor de mai sus sunt etichetele fără pass. Nu ca la quest-ul AWAY, al cărui prag (1) nu se scalează: altfel, cu 2x Flow, quest-ul s-ar bifa la 4T pe HUD, iar clopotul ar cere 8T. Contorul lor trece printr-o singură funcție, `QuestMath.counterText`, folosită și de lista de quest-uri (`QuestController`), și de linia NEXT (`HUDController`): „966B/1T”, cu `TycoonMath.formatNumber`, nu „966000000000/1000000000000”. Lista renunță la paranteze pentru toate quest-urile („3.99T/4T” are ~58 px la 13, cutia are 60; cu paranteze, ~73). `Theme.fitSize` nu ajută: contorul e deja la `TEXT.tiny`. Pe un quest de venit, pasul ghidat nu poartă `price`, deci `HUDController.SetStep` nu suprascrie bara: linia NEXT arată venitul spre prag, nu monedele unui nivel. Cât ține un pas de venit, și cât Dam Bell așteaptă pragul, ghidajul arată veriga cu câștig real pe care se mai poate cumpăra ceva: sare meseriile la `MAX_PEOPLE` × `TIER_MAX`, ca `AmbitionMath`, iar dacă nu rămâne nimic, trece la veriga slabă a celeilalte linii a vânzătorului. Spre plafon, veriga globală e un Crystal Collector deja plin. Regulă generală: `GuideMath` nu pune „While you save” și nici bara de preț pe un quest a cărui platformă nu e încă `available`; indiciul AWAY | poarta, sonda pe texte și testele Lune din §8 (QuestMath, GuideMath) |
+| l | **[2026-10-03: devine l1–l3, vezi §16; comutatorul `ENGINE_ERAS = 4` și `live = true` sunt l3.]** **Sonda, cap-coadă, pe profil de probă:** Works Bell → Build the Dam → turul → cei 6 → Kiln → Dam Bell. Arta se face pe planșe și se urcă doar cu acordul owner-ului. `live = true` doar după Studio | `errors` e gol; niciun text nu iese din cutie |
 
 ## 8. Teste
 
@@ -491,7 +499,7 @@ cititorii platformelor (cartonașul, ruinele, `padStatuses`) se schimbă tot atu
 **Era 4 stă în tabele, dar jocul n-o rulează încă.** `StationConfig.ENGINE_ERAS = 3`. Listele pe care le citesc serverul,
 meniurile și ghidajul (`ERA_ROLES`, `ROLES`, `ERA_LINES`, `LINE_ORDER`, `SELLER_ORDER` și tot ce se derivă din ele) sunt
 tot ale Erelor 1–3, la fel ca înainte. Variantele `_ALL` (`ERA_ROLES_ALL`, `ROLES_ALL`, `ERA_LINES_ALL`, `LINE_ORDER_ALL`,
-`SELLER_ORDER_ALL`) au și barajul. Pasul j pune `ENGINE_ERAS = 4`.
+`SELLER_ORDER_ALL`) au și barajul. [Înainte: „Pasul j pune `ENGINE_ERAS = 4`.”] **[2026-10-03] Comutatorul e pasul l3** (§16, R12): `ENGINE_ERAS = 4` și `live = true` pe cele 23 de platforme, abia după proba cap-coadă; pașii j1–k12 lasă jocul viu neschimbat.
 
 **Pasul f, partea de acum:**
 - `StationConfig`:
@@ -542,7 +550,7 @@ tot ale Erelor 1–3, la fel ca înainte. Variantele `_ALL` (`ERA_ROLES_ALL`, `R
 
 **Următorul pas: h** (`HeldBack` pe grupul unirii; textele „the Cable line is slower” / „just as slow as the Barrel
 line”, „cast the Cable Net first”). Apoi i (`FlowConfig`, `FlowMath.assemble`, `HandRoutes`), j (serverul, `DamService`,
-profilul v19, `ENGINE_ERAS = 4`, platformele Erei 4 cu harta), k (clientul), l (sonda).
+profilul v19, platformele Erei 4 cu harta; [2026-10-03: `ENGINE_ERAS = 4` e pasul l3, §16]), k (clientul), l (sonda).
 
 ## 14. Cum a ieșit pasul h (2026-10-02)
 
@@ -639,9 +647,9 @@ minimală, cu bucăți din cealaltă.
 - **A/B:** modulele din HEAD față de cele noi, pe tot ce citește jocul (Erele 1–3, toate meseriile, 54 de plase): 131.754
   de comparații, 0 diferențe.
 
-**Pentru pasul j** (lista judecătorului, plus verificatorul). `ENGINE_ERAS = 4` intră abia când e făcut tot ce urmează,
+**Pentru pasul j** (lista judecătorului, plus verificatorul). **[2026-10-03: lista completă, cu ordine, dependențe și verificări, e în §16 (j1–j15, k1–k12, l1–l3); ce urmează rămâne ca sursă a conținutului.]** `ENGINE_ERAS = 4` intră abia când e făcut tot ce urmează (acum: pasul l3),
 altfel primul push strică jocul tuturor:
-- **pornirea:** `ENGINE_ERAS = 4`; testele de adormire se rescriu (`#PILES` 34, ChainMath.test).
+- **pornirea:** `ENGINE_ERAS = 4` [2026-10-03: pasul l3, nu j]; testele de adormire se rescriu (`#PILES` 34, ChainMath.test).
 - **profilul v19:** cele 13 grămezi și numărătorile noi, în șablon și în migrare.
 - **`EconomyService`:**
   - tick-ul face `assemble` pe uniri și sare liniile închise;
@@ -656,12 +664,12 @@ altfel primul push strică jocul tuturor:
   Altfel butoaiele gata trimit la Switchyard („take the batteries to the Switchyard”), iar cardul magaziei oferă „Drop”.
 - **Instantaneele** (`StoreSnapshotOf`, `ProcessorSnapshotOf`, `NetServer.flowSnapshot`) știu de unire: fără magazie,
   intrările din `joins`. Altfel `pileOf(data, nil)` crapă la fiecare stare trimisă.
-- **`StationService`:** garda pe `seller` nil în `BUILDING_ROWS`; steagul `dam` din profil; platformele Kiln și Crystal
+- **`StationService`:** garda pe `seller` nil în `BUILDING_ROWS` [2026-10-03, corectat: bucla din `StationService.luau:118-141` nu „crapă” pe un `seller` nil, ci doar `BUILDING_PAD[nil] = …` dacă o piesă primește `processorPad`; garda se pune acolo și pe `LINK_WORDS[seller]`]; steagul `dam` din profil (în cod iese azi mereu fals, §16 R5); platformele Kiln și Crystal
   Shed. Un test cere ca fiecare `pad` din FULL să existe, iar nicio platformă să nu poarte numele unui loc din FlowConfig.
 - **Platformele angajărilor barajului** poartă lanțul `needs.after` din `ERA4_UNLOCKS` (cableCollector → cablePorter →
   cablemaker → cableHauler → relayKeeper → pylonRunner; cristalul după Crystal Shed). Paza negativă arată că ordinea ține
   monotonia. Testul de lanț din TycoonConfig.test se extinde, iar simulatorul citește `needs.after` și pică dacă
-  ordinea diferă.
+  ordinea diferă. **[2026-10-03] Încă nu e scris:** simulatorul nu citește `needs.after`; vine în j2 (`ERA4_AFTER`, §16).
 - **Clientul, înainte de pornire:**
   - `Bootstrap` (bucla `sellerOpenPad` sare `seller` nil);
   - `Overlay.luau` :273 și :810, cu locul unirii din `JOIN_PLACES`;
@@ -692,3 +700,353 @@ altfel primul push strică jocul tuturor:
   quest-urilor, nicio opțiune de pe ecran nu scade venitul;
 - **paza negativă:** Cable Collector-ul angajat ultimul (§8).
 
+## 16. Pasul j împărțit: j1–j15, k1–k12, l1–l3 (2026-10-03)
+
+**Regula.** Fiecare commit lasă jocul viu neschimbat. Singurul care îl schimbă e **l3**: `ENGINE_ERAS = 4` și `live = true` pe
+cele 23 de platforme ale Erei 4. Până atunci Era 4 stă în tabele, adormită, iar clientul și serverul se probează pe un
+comutator local care nu se comite (R10). La fiecare pas: poarta întreagă din CLAUDE.md, apoi `verify-work` (Opus 5.5), apoi
+commit și push.
+
+Ordinea mare: **D0** (documentele) → **O1** (pachetul pentru owner, nu blochează) → **j1–j15** (fundația pură și serverul) →
+**k1–k12** (clientul) → **A0–A4** (arta, în paralel, după O1) → **l1–l3** (proba și comutatorul).
+
+### Conflicte între cititori, rezolvate citind codul (R1–R12)
+
+- **R1. D74 e deja comis (9d2c752).** Comitul are DECIZII D74, PLAN-HARTA §4 rescris și poarta de 40% din simulator
+  (`PAID_COINS_MAX_SHARE`, `sim_tycoon.py:2636`, `:2684-2691`). Rămâne doar testul care inversează poarta (intră în j2).
+- **R2. Platformele Erei 4 se adaugă în `TycoonConfig.PADS` cu `live=false` (indecșii 55–77).** Lista separată `DAM_PADS` cade.
+  Toate buclele suportă rânduri `live=false`:
+  - `TycoonMath.padStatuses` (`:459-510`): cu tot cumpărat, prima platformă necumpărată e una a Erei 4; devine `blocker`, dar
+    `blocker.live` e fals, deci n-are contur, iar ieșirea e identică cu cea de azi;
+  - `TycoonMath.era` sare platformele fără `live`; `PadController:1090-1110` ascunde platformele fără `live` sau fără x/y;
+    `VillageDiorama:605` și `village_geometry.luau:47-50` le sar;
+  - `StationService:63-73` le pune în `NET_PAD_IDS` pe pozițiile 16–20, dar sunt citite doar dacă sunt cumpărate;
+  - `NetServer` `ZONE_BELL[5]` nu e folosit; `ModernController.plansBell` se potrivește doar pe Era 3; `EraWords.bellOf(4)` se
+    atinge abia după `eraIsLive(4)`.
+  Se schimbă doar testele `TycoonConfig.test.luau:101` (54 → 77) și `:124` (`perEra[4]`).
+- **R3. Lumea unui lucru se derivă din eră (`WorldConfig.worldOfEra`), fără câmp `Pad.world`.**
+  - Statusurile se calculează pe `padsOfWorld(data.World)`. `needs.all` de pe Works Bell garantează Erele 1–3 cumpărate la
+    baraj.
+  - Condițiile Erei 4 se numără pe lista lumii 2, cu turbina și Cable Net 1 gratuite incluse: `second_cable_net` cere
+    `netsExactly 2`, `third_cable_net` cere 3, `crystal_kiln` cere `netsOwned 4`.
+  - `prevNetLevel` rămâne pozițional (`TycoonMath.luau:278`) dacă ordinea din PADS e: turbina, cable 1, cable 2, cable 3,
+    crystal. Nu e nevoie de o cheie nouă de condiție pe familii de plase.
+- **R4. Geometria lumii 2 intră în `TycoonConfig.WORLDS[2]`, niciodată în `DISTRICTS`, `ZONES` sau `DECOR`.** Altfel
+  `RoadGraph.fromConfig` (`RoadGraph.luau:308-322`) ar uni drumurile ei cu ale lumii 1, iar amprenta pământului copt s-ar
+  schimba. Tabelele pe chei primesc rânduri noi (`LINE_PLACES.barrels/cable/crystal`, `JOIN_PLACES.grid`,
+  `SELLER_PLACES.town`). Înainte de asta se filtrează pe lume cei doi care le parcurg: `lampHitsWorker`
+  (`TycoonConfig.luau:2041`) și `Overlay.luau:736` (comentariul de la `TycoonConfig.luau:732-734` avertizează deja).
+- **R5. Steagul `dam` iese azi mereu fals.** Bucla din `StationService.luau:186-191` scrie `fields.dam` din `processorPad`-ul
+  liniilor barrels/cable/grid, care e nil. Corect: `dam = data.World >= 2`, iar bucla sare steagul „dam”. Pentru cristal,
+  `FlowConfig.crystal` primește `processorPad = "crystal_kiln"` și `storePad = "crystal_shed"` (`FlowConfig.luau:243-244` spune
+  că vin cu harta).
+- **R6. Comutatorul ar prăbuși jocul pentru toți (confirmat).** `pileOf(data, nil)` (`EconomyService.luau:227-235`) se cheamă
+  pe linia `grid`, care n-are grămadă de intrare, din `process` (`:607`) și din `NetServer.flowSnapshot` (`:143-156`). Venitul
+  ar ajunge la 0, iar `TycoonState` n-ar mai ajunge la niciun client. De aceea j13 se probează pe un comutator local înainte
+  de orice pas de client.
+- **R7. Quest-urile s-ar întoarce în capitolul 1 după baraj (confirmat).** `QuestMath.currentChapter` (`:220-229`) se oprește
+  la `idle_one` (`QuestConfig.luau:277-282`), al cărui AWAY cade la 0 după baraj, iar `QuestConfig.CHAPTERS` e global
+  (`:962-969`). Se repară amândouă în j11.
+- **R8. Monedele Robux se țin cu un contor tăiat la cheltuire** (decizia agentului; se scrie în DECIZII și i se spune
+  owner-ului). Contorul crește la acordare și se taie la `min(contor, Coins)` la fiecare scădere (`EconomyService.luau:162,173`,
+  `DevService.luau:57`). E exact „socotite ca ultimele cheltuite” din §5, fără vreun reper la Works Bell.
+- **R9. Rangul plaselor.** `ChainMath.netBase` și `netUpgradeBase` merg după index (`ChainMath.luau:271-287`). Se adaugă variante
+  pe (rang, eră): pentru Erele 1–3, rangul e `(i-1)%5+1` și era `(i-1)//5+1`, deci ies identice la bit; pentru Era 4,
+  `Pad.netRank` și `netEra` reproduc `unlock_net_ranked` (`sim_tycoon.py:1003-1020`). `NET_LANES` și `NET_KINDS`
+  (`StationConfig.luau:79-99`) nu se ating.
+- **R10. Proba Erei 4 cere un comutator local.** `ENGINE_ERAS` e citit la încărcare (`StationConfig.luau:219`, `table.move`).
+  `scripts/era4_flip.py on|off|status` schimbă `ENGINE_ERAS` și `live` pe cele 23 de rânduri și **nu se comite niciodată**;
+  poarta pică deja pe un comutator comis (`ChainMath.test.luau:3214`).
+- **R11. Primul quest al barajului.** „Ring your old bells” (PLAN-HARTA §2) cade în fața ordinii `DAM_CHAPTER` din simulator.
+  Clopotele rămân plăci în clopotniță, fără quest. (Decizia agentului.)
+- **R12. Comutatorul e un pas separat.** „Pasul j pune `ENGINE_ERAS = 4`” (§13) e înlocuit: comutatorul e l3, după proba
+  cap-coadă.
+
+### D0 și O1
+
+**D0. Documentele, fără cod** (făcut pe 2026-10-03): pasajele învechite din PLAN-HARTA, PLAN-MOTOR-UNIRE, PLAN-ERA4, DECIZII
+(D46 punctul 3, D64 regula 4, D66 `check_windfall`, D68, „Toți pornesc cu 40T”, „o noapte de monede”) și TYCOON (P2, §K); PLAN-HARTA
+§9 devine „APROBATĂ (D74)”. Blocul de stare din CLAUDE.md îl scrie sesiunea principală. Verificare: poarta și `verify-work`
+pe lentila de reguli.
+
+**O1. Pachetul pentru owner.** Owner-ul a spus pe 2026-10-03 *„ia recomandatele și continuă”*, deci **opțiunile recomandate
+sunt LUATE, provizoriu**, și le poate schimba dintr-un cuvânt. Nimic nu așteaptă după ele.
+- **Filmul:**
+  - lungime **15–20 s**, cu „Skip” de la secunda 3 (owner-ul spusese „câteva secunde”; propunerea inițială avea ~38 s);
+  - stil **(a) siluete la apus**, cu numele deasupra, apoi bucuria în culorile lor: 2 imagini noi (nu (b) în culori, cu un rând
+    nou de animație pe ~43 de foi, și nu (c) fără mâini);
+  - butonul **„Not yet”** în loc de un film pornit singur la clopot, iar **taverna pleacă ultima**.
+- **Ce intră la prima lansare a Erei 4.** Vin **după** lansare: macheta lumii 2 pentru vizitatori, titlul „Dam Builder”, poza
+  „Before the Dam” și „Watch again” pe Memory Wall. Până atunci, bâlciul arată fotografia satului vechi, cu un semn „Building the
+  Dam” (k11).
+- **Decise de agent, doar informare:**
+  - R8 (contorul monedelor Robux) și R11 (fără quest „Ring your old bells”);
+  - veteranii poartă ținuta noii meserii, iar până vine arta arată ca în Era 1 (prin `OUTFIT_LOOKS_LIKE`);
+  - „Last cart”: marfa rămasă se vinde la preț întreg înainte de calculul banilor, altfel s-ar pierde;
+  - textul ceții Erei 5 rămâne neutru, fără nume de eră.
+- **Încă cer owner-ul, explicit:** aprobarea planșelor de artă și, separat, acordul pentru **fiecare** urcare. Judecata filmului
+  și a mersului, plus verificarea pe telefon, rămân la el (l2).
+- **De verificat în Studio:** pe telefon se văd 460 px, iar de la acoperișul Switch House la ieșirea Relay sunt 476 px.
+
+### j: fundația pură și serverul. Fără owner, fără artă.
+
+**j1. Martorul de identitate pentru lumea 1, scris primul, din HEAD.** Depinde de: nimic.
+- Fișiere: `tests/WorldIdentity.test.luau`, un fișier martor citit cu `@lune/fs` și un mod care îl scrie.
+- Fixează: graful `RoadGraph.fromConfig`; `streetLamps()`, `wirePoles()`, `homeClearRects()`, `deckSpans()`, `ZONES`;
+  `WorldDecor.village` cu argumentele din SceneArt; `padStatuses` și `TycoonMath.era` pe trei stări (proaspătă, la mijlocul
+  Erei 2, la Works Bell cu tot cumpărat); `HandRoutes.cycleFor/standFor` pentru fiecare meserie din `ERA_ROLES`; id-urile din
+  `QuestConfig.CHAPTERS`; `LINE_ORDER` și `ROLES`.
+- Verificare: trece pe HEAD; o coordonată de drum mutată îl pică (apoi se revine).
+
+**j2. Rândurile Erei 4 în configurație, adormite, cu oglinda din simulator.** Depinde de: nimic. Dacă iese prea mare, se taie
+la granița CREWS / `DAM_START_COINS`.
+- **Platformele:** 23 de rânduri în `TycoonConfig.PADS`, `live=false`, deocamdată fără x/y.
+  - 16 cu preț: `hire_cable_collector`, `hire_cable_porter`, `hire_cablemaker`, `hire_cable_hauler`, `hire_relay_keeper`,
+    `hire_pylon_runner`, `second_cable_net`, `third_cable_net`, `crystal_kiln`, `crystal_net`, `crystal_shed`,
+    `hire_crystal_collector`, `hire_crystal_porter`, `hire_crystalsmith`, `hire_ingot_hauler`, `dam_bell`.
+  - 7 gratuite (preț 0): `dam_turbine`, `cable_net` și casele celor cinci veterani, `hire_dam_*`.
+  - Efecte: angajare / plasă (`good` = dam, cable_ore sau crystal; benzile 3/1/1/2/3) / steag (`kiln`, `crystal_shed`) /
+    clopot. Condiții: după R3 și lanțul `after` din `ERA4_UNLOCKS`; `dam_bell` are `all` plus
+    `income = StationConfig.DAM_BELL_INCOME`.
+  - Tipurile primesc câmpurile opționale `Pad.netRank`, `Pad.netEra` și `Needs.income`. `PAD_LOOKS_LIKE` primește desene de
+    împrumut pentru cele 23.
+- **Meseriile:** 15 rânduri `CREWS`, fiecare pe un singur rând, cu `secondPrice` din `DamRun.prices`.
+- **Suma de start:** `TycoonConfig.DAM_START_COINS = 35000000000000`. **FlowConfig:** `processorPad` și `storePad` pentru linia
+  cristalului (R5).
+- **Simulatorul:** `PAD_IDS_ERA4` și `check_config_prices(dam.prices, PAD_IDS_ERA4, ERA4_ROLES)`; verificarea platformelor
+  gratuite (preț 0); verificarea inversă, pe Erele 2–4 (orice platformă cu preț e în hartă); `check_config_dam`
+  (`DAM_START_COINS` egal cu `d.start_sum`); `PAD_NETS_ERA4` (rang, bandă, fel și eră, comparate cu rândurile); `ERA4_AFTER`
+  (fiecare intrare validată prin schimbarea lambdei din fals în adevărat pe stările date de `dam_transform`, apoi comparată
+  prin regex cu `needs.after`); opțional, raportul nopții de după cele 6 angajări în `report_era4`.
+- **Atenție:** prețurile se scriu ca întregi întregi, nu `1.5e12` (regexul de la `sim_tycoon.py:2269` alunecă altfel în
+  platforma următoare). Id-urile nu au voie să coincidă cu id-uri de locuri.
+- **Teste:** `TycoonConfig.test` (77 de platforme, `perEra[4] = 23`, toate `live=false`, `eraIsLive(4)` fals; platformele din
+  FlowConfig există în `byId`; `needs.income` egal cu `DAM_BELL_INCOME`); `check_lines`: câte un test inversat pentru fiecare
+  verificare nouă și pentru `PAID_COINS_MAX_SHARE`.
+- Verificare: j1 neschimbat; `golden_chain` fără diferențe; `--robust` rulat detașat (~13 minute).
+
+**j3. Plasele pe rang.** Depinde de: j2.
+- `ChainMath.netBaseRank` / `netUpgradeBaseRank` (funcțiile pe index devin învelișuri); `TycoonConfig.netIdentity(pad)` întoarce
+  rangul și era; le citesc `StationService.StateFrom` (`:162-171`) și `UpgradeBase` (`:142-151`); `TycoonMath.netKind` întoarce
+  dam / cable_ore / crystal.
+- Verificare (teste): plasele 1–15 identice la bit; cele 5 plase ale Erei 4 egale cu bazele din `golden_chain build_era4`.
+
+**j4. Profilul v19, aditiv.** Depinde de: j2.
+- Șablonul, tipurile, `Meta.version = 19` și `toV19` după `toV18` (`DataService.luau:669-685`).
+- Câmpuri noi: `World = 1` și `Memories = {}`; `Stats.damGift` și cele 6 numărători ale Erei 4 (numele din
+  `processedStat`/`soldStat` din FlowConfig); `Purchases.coinsBought`; cele 13 grămezi din `FlowConfig.FULL`;
+  `Stations.switchyard/cableworks/relay/kiln/town`; 15 rânduri `Crews`; pe `Hand`, opționale: `formerRole`, `formerKey`,
+  `medal`, `retired`.
+- `player:SetAttribute("World")`, curățat la 1 sau 2, pus înainte de `SaveLoaded`.
+- Verificare: suita v19 (acele din șablon, idempotența, ce există nu se atinge); acul de la `ProfileMigrate.test.luau:1102` se
+  mută; șablonul are toate grămezile din `FULL`, ca suita v16 (`:976-978`) să rămână verde la comutator.
+
+**j5. Contorul monedelor Robux (R8).** Depinde de: j4. Owner: doar informare.
+- O funcție pură `afterGrant` / `afterCoins`, apelată în `PurchaseService.grant` (`:83-98`), `EconomyService.TrySpend` și
+  `AddCoins` cu sumă negativă, `DevService setcoins` și `Reset`.
+- Verificare (teste): cumperi 10, cheltui 5 din 20: rămân 10; monedele scad la 3: contorul scade la 3.
+
+**j6. Modelul de lume, doar lumea 1.** Depinde de: j1, j2.
+- `Shared/Config/WorldConfig.luau` (`worldOfEra`, `sanitize`); `TycoonConfig.WORLDS[1]` și `RiverConfig.WORLDS[1]` arată spre
+  aceleași obiecte de azi.
+- Accesori cu lumea implicit 1: `padsOfWorld`, `districtsOf`, `zonesOf`, `decorOf`, `spawnOf`, `deckSpans(w)`, `streetLamps(w)`,
+  `wirePoles(w)`, `homeClearRects(w)`, `comingEra(w)`.
+- Filtrul pe lume intră acum, înainte de date: `lampHitsWorker` citește `LINE_PLACES` și `JOIN_PLACES` doar ale lumii;
+  `Overlay.luau:736` trece prin `sellerPlacesOf(w)`.
+- Verificare: j1 identic; `padsOfWorld(1)` identic cu `PADS[1..54]`; un test text cere ca niciun modul să nu citească lumea la
+  `require`.
+
+**j7. Datele lumii 2, din planșa aprobată (`preview_dam_layout.py:24-192`).** Depinde de: j6.
+- **`WORLDS[2]`:** mărimea 3385×1920, PLOT, țărmurile cu `calm`; două cartiere (puntea lacului, x 240–640, și puntea
+  barajului, x 880–2760), cu drumuri și curți (id-uri `*_yard`); zonele `dam_town` (fără gard) și `fog5` (x 3065–3385), cu
+  text neutru; spawn la (800, 1180); dreptunghiuri blocate: zidul (x 640–880, y 768–960) și canalul în două bucăți
+  (2193,856 64×234 și 2193,1170 64×66); sloturile de decor din piață.
+- **Rânduri pe chei:** `LINE_PLACES` barrels/cable/crystal, `JOIN_PLACES.grid`, `SELLER_PLACES.town` (ușa 2059,1130, clienții
+  în oglinda tavernei), cele 9 clădiri fixe, 13 grămezi, 6 felinare, 4 stâlpi.
+- x/y/bandă pe cele 23 de platforme, încă `live=false`. Pontonul, barca, comorile, roata și avizierul rămân unde sunt.
+- Teste: verificatorul de așezare `synth_check` portat în `tests/`, pe lume; oglinda clienților; felinarele generalizate
+  dincolo de `for era = 1, 3`.
+- Verificare: j1 identic; `village_ground --check` neschimbat; `check_config_prices` găsește toate prețurile.
+
+**j8. Drumurile pe lume.** Depinde de: j7.
+- `RoadGraph.forWorld(w)` (`fromConfig()` rămâne `forWorld(1)`); `HandRoutes.context` poartă graful în loc de `true`; cheia
+  cache-ului din `viaBetween` (`:212-226`) include lumea; `HandRoutes.forWorld(w)`, iar lumea se alege după rol.
+- Verificare (teste): j1 identic; graful lumii 2 e conex; ciclurile fiecărei meserii a Erei 4 pe locurile reale nu taie apă sau
+  zone blocate; durata unui ciclu între 4,5 și 19,4 s; turul de mână are 2996 px.
+
+**j9. Râul, mersul și darurile pe lume, partea pură.** Depinde de: j7.
+- `WorldMap.forWorld(w)`; `CatchFloat.travel(netX, spawnX?)`, cu bușteni pornind de la piciorul deversorului; `DriftMath` cu
+  porțiunile de unde se scoate darul și `EXIT_X` pe lume, adică lacul și puntea barajului (D74, punctul 6); `RiverSim.box` pe
+  lume; `DriftService.reachesOf(world)`.
+- Verificare (teste): lumea 1 neschimbată; cazuri pentru lumea 2; determinismul [D13].
+
+**j10. Statusurile și porțile pe lume, pe server.** Depinde de: j2, j6.
+- `padStatuses` / `meetsNeeds` / `padBlocker` primesc venitul, printr-o singură funcție `TycoonMath.incomeGoal(base,
+  flowFactor)`; `TycoonMath.era(bought, padsOfWorld(w))`.
+- `PadService.Statuses` folosește lista lumii, nivelurile și venitul; `PadService.Grant` devine public; `DevGrant` refuză
+  platformele altei lumi.
+- O funcție pură `WorldMath.allowed(world, era)`, citită de BuyPad, UpgradeStation, UpgradeCrew, UsePlace, AtPlace,
+  CollectNet și DevGrant. Refuzul are motiv (`closed`), nu e tăcut [D43].
+- `NetService.Snapshot` și `tick` sar plasele altei lumi; `zoneStatuses` merge pe lume, iar zona `dam` din lumea 1 rămâne
+  încuiată cât timp Era 4 e în joc (`NetServer.luau:16-33`).
+- Verificare (teste): condiția de venit, cu și fără 2x Flow; tabelul de adevăr al lui `allowed`; `era` cu lista lumii; j1
+  identic.
+
+**j11. Quest-urile.** Depinde de: j2, j10.
+- Un quest revendicat nu mai e nici activ, nici capitol curent (R7). `QuestConfig.chaptersOfWorld(w)`, cu `facts.world` în
+  `currentChapter` și `chapterClosedBy`; `Claim` refuză quest-urile altei lumi.
+- Un fel nou de quest, `income`: `Facts.income`, `Facts.flowFactor`, `QuestMath.goalOf`, `counterText`; îl citesc
+  `QuestService.factsFor`, `Snapshot` și `Claim`; `DevService.chapter` sare `income`.
+- Capitolele 10–12 în `ALL_CHAPTERS`, în ordinea `DAM_CHAPTER`, adormite. `QuestMath.settleWorld`, pur: plătește doar în perle
+  tot ce e nerevendicat din capitolele 1–9, plus recompensele de capitol.
+- Verificare (teste): totul revendicat și AWAY 0, capitolul curent nu mai e 1; cu 2x Flow, pasul de venit cere 8T; testul de
+  ordine acceptă un quest de venit înaintea unei condiții `income`; sumele din `settleWorld`.
+
+**j12. `StateFrom` pur și startul de aur al barajului.** Depinde de: j3, j4.
+- `StationService.StateFrom` (`:159-213`) se mută într-un modul din Shared, care primește modelul ca parametru (`GAME` sau
+  `FULL`); `dam = data.World >= 2`; `UPGRADE_BASE` derivat pe erele din joc, cu rândurile switchyard/cableworks/relay/kiln/town.
+- `golden_chain.py --dam-start` scrie `GOLDEN_DAM_START`: venit 19.567.696.500/s, cu clopote.
+- Verificare (teste): profilurile de aur ale Erelor 1–3 dau același venit; profilul startului barajului, sub `FULL`, dă 19,57B/s.
+
+**j13a. Serverul pe unire: EconomyService și instantaneele.** Depinde de: j10, j11, j12.
+- `process` cu `assemble`, iar `processorSpeed` cu `joinWaiting`; liniile închise nu mai fac tick; scurgerea cu `drainOrder`.
+- `UseProcessor` → `useJoin`; `DropAt` → `dropJoin` și întoarce restul; vânzătorul refuză piesele (`part_to_relay`).
+- Instantaneele unirii fără `pileOf(nil)`; `SackSnapshot` cu `partBy`; gardă în `DevFillPile`; `HandService.drop` păstrează
+  restul.
+- Se adaugă `scripts/era4_flip.py` (R10).
+
+**j13b. Serverul pe unire: restul serviciilor.** Depinde de: j13a.
+- `HandService` sare oamenii retrași; plasele închise nu se mai umplu.
+- `StationService`: gardă în `BUILDING_ROWS`; rânduri și meserii doar ale lumii; `LineView` cu `supply`, `heldBy`, `netsLine`,
+  `isOpen`, `waiting`. `WelcomeInfo` primește `awayStalled` / `unhired`. `CrewMath.fromProfile` și `VillageLook.hands` sar
+  oamenii retrași.
+- **Verificare j13 (prima probă pe comutatorul local):** profil de probă în lumea 1, la Works Bell. `errors` gol, `TycoonState`
+  ajunge, venitul e egal cu cel de fără comutator, nicio platformă a Erei 4 nu e `available`, capitolele se opresc la 9, zona
+  `dam` e încuiată. Apoi comutatorul se oprește.
+
+**j14. `WorldMath.buildDam` și previzualizarea, pure.** Depinde de: j4, j5, j11, j12, j13b.
+- **Ordinea:**
+  1. gărzi;
+  2. `Memories.oldVillage`, copie adâncă a satului;
+  3. „Last cart”: marfa rămasă se vinde la preț întreg;
+  4. `settleWorld` plătește quest-urile vechi;
+  5. banii: R = min(C, coinsBought); monedele noi = START + R; darul = max(0, C − R − START); completarea = max(0, START − (C − R));
+  6. `World = 2`;
+  7. cei 5 veterani se re-cheiază, cu numele și chipul copiate explicit, plus `formerRole` și medalie; restul oamenilor devin
+     `retired`;
+  8. cele 7 platforme gratuite, veteranii puși direct (fără `Hire`);
+  9. `Firsts`, chitanța.
+- Verificare (teste): a doua chemare nu face nimic; invarianta „monede noi + dar = C + completare” pe toate ramurile; nimic
+  șters în afara celor 5 chei vechi; numele și chipurile sunt copii, nu referințe; venitul de după ≥ venitul de dinainte și
+  egal cu startul de aur; grămezile vechi golite, cu suma vândută egală cu „Last cart”.
+
+**j15. `DamService`, remote-urile și uneltele de probă.** Depinde de: j13, j14.
+- **Remote-uri (doar RemoteEvent):** `BuildDam`, `DamPreview`/`DamPreviewResult`, `DamBuilt`, `DamRejected`, `DamFilmSeen`;
+  găleata `Dam` în RateLimiter; handlerele în NetServer; ordinea `Init` în `Bootstrap.server` fixată de un test text.
+- **`DamService`:** răspunde `soon` cât Era 4 nu e în joc; refuză cu `settling` cât plata offline nu e făcută; verifică
+  `expectedKeep`; aplică `buildDam` dintr-o bucată; invalidează Pads și Stations; `DataService.SaveNow` (scos din
+  PurchaseService), apoi `DamBuilt`; Analytics.
+- **DevService:** `world:N`, `dam`, saltul la capitolele 10–12, numele noilor grămezi, `up:` pe clădirile noi.
+- Verificare: `check_requires` pe ambele proiecte (`DamService` nu intră în bâlci); probă pe comutator: `dev dam` arată cifrele
+  lui `WorldMath`; `dev world:2`, apoi Stop/Play cu „keep save”: serverul e în lumea 2, AWAY 0, capitolul 10, plasele vechi
+  stau, fără erori.
+
+### k: clientul. Fără owner, cu desene de împrumut, în afară de k9 și k12.
+
+**k1. Clientul pornește după lume.** Depinde de: j9, j15.
+- `WorldSession`; `Bootstrap` așteaptă atributul `World` (cel mult 25 s, apoi 1), cu `TycoonState.world` copiat explicit și o
+  gardă care îngheață starea. Camera și personajul pe `WorldMap.forWorld`, cu spawn-ul lumii.
+- În lumea 2 nu pornesc controllerele satului vechi (Dock, Storage, Sawmill, Shed, Forge, Modern, Look); River, Ambient și Drift
+  merg pe lume. `SceneArt.BuildBackground(layers, world)`, cu dale și forme provizorii pentru lac, zid și canal; se repară și
+  scurgerea de conexiuni `PreRender`.
+- Verificare: sonda pe lumea 1, pe codul comis, dă aceleași texte; pe comutator, lumea 2 pornește fără erori, iar zidul și
+  canalul opresc personajul.
+
+**k2. Platformele, zonele, Overlay și ghidajul pe lume.** Depinde de: k1.
+- Cele 4 bucle din PadController; Overlay (refuzurile, `DROP_AT` cu rezerva de la DOCK); ZoneController (prima zonă a unei
+  lumi fără gard); StationPanel; CeremonyController; GuideMath cu țintele lumii 1 doar în lumea 1; Sound și Dock; felinarele pe
+  lume; locurile de decor din Dam Town.
+
+**k3. Liniile barajului în client.** Depinde de: k2, j13.
+- 6 clădiri fixe cu `borrowed`; `LineController` pentru unire (două grămezi, `waiting` copiat explicit); Overlay `DROP_AT` /
+  `playerStand` la `:273, :721-743, :821`; GuideMath și `STEP_OF_JOB`.
+- Turbina din zid (824–880, 690–768); Dam Collector-ul ia de la piciorul zidului; oamenii retrași stau fără traseu.
+
+**k4. Meniurile și cuvintele.** Depinde de: k3.
+- `StationMenu.CHAIN` pe lume și schimbarea de cartier în StationPanel; `Strings` pentru Era 4 (refuzurile, „Opens at 4T coins a
+  second”, „Waiting for cable/barrels”, indiciile, AWAY 0); textele `HeldBack`; `check_panel_rows`.
+
+**k5. Quest-uri, linia NEXT și ghidajul pentru capitolele 10–12.** Depinde de: k4, j11.
+- `counterText` și lista fără paranteze; `HUDController.SetStep` păstrează bara de venit; primul tur în 6 pași de mână; fără
+  preț și fără „While you save” pe o platformă încuiată; ghidajul sare meseriile la maxim cât ține un pas de venit; indiciul
+  AWAY. Teste Lune pe GuideMath și QuestMath.
+
+**k6. Intrarea din lumea 1.** Depinde de: k2, j15.
+- Steagul `damAvailable` în stare. Masa Dam Plans devine „Build the Dam (E)” (azi ar dispărea la `eraIsLive(4)`,
+  `ModernController.luau:104-150`); bannerul de la Works Bell și linia NEXT; „Goes into the Dam when you build it” pe cardurile
+  de nivel; „Welcome back” spune regula sumei de start; EraWords, Ceremony, `Overlay:794`, `comingEra(w)`.
+- Verificare: ambele ramuri (Era 4 în joc și nu) testate.
+
+**k7. Ecranul „Build the Dam”.** Depinde de: k6.
+- Trei coloane cu cifrele din `DamPreviewResult`; `Widgets.HoldButton` nou (1,5 s); „Not yet”; `Theme.fitSize` pe fiecare cifră;
+  textele pentru refuzuri; chitanța.
+
+**k8. Reîncărcarea în lumea 2.** Depinde de: k7.
+- `FerryService.Depart(player, destination?)` (barca rămâne identică); salvare, `MarkTeleporting`, apoi teleport în același
+  place; cartonașul „THE DAM” ca TeleportGui.
+- Verificare: sonda pe barcă, identică. Teleportul real se probează doar pe staging (l2).
+
+**k9. Filmul.** Depinde de: k8. Owner: stilul și lungimea (O1, luate ca recomandate), plus arta filmului.
+- `DamMath.frameAt(t)` pur, cu teste; `VillageDiorama` se mută în `Client/UI` (`check_requires` pe ambele proiecte);
+  `MusicController.Play`; mersul se oprește; `ReducedMotionEnabled`; Skip de la secunda 3 la prima vizionare; comanda de sondă
+  `cinematic:seek`.
+
+**k10. Dam Town și oamenii retrași.** Depinde de: k9, j14.
+- Cantina, căsuțele, piața, clopotnița cu plăcile cu cifrele jucătorului, Memory Wall din `Memories.oldVillage`; oamenii
+  retrași se plimbă pe graful lumii 2; o pagină „Your people”.
+
+**k11. Bâlciul pentru gazdele din lumea 2.** Depinde de: j4, k10. Owner: ce intră la prima lansare (O1, luat ca recomandat).
+- `VillageLook.Snapshot.world`, copiat explicit. Până la decizie (și acum, provizoriu): fotografia satului vechi, cu semnul
+  „Building the Dam”. `TitleMath` „Dam Builder” derivat din `World >= 2`; `build_balci DevWorld`. Macheta lumii 2, titlul, poza
+  „Before the Dam” și „Watch again” vin după prima lansare.
+
+**k12. Pământul copt al lumii 2.** Depinde de: j7, A0. Owner: aprobarea planșei și a urcării (2 imagini).
+- `village_geometry.luau` cu lumea ca argument (lumea 1 iese identică în JSON); `village_ground.py --world 2` scrie două felii
+  (`prop_dam_ground`, `_2`) și `dam_ground.lock`; `--check` pe ambele lumi, în CI, `publish_staging` și CLAUDE.md;
+  `BAKED_DISTRICTS` pentru lumea 2 abia după urcare.
+
+### A: arta, în paralel, după O1
+
+Fiecare lot: planșă, aprobare, acordul de urcare, apoi verificarea moderării. **Aprobarea și fiecare urcare cer owner-ul,
+explicit.**
+
+| Lot | Ce | Imagini | Se poate împrumuta? |
+|---|---|---|---|
+| A0 | Planșe fără urcare: silueta barajului (fața din aval și spumă), ~6 cadre-cheie ale filmului, previzualizarea pământului lumii 2 | 0 | — |
+| A1 | Reperele lumii 2: zidul, deversorul, fața turbinei, canalul cu stăvila și casa podului, stâlpii, orașul pictat stins și aprins, clopotnița, Memory Wall, căsuța, cristalul pe râu | ~13 | Nu |
+| A2 | Filmul | ~12 imagini și 3 sunete | Nu |
+| A3 | Pământul copt (k12) | 2 | Nu |
+| A4 | Clădirile, colibele, mărfurile, ținutele | ~14 + ~20–28 + ~12–15 + 10–15 | Da; pot veni și după lansare |
+
+Totalul, ~92–97 de imagini și 3 sunete până se joacă Era 4 (PLAN-HARTA §7).
+
+### l: proba și comutatorul
+
+**l1. Proba cap-coadă pe comutatorul local, pe profil de probă.** Depinde de: toate j și k, A1, A2.
+- Înainte de Play: `lsof -nP -iTCP:34872` arată `ESTABLISHED`.
+- Drumul: Works Bell → previzualizare → Build → `dev world:2`, Stop/Play cu „keep save” → turul cablului → cei 6 oameni (AWAY 0,
+  apoi peste 0) → „Earn 1T” → Kiln → cristalul → „Earn 4T” → Dam Bell → o absență → o vizită în bâlci.
+- Verificări: `errors` gol, niciun text care iese din cutie; quest-urile nu se întorc în capitolul 1; grămezile vechi nu mai
+  cresc; un al doilea Build nu face nimic.
+
+**l2. Ce poate verifica doar owner-ul, în Studio și pe staging.**
+- Filmul și mișcarea, mersul (~8 s până la Relay), riscul de pe telefon (460 vs 476 px).
+- Teleportul, doar pe un place publicat: fereastra satului din Studio se închide întâi, altfel Roblox răspunde 409. Cere acordul
+  lui pentru publicare.
+
+**l3. Comutatorul: singurul commit care schimbă jocul.** Depinde de: l1, l2.
+- `ENGINE_ERAS = 4` și `live = true` pe cele 23 de platforme.
+- **Testele de adormire, rescrise:** `ChainMath.test.luau:3214`, `FlowMath.test.luau:76` (devine 34) și `:374-383` / `:501`,
+  `HandRoutes.test.luau:715`, `TycoonConfig.test.luau:101` / `:124` / `:1245-1262`.
+- Verificare: j1 verde, cu excepțiile scrise (zona `dam` din lumea 1 și masa Dam Plans); `sim --table --chain --robust` identic;
+  CLAUDE.md și DECIZII actualizate; `verify-work`; push.
