@@ -109,15 +109,10 @@ local function flatten(lists: { { string } }, upTo: number): { string }
     return out
 end
 
--- Platformele lumii 1, in ordinea tabelului (de la j6: TycoonConfig.padsOfWorld(1)).
+-- Platformele lumii 1, in ordinea tabelului. [j6] Din accesoriu: martorul neschimbat dovedeste ca da exact erele 1-3
+-- (testul de mai jos le mai compara si cu filtrul pe era).
 local function world1Pads(): { TycoonConfig.Pad }
-    local out = {}
-    for _, p in TycoonConfig.PADS do
-        if p.era <= WORLD1_ERAS then
-            table.insert(out, p)
-        end
-    end
-    return out
+    return TycoonConfig.padsOfWorld(1)
 end
 
 local function isNet(p: TycoonConfig.Pad): boolean
@@ -210,28 +205,27 @@ local function world1(): string
     section(out, "roads.points", g.points)
     section(out, "roads.edges", g.edges)
     section(out, "roads.rects", g.rects)
-    for _, d in TycoonConfig.DISTRICTS do
-        if d.era <= WORLD1_ERAS then
-            section(out, "district." .. tostring(d.era), d)
-        end
+    for _, d in TycoonConfig.districtsOf(1) do
+        section(out, "district." .. tostring(d.era), d)
     end
     section(out, "DECK", TycoonConfig.DECK)
     section(out, "ROADS", TycoonConfig.ROADS)
     section(out, "YARDS", TycoonConfig.YARDS)
-    section(out, "DECOR", TycoonConfig.DECOR)
-    section(out, "ZONES", TycoonConfig.ZONES)
-    section(out, "streetLamps", TycoonConfig.streetLamps())
-    section(out, "wirePoles", TycoonConfig.wirePoles())
-    section(out, "homeClearRects", TycoonConfig.homeClearRects())
-    section(out, "deckSpans", TycoonConfig.deckSpans())
+    section(out, "DECOR", TycoonConfig.decorOf(1))
+    section(out, "ZONES", TycoonConfig.zonesOf(1))
+    section(out, "streetLamps", TycoonConfig.streetLamps(1))
+    section(out, "wirePoles", TycoonConfig.wirePoles(1))
+    section(out, "homeClearRects", TycoonConfig.homeClearRects(1))
+    section(out, "deckSpans", TycoonConfig.deckSpans(1))
     section(out, "decor", VillageDecor.items())
 
     -- locurile liniilor si ale vanzatorilor (gramezi, standuri, clienti)
+    local linePlaces, sellerPlaces = TycoonConfig.linePlacesOf(1), TycoonConfig.sellerPlacesOf(1)
     for _, line in lines do
-        section(out, "LINE_PLACES." .. line, TycoonConfig.LINE_PLACES[line])
+        section(out, "LINE_PLACES." .. line, linePlaces[line])
     end
     for _, seller in sellers do
-        section(out, "SELLER_PLACES." .. seller, TycoonConfig.SELLER_PLACES[seller])
+        section(out, "SELLER_PLACES." .. seller, sellerPlaces[seller])
     end
     section(out, "PILES", TycoonConfig.PILES)
     section(out, "spots", {
@@ -244,7 +238,7 @@ local function world1(): string
         FERRY_BOARD = TycoonConfig.FERRY_BOARD,
         TREASURE_SLOTS = TycoonConfig.TREASURE_SLOTS,
         TAVERN = TycoonConfig.TAVERN,
-        SPAWN = TycoonConfig.SPAWN,
+        SPAWN = TycoonConfig.spawnOf(1),
         WHEEL_STAND = TycoonConfig.WHEEL_STAND,
         VILLAGE_BOARD = TycoonConfig.VILLAGE_BOARD,
         STORAGE = TycoonConfig.STORAGE,
@@ -451,6 +445,33 @@ return function()
         test.case("niciun loc de unire nu e al unei linii din lumea 1", function()
             for line in TycoonConfig.JOIN_PLACES do
                 check.is_true((StationConfig.ERA_OF_LINE[line] or math.huge) > WORLD1_ERAS)
+            end
+            check.equal(next(TycoonConfig.joinPlacesOf(1)), nil)
+        end)
+
+        test.case("[j6] lumea 1 a accesoriilor e exact erele 1-3 si tabelele de azi", function()
+            local byEra = {}
+            for _, p in TycoonConfig.PADS do
+                if p.era <= WORLD1_ERAS then
+                    table.insert(byEra, p)
+                end
+            end
+            local pads = TycoonConfig.padsOfWorld(1)
+            check.equal(#pads, #byEra)
+            for i, p in byEra do
+                check.is_true(pads[i] == p)
+            end
+            check.equal(#pads, 54)
+            check.is_true(TycoonConfig.padsOfWorld() == pads)
+            check.is_true(TycoonConfig.districtsOf(1) == TycoonConfig.DISTRICTS)
+            check.is_true(TycoonConfig.zonesOf(1) == TycoonConfig.ZONES)
+            check.is_true(TycoonConfig.decorOf(1) == TycoonConfig.DECOR)
+            check.is_true(TycoonConfig.spawnOf(1) == TycoonConfig.SPAWN)
+            for line, place in TycoonConfig.LINE_PLACES do
+                check.is_true(TycoonConfig.linePlacesOf(1)[line] == place)
+            end
+            for seller, place in TycoonConfig.SELLER_PLACES do
+                check.is_true(TycoonConfig.sellerPlacesOf(1)[seller] == place)
             end
         end)
 

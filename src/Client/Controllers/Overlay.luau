@@ -733,7 +733,8 @@ function Overlay.Init(d: Deps)
             DROP_AT[spec.processor] = join.inputIn[first.line]
         end
     end
-    for seller, places in TycoonConfig.SELLER_PLACES do
+    -- [D70, pasul j6] vanzatorii lumii de acum (satul, pana cand clientul afla lumea la pasul k1)
+    for seller, places in TycoonConfig.sellerPlacesOf() do
         DROP_AT[seller] = places.door
     end
     deps.Remotes.HandDelivered.OnClientEvent:Connect(

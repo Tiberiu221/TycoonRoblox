@@ -64,6 +64,9 @@ export type Good = { id: string, value: number }
 -- [D55] O parte din ce prinde un fel de plasa: bunul si ponderea lui.
 export type CatchPart = { id: string, share: number }
 
+local StationConfig = require(script and script.Parent.StationConfig or "./StationConfig")
+local WorldConfig = require(script and script.Parent.WorldConfig or "./WorldConfig")
+
 local TycoonConfig = {}
 
 -- Nivelul pe care trebuie sa-l atinga plasa dinainte ca sa apara urmatoarea. Aceeasi cifra e in
@@ -2398,10 +2401,104 @@ function TycoonConfig.eraIsLive(era: number): boolean
     return liveEras[era] == true
 end
 
+-- [D70, pasul j6] LUMILE (WorldConfig): satul de pe rau (lumea 1, Erele 1-3) si barajul (lumea 2, de la Era 4). Lumea
+-- unui lucru vine din era lui. Geometria lumii 2 intra in WORLDS[2] (pasul j7), niciodata in DISTRICTS / ZONES / DECOR,
+-- care raman ale lumii 1 (R4: altfel drumurile ei s-ar lega de ale satului, iar pamantul copt s-ar schimba). Fiecare
+-- accesoriu primeste lumea; fara ea, lumea 1, deci cine nu stie inca de lumi vede satul de azi, neschimbat.
+export type World = {
+    districts: { District },
+    zones: { Zone },
+    decor: { DecorItem },
+    spawn: { x: number, y: number },
+    lamps: { Lamp }?,
+    poles: { WirePole }?,
+}
+TycoonConfig.WORLDS = {
+    [1] = {
+        districts = TycoonConfig.DISTRICTS,
+        zones = TycoonConfig.ZONES,
+        decor = TycoonConfig.DECOR,
+        spawn = TycoonConfig.SPAWN,
+    },
+} :: { [number]: World }
+local function worldOf(w: number?): World?
+    return TycoonConfig.WORLDS[WorldConfig.sanitize(w)]
+end
+
+local padsByWorld: { [number]: { Pad } } = {}
+for _, p in TycoonConfig.PADS do
+    local w = WorldConfig.worldOfEra(p.era)
+    local list = padsByWorld[w]
+    if list == nil then
+        list = {}
+        padsByWorld[w] = list
+    end
+    table.insert(list, p)
+end
+-- Platformele unei lumi, in ordinea tabelului (aceleasi obiecte ca in PADS).
+function TycoonConfig.padsOfWorld(w: number?): { Pad }
+    return padsByWorld[WorldConfig.sanitize(w)] or {}
+end
+function TycoonConfig.districtsOf(w: number?): { District }
+    local world = worldOf(w)
+    return if world ~= nil then world.districts else {}
+end
+function TycoonConfig.zonesOf(w: number?): { Zone }
+    local world = worldOf(w)
+    return if world ~= nil then world.zones else {}
+end
+function TycoonConfig.decorOf(w: number?): { DecorItem }
+    local world = worldOf(w)
+    return if world ~= nil then world.decor else {}
+end
+function TycoonConfig.spawnOf(w: number?): { x: number, y: number }
+    local world = worldOf(w)
+    return if world ~= nil then world.spawn else TycoonConfig.SPAWN
+end
+
+-- Lumea fiecarei linii (dupa era ei, din toate erele scrise) si a fiecarui vanzator (dupa liniile pe care le vinde).
+local worldOfLine: { [string]: number } = {}
+for era, lines in StationConfig.ERA_LINES_ALL do
+    for _, line in lines do
+        worldOfLine[line] = WorldConfig.worldOfEra(era)
+    end
+end
+local worldOfSeller: { [string]: number } = {}
+for line, spec in StationConfig.LINES do
+    if spec.seller ~= nil and worldOfLine[line] ~= nil then
+        worldOfSeller[spec.seller :: string] = worldOfLine[line]
+    end
+end
+local function placesOfWorld<T>(
+    places: { [string]: T },
+    worldOfKey: { [string]: number },
+    w: number?
+): { [string]: T }
+    local world = WorldConfig.sanitize(w)
+    local out: { [string]: T } = {}
+    for key, value in places do
+        if (worldOfKey[key] or 1) == world then
+            out[key] = value
+        end
+    end
+    return out
+end
+-- Locurile liniilor, ale unirilor si ale vanzatorilor unei lumi (aceleasi obiecte ca in LINE_PLACES / JOIN_PLACES /
+-- SELLER_PLACES). Un loc fara linie cunoscuta e al lumii 1.
+function TycoonConfig.linePlacesOf(w: number?): { [string]: LinePlaces }
+    return placesOfWorld(TycoonConfig.LINE_PLACES, worldOfLine, w)
+end
+function TycoonConfig.joinPlacesOf(w: number?): { [string]: JoinPlaces }
+    return placesOfWorld(TycoonConfig.JOIN_PLACES, worldOfLine, w)
+end
+function TycoonConfig.sellerPlacesOf(w: number?): { [string]: SellerPlaces }
+    return placesOfWorld(TycoonConfig.SELLER_PLACES, worldOfSeller, w)
+end
+
 -- [D73] Puntea fiecarui cartier, pe X, cu era lui (darurile raului se scot de pe puntea oricarui cartier deschis).
-function TycoonConfig.deckSpans(): { { era: number, x0: number, x1: number } }
+function TycoonConfig.deckSpans(w: number?): { { era: number, x0: number, x1: number } }
     local out: { { era: number, x0: number, x1: number } } = {}
-    for _, d in TycoonConfig.DISTRICTS do
+    for _, d in TycoonConfig.districtsOf(w) do
         table.insert(out, { era = d.era, x0 = d.deck.x0, x1 = d.deck.x1 })
     end
     return out
@@ -2431,8 +2528,8 @@ end
 -- [2026-09-30] FINALUL CE E IN JOC. Era care urmeaza si nu e inca in joc (numele zonei ei: "The Dam"), sau nil cand toate
 -- erele cu zona sunt in joc. Finalul erei de acum spune ce vine (bannerul de dupa clopot, capitolul, lista de quest-uri,
 -- masa cu planurile), nu tace.
-function TycoonConfig.comingEra(): { era: number, name: string }?
-    for _, zone in TycoonConfig.ZONES do
+function TycoonConfig.comingEra(w: number?): { era: number, name: string }?
+    for _, zone in TycoonConfig.zonesOf(w) do
         if not TycoonConfig.eraIsLive(zone.era) then
             return { era = zone.era, name = zone.name }
         end
@@ -2447,9 +2544,9 @@ end
 -- Doar cartierele de DUPA The Landing: satul vechi a fost asezat si vazut cu decorul lui (niciun nume acoperit), iar
 -- dreptunghiul unui brad e mai lat decat varful lui -- regula ar fi scos de acolo un brad pe care jucatorii il stiu.
 export type HomeClear = { x0: number, x1: number, y0: number, y1: number, frontOf: number }
-function TycoonConfig.homeClearRects(): { HomeClear }
+function TycoonConfig.homeClearRects(w: number?): { HomeClear }
     local out = {}
-    for _, p in TycoonConfig.PADS do
+    for _, p in TycoonConfig.padsOfWorld(w) do
         if p.live and p.era > 1 and crewOfPad[p.id] ~= nil and p.x ~= nil and p.y ~= nil then
             local x, y = p.x :: number, p.y :: number
             local base = TycoonConfig.buildingBase(p)
@@ -2473,15 +2570,28 @@ export type Lamp = { x: number, y: number, era: number }
 -- Acolo capul felinarului le-ar taia fata sau roaba oricum le-ai aseza in adancime, deci golul acela ramane fara
 -- felinar. Cutiile: capul felinarului x+-15, y 1372..1414; stalpul x+-6 pana la baza; omul 40x60, prins de talpi, cu
 -- roaba de 60x50 in fata lui (PersonView: celula 13, x2.5).
-local function lampHitsWorker(x: number): boolean
+local function lampHitsWorker(x: number, w: number): boolean
     local function hits(bx0: number, by0: number, bx1: number, by1: number): boolean
         local head = x - 15 < bx1 and bx0 < x + 15 and 1372 < by1 and by0 < 1414
         local post = x - 6 < bx1 and bx0 < x + 6 and 1414 < by1 and by0 < TycoonConfig.LAMP_BASE_Y
         return head or post
     end
-    for _, place in TycoonConfig.LINE_PLACES do
-        local w = place.workerStand
-        for _, spot in { w, { x = w.x + place.secondOffset.x, y = w.y + place.secondOffset.y } } do
+    -- [D70, pasul j6] doar locurile lumii felinarului: oamenii altei harti nu stau pe strada asta
+    for _, union in TycoonConfig.joinPlacesOf(w) do
+        local stand = union.workerStand
+        for _, spot in
+            { stand, { x = stand.x + union.secondOffset.x, y = stand.y + union.secondOffset.y } }
+        do
+            if hits(spot.x - 20, spot.y - 60, spot.x + 20, spot.y) then
+                return true
+            end
+        end
+    end
+    for _, place in TycoonConfig.linePlacesOf(w) do
+        local stand = place.workerStand
+        for _, spot in
+            { stand, { x = stand.x + place.secondOffset.x, y = stand.y + place.secondOffset.y } }
+        do
             if hits(spot.x - 20, spot.y - 60, spot.x + 20, spot.y) then
                 return true
             end
@@ -2496,17 +2606,23 @@ local function lampHitsWorker(x: number): boolean
     end
     return false
 end
-function TycoonConfig.streetLamps(): { Lamp }
+function TycoonConfig.streetLamps(w: number?): { Lamp }
+    local world = WorldConfig.sanitize(w)
+    if world ~= 1 then
+        -- [D70] felinarele lumii 2 sunt scrise de mana in WORLDS[2] (pasul j7)
+        local other = worldOf(world)
+        return if other ~= nil and other.lamps ~= nil then other.lamps else {}
+    end
     local out: { Lamp } = {}
     if not TycoonConfig.eraIsLive(3) then
         return out
     end
-    for _, district in TycoonConfig.DISTRICTS do
+    for _, district in TycoonConfig.districtsOf(world) do
         if not TycoonConfig.eraIsLive(district.era) then
             continue
         end
         local xs: { number } = {}
-        for _, p in TycoonConfig.PADS do
+        for _, p in TycoonConfig.padsOfWorld(world) do
             if p.era == district.era and crewOfPad[p.id] ~= nil and p.y == 1564 and p.x ~= nil then
                 table.insert(xs, p.x :: number)
             end
@@ -2514,7 +2630,7 @@ function TycoonConfig.streetLamps(): { Lamp }
         table.sort(xs)
         for i = 1, #xs - 1 do
             local x = (xs[i] + xs[i + 1]) / 2
-            if not lampHitsWorker(x) then
+            if not lampHitsWorker(x, world) then
                 table.insert(out, { x = x, y = TycoonConfig.LAMP_BASE_Y, era = district.era })
             end
         end
@@ -2576,14 +2692,20 @@ end
 TycoonConfig.WIRE_POLE_BASE_Y = 1418
 TycoonConfig.WIRE_POLE_XS = { 480, 760, 1234, 1400 } -- in cartierul satului; celelalte, mutate cu MILL_DX
 export type WirePole = { x: number, y: number, kind: string, mirror: boolean }
-function TycoonConfig.wirePoles(): { WirePole }
+function TycoonConfig.wirePoles(w: number?): { WirePole }
+    local world = WorldConfig.sanitize(w)
+    if world ~= 1 then
+        -- [D70] stalpii lumii 2 sunt scrisi de mana in WORLDS[2] (pasul j7); acestia sunt ai modernizarii Erei 3
+        local other = worldOf(world)
+        return if other ~= nil and other.poles ~= nil then other.poles else {}
+    end
     local out: { WirePole } = {}
     if not TycoonConfig.eraIsLive(3) then
         return out
     end
     local y = TycoonConfig.WIRE_POLE_BASE_Y
     local live = 0
-    for _, district in TycoonConfig.DISTRICTS do
+    for _, district in TycoonConfig.districtsOf(world) do
         if TycoonConfig.eraIsLive(district.era) then
             live += 1
         end
