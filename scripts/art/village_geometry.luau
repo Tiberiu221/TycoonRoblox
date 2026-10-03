@@ -100,7 +100,7 @@ local out = {
     plot = RiverConfig.PLOT,
     -- latimea unei felii de pamant copt, in pixeli de lume: Roblox micsoreaza orice imagine peste 1024, deci lumea
     -- (3840 / 3 = 1280 px) se coace pe felii de 2880 (960 px)
-    tile = RiverConfig.ERA1_WORLD_WIDTH,
+    tile = RiverConfig.BAKE_SLICE, -- [D70] felia de coacere (era aceeasi cifra ca ERA1_WORLD_WIDTH)
     -- [D67] marginile din dreapta ale fasiilor de dupa satul vechi (Moara, Wire Works): ce se imprastie la intamplare
     -- se imprastie pe fiecare fasie cu samanta ei, ca o fasie noua sa nu mute nimic din cele de dinainte
     strips = stripEnds,

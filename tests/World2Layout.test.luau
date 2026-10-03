@@ -228,11 +228,10 @@ return function()
             local things = placed()
             local rs = roads()
             local bad = {}
-            -- doar cladirile, casutele, apa si stalpii: oamenii si gramezile au voie pe marginea drumului
+            -- cladirile (si cele de pe platforme), casutele, apa si stalpii: oamenii si gramezile au voie pe marginea drumului
             for name, b in things do
                 local built = string.sub(name, 1, 5) ~= "pile_"
                     and string.find(name, ".", 1, true) == nil
-                    and string.sub(name, 1, 9) ~= "building_"
                 if built then
                     for _, r in rs do
                         if hit(b, r) then
@@ -244,12 +243,11 @@ return function()
             for _, p in TycoonConfig.padsOfWorld(W) do
                 local px, py = p.x :: number, p.y :: number
                 if isNet(p) then
-                    local onDeck = false
-                    for _, d in decks() do
-                        onDeck = onDeck or (px >= d.x0 and px <= d.x1 and py >= d.y0 and py <= d.y1)
-                    end
-                    if not onDeck then
-                        table.insert(bad, `plasa {p.id} nu e pe punte`)
+                    -- pe puntea barajului: ce prind plasele vine de la deversor (x 880), nu de pe lac
+                    local d = (TycoonConfig.districtsOf(W)[2] :: TycoonConfig.District).deck
+                    check.equal(TycoonConfig.districtsOf(W)[2].id, "dam")
+                    if not (px >= d.x0 and px <= d.x1 and py >= d.y0 and py <= d.y1) then
+                        table.insert(bad, `plasa {p.id} nu e pe puntea barajului`)
                     end
                 else
                     local pb = { x0 = px - HALF, x1 = px + HALF, y0 = py - HALF, y1 = py + HALF }
@@ -293,6 +291,76 @@ return function()
             end
             check.equal(#bad, 0)
         end)
+
+        test.case(
+            "stalpii podului, clientii orasului si gardurile nu calca oameni, gramezi sau nume",
+            function()
+                local things = placed()
+                local bad = {}
+                -- stalpii de pod stau pe marginea canalului (au voie pe drum), dar nu peste oameni sau gramezi
+                for _, p in world.pylons :: { TycoonConfig.Pylon } do
+                    if p.overRoad then
+                        local b = box(p.x, p.y, p.w, p.h)
+                        for name, other in things do
+                            local person = string.find(name, ".", 1, true) ~= nil
+                            if (person or string.sub(name, 1, 5) == "pile_") and hit(b, other) then
+                                table.insert(bad, `stalpul {p.name} x {name}`)
+                            end
+                        end
+                    end
+                end
+                -- clientii orasului: unde vin si unde asteapta (omul desenat, 40x60, prins de talpi)
+                local labels = {}
+                for _, p in TycoonConfig.padsOfWorld(W) do
+                    local role = TycoonConfig.CREW_OF_PAD[p.id]
+                    if role ~= nil then
+                        local half = #TycoonConfig.CREWS[role].name * EM * TINY / 2 + 2
+                        local x, y = p.x :: number, p.y :: number
+                        labels[`name_{p.id}`] = {
+                            x0 = x - half,
+                            x1 = x + half,
+                            y0 = y + 56,
+                            y1 = y + 58 + TINY * 1.03 + 2,
+                        }
+                    end
+                end
+                local town = sellers.town
+                local customers = { { name = "entry", at = town.customerEntry } }
+                for i, spot in town.customerSpots do
+                    table.insert(customers, { name = `spot_{i}`, at = spot })
+                end
+                for _, c in customers do
+                    local b = box(c.at.x, c.at.y, 40, 60)
+                    -- la fereastra-tejghea clientii stau lipiti de Switch House (ca la taverna): cladirea lor nu se numara
+                    for name, other in things do
+                        if name ~= "spawn" and name ~= "switchHouse" and hit(b, other) then
+                            table.insert(bad, `clientul {c.name} x {name}`)
+                        end
+                    end
+                    for name, label in labels do
+                        if hit(b, label) then
+                            table.insert(bad, `clientul {c.name} x {name}`)
+                        end
+                    end
+                end
+                -- un gard de zona (ZoneController) acopera ~42 px de partea luminata: nimic construit acolo
+                local fenceArt = (Assets.props :: any).fence
+                for _, zone in TycoonConfig.zonesOf(W) do
+                    if zone.fence ~= false then
+                        local edge = zone.x0 - fenceArt.height * Assets.PIXEL_SCALE / 2
+                        for name, b in things do
+                            if b.x1 > edge and b.x0 < zone.x0 then
+                                table.insert(bad, `sub gardul zonei {zone.id}: {name}`)
+                            end
+                        end
+                    end
+                end
+                for _, b in bad do
+                    print("  ! " .. b)
+                end
+                check.equal(#bad, 0)
+            end
+        )
 
         test.case(
             "felinarele lumii 2 sunt cele date de regula strazii, cu 72 px de orice casa",

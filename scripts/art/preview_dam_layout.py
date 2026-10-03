@@ -142,12 +142,13 @@ JOIN = {
 }
 _TAVERN_SPOTS = [(340, 1094, "up"), (380, 1098, "up"), (330, 1150, "right"), (282, 1160, "right"),
                  (385, 1180, "left"), (236, 1196, "right"), (318, 1212, "up"), (430, 1214, "left")]
-_DX = 2059 - 420  # usa Switch House - usa tavernei: clientii stau ca la taverna (testul de oglinda trece neschimbat)
+_DX = 2059 - 420  # usa Switch House - usa tavernei: clientii stau ca la taverna (intrarea, mai jos, nu)
 TOWN = {
     "door": P(2059, 1130), "stand": P(2109, 1152), "pile": P(1901, 1086),
-    "building": {"x": 2039, "y": 1080, "w": 192, "h": 144}, "secondOffset": P(60, 0),
+    "building": {"x": 2039, "y": 1080, "w": 192, "h": 144}, "secondOffset": P(48, 0),
     "customerSpots": [{"x": x + _DX, "y": y, "facing": f} for x, y, f in _TAVERN_SPOTS],
-    "customerEntry": P(150 + _DX, 1130),
+    # [dupa verificatorul j7] intrarea pe iarba de sub piata, nu prin taraba Dispatcher-ului (in oglinda ar fi fost y 1130)
+    "customerEntry": P(150 + _DX, 1240),
 }
 PILES = {  # numele din FlowConfig -> baza
     "DamStorePile": LINES["barrels"]["storePile"], "SwitchyardPile": LINES["barrels"]["inPile"],

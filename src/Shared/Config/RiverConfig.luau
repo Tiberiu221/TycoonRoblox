@@ -85,6 +85,11 @@ local RiverConfig = {
 -- [D67] FASIILE DE DECOR de dupa partea veche a satului (WorldDecor.village), in ordinea in care au venit: fiecare cu
 -- marginea ei din dreapta si terenul fara decor de pe vremea ei. O fasie noua isi primeste decorul ei, cu samanta ei,
 -- fara sa mute un copac din cele de dinainte (Moara ramane exact cum a vazut-o owner-ul).
+-- [D70, dupa verificatorul j7] Latimea unei felii de pamant copt (SceneArt, village_geometry): imaginea de 2.880 px de
+-- lume, la pasul 3, are 960 px, sub limita de 1.024 a Roblox. Era aceeasi cifra ca ERA1_WORLD_WIDTH, dar inseamna altceva:
+-- in lumea 2 decorul are o singura fasie (ERA1_WORLD_WIDTH = 3.385), iar feliile raman de 2.880.
+RiverConfig.BAKE_SLICE = 2880
+
 RiverConfig.DECOR_STRIPS = {
     { x1 = RiverConfig.ERA2_WORLD_WIDTH, plot = RiverConfig.PLOT_ERA2 },
     { x1 = RiverConfig.WORLD_WIDTH, plot = RiverConfig.PLOT },

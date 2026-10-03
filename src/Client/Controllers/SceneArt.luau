@@ -439,7 +439,7 @@ function SceneArt.BuildBackground(layers: Layers)
         -- deasupra apei (stratul Water), sub spuma care se leagana (stratul Trim). [D65] PE FELII de 2880 px de lume
         -- (RiverConfig.ERA1_WORLD_WIDTH): prima e imaginea de dinainte de Moara, a doua acopera fasia noua. O felie
         -- inca neurcata isi primeste iarba din dale, ca fasia ei sa nu ramana goala.
-        local sliceW = RiverConfig.ERA1_WORLD_WIDTH
+        local sliceW = RiverConfig.BAKE_SLICE
         for k, sprite in { Assets.tycoon.village_ground, Assets.tycoon.village_ground_2 } do
             local x0 = (k - 1) * sliceW
             local w = math.min(sliceW, W - x0)

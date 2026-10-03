@@ -652,6 +652,8 @@ local TAVERN_CUSTOMER_ENTRY = { x = 150, y = 1130 }
 local marketCustomerSpots: { { x: number, y: number, facing: string } } = {}
 local depotCustomerSpots: { { x: number, y: number, facing: string } } = {}
 -- [D70] clientii tavernei, mutati cu `dx` (orasul barajului)
+-- [D70, pasul j7] cladirea Switch House (orasul barajului, lumea 2): o singura copie, a vanzatorului si a lumii
+TycoonConfig.DAM_SWITCH_HOUSE = { x = 2039, y = 1080, w = 192, h = 144 }
 local function shiftedSpots(dx: number): { { x: number, y: number, facing: string } }
     local out = {}
     for _, spot in TAVERN_CUSTOMER_SPOTS do
@@ -812,15 +814,18 @@ TycoonConfig.SELLER_PLACES = {
         customerSpots = depotCustomerSpots,
         customerEntry = shifted(TAVERN_CUSTOMER_ENTRY, WORKS_DX),
     },
-    -- [D70, pasul j7] Switch House, orasul barajului (lumea 2): clientii in oglinda tavernei, mutati cu usa ei
+    -- [D70, pasul j7] Switch House, orasul barajului (lumea 2): clientii in oglinda tavernei, mutati cu usa ei.
+    -- [dupa verificatorul j7] Doua mici abateri de la oglinda: al doilea Dispatcher sta la 48 px de primul (la 60 i-ar fi
+    -- iesit stalpul de vest al podului din cap), iar clientii vin de pe iarba de sub piata (y 1240), nu prin taraba
+    -- Dispatcher-ului si numele ei, unde ar fi cazut intrarea in oglinda (y 1130).
     town = {
         door = { x = 2059, y = 1130 },
         stand = { x = 2109, y = 1152 },
         pile = { x = 1901, y = 1086 },
-        building = { x = 2039, y = 1080, w = 192, h = 144 },
-        secondOffset = { x = 60, y = 0 },
+        building = TycoonConfig.DAM_SWITCH_HOUSE,
+        secondOffset = { x = 48, y = 0 },
         customerSpots = shiftedSpots(2059 - TycoonConfig.DOCK.x),
-        customerEntry = shifted(TAVERN_CUSTOMER_ENTRY, 2059 - TycoonConfig.DOCK.x),
+        customerEntry = { x = 150 + 2059 - TycoonConfig.DOCK.x, y = 1240 },
     },
 } :: { [string]: SellerPlaces }
 -- [D70] Locurile fiecarei UNIRI (Relay-ul barajului), dupa linia ei. Nu sta in LINE_PLACES: n-are magazie, iar fiecare
@@ -3208,7 +3213,8 @@ TycoonConfig.WORLDS[2] = {
     },
     zones = {
         { id = "dam_town", name = "The Dam", era = 4, x0 = 200, x1 = 3065, fence = false },
-        -- ceata Erei 5: text neutru, fara numele erei (O1, PLAN-MOTOR-UNIRE §16)
+        -- ceata Erei 5: text neutru, fara numele erei (O1, PLAN-MOTOR-UNIRE §16). [dupa verificatorul j7] Fara gard: gardul
+        -- (~42 px spre vest de x0) ar fi acoperit marginea Dam Bell si pe Ingot Hauler la iesirea Kiln-ului.
         {
             id = "fog5",
             name = "The river beyond",
@@ -3216,6 +3222,7 @@ TycoonConfig.WORLDS[2] = {
             x0 = 3065,
             x1 = 3385,
             soon = "More river lies beyond the dam",
+            fence = false,
         },
     },
     decor = {},
@@ -3237,7 +3244,7 @@ TycoonConfig.WORLDS[2] = {
         cableStore = { x = 1510, y = 1010, w = 120, h = 96 },
         cableworks = { x = 1510, y = 1380, w = 120, h = 96 },
         relay = { x = 2225, y = 1380, w = 192, h = 144 },
-        switchHouse = { x = 2039, y = 1080, w = 192, h = 144 },
+        switchHouse = TycoonConfig.DAM_SWITCH_HOUSE,
         canteen = { x = 400, y = 1080, w = 192, h = 144 },
         bellTower = { x = 760, y = 960, w = 96, h = 240 },
         memoryWall = { x = 760, y = 1340, w = 192, h = 96 },

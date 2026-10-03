@@ -1009,6 +1009,10 @@ la granița CREWS / `DAM_START_COINS`.
   `playerStand` la `:273, :721-743, :821`; GuideMath și `STEP_OF_JOB`.
 - Turbina din zid (824–880, 690–768); Dam Collector-ul ia de la piciorul zidului; oamenii retrași stau fără traseu.
 
+- **[Verificatorul j7]** casele barajului, până la arta lor: `PadArt.bought` să încerce întâi `PadArt.home(padId, count)`
+  (lanțul `PAD_LOOKS_LIKE` duce la colibele urcate ale erelor 2–3, fiecare alta), nu direct perechea din Era 1. Atunci și
+  amprenta din `World2Layout.test` (120×102) e cea desenată. Al doilea Dispatcher stă la 48 px de primul, iar clienții
+  orașului vin de la y 1240 (abateri mici de la oglinda tavernei, puse și în planșă).
 **k4. Meniurile și cuvintele.** Depinde de: k3.
 - `StationMenu.CHAIN` pe lume și schimbarea de cartier în StationPanel; `Strings` pentru Era 4 (refuzurile, „Opens at 4T coins a
   second”, „Waiting for cable/barrels”, indiciile, AWAY 0); textele `HeldBack`; `check_panel_rows`.
