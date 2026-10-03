@@ -293,16 +293,32 @@ end
 -- E cumparabila ACUM platforma asta? Inainte raspunsul era doar "e urmatoarea din tabel", si asta
 -- forta cumparaturi moarte: erai obligat sa iei a treia plasa (inutila cat timp caratul e gatuirea)
 -- inainte sa poti angaja prima Mana. Acum fiecare deblocare isi spune conditia [TycoonConfig.Needs].
+-- [D70, pasul j10] PRAGUL DE VENIT al unei conditii (Dam Bell: 4T/s), in moneda pe care o vede jucatorul: cu 2x Flow
+-- venitul afisat e dublu, deci si pragul (altfel pass-ul ar cumpara clopotul, D46). Un singur loc, citit de statusuri,
+-- de cartonasul conditiei si de quest-uri (pasul j11).
+function TycoonMath.incomeGoal(base: number, flowFactor: number?): number
+    return base * (flowFactor or 1)
+end
+
 local function meetsNeeds(
     p: TycoonConfig.Pad,
     bought: { [string]: boolean },
     pads: { TycoonConfig.Pad },
     nets: number,
-    levels: { [string]: number }?
+    levels: { [string]: number }?,
+    income: number?,
+    flowFactor: number?
 ): boolean
     local needs = p.needs
     if needs == nil then
         return true -- erele 2-4 inca merg pe ordinea din tabel
+    end
+    -- [D70] fara venitul cunoscut, o conditie de venit nu e implinita (cine nu-l stie nu deschide clopotul)
+    if
+        needs.income ~= nil
+        and (income == nil or income < TycoonMath.incomeGoal(needs.income, flowFactor))
+    then
+        return false
     end
     if needs.netsExactly ~= nil and nets ~= needs.netsExactly then
         return false
@@ -336,7 +352,7 @@ end
 -- conditii ca meetsNeeds, deci textul de langa o ruina nu poate spune altceva decat ce verifica jocul.
 -- `name`, `hire` si `first` sunt deja rezolvate, ca Strings.padNeeds sa nu aiba nevoie de config.
 export type Blocker = {
-    kind: string, -- "after" | "net" | "level" | "all"
+    kind: string, -- "after" | "net" | "level" | "all" | "income"
     padId: string?,
     name: string?,
     level: number?,
@@ -344,6 +360,7 @@ export type Blocker = {
     first: boolean?, -- plasa ceruta e prima plasa (Cast your first net)
     ring: boolean?, -- [D65] platforma ceruta e un clopot (Ring the ...)
     zone: string?, -- [D65] la "all": cartierul platformei care intreaba ("The Mill")
+    goalText: string?, -- [D70] la "income": pragul, scris ca pe HUD ("4T")
 }
 
 -- Plasele, in ordinea din PADS: a N-a plasa cumparata e mereu a N-a de aici (se cumpara in lant).
@@ -393,7 +410,9 @@ function TycoonMath.padBlocker(
     p: TycoonConfig.Pad,
     bought: { [string]: boolean },
     levels: { [string]: number }?,
-    pads: { TycoonConfig.Pad }?
+    pads: { TycoonConfig.Pad }?,
+    income: number?,
+    flowFactor: number?
 ): Blocker?
     local needs = p.needs
     if needs == nil or bought[p.id] then
@@ -422,6 +441,15 @@ function TycoonMath.padBlocker(
             if other.era == p.era and other.id ~= p.id and not bought[other.id] then
                 return blockerFor("all", nil, nil, ids[1], p)
             end
+        end
+    end
+    -- [D70] ultima: venitul (Dam Bell), dupa tot restul erei
+    if needs.income ~= nil then
+        local goal = TycoonMath.incomeGoal(needs.income, flowFactor)
+        if income == nil or income < goal then
+            local b = blockerFor("income", nil, nil, ids[1], p)
+            b.goalText = TycoonMath.formatNumber(goal)
+            return b
         end
     end
     return nil
@@ -459,7 +487,9 @@ end
 function TycoonMath.padStatuses(
     bought: { [string]: boolean },
     pads: { TycoonConfig.Pad }?,
-    levels: { [string]: number }?
+    levels: { [string]: number }?,
+    income: number?,
+    flowFactor: number?
 ): { [string]: string }
     local list = pads or TycoonConfig.PADS
     local result: { [string]: string } = {}
@@ -485,7 +515,7 @@ function TycoonMath.padStatuses(
             blocker = p
             break
         end
-        if meetsNeeds(p, bought, list, nets, levels) then
+        if meetsNeeds(p, bought, list, nets, levels, income, flowFactor) then
             table.insert(eligible, p)
         else
             table.insert(waiting, p)

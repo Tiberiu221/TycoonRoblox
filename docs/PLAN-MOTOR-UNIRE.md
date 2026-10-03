@@ -1004,6 +1004,9 @@ la granița CREWS / `DAM_START_COINS`.
   `RoadGraph.forWorld(lumea jucătorului)`. Oamenii nu mai cer nimic: contextul implicit din `HandRoutes` e al lumii meseriei
   (cât era ei e în joc), deci la l3 serverul și clientul îi duc pe drumurile barajului singuri. Graful lumii 2 ocolește
   zidul și canalul și pe iarbă (`RoadGraph.blockedBetween`).
+- **[Pasul j10]** cartonașul condiției (`PadController`, `TycoonMath.padBlocker`) primește lista lumii jucătorului, venitul
+  de acum și factorul 2x Flow, ca Dam Bell să spună „Earn 4T coins a second first” (8T cu pass-ul), la fel ca serverul.
+  Zonele vin deja pe lume de la server (`WorldMath.zoneStatuses`).
 **k3. Liniile barajului în client.** Depinde de: k2, j13.
 - 6 clădiri fixe cu `borrowed`; `LineController` pentru unire (două grămezi, `waiting` copiat explicit); Overlay `DROP_AT` /
   `playerStand` la `:273, :721-743, :821`; GuideMath și `STEP_OF_JOB`.

@@ -211,7 +211,8 @@ function VillageLook.of(data: { [string]: any }): Snapshot
     end
     local power = typeof(data.Stats) == "table" and (tonumber(data.Stats.cellsSold) or 0) > 0
     return {
-        era = TycoonMath.era(bought),
+        -- [D70, pasul j10] era pe lista lumii lui: cine n-a ridicat inca barajul ramane in Era 3, chiar cu barajul in joc
+        era = TycoonMath.era(bought, TycoonConfig.padsOfWorld(data.World)),
         pads = pads,
         netLevels = netLevels,
         stations = {

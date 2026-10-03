@@ -8,6 +8,7 @@ local RunService = game:GetService("RunService")
 local ServerStorage = game:GetService("ServerStorage")
 
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
+local WorldMath = require(ReplicatedStorage.Shared.Modules.WorldMath)
 local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
 local ItemConfig = require(ReplicatedStorage.Shared.Config.ItemConfig)
 local Prng = require(ReplicatedStorage.Shared.Modules.Prng)
@@ -100,6 +101,11 @@ function NetService.Collect(player: Player, padId: string): (boolean, string?)
     if net == nil then
         return false, "no_net"
     end
+    -- [D70, pasul j10] plasele altei harti raman in profil, dar nu se golesc de aici
+    local owner = TycoonConfig.byId[padId]
+    if owner ~= nil and not WorldMath.allowed(data.World, owner.era) then
+        return false, "closed"
+    end
     local capacity = TycoonMath.sackCapacity(PadService.StateFor(player))
     local netCapacity = StationService.NetCapacity(player, padId)
     -- [D51] prima plasa, in tutorial, se goleste abia plina; clientul nu ofera gestul, deci aici se
@@ -147,7 +153,8 @@ function NetService.Snapshot(player: Player): { { [string]: any } }
     end
     for padId, net in data.Nets do
         local pad = TycoonConfig.byId[padId]
-        if pad == nil then
+        -- [D70, pasul j10] doar plasele lumii jucatorului se vad
+        if pad == nil or not WorldMath.allowed(data.World, pad.era) then
             continue
         end
         local rate, lane = netEffectOf(pad)
@@ -244,7 +251,8 @@ local function tick(now: number)
         local forcedSet = forceNamedByNet[player]
         for padId, net in data.Nets do
             local pad = TycoonConfig.byId[padId]
-            if pad == nil then
+            -- [D70, pasul j10] plasele satului vechi nu mai prind cat esti la baraj (si invers)
+            if pad == nil or not WorldMath.allowed(data.World, pad.era) then
                 continue
             end
             local rate = netEffectOf(pad)

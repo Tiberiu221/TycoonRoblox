@@ -12,6 +12,7 @@ local TitleMath = require(ReplicatedStorage.Shared.Modules.TitleMath)
 local PassMath = require(ReplicatedStorage.Shared.Modules.PassMath)
 local StreakMath = require(ReplicatedStorage.Shared.Modules.StreakMath)
 local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
+local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 
 local Analytics = require(script.Parent.Analytics)
 local DataService = require(script.Parent.DataService)
@@ -72,7 +73,7 @@ function TitleService.Facts(player: Player): TitleMath.Facts?
     end
     local champion = deps.Champion
     return {
-        era = TycoonMath.era(data.Pads or {}),
+        era = TycoonMath.era(data.Pads or {}, TycoonConfig.padsOfWorld(data.World)), -- [D70] pe lista lumii lui
         species = species,
         speciesTotal = #FishConfig.SPECIES,
         record = record,

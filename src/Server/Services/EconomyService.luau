@@ -20,6 +20,7 @@ local PileMath = require(ReplicatedStorage.Shared.Modules.PileMath)
 local StationConfig = require(ReplicatedStorage.Shared.Config.StationConfig)
 local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
 local PassMath = require(ReplicatedStorage.Shared.Modules.PassMath)
+local WorldMath = require(ReplicatedStorage.Shared.Modules.WorldMath)
 local DataService = require(script.Parent.DataService)
 local Analytics = require(script.Parent.Analytics)
 
@@ -331,11 +332,19 @@ end
 -- LA MAGAZIA unei linii (`place` = FlowConfig store: "storage", "shed", "millStore", "oreShed"): lasi marfa bruta a
 -- liniei; daca n-ai, iei din magazie cat incape. Intoarce (ok, ce s-a intamplat, cate bucati). Motivele refuzului le
 -- traduce clientul in toast.
+-- [D70, pasul j10] un loc al altei harti nu se foloseste: refuzat cu motiv [D43]
+local function closedFor(data: DataService.ProfileData, place: string): boolean
+    return not WorldMath.allowed(data.World, WorldMath.eraOfPlace(place))
+end
+
 function EconomyService.UseStore(player: Player, place: string): (boolean, string, number)
     local data = DataService.Get(player)
     local spec = FlowConfig.BY_STORE[place]
     if data == nil or spec == nil then
         return false, "no_profile", 0
+    end
+    if closedFor(data, place) then
+        return false, "closed", 0
     end
     if spec.storePad ~= nil and data.Pads[spec.storePad] ~= true then
         return false, spec.noStore, 0
@@ -362,6 +371,9 @@ function EconomyService.UseProcessor(
     local spec = FlowConfig.BY_PROCESSOR[place]
     if data == nil or spec == nil then
         return false, "no_profile", 0, 0
+    end
+    if closedFor(data, place) then
+        return false, "closed", 0, 0
     end
     if spec.processorPad ~= nil and data.Pads[spec.processorPad] ~= true then
         return false, spec.noProcessor, 0, 0
@@ -395,6 +407,9 @@ function EconomyService.Deliver(player: Player, seller: string): (boolean, strin
     local spec = FlowConfig.SELLERS[seller]
     if data == nil or spec == nil then
         return false, "no_profile", 0
+    end
+    if closedFor(data, seller) then
+        return false, "closed", 0
     end
     local ok, why, sold = FlowMath.deliver(data.Sack.items, pileOf(data, spec.pile).counts, seller)
     if not ok then
@@ -470,6 +485,11 @@ end
 
 function EconomyService.SetPresence(player: Player, place: string, present: boolean)
     if table.find(EconomyService.PRESENCE_PLACES, place) == nil then
+        return
+    end
+    -- [D70, pasul j10] prezenta la un atelier al altei harti nu conteaza (un semn de prezenta n-are raspuns)
+    local data = DataService.Get(player)
+    if present and data ~= nil and closedFor(data, place) then
         return
     end
     local was = isPresent(player, place, now())

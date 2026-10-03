@@ -10,6 +10,7 @@ local ChainMath = require(ReplicatedStorage.Shared.Modules.ChainMath)
 local CrewMath = require(ReplicatedStorage.Shared.Modules.CrewMath)
 local FlowConfig = require(ReplicatedStorage.Shared.Config.FlowConfig)
 local StationConfig = require(ReplicatedStorage.Shared.Config.StationConfig)
+local WorldMath = require(ReplicatedStorage.Shared.Modules.WorldMath)
 local Strings = require(ReplicatedStorage.Shared.Config.Strings)
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
@@ -670,6 +671,10 @@ function StationService.Upgrade(
     if kind ~= "net" and UPGRADE_BASE[kind] == nil then
         return false, "unknown"
     end
+    -- [D70, pasul j10] o cladire sau o plasa a altei harti
+    if not WorldMath.allowed(data.World, WorldMath.eraOfStation(kind, id)) then
+        return false, "closed"
+    end
     -- [D55, D65] fara platforma care o porneste (Forge, roata de apa, cuptorul) n-ai ce urca
     local needsPad = BUILDING_PAD[kind]
     if needsPad ~= nil and data.Pads[needsPad] ~= true then
@@ -736,6 +741,10 @@ function StationService.UpgradeCrew(
     end
     if TycoonConfig.CREWS[role] == nil or (what ~= "tier" and what ~= "hire") then
         return false, "unknown"
+    end
+    -- [D70, pasul j10] oamenii altei harti
+    if not WorldMath.allowed(data.World, WorldMath.eraOfRole(role)) then
+        return false, "closed"
     end
     local crews = CrewMath.fromProfile(data.Hands, data.Crews)
     local crew = crews[role]

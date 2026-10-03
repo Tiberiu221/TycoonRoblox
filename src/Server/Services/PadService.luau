@@ -7,6 +7,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
 local PassMath = require(ReplicatedStorage.Shared.Modules.PassMath)
+local WorldConfig = require(ReplicatedStorage.Shared.Config.WorldConfig)
+local WorldMath = require(ReplicatedStorage.Shared.Modules.WorldMath)
 local DataService = require(script.Parent.DataService)
 local EconomyService = require(script.Parent.EconomyService)
 local RiverService = require(script.Parent.RiverService)
@@ -30,6 +32,8 @@ local deps: {
         -- nivelul fiecarei plase detinute: plasa urmatoare apare abia cand cea dinainte e la
         -- TycoonConfig.PREV_NET_LEVEL, deci statusurile au nevoie de el
         NetLevels: (Player) -> { [string]: number },
+        -- [D70, pasul j10] venitul de acum (cu pass-urile), pentru conditiile de venit (Dam Bell)
+        Income: (Player) -> number,
     }?,
     -- [D60] o platforma cumparata cu adevarat (nu cu unealta de dezvoltare): clopotul Erei 1 intra pe tabela balciului
     OnBought: ((Player, string) -> ())?,
@@ -112,14 +116,35 @@ end
 -- UN SINGUR loc care decide ce se poate cumpara: Buy, Deltas si ce vede clientul trec toate pe
 -- aici. Daca Deltas si-ar calcula singur statusurile, ar putea anunta "+1.4/s" pentru o plasa pe
 -- care Buy o refuza, pentru ca cea dinainte n-a ajuns inca la nivelul cerut.
+-- [D70, pasul j10] Platformele lumii jucatorului; venitul doar unde o conditie il cere (Dam Bell), ca in sat sa nu se
+-- socoteasca degeaba.
+local incomeGated: { [number]: boolean } = {}
+for w = 1, WorldConfig.COUNT do
+    for _, p in TycoonConfig.padsOfWorld(w) do
+        if p.needs ~= nil and p.needs.income ~= nil then
+            incomeGated[w] = true
+        end
+    end
+end
 function PadService.Statuses(player: Player): { [string]: string }
     local data = DataService.Get(player)
     if data == nil then
         return {}
     end
+    local world = WorldConfig.sanitize(data.World)
     local stations = deps.Stations
     local levels = if stations ~= nil then stations.NetLevels(player) else nil
-    return TycoonMath.padStatuses(data.Pads, nil, levels)
+    local income: number? = nil
+    if incomeGated[world] and stations ~= nil then
+        income = stations.Income(player)
+    end
+    return TycoonMath.padStatuses(
+        data.Pads,
+        TycoonConfig.padsOfWorld(world),
+        levels,
+        income,
+        PassMath.flowFactor(data)
+    )
 end
 
 local function pushState(player: Player)
@@ -177,6 +202,10 @@ function PadService.Buy(player: Player, padId: string): (boolean, string?)
     if data.Pads[padId] then
         return false, "owned"
     end
+    -- [D70, pasul j10] o platforma a altei harti: refuzata cu motiv, nu doar „locked” [D43]
+    if not WorldMath.allowed(data.World, pad.era) then
+        return false, "closed"
+    end
     if PadService.Statuses(player)[padId] ~= "available" then
         return false, "locked"
     end
@@ -211,11 +240,30 @@ function PadService.DevGrant(player: Player, padId: string): boolean
     -- [D58] Nici unealta de dezvoltare nu da o platforma care nu e inca in joc (`live = false`: erele 2-4, fara loc
     -- pe harta). "buy to 24" dadea Sixth Net-ul Erei 2, iar plasa lui fara pozitie se desena lipita de marginea
     -- din stanga a raului [owner, 2026-09-14]. O stare la care jucatorul nu poate ajunge nu e o stare de testat.
-    if pad == nil or not pad.live or data.Pads[padId] then
+    -- [D70, pasul j10] nici o platforma a altei harti
+    if
+        pad == nil
+        or not pad.live
+        or data.Pads[padId]
+        or not WorldMath.allowed(data.World, pad.era)
+    then
         return false
     end
     grant(player, data, pad)
     pushState(player)
+    return true
+end
+
+-- [D70, pasul j10] ACORDAREA, publica: barajul (pasul j14) da gratis turbina, Cable Net si casele veteranilor. Fara pret
+-- si fara verificari de lume sau de era in joc: le face cine o cheama (ridicarea barajului). false = platforma necunoscuta
+-- sau deja a ta.
+function PadService.Grant(player: Player, padId: string): boolean
+    local data = DataService.Get(player)
+    local pad = TycoonConfig.byId[padId]
+    if data == nil or pad == nil or data.Pads[padId] then
+        return false
+    end
+    grant(player, data, pad)
     return true
 end
 

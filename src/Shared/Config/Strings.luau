@@ -1021,6 +1021,9 @@ function Strings.useResult(
     taken: number,
     staffed: boolean
 ): string?
+    if not ok and reason == "closed" then
+        return Strings.CLOSED_HERE -- [D70] un loc al altei harti
+    end
     if not ok then
         if reason == "sack_full" then
             return "Sack full"
@@ -1799,6 +1802,7 @@ function Strings.padNeeds(b: {
     first: boolean?,
     ring: boolean?,
     zone: string?,
+    goalText: string?,
 }): string
     local name = b.name or "it"
     if b.kind == "after" then
@@ -1814,6 +1818,8 @@ function Strings.padNeeds(b: {
         return if b.first then "Cast your first net" else `Cast the {name} first`
     elseif b.kind == "level" then
         return `Upgrade {name} to level {b.level or 2} first`
+    elseif b.kind == "income" then
+        return `Earn {b.goalText or "more"} coins a second first` -- [D70] Dam Bell
     end
     return `Rebuild everything else on {b.zone or "The Landing"} first`
 end
@@ -2029,6 +2035,8 @@ function Strings.menuCrewButton(what: string, block: string?, secondAt: number):
     end
     return if what == "tier" then Strings.MENU_TIER_UP else "Hire a second"
 end
+-- [D70, pasul j10] refuzul unui lucru al altei harti (satul vechi cand esti la baraj): rar, doar intr-o cursa
+Strings.CLOSED_HERE = "That's not on this map"
 function Strings.upgradeRejected(reason: string): string
     if reason == "coins" then
         return "Not enough coins"
@@ -2042,6 +2050,8 @@ function Strings.upgradeRejected(reason: string): string
         return "Level up first"
     elseif reason == "no_person" then
         return "Hire the first one at its pad"
+    elseif reason == "closed" then
+        return Strings.CLOSED_HERE -- [D70] un lucru al altei harti
     end
     return "Can't upgrade that"
 end
