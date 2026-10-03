@@ -46,6 +46,11 @@ DriftMath.ENTER_X = -60
 -- [D73] dincolo de marginea lumii (RiverConfig.WORLD_WIDTH, 5520): darul trece pe la toate cartierele. Pana acum iesea la
 -- 2940, in mijlocul Morii, si disparea sub ochii tai; din Era 2 nimeni nu mai prindea niciunul.
 DriftMath.EXIT_X = 5580
+-- [D70, pasul j9] iesirea, pe lume: tot dincolo de marginea ei (barajul are 3.385 px). Testul o tine legata de RiverConfig.
+DriftMath.EXIT_X_BY_WORLD = { 5580, 3445 } :: { number }
+local function exitOf(world: number?): number
+    return DriftMath.EXIT_X_BY_WORLD[world or 1] or DriftMath.EXIT_X
+end
 DriftMath.SPEED_MIN = 62
 DriftMath.SPEED_MAX = 78
 DriftMath.START_JITTER = 14 -- darul nu intra fix la inceputul ferestrei: fara metronom
@@ -95,9 +100,9 @@ function DriftMath.giftFor(seed: number, window: number): Gift
 end
 
 -- Unde e darul la momentul `now`; nil cat inca n-a intrat sau dupa ce a iesit de pe harta.
-function DriftMath.xAt(gift: Gift, now: number): number?
+function DriftMath.xAt(gift: Gift, now: number, world: number?): number?
     local x = DriftMath.ENTER_X + (now - gift.enterAt) * gift.speed
-    if now < gift.enterAt or x > DriftMath.EXIT_X then
+    if now < gift.enterAt or x > exitOf(world) then
         return nil
     end
     return x
@@ -143,12 +148,12 @@ function DriftMath.canGrab(gift: Gift, now: number, spans: { Span }?): boolean
 end
 
 -- Darurile care pot fi pe harta la `now`: al ferestrei curente si, cat inca mai pluteste, al celei dinainte.
-function DriftMath.activeAt(seed: number, now: number): { Gift }
+function DriftMath.activeAt(seed: number, now: number, world: number?): { Gift }
     local out: { Gift } = {}
     local current = DriftMath.windowOf(now)
     for window = current - 1, current do
         local gift = DriftMath.giftFor(seed, window)
-        if DriftMath.xAt(gift, now) ~= nil then
+        if DriftMath.xAt(gift, now, world) ~= nil then
             table.insert(out, gift)
         end
     end

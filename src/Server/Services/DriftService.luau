@@ -14,6 +14,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local DriftMath = require(ReplicatedStorage.Shared.Modules.DriftMath)
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
+local WorldConfig = require(ReplicatedStorage.Shared.Config.WorldConfig)
 
 local DataService = require(script.Parent.DataService)
 local EconomyService = require(script.Parent.EconomyService)
@@ -29,14 +30,18 @@ export type Deps = {
 local deps: Deps? = nil
 
 -- [D73] Puntile cartierelor deschise ale jucatorului (si in joc): de pe oricare se poate scoate darul care trece.
+-- [D70, pasul j9] Puntile LUMII lui: la baraj, puntea lacului si a barajului (D74, punctul 6).
 local function reachesOf(data: any): { DriftMath.Span }
-    return DriftMath.reaches(TycoonConfig.deckSpans(), function(era: number): boolean
-        if not TycoonConfig.eraIsLive(era) then
-            return false
+    return DriftMath.reaches(
+        TycoonConfig.deckSpans(WorldConfig.sanitize(data.World)),
+        function(era: number): boolean
+            if not TycoonConfig.eraIsLive(era) then
+                return false
+            end
+            local bell = TycoonConfig.bellOf(era - 1)
+            return era == 1 or (bell ~= nil and data.Pads[bell.id] == true)
         end
-        local bell = TycoonConfig.bellOf(era - 1)
-        return era == 1 or (bell ~= nil and data.Pads[bell.id] == true)
-    end)
+    )
 end
 
 -- "no_profile" | "bad_id" | "taken" (l-ai scos deja) | "gone" (nu mai e in dreptul puntii) | "ok"

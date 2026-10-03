@@ -12,6 +12,10 @@ local RiverConfig = require("../src/Shared/Config/RiverConfig")
 local Assets = require("../src/Shared/Config/Assets")
 local RoadGraph = require("../src/Shared/Modules/RoadGraph")
 local HandRoutes = require("../src/Shared/Modules/HandRoutes")
+local WorldMap = require("../src/Shared/Modules/WorldMap")
+local DriftMath = require("../src/Shared/Modules/DriftMath")
+local CatchFloat = require("../src/Shared/Modules/CatchFloat")
+local RiverSim = require("../src/Shared/Modules/RiverSim")
 local StationConfig = require("../src/Shared/Config/StationConfig")
 
 type Rect = { x0: number, x1: number, y0: number, y1: number }
@@ -548,6 +552,111 @@ return function()
                 end
             end
             check.equal(math.floor(length), 2996) -- planseta aprobata (PLAN-HARTA §9)
+        end)
+    end)
+    -- [D70, pasul j9] raul, mersul si darurile, pe lume (partea pura)
+    test.suite("World2River [D70, pasul j9]", function()
+        test.case("mersul: lumea 1 ca pana acum; la baraj nu treci prin zid sau canal", function()
+            local rects1, cfg1 = WorldMap.forWorld(1)
+            local before = WorldMap.blockedRects(RiverConfig :: any, nil, TycoonConfig.PIER_WALK)
+            check.equal(#rects1, #before)
+            for i, r in before do
+                check.is_true(
+                    r.x == rects1[i].x
+                        and r.y == rects1[i].y
+                        and r.w == rects1[i].w
+                        and r.h == rects1[i].h
+                )
+            end
+            check.equal(cfg1.WORLD_WIDTH, RiverConfig.WORLD_WIDTH)
+            local rects, cfg = WorldMap.forWorld(W)
+            check.equal(cfg.WORLD_WIDTH, world.width)
+            local function blocked(x: number, y: number): boolean
+                return WorldMap.isBlocked(rects, cfg, x, y)
+            end
+            check.is_true(blocked(760, 860)) -- zidul, pe uscat
+            check.is_true(blocked(2225, 950)) -- canalul de sub Relay
+            check.is_true(blocked(1500, 600)) -- raul
+            check.is_true(blocked(400, 600)) -- lacul
+            check.is_false(blocked(300, 700)) -- pontonul, pe lac
+            check.is_false(blocked(1500, 812)) -- puntea barajului
+            check.is_false(blocked(3300, 1200)) -- in ceata, inca in lume
+            check.is_true(blocked(3380, 1200)) -- marginea lumii 2
+            local spawn = TycoonConfig.spawnOf(W)
+            check.is_false(blocked(spawn.x, spawn.y))
+            -- fiecare loc de predare si fiecare stand se poate atinge
+            for _, pl in lines do
+                for _, k in
+                    { "storeStand", "playerStand", "processorIn", "processorOut", "workerStand" }
+                do
+                    local at = (pl :: any)[k]
+                    check.is_false(blocked(at.x, at.y))
+                end
+            end
+            for _, j in joins do
+                for _, at in j.inputIn do
+                    check.is_false(blocked(at.x, at.y))
+                end
+                check.is_false(blocked(j.playerStand.x, j.playerStand.y))
+                check.is_false(blocked(j.processorOut.x, j.processorOut.y))
+            end
+            check.is_false(blocked(sellers.town.door.x, sellers.town.door.y))
+        end)
+
+        test.case(
+            "darurile: iesirea dincolo de marginea fiecarei lumi; la baraj, de pe lac si de pe puntea barajului",
+            function()
+                for w = 1, 2 do
+                    check.equal(
+                        DriftMath.EXIT_X_BY_WORLD[w],
+                        RiverConfig.WORLDS[w].WORLD_WIDTH + 60
+                    )
+                end
+                check.equal(DriftMath.EXIT_X_BY_WORLD[1], DriftMath.EXIT_X)
+                -- acelasi dar (determinist, D13) in ambele lumi, doar iesirea difera
+                local gift = DriftMath.giftFor(12345, 77)
+                local late = gift.enterAt + (4000 - DriftMath.ENTER_X) / gift.speed
+                check.not_nil(DriftMath.xAt(gift, late, 1))
+                check.equal(DriftMath.xAt(gift, late, 2), nil)
+                check.equal(DriftMath.xAt(gift, late), DriftMath.xAt(gift, late, 1))
+                local spans = DriftMath.reaches(
+                    TycoonConfig.deckSpans(W),
+                    function(_era: number): boolean
+                        return true
+                    end
+                )
+                check.equal(#spans, 2)
+                check.equal(spans[1].x0, 240 - DriftMath.REACH_MARGIN) -- puntea lacului
+                check.equal(spans[2].x1, 2760 + DriftMath.REACH_MARGIN) -- puntea barajului
+                -- un dar care trece pe la puntea barajului se poate scoate de acolo
+                local from, to = DriftMath.reachWindow(gift, spans[2])
+                check.is_true(DriftMath.canGrab(gift, (from + to) / 2, spans))
+            end
+        )
+
+        test.case("ce prind plasele barajului vine de la piciorul deversorului", function()
+            check.equal(CatchFloat.SPAWN_X_BY_WORLD[1], CatchFloat.SPAWN_X)
+            local spawn = CatchFloat.SPAWN_X_BY_WORLD[W]
+            local wall = world.wall :: TycoonConfig.Box
+            check.is_true(spawn >= wall.x and spawn <= wall.x + wall.w)
+            for _, p in TycoonConfig.padsOfWorld(W) do
+                if isNet(p) then
+                    check.is_true(CatchFloat.travel(p.x :: number, spawn) > 0)
+                end
+            end
+            -- in sat, fara argument, ca inainte
+            check.equal(CatchFloat.travel(620), CatchFloat.travel(620, CatchFloat.SPAWN_X))
+        end)
+
+        test.case("raul lumii 2 duce aceleasi obiecte pana la marginea ei", function()
+            local cfg2 = RiverConfig.WORLDS[W] :: any
+            local objects = RiverSim.schedule(12345, 3, cfg2)
+            check.equal(#objects, #RiverSim.schedule(12345, 3, RiverConfig :: any)) -- determinist [D13]
+            for _, obj in objects do
+                local tEnd = (cfg2.WORLD_WIDTH + cfg2.OBJECT_WIDTH + 1) / obj.speed
+                check.equal(RiverSim.box(obj, cfg2, obj.spawnAt + tEnd), nil)
+                check.not_nil(RiverSim.box(obj, RiverConfig :: any, obj.spawnAt + tEnd))
+            end
         end)
     end)
 end

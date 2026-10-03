@@ -1,5 +1,12 @@
 --!strict
 -- Modul PUR: coliziuni simple pe dreptunghiuri (raul, cladirile, marginile lumii) [DECIZII D09]
+local RiverConfig =
+    require(script and script.Parent.Parent.Config.RiverConfig or "../Config/RiverConfig")
+local TycoonConfig =
+    require(script and script.Parent.Parent.Config.TycoonConfig or "../Config/TycoonConfig")
+local WorldConfig =
+    require(script and script.Parent.Parent.Config.WorldConfig or "../Config/WorldConfig")
+
 local WorldMap = {}
 
 export type Rect = { x: number, y: number, w: number, h: number }
@@ -47,6 +54,17 @@ function WorldMap.isBlocked(rects: { Rect }, cfg: Config, x: number, y: number):
         end
     end
     return false
+end
+
+-- [D70, pasul j9] MERSUL IN FIECARE LUME: raul (cu trecerea pe ponton, care sta acolo si la baraj) si ce mai blocheaza
+-- uscatul lumii (la baraj: zidul si canalul, TycoonConfig.WORLDS[2].blocked). Lumea 1 = exact ce primea pana acum
+-- CharacterController (raul, fara alte obstacole). Intoarce si raul lumii (marginile ei).
+function WorldMap.forWorld(w: number?): ({ Rect }, Config)
+    local world = WorldConfig.sanitize(w)
+    local cfg = (RiverConfig.WORLDS :: any)[world] :: Config
+    local data = TycoonConfig.WORLDS[world]
+    local extra = if data ~= nil then data.blocked else nil
+    return WorldMap.blockedRects(cfg, extra, TycoonConfig.PIER_WALK), cfg
 end
 
 return WorldMap

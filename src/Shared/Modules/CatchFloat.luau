@@ -33,9 +33,13 @@ CatchFloat.TURN_MAX = 220
 -- cat mai traieste un bustean dupa momentul lui: cel care trece pe langa o plasa plina are nevoie de mai mult
 CatchFloat.LINGER = math.max(CatchFloat.SINK, CatchFloat.PASS / CatchFloat.SPEED)
 
--- Cat dureaza drumul de la marginea lumii pana la plasa.
-function CatchFloat.travel(netX: number): number
-    return math.max(0, netX - CatchFloat.SPAWN_X) / CatchFloat.SPEED
+-- [D70, pasul j9] De unde vine ce prinde o plasa, pe lume: in sat de la marginea lumii; la baraj de la piciorul
+-- deversorului (zidul, x 640-880): peste el nu trece nimic pe linia plaselor.
+CatchFloat.SPAWN_X_BY_WORLD = { CatchFloat.SPAWN_X, 830 } :: { number }
+
+-- Cat dureaza drumul de la marginea lumii (sau `spawnX`) pana la plasa.
+function CatchFloat.travel(netX: number, spawnX: number?): number
+    return math.max(0, netX - (spawnX or CatchFloat.SPAWN_X)) / CatchFloat.SPEED
 end
 
 -- Pe cati px, pe orizontala, coteste bustenul in plasa: pe masura coborarii de pe curent pana la ea.
