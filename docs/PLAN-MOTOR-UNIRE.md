@@ -1000,6 +1000,10 @@ la granița CREWS / `DAM_START_COINS`.
   lumi fără gard); StationPanel; CeremonyController; GuideMath cu țintele lumii 1 doar în lumea 1; Sound și Dock; felinarele pe
   lume; locurile de decor din Dam Town.
 
+- **[Verificatorul j8]** dâra ghidajului (`GuideController`, azi pe `RoadGraph.fromConfig()`) merge pe
+  `RoadGraph.forWorld(lumea jucătorului)`. Oamenii nu mai cer nimic: contextul implicit din `HandRoutes` e al lumii meseriei
+  (cât era ei e în joc), deci la l3 serverul și clientul îi duc pe drumurile barajului singuri. Graful lumii 2 ocolește
+  zidul și canalul și pe iarbă (`RoadGraph.blockedBetween`).
 **k3. Liniile barajului în client.** Depinde de: k2, j13.
 - 6 clădiri fixe cu `borrowed`; `LineController` pentru unire (două grămezi, `waiting` copiat explicit); Overlay `DROP_AT` /
   `playerStand` la `:273, :721-743, :821`; GuideMath și `STEP_OF_JOB`.

@@ -467,6 +467,75 @@ return function()
             end
         )
 
+        test.case(
+            "din orice punct de uscat al barajului, drumul nu intra in apa, in zid sau in canal",
+            function()
+                local g = RoadGraph.forWorld(W)
+                local targets = {
+                    lines.cable.storeStand,
+                    lines.crystal.playerStand,
+                    joins.grid.playerStand,
+                    sellers.town.door,
+                    { x = 980, y = 812 }, -- turbina, pe puntea barajului
+                    { x = 300, y = 812 }, -- puntea lacului
+                }
+                local tried = 0
+                for x = 240, 3040, 160 do
+                    for y = 880, 1640, 160 do
+                        if not wet(x, y) then
+                            for _, t in targets do
+                                tried += 1
+                                local points = RoadGraph.route(g, { x = x, y = y }, t)
+                                for k = 1, #points - 1 do
+                                    local a, b = points[k], points[k + 1]
+                                    for i = 0, 20 do
+                                        local px, py =
+                                            a.x + (b.x - a.x) * i / 20, a.y + (b.y - a.y) * i / 20
+                                        if wet(px, py) then
+                                            print(
+                                                `  ! din ({x}, {y}) spre ({t.x}, {t.y}): prin apa la ({px}, {py})`
+                                            )
+                                        end
+                                        check.is_false(wet(px, py))
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+                check.is_true(tried > 500)
+            end
+        )
+
+        test.case(
+            "fiecare om al barajului merge sau sta pe uscat; oamenii satului n-au ce face acolo",
+            function()
+                local ctx = HandRoutes.forWorld(W)
+                for _, role in StationConfig.ERA4_ROLES do
+                    local walks = HandRoutes.cycleFor(role, 1, 1, DAM_NETS, ctx).duration > 0
+                    if not walks then
+                        for index = 1, 2 do
+                            local at = HandRoutes.standFor(role, index, ctx)
+                            check.not_nil(at)
+                            if at ~= nil then
+                                check.is_false(wet(at.x, at.y))
+                            end
+                        end
+                    end
+                end
+                for _, role in StationConfig.ROLES do
+                    check.equal(HandRoutes.routeFor(role, 1, 1, DAM_NETS, ctx), nil)
+                    check.equal(HandRoutes.standFor(role, 1, ctx), nil)
+                end
+                -- contextul satului nu mai cara locurile barajului; meseriile barajului adormite (implicit: al jocului)
+                check.equal(HandRoutes.GAME.linePlaces.barrels, nil)
+                check.equal(HandRoutes.GAME.joinPlaces.grid, nil)
+                check.equal(HandRoutes.GAME.sellerPlaces.town, nil)
+                check.equal(HandRoutes.jobOf("damCollector"), nil)
+                check.equal(HandRoutes.standFor("relayKeeper", 1), nil)
+            end
+        )
+
         test.case("turul tau de mana al cablului, pe drumurile barajului", function()
             -- plasa -> magazie -> atelier (intrare, inel, iesire) -> intrarea cablului la Relay -> inelul Relay -> iesire -> oras
             local g = RoadGraph.forWorld(W)

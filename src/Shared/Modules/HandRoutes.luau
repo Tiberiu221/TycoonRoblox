@@ -108,11 +108,12 @@ function HandRoutes.context(
     }
 end
 -- Contextul jocului: erele din joc (StationConfig.ENGINE_ERAS), locurile de pe harta, drumurile. Barajul n-are inca locuri.
+-- [D70, dupa verificatorul j8] doar locurile lumii 1: cele ale barajului (lumea 2) n-au ce cauta pe drumurile satului
 local GAME = HandRoutes.context(
     FlowConfig.GAME,
-    TycoonConfig.LINE_PLACES,
-    TycoonConfig.JOIN_PLACES,
-    TycoonConfig.SELLER_PLACES,
+    TycoonConfig.linePlacesOf(1),
+    TycoonConfig.joinPlacesOf(1),
+    TycoonConfig.sellerPlacesOf(1),
     true
 )
 HandRoutes.GAME = GAME
@@ -142,14 +143,24 @@ end
 function HandRoutes.forRole(role: string): Context
     return HandRoutes.forWorld(HandRoutes.worldOfRole(role))
 end
+-- [D70, dupa verificatorul j8] CONTEXTUL IMPLICIT AL UNEI MESERII, cand apelantul nu da unul: al lumii ei, cat era ei e in
+-- joc; altfel al jocului. Asa serverul si clientul trec pe drumurile barajului singuri, la comutatorul l3, fara sa uite
+-- vreun apelant; pana atunci meseriile Erei 4 raman in afara jocului (GAME nu le are).
+local function defaultFor(role: string): Context
+    local world = HandRoutes.worldOfRole(role)
+    if world == 1 or (StationConfig.ERA_OF_ROLE[role] or 1) > StationConfig.ENGINE_ERAS then
+        return GAME
+    end
+    return HandRoutes.forWorld(world)
+end
 
 function HandRoutes.jobOf(role: string, w: Context?): Job?
-    return (w or GAME).jobs[role]
+    return (w or defaultFor(role)).jobs[role]
 end
 
 -- Unde lasa fiecare meserie de drum ce duce, la CAPATUL drumului: un loc din FlowConfig sau un vanzator.
 function HandRoutes.endPlace(role: string, w: Context?): string?
-    local ctx = w or GAME
+    local ctx = w or defaultFor(role)
     local j = ctx.jobs[role]
     if j == nil or j.line == nil then
         return nil
@@ -177,7 +188,7 @@ end
 -- [D56] Ce fel de plase goleste o meserie de culegator: Collector-ul pe cele de lemn, Scrap Collector-ul pe cea de
 -- scrap, [D65] Mill Collector-ul pe ale Morii, Ore Collector-ul pe cea de minereu. nil = meseria nu goleste plase.
 function HandRoutes.netKindOf(role: string, w: Context?): string?
-    local j = (w or GAME).jobs[role]
+    local j = (w or defaultFor(role)).jobs[role]
     if j == nil or j.line == nil or j.job ~= "collect" then
         return nil
     end
@@ -299,7 +310,7 @@ function HandRoutes.routeFor(
     ownedNetIds: { string },
     w: Context?
 ): Route?
-    local ctx = w or GAME
+    local ctx = w or defaultFor(role)
     local j = ctx.jobs[role]
     if j == nil or j.line == nil then
         return nil
@@ -399,7 +410,7 @@ end
 -- Locul unui om static [D56, D65]: omul atelierului langa atelierul liniei lui, omul vanzatorului la tejgheaua lui.
 -- Al doilea sta alaturi (`secondOffset`). [D70] Relay Keeper-ul sta la Relay (locurile unirii); nil fara loc pe harta.
 function HandRoutes.standFor(role: string, index: number, w: Context?): HandMath.Point?
-    local ctx = w or GAME
+    local ctx = w or defaultFor(role)
     local j = ctx.jobs[role]
     if j == nil then
         return nil

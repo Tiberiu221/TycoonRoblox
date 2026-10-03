@@ -16,7 +16,15 @@ export type Point = { x: number, y: number }
 export type Rect = { x0: number, x1: number, y0: number, y1: number }
 type Seg = { a: Point, b: Point, horizontal: boolean, nodes: { number } }
 type Edge = { to: number, d: number }
-export type Graph = { points: { Point }, edges: { { Edge } }, segs: { Seg }, rects: { Rect } }
+-- [D70, dupa verificatorul j8] `blocked`: cutiile pe care nu se merge nici pe iarba (la baraj, zidul si canalul): scurtatura
+-- si pasul de pe iarba pana la drum le ocolesc. In sat nu sunt.
+export type Graph = {
+    points: { Point },
+    edges: { { Edge } },
+    segs: { Seg },
+    rects: { Rect },
+    blocked: { Rect },
+}
 
 local RoadGraph = {}
 
@@ -76,8 +84,44 @@ local function along(s: Seg, p: Point): number
     return if s.horizontal then p.x else p.y
 end
 
-function RoadGraph.build(rects: { Rect }): Graph
-    local g: Graph = { points = {}, edges = {}, segs = {}, rects = rects }
+-- Segmentul a-b trece prin interiorul cutiei (atinsul marginii nu conteaza): Liang-Barsky.
+local function cuts(a: Point, b: Point, r: Rect): boolean
+    local dx, dy = b.x - a.x, b.y - a.y
+    local t0, t1 = 0, 1
+    for _, pq in
+        { { -dx, a.x - r.x0 }, { dx, r.x1 - a.x }, { -dy, a.y - r.y0 }, { dy, r.y1 - a.y } }
+    do
+        local p, q = pq[1], pq[2]
+        if p == 0 then
+            if q <= 0 then
+                return false
+            end
+        else
+            local t = q / p
+            if p < 0 then
+                t0 = math.max(t0, t)
+            else
+                t1 = math.min(t1, t)
+            end
+            if t0 >= t1 then
+                return false
+            end
+        end
+    end
+    return t0 < t1
+end
+-- Un pas drept de la a la b trece printr-o cutie blocata a grafului?
+function RoadGraph.blockedBetween(g: Graph, a: Point, b: Point): boolean
+    for _, r in g.blocked do
+        if cuts(a, b, r) then
+            return true
+        end
+    end
+    return false
+end
+
+function RoadGraph.build(rects: { Rect }, blocked: { Rect }?): Graph
+    local g: Graph = { points = {}, edges = {}, segs = {}, rects = rects, blocked = blocked or {} }
     for _, r in rects do
         if r.x1 - r.x0 >= r.y1 - r.y0 then
             local y = (r.y0 + r.y1) / 2
@@ -189,14 +233,23 @@ function RoadGraph.route(g: Graph, from: Point, to: Point): { Point }
         end
     end
 
+    -- [D70] cel mai apropiat punct de drum la care ajungi pe iarba fara sa treci printr-o cutie blocata (altfel, cel mai
+    -- apropiat oricum: un punct inchis intre cutii n-are alta iesire)
     local function nearest(p: Point): (Point, number)
         local best, bestSeg, bestD = p, 1, math.huge
+        local free, freeSeg, freeD = p, 1, math.huge
         for i, s in g.segs do
             local q = project(s, p)
             local d = dist(p, q)
             if d < bestD then
                 best, bestSeg, bestD = q, i, d
             end
+            if d < freeD and not RoadGraph.blockedBetween(g, p, q) then
+                free, freeSeg, freeD = q, i, d
+            end
+        end
+        if freeD < math.huge then
+            return free, freeSeg
         end
         return best, bestSeg
     end
@@ -282,7 +335,10 @@ function RoadGraph.route(g: Graph, from: Point, to: Point): { Point }
     end
     -- intrarea si iesirea sunt pe iarba; restul pe drum
     local viaRoads = (dist(from, entry) + dist(exit, to)) * RoadGraph.GRASS_COST + best[T]
-    if dist(from, to) * RoadGraph.GRASS_COST <= viaRoads then
+    if
+        dist(from, to) * RoadGraph.GRASS_COST <= viaRoads
+        and not RoadGraph.blockedBetween(g, from, to)
+    then
         return direct
     end
 
@@ -320,7 +376,13 @@ function RoadGraph.forWorld(w: number?): Graph
                 table.insert(rects, { x0 = r.x0, x1 = r.x1, y0 = r.y0, y1 = r.y1 })
             end
         end
-        g = RoadGraph.build(rects)
+        -- [D70, dupa verificatorul j8] zidul si canalul barajului: pe acolo nu se taie nici pe iarba
+        local blocked: { Rect } = {}
+        local data = TycoonConfig.WORLDS[world]
+        for _, b in if data ~= nil and data.blocked ~= nil then data.blocked else {} do
+            table.insert(blocked, { x0 = b.x, x1 = b.x + b.w, y0 = b.y, y1 = b.y + b.h })
+        end
+        g = RoadGraph.build(rects, blocked)
         worldGraphs[world] = g
     end
     return g :: Graph
