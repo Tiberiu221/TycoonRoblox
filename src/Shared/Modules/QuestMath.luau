@@ -51,6 +51,7 @@ export type QuestState = {
     goal: number,
     state: string, -- "locked" | "active" | "done" | "claimed"
     reward: QuestConfig.Reward,
+    counter: string, -- [D70, pasul k5] contorul scris (counterText): "3/10", la venit "966B/1T"
 }
 
 -- Cat s-a facut din quest-ul asta, dupa faptele de acum.
@@ -172,6 +173,7 @@ function QuestMath.chapterStates(chapter: QuestConfig.Chapter, facts: Facts): { 
             goal = goal,
             state = state,
             reward = quest.reward,
+            counter = QuestMath.counterText(quest, progress, goal),
         })
     end
     return out

@@ -1183,6 +1183,15 @@ la granița CREWS / `DAM_START_COINS`.
   șablon ca pe cartonașul clopotului, `Strings.earnPerSecond`): cu 2x Flow „Earn 8T coins a second”. Lista, linia NEXT și
   bannerul citesc `text`, deci nu mai e nimic de făcut în client pentru ea.
 
+- **k5 (făcut):** serverul trimite contorul scris al fiecărui quest (`counter` = `QuestMath.counterText`, pe rând și pe quest-ul
+  activ), copiat explicit; lista și linia NEXT îl arată, **fără paranteze și în sat** („3/10”; la venit „966B/1T”, ≤ 60 px).
+  Un quest de venit ajunge la ghidaj fără loc: pasul n-are săgeată și nici preț (bara NEXT rămâne venitul), iar textul lui
+  numește ce se mai poate urca acum (`AmbitionMath.pick`, aceeași țintă ca linia NEXT fără quest; sare meseriile la maxim),
+  cu butonul Upgrade al stației pulsând. Un quest pe o platformă încă încuiată (`outline`) are săgeata spre ea (cartonașul
+  spune ce lipsește), fără preț și fără „While you save”; regula e și în sat. Turul cablului la baraj (plasă → Cable Works →
+  inel → cablul gata → inelul Relay-ului → curentul → Switch House) e testat cu comutatorul. **Indiciul AWAY** trece la k6,
+  lângă fereastra „AWAY 0” (aceleași cuvinte).
+
 **k6. Intrarea din lumea 1.** Depinde de: k2, j15.
 - Steagul `damAvailable` în stare. Masa Dam Plans devine „Build the Dam (E)” (azi ar dispărea la `eraIsLive(4)`,
   `ModernController.luau:104-150`); bannerul de la Works Bell și linia NEXT; „Goes into the Dam when you build it” pe cardurile

@@ -111,6 +111,7 @@ export type Snapshot = {
         text: string,
         progress: number,
         goal: number,
+        counter: string, -- [D70, pasul k5] contorul scris, acelasi ca in lista (QuestMath.counterText)
         padId: string?,
         dock: boolean?,
         sawmill: boolean?,
@@ -156,6 +157,11 @@ function QuestService.Snapshot(player: Player): Snapshot?
                     QuestMath.goalOf(active, facts)
                 ),
                 goal = QuestMath.goalOf(active, facts), -- [D70] pragul de venit cu 2x Flow
+                counter = QuestMath.counterText(
+                    active,
+                    QuestMath.progress(active, facts),
+                    QuestMath.goalOf(active, facts)
+                ),
                 padId = active.targetPad,
                 dock = active.targetDock,
                 sawmill = active.targetSawmill,

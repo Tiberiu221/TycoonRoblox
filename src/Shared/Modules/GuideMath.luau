@@ -41,8 +41,9 @@ export type LineInfo = { raw: number, store: number, input: number, output: numb
 export type QuestGoal = {
     key: string,
     text: string,
-    x: number,
-    y: number,
+    -- [D70, pasul k5] nil la un quest fara loc in lume (un pas de venit, „Earn 1T coins a second”)
+    x: number?,
+    y: number?,
     padId: string?,
     price: number?,
     -- [D51] felul quest-ului (QuestConfig): "pad" | "level" | "collected" | "sawn" | "sold" | ...
@@ -93,6 +94,9 @@ export type State = {
     -- lume decat satul nu exista bustenii, gaterul, forja, taverna: pasii lor nu se dau niciodata.
     world: number?,
     parts: { [string]: number }?,
+    -- [D70, pasul k5] ce se mai poate urca acum cu castig (AmbitionMath, aceeasi tinta ca pe linia NEXT fara quest): pasul
+    -- unui quest de venit il numeste. `upgradeKind` / `upgradeId`: statia (sau "crew" si meseria) al carei Upgrade pulseaza.
+    ambition: { text: string, upgradeKind: string?, upgradeId: string? }?,
 }
 export type Goal = {
     -- "buy" | "upgrade" | "collect" | "wait" | "cut" | "smelt" | "take" | "sell" (taverna) | "deliver" (gater,
@@ -642,10 +646,16 @@ local function pierHint(s: State, price: number?): Goal?
     }
 end
 
+-- [D70, pasul k5] Platforma quest-ului inca nu se poate cumpara (ii lipseste o conditie: alta platforma, un clopot, un
+-- venit): nici bara de pret, nici „While you save” — banii singuri n-o deschid.
+local function padLocked(s: State, quest: QuestGoal): boolean
+    return quest.kind == "pad" and quest.padId ~= nil and s.pads[quest.padId :: string] == "outline" -- o platforma fara stare (alt fel de test, alta harta) nu e „incuiata”
+end
+
 -- Pretul unui quest de cumparare sau de nivel, cat nu ti-l permiti inca; nil = alt fel de quest sau ai banii.
 local function unaffordablePrice(s: State, quest: QuestGoal): number?
     local kind = quest.kind
-    if kind ~= "pad" and kind ~= "level" then
+    if (kind ~= "pad" and kind ~= "level") or padLocked(s, quest) then
         return nil
     end
     local price = if kind == "level" then quest.levelCost else quest.price
@@ -679,6 +689,31 @@ local function questGoal(s: State, quest: QuestGoal): Goal
     local kind = quest.kind
     if kind ~= nil and LOOP_KINDS[kind] then
         return GuideMath.loopStep(s, quest)
+    end
+    if kind == "income" then
+        -- [D70, pasul k5] un pas de venit: nicio tinta in lume si niciun pret (bara NEXT ramane venitul spre prag); pasul
+        -- numeste ce se mai poate urca acum cu castig (AmbitionMath sare meseriile la maxim)
+        local a = s.ambition
+        return {
+            kind = "upgrade",
+            key = `income:{quest.key}`,
+            text = if a ~= nil then a.text else quest.text,
+            immediate = true,
+            upgradeKind = if a ~= nil then a.upgradeKind else nil,
+            upgradeId = if a ~= nil then a.upgradeId else nil,
+        }
+    end
+    if padLocked(s, quest) then
+        -- [D70, pasul k5] platforma inca incuiata: sageata spre ea (cartonasul ei spune ce-i lipseste), fara pret
+        return {
+            kind = "goto",
+            key = `locked:{quest.key}`,
+            text = quest.text,
+            x = quest.x,
+            y = quest.y,
+            immediate = true,
+            padId = quest.padId,
+        }
     end
     if kind == "pad" or kind == "level" then
         local price = if kind == "level" then quest.levelCost else quest.price

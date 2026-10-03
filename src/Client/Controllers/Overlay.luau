@@ -241,7 +241,7 @@ end
 
 -- Taie snapshot-ul mare la campurile de care are nevoie GuideMath, copiate explicit
 -- [CLAUDE.md capcana 3] -- GuideMath ramane pur si nu stie de forma completa a lui Snapshot.
-local function toGuideState(s: Snapshot): GuideMath.State
+local function toGuideState(s: Snapshot, ambition: AmbitionMath.Ambition?): GuideMath.State
     local nets: { GuideMath.NetInfo } = table.create(#s.nets)
     for i, n in s.nets do
         -- tinta unei plase e stalpul ei de pe punte, unde stai ca s-o golesti -- nu plasa din apa,
@@ -338,6 +338,15 @@ local function toGuideState(s: Snapshot): GuideMath.State
                 upgradeId = active.stationId,
                 always = active.always == true, -- [D65] sageata si cand ghidajul tace
             }
+        elseif active.kind == "income" then
+            -- [D70, pasul k5] un pas de venit n-are loc in lume: ghidajul il primeste fara sageata, ca sa nu-i puna pret
+            quest = {
+                key = active.id,
+                text = active.text,
+                kind = active.kind,
+                progress = active.progress,
+                goal = active.goal,
+            }
         end
     end
     local counts: { [string]: number } = {}
@@ -384,6 +393,14 @@ local function toGuideState(s: Snapshot): GuideMath.State
         -- [D70, pasul k3] harta ta si piesele gata din traista: la baraj, nicio tinta a satului
         world = deps.World,
         parts = if s.sack.partBy ~= nil then table.clone(s.sack.partBy) else nil,
+        -- [D70, pasul k5] ce se mai poate urca acum (aceeasi tinta ca linia NEXT fara quest): pasul unui quest de venit
+        ambition = if ambition ~= nil
+            then {
+                text = Strings.ambitionText(ambition.what, ambition.name, ambition.target),
+                upgradeKind = if ambition.what == "milestone" then ambition.kind else "crew",
+                upgradeId = if ambition.what == "milestone" then ambition.id else ambition.kind,
+            }
+            else nil,
     }
 end
 
@@ -636,14 +653,13 @@ end
 -- [D51] Pasul ghidajului, linia NEXT si contextul cardului obiectului, din aceeasi stare: la fiecare
 -- TycoonState si la fiecare prindere (numarul din plasa se schimba intre doua stari).
 local function refreshGuide(snapshot: Snapshot)
-    local goal = GuideController.Apply(toGuideState(snapshot))
     local stations = snapshot.stations
+    local ambition = if stations ~= nil
+        then AmbitionMath.pick(stations.rows, stations.crews, StationConfig.MILESTONES)
+        else nil
+    local goal = GuideController.Apply(toGuideState(snapshot, ambition))
     -- [D63] tinta fara sfarsit: HUD-ul o arata doar cand n-are nici quest, nici pas de ghidaj
-    HUDController.SetAmbition(
-        if stations ~= nil
-            then AmbitionMath.pick(stations.rows, stations.crews, StationConfig.MILESTONES)
-            else nil
-    )
+    HUDController.SetAmbition(ambition)
     HUDController.SetStep(goal, snapshot.coins)
     InteractController.SetContext(
         goal,

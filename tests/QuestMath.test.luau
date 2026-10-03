@@ -834,4 +834,50 @@ return function()
             end
         )
     end)
+    -- [D70, pasul k5] contorul unui quest, acelasi in lista si pe linia NEXT: scris de server (counterText), fara paranteze
+    test.suite("QuestMath - contorul scris [D70, pasul k5]", function()
+        local StationConfig = require("../src/Shared/Config/StationConfig")
+        local PIXEL = 0.5585 -- fontul de pixeli, pe litera
+        test.case("fiecare rand al capitolului isi poarta contorul", function()
+            for _, chapter in QuestConfig.ALL_CHAPTERS do
+                for _, row in QuestMath.chapterStates(chapter, facts({ flowFactor = 1 })) do
+                    check.equal(type(row.counter), "string")
+                    check.equal(string.find(row.counter, "(", 1, true), nil)
+                end
+            end
+        end)
+        test.case("pragurile de venit incap: 60 px in lista, 80 pe linia NEXT (13 px)", function()
+            local quest = { id = "q", kind = "income", text = "", goal = 1 } :: any
+            for _, base in { StationConfig.KILN_INCOME, StationConfig.DAM_BELL_INCOME } do
+                for _, flow in { 1, 2 } do
+                    local goal = base * flow
+                    for _, progress in { goal, goal * 0.999, 0 } do
+                        local text = QuestMath.counterText(quest, progress, goal)
+                        local px = #text * PIXEL * 13
+                        if px > 60 then
+                            print(`  ! {text}: {math.floor(px)} px`)
+                        end
+                        check.is_true(px <= 60)
+                        check.is_true(px <= 80)
+                    end
+                end
+            end
+            check.equal(QuestMath.counterText(quest, 966e9, 1e12), "966B/1T")
+        end)
+        test.case(
+            "serverul trimite contorul, clientul il copiaza si il arata (lista si NEXT)",
+            function()
+                local fs = require("@lune/fs")
+                local service = fs.readFile("src/Server/Services/QuestService.luau")
+                check.not_nil(string.find(service, "counter = QuestMath.counterText(", 1, true))
+                local boot = fs.readFile("src/Client/Bootstrap.client.luau")
+                check.not_nil(string.find(boot, "counter = if typeof(q.counter)", 1, true))
+                check.not_nil(string.find(boot, "counter = if typeof(a.counter)", 1, true))
+                local list = fs.readFile("src/Client/Controllers/QuestController.luau")
+                check.not_nil(string.find(list, "view.counter.Text = row.counter", 1, true))
+                local hud = fs.readFile("src/Client/Controllers/HUDController.luau")
+                check.not_nil(string.find(hud, "objNeed.Text = active.counter", 1, true))
+            end
+        )
+    end)
 end

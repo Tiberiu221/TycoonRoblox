@@ -26,6 +26,7 @@ export type QuestState = {
     goal: number,
     state: string,
     reward: { coins: number?, pearls: number? },
+    counter: string, -- [D70, pasul k5] contorul scris de server (QuestMath.counterText)
 }
 
 export type Snapshot = {
@@ -36,7 +37,7 @@ export type Snapshot = {
     claimable: number,
     lastOfWorld: boolean?, -- [D70] capitolul e ultimul al lumii tale
     coming: string?, -- [D70] era care vine pe harta ta (serverul o stie), sau nil
-    active: { id: string, text: string, progress: number, goal: number }?,
+    active: { id: string, text: string, progress: number, goal: number, counter: string }?,
 }
 
 export type Deps = {
@@ -234,7 +235,8 @@ local function refresh(snap: Snapshot)
         -- [D67] "Upgrade Fourteenth Net to level 2" are 33 de litere: la 15 ar iesi din randul de 270 (testul din
         -- QuestMath tine fiecare text sub 270 la marimea 14)
         view.text.TextSize = Theme.fitSize(row.text, Theme.TEXT.small, "strong", 270)
-        view.counter.Text = `({math.floor(row.progress)}/{row.goal})`
+        -- [D70, pasul k5] contorul serverului, fara paranteze ("3.99T/4T" incape in 60 px; cu ele, ~73)
+        view.counter.Text = row.counter
         view.fill.Size = UDim2.fromScale(math.clamp(row.progress / math.max(1, row.goal), 0, 1), 1)
 
         -- Prin Widgets, nu pe `button.Text`: acolo s-ar fi scris `Claim` PESTE eticheta `Go!` a

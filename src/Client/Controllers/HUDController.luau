@@ -32,7 +32,7 @@ local idleValue: TextLabel
 local objPill: TextButton
 local objBadge: Frame
 local objBadgeLabel: TextLabel
-local questActive: { text: string, progress: number, goal: number }? = nil
+local questActive: { text: string, progress: number, goal: number, counter: string }? = nil
 local ambition: AmbitionMath.Ambition? = nil -- [D63] tinta fara sfarsit, cand nu e niciun quest
 local questClaimable = 0 -- cat timp e ceva de revendicat, apasarea pe linia NEXT duce tot la lista de quest-uri
 local objText: TextLabel
@@ -926,7 +926,7 @@ function HUDController.ObjectiveRect(): (number, number, number, number)
 end
 
 function HUDController.SetQuest(
-    active: { text: string, progress: number, goal: number }?,
+    active: { text: string, progress: number, goal: number, counter: string }?,
     claimable: number
 )
     if objPill == nil then
@@ -944,7 +944,7 @@ function HUDController.SetQuest(
         objTrack.Visible = true
         objFill.Size =
             UDim2.fromScale(math.clamp(active.progress / math.max(1, active.goal), 0, 1), 1)
-        objNeed.Text = `{math.floor(active.progress)}/{active.goal}`
+        objNeed.Text = active.counter -- [D70, pasul k5] acelasi contor ca in lista ("966B/1T" la venit)
         objNeed.TextColor3 = if active.progress >= active.goal
             then Theme.COLOR.good
             else Theme.COLOR.onDarkSoft

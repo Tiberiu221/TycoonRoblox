@@ -1151,6 +1151,70 @@ return function()
                 end
             end
         )
+        -- [D70, pasul k5] primul tur de mana la baraj: veteranii duc butoaiele, tu faci cablul de la plasa pana la Switch House
+        test.case("turul cablului, pas cu pas, cu Era 4 in joc", function()
+            if not TycoonConfig.eraIsLive(4) then
+                return -- adormit: liniile barajului nu sunt in joc (verificat pe harta comutatorului)
+            end
+            local veterans =
+                { damCollector = 1, damPorter = 1, switchman = 1, barrelHauler = 1, dispatcher = 1 }
+            local function lines(over: { [string]: any }): { [string]: GuideMath.LineInfo }
+                local out: { [string]: GuideMath.LineInfo } = {}
+                for _, line in StationConfig.LINE_ORDER do
+                    out[line] = { raw = 0, store = 0, input = 0, output = 0 }
+                end
+                for line, info in over do
+                    out[line] = info
+                end
+                return out
+            end
+            local function step(over: { [string]: any }): GuideMath.Goal
+                local s = table.clone(over)
+                s.world = 2
+                s.crews = veterans
+                s.pads = s.pads or { dam_turbine = "bought", cable_net = "bought" }
+                return GuideMath.loopStep(state(s), nil)
+            end
+            local cableNet = TycoonConfig.byId.cable_net
+            local net = {
+                padId = "cable_net",
+                x = cableNet.x :: number,
+                y = cableNet.y :: number,
+                count = 5,
+                capacity = 12,
+                line = "cable",
+            }
+            check.equal(step({ nets = { net }, lines = lines({}) }).key, "net:cable_net")
+            local raw = step({
+                sackCount = 5,
+                lines = lines({ cable = { raw = 5, store = 0, input = 0, output = 0 } }),
+            })
+            check.equal(raw.text, Strings.guideRawTo(Strings.LINE_WORDS.cable))
+            check.equal(
+                step({ lines = lines({ cable = { raw = 0, store = 0, input = 5, output = 0 } }) }).key,
+                "work:cable"
+            )
+            check.equal(
+                step({ lines = lines({ cable = { raw = 0, store = 0, input = 0, output = 5 } }) }).key,
+                "done:cable"
+            )
+            check.equal(
+                step({ sackCount = 5, parts = { grid = 5 }, lines = lines({}) }).key,
+                "relay"
+            )
+            check.equal(
+                step({ lines = lines({ grid = { raw = 0, store = 0, input = 5, output = 0 } }) }).key,
+                "work:grid"
+            )
+            check.equal(
+                step({ lines = lines({ grid = { raw = 0, store = 0, input = 0, output = 5 } }) }).key,
+                "done:grid"
+            )
+            local sell = step({ sackCount = 5, sellAt = { town = 5 }, lines = lines({}) })
+            check.equal(sell.key, "town")
+            check.equal(sell.x, TycoonConfig.SELLER_PLACES.town.door.x)
+        end)
+
         test.case("piesele din traista merg la inelul unirii lor (cu Era 4 in joc)", function()
             if not TycoonConfig.eraIsLive(4) then
                 return -- adormit: nicio unire in joc (verificat pe harta comutatorului)
@@ -1182,6 +1246,66 @@ return function()
             check.equal(take.key, "done:grid")
             check.equal(take.x, stand.x)
         end)
+    end)
+
+    test.suite("GuideMath - pasii de venit si platformele incuiate [D70, pasul k5]", function()
+        local ambition =
+            { text = "Relay Station to level 10", upgradeKind = "relay", upgradeId = nil }
+        test.case(
+            "un quest de venit: fara sageata si fara pret; pasul numeste ce se mai poate urca",
+            function()
+                local st = state({ coins = 5, pads = pads({ "first_net" }, { "second_net" }) })
+                st.quest = {
+                    key = "earn_1t",
+                    text = "Earn 1T coins a second",
+                    kind = "income",
+                    progress = 1,
+                    goal = 10,
+                }
+                st.ambition = ambition
+                local g = GuideMath.pickGoal(st) :: GuideMath.Goal
+                check.equal(g.x, nil)
+                check.equal(g.price, nil)
+                check.equal(g.text, ambition.text)
+                check.equal(g.upgradeKind, "relay")
+                -- fara tinta de urcat: textul quest-ului, tot fara pret
+                st.ambition = nil
+                local plain = GuideMath.pickGoal(st) :: GuideMath.Goal
+                check.equal(plain.text, "Earn 1T coins a second")
+                check.equal(plain.price, nil)
+            end
+        )
+        test.case(
+            "o platforma inca incuiata: sageata spre ea, fara pret si fara „While you save”",
+            function()
+                local st = state({ coins = 5, pads = pads({ "first_net" }) })
+                st.pads.second_net = "outline"
+                st.quest = {
+                    key = "cast_second",
+                    text = "Cast a second net",
+                    x = 820,
+                    y = 812,
+                    padId = "second_net",
+                    price = 13,
+                    kind = "pad",
+                }
+                local g = GuideMath.pickGoal(st) :: GuideMath.Goal
+                check.equal(g.x, 820)
+                check.equal(g.price, nil)
+                check.equal(g.kind, "goto")
+                -- cu toti oamenii angajati (ghidajul tace) si dupa primul peste: nici indiciul pontonului cu pret
+                local quiet = state({
+                    coins = 5,
+                    pads = pads({ "first_net" }),
+                    allCrewsHired = true,
+                    hasFished = true,
+                })
+                quiet.pads.second_net = "outline"
+                quiet.hasFished = true
+                quiet.quest = st.quest
+                check.equal(GuideMath.pickGoal(quiet), nil)
+            end
+        )
     end)
 
     test.suite("GuideMath - langa tinta, cardul E al tintei [2026-09-30]", function()

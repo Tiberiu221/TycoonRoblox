@@ -1353,6 +1353,10 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
                 text = q.text,
                 progress = q.progress,
                 goal = q.goal,
+                -- [D70, pasul k5] contorul scris de server ("3/10", la venit "966B/1T")
+                counter = if typeof(q.counter) == "string"
+                    then q.counter
+                    else `{math.floor(q.progress)}/{q.goal}`,
                 state = q.state,
                 reward = { coins = q.reward.coins, pearls = q.reward.pearls },
             }
@@ -1379,6 +1383,9 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
                     text = a.text,
                     progress = a.progress,
                     goal = a.goal,
+                    counter = if typeof(a.counter) == "string"
+                        then a.counter
+                        else `{math.floor(a.progress)}/{a.goal}`, -- [D70, pasul k5]
                     padId = a.padId,
                     dock = a.dock,
                     sawmill = a.sawmill,
