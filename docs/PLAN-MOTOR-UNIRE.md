@@ -999,6 +999,18 @@ la granița CREWS / `DAM_START_COINS`.
   `expectedKeep`; aplică `DamMath.build` dintr-o bucată; invalidează Pads și Stations; `DataService.SaveNow` (scos din
   PurchaseService), apoi `DamBuilt`; Analytics.
 - **DevService:** `world:N`, `dam`, saltul la capitolele 10–12, numele noilor grămezi, `up:` pe clădirile noi.
+- **[Făcut, 2026-10-03]** `DamService` (doar în sat): `Preview` (chitanța, `Firsts.DamPreviewed`), `Build(player, expectedKeep)`
+  cu ordinea `no_profile` → `busy` → `settling` (`StationService.Settled`, pus după plata offline de la încărcare) → gărzile din
+  `DamMath` → `changed` (monedele cu care pornești nu mai sunt cele de pe ecran) → `DamMath.build` → invalidare, atributul
+  `World`, starea → `DataService.SaveNow` (scos din PurchaseService, aceeași buclă) până când `LastSavedData.World == 2`, apoi
+  `DamBuilt`. `FilmSeen` (`Firsts.DamFilmSeen`). Remote-urile în `Net.luau`, găleata `Dam` (4, 0,5/s), handlerele în NetServer
+  răspund și la limită („busy”); `Analytics.DamStep` (canalul „Dam”). DevService: `world N` (doar 1..`COUNT`, fără ridicare),
+  `dam` (chitanța) și `dam build` (drumul adevărat), `chapter N` refuză capitolele altei hărți și le sare pe ale ei,
+  listele din `pile` și `up` vin din FlowConfig / `UPGRADE_KINDS`. Teste: `tests/DamService.test.luau` (ordinea Init, bâlciul
+  fără serviciu, remote-urile, limita, ordinea gărzilor în `Build`, salvarea comună, uneltele). Capătul clientului,
+  `Client/Controllers/DamController` (cererile, chitanța copiată câmp cu câmp, un toast la orice refuz sau la ridicare,
+  `Strings.damRejected` / `DAM_BUILT`), e pus acum fiindcă `check_requires` nu primește remote-uri pe care clientul nu le atinge;
+  ecranul (k7), masa Dam Plans (k6) și filmul (k9) se așază peste el prin `OnPreview` / `OnBuilt`.
 - **[Verificatorul j10]** odată cu `data.World = 2`, și `player:SetAttribute("World", 2)`. Serverul citește lumea din profil
   (`PadService.World`, pentru statusuri și zone, de la verificatorul j10), dar atributul îl citește clientul la k1.
 - Verificare: `check_requires` pe ambele proiecte (`DamService` nu intră în bâlci); probă pe comutator: `dev dam` arată cifrele

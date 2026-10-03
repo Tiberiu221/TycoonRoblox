@@ -78,6 +78,14 @@ local REMOTE_NAMES = {
     -- Noi la D60 (balciul de seara, place-ul al doilea)
     "RowUp", -- C->S: urci in barca de la ponton (dupa drumul pictat); serverul te duce in balci
     "FerryFailed", -- S->C {reason}: barca n-a plecat ("studio" | "closed" | "no_profile" | "failed" | "timeout")
+
+    -- [D70, pasul j15] BARAJUL (DamService, doar in sat): ecranul „Build the Dam”, ridicarea, filmul
+    "DamPreview", -- C->S: ce s-ar intampla acum (chitanta, din DamMath.preview)
+    "DamPreviewResult", -- S->C {receipt?, reason?}: chitanta, sau de ce nu ("soon" | "bell" | "built" | "settling")
+    "BuildDam", -- C->S {expectedKeep}: ridica barajul; `expectedKeep` = monedele cu care pornesti, din previzualizare
+    "DamBuilt", -- S->C {receipt}: barajul e ridicat si salvat (clientul porneste filmul, apoi reincarcarea, k7-k8)
+    "DamRejected", -- S->C {reason}: "soon" | "bell" | "built" | "settling" | "changed" | "busy" | "no_profile" | "save"
+    "DamFilmSeen", -- C->S: filmul s-a vazut (sau s-a sarit); nu mai porneste singur
 }
 
 local Net = {}

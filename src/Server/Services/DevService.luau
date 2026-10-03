@@ -14,6 +14,8 @@ local QuestConfig = require(ReplicatedStorage.Shared.Config.QuestConfig)
 local VillageConfig = require(ReplicatedStorage.Shared.Config.VillageConfig)
 local QuestMath = require(ReplicatedStorage.Shared.Modules.QuestMath)
 local CrewMath = require(ReplicatedStorage.Shared.Modules.CrewMath)
+local FlowConfig = require(ReplicatedStorage.Shared.Config.FlowConfig)
+local WorldConfig = require(ReplicatedStorage.Shared.Config.WorldConfig)
 
 local DataService = require(script.Parent.DataService)
 local DevState = require(script.Parent.DevState)
@@ -28,6 +30,7 @@ local VillageService = require(script.Parent.VillageService)
 local WheelService = require(script.Parent.WheelService)
 local PassService = require(script.Parent.PassService)
 local PurchaseService = require(script.Parent.PurchaseService)
+local DamService = require(script.Parent.DamService)
 
 local DevService = {}
 local deps: { Remotes: { [string]: RemoteEvent }, PushState: ((Player) -> ())? }
@@ -208,7 +211,20 @@ local HANDLERS: { [string]: Handler } = {
         local n = tonumber(amount) or 50
         local added = EconomyService.DevFillPile(player, place or "", n)
         if added == 0 then
-            return "usage: pile storage|sawmill|planks|dock|shed|forge|iron|millStore|foundry|parts|oreShed|furnace|copper|market [n]"
+            -- [D70] locurile din joc, din FlowConfig: si ale barajului, odata ce Era 4 e in joc
+            local places: { string } = {}
+            for _, line in StationConfig.LINE_ORDER do
+                local spec = FlowConfig.LINES[line]
+                for _, p in { spec.store, spec.processor, spec.output } do
+                    if p ~= nil and not table.find(places, p) then
+                        table.insert(places, p)
+                    end
+                end
+            end
+            for _, seller in StationConfig.SELLER_ORDER do
+                table.insert(places, seller)
+            end
+            return `usage: pile {table.concat(places, "|")} [n]`
         end
         return `+{added} in {place}`
     end,
@@ -362,7 +378,12 @@ local HANDLERS: { [string]: Handler } = {
         local text = if typeof(arg) == "string" then arg :: string else ""
         local target, countText = string.match(text, "^([%a_:]+)%s*(%d*)$")
         if target == nil then
-            return "usage: up saw|dock|forge|foundry|furnace|market|net:<padId> [count]"
+            local kinds: { string } = {}
+            for kind in StationService.UPGRADE_KINDS do
+                table.insert(kinds, kind)
+            end
+            table.sort(kinds)
+            return `usage: up {table.concat(kinds, "|")}|net:<padId> [count]`
         end
         local kind, id = string.match(target, "^(%a+):(.+)$")
         local count = tonumber(countText) or 1
@@ -377,6 +398,54 @@ local HANDLERS: { [string]: Handler } = {
         return `{target}: level {if done ~= nil then done.level else "?"}`
     end,
 
+    -- [D70, pasul j15] LUMEA: `world 2` muta profilul pe harta barajului FARA ridicare (fara bani, fara oameni mutati): doar
+    -- ca sa se vada serverul in lumea 2 dupa un Stop/Play cu „keep save”. Pentru drumul adevarat: `dam build`.
+    world = function(player: Player, arg: unknown): string
+        local data = DataService.Get(player)
+        if data == nil then
+            return "no profile"
+        end
+        local w = number(arg, 0)
+        if w ~= math.floor(w) or w < 1 or w > WorldConfig.COUNT then
+            return `usage: world 1..{WorldConfig.COUNT}`
+        end
+        data.World = w
+        player:SetAttribute("World", w)
+        PadService.Invalidate(player)
+        StationService.Invalidate(player)
+        return `world {w} (reload with Stop/Play and keep save to start there)`
+    end,
+
+    -- [D70, pasul j15] BARAJUL: `dam` arata chitanta de acum (DamMath.preview); `dam build` il ridica pe drumul adevarat.
+    dam = function(player: Player, arg: unknown): string
+        local receipt, why = DamService.Preview(player)
+        if receipt == nil then
+            return `no dam: {why}`
+        end
+        if arg == "build" then
+            local built, refused = DamService.Build(player, receipt.coinsAfter)
+            if built == nil then
+                return `refused: {refused}`
+            end
+            receipt = built
+        end
+        local r = receipt :: any
+        return string.format(
+            "%slast cart %s (%d pieces) · quests +%d pearls · C %s · keep %s · start %s · gift %s · adds %s · income %s -> %s",
+            if arg == "build" then "BUILT · " else "",
+            TycoonMath.formatNumber(r.lastCart),
+            r.pieces,
+            r.questPearls,
+            TycoonMath.formatNumber(r.coinsBefore),
+            TycoonMath.formatNumber(r.kept),
+            TycoonMath.formatNumber(r.coinsAfter),
+            TycoonMath.formatNumber(r.gift),
+            TycoonMath.formatNumber(r.topUp),
+            TycoonMath.formatNumber(r.incomeBefore),
+            TycoonMath.formatNumber(r.incomeAfter)
+        )
+    end,
+
     -- [D65] UNEALTA ERELOR: aduce profilul la INCEPUTUL capitolului N (chapter 4 = Era 2, cu clopotul Erei 1 tras):
     -- fiecare quest de dinainte e facut (platforma data, nivelul urcat, numaratoarea la tinta) si revendicat, fara
     -- recompense. Altfel Era 2 s-ar putea verifica doar dupa o ora de joc. Quest-urile se citesc din stare, deci aici
@@ -387,11 +456,23 @@ local HANDLERS: { [string]: Handler } = {
             return "no profile"
         end
         local upTo = math.clamp(math.floor(number(arg, 4)), 1, #QuestConfig.CHAPTERS + 1)
+        -- [D70] capitolele altei harti nu se pot sari de aici: barajul se ridica intai (`dam build`), iar capitolele satului
+        -- le-a inchis ridicarea (QuestMath.settleWorld)
+        local world = WorldConfig.sanitize(data.World)
+        local target = QuestConfig.CHAPTERS[upTo]
+        if target ~= nil and WorldConfig.worldOfEra(target.era) ~= world then
+            return `chapter {upTo} is on another map: build the Dam first (dam build), or world {WorldConfig.worldOfEra(
+                target.era
+            )}`
+        end
         local stats: any = data.Stats
         local done = 0
         for index, chapter in QuestConfig.CHAPTERS do
             if index >= upTo then
                 break
+            end
+            if WorldConfig.worldOfEra(chapter.era) ~= world then
+                continue
             end
             for _, quest in chapter.quests do
                 if quest.kind == "pad" then

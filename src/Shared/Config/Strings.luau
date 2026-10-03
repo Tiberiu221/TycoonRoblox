@@ -173,6 +173,22 @@ Strings.DAM_SITE = "The Dam will rise here — coming soon"
 function Strings.zoneSoon(zoneName: string): string
     return `{zoneName} — coming soon`
 end
+-- [D70, pasul j15] barajul: refuzurile serverului (DamService) si ridicarea. Propuneri; ecranul „Build the Dam” le
+-- rescrie la k7.
+local DAM_REJECTED: { [string]: string } = {
+    soon = "The Dam is coming soon!",
+    bell = "Ring the Works Bell first",
+    built = "The Dam is already built",
+    settling = "One moment, the village is still counting",
+    changed = "Your coins changed. Look again",
+    busy = "One moment, try again",
+    no_profile = "Still loading your river",
+    save = "Couldn't save yet. Try again",
+}
+function Strings.damRejected(reason: string): string
+    return DAM_REJECTED[reason] or DAM_REJECTED.busy
+end
+Strings.DAM_BUILT = "The Dam is built!"
 -- [D70, verificatorul j10] zona unei alte harti (barajul, vazut din sat), cand era ei e in joc: nu se deschide cu niciun
 -- clopot si nu mai "vine"; spune doar unde se ridica [D40, D73]
 function Strings.zoneAway(zoneName: string): string

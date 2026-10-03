@@ -41,8 +41,6 @@ export type Deps = {
 }
 local deps: Deps? = nil
 
-local SAVE_RETRY_SECONDS = 10
-
 local function purchasesOf(data: any): { ids: { string }, passes: { [string]: boolean } }
     if typeof(data.Purchases) ~= "table" then
         data.Purchases = { ids = {}, passes = {} }
@@ -142,28 +140,14 @@ local function processReceipt(receipt: { [string]: any }): Enum.ProductPurchaseD
         end
     end
 
-    -- confirmam abia cand chitanta a ajuns sigur in DataStore
-    local function saved(): boolean
-        local last = profile.LastSavedData
+    -- confirmam abia cand chitanta a ajuns sigur in DataStore (DataService.SaveNow: salveaza pana ajunge)
+    local function saved(last: any): boolean
         local lastPurchases = if typeof(last) == "table" then last.Purchases else nil
         return typeof(lastPurchases) == "table"
             and PassMath.hasReceipt(lastPurchases.ids, purchaseId)
     end
-    if saved() then
+    if DataService.SaveNow(profile, saved) then
         return Enum.ProductPurchaseDecision.PurchaseGranted
-    end
-    while profile:IsActive() do
-        local before = profile.LastSavedData
-        profile:Save()
-        if profile.LastSavedData == before then
-            profile.OnAfterSave:Wait()
-        end
-        if saved() then
-            return Enum.ProductPurchaseDecision.PurchaseGranted
-        end
-        if profile:IsActive() then
-            task.wait(SAVE_RETRY_SECONDS)
-        end
     end
     return Enum.ProductPurchaseDecision.NotProcessedYet
 end

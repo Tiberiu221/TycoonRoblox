@@ -886,11 +886,23 @@ end
 -- [D71] consola de dev (`away <ore>`): socoteala din nou, dupa ce `lastSeenAt` a fost mutat inapoi
 StationService.SettleOffline = settleOffline
 
+-- [D70, pasul j15] plata de cand ai lipsit e facuta (la incarcarea profilului). Ridicarea barajului o asteapta: altfel
+-- monedele acelei absente ar veni dupa ridicare, peste suma de start.
+local settled: { [Player]: boolean } = {}
+function StationService.Settled(player: Player): boolean
+    return settled[player] == true
+end
+
 function StationService.Init(d: typeof(deps))
     deps = d
-    DataService.ProfileLoaded:Connect(settleOffline)
-
     local Players = game:GetService("Players")
+    DataService.ProfileLoaded:Connect(function(player: Player)
+        settleOffline(player)
+        settled[player] = true
+    end)
+    Players.PlayerRemoving:Connect(function(player: Player)
+        settled[player] = nil
+    end)
     -- `lastSeenAt` la iesire il scrie DataService (acolo se inchide si sesiunea de profil); daca
     -- l-am scrie si noi, campul ar avea doi stapani si ordinea dintre doua handlere de
     -- PlayerRemoving nu e garantata.

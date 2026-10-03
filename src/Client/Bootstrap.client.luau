@@ -165,6 +165,7 @@ local MonetizationConfig = require(ReplicatedStorage.Shared.Config.MonetizationC
 local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
 local ShopPanel = require(Controllers.ShopPanel)
 local DriftController = require(Controllers.DriftController) -- [D62, pasul 3]
+local DamController = require(Controllers.DamController) -- [D70, pasul j15]
 local AmbientController = require(Controllers.AmbientController) -- [D62, pasul 5]
 local Theme = require(UI.Theme)
 local layers = CameraController.Init({ WorldGui = worldGui })
@@ -533,6 +534,22 @@ safeInit("WelcomeController", function()
         HudGui = hudCanvas,
         WelcomeBack = Net.Get("WelcomeBack"),
         RobuxBuy = Net.Get("RobuxBuy"), -- [D61, partea 2] `Double it`
+    })
+end)
+-- [D70, pasul j15] barajul: cererile si raspunsurile; ecranul vine la k7, masa Dam Plans il deschide la k6
+safeInit("DamController", function()
+    DamController.Init({
+        Remotes = {
+            DamPreview = Net.Get("DamPreview"),
+            DamPreviewResult = Net.Get("DamPreviewResult"),
+            BuildDam = Net.Get("BuildDam"),
+            DamBuilt = Net.Get("DamBuilt"),
+            DamRejected = Net.Get("DamRejected"),
+            DamFilmSeen = Net.Get("DamFilmSeen"),
+        },
+        OnToast = function(text: string)
+            HUDController.Toast(text)
+        end,
     })
 end)
 safeInit("QuestController", function()

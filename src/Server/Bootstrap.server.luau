@@ -29,6 +29,7 @@ local LeaderboardService = require(Services:WaitForChild("LeaderboardService"))
 local DriftService = require(Services:WaitForChild("DriftService"))
 local PassService = require(Services:WaitForChild("PassService"))
 local PurchaseService = require(Services:WaitForChild("PurchaseService"))
+local DamService = require(Services:WaitForChild("DamService")) -- [D70, pasul j15] doar in sat
 local NetServer = require(NetFolder:WaitForChild("NetServer"))
 
 RiverService.Init({
@@ -142,6 +143,17 @@ PurchaseService.Init({
     HasPass = PassService.Has,
 })
 
+-- [D70, pasul j15] barajul: dupa serviciile pe care le citeste (date, economie, platforme, statii), inaintea retelei
+DamService.Init({
+    Now = RiverService.Now,
+    Settled = StationService.Settled,
+    Invalidate = function(player: Player)
+        PadService.Invalidate(player)
+        StationService.Invalidate(player)
+    end,
+    PushState = NetServer.PushState,
+})
+
 -- Consola de dezvoltare se conecteaza doar in Studio; verificarea e in DevService
 DevService.Init({
     Remotes = { DevCommand = Net.Get("DevCommand") },
@@ -169,6 +181,7 @@ NetServer.Init({
     Hands = HandService,
     Ferry = FerryService,
     Drift = DriftService,
+    Dam = DamService,
     Shop = {
         Snapshot = function(player: Player): { [string]: any }
             return {

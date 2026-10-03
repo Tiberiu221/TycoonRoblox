@@ -40,6 +40,8 @@ local LIMITS: { [string]: { capacity: number, refillPerSecond: number } } = {
     Drift = { capacity = 2, refillPerSecond = 0.2 },
     -- [D61, partea 2] coltul cu Robux: cererea ferestrei de cumparare
     Robux = { capacity = 3, refillPerSecond = 0.5 },
+    -- [D70, pasul j15] barajul: previzualizarea (la deschiderea ecranului si dupa un "changed"), ridicarea, filmul
+    Dam = { capacity = 4, refillPerSecond = 0.5 },
 }
 RateLimiter.LIMITS = LIMITS
 

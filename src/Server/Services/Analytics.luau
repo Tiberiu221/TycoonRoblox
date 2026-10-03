@@ -111,6 +111,26 @@ end
 -- iau un produs. Fiecare pas o singura data pe jucator (Firsts); apelantul tine steagul.
 Analytics.SHOP_STEPS = { FirstShopPrompt = 1, FirstPassBought = 2, FirstProductBought = 3 }
 
+-- [D70, pasul j15] Barajul, pe canalul lui: cati deschid ecranul „Build the Dam”, cati il ridica, cati vad filmul. Fiecare
+-- pas o singura data pe jucator (Firsts); apelantul tine steagul.
+Analytics.DAM_STEPS = { DamPreviewed = 1, DamBuilt = 2, DamFilmSeen = 3 }
+
+function Analytics.DamStep(player: Player, stepName: string)
+    local step = Analytics.DAM_STEPS[stepName]
+    if step == nil then
+        warn(`[Analytics] pas de baraj necunoscut: {stepName}`)
+        return
+    end
+    task.spawn(function()
+        local ok, err = pcall(function()
+            AnalyticsService:LogFunnelStepEvent(player, "Dam", nil, step, stepName)
+        end)
+        if not ok then
+            print(`[Analytics] baraj {step} {stepName} (nelivrat in Studio): {err}`)
+        end
+    end)
+end
+
 function Analytics.ShopStep(player: Player, stepName: string)
     local step = Analytics.SHOP_STEPS[stepName]
     if step == nil then

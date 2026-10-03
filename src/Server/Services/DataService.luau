@@ -499,6 +499,30 @@ function DataService.Profile(player: Player): any
     return nil
 end
 
+-- [D70, pasul j15] SALVAREA FORTATA: salveaza pana cand ce trebuia sa ajunga in DataStore chiar a ajuns (`isSaved` citeste
+-- `LastSavedData`), cat profilul e inca al nostru. Scoasa din PurchaseService (chitantele Robux, tiparul ProfileStore),
+-- folosita si la ridicarea barajului. true = ajuns; false = profilul s-a inchis inainte. Cedeaza (asteapta salvarea).
+DataService.SAVE_RETRY_SECONDS = 10
+function DataService.SaveNow(profile: any, isSaved: (any) -> boolean): boolean
+    if isSaved(profile.LastSavedData) then
+        return true
+    end
+    while profile:IsActive() do
+        local before = profile.LastSavedData
+        profile:Save()
+        if profile.LastSavedData == before then
+            profile.OnAfterSave:Wait()
+        end
+        if isSaved(profile.LastSavedData) then
+            return true
+        end
+        if profile:IsActive() then
+            task.wait(DataService.SAVE_RETRY_SECONDS)
+        end
+    end
+    return false
+end
+
 function DataService.Get(player: Player): ProfileData?
     local profile = profiles[player]
     if profile ~= nil and profile:IsActive() then

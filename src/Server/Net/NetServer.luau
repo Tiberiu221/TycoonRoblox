@@ -105,6 +105,12 @@ export type Deps = {
     Hands: { Snapshot: (Player) -> { any } },
     -- [D60] barca spre balci
     Ferry: { Depart: (Player) -> () },
+    -- [D70, pasul j15] barajul (DamService): previzualizarea, ridicarea, filmul
+    Dam: {
+        Preview: (Player) -> ({ [string]: any }?, string?),
+        Build: (Player, number) -> ({ [string]: any }?, string?),
+        FilmSeen: (Player) -> (),
+    },
 }
 
 local NetServer = {}
@@ -494,6 +500,38 @@ function NetServer.Init(d: Deps)
             return
         end
         deps.Ferry.Depart(player)
+    end)
+
+    -- [D70, pasul j15] BARAJUL. Previzualizarea si ridicarea raspund mereu (chitanta sau motivul), si la o cerere refuzata
+    -- de limita: ecranul „Build the Dam” asteapta un raspuns [D43].
+    Net.Get("DamPreview").OnServerEvent:Connect(function(player: Player)
+        if not RateLimiter.Allow(player, "Dam") then
+            Net.Get("DamPreviewResult"):FireClient(player, nil, "busy")
+            return
+        end
+        local receipt, why = deps.Dam.Preview(player)
+        Net.Get("DamPreviewResult"):FireClient(player, receipt, why)
+    end)
+    Net.Get("BuildDam").OnServerEvent:Connect(function(player: Player, expectedKeep: unknown)
+        if not RateLimiter.Allow(player, "Dam") then
+            Net.Get("DamRejected"):FireClient(player, "busy")
+            return
+        end
+        if typeof(expectedKeep) ~= "number" or not math.isfinite(expectedKeep :: number) then
+            Net.Get("DamRejected"):FireClient(player, "changed")
+            return
+        end
+        local receipt, why = deps.Dam.Build(player, expectedKeep :: number)
+        if receipt == nil then
+            Net.Get("DamRejected"):FireClient(player, why or "changed")
+            return
+        end
+        Net.Get("DamBuilt"):FireClient(player, receipt)
+    end)
+    Net.Get("DamFilmSeen").OnServerEvent:Connect(function(player: Player)
+        if RateLimiter.Allow(player, "Dam") then
+            deps.Dam.FilmSeen(player)
+        end
     end)
 
     Net.Get("UpgradeStation").OnServerEvent

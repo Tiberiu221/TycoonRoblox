@@ -1,0 +1,153 @@
+--!strict
+-- [D70, pasul j15] BARAJUL, pe client: cererile catre DamService si raspunsurile lui. Ecranul „Build the Dam” (k7), filmul
+-- (k9) si reincarcarea in lumea 2 (k8) se asaza peste el; pana atunci, cine cere (masa Dam Plans, k6) primeste chitanta, iar
+-- orice refuz sau ridicare se spune intr-un toast [D43]. Chitanta se copiaza camp cu camp (CLAUDE.md, capcana 3).
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Strings = require(ReplicatedStorage.Shared.Config.Strings)
+
+local DamController = {}
+
+export type Veteran =
+    { key: string, role: string, name: string, formerRole: string?, medal: number? }
+export type Receipt = {
+    lastCart: number,
+    pieces: number,
+    questPearls: number,
+    questsClosed: number,
+    coinsBefore: number,
+    kept: number,
+    start: number,
+    coinsAfter: number,
+    gift: number,
+    topUp: number,
+    incomeBefore: number,
+    incomeAfter: number,
+    veterans: { Veteran },
+    retired: number,
+}
+
+export type Deps = {
+    Remotes: {
+        DamPreview: RemoteEvent,
+        DamPreviewResult: RemoteEvent,
+        BuildDam: RemoteEvent,
+        DamBuilt: RemoteEvent,
+        DamRejected: RemoteEvent,
+        DamFilmSeen: RemoteEvent,
+    },
+    OnToast: (string) -> (),
+    -- cine asculta (ecranul, k7): chitanta noua sau motivul; ridicarea gata
+    OnPreview: ((Receipt?, string?) -> ())?,
+    OnBuilt: ((Receipt) -> ())?,
+}
+local deps: Deps? = nil
+local lastPreview: Receipt? = nil
+
+local function num(x: any): number
+    return if typeof(x) == "number" and x == x then x else 0
+end
+
+local function copyReceipt(raw: any): Receipt?
+    if typeof(raw) ~= "table" then
+        return nil
+    end
+    local veterans: { Veteran } = {}
+    if typeof(raw.veterans) == "table" then
+        for i, v in raw.veterans do
+            if typeof(v) == "table" then
+                veterans[i] = {
+                    key = tostring(v.key),
+                    role = tostring(v.role),
+                    name = tostring(v.name),
+                    formerRole = if typeof(v.formerRole) == "string" then v.formerRole else nil,
+                    medal = if typeof(v.medal) == "number" then v.medal else nil,
+                }
+            end
+        end
+    end
+    return {
+        lastCart = num(raw.lastCart),
+        pieces = num(raw.pieces),
+        questPearls = num(raw.questPearls),
+        questsClosed = num(raw.questsClosed),
+        coinsBefore = num(raw.coinsBefore),
+        kept = num(raw.kept),
+        start = num(raw.start),
+        coinsAfter = num(raw.coinsAfter),
+        gift = num(raw.gift),
+        topUp = num(raw.topUp),
+        incomeBefore = num(raw.incomeBefore),
+        incomeAfter = num(raw.incomeAfter),
+        veterans = veterans,
+        retired = num(raw.retired),
+    }
+end
+DamController.copyReceipt = copyReceipt
+
+-- Ce s-ar intampla acum: raspunsul vine pe OnPreview.
+function DamController.RequestPreview()
+    local d = deps
+    if d ~= nil then
+        d.Remotes.DamPreview:FireServer()
+    end
+end
+
+-- Ridica barajul cu monedele de pe ultima chitanta vazuta. Fara chitanta, intai previzualizarea.
+function DamController.Build(): boolean
+    local d = deps
+    local seen = lastPreview
+    if d == nil or seen == nil then
+        return false
+    end
+    d.Remotes.BuildDam:FireServer(seen.coinsAfter)
+    return true
+end
+
+function DamController.FilmSeen()
+    local d = deps
+    if d ~= nil then
+        d.Remotes.DamFilmSeen:FireServer()
+    end
+end
+
+function DamController.LastPreview(): Receipt?
+    return lastPreview
+end
+
+function DamController.Init(d: Deps)
+    deps = d
+    d.Remotes.DamPreviewResult.OnClientEvent:Connect(function(raw: unknown, reason: unknown)
+        local receipt = copyReceipt(raw)
+        lastPreview = receipt
+        local why = if typeof(reason) == "string" then reason else nil
+        local onPreview = d.OnPreview
+        if onPreview ~= nil then
+            onPreview(receipt, why)
+        elseif receipt == nil then
+            d.OnToast(Strings.damRejected(why or "busy"))
+        end
+    end)
+    d.Remotes.DamRejected.OnClientEvent:Connect(function(reason: unknown)
+        d.OnToast(Strings.damRejected(if typeof(reason) == "string" then reason else "busy"))
+        -- „changed”: monedele de pe ecran nu mai sunt cele adevarate, deci o chitanta noua
+        if reason == "changed" then
+            DamController.RequestPreview()
+        end
+    end)
+    d.Remotes.DamBuilt.OnClientEvent:Connect(function(raw: unknown)
+        local receipt = copyReceipt(raw)
+        lastPreview = nil
+        if receipt == nil then
+            return
+        end
+        local onBuilt = d.OnBuilt
+        if onBuilt ~= nil then
+            onBuilt(receipt)
+        else
+            d.OnToast(Strings.DAM_BUILT)
+        end
+    end)
+end
+
+return DamController
