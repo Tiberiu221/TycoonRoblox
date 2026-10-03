@@ -21,6 +21,7 @@ local CrewMath = require(ReplicatedStorage.Shared.Modules.CrewMath)
 local HandMath = require(ReplicatedStorage.Shared.Modules.HandMath)
 local HandRoutes = require(ReplicatedStorage.Shared.Modules.HandRoutes)
 local VillageLook = require(ReplicatedStorage.Shared.Modules.VillageLook)
+local WorldMath = require(ReplicatedStorage.Shared.Modules.WorldMath)
 local DataService = require(script.Parent.DataService)
 local EconomyService = require(script.Parent.EconomyService)
 local RiverService = require(script.Parent.RiverService)
@@ -70,9 +71,12 @@ function HandService.Hire(player: Player, role: string): boolean
         return false
     end
     local crews = CrewMath.fromProfile(data.Hands, data.Crews)
-    -- [D70] doar meseriile erelor din joc (CREWS le are si pe ale barajului adormit)
+    -- [D70] doar meseriile erelor din joc (CREWS le are si pe ale barajului adormit), [pasul j13b] si ale hartii tale
     local crew = crews[role]
     if crew == nil then
+        return false
+    end
+    if not WorldMath.allowed(data.World, WorldMath.eraOfRole(role)) then
         return false
     end
     local index = crew.count + 1
@@ -203,7 +207,8 @@ local function tick(at: number)
         local crews = CrewMath.fromProfile(data.Hands, data.Crews)
         local changed = false
         for id, hand in data.Hands do
-            if not HandRoutes.isWalker(hand.role) then
+            -- [D70, pasul j13b] un om iesit din lucru la baraj (locuieste in Dam Town) nu mai cara nimic
+            if hand.retired == true or not HandRoutes.isWalker(hand.role) then
                 continue
             end
             local crew = crews[hand.role]

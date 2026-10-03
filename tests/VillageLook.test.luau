@@ -121,6 +121,22 @@ return function()
             check.equal(first.appearance.outfit, "Fisher")
         end)
 
+        test.case(
+            "[D70, pasul j13b] un om iesit din lucru nu mai e pe drumuri si nu se numara",
+            function()
+                local data = profile()
+                local retired = hand("hauler", "hire_hauler", "hauler_1")
+                retired.retired = true
+                data.Hands.hauler_1 = retired
+                local snap = VillageLook.of(data)
+                check.equal(#snap.hands, 3)
+                check.equal(snap.crews.hauler, nil)
+                for _, h in snap.hands do
+                    check.is_true(h.id ~= "hauler_1")
+                end
+            end
+        )
+
         test.case("cine sta pe loc are locul lui; cine merge nu", function()
             local data = profile()
             data.Pads.hire_sawyer = true

@@ -118,6 +118,10 @@ function VillageLook.hands(data: { [string]: any }): { HandSnap }
     local nets = VillageLook.ownedNets(data.Pads or {})
     local crews = CrewMath.fromProfile(hands, data.Crews)
     for id, hand in hands do
+        -- [D70, pasul j13b] un om iesit din lucru la baraj nu mai e pe drumurile meseriei lui (Dam Town il arata, k10)
+        if hand.retired == true then
+            continue
+        end
         local crew = crews[hand.role] or { count = 0, tier = 1 }
         local index = CrewMath.indexOf(id)
         local walker = HandRoutes.isWalker(hand.role)

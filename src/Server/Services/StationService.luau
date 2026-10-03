@@ -11,6 +11,7 @@ local ChainState = require(ReplicatedStorage.Shared.Modules.ChainState)
 local CrewMath = require(ReplicatedStorage.Shared.Modules.CrewMath)
 local FlowConfig = require(ReplicatedStorage.Shared.Config.FlowConfig)
 local StationConfig = require(ReplicatedStorage.Shared.Config.StationConfig)
+local WorldConfig = require(ReplicatedStorage.Shared.Config.WorldConfig)
 local WorldMath = require(ReplicatedStorage.Shared.Modules.WorldMath)
 local Strings = require(ReplicatedStorage.Shared.Config.Strings)
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
@@ -34,6 +35,10 @@ export type WelcomeInfo = {
     stopHours: number, -- dupa atatea ore satul se odihneste (24)
     -- seria zilnica, doar cand e ceva de spus (StreakMath.worthTelling): "next" sau "broke", un record nou, un titlu
     streak: { run: number, best: number, event: string, record: boolean, title: string? }?,
+    -- [D70, pasul j13b] la baraj, cat lipsesc oameni pe liniile deschise: satul n-a castigat nimic cat ai lipsit (AWAY 0), iar
+    -- fereastra spune pe cine sa angajezi (meseriile, in ordinea liniilor; CrewMath.unhired). nil in rest.
+    awayStalled: boolean?,
+    unhired: { string }?,
 }
 
 local deps: {
@@ -50,6 +55,8 @@ local deps: {
     { PushState = nil, Now = nil, OnWelcome = nil, Hands = nil, Treasures = nil }
 
 local SEEN_EVERY = 15 -- cat de des se noteaza ca jucatorul e inca aici
+-- [D70] de la cat lipsesti, o absenta fara castig (AWAY 0 la baraj) se spune la revenire: un minut, nu o reconectare
+local STALLED_AWAY = 60
 
 -- Starea lantului e cerută de zeci de ori pe secunda (venit, interval de prindere, delte), deci
 -- se tine in cache si se arunca la orice cumparatura -- acelasi tipar ca PadService.StateFor.
@@ -131,10 +138,12 @@ for _, eraLines in StationConfig.ERA_LINES do
             BUILDING_ROWS,
             { kind = spec.station, name = Strings.LINK_WORDS[spec.station].goTo }
         )
-        if not table.find(sellers, spec.seller) then
-            table.insert(sellers, spec.seller)
+        -- [D70] o piesa n-are vanzator (se vinde doar unita): nici rand de vanzator, nici platforma pentru el
+        local seller = spec.seller
+        if seller ~= nil and not table.find(sellers, seller) then
+            table.insert(sellers, seller)
             if spec.processorPad ~= nil then
-                BUILDING_PAD[spec.seller] = spec.processorPad
+                BUILDING_PAD[seller] = spec.processorPad
             end
         end
     end
@@ -483,9 +492,26 @@ end
 
 -- [D65] O linie, asa cum o vede clientul: cat prinde, cat livreaza, care ii e veriga slaba ("" cat e inchisa) si cat
 -- faci tu pe fiecare pas al ei fara om.
-export type LineView = { catch: number, delivered: number, bottleneck: string, playerShare: number }
+-- [D70, pasul j13b] Si, pentru uniri si piesele lor: ce intra pe linie (`supply`: la unire, cat aduce cea mai inceata
+-- piesa), a cui e veriga slaba (`heldBy`: la o piesa tinuta de unire, unirea), daca linia e deschisa (`isOpen`) si, la o
+-- unire, piesa care lipseste acum la Relay (`waiting`). Pe Erele 1-3: supply = catch, heldBy = linia, waiting = nil.
+-- Campurile noi se copiaza explicit pe client (pasul k3).
+export type LineView = {
+    catch: number,
+    delivered: number,
+    bottleneck: string,
+    playerShare: number,
+    supply: number,
+    heldBy: string,
+    isOpen: boolean,
+    waiting: string?,
+}
 
-local function lineViews(s: ChainMath.State, flow: ChainMath.Flow): { [string]: LineView }
+local function lineViews(
+    player: Player,
+    s: ChainMath.State,
+    flow: ChainMath.Flow
+): { [string]: LineView }
     local out: { [string]: LineView } = {}
     for _, line in StationConfig.LINE_ORDER do
         local lf = flow.lines[line]
@@ -494,6 +520,10 @@ local function lineViews(s: ChainMath.State, flow: ChainMath.Flow): { [string]: 
             delivered = lf.delivered,
             bottleneck = lf.bottleneck,
             playerShare = ChainMath.playerShare(s, line),
+            supply = lf.supply,
+            heldBy = lf.heldBy,
+            isOpen = lf.isOpen,
+            waiting = EconomyService.WaitingOf(player, line),
         }
     end
     return out
@@ -536,6 +566,7 @@ function StationService.Snapshot(player: Player): {
     lines: { [string]: LineView },
     linkRates: { [string]: number },
     eraBottleneck: { string },
+    netsLine: string,
 }
     local s = StationService.StateFor(player)
     -- [D64] lantul se socoteste o data: randurile isi citesc veriga slaba din el, pe orice linie, iar clientul primeste
@@ -544,11 +575,19 @@ function StationService.Snapshot(player: Player): {
     local rates = ChainMath.ratesOf(flow)
     local data = DataService.Get(player)
     local coins = if data ~= nil then data.Coins else 0
+    -- [D70, pasul j13b] panoul arata doar cladirile, plasele si meseriile hartii tale (la baraj, nu si pe ale satului vechi)
+    local world = if data ~= nil then data.World else nil
+    local function here(era: number?): boolean
+        return WorldMath.allowed(world, era)
+    end
     local rows: { Row } = {}
     local netSlot = 0 -- locul plasei in `s.nets`: StateFrom le pune in aceeasi ordine, doar pe cele cumparate
     for _, padId in netPadIds do
         if data ~= nil and data.Pads[padId] == true then
             netSlot += 1
+            if not here(TycoonConfig.byId[padId].era) then
+                continue -- locul in `s.nets` ramane numarat: plasa e tot in stare, doar nu pe harta ta
+            end
             local padName = TycoonConfig.byId[padId].name
             table.insert(
                 rows,
@@ -569,6 +608,9 @@ function StationService.Snapshot(player: Player): {
     -- din clipa in care platforma ei o porneste
     for _, building in BUILDING_ROWS do
         local needsPad = BUILDING_PAD[building.kind]
+        if not here(WorldMath.eraOfStation(building.kind)) then
+            continue
+        end
         if needsPad == nil or (data ~= nil and data.Pads[needsPad] == true) then
             local level = StationService.LevelOf(player, building.kind, nil)
             table.insert(rows, rowFor(s, building.kind, nil, building.name, level, coins, flow))
@@ -576,7 +618,9 @@ function StationService.Snapshot(player: Player): {
     end
     local crews: { CrewRow } = {}
     for _, role in StationConfig.ROLES do
-        table.insert(crews, crewRow(s, role, flow, coins))
+        if here(WorldMath.eraOfRole(role)) then
+            table.insert(crews, crewRow(s, role, flow, coins))
+        end
     end
     return {
         rows = rows,
@@ -591,10 +635,12 @@ function StationService.Snapshot(player: Player): {
         playerShare = ChainMath.playerShare(s, "wood"),
         ironPlayerShare = ChainMath.playerShare(s, "iron"),
         -- [D65] VEDEREA PE LINII, pentru orice era: campurile de mai sus raman cele ale Erei 1 (aceleasi cifre)
-        lines = lineViews(s, flow),
+        lines = lineViews(player, s, flow),
         linkRates = linkRates(flow),
         -- veriga care tine venitul fiecarui cartier, dupa numarul erei (vezi ChainMath.eraBottleneck)
         eraBottleneck = eraBottlenecks(s),
+        -- [D70] ale cui plase tin venitul, cand veriga e "nets" ("" altfel): la baraj, a cablului sau a cristalului
+        netsLine = flow.netsLine,
     }
 end
 
@@ -786,7 +832,27 @@ local function settleOffline(player: Player)
     -- [D61, partea 2] suma platita acum: `Welcome Back x2` o mai da o data (o singura data pentru fiecare revenire).
     -- [D71] o revenire fara monede pune 0, ca o suma de la o revenire veche sa nu mai poata fi dublata.
     data.Meta.lastWelcome = if result.coins > 0 then math.floor(result.coins) else 0
-    if result.coins <= 0 and arrived <= 0 and news == nil then
+    -- [D70, pasul j13b] la baraj, dupa film: AWAY e 0 pana la cei sase oameni noi. Fereastra o spune, cu pe cine sa
+    -- angajezi, si cand nu e nimic de platit [D43]. In sat ramane cum era (o absenta fara monede nu deschide fereastra).
+    local unhired: { string }? = nil
+    if
+        WorldConfig.sanitize(data.World) ~= 1
+        and result.away >= STALLED_AWAY
+        and result.coins <= 0
+    then
+        local s = StationService.StateFor(player)
+        local lines: { string } = {}
+        for _, line in StationConfig.LINE_ORDER do
+            if WorldMath.allowed(data.World, FlowConfig.LINES[line].era) then
+                table.insert(lines, line)
+            end
+        end
+        local missing = CrewMath.unhired(s.crews, ChainMath.flow(s), lines)
+        if #missing > 0 then
+            unhired = missing
+        end
+    end
+    if result.coins <= 0 and arrived <= 0 and news == nil and unhired == nil then
         return
     end
     if result.coins > 0 then
@@ -802,6 +868,8 @@ local function settleOffline(player: Player)
             arrived = arrived,
             fullHours = curve.full / 3600,
             stopHours = curve.stop / 3600,
+            awayStalled = if unhired ~= nil then true else nil,
+            unhired = unhired,
             streak = if news ~= nil
                 then {
                     run = streak.run,

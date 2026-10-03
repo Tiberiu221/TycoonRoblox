@@ -950,7 +950,16 @@ la granița CREWS / `DAM_START_COINS`.
 - `StationService`: gardă în `BUILDING_ROWS`; rânduri și meserii doar ale lumii; `LineView` cu `supply`, `heldBy`, `netsLine`,
   `isOpen`, `waiting`. `WelcomeInfo` primește `awayStalled` / `unhired`. `CrewMath.fromProfile` și `VillageLook.hands` sar
   oamenii retrași.
-- **Verificare j13 (prima probă pe comutatorul local):** profil de probă în lumea 1, la Works Bell. `errors` gol, `TycoonState`
+- **[Făcut]** `HandService` sare oamenii retrași în tick și refuză o angajare a altei hărți; `VillageLook.hands` îi sare;
+  `CrewMath.unhired(crews, flow, lines)`: meseriile fără om de pe liniile deschise (la startul barajului, exact cei șase:
+  cableCollector … pylonRunner; testat pe startul de aur, cu AWAY 0 și apoi > 0). `StationService`: garda pe `seller` nil în
+  `BUILDING_ROWS`; panoul arată doar plasele, clădirile și meseriile hărții tale; `LineView` are `supply`, `heldBy`, `isOpen`,
+  `waiting` (`EconomyService.WaitingOf`), iar instantaneul `netsLine`; `WelcomeInfo.awayStalled` / `unhired` doar în lumea 2,
+  după cel puțin un minut, când absența n-a adus nimic (fereastra se deschide și fără monede). **Clientul copiază explicit
+  câmpurile noi la k3 (`LineView`) și k8 (`WelcomeController`: „Nobody worked while you were away — hire …”).**
+- **Verificare j13 (prima probă pe comutatorul local):** **[2026-10-03: amânată]** Studio nu era conectat la Rojo (pluginul
+  se reconectează doar la Connect, iar `rojo serve` pica pe o legătură simbolică `Packages/Packages -> Packages`, ștearsă). Se
+  face la prima sesiune cu Studio conectat, înaintea lui k1. profil de probă în lumea 1, la Works Bell. `errors` gol, `TycoonState`
   ajunge, venitul e egal cu cel de fără comutator, nicio platformă a Erei 4 nu e `available`, capitolele se opresc la 9, zona
   `dam` e încuiată. Apoi comutatorul se oprește.
 

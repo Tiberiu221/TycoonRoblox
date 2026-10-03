@@ -4703,6 +4703,44 @@ return function()
                     ChainMath.flowWith(ChainMath.FULL, st, false)
                 )
                 check.equal(income, GOLDEN_DAM_START.income)
+                -- [pasul j13b] AWAY 0 pana la cei sase oameni noi: exact ei, in ordinea liniilor si a pasilor
+                local CrewMath = require("../src/Shared/Modules/CrewMath")
+                local flow = ChainMath.flowWith(ChainMath.FULL, st, false)
+                local damLines = StationConfig.ERA_LINES_ALL[4]
+                check.equal(
+                    table.concat(CrewMath.unhired(st.crews, flow, damLines), ","),
+                    "cableCollector,cablePorter,cablemaker,cableHauler,relayKeeper,pylonRunner"
+                )
+                check.equal(
+                    ChainMath.valueWith(
+                        ChainMath.FULL,
+                        st,
+                        ChainMath.flowWith(ChainMath.FULL, st, true)
+                    ),
+                    0
+                )
+                -- cu ei angajati, nu mai lipseste nimeni pe liniile deschise (cristalul e inchis pana la Kiln)
+                for _, role in
+                    {
+                        "cableCollector",
+                        "cablePorter",
+                        "cablemaker",
+                        "cableHauler",
+                        "relayKeeper",
+                        "pylonRunner",
+                    }
+                do
+                    st.crews[role].count = 1
+                end
+                local full = ChainMath.flowWith(ChainMath.FULL, st, false)
+                check.equal(#CrewMath.unhired(st.crews, full, damLines), 0)
+                check.is_true(
+                    ChainMath.valueWith(
+                        ChainMath.FULL,
+                        st,
+                        ChainMath.flowWith(ChainMath.FULL, st, true)
+                    ) > 0
+                )
             end
         )
     end)

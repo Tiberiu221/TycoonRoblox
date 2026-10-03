@@ -613,6 +613,16 @@ local function processorSpeed(player: Player, data: any, spec: FlowConfig.Line, 
     ) or 0
 end
 
+-- [D70, pasul j13b] La o unire: piesa care lipseste acum („Waiting for cable”), sau nil. nil si pe orice alta linie.
+function EconomyService.WaitingOf(player: Player, line: string): string?
+    local data = DataService.Get(player)
+    local spec = FlowConfig.LINES[line]
+    if data == nil or spec == nil or spec.joins == nil then
+        return nil
+    end
+    return FlowMath.joinWaiting(joinPiles(data, spec), spec)
+end
+
 function EconomyService.StoreSnapshotOf(player: Player, line: string): StoreSnapshot
     local data = DataService.Get(player)
     local spec = FlowConfig.LINES[line]

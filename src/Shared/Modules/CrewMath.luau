@@ -54,6 +54,41 @@ function CrewMath.fromProfile(
     return out
 end
 
+-- [D70, pasul j13b] Meseriile fara niciun om de pe liniile deschise din `lines` (pasii lor si vanzatorul lor), in ordinea
+-- liniilor si a pasilor, fiecare o data. Cat lipseste vreunul, satul nu castiga nimic cat lipsesti (AWAY 0), iar fereastra
+-- de revenire ii numeste [D43]. La baraj, dupa film: cei sase oameni noi ai cablului si ai unirii.
+function CrewMath.unhired(
+    crews: { [string]: ChainMath.Crew },
+    flow: ChainMath.Flow,
+    lines: { string }
+): { string }
+    local out: { string } = {}
+    local seen: { [string]: boolean } = {}
+    local function add(role: string)
+        if seen[role] then
+            return
+        end
+        seen[role] = true
+        local crew = crews[role]
+        if crew == nil or crew.count <= 0 then
+            table.insert(out, role)
+        end
+    end
+    for _, line in lines do
+        local lf = flow.lines[line]
+        if lf ~= nil and lf.isOpen then
+            local spec = StationConfig.LINES[line]
+            for _, step in spec.steps do
+                add(step.role)
+            end
+            if spec.seller ~= nil then
+                add(StationConfig.SELLERS[spec.seller].role)
+            end
+        end
+    end
+    return out
+end
+
 -- Se poate urca treapta? Motivul refuzului e un cuvant pe care il traduc meniul si toast-ul.
 function CrewMath.canUpgradeTier(crew: ChainMath.Crew): (boolean, string?)
     if crew.count == 0 then
