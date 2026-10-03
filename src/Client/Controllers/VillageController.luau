@@ -44,8 +44,8 @@ export type Deps = {
         ShopResult: RemoteEvent,
     },
     OnToast: (string, Color3?) -> (),
-    -- [D70, pasul k2] harta: la baraj, decorul de pe uscat isi asteapta locurile din piata Dam Town (k2b); ce sta pe apa si pe
-    -- ponton ramane la locul lui, pe malul lacului
+    -- [D70, pasul k2b] harta: la baraj, decorul de pe uscat sta pe locurile din piata Dam Town (VillageConfig.spotsOf), iar
+    -- randurile din panou spun unde (whereOf); ce sta pe apa si pe ponton ramane la locul lui, pe malul lacului
     World: number?,
 }
 
@@ -102,7 +102,7 @@ local function showDecor(decor: VillageConfig.Decor, animate: boolean)
         return -- desenul inca neurcat: cand ajunge, starea urmatoare il deseneaza
     end
     decorShown[decor.id] = true
-    for i, spot in decor.spots do
+    for i, spot in VillageConfig.spotsOf(decor, d.World) do
         local w, h = sprite.width * decor.scale, sprite.height * decor.scale
         if decor.ground == "land" then
             GroundShadow.add(
@@ -314,7 +314,7 @@ local function refresh()
             view.frame.Visible = true
             fillArt(view.art, (Assets.decor :: any)[decor.sprite], nil)
             view.name.Text = decor.name
-            view.sub.Text = decor.where
+            view.sub.Text = VillageConfig.whereOf(decor, d.World)
             local owned = village.decor[decor.id] == true
             view.state.Visible = owned
             view.state.Text = Strings.BOARD_BUILT
@@ -394,11 +394,7 @@ function VillageController.Apply(snap: Snapshot, pearlsNow: number, speciesCaugh
     pearls = math.floor(pearlsNow)
     caught = speciesCaught
     if deps ~= nil then
-        local onLand = (deps :: Deps).World == nil or (deps :: Deps).World == 1
         for _, decor in VillageConfig.DECOR do
-            if decor.ground == "land" and not onLand then
-                continue
-            end
             if village.decor[decor.id] and not decorShown[decor.id] then
                 -- la prima stare doar se aseaza ce ai deja; dupa, fiecare lucru nou apare cu ceremonia lui
                 showDecor(decor, applied)

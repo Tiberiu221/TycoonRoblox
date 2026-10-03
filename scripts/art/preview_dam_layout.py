@@ -11,6 +11,7 @@ Rulare: python3 preview_dam_layout.py  ->  dam_layout_preview.png
 """
 import json
 import os
+import re
 
 from PIL import Image, ImageDraw, ImageFont
 
@@ -19,6 +20,8 @@ from PIL import Image, ImageDraw, ImageFont
 SCRATCH = "/private/tmp/claude-501/-Users-tiberiubojan-Desktop-Driftwood/b9d4df87-0fc9-4d56-a2d7-bd3169d84806/scratchpad"
 OUT_PNG = os.path.join(SCRATCH, "dam_layout_preview.png")
 OUT_JSON = os.path.join(SCRATCH, "dam_layout.json")
+OUT_ZOOM = os.path.join(SCRATCH, "dam_town_decor_zoom.png")
+ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
 
 S = 0.5  # scara desenului
 WORLD_W, WORLD_H = 3385, 1920
@@ -192,13 +195,63 @@ PYLONS = [  # (x, baza, inaltime, nume) baza-centru, 24-48 lat
 SPAWN = P(800, 1180)
 CARDS = {"bell_tower": P(760, 990), "memory_wall": P(760, 1370)}
 
+
+# ---------------------------------------------------------------- decorul cumparat cu perle (pasul k2b)
+def _balanced(text, start):
+    """textul dintre acolada de la `start` (un '{') si perechea ei"""
+    depth = 0
+    for i in range(start, len(text)):
+        if text[i] == "{":
+            depth += 1
+        elif text[i] == "}":
+            depth -= 1
+            if depth == 0:
+                return text[start + 1:i]
+    raise SystemExit("acolade neinchise in VillageConfig.luau")
+
+
+def load_decor():
+    """Decorul din VillageConfig.DECOR cu locurile LUMII 2 (spotsByWorld[2], altfel spots: ponton si apa stau pe loc) si
+    marimea de pe ecran (Assets.decor[sprite] x scale). Citit din surse, nu copiat: planseta nu poate iesi din pas cu jocul."""
+    cfg = open(os.path.join(ROOT, "src", "Shared", "Config", "VillageConfig.luau")).read()
+    assets = open(os.path.join(ROOT, "src", "Shared", "Config", "Assets.luau")).read()
+    block = re.search(r"\n    decor = \{(.*?)\n    \},", assets, re.S).group(1)
+    sizes = {k: (int(w), int(h)) for k, w, h in re.findall(r"(\w+) = sprite\(\d+, (\d+), (\d+)\)", block)}
+    starts = [(m.start(), m.group(1)) for m in re.finditer(r'\n    \{\n        id = "(\w+)",', cfg)]
+    out = []
+    for n, (at, ident) in enumerate(starts):
+        end = starts[n + 1][0] if n + 1 < len(starts) else len(cfg)
+        body = cfg[at:end]
+        ground = re.search(r'ground = "(\w+)"', body).group(1)
+        sprite = re.search(r'sprite = "(\w+)"', body).group(1)
+        scale = int(re.search(r"scale = (\d+)", body).group(1))
+        spots_at = re.search(r"spotsByWorld = \{", body)
+        spots = None
+        if spots_at is not None:
+            inner = _balanced(body, spots_at.end() - 1)
+            two = re.search(r"\[2\] = \{", inner)
+            if two is not None:
+                spots = re.findall(r"x = (\d+), y = (\d+)", _balanced(inner, two.end() - 1))
+        if spots is None:
+            plain = re.search(r"\bspots = \{", body)
+            spots = re.findall(r"x = (\d+), y = (\d+)", _balanced(body, plain.end() - 1))
+        w, h = sizes[sprite]
+        out.append({"id": ident, "ground": ground, "overRoad": "overRoad = true" in body, "w": w * scale, "h": h * scale,
+                    "spots": [P(int(x), int(y)) for x, y in spots]})
+    return out
+
+
+DECOR = load_decor()
+DECOR_CODE = {"flowerbeds": "flowers", "pier_lamps": "lamp", "bench": "bench", "bunting": "bunting", "well": "well",
+              "garden": "garden", "rowboat": "rowboat", "beehives": "hives", "fountain": "fountain", "statue": "statue"}
+
 LAYOUT = {
     "worldWidth": WORLD_W, "zone": {"x0": ZONE[0], "x1": ZONE[1]}, "deck": DECK, "roads": ROADS,
     "canalBlocked": CANAL_BLOCKED, "fixed": FIXED, "landmarks": LANDMARKS, "kidCorner": KID_CORNER,
     "nets": [dict(n, y=812) for n in NETS], "buildPads": BUILD_PADS,
     "huts": [{"id": i, "x": x, "y": HUT_Y, "name": n, "line": l, "veteran": v} for i, x, n, l, v in HUTS],
     "lines": LINES, "join": JOIN, "town": TOWN, "piles": PILES, "yards": YARDS, "pylons": PYLONS,
-    "spawn": SPAWN, "cards": CARDS,
+    "spawn": SPAWN, "cards": CARDS, "decor": DECOR,
 }
 
 
@@ -444,7 +497,18 @@ for k in KID_CORNER:
     rect(k["x0"], k["y0"], k["x1"] - k["x0"], k["y1"] - k["y0"], (170, 120, 70), (60, 40, 20))
 text_c(300, 690, "pier", F_TINY, (255, 255, 255))
 text_c(440, 800, "ferry, wheel, board", F_TINY, (255, 255, 255))
-text_c(395, 1240, "DAM TOWN", F_BIG, (40, 30, 20), (230, 220, 190))
+text_c(395, 1130, "DAM TOWN", F_BIG, (40, 30, 20), (230, 220, 190))
+
+# decorul cumparat cu perle: fiecare loc cu marimea lui reala (baza-centru), cu eticheta lui
+DECOR_C = {"land": (236, 90, 160), "pier": (255, 170, 40), "water": (40, 200, 220)}
+for dec in DECOR:
+    for k, sp in enumerate(dec["spots"], 1):
+        x0, y0, w, h = box_base(sp["x"], sp["y"], dec["w"], dec["h"])
+        c = DECOR_C[dec["ground"]]
+        rect(x0, y0, w, h, c + (150,), (120, 20, 80) if dec["ground"] == "land" else (60, 60, 60), 2 if dec["overRoad"] else 1)
+        d.ellipse([sx(sp["x"]) - 2, sx(sp["y"]) - 2, sx(sp["x"]) + 2, sx(sp["y"]) + 2], fill=(120, 20, 80))
+        tag = DECOR_CODE[dec["id"]] + (f" {k}" if len(dec["spots"]) > 1 else "")
+        text_c(sp["x"], sp["y"] + 24, tag, F_TINY, (90, 10, 60), (255, 255, 255, 190))
 
 # titlul si legenda
 d.text((14, 10), "Era 4 'The Dam' - world 2, synthesized layout (1/2 scale)", font=F_TITLE, fill=(20, 20, 20))
@@ -456,6 +520,9 @@ for name, col in LINE_C.items():
     d.text((lx + 32, 60), {"barrels": "barrels (veterans)", "cable": "cable (your hand tour)", "grid": "power: Relay -> bridge -> "
                            "Switch House", "crystal": "crystal (late)"}[name], font=F_MED, fill=(20, 20, 20))
     lx += 250
+d.rectangle([14, 90, 40, 98], fill=DECOR_C["land"] + (150,), outline=(120, 20, 80))
+d.text((46, 86), "village-board decor on land (real footprint, base-centred; frame = over the road): 12 spots in Dam Town; "
+                 "orange = pier, cyan = lake (same spots as the village)", font=F_MED, fill=(20, 20, 20))
 # scara
 d.line([(14, 120), (14 + 500 * S, 120)], fill=(0, 0, 0), width=3)
 d.text((14, 124), "500 px of world", font=F_SMALL, fill=(0, 0, 0))
@@ -465,6 +532,8 @@ for x in range(0, WORLD_W, 250):
     d.text((sx(x) + 2, sx(1870)), str(x), font=F_TINY, fill=(40, 40, 40))
 
 im.save(OUT_PNG)
+# Dam Town cu decorul, de aproape (x 200..900, y 720..1700, de doua ori marit fata de planseta) pentru judecat locurile
+im.crop((int(200 * S), int(720 * S), int(900 * S), int(1700 * S))).resize((int(700 * S) * 2, int(980 * S) * 2), Image.NEAREST).save(OUT_ZOOM)
 with open(OUT_JSON, "w") as fh:
     json.dump(LAYOUT, fh, indent=1)
 print(OUT_PNG, im.size)

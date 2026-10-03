@@ -1097,9 +1097,15 @@ la granița CREWS / `DAM_START_COINS`.
   pe apă și de pe ponton). `GuideMath` ia oamenii după meserie (`STEP_OF_JOB`), nu după poziție, și lasă unirea pe seama lui k5:
   cele 16 căderi de pe linia unirii au dispărut (cu comutatorul pornit pică 16, toate adormiri sau lipsurile din HandConfig,
   ChainWords, EraWords). Test: clientul nu citește direct `ZONES` / `DISTRICTS` / `DECK` / `ROADS` / `YARDS` / `DECOR`.
-- **k2b (de făcut, cu planșa):** cele 10 locuri ale decorului cumpărat în piața Dam Town (PLAN-HARTA §3) nu sunt în planșa
-  aprobată; se propun în `preview_dam_layout.py`, cu testul de așezare din `World2Layout`, apoi `VillageConfig.DECOR[*]` primește
-  locurile lumii 2 și rândul din panou își schimbă textul „where”.
+- **k2b (făcut; locurile sunt o propunere, de privit pe planșă):** decorul cumpărat în piața Dam Town (PLAN-HARTA §3: „10 locuri”
+  = cele 10 lucruri; pe uscat sunt 12 locuri, cât în sat). `VillageConfig.DECOR[*].spotsByWorld[2]` / `whereByWorld[2]` pentru
+  cele 8 lucruri de pe uscat (pontonul și lacul stau pe aceleași coordonate, deci felinarele de ponton și barca nu se mută);
+  `VillageConfig.spotsOf(decor, lume)` / `whereOf` sunt singurele citiri (`VillageController` după lumea lui, macheta din bâlci
+  `spotsOf(decor, 1)`; lumea 1 rămâne `decor.spots`, test). Locurile: sudul pietei (patru straturi de flori, fântâna, banca), Memory
+  Wall (grădina), piciorul zidului (stupii, puțul), vest de Canteen (statuia), două ghirlande peste stradă. Planșa
+  (`preview_dam_layout.py`) le citește din surse și le desenează cu mărimea lor reală; testul `World2Decor` din
+  `World2Layout.test` le pune la aceleași reguli ca ale satului (uscat, în zonă, fără clădiri, oameni, curți, drumuri, nume,
+  felinare, stâlpi, carduri E, unul peste altul).
 **k3. Liniile barajului în client.** Depinde de: k2, j13.
 - 6 clădiri fixe cu `borrowed`; `LineController` pentru unire (două grămezi, `waiting` copiat explicit); Overlay `DROP_AT` /
   `playerStand` la `:273, :721-743, :821`; GuideMath și `STEP_OF_JOB`.

@@ -393,7 +393,8 @@ local function drawBought(parent: Instance, pad: TycoonConfig.Pad, village: Vill
     end
 end
 
--- Decorul cumparat cu perle, fiecare pe locurile lui (VillageConfig.DECOR[*].spots), ca in VillageController.
+-- Decorul cumparat cu perle, fiecare pe locurile lui din sat (VillageConfig.spotsOf, lumea 1), ca in VillageController.
+-- [k2b] Macheta e mereu a satului: vizitatorul vede satul gazdei, nu piata Dam Town.
 local function drawDecor(parent: Instance, village: VillageLook.Snapshot)
     for _, decor in VillageConfig.DECOR do
         local sprite = (Assets.decor :: any)[decor.sprite]
@@ -401,7 +402,7 @@ local function drawDecor(parent: Instance, village: VillageLook.Snapshot)
             continue
         end
         local z = if decor.ground == "water" then 2 elseif decor.ground == "pier" then 4 else 3
-        for _, spot in decor.spots do
+        for _, spot in VillageConfig.spotsOf(decor, 1) do
             local w, h = sprite.width * decor.scale, sprite.height * decor.scale
             if decor.ground == "land" then
                 GroundShadow.add(parent, UDim2.fromOffset(spot.x, spot.y), w * 0.8, z - 1, 0.3)

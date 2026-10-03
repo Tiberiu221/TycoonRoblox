@@ -2,7 +2,8 @@
 -- (TycoonConfig.test), cu care a fost verificata planseta aprobata in D74 (scripts/art/preview_dam_layout.py). Nimic nu se
 -- calca, nimic construit nu sta pe drum sau pe apa canalului, plasele stau pe punte, locurile de predare langa drum,
 -- clientii orasului in oglinda tavernei, felinarele dupa regula strazii, numele de sub case nu se ating, drumurile fac
--- un singur graf, iar oamenii isi lasa marfa cu fata spre gramada.
+-- un singur graf, iar oamenii isi lasa marfa cu fata spre gramada. [k2b] Decorul cumparat cu perle are locuri in piata
+-- Dam Town, la fel de curate ca ale satului (suita World2Decor).
 local frktest = require("@frktest/frktest")
 local test = frktest.test
 local check = frktest.assert.check
@@ -16,6 +17,8 @@ local WorldMap = require("../src/Shared/Modules/WorldMap")
 local DriftMath = require("../src/Shared/Modules/DriftMath")
 local CatchFloat = require("../src/Shared/Modules/CatchFloat")
 local StationConfig = require("../src/Shared/Config/StationConfig")
+local VillageConfig = require("../src/Shared/Config/VillageConfig")
+local Strings = require("../src/Shared/Config/Strings")
 
 type Rect = { x0: number, x1: number, y0: number, y1: number }
 type Point = { x: number, y: number }
@@ -147,6 +150,17 @@ local function placed(): { [string]: Rect }
         box(TycoonConfig.WHEEL_STAND.x, TycoonConfig.WHEEL_STAND.y, post.width * 2, post.height * 2)
     things.board = box(TycoonConfig.VILLAGE_BOARD.x, TycoonConfig.VILLAGE_BOARD.y, 80, 88)
     return things
+end
+
+-- [k2b] textul din lume, in fontul de pixeli: 572/1024 em pe litera, randul ~1.03 em, contur de 2 (ca in TycoonConfig.test)
+local function textBox(cx: number, top: number, text: string): Rect
+    local lines, widest = 0, 0
+    for _, part in string.split(text, "\n") do
+        lines += 1
+        widest = math.max(widest, #part)
+    end
+    local half = widest * EM * TINY / 2 + 2
+    return { x0 = cx - half, x1 = cx + half, y0 = top - 2, y1 = top + lines * TINY * 1.03 + 2 }
 end
 
 local function sortedNames(things: { [string]: any }): { string }
@@ -450,6 +464,253 @@ return function()
                 for i, spot in town.customerSpots do
                     check.equal(spot.x, dock.customerSpots[i].x + dx)
                     check.equal(spot.y, dock.customerSpots[i].y)
+                end
+            end
+        )
+    end)
+
+    -- [D70, pasul k2b] decorul cumparat cu perle, in piata Dam Town
+    test.suite("World2Decor [D70, pasul k2b]", function()
+        local DECOR = VillageConfig.DECOR
+        local zone = TycoonConfig.zonesOf(W)[1]
+        local plot = RiverConfig.WORLDS[W].PLOT
+
+        local function boxOf(d: VillageConfig.Decor, spot: VillageConfig.Spot): Rect
+            local art = (Assets.decor :: any)[d.sprite]
+            return box(spot.x, spot.y, art.width * d.scale, art.height * d.scale)
+        end
+
+        test.case(
+            "in sat nimic nu se schimba: spotsOf(decor, 1) e chiar decor.spots, la fel fara lume sau cu o lume necunoscuta",
+            function()
+                check.equal(#DECOR, 10)
+                for _, d in DECOR do
+                    check.is_true(VillageConfig.spotsOf(d, 1) == d.spots)
+                    check.is_true(VillageConfig.spotsOf(d) == d.spots)
+                    check.is_true(VillageConfig.spotsOf(d, 7) == d.spots)
+                    check.is_true(VillageConfig.spotsOf(d, 0.5) == d.spots)
+                    check.is_true(VillageConfig.spotsOf(d, "2" :: any) == d.spots)
+                    check.equal(VillageConfig.whereOf(d, 1), d.where)
+                    check.equal(VillageConfig.whereOf(d), d.where)
+                    -- locurile alternative sunt doar ale lumii 2: satul si-a scris locurile in `spots`
+                    if d.spotsByWorld ~= nil then
+                        check.equal(d.spotsByWorld[1], nil)
+                    end
+                    if d.whereByWorld ~= nil then
+                        check.equal(d.whereByWorld[1], nil)
+                    end
+                end
+            end
+        )
+
+        test.case(
+            "la baraj: pe uscat acelasi numar de locuri ca in sat, pe ponton si pe apa aceleasi locuri, fiecare cu textul lui",
+            function()
+                local land = 0
+                for _, d in DECOR do
+                    local spots = VillageConfig.spotsOf(d, W)
+                    if d.ground == "land" then
+                        check.not_nil(d.spotsByWorld)
+                        check.is_true(spots ~= d.spots)
+                        check.equal(#spots, #d.spots)
+                        land += #spots
+                        -- textul satului ("By the Tavern square") nu minte aici: fiecare lucru de pe uscat are al lui
+                        local where = VillageConfig.whereOf(d, W)
+                        check.is_true(where ~= d.where)
+                        check.is_true(string.find(where, "village", 1, true) == nil)
+                        check.is_true(string.find(where, "Tavern", 1, true) == nil)
+                    else
+                        -- acelasi ponton si acelasi lac pe aceleasi coordonate: nimic de mutat
+                        check.equal(d.spotsByWorld, nil)
+                        check.equal(d.whereByWorld, nil)
+                        check.is_true(spots == d.spots)
+                        check.equal(VillageConfig.whereOf(d, W), d.where)
+                    end
+                    check.is_true(#spots >= 1)
+                end
+                check.equal(land, 12) -- patru straturi de flori, doua ghirlande, un loc pentru fiecare dintre celelalte sase
+            end
+        )
+
+        test.case("textul de pe randul din panou incape (Nunito, 13 px, cutia de 250)", function()
+            local widths = require("./fonts/NunitoWidths") :: { [string]: number }
+            local SIZE, LIMIT = 13, 240
+            for _, d in DECOR do
+                for _, w in { 1, W } do
+                    local text = VillageConfig.whereOf(d, w)
+                    local px = 0
+                    for _, code in utf8.codes(text) do
+                        local ch = utf8.char(code)
+                        check.not_nil(widths[ch])
+                        px += (widths[ch] or 1000) * SIZE / 1000
+                    end
+                    if px > LIMIT then
+                        print(`  ! {d.id} (lumea {w}) are ~{math.floor(px)} px: {text}`)
+                    end
+                    check.is_true(px <= LIMIT)
+                end
+            end
+        end)
+
+        test.case(
+            "locurile de pe uscat sunt pe uscat, in zona, si nu calca nimic, nici unul pe altul",
+            function()
+                -- tot ce nu are voie sa fie acoperit de un decor cumparat: cladirile, oamenii, gramezile, stalpii, locul unde
+                -- apari, platformele (patratul lor si cladirea), curtile, puntile, apa si zidul, pontonul si barca
+                local solid: { [string]: Rect } = {}
+                for name, r in placed() do
+                    solid[name] = r
+                end
+                for _, p in world.pylons :: { TycoonConfig.Pylon } do
+                    solid[p.name] = box(p.x, p.y, p.w, p.h) -- si cei de pe pod: ghirlanda nu atarna peste ei
+                end
+                for _, p in TycoonConfig.padsOfWorld(W) do
+                    local px, py = p.x :: number, p.y :: number
+                    solid[`pad_{p.id}`] =
+                        { x0 = px - HALF, x1 = px + HALF, y0 = py - HALF, y1 = py + HALF }
+                end
+                -- felinarele strazii: capul (x +- 15, y 1372..1414) si stalpul (x +- 6, pana la baza), ca la TycoonConfig.lampBlocked
+                for i, lamp in TycoonConfig.streetLamps(W) do
+                    solid[`felinar_{i}_cap`] =
+                        { x0 = lamp.x - 15, x1 = lamp.x + 15, y0 = 1372, y1 = 1414 }
+                    solid[`felinar_{i}_stalp`] =
+                        { x0 = lamp.x - 6, x1 = lamp.x + 6, y0 = 1414, y1 = lamp.y }
+                end
+                for _, d in TycoonConfig.districtsOf(W) do
+                    solid[`deck_{d.id}`] = d.deck
+                    for _, y in d.yards do
+                        solid[`curte_{y.id}`] = y
+                    end
+                end
+                for name, b in world.water :: { [string]: TycoonConfig.Box } do
+                    solid[`apa_{name}`] = corner(b)
+                end
+                for i, b in world.blocked :: { TycoonConfig.Box } do
+                    solid[`blocat_{i}`] = corner(b)
+                end
+                solid.wall = corner(world.wall :: TycoonConfig.Box)
+                local PIER = TycoonConfig.PIER
+                solid.pier =
+                    { x0 = PIER.x - 48, x1 = PIER.x + 48, y0 = PIER.y - 156, y1 = PIER.y + 156 }
+                local ferryArt = Assets.fair.ferry
+                solid.ferry = box(
+                    TycoonConfig.FERRY.x,
+                    TycoonConfig.FERRY.y,
+                    ferryArt.width * 2,
+                    ferryArt.height * 2
+                )
+                -- ce se citeste pe ecran: numele de sub casele oamenilor, casa cu treapta ei (HomeClear), etichetele rotii si
+                -- avizierului (sub indicator si sub avizier, baza + 2)
+                for _, p in TycoonConfig.padsOfWorld(W) do
+                    local role = TycoonConfig.CREW_OF_PAD[p.id]
+                    if role ~= nil then
+                        local x, y = p.x :: number, p.y :: number
+                        solid[`nume_{p.id}`] = textBox(x, y + 58, TycoonConfig.CREWS[role].name)
+                        local base = TycoonConfig.buildingBase(p)
+                        solid[`casa_{p.id}`] =
+                            { x0 = x - 80, x1 = x + 80, y0 = base - 130, y1 = base + 20 }
+                    end
+                end
+                solid.eticheta_roata = textBox(
+                    TycoonConfig.WHEEL_STAND.x,
+                    TycoonConfig.WHEEL_STAND.y + 2,
+                    Strings.WHEEL_MOVED_TAG
+                )
+                solid.eticheta_avizier = textBox(
+                    TycoonConfig.VILLAGE_BOARD.x,
+                    TycoonConfig.VILLAGE_BOARD.y + 2,
+                    Strings.BOARD_TAG
+                )
+                local solidNames = sortedNames(solid)
+                local rs = roads()
+                local deckBottom = 0
+                for _, d in decks() do
+                    deckBottom = math.max(deckBottom, d.y1)
+                end
+
+                local all: { { name: string, r: Rect } } = {}
+                local bad = {}
+                local seen = 0
+                for _, d in DECOR do
+                    for i, spot in VillageConfig.spotsOf(d, W) do
+                        local name = `decor_{d.id}_{i}`
+                        local b = boxOf(d, spot)
+                        seen += 1
+                        table.insert(all, { name = name, r = b })
+                        if d.ground ~= "land" then
+                            continue
+                        end
+                        -- pe uscat: in zona Erei 4, sub puntile si sub tot ce e apa, in terenul jucatorului
+                        if b.x0 < zone.x0 or b.x1 > zone.x1 then
+                            table.insert(bad, `{name} in afara zonei`)
+                        end
+                        if b.y0 < deckBottom or b.y1 > plot.y + plot.h then
+                            table.insert(bad, `{name} nu e pe uscat, in terenul jucatorului`)
+                        end
+                        for _, other in solidNames do
+                            if hit(b, solid[other]) then
+                                table.insert(bad, `{name} x {other}`)
+                            end
+                        end
+                        -- drumurile: ghirlanda atarna peste ele, cu stalpii pe margine; orice altceva sta pe iarba
+                        if not d.overRoad then
+                            for _, r in rs do
+                                if hit(b, r) then
+                                    table.insert(bad, `{name} pe drumul {r.id}`)
+                                end
+                            end
+                        end
+                        -- cardurile E ale zidului (clopotnita, Memory Wall): macar 40 px de punctul lor
+                        for card, at in world.cards :: { [string]: Point } do
+                            if gap(at, b) < 40 then
+                                table.insert(bad, `{name} prea aproape de cardul {card}`)
+                            end
+                        end
+                    end
+                end
+                check.equal(seen, 15)
+                -- nici un decor peste altul (cele de pe ponton si de pe apa, la locurile lor)
+                for i = 1, #all do
+                    for j = i + 1, #all do
+                        if hit(all[i].r, all[j].r) then
+                            table.insert(bad, `{all[i].name} x {all[j].name}`)
+                        end
+                    end
+                end
+                for _, b in bad do
+                    print("  ! " .. b)
+                end
+                check.equal(#bad, 0)
+            end
+        )
+
+        test.case(
+            "ponton si apa la baraj: ca in sat, pe ponton, in lac, fara sa se atinga",
+            function()
+                local PIER = TycoonConfig.PIER
+                local pier: Rect =
+                    { x0 = PIER.x - 48, x1 = PIER.x + 48, y0 = PIER.y - 156, y1 = PIER.y + 156 }
+                local lake = corner(world.water.lake :: TycoonConfig.Box)
+                for _, d in DECOR do
+                    for _, spot in VillageConfig.spotsOf(d, W) do
+                        local b = boxOf(d, spot)
+                        if d.ground == "pier" then
+                            check.is_true(
+                                b.x0 >= pier.x0
+                                    and b.x1 <= pier.x1
+                                    and b.y0 >= pier.y0
+                                    and b.y1 <= pier.y1
+                            )
+                        elseif d.ground == "water" then
+                            check.is_true(
+                                b.x0 >= lake.x0
+                                    and b.x1 <= lake.x1
+                                    and b.y0 >= lake.y0
+                                    and b.y1 <= lake.y1
+                            )
+                            check.is_false(hit(b, pier))
+                        end
+                    end
                 end
             end
         )

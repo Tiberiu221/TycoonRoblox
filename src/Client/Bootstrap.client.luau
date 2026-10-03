@@ -1080,7 +1080,7 @@ safeInit("VillageController", function()
             ShopResult = Net.Get("ShopResult"),
         },
         OnToast = HUDController.Toast,
-        World = world, -- [D70, pasul k2] la baraj, doar decorul de pe apa si de pe ponton (k2b: locurile din piata)
+        World = world, -- [D70, pasul k2b] decorul sta pe locurile lumii (la baraj, uscatul in piata Dam Town)
     })
 end)
 safeInit("JournalController", function()
