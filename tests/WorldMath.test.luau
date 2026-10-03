@@ -241,6 +241,24 @@ return function()
                 "Earn 8T coins a second first"
             )
             check.equal(WorldMath.ruinNeeds(bell, statuses, 2, nil, 8e12, 2), nil)
+            -- [D70, pasul k4] ramura „all” a barajului: nimic de reconstruit acolo, iar zona e a lumii 2
+            statuses.crystal_kiln = "available"
+            check.equal(
+                WorldMath.ruinNeeds(bell, statuses, 2, nil, 8e12, 2),
+                "Build everything else at The Dam first"
+            )
+            -- in sat, ramura „all” ramane cea de reconstruit, pe cartierul ei
+            local worksBell = TycoonConfig.byId.works_bell
+            local village: { [string]: string } = {}
+            for _, p in TycoonConfig.padsOfWorld(1) do
+                village[p.id] = "bought"
+            end
+            village.works_bell = "outline"
+            village.power_house = "available"
+            check.equal(
+                WorldMath.ruinNeeds(worksBell, village, 1, nil, 1e30, 1),
+                "Rebuild everything else on The Wire Works first"
+            )
             -- in sat, o platforma a Morii cu Landing Bell nesunat: clopotul intai
             local mill = TycoonConfig.byId.water_wheel
             check.equal(

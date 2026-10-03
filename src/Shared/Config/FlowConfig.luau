@@ -258,7 +258,9 @@ local LINES_ALL = {
         nothingDone = "nothing_loaded",
         noStore = "no_dam_store",
         noProcessor = "no_switchyard",
-        hintedBy = {},
+        -- [D70, pasul k4] bateriile duse la alt loc al barajului: locul spune unde merg
+        hint = "batteries_to_switchyard",
+        hintedBy = { "cable", "grid", "crystal" },
     }),
     cable = lineSpec({
         line = "cable",
@@ -276,7 +278,8 @@ local LINES_ALL = {
         nothingDone = "nothing_spun",
         noStore = "no_cable_store",
         noProcessor = "no_cableworks",
-        hintedBy = {},
+        hint = "cable_ore_to_cableworks",
+        hintedBy = { "barrels", "grid", "crystal" },
     }),
     -- unirea: n-are magazie si nici marfa bruta; fiecare piesa isi are gramada la Relay
     grid = lineSpec({
@@ -314,7 +317,8 @@ local LINES_ALL = {
         nothingDone = "nothing_fired",
         noStore = "no_crystal_shed",
         noProcessor = "no_kiln",
-        hintedBy = {},
+        hint = "crystal_to_kiln",
+        hintedBy = { "barrels", "cable", "grid" },
     }),
 } :: { [string]: Line }
 FlowConfig.LINES_ALL = LINES_ALL

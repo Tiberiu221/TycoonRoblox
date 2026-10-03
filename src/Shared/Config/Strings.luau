@@ -281,6 +281,7 @@ export type LineWords = {
     byIt: string, -- "stay by the Foundry"
     -- [D70] numele liniei, pentru o unire: „the Cable line is slower" (veriga e a altei piese din aceeasi unire)
     name: string?,
+    rawUnit: string?, -- [D70, pasul k4] la unire: cum se numara ce aduci („3 parts”); implicit `raw`
 }
 Strings.LINE_WORDS = {
     -- Era 1: locurile ei au controllerele lor, cu textele lor; de aici se iau doar cuvintele marfii (meniuri)
@@ -351,7 +352,8 @@ Strings.LINE_WORDS = {
         working = "Charging",
         byIt = "stay by the Power House",
     },
-    -- [D70] Era 4, The Dam (numele sunt propuneri, PLAN-MOTOR-UNIRE §6 intrebarea 12): doua piese, unirea lor, cristalul
+    -- [D70] Era 4, The Dam (numele sunt propuneri, PLAN-MOTOR-UNIRE §6 intrebarea 12): doua piese, unirea lor, cristalul.
+    -- [pasul k4] `rawUnit`: cum se numara marfa adusa la unire („Dropped 3 parts”), nu „3 barrels and cable”
     barrels = {
         raw = "batteries",
         done = "barrels",
@@ -383,6 +385,7 @@ Strings.LINE_WORDS = {
         store = "Relay Station",
         processor = "Relay Station",
         verb = "Join",
+        rawUnit = "parts",
         standHere = "Stand here to join",
         working = "Joining",
         byIt = "stay by the Relay Station",
@@ -808,6 +811,10 @@ end
 function Strings.lineWorking(words: LineWords, left: number): string
     return `{words.working} — {left} left`
 end
+-- [D70, pasul k4] piesele duse la un vanzator: „Barrels and cable go to the Relay Station first”
+function Strings.partsToJoin(union: LineWords): string
+    return `{string.upper(string.sub(union.raw, 1, 1))}{string.sub(union.raw, 2)} go to the {union.processor} first`
+end
 -- [D70, pasul k3] la o unire (Relay Station), piesa care lipseste: „Waiting for cable”, „Waiting for barrels”
 function Strings.joinWaiting(part: LineWords): string
     return `Waiting for {part.done}`
@@ -834,7 +841,7 @@ Strings.SELLER_WORDS = {
     -- [D70] orasul barajului (Switch House; numele sunt propuneri)
     town = {
         buys = "ingots and power",
-        rawOnly = "The Switch House buys ingots and power, not crystal",
+        rawOnly = "The Switch House buys ingots and power, not batteries, ore or crystal",
     },
 } :: { [string]: SellerWords }
 -- Ce a facut un gest la un loc al Erei 2 (`UseResult`), ca `useResult` pentru Era 1. nil = locul nu e al ei.
@@ -856,6 +863,9 @@ function Strings.placeResult(
             return nil -- vanzarea se anunta cand se scurge gramada, nu la predare
         elseif reason == "raw_only" then
             return here.rawOnly
+        elseif reason == "part_to_relay" then
+            -- [D70, pasul k4] butoaiele si cablul nu se vand singure: se unesc intai
+            return Strings.partsToJoin(Strings.LINE_WORDS.grid)
         elseif reason == "other_seller" then
             -- [D67] cu trei vanzatori, "ce ai adus" poate fi al oricaruia: numele vine din traista, altfel nu se ghiceste
             local other = if elsewhere ~= nil then Strings.LINK_WORDS[elsewhere] else nil
@@ -870,7 +880,7 @@ function Strings.placeResult(
         return nil
     end
     local function raw(n: number): string
-        return `{n} {words.raw}`
+        return `{n} {words.rawUnit or words.raw}`
     end
     local function done(n: number): string
         return if n == 1 then `1 {words.doneOne}` else `{n} {words.done}`
@@ -878,19 +888,11 @@ function Strings.placeResult(
     if not ok then
         if reason == "sack_full" then
             return "Sack full"
-        elseif
-            reason == "mill_store_empty"
-            or reason == "ore_shed_empty"
-            or reason == "works_store_empty"
-            or reason == "battery_shed_empty"
-        then
+        elseif string.sub(reason, -6) == "_empty" then
+            -- magazia liniei (FlowConfig `storeEmpty`: mill_store_empty, ..., [D70] dam_store_empty, crystal_shed_empty)
             return `The {words.store} is empty`
-        elseif
-            reason == "nothing_cast"
-            or reason == "nothing_smelted_copper"
-            or reason == "nothing_drawn"
-            or reason == "nothing_charged"
-        then
+        elseif string.sub(reason, 1, 8) == "nothing_" then
+            -- atelierul liniei (FlowConfig `nothingDone`: nothing_cast, ..., [D70] nothing_loaded, nothing_joined)
             return if staffed then `No {words.done} yet` else `No {words.done} yet — {words.byIt}`
         elseif reason == "no_wheel" then
             return "Build the Water Wheel first"
@@ -909,6 +911,17 @@ function Strings.placeResult(
             return "Build the Battery Shed first"
         elseif reason == "batteries_to_powerhouse" then
             return "Batteries go to the Power House"
+        -- [D70, pasul k4] Era 4: Crystal Shed si Kiln sunt platforme; magaziile si atelierele barajului sunt acolo de la el
+        elseif reason == "no_crystal_shed" then
+            return "Build the Crystal Shed first"
+        elseif reason == "no_kiln" then
+            return "Build the Kiln first"
+        elseif reason == "batteries_to_switchyard" then
+            return "Batteries go to the Switchyard"
+        elseif reason == "cable_ore_to_cableworks" then
+            return "Cable ore goes to the Cable Works"
+        elseif reason == "crystal_to_kiln" then
+            return "Crystal goes to the Kiln"
         end
         return nil
     end
@@ -1056,7 +1069,8 @@ function Strings.useResult(
             return "The Storage is empty"
         elseif reason == "nothing_cut" then
             return if staffed then "Nothing cut yet" else "Nothing cut yet — stay by the saw"
-        elseif reason == "raw_only" then
+        elseif reason == "raw_only" and place == "dock" then
+            -- [D70, pasul k4] doar la taverna: la Piata, la Depou si la Switch House spune vanzatorul lor (placeResult)
             return "The Tavern buys planks and iron, not logs or scrap"
         -- [D55, D56] scrap-ul are drumul lui: locul care il refuza spune unde merge. Forja, nu shed-ul: shed-ul
         -- e doar magazia Scrap Collector-ului, iar in turul de mana scrap-ul merge direct la forja.
@@ -1795,6 +1809,7 @@ function Strings.menuUpgradeCount(count: number): string
     return if count == 1 then "Upgrade" else `Upgrade x{count}`
 end
 Strings.STATION_BOTTLENECK = "← slowest link"
+Strings.STATION_BOTTLENECK_SHORT = "← slowest" -- [D70, pasul k4] capul pe doua coloane (barajul, ChainHead)
 Strings.STATION_CANT_AFFORD = "not enough"
 Strings.STATION_NEED_MORE = "Not enough coins yet"
 function Strings.stationLevel(level: number): string
@@ -1827,16 +1842,19 @@ Strings.PAD_EYEBROW_NOT_BUILT = "NOT BUILT YET" -- [D67, audit] turbina incuiata
 Strings.PAD_EYEBROW_WANTED = "HELP WANTED"
 -- Ce trebuie facut intai. Primeste TycoonMath.Blocker, cu numele deja rezolvate: textul spune exact
 -- conditia pe care o verifica jocul [D40].
-function Strings.padNeeds(b: {
-    kind: string,
-    name: string?,
-    level: number?,
-    hire: boolean?,
-    first: boolean?,
-    ring: boolean?,
-    zone: string?,
-    goalText: string?,
-}): string
+function Strings.padNeeds(
+    b: {
+        kind: string,
+        name: string?,
+        level: number?,
+        hire: boolean?,
+        first: boolean?,
+        ring: boolean?,
+        zone: string?,
+        goalText: string?,
+        fresh: boolean?, -- [D70, pasul k4] o lume noua (barajul): acolo n-a fost nimic de reconstruit
+    }
+): string
     local name = b.name or "it"
     if b.kind == "after" then
         if b.ring then
@@ -1853,6 +1871,9 @@ function Strings.padNeeds(b: {
         return `Upgrade {name} to level {b.level or 2} first`
     elseif b.kind == "income" then
         return `{Strings.earnPerSecond(b.goalText or "more")} first` -- [D70] Dam Bell
+    end
+    if b.fresh then
+        return `Build everything else at {b.zone or "The Dam"} first` -- [D70, pasul k4]
     end
     return `Rebuild everything else on {b.zone or "The Landing"} first`
 end

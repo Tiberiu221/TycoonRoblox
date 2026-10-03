@@ -125,7 +125,11 @@ return function()
     test.suite("Cuvintele lantului - fiecare veriga din tabel le are [D65]", function()
         test.case("verigile, plasele si cladirile tuturor liniilor", function()
             for _, line in StationConfig.LINE_ORDER do
-                check.is_true(Strings.NET_WORDS[line] ~= nil)
+                -- [D70] o unire n-are plase (vezi cazul barajului de mai jos)
+                check.equal(
+                    Strings.NET_WORDS[line] ~= nil,
+                    StationConfig.LINES[line].netKind ~= nil
+                )
                 check.is_true(Strings.LINE_WORDS[line] ~= nil)
                 for _, step in StationConfig.LINES[line].steps do
                     check.is_true(Strings.LINK_WORDS[step.link] ~= nil)
@@ -272,5 +276,54 @@ return function()
                 end
             end
         )
+    end)
+    -- [D70, pasul k4] ce spune un E la un loc al barajului: fiecare refuz al liniilor si al vanzatorilor are textul lui, iar la
+    -- Piata, la Depou si la Switch House refuzul „raw_only” e al lor, nu al tavernei
+    test.suite("Refuzurile locurilor, pe toate erele [D70, pasul k4]", function()
+        local FlowConfig = require("../src/Shared/Config/FlowConfig")
+        test.case("fiecare refuz al unei linii are text, pe ordinea FULL", function()
+            for _, line in StationConfig.LINE_ORDER_ALL do
+                local spec = FlowConfig.LINES_ALL[line]
+                local reasons = { spec.nothingDone }
+                if spec.storeEmpty ~= nil then
+                    table.insert(reasons, spec.storeEmpty)
+                end
+                -- un indiciu se spune doar la locurile din `hintedBy` (fara ele, nimeni nu-l trimite)
+                if spec.hint ~= nil and #spec.hintedBy > 0 then
+                    table.insert(reasons, spec.hint)
+                end
+                for _, reason in reasons do
+                    -- lemnul si fierul au locurile Erei 1, cu textele lor (useResult)
+                    local text = if line == "wood" or line == "iron"
+                        then Strings.useResult(spec.processor, false, reason, 0, 0, false)
+                        else Strings.placeResult(line, nil, false, false, reason, 0, 0, false)
+                    if text == nil then
+                        print(`  ! {line}: {reason} fara text`)
+                    end
+                    check.not_nil(text)
+                end
+            end
+            -- la unire, ce aduci se numara in piese
+            check.equal(
+                Strings.placeResult("grid", nil, false, true, "ok", 3, 0, true),
+                "Dropped 3 parts"
+            )
+        end)
+        test.case("la un vanzator: piesele spun Relay-ul; marfa bruta, vanzatorul lui", function()
+            local parts =
+                Strings.placeResult(nil, "town", false, false, "part_to_relay", 0, 0, false)
+            check.equal(parts, "Barrels and cable go to the Relay Station first")
+            for _, seller in StationConfig.SELLER_ORDER_ALL do
+                if seller ~= "dock" then
+                    -- useResult tace (nu e taverna), iar placeResult spune vanzatorul
+                    check.equal(Strings.useResult(seller, false, "raw_only", 0, 0, false), nil)
+                    check.equal(
+                        Strings.placeResult(nil, seller, false, false, "raw_only", 0, 0, false),
+                        Strings.SELLER_WORDS[seller].rawOnly
+                    )
+                end
+            end
+            check.not_nil(Strings.useResult("dock", false, "raw_only", 0, 0, false))
+        end)
     end)
 end

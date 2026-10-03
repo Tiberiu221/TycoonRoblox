@@ -12,6 +12,7 @@ local TweenService = game:GetService("TweenService")
 
 local RiverConfig = require(ReplicatedStorage.Shared.Config.RiverConfig)
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
+local WorldConfig = require(ReplicatedStorage.Shared.Config.WorldConfig) -- [D70, pasul k4]
 local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
 local WorldMath = require(ReplicatedStorage.Shared.Modules.WorldMath)
 local HeldBack = require(ReplicatedStorage.Shared.Modules.HeldBack)
@@ -1437,10 +1438,13 @@ function PadController.Init(d: Deps)
                 local needs = ruinNeeds(pad)
                 if needs ~= nil and ruinTarget ~= ruinId then
                     ruinTarget = ruinId
-                    -- [D67, audit] turbina incuiata e umbra ei, nu o ruina: cartonasul nu scrie "RUINS"
+                    -- [D67, audit] turbina incuiata e umbra ei, nu o ruina: cartonasul nu scrie "RUINS"; [D70, pasul k4] nici
+                    -- o platforma a unei lumi noi (barajul): acolo n-a fost nimic de reconstruit
                     local eyebrow = if BOARD_ICON[PadArt.lookOf(pad.id, BOARD_ICON)] ~= nil
                         then Strings.PAD_EYEBROW_WANTED
-                        elseif PadArt.isTurbine(pad) then Strings.PAD_EYEBROW_NOT_BUILT
+                        elseif
+                            PadArt.isTurbine(pad) or WorldConfig.worldOfEra(pad.era) ~= 1
+                        then Strings.PAD_EYEBROW_NOT_BUILT
                         else Strings.PAD_EYEBROW_RUINS
                     HUDController.ShowRuinCard(pad, eyebrow, needs)
                 elseif needs == nil and ruinTarget ~= nil then

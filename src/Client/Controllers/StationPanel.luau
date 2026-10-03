@@ -14,6 +14,7 @@
 local TweenService = game:GetService("TweenService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
+local ChainHead = require(ReplicatedStorage.Shared.Modules.ChainHead)
 local HeldBack = require(ReplicatedStorage.Shared.Modules.HeldBack)
 local StationConfig = require(ReplicatedStorage.Shared.Config.StationConfig)
 local EraWords = require(ReplicatedStorage.Shared.Modules.EraWords)
@@ -82,60 +83,26 @@ local Z = 60
 -- lase o gaura la mijloc). Semnul sta pe veriga slaba a fiecarei linii; la vanzator, pe cea care tine venitul.
 -- [D65] UN CARTIER ODATA. Cu Era 2 lantul are 22 de verigi: toate intr-un cap de panou ar fi fost un perete de cifre.
 -- Panoul arata cartierul ales (The Landing / The Mill), cu verigile si cladirile lui; comutatorul apare abia cand ai
--- ceva la Moara, deci in Era 1 panoul e exact cel de pana acum. Verigile vin din tabelul liniilor.
-type ChainRow = { key: string, line: string?, icon: string, label: string }
--- dupa meseria pasului (StationConfig.STEP_JOBS), nu dupa pozitie [D70: la unire, al doilea pas duce]
-local JOB_ICONS = { collect = "capacity", port = "carry", haul = "speed" }
-local function chainRowsFor(era: number): { ChainRow }
-    local out: { ChainRow } = {}
-    local sellersSeen: { [string]: boolean } = {}
-    for _, line in StationConfig.ERA_LINES[era] do
-        -- [D70] o unire n-are plase (intra ce aduc piesele ei), iar o piesa n-are vanzator (se vinde prin unire)
-        if StationConfig.LINES[line].netKind ~= nil then
-            table.insert(
-                out,
-                { key = "nets", line = line, icon = "net", label = Strings.NET_WORDS[line].label }
-            )
-        end
-        for k, step in StationConfig.LINES[line].steps do
-            table.insert(out, {
-                key = step.link,
-                line = line,
-                icon = if step.kind ~= "processor"
-                    then JOB_ICONS[StationConfig.STEP_JOBS[line][k]] or "carry"
-                    elseif step.link == "saw" then "saw"
-                    else "hammer",
-                label = Strings.LINK_WORDS[step.link].label,
-            })
-        end
-        local seller = StationConfig.LINES[line].seller
-        if seller ~= nil and not sellersSeen[seller] then
-            sellersSeen[seller] = true
-            table.insert(
-                out,
-                { key = seller, icon = "crate", label = Strings.LINK_WORDS[seller].label }
-            )
-        end
-    end
-    return out
-end
+-- ceva la Moara, deci in Era 1 panoul e exact cel de pana acum. Verigile vin din tabelul liniilor (ChainHead.rowsFor).
 -- [D70, verificatorul k2] capul se masoara doar pe erele HARTII TALE (in Init, dupa lume): pe toate erele motorului, dupa
--- comutator, cele 18 verigi ale barajului ar fi impins in sat lista cladirilor la un singur rand
-local CHAIN_BY_ERA: { { ChainRow } } = {}
-local CHAIN_MAX = 0
-local CHAIN_STEP = 20 -- unsprezece verigi [D56], cate 20
+-- comutator, cele 18 verigi ale barajului ar fi impins in sat lista cladirilor la un singur rand. [pasul k4] La baraj, capul
+-- sta pe doua coloane (ChainHead.layout).
+local CHAIN_BY_ERA: { { ChainHead.Row } } = {}
+local LAYOUT_BY_ERA: { ChainHead.Layout } = {}
+local CHAIN_MAX = 0 -- randurile celei mai lungi coloane, pe erele hartii tale
+local CHAIN_STEP = ChainHead.STEP -- unsprezece verigi [D56], cate 20
 local HEAD_SHIFT = 0 -- tot ce sta sub cap coboara cu verigile adaugate dupa D55 (socotit in Init)
 local TABS_H = 44 -- randul comutatorului de cartier; 0 cat nu exista decat The Landing
 
 local advice: TextLabel
 -- capul fiecarui cartier, pe era; in el, pe index: "nets" apare de doua ori (plasele fiecarei linii)
-type ChainHead = {
+type ChainHeadView = {
     frame: Frame,
     parts: { { GuiObject } },
     value: { TextLabel },
     warn: { TextLabel },
 }
-local heads: { ChainHead } = {}
+local heads: { ChainHeadView } = {}
 local shownEra = 1 -- cartierul ales
 local firstEra = 1 -- [D70, pasul k2] prima era a hartii tale (4 la baraj)
 local world = 1
@@ -602,11 +569,12 @@ function StationPanel.Init(d: Deps)
     shownEra = firstEra
     for era in StationConfig.ERA_LINES do
         if WorldConfig.worldOfEra(era) == world then
-            CHAIN_BY_ERA[era] = chainRowsFor(era)
-            CHAIN_MAX = math.max(CHAIN_MAX, #CHAIN_BY_ERA[era])
+            CHAIN_BY_ERA[era] = ChainHead.rowsFor(era)
+            LAYOUT_BY_ERA[era] = ChainHead.layout(CHAIN_BY_ERA[era])
+            CHAIN_MAX = math.max(CHAIN_MAX, LAYOUT_BY_ERA[era].rows)
         end
     end
-    HEAD_SHIFT = (CHAIN_MAX - 7) * CHAIN_STEP
+    HEAD_SHIFT = ChainHead.shift(CHAIN_MAX)
     local root, content = Widgets.Window(deps.HudGui, {
         name = "StationPanel",
         title = Strings.STATIONS_TITLE,
@@ -671,40 +639,39 @@ function StationPanel.Init(d: Deps)
         head.Visible = era == shownEra
         head.Parent = body
         table.insert(belowTabs, { object = head, y = 0 })
-        local view: ChainHead = { frame = head, parts = {}, value = {}, warn = {} }
+        local view: ChainHeadView = { frame = head, parts = {}, value = {}, warn = {} }
         heads[era] = view
+        local layout = LAYOUT_BY_ERA[era]
+        local cell = ChainHead.CELL[layout.columns]
         for i, entry in rows do
-            local y = (i - 1) * CHAIN_STEP
+            local at = layout.cells[i]
+            local y = (at.row - 1) * CHAIN_STEP
+            local x0 = if at.column == 2 then ChainHead.SECOND_COLUMN_X else 0
             local parts: { GuiObject } = {}
             view.parts[i] = parts
             local icon = Widgets.Icon(head, entry.icon, 16)
             if icon ~= nil then
-                icon.Position = UDim2.fromOffset(0, y + 2)
+                icon.Position = UDim2.fromOffset(x0 + cell.icon, y + 2)
                 icon.ZIndex = Z + 2
                 table.insert(parts, icon)
             end
             local name =
                 Widgets.Label(head, entry.label, Theme.TEXT.tiny, Theme.COLOR.onDarkSoft, "body")
-            name.Position = UDim2.fromOffset(28, y)
-            name.Size = UDim2.fromOffset(120, CHAIN_STEP)
+            name.Position = UDim2.fromOffset(x0 + cell.name, y)
+            name.Size = UDim2.fromOffset(cell.nameW, CHAIN_STEP)
             name.ZIndex = Z + 2
             table.insert(parts, name)
             local value = Widgets.Label(head, "0/s", Theme.TEXT.small, Theme.COLOR.ink, "display")
-            value.Position = UDim2.fromOffset(150, y)
-            value.Size = UDim2.fromOffset(120, CHAIN_STEP)
+            value.Position = UDim2.fromOffset(x0 + cell.value, y)
+            value.Size = UDim2.fromOffset(cell.valueW, CHAIN_STEP)
             value.TextXAlignment = Enum.TextXAlignment.Right
             value.ZIndex = Z + 2
             table.insert(parts, value)
             view.value[i] = value
-            local warn = Widgets.Label(
-                head,
-                Strings.STATION_BOTTLENECK,
-                Theme.TEXT.tiny,
-                Theme.COLOR.warn,
-                "strong"
-            )
-            warn.Position = UDim2.fromOffset(282, y)
-            warn.Size = UDim2.fromOffset(200, CHAIN_STEP)
+            local warn =
+                Widgets.Label(head, cell.warnText, Theme.TEXT.tiny, Theme.COLOR.warn, "strong")
+            warn.Position = UDim2.fromOffset(x0 + cell.warn, y)
+            warn.Size = UDim2.fromOffset(cell.warnW, CHAIN_STEP)
             warn.Visible = false
             warn.ZIndex = Z + 2
             view.warn[i] = warn

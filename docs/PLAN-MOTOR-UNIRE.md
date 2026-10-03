@@ -1162,6 +1162,19 @@ la granița CREWS / `DAM_START_COINS`.
 - `StationMenu.CHAIN` pe lume și schimbarea de cartier în StationPanel; `Strings` pentru Era 4 (refuzurile, „Opens at 4T coins a
   second”, „Waiting for cable/barrels”, indiciile, AWAY 0); textele `HeldBack`; `check_panel_rows`.
 
+- **k4 (făcut):** `Shared/Modules/ChainHead` (pur) face verigile capului Stations și așezarea lor: o coloană până la 11 verigi
+  (satul, neschimbat la pixel: aceleași cutii, `HEAD_SHIFT` 80), două coloane de la 12, rupte între două linii (barajul: 10 + 8,
+  `HEAD_SHIFT` 60, deci lista păstrează ~3 rânduri), cu numele (100 px), cifra (72) și „← slowest” (70) strânse.
+  `tests/ChainHead.test` socotește înălțimea pe fiecare lume și măsoară numele în Nunito. Ruina unei platforme a lumii 2 scrie
+  „NOT BUILT YET”, iar ramura „all” spune „Build everything else at The Dam first” (`TycoonMath` ia zona din lumea erei;
+  `fresh` apare doar în lumea 2, ca martorul satului să rămână identic). Refuzurile Erei 4 au text (magazia goală și „No … yet”
+  după numele motivului, Crystal Shed / Kiln, „Barrels and cable go to the Relay Station first” la vânzător, „Dropped 3
+  parts” la Relay), iar bateriile, minereul de cablu și cristalul duse greșit spun unde merg (`hint` / `hintedBy` în
+  FlowConfig). **Reparat și în sat:** refuzul „raw_only” de la Piață și Depou spunea textul tavernei („The Tavern buys planks
+  and iron…”); acum spune vânzătorul lui. `StationMenu.CHAIN` rămâne tabelul de căutare al tuturor verigilor: cheile vin din
+  vederea serverului, deja pe lume. „Opens at 4T” e cartonașul Dam Bell („Earn 4T coins a second first”, j11); AWAY 0 e la
+  k6 (fereastra „Welcome back”). Harta comutatorului: 15 (ChainWords reparat).
+
 **k5. Quest-uri, linia NEXT și ghidajul pentru capitolele 10–12.** Depinde de: k4, j11.
 - `counterText` și lista fără paranteze; `HUDController.SetStep` păstrează bara de venit; primul tur în 6 pași de mână; fără
   preț și fără „While you save” pe o platformă încuiată; ghidajul sare meseriile la maxim cât ține un pas de venit; indiciul

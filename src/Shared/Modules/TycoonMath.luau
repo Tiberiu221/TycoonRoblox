@@ -6,6 +6,8 @@
 -- de aur din simulator; daca nu pica exact, se cauta diferenta de portare, nu se relaxeaza testul.
 local TycoonConfig =
     require(script and script.Parent.Parent.Config.TycoonConfig or "../Config/TycoonConfig")
+local WorldConfig =
+    require(script and script.Parent.Parent.Config.WorldConfig or "../Config/WorldConfig")
 
 export type Station = { mult: number, cap: number, draw: number }
 export type State = {
@@ -360,6 +362,8 @@ export type Blocker = {
     first: boolean?, -- plasa ceruta e prima plasa (Cast your first net)
     ring: boolean?, -- [D65] platforma ceruta e un clopot (Ring the ...)
     zone: string?, -- [D65] la "all": cartierul platformei care intreaba ("The Mill")
+    -- [D70, pasul k4] la "all": platforma e a unei lumi noi (barajul), unde n-a fost nimic de reconstruit
+    fresh: boolean?,
     goalText: string?, -- [D70] la "income": pragul, scris ca pe HUD ("4T")
 }
 
@@ -377,8 +381,9 @@ local function netIds(pads: { TycoonConfig.Pad }): { string }
     return ids
 end
 
+-- [D70, pasul k4] cartierul erei, din zonele LUMII ei (barajul n-are zona in ZONES-ul satului)
 local function zoneNameOf(era: number): string?
-    for _, zone in TycoonConfig.ZONES do
+    for _, zone in TycoonConfig.zonesOf(WorldConfig.worldOfEra(era)) do
         if zone.era == era then
             return zone.name
         end
@@ -403,6 +408,8 @@ local function blockerFor(
         first = padId ~= nil and padId == firstNet,
         ring = target ~= nil and target.motive == "D",
         zone = if asking ~= nil then zoneNameOf(asking.era) else nil,
+        -- doar cand e adevarat: in sat cheia lipseste, ca blocajele lumii 1 sa ramana exact cele din martor
+        fresh = if asking ~= nil and WorldConfig.worldOfEra(asking.era) ~= 1 then true else nil,
     }
 end
 

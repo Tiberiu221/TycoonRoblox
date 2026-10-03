@@ -541,6 +541,19 @@ return function()
             check.equal(stats.ingotsSold, 1)
         end)
 
+        -- [D70, pasul k4] marfa bruta a barajului dusa la alt loc al lui: locul spune unde merge, nu „No cable yet”
+        test.case("bateriile, minereul de cablu si cristalul duse gresit spun unde merg", function()
+            local _, a = FlowMath.useProcessor(sack({ charge = 2 }), {}, {}, 60, LA.cable, F)
+            check.equal(a, "batteries_to_switchyard")
+            local _, b = FlowMath.useProcessor(sack({ cable_ore = 2 }), {}, {}, 60, LA.barrels, F)
+            check.equal(b, "cable_ore_to_cableworks")
+            local _, c = FlowMath.useProcessor(sack({ crystal = 2 }), {}, {}, 60, LA.barrels, F)
+            check.equal(c, "crystal_to_kiln")
+            -- la Relay, cu baterii in traista (nicio piesa de lasat, nimic de luat)
+            local _, d = FlowMath.useJoin(sack({ charge = 2 }), inputs(0, 0), {}, 60, LA.grid, F)
+            check.equal(d, "batteries_to_switchyard")
+        end)
+
         test.case(
             "la oras: doar piese -> part_to_relay; cu lingouri si curent, piesele raman",
             function()
