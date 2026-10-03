@@ -1017,13 +1017,14 @@ end
 
 -- ---- indicatorul de margine [verificatorii A0, k12] ---------------------------------------------------
 -- Unde sta indicatorul de margine (sageata cu eticheta, cand tinta e in afara ecranului). Locurile lui posibile sunt un
--- inel de-a lungul marginilor panzei (cat sa ramana eticheta intreaga). Pleaca din punctul firesc de pe margine
--- (clampToEdge, adus pe inel) si, daca acolo l-ar acoperi un panou FIX al HUD-ului (bara de meniu, cifrele din stanga-sus,
--- joystick-ul si butonul E pe telefon: atributul GuideBlocker), merge pe inel pana la cel mai apropiat loc liber, de o parte
--- sau de alta, trecand si dupa colt pe marginea vecina (sub cifrele din stanga-sus, nu la mijlocul marginii de sus).
+-- inel de-a lungul marginilor panzei, la `margin` (EDGE_MARGIN) de ele si cat sa ramana eticheta intreaga. Punctul firesc
+-- (clampToEdge) se strange pe inel; daca acolo nu-l acopera niciun panou FIX al HUD-ului (atributul GuideBlocker: bara de
+-- meniu, cifrele din stanga-sus, joystick-ul si butonul E pe telefon), ramane acolo, deci aluneca lin si pe langa colturi.
+-- Altfel merge pe inel pana la primul loc liber, de o parte si de alta (si dupa colt, pe marginea vecina), si il alege pe
+-- cel care arata cel mai bine spre tinta: unghiul lui vazut din mijlocul ecranului, fata de directia tintei.
 -- Toast-urile, bannerele si monedele in zbor nu conteaza: sunt trecatoare si il faceau sa sara prin ecran.
--- Histerezis: cat punctul firesc ramane acoperit, indicatorul ramane pe capatul ales in cadrul trecut (`previous`); altfel,
--- langa mijlocul barei de meniu ar fi sarit de deasupra ei dedesubt la fiecare pas.
+-- Histerezis, ca o banda: capatul din cadrul trecut (`previous`) ramane cat nu arata cu mai mult de EDGE_BAND mai rau decat
+-- celalalt; asa nu tremura langa mijlocul barei de meniu, dar nici nu ramane la capatul celalalt al ecranului.
 -- `half`: jumatate din latimea etichetei; `top` / `bottom`: cat urca si cat coboara grupul fata de punctul lui.
 export type EdgeQuery = {
     x: number,
@@ -1034,20 +1035,26 @@ export type EdgeQuery = {
     top: number,
     bottom: number,
     blockers: { Rect },
+    margin: number?,
     previous: { x: number, y: number }?,
 }
 GuideMath.EDGE_GAP = 8
 GuideMath.EDGE_STEP = 4 -- pasul cautarii pe inel; capatul liber se rafineaza apoi prin injumatatire
-GuideMath.EDGE_KEEP = 12 -- cat de aproape de locul din cadrul trecut ca sa-l pastreze
+GuideMath.EDGE_KEEP = 12 -- cat de aproape de locul din cadrul trecut ca sa fie „acelasi capat”
+GuideMath.EDGE_BAND = math.rad(15) -- cat de mult mai rau poate arata capatul vechi inainte sa-l lase
 
 function GuideMath.edgePlacement(q: EdgeQuery): (number, number)
     local gap = GuideMath.EDGE_GAP
-    local minX, maxX = math.min(q.half + gap, q.w / 2), math.max(q.w - q.half - gap, q.w / 2)
-    local minY, maxY = math.min(q.top + gap, q.h / 2), math.max(q.h - q.bottom - gap, q.h / 2)
+    local margin = q.margin or 0
+    local minX = math.min(math.max(q.half + gap, margin), q.w / 2)
+    local maxX = math.max(math.min(q.w - q.half - gap, q.w - margin), q.w / 2)
+    local minY = math.min(math.max(q.top + gap, margin), q.h / 2)
+    local maxY = math.max(math.min(q.h - q.bottom - gap, q.h - margin), q.h / 2)
     local W, H = maxX - minX, maxY - minY
     local P = 2 * (W + H)
+    local cx, cy = math.clamp(q.x, minX, maxX), math.clamp(q.y, minY, maxY)
     if P <= 0 then
-        return q.w / 2, q.h / 2
+        return cx, cy
     end
     -- un punct al inelului, dupa distanta parcursa din coltul din stanga-sus, in sensul acelor de ceasornic
     local function at(d: number): (number, number)
@@ -1065,22 +1072,7 @@ function GuideMath.edgePlacement(q: EdgeQuery): (number, number)
         end
         return minX, maxY - (s - W)
     end
-    -- un punct oarecare, adus pe latura cea mai apropiata a inelului
-    local function along(x: number, y: number): number
-        local cx, cy = math.clamp(x, minX, maxX), math.clamp(y, minY, maxY)
-        local dTop, dRight, dBottom, dLeft = y - minY, maxX - x, maxY - y, x - minX
-        local m = math.min(math.abs(dTop), math.abs(dRight), math.abs(dBottom), math.abs(dLeft))
-        if m == math.abs(dTop) then
-            return cx - minX
-        elseif m == math.abs(dRight) then
-            return W + cy - minY
-        elseif m == math.abs(dBottom) then
-            return W + H + maxX - cx
-        end
-        return 2 * W + H + maxY - cy
-    end
-    local function free(d: number): boolean
-        local x, y = at(d)
+    local function blocked(x: number, y: number): boolean
         for _, b in q.blockers do
             if
                 x + q.half + gap > b.x
@@ -1088,25 +1080,47 @@ function GuideMath.edgePlacement(q: EdgeQuery): (number, number)
                 and y + q.bottom + gap > b.y
                 and y - q.top - gap < b.y + b.h
             then
-                return false
+                return true
             end
         end
-        return true
+        return false
     end
-    local start = along(q.x, q.y)
-    if free(start) then
-        return at(start)
+    if not blocked(cx, cy) then
+        return cx, cy
+    end
+    -- pozitia pe inel a punctului strans: latura e cea pe care a cazut (punctul firesc sta pe marginea panzei, deci strans
+    -- pe inel atinge mereu o latura); un punct strict inauntru ia latura cea mai apropiata
+    local start: number
+    if cy <= minY then
+        start = cx - minX
+    elseif cx >= maxX then
+        start = W + cy - minY
+    elseif cy >= maxY then
+        start = W + H + maxX - cx
+    elseif cx <= minX then
+        start = 2 * W + H + maxY - cy
+    else
+        local m = math.min(cy - minY, maxX - cx, maxY - cy, cx - minX)
+        start = if m == cy - minY
+            then cx - minX
+            elseif m == maxX - cx then W + cy - minY
+            elseif m == maxY - cy then W + H + maxX - cx
+            else 2 * W + H + maxY - cy
+    end
+    local function freeAt(d: number): boolean
+        local x, y = at(d)
+        return not blocked(x, y)
     end
     -- primul loc liber in fiecare sens, rafinat intre ultimul pas acoperit si primul liber (capatul nu tremura cu pasul)
     local step = GuideMath.EDGE_STEP
     local function search(sign: number): number?
         local k = 1
         while k * step <= P do
-            if free(start + sign * k * step) then
+            if freeAt(start + sign * k * step) then
                 local lo, hi = (k - 1) * step, k * step
                 for _ = 1, 8 do
                     local mid = (lo + hi) / 2
-                    if free(start + sign * mid) then
+                    if freeAt(start + sign * mid) then
                         hi = mid
                     else
                         lo = mid
@@ -1120,30 +1134,32 @@ function GuideMath.edgePlacement(q: EdgeQuery): (number, number)
     end
     local ahead, behind = search(1), search(-1)
     if ahead == nil or behind == nil then
-        return at(start) -- inelul e acoperit tot: ramane la locul lui (panourile stau oricum peste el)
+        return cx, cy -- inelul e acoperit tot: ramane la locul lui (panourile stau oricum peste el)
     end
     local ax, ay = at(ahead)
     local bx, by = at(behind)
+    -- cat de rau arata un capat spre tinta: unghiul dintre el si directia tintei, vazute din mijlocul ecranului
+    local mx, my = q.w / 2, q.h / 2
+    local aim = math.atan2(q.y - my, q.x - mx)
+    local function off(x: number, y: number): number
+        local d = math.abs(math.atan2(y - my, x - mx) - aim) % (2 * math.pi)
+        return if d > math.pi then 2 * math.pi - d else d
+    end
+    local da, db = off(ax, ay), off(bx, by)
     local prev = q.previous
     if prev ~= nil then
-        local keep = GuideMath.EDGE_KEEP
-        if math.abs(ax - prev.x) <= keep and math.abs(ay - prev.y) <= keep then
+        local keep, band = GuideMath.EDGE_KEEP, GuideMath.EDGE_BAND
+        if math.abs(ax - prev.x) <= keep and math.abs(ay - prev.y) <= keep and da <= db + band then
             return ax, ay
-        elseif math.abs(bx - prev.x) <= keep and math.abs(by - prev.y) <= keep then
+        elseif
+            math.abs(bx - prev.x) <= keep
+            and math.abs(by - prev.y) <= keep
+            and db <= da + band
+        then
             return bx, by
         end
     end
-    -- capatul mai apropiat pe inel; unul care trece de mijlocul ecranului (fata de punctul firesc) costa o jumatate de latura
-    -- in plus: o tinta clar spre stanga-sus duce sub cifrele din colt, pe marginea din stanga, nu dincolo de mijloc
-    local nx, ny = at(start)
-    local function cost(dist: number, x: number, y: number): number
-        local onTop = math.abs(ny - minY) < 1 or math.abs(ny - maxY) < 1
-        local crosses = if onTop
-            then (x - q.w / 2) * (nx - q.w / 2) < 0
-            else (y - q.h / 2) * (ny - q.h / 2) < 0
-        return dist + (if crosses then (if onTop then W else H) / 2 else 0)
-    end
-    if cost(ahead - start, ax, ay) <= cost(start - behind, bx, by) then
+    if da < db or (da == db and ahead - start <= start - behind) then
         return ax, ay
     end
     return bx, by

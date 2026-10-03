@@ -329,6 +329,7 @@ end
 -- joystick-ul si butonul E pe telefon). Nu toti copiii panzei: toast-urile, bannerele si monedele in zbor sunt trecatoare si
 -- il faceau sa sara prin ecran. `edgePrevious`: locul din cadrul trecut, pentru histerezis (GuideMath.edgePlacement).
 local edgePrevious: { x: number, y: number }? = nil
+local edgeGoalKey: string? = nil -- histerezisul tine doar pentru aceeasi tinta
 local function edgeBlockers(scale: number): { GuideMath.Rect }
     local canvas = deps.HudGui
     local origin = canvas.AbsolutePosition
@@ -605,8 +606,10 @@ local function updateGuideVisuals()
             top = 31,
             bottom = 27,
             blockers = edgeBlockers(hudScale()),
-            previous = edgePrevious,
+            margin = EDGE_MARGIN,
+            previous = if edgeGoalKey == goal.key then edgePrevious else nil,
         })
+        edgeGoalKey = goal.key
         edgePrevious = { x = ex, y = ey }
         edgeGroup.Position = UDim2.fromOffset(ex, ey)
         if edgeIcon ~= nil then

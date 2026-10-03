@@ -1444,6 +1444,13 @@ Siluetele, schelele și zidul de aici sunt propunerea loturilor A1/A2. Nimic nu 
 
   **Cardul vânzătorului** alege întâi cuvântul cu cele mai multe bucăți (4 + 4 bucăți de scrap bat 5 de minereu), apoi linia
   din el; atelierul de alături decide doar la egalitate.
+- **[A șasea rundă]** **Indicatorul de margine:**
+  - Inelul stă la `EDGE_MARGIN` de margini, iar punctul firesc strâns pe el rămâne acolo când e liber, deci alunecă lin și
+    pe lângă colțuri (cel mai mare pas la 0,1° e de 5 px; înainte, 140).
+  - Între cele două capete libere alege pe cel care arată mai bine spre țintă, după unghiul văzut din mijlocul ecranului
+    (cea mai mare abatere e 53°). Penalizarea fixă a mijlocului a dispărut.
+  - Histerezisul e o bandă de 15° și se golește la schimbarea țintei.
+  - Testat: continuitatea, unghiul, banda care se desprinde și o țintă aproape verticală cu eticheta cea mai lată.
 
 Totalul, ~92–97 de imagini și 3 sunete până se joacă Era 4 (PLAN-HARTA §7).
 

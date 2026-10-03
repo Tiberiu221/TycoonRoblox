@@ -1589,6 +1589,7 @@ return function()
                             top = 31,
                             bottom = 27,
                             blockers = bs,
+                            margin = MARGIN,
                         })
                         local inside = x - half >= 0
                             and x + half <= w
@@ -1606,38 +1607,111 @@ return function()
             check.equal(bad, 0)
         end)
 
-        test.case("langa mijlocul barei nu sare dintr-o parte in alta (histerezis)", function()
-            local w, h = 1076, 605
-            local bs = blockersFor(w, h, true)
-            local function place(deg: number, previous: { x: number, y: number }?): (number, number)
-                local px, py = natural(w, h, deg)
-                return GuideMath.edgePlacement({
-                    x = px,
-                    y = py,
-                    w = w,
-                    h = h,
-                    half = 90,
-                    top = 31,
-                    bottom = 27,
-                    blockers = bs,
-                    previous = previous,
-                })
+        local function place(
+            w: number,
+            h: number,
+            bs: { GuideMath.Rect },
+            deg: number,
+            half: number,
+            previous: { x: number, y: number }?
+        ): (number, number)
+            local px, py = natural(w, h, deg)
+            return GuideMath.edgePlacement({
+                x = px,
+                y = py,
+                w = w,
+                h = h,
+                half = half,
+                top = 31,
+                bottom = 27,
+                blockers = bs,
+                margin = MARGIN,
+                previous = previous,
+            })
+        end
+        local function offDeg(w: number, h: number, x: number, y: number, deg: number): number
+            local d = math.abs(math.deg(math.atan2(y - h / 2, x - w / 2)) - deg) % 360
+            return if d > 180 then 360 - d else d
+        end
+
+        test.case("fara panouri aluneca lin, si pe langa colturi (fara salt de colt)", function()
+            local worst = 0
+            for _, size in { { 1076, 605 }, { 1362, 630 }, { 1920, 1080 }, { 2275, 1080 } } do
+                local w, h = size[1], size[2]
+                for _, half in { 15, 90, 177 } do
+                    local px, py = place(w, h, {}, -180, half)
+                    for k = 1, 3600 do
+                        local x, y = place(w, h, {}, -180 + k * 0.1, half)
+                        worst = math.max(worst, math.abs(x - px) + math.abs(y - py))
+                        px, py = x, y
+                    end
+                end
             end
-            -- intra in banda barei de sus (directia urca spre est), apoi tremura in jurul mijlocului ei
-            local x, y = place(-15)
-            local prev = { x = x, y = y }
-            for _, deg in { -10, -5, -1, 0.5, -0.5, 1, 0, 2, -2, 0.3 } do
-                local nx, ny = place(deg, prev)
-                -- acelasi capat (rafinat prin injumatatire: sub o zecime de pixel)
-                check.is_true(math.abs(nx - prev.x) < 0.5 and math.abs(ny - prev.y) < 0.5)
-                prev = { x = nx, y = ny }
-            end
-            -- fara cadrul trecut, alege capatul mai apropiat; o tinta clar spre stanga-sus duce sub cifre, pe marginea din
-            -- stanga, iar una aproape drept in sus ramane sus, langa cifre
-            local cx, cy = place(-120)
-            check.is_true(cx < w / 4 and cy > 182)
-            local ux, uy = place(-95)
-            check.is_true(uy < 60 and ux > 502)
+            print(
+                `  [edgePlacement] cel mai mare pas la 0,1 grade, fara panouri: {math.floor(
+                    worst * 10
+                ) / 10} px`
+            )
+            check.is_true(worst <= 8)
         end)
+
+        test.case("cu panouri: arata spre tinta (cel mult 75 de grade departe de ea)", function()
+            local worst = 0
+            for _, size in
+                {
+                    { 1076, 605, true },
+                    { 1362, 630, true },
+                    { 1920, 1080, false },
+                    { 2275, 1080, false },
+                }
+            do
+                local w, h, touch = size[1] :: number, size[2] :: number, size[3] :: boolean
+                local bs = blockersFor(w, h, touch)
+                for deg = -180, 179.5, 0.5 do
+                    for _, half in { 15, 90, 177 } do
+                        local x, y = place(w, h, bs, deg, half)
+                        worst = math.max(worst, offDeg(w, h, x, y, deg))
+                    end
+                end
+            end
+            print(`  [edgePlacement] cea mai mare abatere fata de tinta: {math.floor(worst)} grade`)
+            check.is_true(worst <= 75)
+            -- o tinta aproape drept in sus ramane sus, chiar cu eticheta cea mai lata (telefonul mic)
+            local w, h = 1076, 605
+            local _, uy = place(w, h, blockersFor(w, h, true), -94, 177)
+            check.is_true(uy < 60)
+        end)
+
+        test.case(
+            "histerezis ca banda: nu tremura langa mijlocul barei, dar se desprinde",
+            function()
+                local w, h = 1076, 605
+                local bs = blockersFor(w, h, true)
+                -- intra in banda barei de sus, apoi tremura in jurul mijlocului ei: acelasi capat
+                local x, y = place(w, h, bs, -15, 90)
+                local prev = { x = x, y = y }
+                for _, deg in { -10, -5, -1, 0.5, -0.5, 1, 0, 2, -2, 0.3, 4, -3 } do
+                    local nx, ny = place(w, h, bs, deg, 90, prev)
+                    check.is_true(math.abs(nx - prev.x) < 0.5 and math.abs(ny - prev.y) < 0.5)
+                    prev = { x = nx, y = ny }
+                end
+                -- tinta coboara spre coltul de jos: capatul de sus e lasat inainte de 40 de grade
+                local released = false
+                for deg = 4, 40 do
+                    local nx, ny = place(w, h, bs, deg, 90, prev)
+                    prev = { x = nx, y = ny }
+                    released = released or ny > h / 2
+                end
+                check.is_true(released)
+                -- tinta urca din drept in sus spre aproape drept la stanga: nu ramane sus, dincolo de mijloc
+                local tx, ty = place(w, h, bs, -90, 90)
+                local up = { x = tx, y = ty }
+                for deg = -91, -170, -1 do
+                    local nx, ny = place(w, h, bs, deg, 90, up)
+                    up = { x = nx, y = ny }
+                end
+                check.is_true(up.x < w / 2)
+            end
+        )
     end)
 end
