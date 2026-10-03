@@ -438,9 +438,12 @@ function SceneArt.BuildBackground(layers: Layers, world: number?)
     local spill: Frame? = nil
     local data = TycoonConfig.WORLDS[worldId]
     if data ~= nil and data.wall ~= nil then
-        local lake = data.water.lake
-        local still =
-            frame(waterLayer, lake.x, lake.y, lake.w, lake.h, Color3.fromRGB(40, 88, 120), 4)
+        -- [verificatorul k1] lacul tine toata apa din spatele zidului, de sus pana jos: coloanele de mal (stratul Shore) il
+        -- taie dupa malul adevarat, ca pe rau; dedesubt, o apa care nu curge (lacul sta, raul curge abia de la deversor)
+        local lakeW = data.wall.x
+        local calm = tiled(waterLayer, Assets.water_tile, 0, waterTop, lakeW, waterH, 3)
+        calm.Name = "LakeWater"
+        local still = frame(waterLayer, 0, waterTop, lakeW, waterH, Color3.fromRGB(40, 88, 120), 4)
         still.Name = "Lake"
         still.BackgroundTransparency = 0.55
         local wall = data.wall

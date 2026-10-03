@@ -739,6 +739,14 @@ return function()
                 end
                 -- barajul pornit: lacul si puntea barajului, taiate la zid (de pe zid nu se scoate)
                 local dam = DriftMath.reachesFor(2, everything, live)
+                -- [verificatorul k1] prima era a barajului n-asteapta Works Bell-ul satului: clientul nici nu-l primeste in
+                -- statusurile hartii, iar serverul l-ar lasa sa scoata darul
+                check.equal(#DriftMath.reachesFor(2, {}, live), #dam)
+                local noWorks = table.clone(everything)
+                noWorks.works_bell = nil
+                check.equal(#DriftMath.reachesFor(2, noWorks, live), #dam)
+                -- in sat, regula ramane clopotul erei dinainte
+                check.equal(#DriftMath.reachesFor(1, { mill_bell = true }), 2)
                 check.equal(#dam, 2)
                 local wall = world.wall :: TycoonConfig.Box
                 check.equal(dam[1].x1, wall.x)

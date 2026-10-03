@@ -398,8 +398,9 @@ local HANDLERS: { [string]: Handler } = {
         return `{target}: level {if done ~= nil then done.level else "?"}`
     end,
 
-    -- [D70, pasul j15] LUMEA: `world 2` muta profilul pe harta barajului FARA ridicare (fara bani, fara oameni mutati): doar
-    -- ca sa se vada serverul in lumea 2 dupa un Stop/Play cu „keep save”. Pentru drumul adevarat: `dam build`.
+    -- [D70, pasul j15] LUMEA: `world 2` muta profilul pe harta barajului FARA ridicare (fara bani, fara oameni mutati), doar
+    -- pentru probe pe server. Clientul e construit pentru o singura harta si ingheata (garda k1); o salvare de proba se
+    -- pierde la Stop. Pentru drumul adevarat: `dam build`.
     world = function(player: Player, arg: unknown): string
         local data = DataService.Get(player)
         if data == nil then
@@ -417,7 +418,7 @@ local HANDLERS: { [string]: Handler } = {
         player:SetAttribute("World", w)
         PadService.Invalidate(player)
         StationService.Invalidate(player)
-        return `world {w} on the server now (the client is built for one map: it follows on the next start)`
+        return `world {w} on the server only: this client is built for one map and freezes now (a probe save is gone at Stop). To see the Dam in the client: era4_flip on, then dam build and the reload (k8)`
     end,
 
     -- [D70, pasul j15] BARAJUL: `dam` arata chitanta de acum (DamMath.preview); `dam build` il ridica pe drumul adevarat.

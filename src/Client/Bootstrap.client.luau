@@ -138,6 +138,28 @@ local hudCanvas = attachHudScale(hudGui)
 -- barajului, o unealta de proba) nu se deseneaza peste harta asta: clientul asteapta reincarcarea (k8).
 local world: number
 do
+    -- [verificatorul k1] cat asteptam profilul, imaginile mari ale hartii se incarca deja (satul se construieste abia
+    -- dupa profil; inainte de k1 se construia in spatele cortinei si avea timp)
+    task.spawn(function()
+        local Assets = require(ReplicatedStorage.Shared.Config.Assets)
+        local urls: { string } = {}
+        for _, sprite in
+            {
+                Assets.tycoon.village_ground,
+                Assets.tycoon.village_ground_2,
+                Assets.water_tile,
+                Assets.grass_tile,
+                Assets.sand_tile,
+            }
+        do
+            if Assets.has(sprite) then
+                table.insert(urls, Assets.url(sprite))
+            end
+        end
+        pcall(function()
+            game:GetService("ContentProvider"):PreloadAsync(urls)
+        end)
+    end)
     local started = os.clock()
     while player:GetAttribute("SaveLoaded") ~= true and os.clock() - started < 25 do
         task.wait(0.1)
@@ -1779,4 +1801,6 @@ task.delay(3, function()
     Net.Get("RequestState"):FireServer()
 end)
 
+-- [verificatorul k1] harta e construita: cortina de incarcare (Loading.client) o asteapta, ca satul sa nu apara pe bucati
+Players.LocalPlayer:SetAttribute("ClientBuilt", true)
 print("[Driftwood] client bootstrap complet")

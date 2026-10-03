@@ -65,5 +65,12 @@ local started = os.clock()
 while player:GetAttribute("SaveLoaded") ~= true and os.clock() - started < WAIT_LIMIT do
     task.wait(0.1)
 end
+-- [D70, verificatorul k1] in sat, harta se construieste abia dupa profil: cortina pleaca dupa ce e gata (atributul local
+-- ClientBuilt, pus de Bootstrap.client), in aceeasi limita de timp. Balciul nu-l pune.
+if not isFair then
+    while player:GetAttribute("ClientBuilt") ~= true and os.clock() - started < WAIT_LIMIT do
+        task.wait(0.1)
+    end
+end
 task.wait(0.25)
 gui:Destroy()
