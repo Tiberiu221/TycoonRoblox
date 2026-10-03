@@ -523,7 +523,8 @@ local function lineViews(
             supply = lf.supply,
             heldBy = lf.heldBy,
             isOpen = lf.isOpen,
-            waiting = EconomyService.WaitingOf(player, line),
+            -- doar pe o linie deschisa (si a hartii tale): un Relay inchis nu „asteapta” nimic [D40]
+            waiting = if lf.isOpen then EconomyService.WaitingOf(player, line) else nil,
         }
     end
     return out
@@ -835,22 +836,25 @@ local function settleOffline(player: Player)
     -- [D70, pasul j13b] la baraj, dupa film: AWAY e 0 pana la cei sase oameni noi. Fereastra o spune, cu pe cine sa
     -- angajezi, si cand nu e nimic de platit [D43]. In sat ramane cum era (o absenta fara monede nu deschide fereastra).
     local unhired: { string }? = nil
-    if
-        WorldConfig.sanitize(data.World) ~= 1
-        and result.away >= STALLED_AWAY
-        and result.coins <= 0
-    then
+    local world = WorldConfig.sanitize(data.World)
+    if world ~= 1 then
         local s = StationService.StateFor(player)
         local lines: { string } = {}
         for _, line in StationConfig.LINE_ORDER do
-            if WorldMath.allowed(data.World, FlowConfig.LINES[line].era) then
+            if WorldMath.allowed(world, FlowConfig.LINES[line].era) then
                 table.insert(lines, line)
             end
         end
-        local missing = CrewMath.unhired(s.crews, ChainMath.flow(s), lines)
-        if #missing > 0 then
-            unhired = missing
-        end
+        -- regula, pura si testata: CrewMath.stalledWelcome (lumea, minutul, monedele, cine lipseste)
+        unhired = CrewMath.stalledWelcome(
+            world,
+            result.away,
+            result.coins,
+            STALLED_AWAY,
+            s.crews,
+            ChainMath.flow(s),
+            lines
+        )
     end
     if result.coins <= 0 and arrived <= 0 and news == nil and unhired == nil then
         return

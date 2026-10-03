@@ -89,6 +89,25 @@ function CrewMath.unhired(
     return out
 end
 
+-- [D70, verificatorul j13b] FEREASTRA „AWAY 0”: cand o revenire fara monede se spune, si cu ce meserii. Doar in afara satului
+-- (in sat, o absenta fara monede nu deschide fereastra, D71), dupa cel putin `minAway` secunde si doar cand chiar lipseste
+-- cineva pe liniile deschise. nil = fereastra ramane cum era.
+function CrewMath.stalledWelcome(
+    world: number,
+    away: number,
+    coins: number,
+    minAway: number,
+    crews: { [string]: ChainMath.Crew },
+    flow: ChainMath.Flow,
+    lines: { string }
+): { string }?
+    if world == 1 or away < minAway or coins > 0 then
+        return nil
+    end
+    local missing = CrewMath.unhired(crews, flow, lines)
+    return if #missing > 0 then missing else nil
+end
+
 -- Se poate urca treapta? Motivul refuzului e un cuvant pe care il traduc meniul si toast-ul.
 function CrewMath.canUpgradeTier(crew: ChainMath.Crew): (boolean, string?)
     if crew.count == 0 then

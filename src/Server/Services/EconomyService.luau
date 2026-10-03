@@ -617,7 +617,7 @@ end
 function EconomyService.WaitingOf(player: Player, line: string): string?
     local data = DataService.Get(player)
     local spec = FlowConfig.LINES[line]
-    if data == nil or spec == nil or spec.joins == nil then
+    if data == nil or spec == nil or spec.joins == nil or not openFor(data, spec.era) then
         return nil
     end
     return FlowMath.joinWaiting(joinPiles(data, spec), spec)
@@ -665,7 +665,8 @@ function EconomyService.ProcessorSnapshotOf(player: Player, line: string): Proce
             end
         end
         inputs = byPart
-        waiting = FlowMath.joinWaiting(piles, spec)
+        -- un Relay al altei harti nu „asteapta” nimic
+        waiting = if openFor(data, spec.era) then FlowMath.joinWaiting(piles, spec) else nil
     else
         input = pileOf(data, spec.inputPile :: string).counts
     end

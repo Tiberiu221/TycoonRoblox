@@ -307,7 +307,9 @@ La fiecare pas: toată poarta din CLAUDE.md, apoi commit și push.
 3. **Egalitățile între piese dau cumpărături cu câștig 0.** E cinstit [D46], dar textul trebuie să numească linia cealaltă. Ce se înțelege pe ecran vede owner-ul în Studio.
 4. **AWAY e 0 după baraj**, până la cei 6 oameni. Ecranul și Welcome back o spun dinainte [D43].
 5. **Tabelele de aur pot pica doar ca text.** Fără filtrul din pasul c, tabelele de aur s-ar schimba prin liniile închise în plus.
-6. **Câmpurile noi trebuie copiate explicit pe client:** `supply`, `heldBy`, `netsLine`. Un câmp scos trebuie căutat la toți cititorii (capcana din CLAUDE.md).
+6. **Câmpurile noi trebuie copiate explicit pe client:** `supply`, `heldBy`, `netsLine`, `isOpen`, `waiting` (k3),
+   `awayStalled`, `unhired` (k6), `partBy` din traistă, `inputs` / `waiting` ale atelierului unirii (k3), chitanța barajului
+   (`DamController.copyReceipt`, făcut). Un câmp scos trebuie căutat la toți cititorii (capcana din CLAUDE.md).
 7. **Grămada piesei mai rapide crește fără capăt ca număr** (PileMath n-are plafon). Desenul trebuie plafonat. Când veriga se mută, grămada se golește mai repede decât rata de pe ecran, la fel ca azi.
 8. **Profilul la baraj:** oamenii se re-cheiază cu `formerRole`, iar ceilalți primesc `retired`. Numele și chipul se copiază explicit și se testează.
 9. **Scara numerelor:** o noapte la Dam Bell face 96Qa. `formatNumber` (plafon Qi) și tabla de venit din bâlci (int64) se rezolvă înainte de Era 5 (PLAN-HARTA, pasul 3).
@@ -955,8 +957,9 @@ la granița CREWS / `DAM_START_COINS`.
   cableCollector … pylonRunner; testat pe startul de aur, cu AWAY 0 și apoi > 0). `StationService`: garda pe `seller` nil în
   `BUILDING_ROWS`; panoul arată doar plasele, clădirile și meseriile hărții tale; `LineView` are `supply`, `heldBy`, `isOpen`,
   `waiting` (`EconomyService.WaitingOf`), iar instantaneul `netsLine`; `WelcomeInfo.awayStalled` / `unhired` doar în lumea 2,
-  după cel puțin un minut, când absența n-a adus nimic (fereastra se deschide și fără monede). **Clientul copiază explicit
-  câmpurile noi la k3 (`LineView`) și k8 (`WelcomeController`: „Nobody worked while you were away — hire …”).**
+  după cel puțin un minut, când absența n-a adus nimic (fereastra se deschide și fără monede); regula e pură,
+  `CrewMath.stalledWelcome` (verificatorul j13b), cu teste pe lume, minut, monede și lipsuri. `waiting` e nil pe o linie închisă
+  sau a altei hărți. **Clientul copiază explicit câmpurile noi la k3 (`LineView`) și la k6 (`WelcomeController`).**
 - **Verificare j13 (prima probă pe comutatorul local):** **[2026-10-03: amânată]** Studio nu era conectat la Rojo (pluginul
   se reconectează doar la Connect, iar `rojo serve` pica pe o legătură simbolică `Packages/Packages -> Packages`, ștearsă). Se
   face la prima sesiune cu Studio conectat, înaintea lui k1. profil de probă în lumea 1, la Works Bell. `errors` gol, `TycoonState`
@@ -1067,6 +1070,9 @@ la granița CREWS / `DAM_START_COINS`.
 - 6 clădiri fixe cu `borrowed`; `LineController` pentru unire (două grămezi, `waiting` copiat explicit); Overlay `DROP_AT` /
   `playerStand` la `:273, :721-743, :821`; GuideMath și `STEP_OF_JOB`.
 - Turbina din zid (824–880, 690–768); Dam Collector-ul ia de la piciorul zidului; oamenii retrași stau fără traseu.
+- **[Verificatorul j13b]** `Bootstrap.client` copiază explicit, pe fiecare `LineView`, `supply`, `heldBy`, `isOpen`, `waiting`, iar în
+  instantaneu `netsLine`, cu valori implicite cinstite (supply = catch, heldBy = linia, isOpen = true, waiting = nil,
+  netsLine = ""). Azi copia ia doar catch / delivered / bottleneck / playerShare (`Bootstrap.client.luau` ~:1272).
 - **[Verificatorul j11, făcut]** săgeata unui quest pe un loc citește `LINE_PLACES[line] or JOIN_PLACES[line]` (Overlay), deci
   „Join barrels and cable 10 times” arată spre inelul Relay-ului; testul de locuri din `QuestMath.test` citește la fel.
 
@@ -1091,6 +1097,13 @@ la granița CREWS / `DAM_START_COINS`.
   `ModernController.luau:104-150`); bannerul de la Works Bell și linia NEXT; „Goes into the Dam when you build it” pe cardurile
   de nivel; „Welcome back” spune regula sumei de start; EraWords, Ceremony, `Overlay:794`, `comingEra(w)`.
 - Verificare: ambele ramuri (Era 4 în joc și nu) testate.
+- **[Verificatorul j13b] Fereastra „AWAY 0”:** `WelcomeController` copiază explicit `awayStalled` și `unhired` (listă de
+  șiruri), iar ieșirea timpurie (`WelcomeController.luau` ~:253, „fără monede, fără nimic venit, fără serie”) cere și
+  `not awayStalled`. Textul numește doar `unhired[1]` (lanțul `after` face ca doar ea să se poată cumpăra acum) și e adevărat
+  în orice caz: „Your Dam earned nothing while you were away.” + „Hire a {name} to keep it running!” (nu „Nobody worked”:
+  veteranii lucrează pe linia butoaielor; nu „waited for cable”: e fals când lipsesc doar Relay Keeper-ul sau Pylon
+  Runner-ul). Rândul se rupe (TextWrapped + AutomaticSize Y, ca `note`), măsurat cu `Theme.textHeight`; înălțimea ferestrei
+  se socotește din nou; test Lune pe ramura `coins == 0 and awayStalled` și pe cel mai lung nume, la lățimea de telefon.
 - **[Verificatorul j10]** după Works Bell, cu `damAvailable`, panoul zonei barajului din sat și textul de la gard spun unde se
   ridică barajul și cum („Build the Dam at the Dam Plans”): ramură nouă în `WorldMath.zoneSign` / `fenceText`, cu test.
   Azi, după l3, ele spun `Strings.zoneAway` („The Dam will rise by your pier”), fără clopot și fără „coming soon”.
@@ -1147,8 +1160,9 @@ Totalul, ~92–97 de imagini și 3 sunete până se joacă Era 4 (PLAN-HARTA §7
 
 **l1. Proba cap-coadă pe comutatorul local, pe profil de probă.** Depinde de: toate j și k, A1, A2.
 - Înainte de Play: `lsof -nP -iTCP:34872` arată `ESTABLISHED`.
-- Drumul: Works Bell → previzualizare → Build → `dev world:2`, Stop/Play cu „keep save” → turul cablului → cei 6 oameni (AWAY 0,
-  apoi peste 0) → „Earn 1T” → Kiln → cristalul → „Earn 4T” → Dam Bell → o absență → o vizită în bâlci.
+- Drumul: Works Bell → previzualizare → Build → `dev world:2`, Stop/Play cu „keep save” → **o absență de peste un minut
+  înainte de cei 6 (fereastra se deschide și numește Cable Collector) și una sub un minut (nu se deschide)** [verificatorul
+  j13b] → turul cablului → cei 6 oameni (AWAY 0, apoi peste 0) → „Earn 1T” → Kiln → cristalul → „Earn 4T” → Dam Bell → o absență → o vizită în bâlci.
 - Verificări: `errors` gol, niciun text care iese din cutie; quest-urile nu se întorc în capitolul 1; grămezile vechi nu mai
   cresc; un al doilea Build nu face nimic.
 

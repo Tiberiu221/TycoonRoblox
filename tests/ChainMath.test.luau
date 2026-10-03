@@ -4734,6 +4734,58 @@ return function()
                 end
                 local full = ChainMath.flowWith(ChainMath.FULL, st, false)
                 check.equal(#CrewMath.unhired(st.crews, full, damLines), 0)
+                -- [verificatorul j13b] vanzatorul liniei se numara si el; cristalul, abia cu Kiln-ul (linia deschisa)
+                st.crews.dispatcher.count = 0
+                check.equal(
+                    table.concat(
+                        CrewMath.unhired(
+                            st.crews,
+                            ChainMath.flowWith(ChainMath.FULL, st, false),
+                            damLines
+                        ),
+                        ","
+                    ),
+                    "dispatcher"
+                )
+                st.crews.dispatcher.count = 1
+                -- cine deschide fereastra „AWAY 0”: nu satul, nu sub un minut, nu cu monede, nu fara lipsuri
+                for role in
+                    {
+                        cableCollector = true,
+                        cablePorter = true,
+                        cablemaker = true,
+                        cableHauler = true,
+                        relayKeeper = true,
+                        pylonRunner = true,
+                    }
+                do
+                    st.crews[role].count = 0
+                end
+                local idle = ChainMath.flowWith(ChainMath.FULL, st, false)
+                local function stalled(world: number, away: number, coins: number): string
+                    local list =
+                        CrewMath.stalledWelcome(world, away, coins, 60, st.crews, idle, damLines)
+                    return if list == nil then "nil" else table.concat(list, ",")
+                end
+                check.equal(stalled(1, 3600, 0), "nil")
+                check.equal(stalled(2, 59, 0), "nil")
+                check.equal(stalled(2, 3600, 5), "nil")
+                check.equal(
+                    stalled(2, 60, 0),
+                    "cableCollector,cablePorter,cablemaker,cableHauler,relayKeeper,pylonRunner"
+                )
+                for _, role in
+                    {
+                        "cableCollector",
+                        "cablePorter",
+                        "cablemaker",
+                        "cableHauler",
+                        "relayKeeper",
+                        "pylonRunner",
+                    }
+                do
+                    st.crews[role].count = 1
+                end
                 check.is_true(
                     ChainMath.valueWith(
                         ChainMath.FULL,
