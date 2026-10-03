@@ -63,6 +63,7 @@ require("./WorldMath.test")() -- [D70, pasul j10] portile pe lume
 require("./DamMath.test")() -- [D70, pasul j14] ridicarea barajului, pura
 require("./DamService.test")() -- [D70, pasul j15] barajul pe server
 require("./SaveLoop.test")() -- [D70, verificatorul j15] salvarea fortata
+require("./StateCopy.test")() -- [D70, pasul k3] copia starii pe linii
 
 local frktest = require("@frktest/frktest")
 local console_reporter = require("@frktest/reporters/console_reporter")

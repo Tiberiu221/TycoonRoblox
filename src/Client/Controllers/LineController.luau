@@ -23,6 +23,7 @@ local RiverConfig = require(ReplicatedStorage.Shared.Config.RiverConfig)
 local StationConfig = require(ReplicatedStorage.Shared.Config.StationConfig)
 local Strings = require(ReplicatedStorage.Shared.Config.Strings)
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
+local StateCopy = require(ReplicatedStorage.Shared.Modules.StateCopy)
 local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
 local SceneArt = require(script.Parent.SceneArt)
 local CustomerCrowd = require(script.Parent.Parent.UI.CustomerCrowd)
@@ -46,23 +47,12 @@ export type Sack = {
     capacity: number,
     rawBy: { [string]: number },
     sellBy: { [string]: { count: number, value: number } },
+    partBy: { [string]: number }?, -- [D70, pasul k3] piesele gata, pe unirea lor
 }
-export type StoreState = { count: number, contents: { [string]: number } }
-export type ProcessorState = {
-    count: number,
-    contents: { [string]: number },
-    out: number,
-    outContents: { [string]: number },
-    rate: number,
-    present: boolean?,
-    staffed: boolean?,
-}
-export type SellerState = {
-    count: number,
-    value: number,
-    rate: number,
-    contents: { [string]: number },
-}
+-- [D70, pasul k3] formele vin din copia starii (Shared/Modules/StateCopy), una pentru toate liniile
+export type StoreState = StateCopy.StoreState
+export type ProcessorState = StateCopy.ProcessorState
+export type SellerState = StateCopy.SellerState
 
 -- O cladire fixa a cartierului: unde sta (mijlocul, baza), cat e de mare si ce desen are (cheile din Assets.tycoon):
 -- `sprite` = desenul ei; `borrowed` = al perechii din Era 1, purtat cat al ei nu e urcat; `ruin` = ce se vede pe locul
@@ -485,6 +475,174 @@ function LineController.line(
 
     function self.Working(): boolean
         return processorOpen and state.rate > 0
+    end
+
+    return self
+end
+
+-- [D70, pasul k3] O UNIRE (Relay Station-ul barajului): fiecare piesa isi are gramada la intrarea ei (JOIN_PLACES), iesirea
+-- una, inelul in care stai cat n-are om si gestul tau pe E (lasi piesele, iei curentul gata). Unirea merge doar cu toate
+-- piesele: cat una lipseste, placa de deasupra inelului spune care („Waiting for cable”), iar inelul nu te cheama (n-ai ce
+-- lucra acolo). N-are magazie si nici ruina: e acolo de la baraj.
+function LineController.join(line: string, building: Building): Line
+    local flow = FlowConfig.LINES[line]
+    local places = TycoonConfig.JOIN_PLACES[line]
+    local words = Strings.LINE_WORDS[line]
+    assert(
+        flow ~= nil and flow.joins ~= nil and places ~= nil and words ~= nil,
+        `LineController: unirea {line} lipseste din tabele`
+    )
+    local joins = flow.joins :: { FlowConfig.Join }
+
+    local sack: Sack = EMPTY_SACK
+    local state: ProcessorState = {
+        count = 0,
+        contents = {},
+        out = 0,
+        outContents = {},
+        rate = 0,
+        present = false,
+        staffed = false,
+    }
+    local open = false
+
+    -- gramada fiecarei piese, la intrarea ei; o piesa e o singura marfa (iesirea liniei ei)
+    local inPiles: { [string]: PileView.View } = {}
+    for _, join in joins do
+        local at = places.inPiles[join.line]
+        inPiles[join.line] = PileView.new(deps.Plot, at.x, at.y, { warnAt = 40 })
+    end
+    local outPile = PileView.new(deps.Plot, places.outPile.x, places.outPile.y, { warnAt = 40 })
+    local art, label = drawBuilding(building)
+    stationSpots[flow.station] = {
+        x = building.x,
+        y = building.y - building.h / 2,
+        name = words.processor,
+        art = art,
+    }
+
+    -- cate uniri se pot face acum: cea mai mica gramada de piese (o bucata din fiecare face una, FlowMath.assemble)
+    local function joinable(): number
+        if state.waiting ~= nil then
+            return 0
+        end
+        local inputs = state.inputs or {}
+        local n = math.huge
+        for _, join in joins do
+            n = math.min(n, inputs[join.line] or 0)
+        end
+        return if n == math.huge then 0 else n
+    end
+
+    StandRing.new({
+        plot = deps.Plot,
+        name = flow.processor,
+        stand = places.playerStand,
+        remote = deps.Remotes.AtPlace,
+        place = flow.processor,
+        characterPos = deps.CharacterPos,
+        standHere = words.standHere,
+        working = function(left: number): string
+            return Strings.lineWorking(words, left)
+        end,
+        state = function(): (number, boolean)
+            return joinable(), state.staffed == true
+        end,
+        active = function(): boolean
+            return open
+        end,
+    })
+
+    -- „Waiting for cable”: pe locul placii inelului (StandRing o arata doar cand e ceva de unit, deci nu se calca)
+    local waitSign = Widgets.PlateLabel(deps.Plot, "", Theme.TEXT.body, "strong")
+    waitSign.Name = `{flow.processor}WaitSign`
+    waitSign.AnchorPoint = Vector2.new(0.5, 1)
+    waitSign.Position = UDim2.fromOffset(places.playerStand.x, places.playerStand.y - 24 - 4)
+    waitSign.TextXAlignment = Enum.TextXAlignment.Center
+    waitSign.TextColor3 = Theme.COLOR.onDarkSoft
+    waitSign.ZIndex = 47
+    waitSign.Visible = false
+    Theme.punch(waitSign, 2)
+
+    local self = {}
+
+    function self.Apply(
+        newSack: Sack,
+        _store: StoreState?,
+        processor: ProcessorState?,
+        pads: { [string]: string },
+        _bottleneck: string
+    )
+        sack = newSack
+        open = flow.processorPad == nil or pads[flow.processorPad] == "bought"
+        art.Visible = open
+        label.Visible = open
+        if processor ~= nil then
+            state = processor
+            local inputs = processor.inputs or {}
+            for _, join in joins do
+                local n = inputs[join.line] or 0
+                inPiles[join.line].Set(n, if n > 0 then { [join.good] = n } else {})
+            end
+            outPile.Set(processor.out, processor.outContents)
+        end
+        -- ce lipseste, doar cand chiar asteapta ceva (macar o piesa e acolo)
+        local missing = state.waiting
+        local missingWords = if missing ~= nil then Strings.LINE_WORDS[missing] else nil
+        local showWait = open and missingWords ~= nil and state.count > 0
+        if showWait then
+            local text = Strings.joinWaiting(missingWords :: Strings.LineWords)
+            if waitSign.Text ~= text then
+                waitSign.Text = text
+                local width = Theme.textWidth(text, Theme.TEXT.body, "strong")
+                    + 2 * Theme.SPACE.sm
+                    + 4
+                waitSign.Size = UDim2.fromOffset(math.max(220, math.ceil(width)), 30)
+            end
+        end
+        waitSign.Visible = showWait
+    end
+
+    function self.FocusStore(_px: number, _py: number): Focus.Focus?
+        return nil -- o unire n-are magazie
+    end
+
+    function self.FocusProcessor(px: number, py: number): Focus.Focus?
+        if not open then
+            return nil
+        end
+        local stand = places.playerStand
+        local d = Focus.distance(px, py, stand.x, stand.y)
+        if d > RiverConfig.INTERACT_DISTANCE then
+            return nil
+        end
+        -- cat unesti TU (fara omul ei), gestul nu-ti ia curentul gata de sub mana: intai se termina lotul
+        local byHand = state.staffed ~= true and joinable() > 0
+        local parts = if sack.partBy ~= nil then sack.partBy[line] or 0 else 0
+        local text: string? = nil
+        if parts > 0 then
+            text = Strings.promptProcess(words, keyHint())
+        elseif state.out > 0 and sack.count < sack.capacity and not byHand then
+            text = Strings.promptTakeDone(words, keyHint())
+        end
+        return {
+            key = flow.processor,
+            at = places.playerStand,
+            distance = d,
+            x = building.x,
+            y = building.y - building.h - NAME_ABOVE - 6, -- deasupra numelui, ca la atelierele fixe
+            action = text,
+            act = if text ~= nil
+                then function()
+                    deps.Remotes.UsePlace:FireServer(flow.processor)
+                end
+                else nil,
+            upgradeKind = flow.station,
+        }
+    end
+
+    function self.Working(): boolean
+        return open and state.rate > 0
     end
 
     return self

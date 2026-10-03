@@ -360,6 +360,18 @@ function PadArt.bought(
     end
     -- [D67] desenul ei, apoi al perechii din era dinainte (Moara pentru Era 3), cat al ei nu e urcat
     local chain = borrowChain(padId)
+    -- [D70, verificatorul j7] o platforma fara case desenate inca, dar cu o pereche care le are (casele barajului): casa
+    -- primei perechi cu desenul urcat (colibele Erei 3, fiecare alta), nu direct cea din Era 1. In erele 1-3 orice
+    -- platforma cu case in lant le are si pe ale ei, deci a iesit deja mai sus.
+    for _, id in chain do
+        if PadArt.HOME_SPRITES[id] ~= nil then
+            local home, scale = PadArt.home(padId, count)
+            if home ~= nil then
+                return home, scale
+            end
+            break
+        end
+    end
     for _, id in chain do
         local own = ownSprite(OWN_BUILT, id)
         if own ~= nil then

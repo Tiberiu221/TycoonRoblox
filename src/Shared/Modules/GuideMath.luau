@@ -89,6 +89,10 @@ export type State = {
     -- [D65] liniile Morii (dupa numele liniei) si cate bucati din traista cumpara fiecare vanzator. nil = doar Era 1.
     lines: { [string]: LineInfo }?,
     sellAt: { [string]: number }?,
+    -- [D70, pasul k3] harta ta (nil = satul) si piesele gata din traista, pe unirea lor (butoaie + cablu -> "grid"). In alta
+    -- lume decat satul nu exista bustenii, gaterul, forja, taverna: pasii lor nu se dau niciodata.
+    world: number?,
+    parts: { [string]: number }?,
 }
 export type Goal = {
     -- "buy" | "upgrade" | "collect" | "wait" | "cut" | "smelt" | "take" | "sell" (taverna) | "deliver" (gater,
@@ -188,6 +192,34 @@ end
 local function stepOf(line: string, job: string): StationConfig.Step
     return StationConfig.STEP_OF_JOB[line][job]
 end
+-- [D70, pasul k3] UNIRILE (Relay Station): n-au magazie si nici marfa bruta; le aduci piesele, stai in inelul lor cat n-au
+-- om si iei ce iese. Locurile lor sunt in JOIN_PLACES.
+local JOIN_LINES: { string } = {}
+for _, line in StationConfig.LINE_ORDER do
+    if StationConfig.LINES[line].inputs ~= nil then
+        table.insert(JOIN_LINES, line)
+    end
+end
+-- Atelierele in care stai si din care iei marfa gata: ale liniilor Morii si ale erelor de dupa, apoi unirile.
+local WORK_LINES: { string } = table.clone(EXTRA_LINES)
+table.move(JOIN_LINES, 1, #JOIN_LINES, #WORK_LINES + 1, WORK_LINES)
+-- Inelul unui atelier: al liniei (LINE_PLACES) sau al unirii (JOIN_PLACES).
+local function standOf(line: string): { x: number, y: number }
+    local places = TycoonConfig.LINE_PLACES[line] or TycoonConfig.JOIN_PLACES[line]
+    return places.playerStand
+end
+-- Satul (lumea 1): singurul loc cu busteni, gater, forja si taverna.
+local function inVillage(s: State): boolean
+    return s.world == nil or s.world == 1
+end
+-- Piesele gata din traista (pe unirea lor).
+local function partsCount(s: State): number
+    local n = 0
+    for _, count in s.parts or {} do
+        n += count
+    end
+    return n
+end
 
 -- Marfa bruta a liniilor Morii din traista (nu sunt busteni: nu merg la gater).
 local function extraRaw(s: State): number
@@ -212,7 +244,7 @@ local function soldElsewhere(s: State): number
 end
 
 local function rawGoal(line: string, full: boolean, immediate: boolean): Goal
-    local stand = TycoonConfig.LINE_PLACES[line].playerStand
+    local stand = standOf(line)
     local words = Strings.LINE_WORDS[line]
     return {
         kind = "deliver",
@@ -229,6 +261,17 @@ local function extraRawGoal(s: State, full: boolean, immediate: boolean): Goal?
     for _, line in EXTRA_LINES do
         local info = if s.lines ~= nil then s.lines[line] else nil
         if info ~= nil and info.raw > 0 then
+            return rawGoal(line, full, immediate)
+        end
+    end
+    return nil
+end
+
+-- [D70, pasul k3] Piesele gata din traista -> la inelul unirii lor, unde le lasi pe E (acolo apare cardul, nu la intrarea pe
+-- care o folosesc oamenii); nil daca n-ai.
+local function partsGoal(s: State, full: boolean, immediate: boolean): Goal?
+    for _, line in JOIN_LINES do
+        if ((s.parts or {})[line] or 0) > 0 then
             return rawGoal(line, full, immediate)
         end
     end
@@ -256,15 +299,28 @@ end
 local function carryGoal(s: State, full: boolean): Goal
     local cut = s.sackCut or 0
     local rawScrap = s.sackRawScrap or 0
-    -- [D55] scrap-ul din traista nu merge la gater: nu intra in "busteni"; [D65] nici marfa Morii, bruta sau gata
-    if s.sackCount - cut - rawScrap - extraRaw(s) - soldElsewhere(s) > 0 then
+    local village = inVillage(s)
+    -- [D55] scrap-ul din traista nu merge la gater: nu intra in "busteni"; [D65] nici marfa Morii, bruta sau gata;
+    -- [D70] nici piesele unei uniri
+    if
+        village
+        and s.sackCount - cut - rawScrap - extraRaw(s) - soldElsewhere(s) - partsCount(s) > 0
+    then
         return logsGoal(full, not s.firstsSell)
-    elseif rawScrap > 0 then
+    elseif village and rawScrap > 0 then
         return scrapGoal(full, not s.firstsSell)
     end
     local mill = extraRawGoal(s, full, not s.firstsSell)
     if mill ~= nil then
         return mill
+    end
+    local parts = partsGoal(s, full, not s.firstsSell)
+    if parts ~= nil then
+        return parts
+    end
+    if not village then
+        -- [D70, pasul k3] la baraj nu exista taverna: ce se vinde merge la vanzatorul lui; altfel, pasul buclei
+        return extraSellGoal(s, full, not s.firstsSell) or GuideMath.loopStep(s, nil)
     end
     -- ce cumpara taverna merge la ea; restul, la vanzatorul lui
     if cut <= 0 then
@@ -346,10 +402,14 @@ end
 -- fierului pasii 1, 3, 5 si 8 nu mai apar.
 function GuideMath.loopStep(s: State, quest: QuestGoal?): Goal
     local crews = s.crews or {}
-    local cut = s.sackCut or 0
-    local rawScrap = s.sackRawScrap or 0
-    -- [D55] scrap-ul nu e bustean; [D65] nici marfa Morii, bruta sau gata
-    local logs = s.sackCount - cut - rawScrap - extraRaw(s) - soldElsewhere(s)
+    local village = inVillage(s)
+    -- [D70, pasul k3] in alta lume decat satul, pasii lemnului si ai fierului (1-9) nu exista: campurile lor sunt 0
+    local cut = if village then s.sackCut or 0 else 0
+    local rawScrap = if village then s.sackRawScrap or 0 else 0
+    -- [D55] scrap-ul nu e bustean; [D65] nici marfa Morii, bruta sau gata; [D70] nici piesele unei uniri
+    local logs = if village
+        then s.sackCount - cut - rawScrap - extraRaw(s) - soldElsewhere(s) - partsCount(s)
+        else 0
     local full = s.sackCapacity > 0 and s.sackCount >= s.sackCapacity
     local room = s.sackCapacity - s.sackCount
     local saw = TycoonConfig.SAWMILL_STAND
@@ -368,8 +428,13 @@ function GuideMath.loopStep(s: State, quest: QuestGoal?): Goal
     if millRaw ~= nil then
         return millRaw
     end
+    -- 2c) [D70, pasul k3] piesele gata ale unei uniri -> la inelul ei
+    local parts = partsGoal(s, full, true)
+    if parts ~= nil then
+        return parts
+    end
     -- 3) busteni la gater si nimeni care sa-i taie -> stai in inel pana la ultimul
-    local sawIn = s.sawIn or 0
+    local sawIn = if village then s.sawIn or 0 else 0
     if sawIn > 0 and (crews.sawyer or 0) == 0 then
         return {
             kind = "cut",
@@ -381,7 +446,7 @@ function GuideMath.loopStep(s: State, quest: QuestGoal?): Goal
         }
     end
     -- 4) [D56] scrap la forja si niciun Smelter -> stai in inelul forjei pana la ultimul
-    local forgeIn = s.forgeIn or 0
+    local forgeIn = if village then s.forgeIn or 0 else 0
     if forgeIn > 0 and (crews.smelter or 0) == 0 then
         return {
             kind = "smelt",
@@ -392,12 +457,13 @@ function GuideMath.loopStep(s: State, quest: QuestGoal?): Goal
             immediate = true,
         }
     end
-    -- 4b) [D65] la fel la atelierele Morii: marfa la intrare si niciun om al atelierului -> stai in inelul lui
-    for _, line in EXTRA_LINES do
+    -- 4b) [D65] la fel la atelierele Morii: marfa la intrare si niciun om al atelierului -> stai in inelul lui;
+    -- [D70, pasul k3] si la unire, cat are din toate piesele (`input` = cate uniri se pot face, din Overlay)
+    for _, line in WORK_LINES do
         local info = if s.lines ~= nil then s.lines[line] else nil
         local step = stepOf(line, "work")
         if info ~= nil and info.input > 0 and (crews[step.role] or 0) == 0 then
-            local stand = TycoonConfig.LINE_PLACES[line].playerStand
+            local stand = standOf(line)
             return {
                 kind = "work",
                 key = `work:{line}`,
@@ -409,7 +475,7 @@ function GuideMath.loopStep(s: State, quest: QuestGoal?): Goal
         end
     end
     -- 5) scanduri gata, loc in traista, niciun Hauler -> le iei
-    if (s.sawOut or 0) > 0 and room > 0 and (crews.hauler or 0) == 0 then
+    if village and (s.sawOut or 0) > 0 and room > 0 and (crews.hauler or 0) == 0 then
         return {
             kind = "take",
             key = "planks",
@@ -420,7 +486,7 @@ function GuideMath.loopStep(s: State, quest: QuestGoal?): Goal
         }
     end
     -- 6) [D56] fier gata, loc in traista, niciun Iron Hauler -> il iei
-    if (s.forgeOut or 0) > 0 and room > 0 and (crews.ironHauler or 0) == 0 then
+    if village and (s.forgeOut or 0) > 0 and room > 0 and (crews.ironHauler or 0) == 0 then
         return {
             kind = "take",
             key = "iron",
@@ -430,12 +496,12 @@ function GuideMath.loopStep(s: State, quest: QuestGoal?): Goal
             immediate = true,
         }
     end
-    -- 6b) [D65] marfa gata la un atelier al Morii, loc in traista, niciun om care s-o duca -> o iei
-    for _, line in EXTRA_LINES do
+    -- 6b) [D65] marfa gata la un atelier al Morii, loc in traista, niciun om care s-o duca -> o iei; [D70] si la unire
+    for _, line in WORK_LINES do
         local info = if s.lines ~= nil then s.lines[line] else nil
         local hauler = stepOf(line, "haul").role
         if info ~= nil and info.output > 0 and room > 0 and (crews[hauler] or 0) == 0 then
-            local stand = TycoonConfig.LINE_PLACES[line].playerStand
+            local stand = standOf(line)
             return {
                 kind = "take",
                 key = `done:{line}`,
@@ -455,7 +521,7 @@ function GuideMath.loopStep(s: State, quest: QuestGoal?): Goal
         return elsewhere
     end
     -- 8) busteni in depozit, niciun Porter -> ii iei tu
-    if (s.storage or 0) > 0 and (crews.porter or 0) == 0 and room > 0 then
+    if village and (s.storage or 0) > 0 and (crews.porter or 0) == 0 and room > 0 then
         local st = TycoonConfig.STORAGE_STAND
         return {
             kind = "take",
@@ -467,7 +533,7 @@ function GuideMath.loopStep(s: State, quest: QuestGoal?): Goal
         }
     end
     -- 9) [D56] scrap in shed, niciun Scrap Porter -> il iei tu
-    if (s.shed or 0) > 0 and (crews.scrapPorter or 0) == 0 and room > 0 then
+    if village and (s.shed or 0) > 0 and (crews.scrapPorter or 0) == 0 and room > 0 then
         local st = TycoonConfig.SCRAP_SHED_STAND
         return {
             kind = "take",
@@ -704,8 +770,8 @@ function GuideMath.pickGoal(s: State): Goal?
         return questGoal(s, quest)
     end
 
-    -- a) nimic cumparat -- primul pas al oricarei sesiuni noi, gratis, mereu imediat
-    if boughtCount(s.pads) == 0 then
+    -- a) nimic cumparat -- primul pas al oricarei sesiuni noi, gratis, mereu imediat (prima plasa e a satului)
+    if inVillage(s) and boughtCount(s.pads) == 0 then
         local p = TycoonConfig.byId["first_net"]
         if p ~= nil and p.x ~= nil and p.y ~= nil then
             return {

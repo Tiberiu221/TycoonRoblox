@@ -110,13 +110,20 @@ export type Snapshot = {
         -- [D65] pe linii si pe vanzatori
         rawBy: { [string]: number }?,
         sellBy: { [string]: { count: number, value: number } }?,
+        partBy: { [string]: number }?, -- [D70, pasul k3] piesele gata, pe unirea lor
     },
     -- [D65] gramezile fiecarei linii (magazia, atelierul) si ale fiecarui vanzator, dupa nume
     flow: {
         lines: {
             [string]: {
                 store: { count: number },
-                processor: { count: number, out: number },
+                -- [D70, pasul k3] la unire: cate piese din fiecare si ce lipseste
+                processor: {
+                    count: number,
+                    out: number,
+                    inputs: { [string]: number }?,
+                    waiting: string?,
+                },
             },
         },
     }?,
@@ -186,6 +193,25 @@ local function openedPads(s: Snapshot): { [string]: boolean }
     return out
 end
 
+-- [D70, pasul k3] Cat e de lucrat in inelul unui atelier: tot ce asteapta la intrare; la o unire, doar cate uniri se pot face
+-- acum (cea mai mica gramada de piese, 0 cat una lipseste), ca ghidajul sa nu te tina in inel degeaba.
+local function workable(
+    processor: { count: number, inputs: { [string]: number }?, waiting: string? }
+): number
+    local inputs = processor.inputs
+    if inputs == nil then
+        return processor.count
+    end
+    if processor.waiting ~= nil then
+        return 0
+    end
+    local n = math.huge
+    for _, count in inputs do
+        n = math.min(n, count)
+    end
+    return if n == math.huge then 0 else n
+end
+
 -- [D65] Liniile Morii pentru bucla de mana: marfa lor bruta din traista si gramezile lor (TycoonState.flow).
 local function millLines(s: Snapshot): { [string]: GuideMath.LineInfo }
     local out: { [string]: GuideMath.LineInfo } = {}
@@ -196,7 +222,7 @@ local function millLines(s: Snapshot): { [string]: GuideMath.LineInfo }
             out[line] = {
                 raw = if s.sack.rawBy ~= nil then s.sack.rawBy[line] or 0 else 0,
                 store = entry.store.count,
-                input = entry.processor.count,
+                input = workable(entry.processor),
                 output = entry.processor.out,
             }
         end
@@ -224,7 +250,8 @@ local function toGuideState(s: Snapshot): GuideMath.State
         local y = if pad ~= nil and pad.y ~= nil then pad.y :: number else n.y
         nets[i] = {
             padId = n.padId,
-            x = n.x,
+            -- [D70, pasul k3] stalpul, nu desenul: turbina barajului se deseneaza in zid, departe de puntea ei
+            x = if pad ~= nil and pad.x ~= nil then pad.x :: number else n.x,
             y = y,
             count = n.count,
             capacity = n.capacity,
@@ -354,6 +381,9 @@ local function toGuideState(s: Snapshot): GuideMath.State
         treasureWaiting = if s.river ~= nil then s.river.waiting[1] else nil,
         lines = millLines(s),
         sellAt = sellAt(s),
+        -- [D70, pasul k3] harta ta si piesele gata din traista: la baraj, nicio tinta a satului
+        world = deps.World,
+        parts = if s.sack.partBy ~= nil then table.clone(s.sack.partBy) else nil,
     }
 end
 
@@ -747,11 +777,29 @@ function Overlay.Init(d: Deps)
         DROP_AT[seller] = places.door
     end
     deps.Remotes.HandDelivered.OnClientEvent:Connect(
-        function(_handId: string, itemCount: number, place: string)
+        function(handId: string, itemCount: number, place: string)
             -- UN OM ADUCE MARFA, NU BANI. Monedele le arunca scurgerea gramezii de la debarcader --
             -- daca le-am arunca si aici, aceiasi bani s-ar vedea de doua ori.
             -- [D70] in sat, un loc necunoscut cade pe taverna, ca inainte; la baraj nu exista taverna: fara cifra
             local at = DROP_AT[place] or (if (deps.World or 1) == 1 then TycoonConfig.DOCK else nil)
+            -- [D70, pasul k3] la o unire, fiecare piesa intra pe intrarea ei: cifra sta acolo unde a lasat-o omul (linia
+            -- meseriei lui); intrarea primei piese ramane doar rezerva, cand omul nu se gaseste
+            local spec = FlowConfig.BY_PROCESSOR[place]
+            local join = if spec ~= nil and spec.joins ~= nil
+                then TycoonConfig.JOIN_PLACES[spec.line]
+                else nil
+            if join ~= nil and lastSnapshot ~= nil then
+                for _, h in (lastSnapshot :: Snapshot).hands do
+                    if h.id == handId then
+                        local job = HandRoutes.jobOf(h.role)
+                        local entry = if job ~= nil and job.line ~= nil
+                            then join.inputIn[job.line]
+                            else nil
+                        at = entry or at
+                        break
+                    end
+                end
+            end
             if at == nil then
                 return
             end

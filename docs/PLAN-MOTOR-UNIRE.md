@@ -1131,6 +1131,22 @@ la granița CREWS / `DAM_START_COINS`.
   (lanțul `PAD_LOOKS_LIKE` duce la colibele urcate ale erelor 2–3, fiecare alta), nu direct perechea din Era 1. Atunci și
   amprenta din `World2Layout.test` (120×102) e cea desenată. Al doilea Dispatcher stă la 48 px de primul, iar clienții
   orașului vin de la y 1240 (abateri mici de la oglinda tavernei, puse și în planșă).
+- **k3 (făcut):** `Shared/Modules/StateCopy` (pur) e copia stării pe linii, folosită de `Bootstrap.client`: traista (`rawBy`,
+  `sellBy`, `partBy` pe fiecare unire), gramezile (`inputs` / `waiting` doar la unire; liniile Erelor 1–3 ies cu cheile de
+  dinainte), vânzătorii, `LineView` (`supply`, `heldBy`, `isOpen`, `waiting`, cu valorile implicite cinstite) și `netsLine`.
+  `tests/StateCopy.test` citește tipurile serverului (`ProcessorSnapshot`, `LineView`) și cere fiecare câmp copiat, pe ordinea
+  FULL. `LineController.join` desenează Relay-ul: gramada fiecărei piese la intrarea ei, ieșirea, inelul (te cheamă doar cât
+  se poate uni ceva: cea mai mică grămadă de piese) și placa „Waiting for cable” (`Strings.joinWaiting`) când lipsește o
+  piesă. Lumea 2 își face liniile și vânzătorii din tabele (`Bootstrap`, `WORLD_BUILDING_ART`: fiecare clădire fixă poartă
+  desenul altei clădiri din erele 2–3 până la A0–A4); vânzătorul fără platformă (Switch House) e deschis. Overlay: „+N” la
+  unire pe intrarea piesei omului (`HandRoutes.jobOf`), ținta plasei de pe stâlp (`pad.x`). GuideMath primește `world` și
+  `parts`: pașii lemnului și ai fierului, prima plasă și taverna doar în sat; piesele merg la **inelul** Relay-ului
+  (`playerStand`, unde apare cardul E; `inputIn` e intrarea oamenilor, la ~300 px de inel), iar inelul și curentul gata intră
+  în pașii 4b / 6b. Turbina barajului se desenează în fața zidului (`TycoonConfig.wallTurbineAt`, `WORLDS[2].turbine`), fără
+  stâlp și funie, fără legănat; stâlpul ei (unde o golește Dam Collector-ul) rămâne la x 980 pe punte, ca în planșa aprobată.
+  `PadArt.bought` încearcă întâi casa primei perechi urcate (colibele Erei 3), nu direct pe cea din Era 1. Oamenii retrași
+  nu sunt în instantaneu (`VillageLook.hands`, j13b), deci n-au traseu; Dam Town îi arată la k10.
+
 **k4. Meniurile și cuvintele.** Depinde de: k3.
 - **[Verificatorul k2]** capul panoului Stations la baraj are 18 verigi (butoaie 5, cablu 5, unirea 2 + orașul 1, cristal 5):
   lista clădirilor ar rămâne cu ~1,5 rânduri. Lanțul pe două coloane sau compactat (ori panoul mai înalt), cu un test pe

@@ -2545,6 +2545,9 @@ export type World = {
     blocked: { Box }?, -- unde nu se merge pe uscat: zidul si canalul (raul il pune WorldMap)
     water: { [string]: Box }?, -- lacul, deversorul, canalul (desen)
     wall: Box?,
+    -- [D70, pasul k3] turbina zidita in baraj: unde se deseneaza, in fata zidului (x, y = mijlocul ei). Stalpul ei, de unde
+    -- o goleste Dam Collector-ul, ramane pe punte, la x/y-ul platformei (piciorul zidului).
+    turbine: Box?,
     buildings: { [string]: Box }?,
     cottages: { Box }?,
     pylons: { Pylon }?,
@@ -2824,6 +2827,19 @@ function TycoonConfig.isTurbine(p: Pad): boolean
         end
     end
     return false
+end
+
+-- [D70, pasul k3] Unde se DESENEAZA turbina zidita in baraj (`good = "dam"`): in fata zidului lumii ei (WORLDS[w].turbine),
+-- nu in apa, ca o plasa; nil pentru orice alta platforma (si pentru First Turbine, care sta in rau). Stalpul si cardul ei
+-- raman la x/y-ul platformei.
+function TycoonConfig.wallTurbineAt(p: Pad): Box?
+    for _, effect in p.effects do
+        if effect.kind == "net" and effect.good == "dam" then
+            local world = TycoonConfig.WORLDS[WorldConfig.worldOfEra(p.era)]
+            return if world ~= nil then world.turbine else nil
+        end
+    end
+    return nil
 end
 
 function TycoonConfig.wordsKindOf(kind: string, id: string?): string
@@ -3238,6 +3254,7 @@ TycoonConfig.WORLDS[2] = {
         canal = { x = 2193, y = 768, w = 64, h = 468 }, -- apa deschisa 768..1236; sub Relay intra in stavila
     },
     wall = { x = 640, y = 392, w = 240, h = 568 },
+    turbine = { x = 852, y = 729, w = 56, h = 78 }, -- x 824-880, y 690-768: fata zidului, in banda apei
     buildings = {
         damStore = { x = 1090, y = 1010, w = 120, h = 96 }, -- Battery Store (D74, punctul 7)
         switchyard = { x = 1090, y = 1380, w = 120, h = 96 },

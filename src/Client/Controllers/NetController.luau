@@ -100,6 +100,9 @@ type Assembly = {
     boostTag: TextLabel, -- [D51] "Fast first catch", sub pastila cu numarul
     turbine: boolean, -- [D67] prima turbina: o roata cu bobine, nu o plasa; nimic nu pluteste spre ea
     spin: Spin.Sheet?, -- [D67, audit] foaia ei de miscare: se invarte cat umple baterii
+    -- [D70, pasul k3] turbina zidita in baraj: desenul sta in fata zidului (TycoonConfig.wallTurbineAt), nu se leagana, fara
+    -- stalp si fara funie; insigna si cardul raman pe punte, la stalpul ei. nil = plasa (sau turbina) din apa.
+    wall: TycoonConfig.Box?,
 }
 
 -- [D67] TURBINA: desenul si marimea ei vin din UI/PadArt (turbineSprite, TURBINE_SCALE), comune cu satul vizitat.
@@ -240,6 +243,10 @@ local function ensureAssembly(padId: string, x: number, y: number): Assembly
     local padX = if pad ~= nil and pad.x ~= nil then pad.x :: number else x
     local padY = if pad ~= nil and pad.y ~= nil then pad.y :: number else y
     local isTurbine = pad ~= nil and TycoonConfig.isTurbine(pad) -- [D70] si turbina barajului
+    local wall = if pad ~= nil then TycoonConfig.wallTurbineAt(pad) else nil -- [D70, pasul k3]
+    if wall ~= nil then
+        x, y = wall.x, wall.y
+    end
 
     -- radacina: fixa la stalp -- un stalp infipt in ponton nu pluteste, doar plasa (bob, mai jos)
     local root = Instance.new("Frame")
@@ -250,7 +257,7 @@ local function ensureAssembly(padId: string, x: number, y: number): Assembly
     root.ZIndex = 4
     root.Parent = deps.Plot
 
-    if Assets.has(Assets.tycoon.netpost) then
+    if wall == nil and Assets.has(Assets.tycoon.netpost) then
         local post = Instance.new("ImageLabel")
         post.Name = "Post"
         post.BackgroundTransparency = 1
@@ -303,6 +310,7 @@ local function ensureAssembly(padId: string, x: number, y: number): Assembly
     rope.BackgroundColor3 = Theme.COLOR.woodDark
     rope.BorderSizePixel = 0
     rope.ZIndex = 4
+    rope.Visible = wall == nil -- [D70, pasul k3] turbina zidita n-are funie
     rope.Parent = root
 
     -- bob: tot ce se leagana/tresare impreuna -- corpul plasei, gramada si pastila. Pozitia lui
@@ -443,6 +451,7 @@ local function ensureAssembly(padId: string, x: number, y: number): Assembly
         boostTag = boostTag,
         turbine = isTurbine,
         spin = spin,
+        wall = wall,
     }
     assemblies[padId] = record
     return record
@@ -738,8 +747,14 @@ local function updateNetMotion(now: number)
         if full then
             dy += NET_FULL_SINK -- se lasa mai jos in apa: sufocarea se vede, nu doar se citeste
         end
-        netDy[padId] = dy
         local baseX, baseY = snap.x - assembly.padX, snap.y - assembly.padY
+        local wall = assembly.wall
+        if wall ~= nil then
+            -- [D70, pasul k3] zidita: sta pe loc, in fata zidului
+            dy, scale = 0, 1
+            baseX, baseY = wall.x - assembly.padX, wall.y - assembly.padY
+        end
+        netDy[padId] = dy
         assembly.bob.Position = UDim2.fromOffset(math.round(baseX), math.round(baseY + dy))
         assembly.bodyScale.Scale = scale
 

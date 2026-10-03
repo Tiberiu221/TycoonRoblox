@@ -52,6 +52,8 @@ local function state(over: { [string]: any }): GuideMath.State
         lines = over.lines, -- [D65] liniile Morii si ce cumpara fiecare vanzator; nil = doar Era 1
         sellAt = over.sellAt,
         allCrewsHired = over.allCrewsHired,
+        world = over.world, -- [D70, pasul k3] harta ta (nil = satul) si piesele din traista, pe unirea lor
+        parts = over.parts,
     } :: any
 end
 
@@ -1066,6 +1068,119 @@ return function()
                 check.equal(same.key, plain.key)
                 check.equal(same.text, plain.text)
             end
+        end)
+    end)
+
+    test.suite("GuideMath - barajul (lumea 2) [D70, pasul k3]", function()
+        -- locurile satului: la baraj, nicio tinta nu e aici si nicio cheie nu e a lor
+        local VILLAGE_KEYS: { [string]: boolean } = {
+            sawmill = true,
+            forge = true,
+            dock = true,
+            storage = true,
+            shed = true,
+            cut = true,
+            smelt = true,
+            planks = true,
+            iron = true,
+            ["pad:first_net"] = true,
+        }
+        local VILLAGE_SPOTS = {
+            TycoonConfig.SAWMILL_STAND,
+            TycoonConfig.WORKSHOP_STAND,
+            TycoonConfig.DOCK,
+            TycoonConfig.STORAGE_STAND,
+            TycoonConfig.SCRAP_SHED_STAND,
+        }
+        local function villageTarget(goal: GuideMath.Goal?): boolean
+            if goal == nil then
+                return false
+            end
+            local g = goal :: GuideMath.Goal
+            -- cheia, si sub prefixul „earn:...:” al unui quest fara bani
+            local key = string.match(g.key, "([^:]+)$") or g.key
+            if VILLAGE_KEYS[g.key] or VILLAGE_KEYS[key] then
+                return true
+            end
+            for _, spot in VILLAGE_SPOTS do
+                if g.x == spot.x and g.y == spot.y then
+                    return true
+                end
+            end
+            return false
+        end
+        -- starile care, in sat, trimit la gater, forja, taverna, depozit, shed sau prima plasa
+        local CASES: { { [string]: any } } = {
+            { sackCount = 5 }, -- busteni in traista
+            { sackCount = 5, sackCapacity = 5 }, -- traista plina de „busteni”
+            { sackCount = 3, sackRawScrap = 3 },
+            { sackCount = 4, sackCut = 4, firstsSell = true },
+            { sawIn = 3 },
+            { forgeIn = 2 },
+            { sawOut = 2 },
+            { forgeOut = 2 },
+            { storage = 4 },
+            { shed = 4 },
+            { pads = {} }, -- nimic cumparat
+        }
+        test.case(
+            "in sat, starile cazurilor chiar trimit la locurile satului (testul are rost)",
+            function()
+                local hits = 0
+                for _, over in CASES do
+                    local loop = GuideMath.loopStep(state(over), nil)
+                    local pick = GuideMath.pickGoal(state(over))
+                    if villageTarget(loop) or villageTarget(pick) then
+                        hits += 1
+                    end
+                end
+                check.equal(hits, #CASES)
+            end
+        )
+        test.case(
+            "la baraj, nicio stare nu trimite la gater, forja, taverna, depozit, shed sau prima plasa",
+            function()
+                for _, over in CASES do
+                    local s = table.clone(over)
+                    s.world = 2
+                    check.is_false(villageTarget(GuideMath.loopStep(state(s), nil)))
+                    check.is_false(villageTarget(GuideMath.pickGoal(state(s))))
+                    -- si un quest de cumparare fara bani (pasul buclei, cu prefixul lui)
+                    s.quest = { key = "q", text = "Buy", x = 1, y = 1, kind = "pad", price = 1e9 }
+                    check.is_false(villageTarget(GuideMath.pickGoal(state(s))))
+                end
+            end
+        )
+        test.case("piesele din traista merg la inelul unirii lor (cu Era 4 in joc)", function()
+            if not TycoonConfig.eraIsLive(4) then
+                return -- adormit: nicio unire in joc (verificat pe harta comutatorului)
+            end
+            local stand = TycoonConfig.JOIN_PLACES.grid.playerStand
+            local goal =
+                GuideMath.loopStep(state({ world = 2, sackCount = 3, parts = { grid = 3 } }), nil)
+            check.equal(goal.x, stand.x)
+            check.equal(goal.y, stand.y)
+            check.equal(goal.text, Strings.guideRawTo(Strings.LINE_WORDS.grid))
+            -- traista plina de piese: tot acolo, cu textul traistei pline
+            local full = GuideMath.pickGoal(state({
+                world = 2,
+                sackCount = 30,
+                sackCapacity = 30,
+                parts = { grid = 30 },
+                pads = { dam_turbine = "bought" },
+            }))
+            check.is_true(full ~= nil)
+            check.equal((full :: GuideMath.Goal).x, stand.x)
+            check.equal((full :: GuideMath.Goal).text, Strings.sackFullRaw("grid"))
+            -- piese la Relay si niciun Relay Keeper: stai in inelul lui; curent gata si niciun Pylon Runner: il iei
+            local lines = { grid = { raw = 0, store = 0, input = 2, output = 0 } }
+            local work = GuideMath.loopStep(state({ world = 2, lines = lines }), nil)
+            check.equal(work.key, "work:grid")
+            check.equal(work.x, stand.x)
+            lines.grid = { raw = 0, store = 0, input = 0, output = 4 }
+            local take = GuideMath.loopStep(state({ world = 2, lines = lines }), nil)
+            check.equal(take.key, "done:grid")
+            check.equal(take.x, stand.x)
         end)
     end)
 

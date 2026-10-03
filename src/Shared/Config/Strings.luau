@@ -808,6 +808,10 @@ end
 function Strings.lineWorking(words: LineWords, left: number): string
     return `{words.working} — {left} left`
 end
+-- [D70, pasul k3] la o unire (Relay Station), piesa care lipseste: „Waiting for cable”, „Waiting for barrels”
+function Strings.joinWaiting(part: LineWords): string
+    return `Waiting for {part.done}`
+end
 function Strings.promptSellAt(keyHint: string, value: string): string
     return `Sell{keyHint} — {value}`
 end
