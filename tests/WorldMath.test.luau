@@ -78,6 +78,11 @@ return function()
                     return era <= 3 -- fara comutator
                 end
                 check.equal(WorldMath.zoneStatuses(1, works, today).dam, "open")
+                -- si pe calea pe care o cheama serverul (fara `eraIsLive`), de o parte si de alta a comutatorului
+                check.equal(
+                    WorldMath.zoneStatuses(1, works).dam,
+                    if TycoonConfig.eraIsLive(4) then "locked" else "open"
+                )
                 -- cu barajul in joc ramane incuiata: barajul se ridica pe alta harta
                 check.equal(WorldMath.zoneStatuses(1, works, damLive).dam, "locked")
                 check.equal(WorldMath.zoneStatuses(1, works, damLive).wire_works, "open")

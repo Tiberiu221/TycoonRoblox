@@ -436,9 +436,32 @@ return function()
             })
             -- cu masina: cei patru ai bobinelor si Clerk-ul Depoului; cu Power House, si cei patru ai curentului
             check.equal(#steam, #era2 + #StationConfig.LINE_STEPS.coils + 1)
-            check.equal(#all, #StationConfig.ROLES)
+            -- toate meseriile satului (Erele 1-3), nu cele ale barajului: alta harta
+            check.equal(
+                #all,
+                #StationConfig.ERA1_ROLES + #StationConfig.ERA2_ROLES + #StationConfig.ERA3_ROLES
+            )
             check.is_true(table.find(steam, "clerk") ~= nil)
             check.is_true(table.find(steam, "electrician") == nil)
+        end)
+
+        test.case("[D70] ghidajul asteapta doar oamenii hartii tale", function()
+            local everything = {
+                workshop = true,
+                water_wheel = true,
+                copper_furnace = true,
+                steam_engine = true,
+                power_house = true,
+                crystal_kiln = true,
+            }
+            for _, role in GuideMath.guidedRoles(everything) do
+                check.is_true((StationConfig.ERA_OF_ROLE[role] or 1) <= 3)
+            end
+            check.equal(#GuideMath.guidedRoles(everything), #GuideMath.guidedRoles(everything, 1))
+            -- la baraj, doar meseriile Erei 4 (azi niciuna in joc; dupa comutator, ale liniilor deschise)
+            for _, role in GuideMath.guidedRoles(everything, 2) do
+                check.equal(StationConfig.ERA_OF_ROLE[role], 4)
+            end
         end)
     end)
 

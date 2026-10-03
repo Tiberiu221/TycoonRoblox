@@ -13,6 +13,7 @@
 local TycoonConfig =
     require(script and script.Parent.Parent.Config.TycoonConfig or "../Config/TycoonConfig")
 local Strings = require(script and script.Parent.Parent.Config.Strings or "../Config/Strings")
+local WorldMath = require(script and script.Parent.WorldMath or "./WorldMath")
 local StationConfig =
     require(script and script.Parent.Parent.Config.StationConfig or "../Config/StationConfig")
 local FlowConfig =
@@ -286,13 +287,18 @@ end
 -- pana la cei patru oameni ai fierului -- owner-ul: jucatorul "se pierde cand ajunge la scraps".
 -- [D65] La fel la Moara: cu roata de apa intra oamenii pieselor si negustorul Pietei, cu cuptorul de cupru cei ai
 -- cuprului. `opened` = platformele cumparate care pornesc cate o linie (FlowConfig: `processorPad`), dupa id.
-function GuideMath.guidedRoles(opened: { [string]: boolean }): { string }
+-- [D70, verificatorul j13a] Doar meseriile hartii tale (`world`, fara el satul): dupa comutator, liniile barajului n-au
+-- platforma care le porneste, iar fara filtru ghidajul ar fi asteptat in sat oamenii barajului si n-ar mai fi tacut.
+function GuideMath.guidedRoles(opened: { [string]: boolean }, world: number?): { string }
     local roles: { string } = {}
     local function lineIsOpen(line: string): boolean
         local pad = FlowConfig.LINES[line].processorPad
         return pad == nil or opened[pad] == true
     end
     for _, role in StationConfig.ROLES do
+        if not WorldMath.allowed(world, StationConfig.ERA_OF_ROLE[role]) then
+            continue
+        end
         local link = StationConfig.LINK_OF[role]
         local line = StationConfig.LINE_OF[link]
         local open = false

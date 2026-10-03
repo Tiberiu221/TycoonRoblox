@@ -238,8 +238,19 @@ function NetService.DevForceNamed(player: Player): number
     end
     local n = 0
     for padId in data.Nets do
-        set[padId] = true
-        n += 1
+        -- [D70, verificatorul j13a] doar plasele care prind gasiri: sub baraj nu exista (D70 Runda 5), iar o gasire fortata
+        -- acolo ar fi ramas in roaba omului, fara loc unde s-o lase la Relay
+        local pad = TycoonConfig.byId[padId]
+        local canFind = false
+        if pad ~= nil then
+            for _, part in TycoonConfig.CATCH[TycoonMath.netKind(pad)] or {} do
+                canFind = canFind or TycoonMath.isFind(part.id)
+            end
+        end
+        if canFind then
+            set[padId] = true
+            n += 1
+        end
     end
     return n
 end

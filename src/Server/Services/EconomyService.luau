@@ -503,6 +503,11 @@ function EconomyService.DropAt(player: Player, place: string, items: { Catch }):
         PileMath.addItems(pileOf(data, store.storePile :: string).counts, items)
     elseif processor ~= nil and processor.joins ~= nil then
         placed, rest = FlowMath.dropJoin(joinPiles(data, processor), items, processor)
+        -- [verificatorul j13a] la unire ajung doar piesele: altceva (o gasire, marfa unei alte linii) ramane la om, dar
+        -- se spune in jurnalul serverului, ca un drum gresit sa nu treaca neobservat [D43]
+        if #rest > 0 then
+            warn(`[Economy] {#rest} bucati nu sunt piese ale unirii {processor.line}: raman la om`)
+        end
     elseif processor ~= nil then
         PileMath.addItems(pileOf(data, processor.inputPile :: string).counts, items)
     elseif seller ~= nil then

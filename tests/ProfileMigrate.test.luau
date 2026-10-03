@@ -1160,14 +1160,48 @@ return function()
             for _, pile in FlowConfig.FULL.piles do
                 if not game[pile] then
                     fresh += 1
-                    check.not_nil(data[pile])
-                    check.equal(next(data[pile].counts), nil)
                 end
             end
             -- cu comutatorul l3, gramezile barajului sunt si ale jocului (deci niciuna „noua”)
             local TycoonConfig = require("../src/Shared/Config/TycoonConfig")
             check.equal(fresh, if TycoonConfig.eraIsLive(4) then 0 else 13)
             check.equal(#ProfileMigrate.era4Piles(), 13)
+            -- [verificatorul j13a] independent de comutator: fiecare gramada a Erei 4 apare goala intr-un profil vechi, iar
+            -- lista migrarii e exact FULL fara gramezile erelor 1-3 (un model fix, nu cel al jocului)
+            local StationConfig = require("../src/Shared/Config/StationConfig")
+            local oldLines: { string } = {}
+            local oldSellers: { string } = {}
+            for era = 1, 3 do
+                for _, line in StationConfig.ERA_LINES_ALL[era] do
+                    table.insert(oldLines, line)
+                end
+            end
+            for _, seller in StationConfig.SELLER_ORDER_ALL do
+                if FlowConfig.SELLERS_ALL[seller].era <= 3 then
+                    table.insert(oldSellers, seller)
+                end
+            end
+            local village: { [string]: boolean } = {}
+            for _, pile in FlowConfig.model(oldLines, oldSellers).piles do
+                village[pile] = true
+            end
+            local expected: { [string]: boolean } = {}
+            for _, pile in FlowConfig.FULL.piles do
+                if not village[pile] then
+                    expected[pile] = true
+                end
+            end
+            local migrated: { [string]: boolean } = {}
+            for _, entry in ProfileMigrate.era4Piles() do
+                local pile = entry.name
+                migrated[pile] = true
+                check.is_true(expected[pile] == true)
+                check.not_nil(data[pile])
+                check.equal(next(data[pile].counts), nil)
+            end
+            for pile in expected do
+                check.is_true(migrated[pile] == true)
+            end
             check.equal(data.SwitchyardPile.processedAt, 0)
             check.equal(data.RelayBarrelPile.processedAt, 0)
             check.equal(data.RelayCablePile.processedAt, 0)
