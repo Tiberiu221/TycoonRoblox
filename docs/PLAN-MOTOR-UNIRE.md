@@ -1257,6 +1257,16 @@ la granița CREWS / `DAM_START_COINS`.
   `MusicController.Play`; mersul se oprește; `ReducedMotionEnabled`; Skip de la secunda 3 la prima vizionare; comanda de sondă
   `cinematic:seek`.
 
+- **k9 (făcut, codul; arta la A2):** cronologia e date pure, `DamMath.FILM` / `frameAt(t, seen, reduced)` (17 s: clopotele,
+  „Look how far you've come.”, „Everyone lends a hand.”, „The old village becomes the Dam.”, cartonașul „THE DAM”), testată:
+  fazele fără goluri, Skip de la secunda 3 la prima vizionare (imediat la reluări), camera de la Wire Works la Landing doar în
+  faza ei, miscare redusă = camera sare. `Controllers/DamFilm` desenează: benzi negre, textul fazei, camera peste satul
+  adevărat (`CameraController.SetFocus`), amurgul, cartonașul; mersul se oprește, panourile se închid, HUD-ul se stinge. După
+  ridicare: filmul, apoi reîncărcarea (k8); un drum care n-a plecat ridică filmul (`DamFilm.Stop`), ca ecranul să spună ce
+  urmează. Sonda: `cinematic:play`, `cinematic:seek:<t>`. **Provizoriu până la A2:** siluetele, schelele și barajul care
+  crește (azi, amurgul peste satul adevărat). `VillageDiorama` în `Client/UI` și „Watch again” vin cu Memory Wall, după
+  lansare (O1); muzica filmului vine cu sunetele lui A2.
+
 **k10. Dam Town și oamenii retrași.** Depinde de: k9, j14.
 - Cantina, căsuțele, piața, clopotnița cu plăcile cu cifrele jucătorului, Memory Wall din `Memories.oldVillage`; oamenii
   retrași se plimbă pe graful lumii 2; o pagină „Your people”.

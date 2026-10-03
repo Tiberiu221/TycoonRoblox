@@ -254,6 +254,11 @@ Strings.DAM_SAVING = "Saving…"
 Strings.DAM_OPENING = "Opening the Dam…"
 Strings.DAM_TRY_AGAIN = "Try again"
 Strings.DAM_CARD_TITLE = "THE DAM"
+-- [D70, pasul k9] filmul (O1: 15–20 s, Skip de la secunda 3): ce scrie pe ecran, pe faze (DamMath.FILM)
+Strings.DAM_FILM_LOOK = "Look how far you've come."
+Strings.DAM_FILM_PEOPLE = "Everyone lends a hand."
+Strings.DAM_FILM_BUILD = "The old village becomes the Dam."
+Strings.DAM_FILM_SKIP = "Skip"
 Strings.DAM_CARD_SUB = "Your people built this"
 function Strings.damReloadFailed(reason: string): string
     if reason == "studio" then

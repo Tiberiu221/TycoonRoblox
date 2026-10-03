@@ -14,6 +14,7 @@ local Strings = require(ReplicatedStorage.Shared.Config.Strings)
 local DamWords = require(ReplicatedStorage.Shared.Modules.DamWords)
 
 local DamController = require(script.Parent.DamController)
+local DamFilm = require(script.Parent.DamFilm)
 local Panels = require(script.Parent.Panels)
 local SoundController = require(script.Parent.SoundController)
 local Theme = require(script.Parent.Parent.UI.Theme)
@@ -39,8 +40,6 @@ local hold: Widgets.HoldButton
 -- "counting" (asteapta chitanta) | "ready" | "saving" | "done" (ridicat) | "refused" (fara chitanta buna) | "opening"
 -- (se reincarca in lumea 2) | "stuck" (reincarcarea n-a plecat: „Try again”, afara de Studio)
 local phase = "counting"
--- [D70, pasul k8] cat dureaza „The Dam is built!” inainte de reincarcare (filmul il inlocuieste la k9)
-local OPEN_AFTER = 1.5
 
 local function isOpen(): boolean
     local w = window
@@ -222,13 +221,13 @@ end
 function DamScreen.OnBuilt(_receipt: DamController.Receipt)
     setPhase("opening")
     setStatus(Strings.DAM_BUILT, Theme.COLOR.goodInk)
-    SoundController.Play("chime")
-    -- [D70, pasul k8] apoi reincarcarea in lumea 2 (la k9, dupa film)
-    task.delay(OPEN_AFTER, openDam)
+    -- [D70, pasul k9] filmul (prima vizionare: Skip de la secunda 3), apoi reincarcarea in lumea 2 (k8)
+    DamFilm.Play(false, openDam)
 end
 
 -- [D70, pasul k8] Reincarcarea n-a plecat: in Studio spune ce sa faci; altfel „Try again” (aceeasi cerere).
 function DamScreen.OnReloadFailed(reason: string)
+    DamFilm.Stop() -- filmul se ridica: ecranul spune ce urmeaza
     setPhase(if reason == "studio" then "done" else "stuck")
     setStatus(Strings.damReloadFailed(reason), Theme.COLOR.warnInk)
 end

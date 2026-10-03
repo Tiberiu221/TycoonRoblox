@@ -415,4 +415,54 @@ return function()
             end
         )
     end)
+
+    -- [D70, pasul k9] filmul, ca date: O1 (15–20 s, Skip de la secunda 3 la prima vizionare), fazele in ordine
+    test.suite("DamMath.frameAt - filmul [D70, pasul k9]", function()
+        test.case("lungimea si fazele: 15–20 s, una dupa alta, fara gauri", function()
+            check.is_true(DamMath.FILM_SECONDS >= 15 and DamMath.FILM_SECONDS <= 20)
+            local at = 0
+            for _, p in DamMath.FILM do
+                check.equal(p.from, at)
+                check.is_true(p.to > p.from)
+                at = p.to
+            end
+            check.equal(at, DamMath.FILM_SECONDS)
+            check.equal(DamMath.frameAt(0, false).phase, "bells")
+            check.equal(DamMath.frameAt(3, false).phase, "look")
+            check.equal(DamMath.frameAt(DamMath.FILM_SECONDS - 0.1, false).phase, "card")
+            check.is_true(DamMath.frameAt(DamMath.FILM_SECONDS, false).done)
+            check.is_false(DamMath.frameAt(DamMath.FILM_SECONDS - 0.1, false).done)
+        end)
+        test.case("Skip: de la secunda 3 la prima vizionare, imediat la reluari", function()
+            check.is_false(DamMath.frameAt(2.9, false).skip)
+            check.is_true(DamMath.frameAt(3, false).skip)
+            check.is_true(DamMath.frameAt(0, true).skip)
+        end)
+        test.case("camera trece lin de la Wire Works la Landing, doar in faza ei", function()
+            check.equal(DamMath.frameAt(1, false).pan, 0)
+            check.equal(DamMath.frameAt(8, false).pan, 1)
+            local last = -1
+            for t = 2, 7, 0.25 do
+                local pan = DamMath.frameAt(t, false).pan
+                check.is_true(pan >= last)
+                last = pan
+            end
+            -- miscare redusa: camera sare, benzile apar dintr-odata
+            check.equal(DamMath.frameAt(2.5, false, true).pan, 1)
+            check.equal(DamMath.frameAt(0, false, true).bars, 1)
+            check.equal(DamMath.frameAt(0, false).bars, 0)
+        end)
+        test.case("textele fazelor vin din Strings si se citesc pe ecran", function()
+            local Strings = require("../src/Shared/Config/Strings")
+            check.equal(DamMath.frameAt(3, false).text, Strings.DAM_FILM_LOOK)
+            check.equal(DamMath.frameAt(15, false).text, Strings.DAM_CARD_TITLE)
+            check.equal(DamMath.frameAt(15, false).sub, Strings.DAM_CARD_SUB)
+            -- fiecare text cu text are cel putin 2 s pe ecran
+            for _, p in DamMath.FILM do
+                if p.text ~= nil then
+                    check.is_true(p.to - p.from >= 2)
+                end
+            end
+        end)
+    end)
 end

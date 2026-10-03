@@ -32,6 +32,7 @@ local HandConfig =
     require(script and script.Parent.Parent.Config.HandConfig or "../Config/HandConfig")
 local StationConfig =
     require(script and script.Parent.Parent.Config.StationConfig or "../Config/StationConfig")
+local Strings = require(script and script.Parent.Parent.Config.Strings or "../Config/Strings")
 local TycoonConfig =
     require(script and script.Parent.Parent.Config.TycoonConfig or "../Config/TycoonConfig")
 local WorldConfig =
@@ -379,6 +380,71 @@ end
 -- PREVIZUALIZAREA (ecranul „Build the Dam”, k7): aceeasi socoteala pe o copie. Profilul nu se atinge.
 function DamMath.preview(data: any, ctx: Context): (Receipt?, string?)
     return DamMath.build(deepCopy(data), ctx)
+end
+
+-- [D70, pasul k9] FILMUL, ca date (O1: 15–20 s, siluete la apus; arta lui vine cu lotul A2). Fiecare faza are textul ei
+-- (Strings), iar `frameAt` spune ce se vede la secunda `t`: faza, cat din ea a trecut, benzile negre, panoramarea camerei
+-- (0 = Wire Works, 1 = Landing) si daca „Skip” se arata (de la secunda 3 la prima vizionare, imediat la reluari). Pur, ca
+-- sonda sa poata sari la orice secunda (`cinematic:seek`) si testele sa fixeze cronologia.
+export type FilmPhase = { phase: string, from: number, to: number, text: string?, sub: string? }
+DamMath.FILM = {
+    { phase = "bells", from = 0, to = 2 },
+    { phase = "look", from = 2, to = 7, text = Strings.DAM_FILM_LOOK },
+    { phase = "people", from = 7, to = 11, text = Strings.DAM_FILM_PEOPLE },
+    { phase = "build", from = 11, to = 14, text = Strings.DAM_FILM_BUILD },
+    {
+        phase = "card",
+        from = 14,
+        to = 17,
+        text = Strings.DAM_CARD_TITLE,
+        sub = Strings.DAM_CARD_SUB,
+    },
+} :: { FilmPhase }
+DamMath.FILM_SECONDS = 17
+DamMath.FILM_SKIP_AT = 3
+DamMath.FILM_BARS_IN = 0.5 -- cat intra benzile negre
+
+export type FilmFrame = {
+    phase: string,
+    text: string?,
+    sub: string?,
+    progress: number, -- 0..1 in faza
+    bars: number, -- 0..1: benzile negre
+    pan: number, -- 0..1: camera, de la Wire Works (0) la Landing (1)
+    skip: boolean,
+    done: boolean,
+}
+
+local function smooth(x: number): number
+    local c = math.clamp(x, 0, 1)
+    return c * c * (3 - 2 * c)
+end
+
+-- `seen`: filmul s-a mai vazut (Skip de la inceput). `reduced`: miscare redusa (GuiService.ReducedMotionEnabled): camera
+-- sare, nu aluneca, iar benzile apar dintr-odata.
+function DamMath.frameAt(t: number, seen: boolean, reduced: boolean?): FilmFrame
+    local at = math.max(0, t)
+    local current = DamMath.FILM[#DamMath.FILM]
+    for _, p in DamMath.FILM do
+        if at >= p.from and at < p.to then
+            current = p
+            break
+        end
+    end
+    local progress = math.clamp((at - current.from) / (current.to - current.from), 0, 1)
+    local look = DamMath.FILM[2]
+    local panRaw = (at - look.from) / (look.to - look.from)
+    local pan = if reduced then (if panRaw > 0 then 1 else 0) else smooth(panRaw)
+    return {
+        phase = current.phase,
+        text = current.text,
+        sub = current.sub,
+        progress = progress,
+        bars = if reduced then 1 else math.clamp(at / DamMath.FILM_BARS_IN, 0, 1),
+        pan = pan,
+        skip = seen or at >= DamMath.FILM_SKIP_AT,
+        done = at >= DamMath.FILM_SECONDS,
+    }
 end
 
 return DamMath

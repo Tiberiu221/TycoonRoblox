@@ -217,6 +217,7 @@ local ShopPanel = require(Controllers.ShopPanel)
 local DriftController = require(Controllers.DriftController) -- [D62, pasul 3]
 local DamController = require(Controllers.DamController) -- [D70, pasul j15]
 local DamScreen = require(Controllers.DamScreen) -- [D70, pasul k7]
+local DamFilm = require(Controllers.DamFilm) -- [D70, pasul k9]
 local AmbientController = require(Controllers.AmbientController) -- [D62, pasul 5]
 local Theme = require(UI.Theme)
 local layers = CameraController.Init({ WorldGui = worldGui, World = world })
@@ -703,6 +704,13 @@ safeInit("WelcomeController", function()
     })
 end)
 -- [D70, pasul k7] ecranul „Build the Dam” (il deschide masa Dam Plans, k6), apoi cererile si raspunsurile (j15)
+safeInit("DamFilm", function()
+    DamFilm.Init({
+        SetHudVisible = function(visible: boolean)
+            hudGui.Enabled = visible
+        end,
+    })
+end)
 safeInit("DamScreen", function()
     DamScreen.Init({ HudGui = hudCanvas })
 end)
@@ -955,6 +963,8 @@ end
 --   goto:<x>:<y>         muta omul tau intr-un loc de pe teren (coordonatele din TycoonConfig), ca sonda sa poata citi
 --                        cardul obiectului de langa el; panourile raman cum sunt
 --   close                inchide tot
+--   cinematic:play       [D70, pasul k9] porneste filmul barajului (fara reincarcare; la capat se ridica)
+--   cinematic:seek:<t>   sare la secunda t a filmului, ca textul fiecarei faze sa se poata citi
 -- Doar in Studio: intr-un joc publicat atributul nu e ascultat deloc.
 if game:GetService("RunService"):IsStudio() then
     Workspace:GetAttributeChangedSignal("DevUi"):Connect(function()
@@ -964,6 +974,14 @@ if game:GetService("RunService"):IsStudio() then
         end
         local action = string.match(raw, "^[%w_]+|(.*)$") or raw
         local verb, a, b = string.match(action, "^(%w+):?([^:]*):?(.*)$")
+        if verb == "cinematic" then
+            if a == "play" then
+                DamFilm.Play(true, DamFilm.Stop)
+            elseif a == "seek" then
+                DamFilm.Seek(tonumber(b) or 0)
+            end
+            return
+        end
         if verb == "goto" then
             local gx, gy = tonumber(a), tonumber(b)
             if gx ~= nil and gy ~= nil then
