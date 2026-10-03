@@ -865,6 +865,11 @@ la granița CREWS / `DAM_START_COINS`.
 - Verificare: j1 identic; `padsOfWorld(1)` identic cu `PADS[1..54]`; un test text cere ca niciun modul să nu citească lumea la
   `require`.
 
+- **Făcut (2026-10-03), cu verificatorul:** `WorldConfig`, `TycoonConfig.WORLDS[1]` și accesoriile. `RiverConfig.WORLDS` a
+  intrat la j7 (lumea 1 e copia de azi, cheie cu cheie, sub test). Felinarele au o singură regulă publică,
+  `TycoonConfig.lampBlocked(x, w)`, care ocolește și roabele Relay-ului; felinarele lumii 2, scrise de mână, trec prin ea.
+  Un loc cu o cheie necunoscută nu mai cade în sat: nu e al niciunei lumi, iar un test cere ca toate cheile să fie
+  cunoscute. Atributul `World` trece prin `WorldConfig.sanitize`.
 **j7. Datele lumii 2, din planșa aprobată (`preview_dam_layout.py:24-192`).** Depinde de: j6.
 - **`WORLDS[2]`:** mărimea 3385×1920, PLOT, țărmurile cu `calm`; două cartiere (puntea lacului, x 240–640, și puntea
   barajului, x 880–2760), cu drumuri și curți (id-uri `*_yard`); zonele `dam_town` (fără gard) și `fog5` (x 3065–3385), cu
@@ -924,6 +929,8 @@ la granița CREWS / `DAM_START_COINS`.
 - `golden_chain.py --dam-start` scrie `GOLDEN_DAM_START`: venit 19.567.696.500/s, cu clopote.
 - Verificare (teste): profilurile de aur ale Erelor 1–3 dau același venit; profilul startului barajului, sub `FULL`, dă 19,57B/s.
 
+- **[Verificatorul j6]** steagul `dam` se derivă din aceeași valoare curățată: `WorldConfig.sanitize(data.World) >= 2`, ca
+  lumea afișată (atributul `World`) și liniile închise să nu se poată contrazice.
 **j13a. Serverul pe unire: EconomyService și instantaneele.** Depinde de: j10, j11, j12.
 - `process` cu `assemble`, iar `processorSpeed` cu `joinWaiting`; liniile închise nu mai fac tick; scurgerea cu `drainOrder`.
 - `UseProcessor` → `useJoin`; `DropAt` → `dropJoin` și întoarce restul; vânzătorul refuză piesele (`part_to_relay`).
@@ -969,6 +976,7 @@ la granița CREWS / `DAM_START_COINS`.
 
 ### k: clientul. Fără owner, cu desene de împrumut, în afară de k9 și k12.
 
+- **[Verificatorul j6]** `dev world:N` refuză un N în afara 1..`WorldConfig.COUNT`.
 **k1. Clientul pornește după lume.** Depinde de: j9, j15.
 - `WorldSession`; `Bootstrap` așteaptă atributul `World` (cel mult 25 s, apoi 1), cu `TycoonState.world` copiat explicit și o
   gardă care îngheață starea. Camera și personajul pe `WorldMap.forWorld`, cu spawn-ul lumii.
@@ -978,6 +986,15 @@ la granița CREWS / `DAM_START_COINS`.
 - Verificare: sonda pe lumea 1, pe codul comis, dă aceleași texte; pe comutator, lumea 2 pornește fără erori, iar zidul și
   canalul opresc personajul.
 
+- **[Verificatorii j6 și j9] De făcut aici:**
+  - lumea ajunge la controllere explicit (`Init(deps.world)`), citită o dată de Bootstrap după `SaveLoaded`;
+  - testul textual „nicio citire a lumii la încărcare” se înlocuiește cu unul care cere ca în `src/Client` să nu existe
+    apeluri fără lume la accesoriile de lume în corpul unui modul. Primul caz e `DriftController.luau:61`;
+  - `DriftController` folosește `DriftMath.reachesFor(world, pads)` (regula serverului) și nu desenează darul cât
+    `DriftMath.hiddenAt(x, world)`, adică peste zid. Darul se arată căzând pe spuma deversorului;
+  - plutitorii spre plase pornesc de la `CatchFloat.SPAWN_X_BY_WORLD[w]` (x 880 la baraj, fața zidului). La fel decorul din
+    larg (`RiverRenderController`), care la baraj pornește de la piciorul deversorului (PLAN-HARTA §5), nu de la marginea
+    lacului. Piciorul zidului și spuma se desenează deasupra plutitorilor.
 **k2. Platformele, zonele, Overlay și ghidajul pe lume.** Depinde de: k1.
 - Cele 4 bucle din PadController; Overlay (refuzurile, `DROP_AT` cu rezerva de la DOCK); ZoneController (prima zonă a unei
   lumi fără gard); StationPanel; CeremonyController; GuideMath cu țintele lumii 1 doar în lumea 1; Sound și Dock; felinarele pe

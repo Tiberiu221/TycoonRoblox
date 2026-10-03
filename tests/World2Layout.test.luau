@@ -15,7 +15,6 @@ local HandRoutes = require("../src/Shared/Modules/HandRoutes")
 local WorldMap = require("../src/Shared/Modules/WorldMap")
 local DriftMath = require("../src/Shared/Modules/DriftMath")
 local CatchFloat = require("../src/Shared/Modules/CatchFloat")
-local RiverSim = require("../src/Shared/Modules/RiverSim")
 local StationConfig = require("../src/Shared/Config/StationConfig")
 
 type Rect = { x0: number, x1: number, y0: number, y1: number }
@@ -306,67 +305,11 @@ return function()
                     end
                 end
                 table.sort(xs)
-                local places: {
-                    {
-                        workerStand: Point,
-                        secondOffset: Point,
-                        processorIn: Point,
-                        processorOut: Point,
-                    }
-                } =
-                    {}
-                for _, pl in lines do
-                    table.insert(places, pl)
-                end
-                for _, j in joins do
-                    for _, at in j.inputIn do
-                        table.insert(places, {
-                            workerStand = j.workerStand,
-                            secondOffset = j.secondOffset,
-                            processorIn = at,
-                            processorOut = j.processorOut,
-                        })
-                    end
-                end
                 local want = {}
                 for i = 1, #xs - 1 do
                     local x = (xs[i] + xs[i + 1]) / 2
-                    local blocked = false
-                    for _, place in places do
-                        local w = place.workerStand
-                        for _, spot in
-                            {
-                                w,
-                                { x = w.x + place.secondOffset.x, y = w.y + place.secondOffset.y },
-                            }
-                        do
-                            if
-                                x - 15 < spot.x + 20
-                                and spot.x - 20 < x + 15
-                                and 1372 < spot.y
-                                and spot.y - 60 < 1414
-                            then
-                                blocked = true
-                            end
-                        end
-                        local pin, pout = place.processorIn, place.processorOut
-                        if
-                            (
-                                x - 15 < pin.x + 73
-                                and pin.x - 20 < x + 15
-                                and 1372 < pin.y
-                                and pin.y - 60 < 1414
-                            )
-                            or (
-                                x - 15 < pout.x + 20
-                                and pout.x - 73 < x + 15
-                                and 1372 < pout.y
-                                and pout.y - 60 < 1414
-                            )
-                        then
-                            blocked = true
-                        end
-                    end
+                    -- aceeasi regula ca TycoonConfig.streetLamps (oamenii pe loc si roabele lor, si la Relay)
+                    local blocked = TycoonConfig.lampBlocked(x, W)
                     if not blocked then
                         table.insert(want, x)
                         for _, hx in xs do
@@ -576,6 +519,9 @@ return function()
             end
             check.is_true(blocked(760, 860)) -- zidul, pe uscat
             check.is_true(blocked(2225, 950)) -- canalul de sub Relay
+            check.is_true(blocked(2225, 1200)) -- canalul, sub piata, pana la stavila
+            check.is_false(blocked(2225, 812)) -- puntea trece peste canal
+            check.is_false(blocked(2225, 1130)) -- piata Switch House trece peste canal
             check.is_true(blocked(1500, 600)) -- raul
             check.is_true(blocked(400, 600)) -- lacul
             check.is_false(blocked(300, 700)) -- pontonul, pe lac
@@ -634,11 +580,43 @@ return function()
             end
         )
 
+        test.case(
+            "de pe ce punti se scoate un dar, pe lumea profilului (regula serverului)",
+            function()
+                local everything: { [string]: boolean } = {}
+                for _, p in TycoonConfig.PADS do
+                    everything[p.id] = true
+                end
+                local function live(era: number): boolean
+                    return era <= 4 -- barajul pornit, ca dupa comutator
+                end
+                -- satul, cu toate clopotele: cele trei punti, ca in martor
+                check.equal(#DriftMath.reachesFor(1, everything), 3)
+                check.equal(#DriftMath.reachesFor(1, {}), 1) -- doar The Landing
+                -- barajul, azi (Era 4 nu e in joc): nicio punte
+                check.equal(#DriftMath.reachesFor(2, everything), 0)
+                -- barajul pornit: lacul si puntea barajului, taiate la zid (de pe zid nu se scoate)
+                local dam = DriftMath.reachesFor(2, everything, live)
+                check.equal(#dam, 2)
+                local wall = world.wall :: TycoonConfig.Box
+                check.equal(dam[1].x1, wall.x)
+                check.equal(dam[2].x0, wall.x + wall.w)
+                check.is_true(DriftMath.hiddenAt(760, 2))
+                check.is_false(DriftMath.hiddenAt(760, 1))
+                -- un profil din sat nu primeste niciodata puntile barajului; o lume stricata e satul
+                for _, span in DriftMath.reachesFor(1, everything, live) do
+                    check.is_true(span.x1 <= 5240 + DriftMath.REACH_MARGIN)
+                end
+                check.equal(#DriftMath.reachesFor("2", everything, live), 3)
+            end
+        )
+
         test.case("ce prind plasele barajului vine de la piciorul deversorului", function()
             check.equal(CatchFloat.SPAWN_X_BY_WORLD[1], CatchFloat.SPAWN_X)
             local spawn = CatchFloat.SPAWN_X_BY_WORLD[W]
             local wall = world.wall :: TycoonConfig.Box
-            check.is_true(spawn >= wall.x and spawn <= wall.x + wall.w)
+            check.equal(spawn, wall.x + wall.w) -- fata zidului, ca pe planseta aprobata (x 880)
+            check.equal(spawn, 880)
             for _, p in TycoonConfig.padsOfWorld(W) do
                 if isNet(p) then
                     check.is_true(CatchFloat.travel(p.x :: number, spawn) > 0)
@@ -646,17 +624,6 @@ return function()
             end
             -- in sat, fara argument, ca inainte
             check.equal(CatchFloat.travel(620), CatchFloat.travel(620, CatchFloat.SPAWN_X))
-        end)
-
-        test.case("raul lumii 2 duce aceleasi obiecte pana la marginea ei", function()
-            local cfg2 = RiverConfig.WORLDS[W] :: any
-            local objects = RiverSim.schedule(12345, 3, cfg2)
-            check.equal(#objects, #RiverSim.schedule(12345, 3, RiverConfig :: any)) -- determinist [D13]
-            for _, obj in objects do
-                local tEnd = (cfg2.WORLD_WIDTH + cfg2.OBJECT_WIDTH + 1) / obj.speed
-                check.equal(RiverSim.box(obj, cfg2, obj.spawnAt + tEnd), nil)
-                check.not_nil(RiverSim.box(obj, RiverConfig :: any, obj.spawnAt + tEnd))
-            end
         end)
     end)
 end

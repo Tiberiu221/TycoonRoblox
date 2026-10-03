@@ -19,6 +19,7 @@ local Workspace = game:GetService("Workspace")
 local ProfileStore = require(ServerStorage.ServerPackages.ProfileStore)
 local ProfileMigrate = require(ReplicatedStorage.Shared.Modules.ProfileMigrate)
 local AudioLevels = require(ReplicatedStorage.Shared.Modules.AudioLevels)
+local WorldConfig = require(ReplicatedStorage.Shared.Config.WorldConfig)
 local StreakMath = require(ReplicatedStorage.Shared.Modules.StreakMath)
 local TitleMath = require(ReplicatedStorage.Shared.Modules.TitleMath)
 local Analytics = require(script.Parent.Analytics)
@@ -812,7 +813,7 @@ local function onPlayerAdded(player: Player)
     -- [D60] ecranul de incarcare (ReplicatedFirst) il asteapta: pana aici, dupa o calatorie cu barca, profilul inca era
     -- in celalalt place
     -- [D70, pasul j4] lumea in care se incarca jocul (clientul o citeste la pornire); orice alta valoare inseamna satul
-    player:SetAttribute("World", if data.World == 2 then 2 else 1)
+    player:SetAttribute("World", WorldConfig.sanitize(data.World))
     player:SetAttribute("SaveLoaded", true)
     -- ATENTIE: se trimite DOAR jucatorul, niciodata tabelul de date.
     -- BindableEvent copiaza tabelele la trecerea prin el. Cand semnalul ducea si `data`,

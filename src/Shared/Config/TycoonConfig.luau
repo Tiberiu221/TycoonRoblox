@@ -824,7 +824,7 @@ TycoonConfig.SELLER_PLACES = {
     },
 } :: { [string]: SellerPlaces }
 -- [D70] Locurile fiecarei UNIRI (Relay-ul barajului), dupa linia ei. Nu sta in LINE_PLACES: n-are magazie, iar fiecare
--- piesa isi are intrarea si gramada. [pasul j7] Relay-ul, casa-pod de la capatul canalului (lumea 2, PLAN-HARTA §9):
+-- piesa isi are intrarea si gramada. Felinarele (lampBlocked) le ocolesc pe ale lumii lor. [pasul j7] Relay-ul, casa-pod de la capatul canalului (lumea 2, PLAN-HARTA §9):
 -- butoaiele si cablul intra pe stanga, curentul iese pe dreapta, spre podul cu stalpi.
 TycoonConfig.JOIN_PLACES = {
     grid = {
@@ -2609,14 +2609,15 @@ local function placesOfWorld<T>(
     local world = WorldConfig.sanitize(w)
     local out: { [string]: T } = {}
     for key, value in places do
-        if (worldOfKey[key] or 1) == world then
+        -- [verificator] o cheie fara linie sau vanzator cunoscut nu e a nimanui (un test cere ca toate sa fie cunoscute)
+        if worldOfKey[key] == world then
             out[key] = value
         end
     end
     return out
 end
 -- Locurile liniilor, ale unirilor si ale vanzatorilor unei lumi (aceleasi obiecte ca in LINE_PLACES / JOIN_PLACES /
--- SELLER_PLACES). Un loc fara linie cunoscuta e al lumii 1.
+-- SELLER_PLACES). Un loc fara linie cunoscuta nu e al niciunei lumi.
 function TycoonConfig.linePlacesOf(w: number?): { [string]: LinePlaces }
     return placesOfWorld(TycoonConfig.LINE_PLACES, worldOfLine, w)
 end
@@ -2702,7 +2703,8 @@ export type Lamp = { x: number, y: number, era: number }
 -- Acolo capul felinarului le-ar taia fata sau roaba oricum le-ai aseza in adancime, deci golul acela ramane fara
 -- felinar. Cutiile: capul felinarului x+-15, y 1372..1414; stalpul x+-6 pana la baza; omul 40x60, prins de talpi, cu
 -- roaba de 60x50 in fata lui (PersonView: celula 13, x2.5).
-local function lampHitsWorker(x: number, w: number): boolean
+-- [D70, dupa verificator] O SINGURA REGULA, publica: o citeste si testul de asezare al lumii 2.
+function TycoonConfig.lampBlocked(x: number, w: number?): boolean
     local function hits(bx0: number, by0: number, bx1: number, by1: number): boolean
         local head = x - 15 < bx1 and bx0 < x + 15 and 1372 < by1 and by0 < 1414
         local post = x - 6 < bx1 and bx0 < x + 6 and 1414 < by1 and by0 < TycoonConfig.LAMP_BASE_Y
@@ -2717,6 +2719,16 @@ local function lampHitsWorker(x: number, w: number): boolean
             if hits(spot.x - 20, spot.y - 60, spot.x + 20, spot.y) then
                 return true
             end
+        end
+        -- roabele: cine aduce o piesa o rastoarna la intrarea ei, Pylon Runner-ul incarca la iesire
+        for _, pin in union.inputIn do
+            if hits(pin.x - 20, pin.y - 60, pin.x + 73, pin.y) then
+                return true
+            end
+        end
+        local pout = union.processorOut
+        if hits(pout.x - 73, pout.y - 60, pout.x + 20, pout.y) then
+            return true
         end
     end
     for _, place in TycoonConfig.linePlacesOf(w) do
@@ -2741,9 +2753,16 @@ end
 function TycoonConfig.streetLamps(w: number?): { Lamp }
     local world = WorldConfig.sanitize(w)
     if world ~= 1 then
-        -- [D70] felinarele lumii 2 sunt scrise de mana in WORLDS[2] (pasul j7)
+        -- [D70] felinarele lumii 2 sunt scrise de mana in WORLDS[2] (pasul j7), trecute prin aceeasi regula: niciunul peste
+        -- un om care lucreaza pe loc sau peste roaba lui
         local other = worldOf(world)
-        return if other ~= nil and other.lamps ~= nil then other.lamps else {}
+        local kept: { Lamp } = {}
+        for _, lamp in if other ~= nil and other.lamps ~= nil then other.lamps else {} do
+            if not TycoonConfig.lampBlocked(lamp.x, world) then
+                table.insert(kept, lamp)
+            end
+        end
+        return kept
     end
     local out: { Lamp } = {}
     if not TycoonConfig.eraIsLive(3) then
@@ -2762,7 +2781,7 @@ function TycoonConfig.streetLamps(w: number?): { Lamp }
         table.sort(xs)
         for i = 1, #xs - 1 do
             local x = (xs[i] + xs[i + 1]) / 2
-            if not lampHitsWorker(x, world) then
+            if not TycoonConfig.lampBlocked(x, world) then
                 table.insert(out, { x = x, y = TycoonConfig.LAMP_BASE_Y, era = district.era })
             end
         end

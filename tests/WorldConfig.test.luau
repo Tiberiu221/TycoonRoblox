@@ -60,12 +60,66 @@ return function()
             check.equal(TycoonConfig.sellerPlacesOf(2).dock, nil)
         end)
 
+        test.case(
+            "fiecare loc e al unei linii sau al unui vanzator stiut; fiecare are loc in lumea lui",
+            function()
+                local StationConfig = require("../src/Shared/Config/StationConfig")
+                for line in TycoonConfig.LINE_PLACES do
+                    check.not_nil(table.find(StationConfig.LINE_ORDER_ALL, line))
+                end
+                for line in TycoonConfig.JOIN_PLACES do
+                    check.not_nil(table.find(StationConfig.LINE_ORDER_ALL, line))
+                    check.not_nil(StationConfig.LINES[line].inputs)
+                end
+                for seller in TycoonConfig.SELLER_PLACES do
+                    check.not_nil(table.find(StationConfig.SELLER_ORDER_ALL, seller))
+                end
+                -- fiecare linie a erelor scrise are locul ei, in lumea erei ei
+                for era, lines in StationConfig.ERA_LINES_ALL do
+                    local w = WorldConfig.worldOfEra(era)
+                    for _, line in lines do
+                        local isJoin = StationConfig.LINES[line].inputs ~= nil
+                        local places = if isJoin
+                            then TycoonConfig.joinPlacesOf(w)
+                            else TycoonConfig.linePlacesOf(w)
+                        check.not_nil(places[line])
+                    end
+                end
+                for _, seller in StationConfig.SELLER_ORDER_ALL do
+                    local found = 0
+                    for w = 1, WorldConfig.COUNT do
+                        if TycoonConfig.sellerPlacesOf(w)[seller] ~= nil then
+                            found += 1
+                        end
+                    end
+                    check.equal(found, 1)
+                end
+            end
+        )
+
+        test.case("raul lumii 1 e raul de azi, cheie cu cheie", function()
+            local RiverConfig = require("../src/Shared/Config/RiverConfig")
+            local one = RiverConfig.WORLDS[1] :: any
+            for key, value in RiverConfig :: any do
+                if key ~= "WORLDS" then
+                    check.is_true(one[key] == value)
+                end
+            end
+            for key in one do
+                check.not_nil((RiverConfig :: any)[key])
+            end
+        end)
+
         test.case("niciun modul nu citeste lumea jucatorului la incarcare", function()
             -- Atributul World il pune serverul inainte de SaveLoaded; un `require` care l-ar citi in corpul modulului ar
             -- prinde lumea de dinainte de profil (sau nimic). Se citeste doar din functii (randuri indentate).
             local files = luauFiles("src", {})
             check.is_true(#files > 100)
             for _, path in files do
+                -- scriptul de pornire al clientului citeste lumea o data, dupa SaveLoaded, si o da controllerelor (k1)
+                if string.find(path, "Bootstrap.client.luau", 1, true) ~= nil then
+                    continue
+                end
                 local src = fs.readFile(path)
                 for line in string.gmatch(src, "[^\n]+") do
                     if string.find(line, 'GetAttribute("World")', 1, true) ~= nil then

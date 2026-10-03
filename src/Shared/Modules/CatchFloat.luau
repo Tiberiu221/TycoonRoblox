@@ -33,9 +33,10 @@ CatchFloat.TURN_MAX = 220
 -- cat mai traieste un bustean dupa momentul lui: cel care trece pe langa o plasa plina are nevoie de mai mult
 CatchFloat.LINGER = math.max(CatchFloat.SINK, CatchFloat.PASS / CatchFloat.SPEED)
 
--- [D70, pasul j9] De unde vine ce prinde o plasa, pe lume: in sat de la marginea lumii; la baraj de la piciorul
--- deversorului (zidul, x 640-880): peste el nu trece nimic pe linia plaselor.
-CatchFloat.SPAWN_X_BY_WORLD = { CatchFloat.SPAWN_X, 830 } :: { number }
+-- [D70, pasul j9] De unde vine ce prinde o plasa, pe lume: in sat de la marginea lumii; la baraj de la fata zidului, unde
+-- iese apa deversorului (planseta aprobata in D74: x 880, din datele zidului): peste zid nu trece nimic pe linia plaselor.
+local damWall = (TycoonConfig.WORLDS[2] :: any).wall
+CatchFloat.SPAWN_X_BY_WORLD = { CatchFloat.SPAWN_X, damWall.x + damWall.w } :: { number }
 
 -- Cat dureaza drumul de la marginea lumii (sau `spawnX`) pana la plasa.
 function CatchFloat.travel(netX: number, spawnX: number?): number

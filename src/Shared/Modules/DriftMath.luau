@@ -14,6 +14,10 @@
 -- Media: 0.72*10 + 0.22*25 + 0.06*75 = 17.2 s de venit la fiecare 56 s, adica ~30% in plus pentru cine le prinde pe
 -- toate si ~15% pentru cine prinde jumatate. E o estimare; preturile NU se schimba dupa ea (simulatorul o doar afiseaza).
 local Prng = require(script and script.Parent.Prng or "./Prng")
+local TycoonConfig =
+    require(script and script.Parent.Parent.Config.TycoonConfig or "../Config/TycoonConfig")
+local WorldConfig =
+    require(script and script.Parent.Parent.Config.WorldConfig or "../Config/WorldConfig")
 
 local DriftMath = {}
 
@@ -124,6 +128,52 @@ function DriftMath.reaches(
         end
     end
     return out
+end
+
+-- [D70, pasul j9, dupa verificator] ZIDUL LUMII: la baraj darul trece peste zid (x 640-880) ascuns (clientul nu-l
+-- deseneaza acolo, ci il arata cazand pe deversor), deci de acolo nu se scoate. nil in sat.
+function DriftMath.hiddenSpan(world: any): Span?
+    local data = TycoonConfig.WORLDS[WorldConfig.sanitize(world)]
+    local wall = if data ~= nil then data.wall else nil
+    if wall == nil then
+        return nil
+    end
+    return { x0 = wall.x, x1 = wall.x + wall.w }
+end
+function DriftMath.hiddenAt(x: number, world: any): boolean
+    local hidden = DriftMath.hiddenSpan(world)
+    return hidden ~= nil and x >= hidden.x0 and x <= hidden.x1
+end
+
+-- [D70, pasul j9, dupa verificator] PUNTILE DE PE CARE SE POATE SCOATE UN DAR, pe lumea profilului: ale cartierelor
+-- deschise (era in joc si clopotul erei dinainte tras; Era 1 mereu), taiate la zidul lumii. Serverul (DriftService) si,
+-- de la pasul k1, clientul citesc aceeasi regula. `pads`: platformele cumparate; `eraIsLive`: cine e in joc (testele il
+-- dau, ca sa probeze barajul inainte de comutator).
+function DriftMath.reachesFor(
+    world: any,
+    pads: { [string]: boolean },
+    eraIsLive: ((number) -> boolean)?
+): { Span }
+    local w = WorldConfig.sanitize(world)
+    local live = eraIsLive or TycoonConfig.eraIsLive
+    local spans = DriftMath.reaches(TycoonConfig.deckSpans(w), function(era: number): boolean
+        if not live(era) then
+            return false
+        end
+        local bell = TycoonConfig.bellOf(era - 1)
+        return era == 1 or (bell ~= nil and pads[bell.id] == true)
+    end)
+    local hidden = DriftMath.hiddenSpan(w)
+    if hidden ~= nil then
+        for _, span in spans do
+            if span.x0 < hidden.x0 then
+                span.x1 = math.min(span.x1, hidden.x0)
+            else
+                span.x0 = math.max(span.x0, hidden.x1)
+            end
+        end
+    end
+    return spans
 end
 
 -- Intre ce momente se poate scoate: cat trece prin dreptul puntii (fara `span`, puntea din The Landing).
