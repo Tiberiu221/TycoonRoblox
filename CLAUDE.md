@@ -108,7 +108,7 @@ stylua/selene o prind. Rulează-le mereu pe toate, nu înlănțuite după o eroa
   bâlciul doar în 114983498774894); serverul Rojo al satului rulează detașat pe 34872 și trebuie repornit ca să citească
   o schimbare de proiect. Ce a rulat în Studio se vede în `~/Library/Logs/Roblox/*_last.log` (`CreatorOutput`, `open place`).
 
-## Stare (2026-10-03) [D74, pașii j1–j9]
+## Stare (2026-10-03) [D74, pașii j1–j15]
 
 **Barajul (lumea 2) e în date și în modulele pure, adormit; jocul viu e neschimbat.** Pașii, cu dependențe și verificări:
 `docs/PLAN-MOTOR-UNIRE.md` §16 (j1–j15, k1–k12, l1–l3); singurul commit care schimbă jocul viu e l3. D74: așezarea aprobată,
@@ -123,7 +123,19 @@ recomandările owner-ului luate (O1, provizoriu).
   Simulatorul verifică prețurile, ce dă barajul, rangurile și condițiile Erei 4 (`check_config_era4`, `check_era4_after`).
 - **În joc acum:** 11 descrieri de platforme erau tăiate cu „…” pe cartonaș; scurtate și măsurate cu lățimile Nunito
   (`tests/fonts/NunitoWidths.luau`, din `scripts/art/nunito_widths.py`).
-- **Urmează j10** (statusurile și porțile pe lume, pe server).
+- **Serverul pe lume (j10–j13):** `WorldMath` (poarta `allowed`, era fiecărui lucru, zonele pe lume, `bellBefore`,
+  `zoneSign` / `fenceText` = textul zonelor), refuzul „That's not on this map” la orice cerere a altei hărți; Dam Bell cere
+  4T/s (8T cu 2x Flow); capitolele 10–12 (`QuestConfig.chaptersOfWorld`, quest-ul de venit, `settleWorld`); `ChainState`
+  (starea lanțului din profil, pură); unirea la Relay în `EconomyService` (`assemble`, `dropJoin`, `DropAt` întoarce restul);
+  oamenii retrași; `CrewMath.unhired` / `stalledWelcome` (fereastra „AWAY 0”).
+- **Ridicarea (j14–j15):** `DamMath.build` / `preview` (pur: Last cart, quest-urile în perle, START + R, veteranii, darurile;
+  venitul de după = startul de aur 19,57B/s), `DamService` + remote-urile `DamPreview` / `BuildDam` / … + `DamController` pe
+  client (fără ecran încă), `DataService.SaveNow` (comun cu chitanțele Robux), `dev world N`, `dev dam [build]`.
+- **Comutatorul local:** `python3 scripts/era4_flip.py on|off|status` (nu se comite; un test îl prinde). Cu el pornit, pe o
+  copie, pică 36 de teste: adormirile de rescris la l3 și lipsurile k (lista în PLAN, la l3).
+- **Capcane noi:** `rojo serve` pica pe o legătură `Packages/Packages -> Packages` (ștearsă; caut-o întâi dacă serve nu
+  pornește). Proba j13 cu Studio e amânată: pluginul Rojo se reconectează doar la Connect.
+- **Urmează k1** (clientul pornește după lume), apoi k2–k12, arta A0–A4 (cu owner-ul) și l1–l3.
 
 ## Stare (2026-10-02) [D72]
 
