@@ -108,7 +108,7 @@ stylua/selene o prind. Rulează-le mereu pe toate, nu înlănțuite după o eroa
   bâlciul doar în 114983498774894); serverul Rojo al satului rulează detașat pe 34872 și trebuie repornit ca să citească
   o schimbare de proiect. Ce a rulat în Studio se vede în `~/Library/Logs/Roblox/*_last.log` (`CreatorOutput`, `open place`).
 
-## Stare (2026-10-03) [D74, pașii j1–j15]
+## Stare (2026-10-03) [D74, pașii j1–j15, k1–k11]
 
 **Barajul (lumea 2) e în date și în modulele pure, adormit; jocul viu e neschimbat.** Pașii, cu dependențe și verificări:
 `docs/PLAN-MOTOR-UNIRE.md` §16 (j1–j15, k1–k12, l1–l3); singurul commit care schimbă jocul viu e l3. D74: așezarea aprobată,
@@ -131,11 +131,22 @@ recomandările owner-ului luate (O1, provizoriu).
 - **Ridicarea (j14–j15):** `DamMath.build` / `preview` (pur: Last cart, quest-urile în perle, START + R, veteranii, darurile;
   venitul de după = startul de aur 19,57B/s), `DamService` + remote-urile `DamPreview` / `BuildDam` / … + `DamController` pe
   client (fără ecran încă), `DataService.SaveNow` (comun cu chitanțele Robux), `dev world N`, `dev dam [build]`.
+- **Clientul pe lume (k1–k11, fiecare cu notă „făcut” în PLAN §16):** clientul pornește după lume și îngheață la o stare a altei
+  lumi (k1); platformele, zonele, panoul pe lume (k2, `ChainHead` pe două coloane la baraj, k4); liniile barajului, Relay-ul
+  (`LineController.join`), copia stării (`StateCopy`, testată pe FULL), ghidajul pe lume (k3); textele și refuzurile Erei 4,
+  indiciile pe card înainte de E (`FlowMath.hintAt`, k4); contorul quest-urilor fără paranteze, pasul de venit (k5); drumul din
+  sat spre baraj (`damAvailable`, `TycoonConfig.beyond`, masa Dam Plans, k6); ecranul „Build the Dam” cu `Widgets.HoldButton`
+  (k7); reîncărcarea în lumea 2 prin `FerryService.Depart(player, trip)` (k8); filmul (`DamMath.frameAt`, `DamFilm`, provizoriu
+  până la A2, k9); ținutele și prenumele, Dam Town și „Your people” (k10); bâlciul pentru gazdele de după baraj (k11).
+- **Schimbări voite și în sat (D43/D40):** contorul listei fără paranteze; un quest pe o platformă încuiată n-are preț; la Piață și
+  Depou, refuzul „raw_only” e al lor, iar cardurile atelierelor și vânzătorilor spun unde merge marfa adusă greșit.
 - **Comutatorul local:** `python3 scripts/era4_flip.py on|off|status` (nu se comite; un test îl prinde). Cu el pornit, pe o
-  copie, pică 36 de teste: adormirile de rescris la l3 și lipsurile k (lista în PLAN, la l3).
+  copie, pică 11 teste: doar adormirile de rescris la l3 și marcajul comutatorului (lista în PLAN, la l3).
 - **Capcane noi:** `rojo serve` pica pe o legătură `Packages/Packages -> Packages` (ștearsă; caut-o întâi dacă serve nu
-  pornește). Proba j13 cu Studio e amânată: pluginul Rojo se reconectează doar la Connect.
-- **Urmează k1** (clientul pornește după lume), apoi k2–k12, arta A0–A4 (cu owner-ul) și l1–l3.
+  pornește). Proba j13 cu Studio e amânată: pluginul Rojo se reconectează doar la Connect. `check_requires` ia drept câmp
+  și un comentariu de forma `Modul.camp` (scrie altfel). Nunito n-are „→”.
+- **Urmează:** reparațiile verificatorilor k6–k11, k12 (pământul lumii 2, cu planșa A0 pentru owner), arta A0–A4 (aprobarea și
+  fiecare urcare cer owner-ul) și l1–l3.
 
 ## Stare (2026-10-02) [D72]
 
