@@ -1774,6 +1774,50 @@ return function()
                 end
             end
             check.is_true(flips <= 2)
+            -- [a noua runda] mers incet (0,25 grade pe cadru), cu locul si eticheta din cadrul trecut ca in GuideController: pe
+            -- telefoanele mici, pe orice latime de eticheta rupta, eticheta nu clipeste (cel mult cateva schimbari pe drum)
+            local worstFlips = 0
+            for _, size in { { 896, 517 }, { 917, 517 }, { 1033, 581 }, { 1100, 581 } } do
+                local w, h = size[1], size[2]
+                local bs = blockersFor(w, h, true)
+                for width = 240, 305, 5 do
+                    local half = (width + 24) / 2
+                    local prev: { x: number, y: number }? = nil
+                    local shown: boolean? = nil
+                    local changes = 0
+                    for deg = -180, 0, 0.25 do
+                        local px, py = natural(w, h, deg)
+                        local function qq(hh: number, bottom: number): GuideMath.EdgeQuery
+                            return {
+                                x = px,
+                                y = py,
+                                w = w,
+                                h = h,
+                                half = hh,
+                                top = 31,
+                                bottom = bottom,
+                                blockers = bs,
+                                margin = MARGIN,
+                                previous = prev,
+                            }
+                        end
+                        local x, y, label = GuideMath.edgeIndicator(
+                            qq(half, 53),
+                            qq(15, 0),
+                            if prev ~= nil then shown else nil
+                        )
+                        if shown ~= nil and label ~= shown then
+                            changes += 1
+                        end
+                        prev, shown = { x = x, y = y }, label
+                    end
+                    worstFlips = math.max(worstFlips, changes)
+                end
+            end
+            print(
+                `  [edgePlacement] cele mai multe schimbari eticheta/sageata pe un drum de 180 de grade: {worstFlips}`
+            )
+            check.is_true(worstFlips <= 6)
             -- o tinta aproape drept in sus ramane sus, cu eticheta, chiar cu eticheta cea mai lata (telefonul mic)
             local w, h = 1076, 605
             local _, uy, label = indicator(w, h, blockersFor(w, h, true), -94, { 177, 27 })

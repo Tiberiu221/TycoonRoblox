@@ -616,11 +616,12 @@ local function updateGuideVisuals()
             end
             edgeLabel.Text = goal.text
             edgeLabel.TextWrapped = wraps
-            edgeLabel.AutomaticSize = if wraps
-                then Enum.AutomaticSize.None
-                else Enum.AutomaticSize.X
+            edgeLabel.AutomaticSize = if wraps then Enum.AutomaticSize.Y else Enum.AutomaticSize.X
+            -- [a noua runda] 8 px de rezerva la desen (placa = edgeTextW + 24, cat socoteste `half`): sub UIScale Roblox poate
+            -- rupe textul cu o fractiune de pixel mai devreme decat masuratoarea; 8 px nu muta nicio rupere (un cuvant in plus
+            -- cere un spatiu si o litera, ~20 px). Si inaltimea creste dupa text, daca totusi iese un rand in plus.
             edgeLabel.Size = if wraps
-                then UDim2.fromOffset(edgeTextW + 2 * Theme.SPACE.sm, edgeLabelH)
+                then UDim2.fromOffset(edgeTextW + 2 * Theme.SPACE.sm + 8, edgeLabelH)
                 else UDim2.fromOffset(0, 30)
         end
         local labelH = edgeLabelH

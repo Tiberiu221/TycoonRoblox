@@ -1460,8 +1460,15 @@ Siluetele, schelele și zidul de aici sunt propunerea loturilor A1/A2. Nimic nu 
     lățime. Nu mai rămân orfani („…the Scrap” / „Shed”) și nici texte pe un rând într-o placă înaltă de două.
   - Pe cel mai mic telefon (917x517) eticheta n-are loc sus: atinge și cifrele, și bara de meniu. Când locul ei ar sta la peste
     60° de țintă, indicatorul arată doar săgeata (`GuideMath.edgeIndicator`, cu o bandă de 10° la revenire), iar linia NEXT
-    spune textul. Asta se întâmplă în 1,4% din așezări.
+    spune textul. Pe textele vii, cel mult ~2% din direcții; textul Relay al barajului (adormit), ~30% pe telefonul cel mai mic
+    (de scurtat la l3).
   - Testat pe șase ecrane, cu textele adevărate ale ghidajului; cea mai mare abatere e 59°.
+- **[A noua rundă]**
+  - **Capetele libere de pe inel** se calculează exact, ca intervale acoperite de fiecare panou pe fiecare latură, nu pe pași
+    de 4 px. Pe telefonul cel mai mic, un gol de câțiva pixeli era găsit sau ratat după faza pasului, iar eticheta clipea
+    (170 de schimbări pe un drum). Acum sunt cel mult 2, testat pe patru telefoane și pe lățimi de 240–305.
+  - **Când capătul ținut de histerezis trece pragul de 60°,** se încearcă întâi cel mai bun capăt, apoi abia doar săgeata.
+  - **Placa ruptă** are 8 px de rezervă la desen și crește în înălțime după text, contra rupturilor diferite sub UIScale.
 
 Totalul, ~92–97 de imagini și 3 sunete până se joacă Era 4 (PLAN-HARTA §7).
 
@@ -1482,6 +1489,11 @@ Totalul, ~92–97 de imagini și 3 sunete până se joacă Era 4 (PLAN-HARTA §7
 
 **l3. Comutatorul: singurul commit care schimbă jocul.** Depinde de: l1, l2.
 - `ENGINE_ERAS = 4` și `live = true` pe cele 23 de platforme.
+- **[Verificatorul A0/k12, a noua rundă] Înainte de comutare, textul sacului plin la Relay.** „Sack full — take the barrels and
+  cable to the Relay Station” (59 de litere) e prea lung pentru telefonul cel mai mic (917x517). Indicatorul de margine ar
+  arăta doar săgeata pe tot sfertul de sus-dreapta (~30% din direcții), iar linia NEXT îl taie. Ca să încapă și pe NEXT, se
+  scurtează sub ~48 de litere, de exemplu „Sack full — barrels and cable to the Relay”. Se adaugă apoi textele lumii 2
+  (`sackFullPart`, `guidePartTo`) în `GUIDE_TEXTS` din `tests/GuideMath.test.luau`.
 - **Testele de adormire, rescrise:** `ChainMath.test.luau:3214`, `FlowMath.test.luau:76` (devine 34) și `:374-383` / `:501`,
   `HandRoutes.test.luau:715`, `TycoonConfig.test.luau:101` / `:124` / `:1245-1262`.
 - **[Pasul j13a, remăsurată după verificatorul j13a] Harta comutatorului** (`python3 scripts/era4_flip.py on` pe o copie a

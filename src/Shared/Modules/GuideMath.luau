@@ -1039,7 +1039,6 @@ export type EdgeQuery = {
     previous: { x: number, y: number }?,
 }
 GuideMath.EDGE_GAP = 8
-GuideMath.EDGE_STEP = 4 -- pasul cautarii pe inel; capatul liber se rafineaza apoi prin injumatatire
 GuideMath.EDGE_KEEP = 12 -- cat de aproape de locul din cadrul trecut ca sa fie „acelasi capat”
 GuideMath.EDGE_BAND = math.rad(15) -- cat de mult mai rau poate arata capatul vechi inainte sa-l lase
 -- [verificatorul A0/k12, a saptea runda] eticheta indicatorului trece pe doua randuri peste latimea asta: textele lungi ale
@@ -1067,6 +1066,16 @@ function GuideMath.edgeIndicator(
     local limit = GuideMath.EDGE_LABEL_OFF - (if labelShown == false then math.rad(10) else 0)
     if GuideMath.edgeOff(x, y, q) <= limit then
         return x, y, true
+    end
+    -- [a noua runda] capatul tinut de histerezis a trecut de prag: intai cel mai bun capat, fara cadrul trecut (altfel
+    -- eticheta disparea un cadru, iar sageata sarea printr-un al treilea loc)
+    if q.previous ~= nil then
+        local fresh = table.clone(q)
+        fresh.previous = nil
+        local fx, fy = GuideMath.edgePlacement(fresh)
+        if GuideMath.edgeOff(fx, fy, q) <= limit then
+            return fx, fy, true
+        end
     end
     local ax, ay = GuideMath.edgePlacement(arrowOnly)
     return ax, ay, false
@@ -1156,35 +1165,50 @@ function GuideMath.edgePlacement(q: EdgeQuery): (number, number)
             elseif m == maxY - cy then W + H + maxX - cx
             else 2 * W + H + maxY - cy
     end
-    local function freeAt(d: number): boolean
-        local x, y = at(d)
-        return not blocked(x, y)
-    end
-    -- primul loc liber in fiecare sens, rafinat intre ultimul pas acoperit si primul liber (capatul nu tremura cu pasul)
-    local step = GuideMath.EDGE_STEP
-    local function search(sign: number): number?
-        local k = 1
-        while k * step <= P do
-            if freeAt(start + sign * k * step) then
-                local lo, hi = (k - 1) * step, k * step
-                for _ = 1, 8 do
-                    local mid = (lo + hi) / 2
-                    if freeAt(start + sign * mid) then
-                        hi = mid
-                    else
-                        lo = mid
-                    end
-                end
-                return start + sign * hi
-            end
-            k += 1
+    -- [a noua runda] INTERVALELE EXACTE acoperite de panouri, pe fiecare latura a inelului (nu esantioane pe pasi: un gol de
+    -- cativa pixeli era gasit sau ratat dupa faza pasului, iar indicatorul clipea). Deschise: capetele lor sunt libere.
+    local spans: { { number } } = {}
+    local function add(a: number, b: number, from: number, to: number)
+        local lo, hi = math.max(math.min(a, b), from), math.min(math.max(a, b), to)
+        if hi > lo then
+            table.insert(spans, { lo, hi })
         end
-        return nil
     end
-    local ahead, behind = search(1), search(-1)
-    if ahead == nil or behind == nil then
-        return cx, cy -- inelul e acoperit tot: ramane la locul lui (panourile stau oricum peste el)
+    for _, b in q.blockers do
+        local xLo, xHi = b.x - q.half - gap, b.x + b.w + q.half + gap
+        local yLo, yHi = b.y - q.bottom - gap, b.y + b.h + q.top + gap
+        if minY > yLo and minY < yHi then -- sus: x creste cu s
+            add(xLo - minX, xHi - minX, 0, W)
+        end
+        if maxX > xLo and maxX < xHi then -- dreapta: y creste cu s
+            add(W + yLo - minY, W + yHi - minY, W, W + H)
+        end
+        if maxY > yLo and maxY < yHi then -- jos: x scade cu s
+            add(W + H + maxX - xHi, W + H + maxX - xLo, W + H, 2 * W + H)
+        end
+        if minX > xLo and minX < xHi then -- stanga: y scade cu s
+            add(2 * W + H + maxY - yHi, 2 * W + H + maxY - yLo, 2 * W + H, P)
+        end
     end
+    -- portiunea acoperita care contine punctul de plecare, crescuta cat se ating intervalele (si peste coltul de la 0/P)
+    local lo, hi = start, start
+    local grew = true
+    while grew do
+        grew = false
+        for _, span in spans do
+            for _, shift in { -P, 0, P } do
+                local a, b = span[1] + shift, span[2] + shift
+                if a <= hi and b >= lo and (a < lo or b > hi) then
+                    lo, hi = math.min(lo, a), math.max(hi, b)
+                    grew = true
+                end
+            end
+        end
+        if hi - lo >= P then
+            return cx, cy -- inelul e acoperit tot: ramane la locul lui (panourile stau oricum peste el)
+        end
+    end
+    local ahead, behind = hi, lo
     local ax, ay = at(ahead)
     local bx, by = at(behind)
     -- cat de rau arata un capat spre tinta: unghiul dintre el si directia tintei, vazute din mijlocul ecranului
