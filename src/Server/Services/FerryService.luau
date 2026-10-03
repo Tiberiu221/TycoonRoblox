@@ -35,60 +35,76 @@ local deps: Deps? = nil
 
 FerryService.TIMEOUT = 20
 local IS_STUDIO = RunService:IsStudio()
--- cine e pe drum si de cand (os.clock): un al doilea RowUp in timpul drumului nu mai porneste nimic
-local departing: { [Player]: number } = {}
+-- cine e pe drum, de cand (os.clock) si cine afla daca n-a plecat: un al doilea RowUp in timpul drumului nu mai porneste
+-- nimic
+local departing: { [Player]: { at: number, onFailed: (Player, string) -> () } } = {}
 
 local function settle(player: Player, reason: string)
+    local trip = departing[player]
     departing[player] = nil
     DataService.MarkTeleporting(player, false)
-    local d = deps
-    if d ~= nil and player.Parent == Players then
-        d.OnFailed(player, reason)
+    if trip ~= nil and player.Parent == Players then
+        trip.onFailed(player, reason)
     end
 end
+
+-- [D70, pasul k8] Un drum altul decat al barcii: aceeasi plecare (profilul nu se inchide, MarkTeleporting, aceleasi motive),
+-- dar spre `destination` ("village" = acelasi place: reincarcarea in lumea 2 dupa baraj), cu datele lui de drum si cu alt
+-- ascultator al esecului (ecranul barajului, nu barca). nil = barca, ca inainte.
+export type Trip = {
+    destination: string?,
+    travel: { [string]: any }?,
+    onFailed: ((Player, string) -> ())?,
+}
 
 local function reasonOf(result: Enum.TeleportResult): string
     return if result == Enum.TeleportResult.Flooded then "busy" else "failed"
 end
 
 -- Porneste drumul. Raspunsul vine ca teleport (reusit) sau ca OnFailed (motivul).
-function FerryService.Depart(player: Player)
+function FerryService.Depart(player: Player, trip: Trip?)
     local d = deps
     if d == nil or departing[player] ~= nil then
         return
     end
+    local destination = if trip ~= nil and trip.destination ~= nil
+        then trip.destination
+        else d.Destination
+    local onFailed = if trip ~= nil and trip.onFailed ~= nil then trip.onFailed else d.OnFailed
     if IS_STUDIO then
-        d.OnFailed(player, "studio")
+        onFailed(player, "studio")
         return
     end
     local places = PlaceConfig.forUniverse(game.GameId)
     local target: number? = nil
     if places ~= nil then
-        target = if d.Destination == "fair" then places.fair else places.village
+        target = if destination == "fair" then places.fair else places.village
     end
     if target == nil then
-        d.OnFailed(player, "closed")
+        onFailed(player, "closed")
         return
     end
     local data = DataService.Get(player)
     if data == nil then
-        d.OnFailed(player, "no_profile")
+        onFailed(player, "no_profile")
         return
     end
     local startedAt = os.clock()
-    departing[player] = startedAt
+    departing[player] = { at = startedAt, onFailed = onFailed }
     local onDepart = d.OnDepart
     if onDepart ~= nil then
         onDepart(player)
     end
     DataService.MarkTeleporting(player, true)
-    if d.Destination == "fair" and not data.Firsts.FirstRide then
+    if destination == "fair" and not data.Firsts.FirstRide then
         data.Firsts.FirstRide = true
         Analytics.FairStep(player, "FirstRide")
     end
     local options = Instance.new("TeleportOptions")
     local travel = d.TravelData
-    if travel ~= nil then
+    if trip ~= nil and trip.travel ~= nil then
+        options:SetTeleportData(trip.travel)
+    elseif travel ~= nil then
         options:SetTeleportData(travel(player))
     end
     local placeId = target :: number
@@ -96,12 +112,13 @@ function FerryService.Depart(player: Player)
         TeleportService:TeleportAsync(placeId, { player }, options)
     end)
     if not ok then
-        warn(`[Ferry] {player.Name} n-a plecat spre {d.Destination}: {err}`)
+        warn(`[Ferry] {player.Name} n-a plecat spre {destination}: {err}`)
         settle(player, "failed")
         return
     end
     task.delay(FerryService.TIMEOUT, function()
-        if departing[player] == startedAt then
+        local now = departing[player]
+        if now ~= nil and now.at == startedAt then
             warn(`[Ferry] {player.Name}: teleportul n-a pornit in {FerryService.TIMEOUT} s`)
             settle(player, "timeout")
         end

@@ -36,6 +36,7 @@ export type Deps = {
         DamBuilt: RemoteEvent,
         DamRejected: RemoteEvent,
         DamFilmSeen: RemoteEvent,
+        DamReloadFailed: RemoteEvent, -- [D70, pasul k8]
     },
     OnToast: (string, Color3?) -> (),
     -- cine asculta (ecranul, k7): chitanta noua sau motivul; ridicarea gata
@@ -43,6 +44,8 @@ export type Deps = {
     OnBuilt: ((Receipt) -> ())?,
     -- [D70, pasul k7] ecranul spune refuzul unei ridicari pe randul lui (altfel, un toast)
     OnRejected: ((string) -> ())?,
+    -- [D70, pasul k8] reincarcarea in lumea 2 n-a plecat (motivele barcii)
+    OnReloadFailed: ((string) -> ())?,
 }
 local deps: Deps? = nil
 local lastPreview: Receipt? = nil
@@ -122,6 +125,8 @@ function DamController.Build(): boolean
     return true
 end
 
+-- [D70, pasul k8] dupa film (k9; pana atunci, dupa ridicare): serverul noteaza filmul vazut si reincarca jocul in lumea 2.
+-- O cerere repetata (dupa un drum care n-a plecat) incearca din nou.
 function DamController.FilmSeen()
     local d = deps
     if d ~= nil then
@@ -161,6 +166,15 @@ function DamController.Init(d: Deps)
         -- „changed”: monedele de pe ecran nu mai sunt cele adevarate, deci o chitanta noua
         if reason == "changed" then
             DamController.RequestPreview()
+        end
+    end)
+    d.Remotes.DamReloadFailed.OnClientEvent:Connect(function(reason: unknown)
+        local why = if typeof(reason) == "string" then reason else "failed"
+        local onFailed = d.OnReloadFailed
+        if onFailed ~= nil then
+            onFailed(why)
+        else
+            d.OnToast(Strings.damReloadFailed(why), Theme.COLOR.warn)
         end
     end)
     d.Remotes.DamBuilt.OnClientEvent:Connect(function(raw: unknown)

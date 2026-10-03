@@ -85,7 +85,8 @@ local REMOTE_NAMES = {
     "BuildDam", -- C->S {expectedKeep}: ridica barajul; `expectedKeep` = monedele cu care pornesti, din previzualizare
     "DamBuilt", -- S->C {receipt}: barajul e ridicat si salvat (clientul porneste filmul, apoi reincarcarea, k7-k8)
     "DamRejected", -- S->C {reason}: "soon" | "bell" | "built" | "settling" | "changed" | "busy" | "no_profile" | "save"
-    "DamFilmSeen", -- C->S: filmul s-a vazut (sau s-a sarit); nu mai porneste singur
+    "DamFilmSeen", -- C->S: filmul s-a vazut (sau s-a sarit); nu mai porneste singur. [k8] Si: du-ma in lumea 2 (reincarcarea)
+    "DamReloadFailed", -- S->C {reason}: [D70, pasul k8] reincarcarea in lumea 2 n-a plecat (motivele barcii)
 }
 
 local Net = {}

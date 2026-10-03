@@ -715,6 +715,7 @@ safeInit("DamController", function()
             DamBuilt = Net.Get("DamBuilt"),
             DamRejected = Net.Get("DamRejected"),
             DamFilmSeen = Net.Get("DamFilmSeen"),
+            DamReloadFailed = Net.Get("DamReloadFailed"), -- [D70, pasul k8]
         },
         OnToast = function(text: string, color: Color3?)
             HUDController.Toast(text, color)
@@ -722,6 +723,7 @@ safeInit("DamController", function()
         OnPreview = DamScreen.OnPreview,
         OnBuilt = DamScreen.OnBuilt,
         OnRejected = DamScreen.OnRejected,
+        OnReloadFailed = DamScreen.OnReloadFailed,
     })
 end)
 safeInit("QuestController", function()

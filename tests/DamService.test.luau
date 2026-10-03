@@ -122,5 +122,34 @@ return function()
             check.is_true(has(dam, "DamService.Preview(player)"))
             check.is_true(has(dam, "DamService.Build(player, receipt.coinsAfter)"))
         end)
+        -- [D70, pasul k8] dupa ridicare (si film, la k9): acelasi place, harta noua, cu drumul barcii
+        test.case(
+            "reincarcarea in lumea 2: drumul barcii, spre acelasi place, cu raspunsul ei",
+            function()
+                local ferry = fs.readFile("src/Server/Services/FerryService.luau")
+                check.is_true(
+                    has(ferry, "function FerryService.Depart(player: Player, trip: Trip?)")
+                )
+                check.is_true(has(ferry, "trip.destination"))
+                check.is_true(has(ferry, "trip.onFailed"))
+                check.is_true(has(ferry, "trip.travel"))
+                -- un drum esuat raspunde celui care l-a cerut (ecranul barajului, nu barca)
+                check.is_true(has(ferry, "trip.onFailed(player, reason)"))
+                local service = fs.readFile("src/Server/Services/DamService.luau")
+                local film = string.match(service, "function DamService%.FilmSeen%(.-\nend") or ""
+                check.is_true(has(film, "data.World ~= 1"))
+                check.is_true(has(film, "reload(player)"))
+                local boot = fs.readFile("src/Server/Bootstrap.server.luau")
+                check.is_true(has(boot, 'destination = "village"'))
+                check.is_true(has(boot, 'Net.Get("DamReloadFailed"):FireClient(p, reason)'))
+                local client = fs.readFile("src/Client/Controllers/DamController.luau")
+                check.is_true(has(client, "DamReloadFailed.OnClientEvent"))
+                local screen = fs.readFile("src/Client/Controllers/DamScreen.luau")
+                check.is_true(has(screen, "TeleportService:SetTeleportGui(travelCard())"))
+                -- in Studio barca nu pleaca: ecranul spune ce sa faci, fara „Try again”
+                local Strings = require("../src/Shared/Config/Strings")
+                check.is_true(has(Strings.damReloadFailed("studio"), "Stop"))
+            end
+        )
     end)
 end

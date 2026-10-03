@@ -1245,6 +1245,13 @@ la granița CREWS / `DAM_START_COINS`.
   place; cartonașul „THE DAM” ca TeleportGui.
 - Verificare: sonda pe barcă, identică. Teleportul real se probează doar pe staging (l2).
 
+- **k8 (făcut):** `FerryService.Depart(player, trip?)`: fără `trip`, barca de azi, neschimbată; cu `trip` (`destination`,
+  `travel`, `onFailed`), același drum spre alt loc. După ridicare, ecranul spune „The Dam is built!”, apoi (după 1,5 s; la k9,
+  după film) pune cartonașul „THE DAM” ca TeleportGui (îl păstrează Loading la sosire, până se construiește harta) și trimite
+  `DamFilmSeen`; serverul notează filmul și, în lumea 2, trimite jucătorul în același place (`Reload` în `Bootstrap.server`).
+  Un drum care n-a plecat vine pe `DamReloadFailed`: „Try again” (aceeași cerere), iar în Studio (unde barca nu pleacă)
+  „press Stop, then Play”. Teleportul real se probează doar pe staging (l2).
+
 **k9. Filmul.** Depinde de: k8. Owner: stilul și lungimea (O1, luate ca recomandate), plus arta filmului.
 - `DamMath.frameAt(t)` pur, cu teste; `VillageDiorama` se mută în `Client/UI` (`check_requires` pe ambele proiecte);
   `MusicController.Play`; mersul se oprește; `ReducedMotionEnabled`; Skip de la secunda 3 la prima vizionare; comanda de sondă

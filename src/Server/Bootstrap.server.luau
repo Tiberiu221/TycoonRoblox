@@ -152,6 +152,16 @@ DamService.Init({
         StationService.Invalidate(player)
     end,
     PushState = NetServer.PushState,
+    -- [D70, pasul k8] dupa film: acelasi place, harta noua; cartonasul „THE DAM” il pune clientul (SetTeleportGui)
+    Reload = function(player: Player)
+        FerryService.Depart(player, {
+            destination = "village",
+            travel = { from = "dam" },
+            onFailed = function(p: Player, reason: string)
+                Net.Get("DamReloadFailed"):FireClient(p, reason)
+            end,
+        })
+    end,
 })
 
 -- Consola de dezvoltare se conecteaza doar in Studio; verificarea e in DevService

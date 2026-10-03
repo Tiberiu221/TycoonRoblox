@@ -250,6 +250,17 @@ Strings.DAM_CLOSE = "Close"
 Strings.DAM_HOLD_HINT = "Hold the button to build. Not yet costs nothing."
 Strings.DAM_COUNTING = "Counting your village…"
 Strings.DAM_SAVING = "Saving…"
+-- [D70, pasul k8] dupa ridicare, clientul se reincarca in lumea 2 (acelasi place); cartonasul din timpul drumului
+Strings.DAM_OPENING = "Opening the Dam…"
+Strings.DAM_TRY_AGAIN = "Try again"
+Strings.DAM_CARD_TITLE = "THE DAM"
+Strings.DAM_CARD_SUB = "Your people built this"
+function Strings.damReloadFailed(reason: string): string
+    if reason == "studio" then
+        return "In Studio: press Stop, then Play, to open the Dam"
+    end
+    return "The Dam didn't open yet. Try again"
+end
 -- [D70, verificatorul j10] zona unei alte harti (barajul, vazut din sat), cand era ei e in joc: nu se deschide cu niciun
 -- clopot si nu mai "vine"; spune doar unde se ridica [D40, D73]
 function Strings.zoneAway(zoneName: string): string

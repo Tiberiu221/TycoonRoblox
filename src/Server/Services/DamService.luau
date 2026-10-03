@@ -24,6 +24,8 @@ export type Deps = {
     Settled: (Player) -> boolean, -- StationService.Settled: plata de cand ai lipsit e facuta
     Invalidate: (Player) -> (), -- cache-urile starii (PadService si StationService)
     PushState: ((Player) -> ())?,
+    -- [D70, pasul k8] reincarcarea in lumea 2 (FerryService.Depart spre acelasi place, cu cartonasul „THE DAM”)
+    Reload: ((Player) -> ())?,
 }
 local deps: Deps? = nil
 
@@ -111,14 +113,25 @@ function DamService.Build(player: Player, expectedKeep: number): (DamMath.Receip
     return receipt, nil
 end
 
--- Filmul s-a vazut (sau s-a sarit): la reincarcare nu mai porneste singur.
+-- Filmul s-a vazut (sau s-a sarit): la reincarcare nu mai porneste singur. [D70, pasul k8] Apoi clientul, construit pentru
+-- satul vechi, se reincarca in lumea 2: acelasi drum ca barca (salvarea e deja facuta la ridicare). O cerere repetata
+-- (dupa un drum care n-a plecat) incearca din nou; cine e deja in lumea 2 cu harta ei nu mai are de ce sa plece.
 function DamService.FilmSeen(player: Player)
     local data = DataService.Get(player)
-    if data == nil or data.Firsts.DamBuilt ~= true or data.Firsts.DamFilmSeen then
+    if data == nil or data.Firsts.DamBuilt ~= true then
         return
     end
-    data.Firsts.DamFilmSeen = true
-    Analytics.DamStep(player, "DamFilmSeen")
+    if not data.Firsts.DamFilmSeen then
+        data.Firsts.DamFilmSeen = true
+        Analytics.DamStep(player, "DamFilmSeen")
+    end
+    local d = deps
+    local reload = if d ~= nil then d.Reload else nil
+    -- doar clientul construit pe satul vechi o cere (cel din lumea 2 n-are masa Dam Plans); o cerere in plus il reincarca
+    -- doar pe el, cu limita de rata a barajului (NetServer)
+    if reload ~= nil and data.World ~= 1 then
+        reload(player)
+    end
 end
 
 function DamService.Init(d: Deps)
