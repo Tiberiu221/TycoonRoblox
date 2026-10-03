@@ -101,7 +101,9 @@ function NetService.Collect(player: Player, padId: string): (boolean, string?)
     if net == nil then
         return false, "no_net"
     end
-    -- [D70, pasul j10] plasele altei harti raman in profil, dar nu se golesc de aici
+    -- [D70, pasul j10] plasele altei harti raman in profil, dar nu se golesc de aici. Clientul nu primeste un raspuns (ca la
+    -- no_net): un client corect nu le deseneaza, deci e o cursa de dupa ridicarea barajului. Ce era in ele il vinde „Last
+    -- cart” la ridicare (pasul j14), apoi raman goale, ca amintire.
     local owner = TycoonConfig.byId[padId]
     if owner ~= nil and not WorldMath.allowed(data.World, owner.era) then
         return false, "closed"

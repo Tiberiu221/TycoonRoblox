@@ -602,7 +602,8 @@ function VillageDiorama.Show(village: VillageLook.Snapshot)
         end
     end
 
-    for _, pad in TycoonConfig.PADS do
+    -- [D70, verificatorul j10] macheta e a satului de pe rau (lumea 1): platformele barajului au locuri pe alta harta
+    for _, pad in TycoonConfig.padsOfWorld(1) do
         if not pad.live or pad.x == nil or pad.y == nil then
             continue -- erele care nu sunt inca in joc n-au lume construita
         end

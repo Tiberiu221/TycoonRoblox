@@ -9,8 +9,8 @@ local TweenService = game:GetService("TweenService")
 
 local Assets = require(ReplicatedStorage.Shared.Config.Assets)
 local RiverConfig = require(ReplicatedStorage.Shared.Config.RiverConfig)
-local Strings = require(ReplicatedStorage.Shared.Config.Strings)
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
+local WorldMath = require(ReplicatedStorage.Shared.Modules.WorldMath)
 local Theme = require(script.Parent.Parent.UI.Theme)
 local Widgets = require(script.Parent.Parent.UI.Widgets)
 
@@ -41,16 +41,6 @@ local EASE = TweenInfo.new(1.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 local FENCE_TOP = RiverConfig.PLOT.y
 local FENCE_BOTTOM = RiverConfig.PLOT.y + RiverConfig.PLOT.h
 
--- Clopotul care deschide zona unei ere: platforma cu motivul D a erei dinainte.
-local function bellNameBefore(era: number): string
-    for _, p in TycoonConfig.PADS do
-        if p.era == era - 1 and p.motive == "D" then
-            return p.name
-        end
-    end
-    return "next Bell"
-end
-
 -- O zona are ce juca in ea doar daca era ei are platforme `live`.
 local function isBuilt(era: number): boolean
     for _, p in TycoonConfig.PADS do
@@ -74,11 +64,9 @@ function ZoneController.Apply(zones: { [string]: string })
         local open = status == "open"
         local built = isBuilt(zone.era)
         -- deschisa si construita: nu mai e nimic de anuntat; nefacuta inca in joc: "coming soon", inchisa sau deschisa
-        -- [D73: "The Dam — opens with the Works Bell" mintea, clopotul spune doar ca vine]; facuta si inchisa: ce o deschide
-        view.sign.Text = if not built
-            then zone.soon or Strings.zoneSoon(zone.name)
-            elseif not open then Strings.zoneLocked(zone.name, bellNameBefore(zone.era))
-            else ""
+        -- [D73: "The Dam — opens with the Works Bell" mintea, clopotul spune doar ca vine]; facuta si inchisa: ce o deschide.
+        -- [D70] Regula e in WorldMath.zoneSign (si barajul vazut din sat, dupa ce Era 4 intra in joc). Lumea vine la k1.
+        view.sign.Text = WorldMath.zoneSign(zone, status, nil)
         view.sign.Visible = view.sign.Text ~= ""
         -- panoul creste dupa text: "The Wire Works — opens with the Mill Bell" are 41 de litere, adica doua randuri
         -- la latimea asta (fontul de pixeli are 0.56 em pe litera) [CLAUDE.md, capcana textului care iese din cutie]

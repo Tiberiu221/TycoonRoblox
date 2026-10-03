@@ -4492,6 +4492,98 @@ return function()
             end
         end
 
+        -- [verificatorul j12] profilul unei stari de aur a Erelor 1-2: gaterul, taverna, forja si Moara din caz, platformele
+        -- doar dupa caz (traista mare, Forge, roata de apa, cuptorul), plasele pe index. Fara platforme de meserie: oamenii
+        -- vin doar din Hands, ca in starea de aur.
+        local function profileOf(
+            g: any,
+            sack: boolean,
+            forgeOwned: boolean,
+            wheel: boolean,
+            furnace: boolean
+        ): any
+            local pads: { [string]: boolean } = {}
+            pads.bigger_sack = sack or nil
+            pads.workshop = forgeOwned or nil
+            pads.water_wheel = wheel or nil
+            pads.copper_furnace = furnace or nil
+            local nets: { [string]: any } = {}
+            for i, level in g.nets do
+                pads[netPads[i]] = true
+                nets[netPads[i]] = { level = level }
+            end
+            local data: any = {
+                World = 1,
+                Pads = pads,
+                Index = {},
+                Rebirths = 0,
+                Purchases = { passes = {} },
+                Hands = {},
+                Crews = {},
+                Stations = {
+                    saw = { level = g.saw },
+                    dock = { level = g.dock },
+                    forge = { level = g.forge },
+                    foundry = { level = g.foundry or 1 },
+                    furnace = { level = g.furnaceLevel or 1 },
+                    market = { level = g.market or 1 },
+                    nets = nets,
+                },
+            }
+            hands(g.crews :: any, data.Hands)
+            for role, spec in g.crews :: any do
+                data.Crews[role] = { tier = spec[2] }
+            end
+            return data
+        end
+
+        for _, g in GOLDEN do
+            test.case(`profilul de aur, Era 1: {g.name}`, function()
+                local data = profileOf(g, g.sack, g.forgeOwned, false, false)
+                check.equal(ChainMath.income(ChainState.from(data, data.Pads)), g.income)
+            end)
+        end
+
+        for _, g in GOLDEN_ERA2 do
+            test.case(`profilul de aur, Era 2: {g.name}`, function()
+                local data = profileOf(g, true, true, g.wheel, g.furnace)
+                check.equal(ChainMath.income(ChainState.from(data, data.Pads)), g.income)
+            end)
+        end
+
+        test.case(
+            "o platforma de meserie cumparata fara om numara un om, doar in lumea ei",
+            function()
+                local function profile(world: number, pads: { [string]: boolean }): any
+                    return {
+                        World = world,
+                        Pads = pads,
+                        Index = {},
+                        Rebirths = 0,
+                        Purchases = { passes = {} },
+                        Hands = {},
+                        Crews = {},
+                        Stations = { nets = { first_net = { level = 1 } } },
+                    }
+                end
+                -- in sat: fantoma „Hire Porter” are un om (deltele de pe cartonas), iar venitul il simte
+                local village = profile(1, { first_net = true, hire_porter = true })
+                local st = ChainState.from(village, village.Pads)
+                check.equal(st.crews.porter.count, 1)
+                local without = profile(1, { first_net = true })
+                check.equal(ChainState.from(without, without.Pads).crews.porter.count, 0)
+                -- la baraj, platforma satului nu mai aduce pe nimeni
+                local away = profile(2, { first_net = true, hire_porter = true })
+                check.equal(ChainState.from(away, away.Pads, ChainMath.FULL).crews.porter.count, 0)
+                -- iar platforma unei meserii a barajului, da
+                local dam = profile(2, { hire_cable_collector = true })
+                check.equal(
+                    ChainState.from(dam, dam.Pads, ChainMath.FULL).crews.cableCollector.count,
+                    1
+                )
+            end
+        )
+
         for _, g in GOLDEN_ERA3 do
             test.case(`profilul de aur, Era 3: {g.name}`, function()
                 -- profilul echivalent cu starea de aur (golden_chain.build_era3): plasele cu nivelurile lor, gaterul si

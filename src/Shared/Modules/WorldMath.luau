@@ -6,6 +6,7 @@ local FlowConfig =
     require(script and script.Parent.Parent.Config.FlowConfig or "../Config/FlowConfig")
 local StationConfig =
     require(script and script.Parent.Parent.Config.StationConfig or "../Config/StationConfig")
+local Strings = require(script and script.Parent.Parent.Config.Strings or "../Config/Strings")
 local TycoonConfig =
     require(script and script.Parent.Parent.Config.TycoonConfig or "../Config/TycoonConfig")
 local WorldConfig =
@@ -67,6 +68,17 @@ for _, p in TycoonConfig.PADS do
     end
 end
 
+-- [D70, verificatorul j10] Clopotul pe care un jucator din `world` il asteapta inaintea erei `era`: nimic pentru prima era a
+-- lumii lui (Dam Town n-asteapta Works Bell-ul sunat in satul vechi), altfel clopotul erei dinainte. Din sat, zona
+-- barajului asteapta tot Works Bell. Il citesc zonele, iar pe client (pasul k2) ruinele si gardul.
+function WorldMath.bellBefore(era: number, world: any): TycoonConfig.Pad?
+    if era == WorldConfig.FIRST_ERA[WorldConfig.sanitize(world)] then
+        return nil
+    end
+    local id = zoneBell[era]
+    return if id ~= nil then TycoonConfig.byId[id] else nil
+end
+
 -- [D70, pasul j10] Zonele LUMII jucatorului: "open" | "locked". Prima zona a unei lumi e deschisa (Landing in sat, Dam
 -- Town la baraj); celelalte, cu clopotul erei dinainte. O zona a altei lumi (zona barajului din sat) ramane incuiata cat
 -- era ei e in joc: barajul se ridica pe alta harta. Pana atunci se deschide cu clopotul, ca azi, si scrie „coming soon”.
@@ -80,15 +92,65 @@ function WorldMath.zoneStatuses(
     local live = eraIsLive or TycoonConfig.eraIsLive
     local out: { [string]: string } = {}
     for _, zone in TycoonConfig.zonesOf(w) do
-        local bell = zoneBell[zone.era]
-        local open = zone.era == WorldConfig.FIRST_ERA[w]
-            or (bell ~= nil and pads[bell] == "bought")
+        local bell = WorldMath.bellBefore(zone.era, w)
+        local open = if bell == nil
+            then zone.era == WorldConfig.FIRST_ERA[w]
+            else pads[bell.id] == "bought"
         if WorldConfig.worldOfEra(zone.era) ~= w and live(zone.era) then
             open = false
         end
         out[zone.id] = if open then "open" else "locked"
     end
     return out
+end
+
+-- [D70, verificatorul j10] CE SCRIE O ZONA: panoul de la gardul ei (ZoneController) si textul care pluteste cand te apropii
+-- de gard (Overlay). O singura regula, ca cele doua sa nu se contrazica [D40]:
+--   * zona altei harti (barajul din sat): cat era ei nu e in joc, "coming soon" (D73); dupa, unde se ridica, fara clopot;
+--   * o era care nu e inca in joc: "coming soon", deschisa sau inchisa;
+--   * inchisa: clopotul care o deschide; deschisa si facuta: nimic (panoul dispare).
+-- `world` e lumea jucatorului (pe client, din pasul k1; azi satul); `eraIsLive` il dau testele.
+local function zoneText(
+    zone: TycoonConfig.Zone,
+    open: boolean,
+    world: any,
+    eraIsLive: ((number) -> boolean)?,
+    lockedText: (string) -> string
+): string
+    local live = eraIsLive or TycoonConfig.eraIsLive
+    local w = WorldConfig.sanitize(world)
+    if WorldConfig.worldOfEra(zone.era) ~= w and live(zone.era) then
+        return Strings.zoneAway(zone.name)
+    end
+    if not live(zone.era) then
+        return zone.soon or Strings.zoneSoon(zone.name)
+    end
+    if open then
+        return ""
+    end
+    local bell = WorldMath.bellBefore(zone.era, w)
+    return lockedText(if bell ~= nil then bell.name else "next Bell")
+end
+
+-- Panoul zonei; "" = fara panou.
+function WorldMath.zoneSign(
+    zone: TycoonConfig.Zone,
+    status: string?,
+    world: any,
+    eraIsLive: ((number) -> boolean)?
+): string
+    return zoneText(zone, status == "open", world, eraIsLive, function(bell: string): string
+        return Strings.zoneLocked(zone.name, bell)
+    end)
+end
+
+-- Textul de la gardul unei zone inchise, cand te apropii.
+function WorldMath.fenceText(
+    zone: TycoonConfig.Zone,
+    world: any,
+    eraIsLive: ((number) -> boolean)?
+): string
+    return zoneText(zone, false, world, eraIsLive, Strings.refuseZoneLocked)
 end
 
 return WorldMath

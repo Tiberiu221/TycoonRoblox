@@ -27,6 +27,7 @@ local ChainMath = require(ReplicatedStorage.Shared.Modules.ChainMath)
 local HandRoutes = require(ReplicatedStorage.Shared.Modules.HandRoutes)
 local ModernMath = require(ReplicatedStorage.Shared.Modules.ModernMath)
 local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
+local WorldMath = require(ReplicatedStorage.Shared.Modules.WorldMath)
 local CeremonyController = require(script.Parent.CeremonyController)
 local GuideController = require(script.Parent.GuideController)
 local HUDController = require(script.Parent.HUDController)
@@ -580,13 +581,9 @@ local function checkProximityRefusals()
             atFence = true
             if now - lastZoneRefusalAt > PROXIMITY_COOLDOWN then
                 lastZoneRefusalAt = now
-                local bell = TycoonConfig.bellOf(zone.era - 1)
-                -- [D73] o era care nu e inca in joc nu se deschide cu niciun clopot: spune doar ca vine [D40]
-                local text = if not TycoonConfig.eraIsLive(zone.era)
-                    then zone.soon or Strings.zoneSoon(zone.name)
-                    else Strings.refuseZoneLocked(
-                        if bell ~= nil then bell.name else "next Bell"
-                    )
+                -- [D73] o era care nu e inca in joc nu se deschide cu niciun clopot: spune doar ca vine [D40]. [D70] Regula e
+                -- in WorldMath.fenceText, aceeasi ca a panoului zonei (ZoneController). Lumea vine la k1.
+                local text = WorldMath.fenceText(zone, nil)
                 local x, y = deps.WorldToHud(zone.x0 - 20, py)
                 JuiceController.FloatAt(x, y, text, Theme.COLOR.onDarkSoft)
             end
@@ -927,6 +924,11 @@ function Overlay.Init(d: Deps)
     -- "coins": celelalte (locked/owned/no_profile) sunt curse rare intre doua click-uri, fara
     -- text nou pentru ele.
     deps.Remotes.PadRejected.OnClientEvent:Connect(function(padId: string, reason: string)
+        -- [D70] o platforma a altei harti (o stare veche dupa ridicarea barajului): se spune, nu se tace [D43]
+        if reason == "closed" then
+            HUDController.Toast(Strings.CLOSED_HERE)
+            return
+        end
         if reason ~= "coins" then
             return
         end

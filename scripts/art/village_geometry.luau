@@ -43,7 +43,8 @@ do
 end
 
 local pads: { { id: string, x: number, y: number, net: boolean } } = {}
-for _, p in TycoonConfig.PADS do
+-- [D70] doar satul de pe rau (lumea 1): platformele barajului au locuri pe harta lumii 2
+for _, p in TycoonConfig.padsOfWorld(1) do
     -- doar platformele care se deseneaza (`live`): ale unei ere inca inchise au deja locul lor in config, dar pamantul
     -- lor se coace odata cu harta cartierului [D65, docs/PLAN-ERA2.md]
     if p.x ~= nil and p.y ~= nil and p.live then

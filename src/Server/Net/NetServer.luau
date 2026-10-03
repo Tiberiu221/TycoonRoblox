@@ -35,6 +35,8 @@ export type Deps = {
         Statuses: (Player) -> { [string]: string },
         Deltas: (Player) -> ({ [string]: number }, string),
         Lanes: (Player) -> number,
+        World: (Player) -> number, -- [D70] lumea din profil, aceeasi ca a statusurilor
+        Owns: (Player, string) -> boolean, -- [D70] platforma e a ta, in orice lume
     },
     Stations: {
         Snapshot: (Player) -> { [string]: any },
@@ -182,7 +184,7 @@ local function buildTycoonState(player: Player): { [string]: any }
         -- Mill se vede mereu (estompata, ingradita) si se deschide cu Landing Bell [B4, C].
         -- [D65, D67] La fel zona fiecarei ere urmatoare, cu clopotul erei dinainte (ZONE_BELL). Una deschisa dar inca
         -- nefacuta (platformele ei nu sunt `live`) ramane estompata si scrie "coming soon": asta o decide clientul.
-        zones = WorldMath.zoneStatuses(player:GetAttribute("World"), pads),
+        zones = WorldMath.zoneStatuses(deps.Pads.World(player), pads),
         workshop = pads.workshop == "bought",
         -- [D56] parcat odata cu colectia: clientul nu-l mai citeste (insigna atelierului a iesit)
         pile = deps.Workshop.PileCount(player),
@@ -194,8 +196,9 @@ local function buildTycoonState(player: Player): { [string]: any }
             collect = firsts.collect,
             sell = firsts.sell,
             named = firsts.named,
-            runner = pads.first_runner == "bought",
-            bell = pads.landing_bell == "bought",
+            -- [D70] din profil: statusurile sunt doar ale hartii de acum, iar la baraj n-au platformele satului
+            runner = deps.Pads.Owns(player, "first_runner"),
+            bell = deps.Pads.Owns(player, "landing_bell"),
             power = firsts.power, -- [D67] felinarele de pe strada
         },
         -- [D54] preferintele: nivelul muzicii si al efectelor, 0..10

@@ -173,6 +173,11 @@ Strings.DAM_SITE = "The Dam will rise here — coming soon"
 function Strings.zoneSoon(zoneName: string): string
     return `{zoneName} — coming soon`
 end
+-- [D70, verificatorul j10] zona unei alte harti (barajul, vazut din sat), cand era ei e in joc: nu se deschide cu niciun
+-- clopot si nu mai "vine"; spune doar unde se ridica [D40, D73]
+function Strings.zoneAway(zoneName: string): string
+    return `{zoneName} will rise by your pier`
+end
 
 -- ---- [39] Sistem -------------------------------------------------------------------------------
 Strings.SYSTEM_LOADING = "Loading your river…" -- [F]

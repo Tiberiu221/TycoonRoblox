@@ -962,6 +962,11 @@ la granița CREWS / `DAM_START_COINS`.
 - Verificare (teste): a doua chemare nu face nimic; invarianta „monede noi + dar = C + completare” pe toate ramurile; nimic
   șters în afara celor 5 chei vechi; numele și chipurile sunt copii, nu referințe; venitul de după ≥ venitul de dinainte și
   egal cu startul de aur; grămezile vechi golite, cu suma vândută egală cu „Last cart”.
+- **[Verificatorul j10]** „Last cart” vinde și marfa și găsirile din **plasele lumii 1** (`data.Nets[*].goods`), din traistă și
+  din `carry` al **tuturor** oamenilor vechi (nu doar al veteranilor), apoi le golește. Plasele rămân în profil cu nivelul lor
+  (pentru `Memories`), cu `goods = {}`. Invarianta: suma „Last cart” = traista + grămezile + plasele + `carry`, iar după
+  ridicare toate sunt goale. `PadService.Grant` dă platforma **fără om** (turbina, Cable Net); casele veteranilor le scrie
+  `buildDam` direct, deci testul cere: după ridicare, fiecare meserie a barajului are exact un om, cu numele și chipul vechi.
 
 **j15. `DamService`, remote-urile și uneltele de probă.** Depinde de: j13, j14.
 - **Remote-uri (doar RemoteEvent):** `BuildDam`, `DamPreview`/`DamPreviewResult`, `DamBuilt`, `DamRejected`, `DamFilmSeen`;
@@ -970,6 +975,8 @@ la granița CREWS / `DAM_START_COINS`.
   `expectedKeep`; aplică `buildDam` dintr-o bucată; invalidează Pads și Stations; `DataService.SaveNow` (scos din
   PurchaseService), apoi `DamBuilt`; Analytics.
 - **DevService:** `world:N`, `dam`, saltul la capitolele 10–12, numele noilor grămezi, `up:` pe clădirile noi.
+- **[Verificatorul j10]** odată cu `data.World = 2`, și `player:SetAttribute("World", 2)`. Serverul citește lumea din profil
+  (`PadService.World`, pentru statusuri și zone, de la verificatorul j10), dar atributul îl citește clientul la k1.
 - Verificare: `check_requires` pe ambele proiecte (`DamService` nu intră în bâlci); probă pe comutator: `dev dam` arată cifrele
   lui `WorldMath`; `dev world:2`, apoi Stop/Play cu „keep save”: serverul e în lumea 2, AWAY 0, capitolul 10, plasele vechi
   stau, fără erori.
@@ -1006,7 +1013,20 @@ la granița CREWS / `DAM_START_COINS`.
   zidul și canalul și pe iarbă (`RoadGraph.blockedBetween`).
 - **[Pasul j10]** cartonașul condiției (`PadController`, `TycoonMath.padBlocker`) primește lista lumii jucătorului, venitul
   de acum și factorul 2x Flow, ca Dam Bell să spună „Earn 4T coins a second first” (8T cu pass-ul), la fel ca serverul.
-  Zonele vin deja pe lume de la server (`WorldMath.zoneStatuses`).
+  Zonele vin pe lume de la server (`WorldMath.zoneStatuses`), dar clientul încă le citește pe ale satului.
+- **[Verificatorul j10] Cititorii din client care trec pe lume** (statusurile și zonele de la server sunt doar ale hărții de
+  acum):
+  - `PadController.ruinNeeds` (:887-893): garda clopotului citește `WorldMath.bellBefore(pad.era, world)`, care e nil pentru
+    prima eră a unei lumi. Altfel fiecare ruină a barajului scrie „Opens after the Works Bell”. Test Lune: lumea 2, totul
+    cumpărat fără Dam Bell, 3.9T → „Earn 4T coins a second first”, cu Flow 2 → „Earn 8T ...”;
+  - `Bootstrap.client` copiază zonele după `TycoonConfig.zonesOf(world)`, nu după `ZONES` (azi `dam_town`/`fog5` s-ar pierde);
+  - `ZoneController.Apply` și gardul din Overlay primesc lumea (azi `nil` = satul) pentru `WorldMath.zoneSign` /
+    `WorldMath.fenceText`, regula unică a textelor (făcută la verificatorul j10, cu teste pe ambele ramuri);
+  - promisiunea râului (`RiverRenderController.SetPromise`, din `snapshot.pads.fifth_net`) e pe lume: la baraj, nil.
+    Regulă, cu test textual: niciun cod din `src/Client` nu citește `snapshot.pads.<id al lumii 1>` sau `TycoonConfig.ZONES`
+    în afara unei ramuri a lumii 1 sau a unui accesoriu de lume;
+  - `firsts.runner` / `firsts.bell` vin din profil (`PadService.Owns`, făcut), deci rămân adevărate la baraj; `workshop`
+    rămâne pe statusuri (atelierul parcat).
 **k3. Liniile barajului în client.** Depinde de: k2, j13.
 - 6 clădiri fixe cu `borrowed`; `LineController` pentru unire (două grămezi, `waiting` copiat explicit); Overlay `DROP_AT` /
   `playerStand` la `:273, :721-743, :821`; GuideMath și `STEP_OF_JOB`.
@@ -1035,6 +1055,9 @@ la granița CREWS / `DAM_START_COINS`.
   `ModernController.luau:104-150`); bannerul de la Works Bell și linia NEXT; „Goes into the Dam when you build it” pe cardurile
   de nivel; „Welcome back” spune regula sumei de start; EraWords, Ceremony, `Overlay:794`, `comingEra(w)`.
 - Verificare: ambele ramuri (Era 4 în joc și nu) testate.
+- **[Verificatorul j10]** după Works Bell, cu `damAvailable`, panoul zonei barajului din sat și textul de la gard spun unde se
+  ridică barajul și cum („Build the Dam at the Dam Plans”): ramură nouă în `WorldMath.zoneSign` / `fenceText`, cu test.
+  Azi, după l3, ele spun `Strings.zoneAway` („The Dam will rise by your pier”), fără clopot și fără „coming soon”.
 - **[Verificatorul j11]** rândul de final al listei de quest-uri citește `snap.lastOfWorld` (serverul, după capitolele lumii; făcut
   în j11), dar și `TycoonConfig.comingEra()`, care după l3 întoarce nil în lumea 1 (zona `dam` e a Erei 4). În sat, cu Era 4 în
   joc, rândul trebuie să spună „Build the Dam” (aceeași ramură ca masa Dam Plans), nu să dispară.
@@ -1061,6 +1084,8 @@ la granița CREWS / `DAM_START_COINS`.
 - `VillageLook.Snapshot.world`, copiat explicit. Până la decizie (și acum, provizoriu): fotografia satului vechi, cu semnul
   „Building the Dam”. `TitleMath` „Dam Builder” derivat din `World >= 2`; `build_balci DevWorld`. Macheta lumii 2, titlul, poza
   „Before the Dam” și „Watch again” vin după prima lansare.
+- **[Verificatorul j10, făcut]** macheta satului din bâlci (`VillageDiorama`) și pământul copt (`village_geometry.luau`) parcurg
+  `padsOfWorld(1)`, deci ruinele barajului nu apar peste satul vechi după l3. Macheta unei gazde din lumea 2 e treaba lui k11.
 
 **k12. Pământul copt al lumii 2.** Depinde de: j7, A0. Owner: aprobarea planșei și a urcării (2 imagini).
 - `village_geometry.luau` cu lumea ca argument (lumea 1 iese identică în JSON); `village_ground.py --world 2` scrie două felii

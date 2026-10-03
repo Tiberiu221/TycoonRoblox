@@ -156,7 +156,12 @@ end
 -- Marcheaza platforma cumparata si creeaza plasa daca are efect de plasa. Comuna intre Buy
 -- (plateste) si DevGrant (unealta de dezvoltare, gratuit) -- restul logicii nu are voie sa se
 -- dezalinieze intre ele.
-local function grant(player: Player, data: DataService.ProfileData, pad: TycoonConfig.Pad)
+local function grant(
+    player: Player,
+    data: DataService.ProfileData,
+    pad: TycoonConfig.Pad,
+    hire: boolean
+)
     data.Pads[pad.id] = true
     data.Stats.padsBought += 1
     PadService.Invalidate(player)
@@ -179,7 +184,7 @@ local function grant(player: Player, data: DataService.ProfileData, pad: TycoonC
     -- infatisarea si drumul lui; PadService doar anunta ce s-a cumparat. Legatura platforma -> meserie
     -- sta intr-un singur loc (TycoonConfig.CREWS), nu in cate o ramura pe id.
     local role = TycoonConfig.CREW_OF_PAD[pad.id]
-    if role ~= nil and deps.Hands ~= nil then
+    if hire and role ~= nil and deps.Hands ~= nil then
         deps.Hands.Hire(player, role)
     end
     -- INCA O DATA la final: omul de mai sus schimba `data.Hands`, care intra in lant. Azi nimeni nu
@@ -212,7 +217,7 @@ function PadService.Buy(player: Player, padId: string): (boolean, string?)
     if not EconomyService.TrySpend(player, pad.price, `buy_{padId}`) then
         return false, "coins"
     end
-    grant(player, data, pad)
+    grant(player, data, pad, true)
     -- Pas de funnel pentru fiecare platforma a Erei 1, in ordine [F1 spec 3.6]. Buy() ruleaza o
     -- SINGURA data per platforma (verificarea "owned" mai sus in aceasta functie), deci nu mai
     -- trebuie un steag separat per platforma doar ca sa nu se logheze de doua ori.
@@ -249,22 +254,37 @@ function PadService.DevGrant(player: Player, padId: string): boolean
     then
         return false
     end
-    grant(player, data, pad)
+    grant(player, data, pad, true)
     pushState(player)
     return true
 end
 
--- [D70, pasul j10] ACORDAREA, publica: barajul (pasul j14) da gratis turbina, Cable Net si casele veteranilor. Fara pret
--- si fara verificari de lume sau de era in joc: le face cine o cheama (ridicarea barajului). false = platforma necunoscuta
--- sau deja a ta.
+-- [D70, pasul j10] ACORDAREA, publica: barajul (pasul j14) da gratis turbina si Cable Net. Fara pret si fara verificari de
+-- lume sau de era in joc: le face cine o cheama (ridicarea barajului). FARA OM [verificatorul j10]: casele veteranilor le
+-- scrie ridicarea barajului direct in profil, cu veteranii mutati pe meseriile noi (PLAN j14, pasul 8); un `Hire` de aici
+-- ar fi adus langa fiecare veteran un strain gratis. false = platforma necunoscuta sau deja a ta.
 function PadService.Grant(player: Player, padId: string): boolean
     local data = DataService.Get(player)
     local pad = TycoonConfig.byId[padId]
     if data == nil or pad == nil or data.Pads[padId] then
         return false
     end
-    grant(player, data, pad)
+    grant(player, data, pad, false)
     return true
+end
+
+-- [D70, verificatorul j10] Lumea jucatorului, din profil: aceeasi sursa ca statusurile (Statuses), ca zonele si
+-- platformele sa nu se calculeze pe doua lumi diferite. Fara profil, satul.
+function PadService.World(player: Player): number
+    local data = DataService.Get(player)
+    return WorldConfig.sanitize(if data ~= nil then data.World else nil)
+end
+
+-- [D70, verificatorul j10] Platforma e a ta, in orice lume (un „prim” care nu se pierde: Landing Bell sunat ramane sunat
+-- si la baraj). Statusurile spun doar ce e pe harta de acum.
+function PadService.Owns(player: Player, padId: string): boolean
+    local data = DataService.Get(player)
+    return data ~= nil and data.Pads[padId] == true
 end
 
 Players.PlayerRemoving:Connect(function(player: Player)
