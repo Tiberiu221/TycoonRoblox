@@ -413,7 +413,7 @@ local HANDLERS: { [string]: Handler } = {
                     for i = 1, math.min(quest.goal, #VillageConfig.DECOR) do
                         village.decor[VillageConfig.DECOR[i].id] = true
                     end
-                elseif quest.kind ~= "idle" then
+                elseif quest.kind ~= "idle" and quest.kind ~= "income" then -- [D70] venitul nu se scrie
                     -- o numaratoare din Stats, pe numele felului ("collected", "sold", "sawn", "fished", "cast"...)
                     stats[quest.kind] = math.max(stats[quest.kind] or 0, quest.goal)
                 end

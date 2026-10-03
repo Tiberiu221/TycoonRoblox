@@ -10,6 +10,8 @@ local FlowConfig = require(ReplicatedStorage.Shared.Config.FlowConfig)
 local QuestConfig = require(ReplicatedStorage.Shared.Config.QuestConfig)
 local QuestMath = require(ReplicatedStorage.Shared.Modules.QuestMath)
 local VillageLook = require(ReplicatedStorage.Shared.Modules.VillageLook)
+local PassMath = require(ReplicatedStorage.Shared.Modules.PassMath)
+local WorldConfig = require(ReplicatedStorage.Shared.Config.WorldConfig)
 
 local Analytics = require(script.Parent.Analytics)
 local DataService = require(script.Parent.DataService)
@@ -44,7 +46,11 @@ end
 local QuestService = {}
 local deps: {
     PushState: ((Player) -> ())?,
-    Stations: { NetLevels: (Player) -> { [string]: number }, Idle: (Player) -> number }?,
+    Stations: {
+        NetLevels: (Player) -> { [string]: number },
+        Idle: (Player) -> number,
+        Income: (Player) -> number, -- [D70, pasul j11] quest-urile de venit
+    }?,
 } =
     { PushState = nil, Stations = nil }
 
@@ -72,6 +78,10 @@ local function factsFor(player: Player): QuestMath.Facts?
         dockLevel = data.Stations.dock.level,
         idleRate = if stations ~= nil then stations.Idle(player) else 0,
         claimed = data.Quests.claimed,
+        -- [D70, pasul j11] venitul de pe HUD (cu pass-urile), factorul 2x Flow pentru pragurile de venit, lumea
+        income = if stations ~= nil then stations.Income(player) else 0,
+        flowFactor = PassMath.flowFactor(data),
+        world = WorldConfig.sanitize(data.World),
     }
 end
 
@@ -128,8 +138,11 @@ function QuestService.Snapshot(player: Player): Snapshot?
             else {
                 id = active.id,
                 text = active.text,
-                progress = math.min(QuestMath.progress(active, facts), active.goal),
-                goal = active.goal,
+                progress = math.min(
+                    QuestMath.progress(active, facts),
+                    QuestMath.goalOf(active, facts)
+                ),
+                goal = QuestMath.goalOf(active, facts), -- [D70] pragul de venit cu 2x Flow
                 padId = active.targetPad,
                 dock = active.targetDock,
                 sawmill = active.targetSawmill,
@@ -172,6 +185,16 @@ function QuestService.Claim(player: Player, questId: string): (boolean, string, 
     end
     if data.Quests.claimed[questId] then
         return false, "already"
+    end
+    -- [D70, pasul j11] un quest al altei lumi (al satului, cand esti la baraj): s-a platit la trecere (settleWorld)
+    local inWorld = false
+    for _, chapter in QuestConfig.chaptersOfWorld(facts.world) do
+        for _, q in chapter.quests do
+            inWorld = inWorld or q.id == questId
+        end
+    end
+    if not inWorld then
+        return false, "closed"
     end
     if not QuestMath.isDone(quest, facts) then
         return false, "not_done"

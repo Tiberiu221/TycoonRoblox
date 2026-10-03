@@ -346,10 +346,11 @@ return function()
                         missing += 1
                     end
                     -- [D65] un loc al Morii: atelierul unei linii sau un vanzator, din tabelul drumului marfii
+                    -- [D70] si locurile barajului, scrise dar adormite (FlowConfig.FULL)
                     if
                         q.targetPlace ~= nil
-                        and FlowConfig.BY_PROCESSOR[q.targetPlace] == nil
-                        and FlowConfig.SELLERS[q.targetPlace] == nil
+                        and FlowConfig.FULL.byProcessor[q.targetPlace] == nil
+                        and FlowConfig.FULL.sellers[q.targetPlace] == nil
                     then
                         missing += 1
                     end
@@ -383,9 +384,35 @@ return function()
             local bought: { [string]: boolean } = {}
             local levels: { [string]: number } = {}
             local blocked = {}
+            -- [D70] la baraj: ce da el gratis (pret 0 in Era 4: turbina, Cable Net, veteranii) e al tau de la intrare,
+            -- conditiile se numara pe lista lumii 2 (R3), iar un quest de venit implineste o conditie de venit de dupa el
+            local WorldConfig = require("../src/Shared/Config/WorldConfig")
+            local income = 0
+            local world = 1
+            local function listOf(w: number): { TycoonConfig.Pad }
+                local out = {}
+                for _, p in livePads do
+                    if WorldConfig.worldOfEra(p.era) == w then
+                        table.insert(out, p)
+                    end
+                end
+                return out
+            end
             for _, ch in QuestConfig.ALL_CHAPTERS do
+                local chWorld = WorldConfig.worldOfEra(ch.era)
+                if chWorld ~= world then
+                    world = chWorld
+                    for _, p in listOf(world) do
+                        if p.price == 0 and p.era == ch.era then
+                            bought[p.id] = true
+                            levels[p.id] = levels[p.id] or 1
+                        end
+                    end
+                end
                 for _, q in ch.quests do
-                    if q.kind == "level" then
+                    if q.kind == "income" then
+                        income = math.max(income, q.goal)
+                    elseif q.kind == "level" then
                         local station, netId = QuestMath.stationTarget(q)
                         if station == "net" and netId ~= nil then
                             if not bought[netId :: string] then
@@ -395,7 +422,8 @@ return function()
                         end
                     elseif q.kind == "pad" then
                         local padId = q.arg :: string
-                        local status = TycoonMath.padStatuses(bought, livePads, levels)[padId]
+                        local status =
+                            TycoonMath.padStatuses(bought, listOf(world), levels, income, 1)[padId]
                         if status ~= "available" then
                             table.insert(
                                 blocked,
@@ -436,7 +464,7 @@ return function()
             end
             -- inaintea plasei 2, 3, 4 si a Forge (dupa ea, plasa 5); [D65] la fel la Moara: 7, 8, 9 si cuptorul de cupru;
             -- [D67] si la Wire Works: 12, 13, 14 si Power House
-            check.equal(seen, 12)
+            check.equal(seen, 14) -- [D70] +2: plasele de cablu
         end)
 
         test.case("textul unui quest de nivel spune nivelul pe care il si cere", function()
@@ -469,7 +497,9 @@ return function()
             end
             local left = 0
             for _, p in TycoonConfig.PADS do
-                if chaptered[p.era] and not bought[p.id] then
+                -- [D70] ce da barajul gratis (pret 0 in Era 4) n-are quest
+                local damGift = p.era == 4 and p.price == 0
+                if chaptered[p.era] and not bought[p.id] and not damGift then
                     left += 1
                 end
             end
@@ -528,7 +558,7 @@ return function()
                 check.is_true(TycoonConfig.eraIsLive(ch.era))
             end
             -- altfel, dupa clopotul Erei 1, capitolul 4 ar cere o roata de apa pe care n-o poti construi
-            check.equal(#QuestConfig.ALL_CHAPTERS, 9) -- [D67] capitolele 7-9, ale Erei 3
+            check.equal(#QuestConfig.ALL_CHAPTERS, 12) -- [D67] capitolele 7-9, ale Erei 3; [D70] 10-12, ale barajului
         end)
 
         test.case("[D65] quest-urile Morii se citesc din numaratorile si nivelurile ei", function()
@@ -547,5 +577,151 @@ return function()
             -- fara numaratori (un profil vechi, o stare de test): zero, nu eroare
             check.equal(QuestMath.progress(of("cast_parts"), facts({})), 0)
         end)
+    end)
+    -- [D70, pasul j11] quest-urile pe lume, quest-ul de venit, R7 si plata de la trecere
+    test.suite("QuestMath - barajul [D70, pasul j11]", function()
+        local function facts(
+            claimed: { [string]: boolean },
+            extra: { [string]: any }?
+        ): QuestMath.Facts
+            local f: any = {
+                pads = {},
+                collects = 0,
+                sells = 0,
+                sawn = 0,
+                collected = 0,
+                sold = 0,
+                netLevels = {},
+                dockLevel = 1,
+                idleRate = 0,
+                claimed = claimed,
+            }
+            for k, v in extra or {} do
+                f[k] = v
+            end
+            return f
+        end
+
+        test.case("totul revendicat si AWAY 0: capitolul curent nu mai e 1 (R7)", function()
+            local claimed: { [string]: boolean } = {}
+            for _, ch in QuestConfig.CHAPTERS do
+                for _, q in ch.quests do
+                    claimed[q.id] = true
+                end
+            end
+            local f = facts(claimed)
+            local current = QuestMath.currentChapter(f)
+            check.is_true(current.id ~= QuestConfig.CHAPTERS[1].id)
+            check.equal(current.id, QuestConfig.CHAPTERS[#QuestConfig.CHAPTERS].id)
+            -- quest-ul AWAY, revendicat demult si acum sub tinta, nu mai e activ
+            check.equal(QuestMath.active(QuestConfig.CHAPTERS[1], f), nil)
+        end)
+
+        test.case(
+            "quest-ul de venit: pragul din StationConfig, dublu cu 2x Flow; contorul ca pe HUD",
+            function()
+                local StationConfig = require("../src/Shared/Config/StationConfig")
+                local bell = QuestConfig.byId.earn_bell
+                local kiln = QuestConfig.byId.earn_kiln
+                check.equal(bell.kind, "income")
+                check.equal(bell.goal, StationConfig.DAM_BELL_INCOME)
+                check.equal(kiln.goal, StationConfig.KILN_INCOME)
+                local plain = facts({}, { income = 5e12, flowFactor = 1 })
+                local doubled = facts({}, { income = 5e12, flowFactor = 2 })
+                check.equal(QuestMath.goalOf(bell, plain), 4e12)
+                check.equal(QuestMath.goalOf(bell, doubled), 8e12)
+                check.is_true(QuestMath.isDone(bell, plain))
+                check.is_false(QuestMath.isDone(bell, doubled))
+                check.equal(QuestMath.counterText(bell, 5e12, 8e12), "5T/8T")
+                check.equal(QuestMath.counterText(bell, 9e12, 8e12), "8T/8T")
+                check.equal(QuestMath.counterText(QuestConfig.byId.spin_cable, 3, 10), "3/10")
+                -- starea capitolului poarta tinta cu pass-ul
+                local chapter = nil
+                for _, ch in QuestConfig.ALL_CHAPTERS do
+                    if ch.id == "cold_fire" then
+                        chapter = ch
+                    end
+                end
+                for _, st in QuestMath.chapterStates(chapter :: any, doubled) do
+                    if st.id == "earn_bell" then
+                        check.equal(st.goal, 8e12)
+                    end
+                end
+            end
+        )
+
+        test.case("capitolele pe lume: satul are 1-9, barajul (adormit) inca niciunul", function()
+            local village = QuestConfig.chaptersOfWorld(1)
+            check.equal(#village, #QuestConfig.CHAPTERS)
+            check.equal(#QuestConfig.chaptersOfWorld(2), 0)
+            check.is_true(QuestConfig.chaptersOfWorld(nil)[1] == village[1])
+            -- toate capitolele scrise ale barajului sunt ale Erei 4, in ordinea simulatorului
+            local dam = {}
+            for _, ch in QuestConfig.ALL_CHAPTERS do
+                if ch.era == 4 then
+                    table.insert(dam, ch.id)
+                end
+            end
+            check.equal(table.concat(dam, ","), "the_dam,miles_of_cable,cold_fire")
+        end)
+
+        test.case(
+            "la trecere: tot ce n-ai revendicat din sat, in perle, cu capitolele neincheiate",
+            function()
+                local total = 0
+                local quests = 0
+                for _, ch in QuestConfig.ALL_CHAPTERS do
+                    if ch.era <= 3 then
+                        total += ch.reward.pearls or 0
+                        for _, q in ch.quests do
+                            total += q.reward.pearls or 0
+                            quests += 1
+                        end
+                    end
+                end
+                local nothing = QuestMath.settleWorld({}, 1)
+                check.equal(nothing.pearls, total)
+                check.equal(#nothing.quests, quests)
+                -- capitolul 1 revendicat in intregime: nici quest-urile, nici recompensa lui
+                local claimed: { [string]: boolean } = {}
+                local first = QuestConfig.ALL_CHAPTERS[1]
+                local firstSum = first.reward.pearls or 0
+                for _, q in first.quests do
+                    claimed[q.id] = true
+                    firstSum += q.reward.pearls or 0
+                end
+                local rest = QuestMath.settleWorld(claimed, 1)
+                check.equal(rest.pearls, total - firstSum)
+                check.equal(#rest.quests, quests - #first.quests)
+                -- un capitol inceput: quest-urile ramase si recompensa capitolului
+                local half = table.clone(claimed)
+                half[QuestConfig.ALL_CHAPTERS[2].quests[1].id] = true
+                local paidHalf = QuestMath.settleWorld(half, 1)
+                check.equal(
+                    paidHalf.pearls,
+                    rest.pearls - (QuestConfig.ALL_CHAPTERS[2].quests[1].reward.pearls or 0)
+                )
+                -- totul revendicat: nimic
+                local all: { [string]: boolean } = {}
+                for _, id in nothing.quests do
+                    all[id] = true
+                end
+                check.equal(QuestMath.settleWorld(all, 1).pearls, 0)
+            end
+        )
+
+        test.case(
+            "serverul refuza quest-urile altei lumi; uneltele de dev nu scriu venitul",
+            function()
+                local fs = require("@lune/fs")
+                local service = fs.readFile("src/Server/Services/QuestService.luau")
+                local claim =
+                    string.match(service, "function QuestService%.Claim%(.-\nend") :: string
+                check.is_true(string.find(claim, "chaptersOfWorld(facts.world)", 1, true) ~= nil)
+                check.is_true(string.find(claim, '"closed"', 1, true) ~= nil)
+                local dev = fs.readFile("src/Server/Services/DevService.luau")
+                check.is_true(string.find(dev, 'quest.kind ~= "income"', 1, true) ~= nil)
+            end
+        )
     end)
 end

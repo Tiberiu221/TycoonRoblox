@@ -11,6 +11,9 @@ local QuestConfig =
     require(script and script.Parent.Parent.Config.QuestConfig or "../Config/QuestConfig")
 local StationConfig =
     require(script and script.Parent.Parent.Config.StationConfig or "../Config/StationConfig")
+local TycoonMath = require(script and script.Parent.TycoonMath or "./TycoonMath")
+local WorldConfig =
+    require(script and script.Parent.Parent.Config.WorldConfig or "../Config/WorldConfig")
 
 local QuestMath = {}
 
@@ -33,6 +36,11 @@ export type Facts = {
     dockLevel: number,
     idleRate: number,
     claimed: { [string]: boolean },
+    -- [D70, pasul j11] venitul pe secunda de pe HUD si factorul 2x Flow (quest-urile de venit), lumea jucatorului
+    -- (capitolele ei); fara ele, 0, 1 si satul
+    income: number?,
+    flowFactor: number?,
+    world: number?,
 }
 
 export type QuestState = {
@@ -63,9 +71,29 @@ function QuestMath.stationTarget(quest: QuestConfig.Quest): (string?, string?)
     return nil, nil
 end
 
+-- [D70, pasul j11] Tinta unui quest: la un quest de venit, pragul in moneda de pe HUD (cu 2x Flow, dublu: aceeasi functie
+-- ca pragul clopotului, TycoonMath.incomeGoal); altfel `goal`.
+function QuestMath.goalOf(quest: QuestConfig.Quest, facts: Facts): number
+    if quest.kind == "income" then
+        return TycoonMath.incomeGoal(quest.goal, facts.flowFactor)
+    end
+    return quest.goal
+end
+
+-- [D70, pasul j11] Contorul unui quest, acelasi in lista si pe linia NEXT: "3/10", iar la venit cu cifrele HUD-ului
+-- ("966B/1T"), nu cu toate zerourile.
+function QuestMath.counterText(quest: QuestConfig.Quest, progress: number, goal: number): string
+    if quest.kind == "income" then
+        return `{TycoonMath.formatNumber(math.min(progress, goal))}/{TycoonMath.formatNumber(goal)}`
+    end
+    return `{math.floor(math.min(progress, goal))}/{math.floor(goal)}`
+end
+
 function QuestMath.progress(quest: QuestConfig.Quest, facts: Facts): number
     local kind = quest.kind
-    if kind == "pad" then
+    if kind == "income" then
+        return facts.income or 0
+    elseif kind == "pad" then
         return if facts.pads[quest.arg or ""] == true then 1 else 0
     elseif kind == "collects" then
         return facts.collects
@@ -103,7 +131,7 @@ function QuestMath.progress(quest: QuestConfig.Quest, facts: Facts): number
 end
 
 function QuestMath.isDone(quest: QuestConfig.Quest, facts: Facts): boolean
-    return QuestMath.progress(quest, facts) >= quest.goal
+    return QuestMath.progress(quest, facts) >= QuestMath.goalOf(quest, facts)
 end
 
 -- Starea intregului capitol. Quest-urile se deschid IN ORDINE: primul neterminat e "active", tot
@@ -114,7 +142,8 @@ function QuestMath.chapterStates(chapter: QuestConfig.Chapter, facts: Facts): { 
     local blocked = false
     for _, quest in chapter.quests do
         local progress = QuestMath.progress(quest, facts)
-        local done = progress >= quest.goal
+        local goal = QuestMath.goalOf(quest, facts)
+        local done = progress >= goal
         local state: string
         if facts.claimed[quest.id] then
             state = "claimed"
@@ -129,8 +158,8 @@ function QuestMath.chapterStates(chapter: QuestConfig.Chapter, facts: Facts): { 
         table.insert(out, {
             id = quest.id,
             text = quest.text,
-            progress = math.min(progress, quest.goal),
-            goal = quest.goal,
+            progress = math.min(progress, goal),
+            goal = goal,
             state = state,
             reward = quest.reward,
         })
@@ -161,9 +190,10 @@ function QuestMath.displayOrder<T>(rows: { T }, stateOf: (T) -> string): { T }
 end
 
 -- Quest-ul pe care il arata bannerul si spre care trage sageata: primul neterminat.
+-- [D70, R7] Un quest revendicat nu mai e activ, chiar daca cifra lui a coborat (AWAY e 0 la baraj, pana la cei sase).
 function QuestMath.active(chapter: QuestConfig.Chapter, facts: Facts): QuestConfig.Quest?
     for _, quest in chapter.quests do
-        if not QuestMath.isDone(quest, facts) then
+        if not facts.claimed[quest.id] and not QuestMath.isDone(quest, facts) then
             return quest
         end
     end
@@ -217,15 +247,46 @@ function QuestMath.chapterClosedBy(
     return nil
 end
 
+-- [D70, pasul j11] Capitolele LUMII jucatorului. Un capitol e incheiat cand toate quest-urile lui sunt revendicate (R7: la
+-- baraj AWAY e 0, iar quest-ul AWAY din capitolul 1, revendicat demult, nu trebuie sa te intoarca acolo).
 function QuestMath.currentChapter(facts: Facts): QuestConfig.Chapter
-    for _, chapter in QuestConfig.CHAPTERS do
+    local chapters = QuestConfig.chaptersOfWorld(facts.world)
+    if #chapters == 0 then
+        chapters = QuestConfig.CHAPTERS
+    end
+    for _, chapter in chapters do
         for _, quest in chapter.quests do
-            if not (QuestMath.isDone(quest, facts) and facts.claimed[quest.id]) then
+            if not facts.claimed[quest.id] then
                 return chapter
             end
         end
     end
-    return QuestConfig.CHAPTERS[#QuestConfig.CHAPTERS]
+    return chapters[#chapters]
+end
+
+-- [D70, pasul j11] LA "BUILD THE DAM": ce n-ai revendicat din capitolele satului se plateste acum, doar in perle (monedele
+-- sunt suma de start, D70), cu recompensele capitolelor neincheiate. Pur: intoarce perlele si quest-urile de marcat
+-- revendicate. `claimed` nu se atinge aici.
+export type Settled = { pearls: number, quests: { string } }
+function QuestMath.settleWorld(claimed: { [string]: boolean }, world: number): Settled
+    local out: Settled = { pearls = 0, quests = {} }
+    for _, chapter in QuestConfig.ALL_CHAPTERS do
+        if WorldConfig.worldOfEra(chapter.era) ~= world then
+            continue
+        end
+        local closedBefore = true
+        for _, quest in chapter.quests do
+            if not claimed[quest.id] then
+                closedBefore = false
+                out.pearls += quest.reward.pearls or 0
+                table.insert(out.quests, quest.id)
+            end
+        end
+        if not closedBefore then
+            out.pearls += chapter.reward.pearls or 0
+        end
+    end
+    return out
 end
 
 return QuestMath

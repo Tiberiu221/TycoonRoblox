@@ -12,6 +12,8 @@
 -- Asa nu exista "am facut deja, dar nu s-a bifat" -- clasa de bug care strica orice lista de
 -- sarcini, si care nu poate aparea daca nimeni nu numara nimic.
 local TycoonConfig = require(script and script.Parent.TycoonConfig or "./TycoonConfig")
+local StationConfig = require(script and script.Parent.StationConfig or "./StationConfig")
+local WorldConfig = require(script and script.Parent.WorldConfig or "./WorldConfig")
 
 local QuestConfig = {}
 
@@ -23,7 +25,8 @@ export type Quest = {
     -- ce se citeste din stare: "pad" (detii platforma) | "collected" / "sold" (bucati, D51) | "sawn" |
     -- "smelted" (fier topit la forja, D55) | "ironSold" (fier predat la taverna, D56) | "level" | "idle" |
     -- "fished" (pesti scosi la undita, D59) | "decor" (lucruri construite de la avizierul satului, D62) |
-    -- [D65] "cast" / "partsSold" / "copperSmelted" / "copperSold" (numaratorile Morii, din Stats, pe numele lor)
+    -- [D65] "cast" / "partsSold" / "copperSmelted" / "copperSold" (numaratorile Morii, din Stats, pe numele lor) |
+    -- [D70] "income": venitul pe secunda de pe HUD; `goal` e pragul fara pass, inmultit in joc cu 2x Flow (QuestMath.goalOf)
     -- (plus "collects" / "sells", gesturi, ramase doar ca feluri cunoscute)
     kind: string,
     arg: string?, -- padId pentru "pad"; "net:<padId>" / "dock" pentru "level"
@@ -955,6 +958,273 @@ local ALL_CHAPTERS: { Chapter } = {
             },
         },
     },
+    {
+        -- ---- [D70] ERA 4 · THE DAM (lumea 2), ADORMITA pana la comutatorul l3 (CHAPTERS ia doar erele in joc) ----------
+        -- Ordinea e a capitolului din simulator (DamRun, a treia rulare): un tur de mana pe cablu (plasa, Cable Works,
+        -- Relay Station, Switch House), cei sase oameni in rafala, apoi plasele de cablu in ordinea DAM_CHAPTER, fiecare
+        -- dupa ce o urci pe cea dinainte la nivelul 2. Veteranii si turbina vin cu barajul, deci n-au quest.
+        id = "the_dam",
+        era = 4,
+        title = "Chapter 10",
+        subtitle = "The Dam",
+        reward = { pearls = 12 },
+        quests = {
+            {
+                -- turul de mana: culegi minereul din Cable Net, il duci la Cable Works si stai in inel cat se toarce; sageata
+                -- vine si daca ghidajul tace (o harta noua)
+                id = "spin_cable",
+                text = "Spin 10 cable at the Cable Works",
+                kind = "cableSpun",
+                goal = 10,
+                reward = { pearls = 2 },
+                targetPlace = "cableworks",
+                always = true,
+            },
+            {
+                id = "join_power",
+                text = "Join 10 power at the Relay Station",
+                kind = "gridJoined",
+                goal = 10,
+                reward = { pearls = 2 },
+                targetPlace = "relay",
+            },
+            {
+                id = "sell_power",
+                text = "Sell power at the Switch House",
+                kind = "gridSold",
+                goal = 10,
+                reward = { pearls = 2 },
+                targetPlace = "town",
+            },
+            {
+                id = "hire_cable_collector",
+                text = "Hire a Cable Collector",
+                kind = "pad",
+                arg = "hire_cable_collector",
+                goal = 1,
+                reward = { pearls = 1 },
+                targetPad = "hire_cable_collector",
+            },
+            {
+                id = "hire_cable_porter",
+                text = "Hire a Cable Porter",
+                kind = "pad",
+                arg = "hire_cable_porter",
+                goal = 1,
+                reward = { pearls = 1 },
+                targetPad = "hire_cable_porter",
+            },
+            {
+                id = "hire_cablemaker",
+                text = "Hire a Cablemaker",
+                kind = "pad",
+                arg = "hire_cablemaker",
+                goal = 1,
+                reward = { pearls = 1 },
+                targetPad = "hire_cablemaker",
+            },
+            {
+                id = "hire_cable_hauler",
+                text = "Hire a Cable Hauler",
+                kind = "pad",
+                arg = "hire_cable_hauler",
+                goal = 1,
+                reward = { pearls = 1 },
+                targetPad = "hire_cable_hauler",
+            },
+            {
+                id = "hire_relay_keeper",
+                text = "Hire a Relay Keeper",
+                kind = "pad",
+                arg = "hire_relay_keeper",
+                goal = 1,
+                reward = { pearls = 1 },
+                targetPad = "hire_relay_keeper",
+            },
+            {
+                id = "hire_pylon_runner",
+                text = "Hire a Pylon Runner",
+                kind = "pad",
+                arg = "hire_pylon_runner",
+                goal = 1,
+                reward = { pearls = 2 },
+                targetPad = "hire_pylon_runner",
+            },
+            {
+                id = "cable_net_two",
+                text = "Upgrade Cable Net to level 2",
+                kind = "level",
+                arg = "net:cable_net",
+                goal = 2,
+                reward = { pearls = 1 },
+                targetPad = "cable_net",
+            },
+            {
+                id = "cast_second_cable",
+                text = "Cast a second cable net",
+                kind = "pad",
+                arg = "second_cable_net",
+                goal = 1,
+                reward = { pearls = 2 },
+                targetPad = "second_cable_net",
+            },
+        },
+    },
+    {
+        -- pasul de venit inaintea Kiln-ului (KILN_INCOME): fara el, cine strange pentru Kiln de la a treia plasa sta peste o
+        -- ora pe un venit care nu mai creste (simulatorul, PLAN-MOTOR-UNIRE §11)
+        id = "miles_of_cable",
+        era = 4,
+        title = "Chapter 11",
+        subtitle = "Miles of Cable",
+        reward = { pearls = 12 },
+        quests = {
+            {
+                id = "second_cable_two",
+                text = "Upgrade 2nd Cable Net to level 2",
+                kind = "level",
+                arg = "net:second_cable_net",
+                goal = 2,
+                reward = { pearls = 1 },
+                targetPad = "second_cable_net",
+            },
+            {
+                id = "cast_third_cable",
+                text = "Cast a third cable net",
+                kind = "pad",
+                arg = "third_cable_net",
+                goal = 1,
+                reward = { pearls = 3 },
+                targetPad = "third_cable_net",
+            },
+            {
+                id = "third_cable_two",
+                text = "Upgrade 3rd Cable Net to level 2",
+                kind = "level",
+                arg = "net:third_cable_net",
+                goal = 2,
+                reward = { pearls = 1 },
+                targetPad = "third_cable_net",
+            },
+            {
+                -- un prag de venit din StationConfig (cel al capitolului din simulator / al platformei); cu 2x Flow cere
+                -- dublu (QuestMath.goalOf)
+                id = "earn_kiln",
+                text = "Earn 1T coins a second",
+                kind = "income",
+                goal = StationConfig.KILN_INCOME,
+                reward = { pearls = 3 },
+            },
+            {
+                id = "build_kiln",
+                text = "Build the Kiln",
+                kind = "pad",
+                arg = "crystal_kiln",
+                goal = 1,
+                reward = { pearls = 3 },
+                targetPad = "crystal_kiln",
+            },
+        },
+    },
+    {
+        -- linia cristalului, ca linia curentului in capitolul 9; clopotul cere si venitul (DAM_BELL_INCOME), deci capitolul
+        -- il cere inaintea lui, cu acelasi prag ca platforma
+        id = "cold_fire",
+        era = 4,
+        title = "Chapter 12",
+        subtitle = "Cold Fire",
+        reward = { pearls = 12 },
+        quests = {
+            {
+                id = "cast_crystal",
+                text = "Cast the Crystal Net",
+                kind = "pad",
+                arg = "crystal_net",
+                goal = 1,
+                reward = { pearls = 3 },
+                targetPad = "crystal_net",
+            },
+            {
+                id = "fire_ingots",
+                text = "Fire 10 ingots at the Kiln",
+                kind = "ingotsFired",
+                goal = 10,
+                reward = { pearls = 2 },
+                targetPlace = "kiln",
+            },
+            {
+                id = "sell_ingots",
+                text = "Sell ingots at the Switch House",
+                kind = "ingotsSold",
+                goal = 10,
+                reward = { pearls = 2 },
+                targetPlace = "town",
+            },
+            {
+                id = "build_crystal_shed",
+                text = "Build the Crystal Shed",
+                kind = "pad",
+                arg = "crystal_shed",
+                goal = 1,
+                reward = { pearls = 1 },
+                targetPad = "crystal_shed",
+            },
+            {
+                id = "hire_crystal_collector",
+                text = "Hire a Crystal Collector",
+                kind = "pad",
+                arg = "hire_crystal_collector",
+                goal = 1,
+                reward = { pearls = 1 },
+                targetPad = "hire_crystal_collector",
+            },
+            {
+                id = "hire_crystal_porter",
+                text = "Hire a Crystal Porter",
+                kind = "pad",
+                arg = "hire_crystal_porter",
+                goal = 1,
+                reward = { pearls = 1 },
+                targetPad = "hire_crystal_porter",
+            },
+            {
+                id = "hire_crystalsmith",
+                text = "Hire a Crystalsmith",
+                kind = "pad",
+                arg = "hire_crystalsmith",
+                goal = 1,
+                reward = { pearls = 1 },
+                targetPad = "hire_crystalsmith",
+            },
+            {
+                id = "hire_ingot_hauler",
+                text = "Hire an Ingot Hauler",
+                kind = "pad",
+                arg = "hire_ingot_hauler",
+                goal = 1,
+                reward = { pearls = 2 },
+                targetPad = "hire_ingot_hauler",
+            },
+            {
+                -- un prag de venit din StationConfig (cel al capitolului din simulator / al platformei); cu 2x Flow cere
+                -- dublu (QuestMath.goalOf)
+                id = "earn_bell",
+                text = "Earn 4T coins a second",
+                kind = "income",
+                goal = StationConfig.DAM_BELL_INCOME,
+                reward = { pearls = 3 },
+            },
+            {
+                id = "ring_dam_bell",
+                text = "Ring the Dam Bell",
+                kind = "pad",
+                arg = "dam_bell",
+                goal = 1,
+                reward = { pearls = 8 },
+                targetPad = "dam_bell",
+            },
+        },
+    },
 }
 
 -- [D65] TOATE capitolele scrise (testele le verifica pe toate) si cele DIN JOC: ale erelor cu platforme `live`. Cat
@@ -967,6 +1237,17 @@ for _, chapter in ALL_CHAPTERS do
     end
 end
 QuestConfig.CHAPTERS = liveChapters
+
+-- [D70, pasul j11] Capitolele din joc ale unei lumi (satul: 1-9; barajul: 10-12, cand Era 4 e in joc). Fara lume, satul.
+local chaptersByWorld: { [number]: { Chapter } } = {}
+for _, chapter in liveChapters do
+    local w = WorldConfig.worldOfEra(chapter.era)
+    chaptersByWorld[w] = chaptersByWorld[w] or {}
+    table.insert(chaptersByWorld[w], chapter)
+end
+function QuestConfig.chaptersOfWorld(w: any): { Chapter }
+    return chaptersByWorld[WorldConfig.sanitize(w)] or {}
+end
 
 QuestConfig.byId = {} :: { [string]: Quest }
 for _, chapter in ALL_CHAPTERS do

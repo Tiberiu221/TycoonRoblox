@@ -1695,6 +1695,8 @@ function Strings.questRejected(reason: string): string
         return "Not finished yet"
     elseif reason == "already" then
         return "Already claimed"
+    elseif reason == "closed" then
+        return Strings.CLOSED_HERE -- [D70] un quest al altei harti
     end
     return "Can't claim that"
 end
