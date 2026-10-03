@@ -1523,4 +1523,57 @@ return function()
             end
         )
     end)
+
+    -- [verificatorii A0, k12] Indicatorul de margine ramane pe marginea spre care arata si ocoleste doar bara de meniu (cel
+    -- mai lat text al ghidajului, unul mijlociu si unul scurt), pe un telefon mic, un telefon, PC si un ecran lat.
+    test.suite("GuideMath.edgePlacement", function()
+        test.case("pe orice directie: pe marginea lui, niciodata sub bara de meniu", function()
+            local MARGIN = 46 -- GuideController.EDGE_MARGIN
+            local bad = 0
+            for _, size in { { 1076, 605 }, { 1362, 630 }, { 1920, 1080 }, { 2275, 1080 } } do
+                local w, h = size[1], size[2]
+                local barH = 62 * 5 + 8 * 4
+                local bar = { x = w - 20 - 62, y = h / 2 - barH / 2, w = 62, h = barH }
+                for deg = 0, 359 do
+                    local a = math.rad(deg)
+                    local dx, dy = math.cos(a), math.sin(a)
+                    local sx = (w / 2 - MARGIN) / math.max(math.abs(dx), 1e-9)
+                    local sy = (h / 2 - MARGIN) / math.max(math.abs(dy), 1e-9)
+                    local k = math.min(sx, sy)
+                    local px, py = w / 2 + dx * k, h / 2 + dy * k
+                    local onSide = sx <= sy
+                    for _, half in { 15, 90, 177 } do
+                        local x, y = GuideMath.edgePlacement({
+                            x = px,
+                            y = py,
+                            w = w,
+                            h = h,
+                            half = half,
+                            top = 31,
+                            bottom = 27,
+                            blockers = { bar },
+                        })
+                        local hit = x + half > bar.x
+                            and x - half < bar.x + bar.w
+                            and y + 27 > bar.y
+                            and y - 31 < bar.y + bar.h
+                        local near = if onSide
+                            then math.min(x, w - x) <= w / 4
+                            else math.min(y, h - y) <= h / 4
+                        local inside = x - half >= 0
+                            and x + half <= w
+                            and y - 31 >= 0
+                            and y + 27 <= h
+                        if hit or not near or not inside then
+                            bad += 1
+                            if bad <= 5 then
+                                print(`  ! {w}x{h} {deg} grade, eticheta {half}: ({x}, {y})`)
+                            end
+                        end
+                    end
+                end
+            end
+            check.equal(bad, 0)
+        end)
+    end)
 end

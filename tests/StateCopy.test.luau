@@ -335,6 +335,39 @@ return function()
             check.equal(raw({ wood = 2, iron = 5 }, "market"), "iron")
             check.equal(raw({ wood = 4, iron = 4 }, "depot"), "wood")
             check.equal(raw({ barrels = 1, cable = 3 }, "town"), "cable")
+            -- [verificatorul A0/k12] oglinda: majoritatea castiga; atelierul de alaturi doar la egalitate
+            check.equal(raw({ iron = 9, parts = 1 }, "market"), "iron")
+            check.equal(raw({ copper = 9, coils = 1 }, "depot"), "copper")
+            check.equal(raw({ iron = 3, parts = 3 }, "market"), "parts")
+            -- acelasi cuvant („scrap”, „ore”) pe doua linii din traista: cardul le numeste pe amandoua
+            local function wordOf(line: string): string?
+                local w = Strings.LINE_WORDS[line]
+                return if w ~= nil then w.raw else nil
+            end
+            local kind, which, also = StateCopy.sellerNote(
+                sack({ iron = 9, parts = 1 }),
+                "market",
+                LINES,
+                SELLERS,
+                sellerOf,
+                wordOf
+            )
+            check.equal(kind, "raw")
+            check.equal(which, "iron")
+            check.equal(also, "parts")
+            check.equal(
+                Strings.rawGoesToBoth(Strings.LINE_WORDS.iron, Strings.LINE_WORDS.parts),
+                "Scrap goes to the Forge and the Foundry"
+            )
+            local _, _, none = StateCopy.sellerNote(
+                sack({ wood = 3, iron = 1 }),
+                "market",
+                LINES,
+                SELLERS,
+                sellerOf,
+                wordOf
+            )
+            check.equal(none, nil)
             -- o traista fara `partBy` (inainte de prima stare) nu cade
             local bare: StateCopy.SellerSack = { rawBy = { wood = 1 }, sellBy = {} }
             check.equal(StateCopy.sellerNote(bare, "market", LINES, SELLERS, sellerOf), "raw")
@@ -367,6 +400,15 @@ return function()
                 end
             end
             table.insert(texts, Strings.partsToJoin(Strings.LINE_WORDS.grid))
+            -- [verificatorul A0/k12] doua ateliere pentru acelasi cuvant, in ambele ordini
+            for _, a in LINES do
+                for _, b in LINES do
+                    local wa, wb = Strings.LINE_WORDS[a], Strings.LINE_WORDS[b]
+                    if a ~= b and a ~= "grid" and b ~= "grid" and wa.raw == wb.raw then
+                        table.insert(texts, Strings.rawGoesToBoth(wa, wb))
+                    end
+                end
+            end
             for _, text in texts do
                 if lines(text) > 2 then
                     print(`[sellerNote] prea lung: {text}`)

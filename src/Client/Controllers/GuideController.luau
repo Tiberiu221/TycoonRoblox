@@ -325,6 +325,26 @@ local function hudBlockers(w: number, h: number, scale: number): { GuideMath.Rec
     return out
 end
 
+-- [verificatorii A0, k12] Panourile FIXE desenate peste indicatorul de margine (atributul GuideBlocker: bara de meniu).
+-- Nu toti copiii panzei: toast-urile, bannerele si monedele in zbor sunt trecatoare si il faceau sa sara prin ecran.
+local function edgeBlockers(scale: number): { GuideMath.Rect }
+    local canvas = deps.HudGui
+    local origin = canvas.AbsolutePosition
+    local out: { GuideMath.Rect } = {}
+    for _, child in canvas:GetChildren() do
+        if
+            child:IsA("GuiObject")
+            and child.Visible
+            and child:GetAttribute("GuideBlocker") == true
+        then
+            local size = child.AbsoluteSize / scale
+            local pos = (child.AbsolutePosition - origin) / scale
+            table.insert(out, { x = pos.X, y = pos.Y, w = size.X, h = size.Y })
+        end
+    end
+    return out
+end
+
 -- [D52] Eticheta de deasupra tintei sta in lume, deci SUB HUD. Cu taverna sus-stanga (cand esti la
 -- gater), textul cadea chiar sub monede, traista si linia NEXT si nu se mai citea [owner, Studio,
 -- 2026-09-13]. Acum: deasupra daca e loc, altfel sub inel, altfel deloc -- si intreaga pe ecran.
@@ -567,20 +587,18 @@ local function updateGuideVisuals()
         -- [verificatorul k6-k8] eticheta de sub sageata ramane in panza: la o tinta din dreapta („Build the Dam when you're
         -- ready”, ~330 px) grupul se trage spre interior cu jumatate din ea; sageata se roteste tot spre tinta
         local half = (Theme.textWidth(goal.text, Theme.TEXT.body, "strong") + 24) / 2
-        -- [verificatorul A0/k6-k8] ...si nu sub panourile HUD (bara de meniu din dreapta are ZIndex 20, peste grup): grupul
-        -- (180 x 62, eticheta pana la ey + 27) iese din dreptunghiul lor spre interior
-        local reach = math.max(half, 90)
-        for _, b in hudBlockers(w, h, hudScale()) do
-            if
-                ey + 27 > b.y
-                and ey - 31 < b.y + b.h
-                and ex + reach > b.x
-                and ex - reach < b.x + b.w
-            then
-                ex = if b.x + b.w / 2 > w / 2 then b.x - reach - 8 else b.x + b.w + reach + 8
-            end
-        end
-        ex = math.clamp(ex, math.min(half + 8, w / 2), math.max(w - half - 8, w / 2))
+        -- [verificatorii A0, k12] ...si nu sub panourile fixe desenate peste el (bara de meniu din dreapta): alunecand de-a
+        -- lungul marginii lui (GuideMath.edgePlacement). Grupul: sageata de 30 px deasupra punctului, eticheta pana la +27.
+        ex, ey = GuideMath.edgePlacement({
+            x = ex,
+            y = ey,
+            w = w,
+            h = h,
+            half = math.max(half, 15),
+            top = 31,
+            bottom = 27,
+            blockers = edgeBlockers(hudScale()),
+        })
         edgeGroup.Position = UDim2.fromOffset(ex, ey)
         if edgeIcon ~= nil then
             -- 0 grade = sus (Assets.icons.arrow), rotatia creste in sensul acelor de ceasornic

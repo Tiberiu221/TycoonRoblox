@@ -8,7 +8,8 @@ Scrie DOAR in scratchpad-ul sesiunii; nimic nu intra in assets/sprites si nimic 
   a0_dam_film.png -- sase cadre-cheie ale filmului (DamMath.FILM): clopotul, privirea peste sat (de la Wire Works la
                      Landing), oamenii la amurg, barajul care creste peste rau, cartonasul. Benzile, amurgul, textul, Skip si
                      camera vin din DamMath.frameAt (exportat cu Lune), deci cadrul arata ce face codul de azi. Satul e cel de la
-                     sfarsitul Erei 3: pamantul copt, cladirile, casele, plasele, pontonul, barca balciului, stalpii cu sarma,
+                     sfarsitul Erei 3: pamantul copt, cladirile, casele, plasele, pontonul, barca balciului, stalpii cu sarma
+                     (ModernConfig.wireSpans),
                      felinarele aprinse si tarusii topografilor. Ce e PROPUNERE A2 (siluetele, schelele, zidul pe jumatate,
                      camera care urca la rau, plasele scoase din apa) scrie pe cadru.
 
@@ -281,13 +282,18 @@ def village_image():
     ferry = props["ferry"]
     things.append((ferry["y"], "prop_fair_ferry", ferry["x"], ferry["y"], 2))
     for pole in props["poles"]:
-        things.append((pole["y"], "prop_wire_pole_end" if pole["kind"] == "end" else "prop_wire_pole", pole["x"], pole["y"], 3))
+        # prins de baza cu stalpul (postX), nu cu mijlocul foii, si intors dupa `mirror` (ModernProps)
+        kind = "end" if pole["kind"] == "end" else "line"
+        name = "prop_wire_pole_end" if kind == "end" else "prop_wire_pole"
+        tag = f"{name}@{props['postX'][kind]}{'m' if pole.get('mirror') else ''}"
+        things.append((pole["y"], tag, pole["x"], pole["y"], 3))
     for lamp in props["lamps"]:
         things.append((lamp["y"], "prop_street_lamp_lit", lamp["x"], lamp["y"], 3))
     for stake in props["stakes"]:
         # foaia are trei cadre de 12 px (ModernConfig.SURVEY_STAKE), fiecare tarus cu cadrul lui
         things.append((stake["y"], f"prop_survey_stakes#{stake['frame']}", stake["x"], stake["y"], 2))
     for _d, name, x, base, scale in sorted(things, key=lambda t: t[0]):
+        name, _, post = name.partition("@")
         name, _, cell = name.partition("#")
         s = sprite(name)
         if cell:
@@ -295,7 +301,20 @@ def village_image():
         k = scale / D
         if k != 1:
             s = s.resize((max(1, round(s.width * k)), max(1, round(s.height * k))), Image.NEAREST)
-        img.alpha_composite(s, (round(x / D - s.width / 2), round(base / D - s.height)))
+        left = round(x / D - s.width / 2)
+        if post:
+            mirror = post.endswith("m")
+            px_ = int(post.rstrip("m"))
+            if mirror:
+                s = s.transpose(Image.FLIP_LEFT_RIGHT)
+            left = round(x / D - ((s.width - px_) if mirror else px_))
+        img.alpha_composite(s, (left, round(base / D - s.height)))
+    # firele lasate dintre stalpi (ModernConfig.wireSpans), peste tot ce e pe teren, cum le pune jocul la adancimea strazii
+    dr = ImageDraw.Draw(img)
+    for span in props["wires"]:
+        col = tuple(props["wireLook"][span["which"]]) + (255,)
+        pts = [(p["x"] / D, p["y"] / D) for p in span["pts"]]
+        dr.line(pts, fill=col, width=1)
     return G, img
 
 
@@ -303,6 +322,8 @@ FILM_EXPORT = """
 local serde = require("@lune/serde")
 local T = require("../../src/Shared/Config/TycoonConfig")
 local DamMath = require("../../src/Shared/Modules/DamMath")
+local ModernConfig = require("../../src/Shared/Config/ModernConfig")
+local Assets = require("../../src/Shared/Config/Assets")
 local out = { nets = {}, lamps = T.streetLamps(1), poles = T.wirePoles(1), pier = T.PIER, ferry = T.FERRY,
     stakes = T.SURVEY_STAKES, lanes = T.LANE_Y, frames = {} }
 for _, p in T.padsOfWorld(1) do
@@ -323,6 +344,26 @@ for _, t in { 1, 3, 6, 9, 12, 15 } do
     table.insert(out.frames, { t = t, phase = f.phase, text = f.text, sub = f.sub, progress = f.progress, bars = f.bars,
         skip = f.skip, camX = eastX + (westX - eastX) * f.pan, camY = T.PLOT_ORIGIN.y + 1100 })
 end
+-- firele dintre stalpi, ca in ModernProps (cu cel spre Power House), cate 9 puncte lasate pe fiecare deschidere
+local poles = T.wirePoles(1)
+local feed = nil
+local house = T.byId[ModernConfig.POWER_FEED.pad]
+local houseArt = Assets.tycoon.power_house
+if house ~= nil and house.live and house.x ~= nil then
+    local fx, fy = ModernConfig.feedPoint(house.x, T.buildingBase(house), houseArt.width, houseArt.height, 3)
+    feed = { x = fx, y = fy }
+end
+out.wires = {}
+for _, span in ModernConfig.wireSpans(poles, Assets.tycoon.wire_pole.height, 3, feed) do
+    local pts = {}
+    for i = 0, 8 do
+        local x, y = ModernConfig.wirePoint(span.ax, span.ay, span.bx, span.by, i / 8)
+        table.insert(pts, { x = x, y = y })
+    end
+    table.insert(out.wires, { which = span.which, pts = pts })
+end
+out.wireLook = { near = ModernConfig.WIRE.colorNear, far = ModernConfig.WIRE.colorFar }
+out.postX = { line = ModernConfig.WIRE_POLE_POST_X, ["end"] = ModernConfig.WIRE_POLE_END.postX }
 print(serde.encode("json", out))
 """
 
@@ -558,7 +599,9 @@ def film_plate():
     ):
         tw = dr.textlength(text, font=font)
         dr.text((round(img.width / 2 - tw / 2), round(y)), text, font=font, fill=col + (255,))
-    frames.append(("0:15  CARD", "black card, then the reload into the new map", img))
+    if f["skip"]:
+        skip(img, round(img.height * 0.12))  # [verificatorul A0] Skip ramane si pe cartonas (DamFilm.render)
+    frames.append(("0:15  CARD", "black card (Skip still there), then the reload into the new map", img))
 
     scale, gut, head = 2, 24, 44
     fw, fh = frames[0][2].width * scale, frames[0][2].height * scale

@@ -198,6 +198,8 @@ function MenuBarController.Init(deps: {
     bar.Size = UDim2.fromOffset(BUTTON, BUTTON * slots + Theme.SPACE.sm * math.max(0, slots - 1))
     bar.BackgroundTransparency = 1
     bar.ZIndex = 20
+    -- [verificatorii A0, k12] sta peste indicatorul de margine al ghidajului (Z 17): acela aluneca pe margine cat s-o ocoleasca
+    bar:SetAttribute("GuideBlocker", true)
     bar.Parent = deps.HudGui
     local layout = Instance.new("UIListLayout")
     layout.Padding = UDim.new(0, Theme.SPACE.sm)

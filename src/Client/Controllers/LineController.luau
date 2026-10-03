@@ -757,7 +757,7 @@ function LineController.seller(seller: string, building: Building): Seller
         else
             -- [verificatorii k3, k4, k9-k10a] n-ai ce vinde aici: cardul spune unde merge ce duci, nu tace si nu suna a
             -- refuz [D43] (piesele la unire, marfa altui vanzator, marfa bruta a oricarei linii, la atelierul ei)
-            local kind, which = StateCopy.sellerNote(
+            local kind, which, also = StateCopy.sellerNote(
                 sack,
                 seller,
                 StationConfig.LINE_ORDER,
@@ -765,13 +765,20 @@ function LineController.seller(seller: string, building: Building): Seller
                 function(line: string): string?
                     local spec = StationConfig.LINES[line]
                     return if spec ~= nil then spec.seller else nil
+                end,
+                function(line: string): string?
+                    local w = Strings.LINE_WORDS[line]
+                    return if w ~= nil then w.raw else nil
                 end
             )
             local words = if which ~= nil then Strings.LINE_WORDS[which] else nil
+            local alsoWords = if also ~= nil then Strings.LINE_WORDS[also] else nil
             if kind == "part" and words ~= nil then
                 status = Strings.partsToJoin(words)
             elseif kind == "other" and which ~= nil then
                 status = Strings.sellerElsewhere(which)
+            elseif kind == "raw" and words ~= nil and alsoWords ~= nil then
+                status = Strings.rawGoesToBoth(words, alsoWords)
             elseif kind == "raw" and words ~= nil then
                 status = Strings.rawGoesTo(words)
             end

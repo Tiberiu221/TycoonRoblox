@@ -1015,6 +1015,77 @@ function GuideMath.labelPlacement(q: LabelQuery): (string, number)
     return "hidden", shift
 end
 
+-- ---- indicatorul de margine [verificatorii A0, k12] ---------------------------------------------------
+-- Unde sta indicatorul de margine (sageata cu eticheta, cand tinta e in afara ecranului). Pleaca din punctul de pe margine
+-- (clampToEdge), cu eticheta intreaga in panza, si ocoleste doar panourile FIXE desenate peste el (bara de meniu, ZIndex
+-- 20 peste 17), alunecand DE-A LUNGUL marginii lui: pe marginile din stanga si din dreapta in sus sau in jos, pe cele de sus
+-- si de jos spre stanga sau spre dreapta, cat sa iasa din ele. Ramane mereu pe marginea spre care arata: o impingere spre
+-- interior il ducea la mijlocul ecranului. Toast-urile, bannerele si monedele in zbor nu conteaza (sunt trecatoare).
+-- `half`: jumatate din latimea etichetei; `top` / `bottom`: cat urca si cat coboara grupul fata de punctul lui.
+export type EdgeQuery = {
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    half: number,
+    top: number,
+    bottom: number,
+    blockers: { Rect },
+}
+GuideMath.EDGE_GAP = 8
+
+function GuideMath.edgePlacement(q: EdgeQuery): (number, number)
+    local gap = GuideMath.EDGE_GAP
+    local minX, maxX = math.min(q.half + gap, q.w / 2), math.max(q.w - q.half - gap, q.w / 2)
+    local minY, maxY = math.min(q.top + gap, q.h / 2), math.max(q.h - q.bottom - gap, q.h / 2)
+    local x = math.clamp(q.x, minX, maxX)
+    local y = math.clamp(q.y, minY, maxY)
+    -- pe marginea din stanga sau din dreapta (si in colturi): aluneca pe verticala
+    local onSide = x <= minX + 1 or x >= maxX - 1
+    for _ = 1, 4 do
+        local moved = false
+        for _, b in q.blockers do
+            local hit = x + q.half > b.x
+                and x - q.half < b.x + b.w
+                and y + q.bottom > b.y
+                and y - q.top < b.y + b.h
+            if hit then
+                local options: { number } = {}
+                if onSide then
+                    for _, c in { b.y - q.bottom - gap, b.y + b.h + q.top + gap } do
+                        if c >= minY and c <= maxY then
+                            table.insert(options, c)
+                        end
+                    end
+                else
+                    for _, c in { b.x - q.half - gap, b.x + b.w + q.half + gap } do
+                        if c >= minX and c <= maxX then
+                            table.insert(options, c)
+                        end
+                    end
+                end
+                if #options == 0 then
+                    return x, y -- nu incape nicaieri pe margine: ramane (panoul fix sta oricum peste el)
+                end
+                local here = if onSide then y else x
+                table.sort(options, function(a: number, c: number): boolean
+                    return math.abs(a - here) < math.abs(c - here)
+                end)
+                if onSide then
+                    y = options[1]
+                else
+                    x = options[1]
+                end
+                moved = true
+            end
+        end
+        if not moved then
+            break
+        end
+    end
+    return x, y
+end
+
 -- ---- langa tinta: al cui card se vede [2026-09-30] ---------------------------------------------------
 -- Sub NEAR_DISTANCE de tinta ghidajul se retrage (n-ar mai arata nimic util), deci acolo cardul E trebuie sa fie chiar
 -- al tintei. InteractController alegea cel mai apropiat card, iar intre doua locuri ramanea o fasie fara sageata si

@@ -1424,7 +1424,15 @@ Siluetele, schelele și zidul de aici sunt propunerea loturilor A1/A2. Nimic nu 
 - **„busy” față de „pending”:** un drum deja în curs întoarce „pending”, iar ecranul așteaptă doar atunci. Flooded-ul de la
   Roblox rămâne „busy” și duce la „Try again” pe loc, ca înainte.
 - **După „changed”,** cifrele refuzate pleacă de pe ecran până vine chitanța nouă.
-- **Eticheta de margine a ghidajului** iese și de sub panourile HUD (bara de meniu din dreapta).
+- **Eticheta de margine a ghidajului** iese și de sub panourile HUD (bara de meniu din dreapta). **[Verificatorul A0/k12,
+  a patra rundă]** Împingerea spre interior o ducea pe telefon la mijlocul ecranului și o făcea să sară la fiecare toast sau
+  banner. Acum `GuideMath.edgePlacement` (pur, testat pe patru ecrane și pe toate direcțiile) o ține pe marginea spre care
+  arată: alunecă de-a lungul ei și ocolește doar panourile fixe desenate peste ea (atributul `GuideBlocker`, adică bara de
+  meniu).
+- **[A patra rundă]** Cardul unui vânzător, la marfa brută: decide linia cu cele mai multe bucăți, iar atelierul de alături
+  doar la egalitate. Când două linii din sac au același cuvânt, cardul le numește pe amândouă („Scrap goes to the Forge and
+  the Foundry”, `Strings.rawGoesToBoth`). Planșa filmului are firele dintre stâlpi (`ModernConfig.wireSpans`), iar Skip
+  apare și pe cartonaș.
 
 Totalul, ~92–97 de imagini și 3 sunete până se joacă Era 4 (PLAN-HARTA §7).
 

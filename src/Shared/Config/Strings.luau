@@ -953,6 +953,11 @@ function Strings.rawGoesTo(line: LineWords): string
     local verb = if string.sub(raw, -1) == "s" then "go" else "goes"
     return `{string.upper(string.sub(raw, 1, 1))}{string.sub(raw, 2)} {verb} to the {line.processor}`
 end
+-- [verificatorul A0/k12] doua linii cu acelasi cuvant pentru marfa bruta, amandoua in traista: „Scrap goes to the Foundry
+-- and the Forge” (intai atelierul celei cu mai multe bucati)
+function Strings.rawGoesToBoth(line: LineWords, other: LineWords): string
+    return `{Strings.rawGoesTo(line)} and the {other.processor}`
+end
 function Strings.partsToJoin(union: LineWords): string
     return `{string.upper(string.sub(union.raw, 1, 1))}{string.sub(union.raw, 2)} go to the {union.processor} first`
 end

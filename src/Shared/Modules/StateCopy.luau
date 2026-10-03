@@ -206,8 +206,9 @@ function StateCopy.sellerNote(
     seller: string,
     lineOrder: { string },
     sellerOrder: { string },
-    sellerOf: ((string) -> string?)?
-): (string?, string?)
+    sellerOf: ((string) -> string?)?,
+    wordOf: ((string) -> string?)?
+): (string?, string?, string?)
     local here = sack.sellBy[seller]
     if here ~= nil and here.count > 0 then
         return nil, nil
@@ -224,20 +225,36 @@ function StateCopy.sellerNote(
             return "other", other
         end
     end
+    -- [verificatorul A0/k12] linia cu cele mai multe bucati; atelierul de alaturi decide doar la egalitate (altfel 9 bucati
+    -- de minereu de cupru erau trimise la Wire Works pentru una singura)
     local best: string?, most = nil, 0
+    local function own(line: string): boolean
+        return sellerOf ~= nil and sellerOf(line) == seller
+    end
     for _, line in lineOrder do
         local n = if parts[line] == nil then sack.rawBy[line] or 0 else 0
-        if n > 0 and sellerOf ~= nil and sellerOf(line) == seller then
-            return "raw", line
-        end
-        if n > most then
+        if n > most or (n > 0 and n == most and best ~= nil and own(line) and not own(best)) then
             best, most = line, n
         end
     end
-    if best ~= nil then
-        return "raw", best
+    if best == nil then
+        return nil, nil, nil
     end
-    return nil, nil
+    -- a doua linie din traista cu ACELASI cuvant pentru marfa bruta („scrap”, „ore”): cardul le numeste pe amandoua
+    if wordOf ~= nil then
+        local word = wordOf(best)
+        for _, line in lineOrder do
+            if
+                line ~= best
+                and parts[line] == nil
+                and (sack.rawBy[line] or 0) > 0
+                and wordOf(line) == word
+            then
+                return "raw", best, line
+            end
+        end
+    end
+    return "raw", best, nil
 end
 
 return StateCopy
