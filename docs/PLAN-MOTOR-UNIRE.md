@@ -1477,8 +1477,16 @@ Siluetele, schelele și zidul de aici sunt propunerea loturilor A1/A2. Nimic nu 
   etichetei pentru un cadru pe telefoanele de 896–1033 px. Acum cel mai bun capăt se ia dacă e sub prag și cu cel puțin 5° mai
   bun decât cel ținut. Un test nou face mersul într-o direcție (0,5 / 1 / 2° pe cadru, pe șase telefoane și pe formele
   adevărate ale etichetei) și cere 0 dispariții de un cadru; varianta din runda a zecea dădea 56.
-  **Limită acceptată:** la un du-te-vino de ±6° spre colțul cu cifre, pe telefoanele de 955–1033 px, eticheta poate sări între
-  cele două părți ale cifrelor (sus și pe marginea stângă). Săgeata arată tot timpul spre țintă, iar linia NEXT spune textul.
+  **Limite rămase, măsurate de verificatorul rundei a unsprezecea; alegerea e a owner-ului, în Studio.** Ambele apar doar pe
+  telefoanele mici (896–1033 px de pânză), cu ținta sus-stânga, în spatele colțului cu cifre (direcția −107…−120°):
+  - **la un du-te-vino de ±3° sau mai mult,** eticheta poate sări ~500–680 px între cele două părți ale cifrelor (sus, la
+    dreapta lor, și pe marginea stângă, sub linia NEXT);
+  - **la alergat (~2° pe cadru),** eticheta se ascunde 3–5 cadre (50–80 ms) înainte să apară de partea cealaltă. La mers
+    încet, rămâne ascunsă cât ținta mai parcurge 6–10° de direcție.
+
+  Săgeata arată tot timpul spre țintă, iar linia NEXT spune textul. Cele două limite trag în sensuri opuse: o bandă mai largă
+  scoate saltul, dar lungește ascunderea, și invers. Owner-ul alege ce deranjează mai puțin. Pe PC și pe telefoanele de la
+  1076 px în sus nu apare niciuna.
 
 Totalul, ~92–97 de imagini și 3 sunete până se joacă Era 4 (PLAN-HARTA §7).
 
