@@ -48,6 +48,7 @@ export type Sack = {
     rawBy: { [string]: number },
     sellBy: { [string]: { count: number, value: number } },
     partBy: { [string]: number }?, -- [D70, pasul k3] piesele gata, pe unirea lor
+    contents: { [string]: number }?, -- [verificatorul k3] ce e in traista, pe marfa: ce piesa duci
 }
 -- [D70, pasul k3] formele vin din copia starii (Shared/Modules/StateCopy), una pentru toate liniile
 export type StoreState = StateCopy.StoreState
@@ -106,6 +107,29 @@ local SMOKE_AT: { [string]: { own: { number }, borrowed: { number }, key: string
             own = { 0.5, 0.0 },
             borrowed = { 0.77, 0.0 },
             key = "copper_furnace",
+            w = 64,
+            h = 48,
+        },
+        -- [verificatorul k3] atelierele barajului, cat poarta desenele erelor 2-3: hornul desenului de imprumut (`own` se
+        -- masoara pe foile lor, la A4)
+        switchyard = {
+            own = { 0.79, 0.02 },
+            borrowed = { 0.79, 0.02 },
+            key = "switchyard",
+            w = 40,
+            h = 32,
+        },
+        cableworks = {
+            own = { 0.79, 0.06 },
+            borrowed = { 0.79, 0.06 },
+            key = "cable_works",
+            w = 40,
+            h = 32,
+        },
+        kiln = {
+            own = { 0.5, 0.0 },
+            borrowed = { 0.5, 0.0 },
+            key = "crystal_kiln",
             w = 64,
             h = 48,
         },
@@ -521,17 +545,10 @@ function LineController.join(line: string, building: Building): Line
         art = art,
     }
 
-    -- cate uniri se pot face acum: cea mai mica gramada de piese (o bucata din fiecare face una, FlowMath.assemble)
+    -- cate uniri se pot face acum: cea mai mica gramada de piese (o bucata din fiecare face una, FlowMath.assemble); aceeasi
+    -- regula ca ghidajul (StateCopy.joinable)
     local function joinable(): number
-        if state.waiting ~= nil then
-            return 0
-        end
-        local inputs = state.inputs or {}
-        local n = math.huge
-        for _, join in joins do
-            n = math.min(n, inputs[join.line] or 0)
-        end
-        return if n == math.huge then 0 else n
+        return StateCopy.joinable(state)
     end
 
     StandRing.new({
@@ -621,7 +638,17 @@ function LineController.join(line: string, building: Building): Line
         local parts = if sack.partBy ~= nil then sack.partBy[line] or 0 else 0
         local text: string? = nil
         if parts > 0 then
-            text = Strings.promptProcess(words, keyHint())
+            -- [verificatorul k3] o singura piesa in traista: „Drop cable (E)”, nu „Join barrels and cable”
+            local carried = StateCopy.partsCarried(sack.contents or {}, joins)
+            local only: string? = nil
+            local kinds = 0
+            for part in carried do
+                only = part
+                kinds += 1
+            end
+            text = if kinds == 1 and only ~= nil
+                then Strings.promptDropPart(Strings.LINE_WORDS[only], keyHint())
+                else Strings.promptProcess(words, keyHint())
         elseif state.out > 0 and sack.count < sack.capacity and not byHand then
             text = Strings.promptTakeDone(words, keyHint())
         end
@@ -708,10 +735,21 @@ function LineController.seller(seller: string, building: Building): Seller
         end
         local mine = sack.sellBy[seller]
         local text: string? = nil
+        local status: string? = nil
         if mine ~= nil and mine.count > 0 then
             text = Strings.promptSellAt(keyHint(), TycoonMath.formatNumber(mine.value))
+        else
+            -- [verificatorul k3] piesele unei uniri nu se vand aici: cardul spune unde merg, nu tace [D43]
+            for union, count in sack.partBy or {} do
+                local unionWords = Strings.LINE_WORDS[union]
+                if count > 0 and unionWords ~= nil then
+                    status = Strings.partsToJoin(unionWords)
+                    break
+                end
+            end
         end
         return {
+            status = status,
             key = seller,
             at = places.door,
             distance = d,

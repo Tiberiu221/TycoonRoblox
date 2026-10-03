@@ -162,6 +162,52 @@ return function()
             end
         )
 
+        -- [verificatorul k3] o singura regula pentru „cate uniri se pot face” (inelul Relay-ului si ghidajul) si ce piesa duci
+        test.case(
+            "joinable: linia simpla, unirea cu toate piesele, unirea care asteapta",
+            function()
+                check.equal(StateCopy.joinable({ count = 7 }), 7)
+                check.equal(
+                    StateCopy.joinable({ count = 9, inputs = { barrels = 5, cable = 4 } }),
+                    4
+                )
+                check.equal(
+                    StateCopy.joinable({
+                        count = 5,
+                        inputs = { barrels = 5, cable = 0 },
+                        waiting = "cable",
+                    }),
+                    0
+                )
+                check.equal(StateCopy.joinable({ count = 0, inputs = {} }), 0)
+                local joins =
+                    { { line = "barrels", good = "barrel" }, { line = "cable", good = "cable" } }
+                local only = StateCopy.partsCarried({ cable = 3, driftwood = 2 }, joins)
+                check.equal(only.cable, 3)
+                check.equal(only.barrels, nil)
+                local both = StateCopy.partsCarried({ cable = 1, barrel = 2 }, joins)
+                check.equal(both.barrels, 2)
+                check.equal(both.cable, 1)
+                -- LineController si Overlay o folosesc pe aceasta, nu o copie a lor
+                check.not_nil(
+                    string.find(
+                        fs.readFile("src/Client/Controllers/LineController.luau"),
+                        "StateCopy.joinable(state)",
+                        1,
+                        true
+                    )
+                )
+                check.not_nil(
+                    string.find(
+                        fs.readFile("src/Client/Controllers/Overlay.luau"),
+                        "StateCopy.joinable(processor)",
+                        1,
+                        true
+                    )
+                )
+            end
+        )
+
         test.case(
             "serverul trimite piesele din traista, iar clientul le copiaza prin StateCopy",
             function()

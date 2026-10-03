@@ -1152,6 +1152,15 @@ la granița CREWS / `DAM_START_COINS`.
   `PadArt.bought` încearcă întâi casa primei perechi urcate (colibele Erei 3), nu direct pe cea din Era 1. Oamenii retrași
   nu sunt în instantaneu (`VillageLook.hands`, j13b), deci n-au traseu; Dam Town îi arată la k10.
 
+- **[Verificatorul k3, făcut]** la Relay, textele numesc doar piesa pe care o duci („Drop cable (E)”, „Take the cable to the Relay
+  Station”; `StateCopy.partsCarried` din `sack.contents`); după E la o unire, toast-ul nu mai spune „stay by” (placa inelului
+  spune dacă se unește ceva); Switch House cu piese în traistă spune „Barrels and cable go to the Relay Station first” pe card;
+  o singură regulă pentru „câte uniri se pot face” (`StateCopy.joinable`, inelul și ghidajul); turbina din zid își are stâlpul
+  pe punte, cu un cablu până la ea, încape în cutia de pe fața zidului și stă peste spumă, iar Dam Collector-ul se uită spre
+  ea; marfa Erei 4 are nume („+1 Battery”, „+1 Cable Ore”) și desene de împrumut diferite pentru cele două piese
+  (`GOOD_LOOKS_LIKE`); Relay-ul poartă atelierul de cupru (nu taraba Pieței); hornurile Switchyard, Cable Works și Kiln fac fum.
+  Teste: `StateCopy.joinable` / `partsCarried`, `World2Art` (turbina în zid, nume și desen pe fiecare marfă a barajului).
+
 **k4. Meniurile și cuvintele.** Depinde de: k3.
 - **[Verificatorul k2]** capul panoului Stations la baraj are 18 verigi (butoaie 5, cablu 5, unirea 2 + orașul 1, cristal 5):
   lista clădirilor ar rămâne cu ~1,5 rânduri. Lanțul pe două coloane sau compactat (ori panoul mai înalt), cu un test pe
@@ -1191,6 +1200,10 @@ la granița CREWS / `DAM_START_COINS`.
   spune ce lipsește), fără preț și fără „While you save”; regula e și în sat. Turul cablului la baraj (plasă → Cable Works →
   inel → cablul gata → inelul Relay-ului → curentul → Switch House) e testat cu comutatorul. **Indiciul AWAY** trece la k6,
   lângă fereastra „AWAY 0” (aceleași cuvinte).
+
+- **[Verificatorul k5, făcut]** la baraj, când vine „Earn 1T” toți oamenii sunt angajați, deci ghidajul tăcea: pasul unui quest de
+  venit e acum o excepție, ca pescuitul și avizierul. Pasul numește doar ce crește venitul acum (`AmbitionMath.pick(…, gainOnly)`:
+  fără „cel mai apropiat prag, oriunde”, care spre plafon putea aduce 0).
 
 **k6. Intrarea din lumea 1.** Depinde de: k2, j15.
 - Steagul `damAvailable` în stare. Masa Dam Plans devine „Build the Dam (E)” (azi ar dispărea la `eraIsLive(4)`,

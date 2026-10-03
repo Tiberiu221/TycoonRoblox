@@ -152,5 +152,21 @@ return function()
             check.equal(Strings.ambitionText("crewLevel", "Porter", 3), "Porter to level 3")
             check.equal(Strings.ambitionText("secondHire", "Porter", 2), "Hire a second Porter")
         end)
+        -- [verificatorul k5] pasul unui quest de venit cere castig: fara veriga care tine venitul, nimic (nu pragul de oriunde)
+        test.case("gainOnly: fara pasul 3 (cel mai apropiat prag, oriunde)", function()
+            local row = {
+                kind = "saw",
+                name = "Sawmill",
+                level = 9,
+                nextMilestone = 10,
+                bottleneck = false,
+                gain = 0,
+            }
+            check.not_nil(AmbitionMath.pick({ row }, {}, M))
+            check.equal(AmbitionMath.pick({ row }, {}, M, true), nil)
+            row.bottleneck = true
+            row.gain = 5
+            check.not_nil(AmbitionMath.pick({ row }, {}, M, true))
+        end)
     end)
 end

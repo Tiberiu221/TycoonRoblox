@@ -326,10 +326,11 @@ function HandRoutes.routeFor(
             for _, id in HandRoutes.collectorNets(ownedNetIds, index, count, role, ctx) do
                 local pad = TycoonConfig.byId[id]
                 if pad ~= nil and pad.x ~= nil and pad.y ~= nil then
-                    -- la plasa sta cu roaba spre dreapta, pe punte
+                    -- la plasa sta cu roaba spre dreapta, pe punte; [verificatorul k3] la turbina din zid, cu fata spre ea
+                    local face = if TycoonConfig.wallTurbineAt(pad) ~= nil then "left" else "right"
                     table.insert(
                         stops,
-                        stop({ x = pad.x :: number, y = pad.y :: number }, id, "right")
+                        stop({ x = pad.x :: number, y = pad.y :: number }, id, face)
                     )
                 end
             end

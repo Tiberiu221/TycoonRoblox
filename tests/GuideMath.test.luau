@@ -54,6 +54,7 @@ local function state(over: { [string]: any }): GuideMath.State
         allCrewsHired = over.allCrewsHired,
         world = over.world, -- [D70, pasul k3] harta ta (nil = satul) si piesele din traista, pe unirea lor
         parts = over.parts,
+        sackContents = over.sackContents,
     } :: any
 end
 
@@ -1225,6 +1226,31 @@ return function()
             check.equal(goal.x, stand.x)
             check.equal(goal.y, stand.y)
             check.equal(goal.text, Strings.guideRawTo(Strings.LINE_WORDS.grid))
+            -- [verificatorul k3] doar cablu in traista: textul numeste doar cablul
+            local cableOnly = GuideMath.loopStep(
+                state({
+                    world = 2,
+                    sackCount = 3,
+                    parts = { grid = 3 },
+                    sackContents = { cable = 3 },
+                }),
+                nil
+            )
+            check.equal(
+                cableOnly.text,
+                Strings.guidePartTo(Strings.LINE_WORDS.cable, Strings.LINE_WORDS.grid)
+            )
+            check.equal(cableOnly.x, stand.x)
+            local bothParts = GuideMath.loopStep(
+                state({
+                    world = 2,
+                    sackCount = 3,
+                    parts = { grid = 3 },
+                    sackContents = { cable = 1, barrel = 2 },
+                }),
+                nil
+            )
+            check.equal(bothParts.text, Strings.guideRawTo(Strings.LINE_WORDS.grid))
             -- traista plina de piese: tot acolo, cu textul traistei pline
             local full = GuideMath.pickGoal(state({
                 world = 2,
@@ -1268,6 +1294,14 @@ return function()
                 check.equal(g.price, nil)
                 check.equal(g.text, ambition.text)
                 check.equal(g.upgradeKind, "relay")
+                -- [verificatorul k5] si cu toti oamenii angajati (ghidajul tace): la baraj asa vine „Earn 1T”
+                st.allCrewsHired = true
+                local silent = GuideMath.pickGoal(st) :: GuideMath.Goal
+                check.not_nil(silent)
+                check.equal(silent.text, ambition.text)
+                check.equal(silent.x, nil)
+                check.equal(silent.price, nil)
+                st.allCrewsHired = false
                 -- fara tinta de urcat: textul quest-ului, tot fara pret
                 st.ambition = nil
                 local plain = GuideMath.pickGoal(st) :: GuideMath.Goal

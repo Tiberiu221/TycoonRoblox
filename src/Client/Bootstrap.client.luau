@@ -529,7 +529,7 @@ local WORLD_BUILDING_ART: { [string]: { own: string, borrowed: string } } = {
     switchyard = { own = "switchyard", borrowed = "wire_works" },
     cableStore = { own = "cable_store", borrowed = "mill_store" },
     cableworks = { own = "cable_works", borrowed = "foundry" },
-    relay = { own = "relay_station", borrowed = "market" },
+    relay = { own = "relay_station", borrowed = "copper_furnace" }, -- un atelier, nu o taraba [verificatorul k3]
     town = { own = "switch_house", borrowed = "depot" },
 }
 if world ~= 1 then
@@ -1372,6 +1372,7 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
         rawBy = sackBy.rawBy,
         sellBy = sackBy.sellBy,
         partBy = sackBy.partBy,
+        contents = sackContents, -- [verificatorul k3] ce piesa a unirii duci (cardul Relay-ului)
     }
     lastSellBy = sackState.sellBy -- [D67]
 

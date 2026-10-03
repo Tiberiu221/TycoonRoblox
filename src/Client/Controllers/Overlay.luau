@@ -20,6 +20,7 @@ local ItemConfig = require(ReplicatedStorage.Shared.Config.ItemConfig)
 local RiverConfig = require(ReplicatedStorage.Shared.Config.RiverConfig)
 local StationConfig = require(ReplicatedStorage.Shared.Config.StationConfig)
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
+local StateCopy = require(ReplicatedStorage.Shared.Modules.StateCopy) -- [verificatorul k3]
 local WorldConfig = require(ReplicatedStorage.Shared.Config.WorldConfig)
 local Strings = require(ReplicatedStorage.Shared.Config.Strings)
 local GuideMath = require(ReplicatedStorage.Shared.Modules.GuideMath)
@@ -196,21 +197,11 @@ end
 
 -- [D70, pasul k3] Cat e de lucrat in inelul unui atelier: tot ce asteapta la intrare; la o unire, doar cate uniri se pot face
 -- acum (cea mai mica gramada de piese, 0 cat una lipseste), ca ghidajul sa nu te tina in inel degeaba.
+-- Aceeasi regula ca inelul Relay-ului (StateCopy.joinable) [verificatorul k3].
 local function workable(
     processor: { count: number, inputs: { [string]: number }?, waiting: string? }
 ): number
-    local inputs = processor.inputs
-    if inputs == nil then
-        return processor.count
-    end
-    if processor.waiting ~= nil then
-        return 0
-    end
-    local n = math.huge
-    for _, count in inputs do
-        n = math.min(n, count)
-    end
-    return if n == math.huge then 0 else n
+    return StateCopy.joinable(processor)
 end
 
 -- [D65] Liniile Morii pentru bucla de mana: marfa lor bruta din traista si gramezile lor (TycoonState.flow).
@@ -394,6 +385,7 @@ local function toGuideState(s: Snapshot, ambition: AmbitionMath.Ambition?): Guid
         -- [D70, pasul k3] harta ta si piesele gata din traista: la baraj, nicio tinta a satului
         world = deps.World,
         parts = if s.sack.partBy ~= nil then table.clone(s.sack.partBy) else nil,
+        sackContents = table.clone(contents), -- [verificatorul k3] ce piesa duci
         -- [D70, pasul k6] barajul se poate ridica: masa Dam Plans (unde stai ca sa apara cardul ei)
         damPlans = if s.damAvailable == true
             then { x = TycoonConfig.DAM_PLANS.x, y = TycoonConfig.DAM_PLANS.y }
@@ -662,7 +654,11 @@ local function refreshGuide(snapshot: Snapshot)
     local ambition = if stations ~= nil
         then AmbitionMath.pick(stations.rows, stations.crews, StationConfig.MILESTONES)
         else nil
-    local goal = GuideController.Apply(toGuideState(snapshot, ambition))
+    -- [verificatorul k5] pasul unui quest de venit numeste doar ce chiar creste venitul acum
+    local gainAmbition = if stations ~= nil
+        then AmbitionMath.pick(stations.rows, stations.crews, StationConfig.MILESTONES, true)
+        else nil
+    local goal = GuideController.Apply(toGuideState(snapshot, gainAmbition))
     -- [D63] tinta fara sfarsit: HUD-ul o arata doar cand n-are nici quest, nici pas de ghidaj
     HUDController.SetAmbition(ambition)
     HUDController.SetStep(goal, snapshot.coins)

@@ -18,6 +18,7 @@ local StationConfig =
     require(script and script.Parent.Parent.Config.StationConfig or "../Config/StationConfig")
 local FlowConfig =
     require(script and script.Parent.Parent.Config.FlowConfig or "../Config/FlowConfig")
+local StateCopy = require(script and script.Parent.StateCopy or "./StateCopy")
 local TreasureConfig =
     require(script and script.Parent.Parent.Config.TreasureConfig or "../Config/TreasureConfig")
 
@@ -94,6 +95,8 @@ export type State = {
     -- lume decat satul nu exista bustenii, gaterul, forja, taverna: pasii lor nu se dau niciodata.
     world: number?,
     parts: { [string]: number }?,
+    -- [verificatorul k3] ce e in traista, pe marfa: ce piesa a unirii duci („Take the cable…”, nu „barrels and cable”)
+    sackContents: { [string]: number }?,
     -- [D70, pasul k5] ce se mai poate urca acum cu castig (AmbitionMath, aceeasi tinta ca pe linia NEXT fara quest): pasul
     -- unui quest de venit il numeste. `upgradeKind` / `upgradeId`: statia (sau "crew" si meseria) al carei Upgrade pulseaza.
     ambition: { text: string, upgradeKind: string?, upgradeId: string? }?,
@@ -278,7 +281,25 @@ end
 local function partsGoal(s: State, full: boolean, immediate: boolean): Goal?
     for _, line in JOIN_LINES do
         if ((s.parts or {})[line] or 0) > 0 then
-            return rawGoal(line, full, immediate)
+            local goal = rawGoal(line, full, immediate)
+            -- [verificatorul k3] o singura piesa in traista: textul o numeste doar pe ea
+            local joins = FlowConfig.LINES[line].joins
+            if joins ~= nil and s.sackContents ~= nil then
+                local carried = StateCopy.partsCarried(s.sackContents, joins)
+                local only: string? = nil
+                local kinds = 0
+                for part in carried do
+                    only = part
+                    kinds += 1
+                end
+                if kinds == 1 and only ~= nil then
+                    local part, union = Strings.LINE_WORDS[only], Strings.LINE_WORDS[line]
+                    goal.text = if full
+                        then Strings.sackFullPart(part, union)
+                        else Strings.guidePartTo(part, union)
+                end
+            end
+            return goal
         end
     end
     return nil
@@ -799,9 +820,12 @@ function GuideMath.pickGoal(s: State): Goal?
         local silentQuest = s.quest
         if silentQuest ~= nil then
             -- [D62] ...si quest-ul care arata avizierul satului: tot un lucru nou, tot fara alta cale de a-l gasi
+            -- [verificatorul k5] si pasul unui quest de venit: la baraj, toti oamenii sunt angajati cand vine „Earn 1T”, iar
+            -- fara el linia NEXT n-ar spune ce sa urci
             if
                 silentQuest.kind == "fished"
                 or silentQuest.kind == "decor"
+                or silentQuest.kind == "income"
                 or silentQuest.always
             then
                 return questGoal(s, silentQuest) -- [D65] `always`: roata de apa, dincolo de gardul abia cazut

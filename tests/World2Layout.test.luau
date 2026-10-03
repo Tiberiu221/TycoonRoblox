@@ -471,6 +471,57 @@ return function()
     end)
 
     -- [D70, pasul k2b] decorul cumparat cu perle, in piata Dam Town
+    -- [verificatorul k3] turbina zidita se deseneaza pe fata zidului, in cutia ei; marfa barajului are nume si desen
+    test.suite("World2Art [verificatorul k3]", function()
+        test.case(
+            "turbina din zid: cutia ei e pe fata zidului; nicio alta platforma n-are cutie",
+            function()
+                local box = TycoonConfig.wallTurbineAt(TycoonConfig.byId.dam_turbine)
+                assert(box ~= nil, "turbina barajului are cutia ei")
+                local wall = world.wall :: TycoonConfig.Box
+                check.is_true(box.x - box.w / 2 >= wall.x and box.x + box.w / 2 <= wall.x + wall.w)
+                check.is_true(box.y - box.h / 2 >= wall.y and box.y + box.h / 2 <= wall.y + wall.h)
+                check.equal(TycoonConfig.wallTurbineAt(TycoonConfig.byId.first_turbine), nil)
+                check.equal(TycoonConfig.wallTurbineAt(TycoonConfig.byId.first_net), nil)
+                check.equal(TycoonConfig.wallTurbineAt(TycoonConfig.byId.cable_net), nil)
+            end
+        )
+        test.case(
+            "fiecare marfa a barajului are nume si un desen urcat (al ei sau al perechii)",
+            function()
+                local FlowConfig = require("../src/Shared/Config/FlowConfig")
+                local function drawn(good: string): string?
+                    for _, g in { good, TycoonConfig.lookOf(good) } do
+                        local icon = (Assets.goods :: any)[g]
+                        if icon ~= nil and Assets.has(icon) then
+                            return g
+                        end
+                    end
+                    return nil
+                end
+                for _, line in StationConfig.LINE_ORDER_ALL do
+                    local spec = FlowConfig.LINES_ALL[line]
+                    if spec.era == 4 then
+                        local goods = table.clone(spec.raw)
+                        table.insert(goods, spec.output)
+                        for _, good in goods do
+                            check.not_nil(TycoonConfig.GOOD_NAMES[good])
+                            if drawn(good) == nil then
+                                print(`  ! {good} fara desen`)
+                            end
+                            check.not_nil(drawn(good))
+                        end
+                        -- cele doua piese ale unirii se deosebesc pe gramezile Relay-ului
+                        if spec.joins ~= nil then
+                            local a, b = spec.joins[1], spec.joins[2]
+                            check.is_true(drawn(a.good) ~= drawn(b.good))
+                        end
+                    end
+                end
+            end
+        )
+    end)
+
     test.suite("World2Decor [D70, pasul k2b]", function()
         local DECOR = VillageConfig.DECOR
         local zone = TycoonConfig.zonesOf(W)[1]

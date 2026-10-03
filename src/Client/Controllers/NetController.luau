@@ -257,7 +257,8 @@ local function ensureAssembly(padId: string, x: number, y: number): Assembly
     root.ZIndex = 4
     root.Parent = deps.Plot
 
-    if wall == nil and Assets.has(Assets.tycoon.netpost) then
+    -- [verificatorul k3] si turbina din zid are stalpul ei pe punte, unde o goleste Dam Collector-ul
+    if Assets.has(Assets.tycoon.netpost) then
         local post = Instance.new("ImageLabel")
         post.Name = "Post"
         post.BackgroundTransparency = 1
@@ -312,6 +313,23 @@ local function ensureAssembly(padId: string, x: number, y: number): Assembly
     rope.ZIndex = 4
     rope.Visible = wall == nil -- [D70, pasul k3] turbina zidita n-are funie
     rope.Parent = root
+    if wall ~= nil then
+        -- [verificatorul k3] cablul de la varful stalpului pana la turbina din zid, ca in plansa: locul unde o golesti si
+        -- desenul ei se leaga. O fasie dreapta, rotita.
+        local fromX, fromY = 0, -POST_H
+        local toX, toY = wall.x - padX, wall.y - padY
+        local dx, dy = toX - fromX, toY - fromY
+        local cable = Instance.new("Frame")
+        cable.Name = "WallCable"
+        cable.AnchorPoint = Vector2.new(0.5, 0.5)
+        cable.Position = UDim2.fromOffset((fromX + toX) / 2, (fromY + toY) / 2)
+        cable.Size = UDim2.fromOffset(math.sqrt(dx * dx + dy * dy), ROPE_WIDTH)
+        cable.Rotation = math.deg(math.atan2(dy, dx))
+        cable.BackgroundColor3 = Theme.COLOR.woodDark
+        cable.BorderSizePixel = 0
+        cable.ZIndex = 4
+        cable.Parent = root
+    end
 
     -- bob: tot ce se leagana/tresare impreuna -- corpul plasei, gramada si pastila. Pozitia lui
     -- (fata de radacina) se rescrie in fiecare cadru, in updateNetMotion.
@@ -336,15 +354,21 @@ local function ensureAssembly(padId: string, x: number, y: number): Assembly
     local spin: Spin.Sheet? = nil
     local turbineArt = if isTurbine then turbineSprite() else nil
     if turbineArt ~= nil then
-        body.Size =
-            UDim2.fromOffset(turbineArt.width * TURBINE_SCALE, turbineArt.height * TURBINE_SCALE)
+        local tw, th = turbineArt.width * TURBINE_SCALE, turbineArt.height * TURBINE_SCALE
+        if wall ~= nil then
+            -- [verificatorul k3] zidita: incape in cutia ei de pe fata zidului, peste spuma de la picior (Z 8)
+            local k = math.min(wall.w / tw, wall.h / th)
+            tw, th = tw * k, th * k
+            body.ZIndex = 9
+        end
+        body.Size = UDim2.fromOffset(tw, th)
         local img = Instance.new("ImageLabel")
         img.Name = "Art"
         img.BackgroundTransparency = 1
         img.Image = Assets.url(turbineArt)
         img.ResampleMode = Enum.ResamplerMode.Pixelated
         img.Size = UDim2.fromScale(1, 1)
-        img.ZIndex = 5
+        img.ZIndex = if wall ~= nil then 9 else 5
         img.Parent = body
         art = img
         spin = Spin.sheetOf(turbineArt)

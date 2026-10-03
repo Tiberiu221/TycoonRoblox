@@ -134,6 +134,43 @@ function StateCopy.lineView(entry: any, line: string): LineView
     }
 end
 
+-- [verificatorul k3] Cat e de lucrat in inelul unui atelier: tot ce asteapta la intrare; la o unire, cate uniri se pot face
+-- acum (cea mai mica gramada de piese, 0 cat una lipseste). O singura regula pentru inelul Relay-ului (LineController) si
+-- pentru ghidaj (Overlay).
+function StateCopy.joinable(processor: {
+    count: number,
+    inputs: { [string]: number }?,
+    waiting: string?,
+}): number
+    local inputs = processor.inputs
+    if inputs == nil then
+        return processor.count
+    end
+    if processor.waiting ~= nil then
+        return 0
+    end
+    local n = math.huge
+    for _, count in inputs do
+        n = math.min(n, count)
+    end
+    return if n == math.huge then 0 else n
+end
+
+-- [verificatorul k3] Ce piese ale unei uniri duci (linia piesei -> cate), din ce e in traista (`contents`, pe marfa).
+function StateCopy.partsCarried(
+    contents: { [string]: number },
+    joins: { { line: string, good: string } }
+): { [string]: number }
+    local out: { [string]: number } = {}
+    for _, join in joins do
+        local n = contents[join.good] or 0
+        if n > 0 then
+            out[join.line] = n
+        end
+    end
+    return out
+end
+
 -- Piesele fiecarei uniri dintr-un model de linii (FlowConfig.GAME / FULL), in ordinea retetei: unirea -> piesele ei.
 function StateCopy.partsOf(
     lines: { [string]: { joins: { { line: string } }? } }

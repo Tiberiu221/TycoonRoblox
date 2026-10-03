@@ -308,6 +308,11 @@ return function()
                 Strings.placeResult("grid", nil, false, true, "ok", 3, 0, true),
                 "Dropped 3 parts"
             )
+            -- [verificatorul k3] si fara Relay Keeper: „stay by” ar minti cat lipseste cealalta piesa
+            check.equal(
+                Strings.placeResult("grid", nil, false, true, "ok", 3, 0, false),
+                "Dropped 3 parts"
+            )
         end)
         test.case("la un vanzator: piesele spun Relay-ul; marfa bruta, vanzatorul lui", function()
             local parts =

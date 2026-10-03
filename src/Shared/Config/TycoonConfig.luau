@@ -179,6 +179,15 @@ TycoonConfig.GOOD_LOOKS_LIKE = {
     battery = "parts",
     cell = "parts",
     named3 = "named",
+    -- [D70, pasul k3, verificatorul k3] marfa Erei 4, pana la arta ei (lotul A4): fiecare pe o marfa cu desen urcat (GoodArt
+    -- face un singur pas), iar cele doua piese ale unirii pe desene diferite, ca gramezile Relay-ului sa se deosebeasca
+    charge = "battery",
+    barrel = "cell",
+    cable_ore = "ore",
+    cable = "coils",
+    grid = "copper",
+    crystal = "parts",
+    ingot = "iron",
 } :: { [string]: string }
 function TycoonConfig.lookOf(good: string): string
     return TycoonConfig.GOOD_LOOKS_LIKE[good] or good
@@ -482,6 +491,14 @@ TycoonConfig.GOOD_NAMES = {
     battery = "Battery",
     cell = "Power Cell",
     named3 = "Find",
+    -- [D70, verificatorul k3] Era 4: „+1 Battery” la turbina, „+1 Cable Ore” la plasa de cablu (nu numele interne)
+    charge = "Battery",
+    barrel = "Barrel",
+    cable_ore = "Cable Ore",
+    cable = "Cable",
+    grid = "Power",
+    crystal = "Crystal",
+    ingot = "Ingot",
 }
 
 -- [B5] Toate pozitiile de platforme, plase, debarcader si zone sunt LOCALE terenului. Lumea =

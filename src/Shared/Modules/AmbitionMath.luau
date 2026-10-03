@@ -74,10 +74,13 @@ local function milestoneOf(row: StationRow, milestones: { number }): Ambition?
     }
 end
 
+-- [verificatorul k5] `gainOnly`: doar pasii 1-2 (ce chiar creste venitul acum), fara „cel mai apropiat prag, oriunde”: pasul
+-- unui quest de venit nu impinge o urcare care aduce 0 [D40, D46].
 function AmbitionMath.pick(
     rows: { StationRow },
     crews: { CrewRow },
-    milestones: { number }
+    milestones: { number },
+    gainOnly: boolean?
 ): Ambition?
     -- 1. cladirea sau plasa care tine venitul in loc (un nivel acolo chiar aduce ceva). [D65] Fiecare linie isi are
     -- veriga ei slaba, deci pot fi mai multe: cea al carei nivel aduce CEL MAI MULT acum (la egalitate, prima). Cu
@@ -123,6 +126,9 @@ function AmbitionMath.pick(
         end
     end
     -- 3. cel mai apropiat prag, oriunde: nivelurile nu se termina, deci tinta asta exista mereu
+    if gainOnly then
+        return nil
+    end
     local best: Ambition? = nil
     for _, row in rows do
         local a = milestoneOf(row, milestones)

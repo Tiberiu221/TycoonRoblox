@@ -892,6 +892,16 @@ end
 function Strings.lineWorking(words: LineWords, left: number): string
     return `{words.working} — {left} left`
 end
+-- [verificatorul k3] o singura piesa a unirii in traista: textele o numesc doar pe ea („cable”), nu „barrels and cable”
+function Strings.guidePartTo(part: LineWords, union: LineWords): string
+    return `Take the {part.done} to the {union.processor}`
+end
+function Strings.sackFullPart(part: LineWords, union: LineWords): string
+    return `Sack full — take the {part.done} to the {union.processor}`
+end
+function Strings.promptDropPart(part: LineWords, keyHint: string): string
+    return `Drop {part.done}{keyHint}`
+end
 -- [D70, pasul k4] piesele duse la un vanzator: „Barrels and cable go to the Relay Station first”
 function Strings.partsToJoin(union: LineWords): string
     return `{string.upper(string.sub(union.raw, 1, 1))}{string.sub(union.raw, 2)} go to the {union.processor} first`
@@ -1012,7 +1022,9 @@ function Strings.placeResult(
     if dropped > 0 and taken > 0 then
         return `Dropped {raw(dropped)} · took {done(taken)}`
     elseif dropped > 0 then
-        return if staffed
+        -- [verificatorul k3] la o unire, „stay by” ar minti cat lipseste cealalta piesa: placa de deasupra inelului spune
+        -- singura daca se uneste ceva („Waiting for barrels” sau „Joining — N left”)
+        return if staffed or words.rawUnit ~= nil
             then `Dropped {raw(dropped)}`
             else `Dropped {raw(dropped)} — {words.byIt}`
     end
