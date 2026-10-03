@@ -1625,6 +1625,12 @@ local GOLDEN_ERA4_FROM = {
         powerHauler = { 2, 5 },
     },
 }
+-- [D70, pasul j12] venitul de la ridicarea barajului, cu cele trei clopote (`golden_chain.py --dam-start`)
+local GOLDEN_DAM_START = {
+    bells = 1.3310000000000004,
+    income = 19567696500.000008,
+}
+
 -- [D70, pasul j3] plasele barajului din simulator (`golden_chain.py --dam-nets`): baza si costul nivelurilor, dupa id
 local GOLDEN_DAM_NETS = {
     dam_turbine = { base = 1.4587670625, upgradeBase = 119353668750.0 },
@@ -4462,6 +4468,149 @@ return function()
                 near(wide.lines.probeA.delivered, 4.0)
                 check.equal(wide.lines.probeA.bottleneck, "nets")
                 near(ChainMath.valueWith(m, s, wide) - ChainMath.income(s), 68.0)
+            end
+        )
+    end)
+
+    -- [D70, pasul j12] STAREA DIN PROFIL (ChainState), pura: aceleasi cifre ca tabelele de aur, si startul barajului
+    test.suite("ChainState - din profil [D70, pasul j12]", function()
+        local ChainState = require("../src/Shared/Modules/ChainState")
+        local netPads: { string } = {}
+        for _, p in TycoonConfig.PADS do
+            for _, e in p.effects do
+                if e.kind == "net" then
+                    table.insert(netPads, p.id)
+                    break
+                end
+            end
+        end
+        local function hands(crews: { [string]: { number } }, into: { [string]: any })
+            for role, spec in crews do
+                for i = 1, spec[1] do
+                    into[`{role}_{i}`] = { role = role }
+                end
+            end
+        end
+
+        for _, g in GOLDEN_ERA3 do
+            test.case(`profilul de aur, Era 3: {g.name}`, function()
+                -- profilul echivalent cu starea de aur (golden_chain.build_era3): plasele cu nivelurile lor, gaterul si
+                -- taverna la 30, forja la 20, Moara la 40, Wire Works din caz; fara clopote (bells = 1)
+                local pads: { [string]: boolean } = {
+                    workshop = true,
+                    water_wheel = true,
+                    copper_furnace = true,
+                    bigger_sack = true,
+                }
+                pads.steam_engine = g.steam or nil
+                pads.power_house = g.powerhouse or nil
+                local nets: { [string]: any } = {}
+                for i, level in g.nets do
+                    pads[netPads[i]] = true
+                    nets[netPads[i]] = { level = level }
+                end
+                local data: any = {
+                    World = 1,
+                    Pads = pads,
+                    Index = {},
+                    Rebirths = 0,
+                    Purchases = { passes = {} },
+                    Hands = {},
+                    Crews = {},
+                    Stations = {
+                        saw = { level = 30 },
+                        dock = { level = 30 },
+                        forge = { level = 20 },
+                        foundry = { level = 40 },
+                        furnace = { level = 40 },
+                        market = { level = 40 },
+                        wireworks = { level = g.wireworks },
+                        powerhouse = { level = g.powerhouseLevel },
+                        depot = { level = g.depot },
+                        nets = nets,
+                    },
+                }
+                hands(g.crews :: any, data.Hands)
+                for role, spec in g.crews :: any do
+                    data.Crews[role] = { tier = spec[2] }
+                end
+                local st = ChainState.from(data, data.Pads)
+                check.equal(st.bells, 1)
+                check.is_false(st.dam)
+                check.equal(ChainMath.income(st), g.income)
+            end)
+        end
+
+        test.case(
+            "startul barajului, din profil, sub FULL: venitul simulatorului, cu clopote",
+            function()
+                local pads: { [string]: boolean } = {}
+                local nets: { [string]: any } = {}
+                for _, p in TycoonConfig.padsOfWorld(1) do
+                    pads[p.id] = true
+                end
+                for _, id in netPads do
+                    if pads[id] then
+                        nets[id] = { level = 30 }
+                    end
+                end
+                -- ce da barajul: turbina din zid, Cable Net si casele celor cinci veterani
+                for _, id in
+                    {
+                        "dam_turbine",
+                        "cable_net",
+                        "hire_dam_collector",
+                        "hire_dam_porter",
+                        "hire_switchman",
+                        "hire_barrel_hauler",
+                        "hire_dispatcher",
+                    }
+                do
+                    pads[id] = true
+                end
+                nets.dam_turbine = { level = 1 }
+                nets.cable_net = { level = 1 }
+                local data: any = {
+                    World = 2,
+                    Pads = pads,
+                    Index = {},
+                    Rebirths = 0,
+                    Purchases = { passes = {} },
+                    Hands = {},
+                    Crews = {},
+                    Stations = {
+                        saw = { level = 30 },
+                        dock = { level = 30 },
+                        forge = { level = 20 },
+                        switchyard = { level = 1 },
+                        cableworks = { level = 1 },
+                        relay = { level = 1 },
+                        kiln = { level = 1 },
+                        town = { level = 1 },
+                        nets = nets,
+                    },
+                }
+                -- veteranii pe meseriile barajului; un om iesit din lucru (in Dam Town) nu se numara
+                hands({
+                    damCollector = { 1 },
+                    damPorter = { 1 },
+                    switchman = { 1 },
+                    barrelHauler = { 1 },
+                    dispatcher = { 1 },
+                }, data.Hands)
+                data.Hands.collector_retired = { role = "collector", retired = true }
+                local st = ChainState.from(data, data.Pads, ChainMath.FULL)
+                check.is_true(st.dam) -- R5: steagul barajului vine din lume, nu dintr-o platforma
+                check.is_false(st.kiln)
+                check.equal(st.crews.damCollector.count, 1)
+                check.equal(st.crews.collector.count, 0)
+                check.equal(st.bells, GOLDEN_DAM_START.bells)
+                local income = ChainMath.valueWith(
+                    ChainMath.FULL,
+                    st,
+                    ChainMath.flowWith(ChainMath.FULL, st, false)
+                )
+                check.equal(income, GOLDEN_DAM_START.income)
             end
         )
     end)

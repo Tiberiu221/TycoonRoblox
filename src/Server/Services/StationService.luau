@@ -7,6 +7,7 @@
 -- daca o cumparatura e legala, si se incaseaza.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ChainMath = require(ReplicatedStorage.Shared.Modules.ChainMath)
+local ChainState = require(ReplicatedStorage.Shared.Modules.ChainState)
 local CrewMath = require(ReplicatedStorage.Shared.Modules.CrewMath)
 local FlowConfig = require(ReplicatedStorage.Shared.Config.FlowConfig)
 local StationConfig = require(ReplicatedStorage.Shared.Config.StationConfig)
@@ -56,21 +57,9 @@ local cache: { [Player]: ChainMath.State } = {}
 
 local MAX_BULK = 500 -- cate niveluri poate lua o singura apasare; "Max" se opreste tot aici
 
--- Plasele, in ordinea din PADS. Ordinea da si indexul din care ChainMath deriva baza si costul:
--- a doua plasa e mai buna si mai scumpa decat prima, altfel n-ar avea rost sa o deblochezi.
-local netPadIds: { string } = {}
-local netPadLane: { [string]: number } = {}
-local netPadKind: { [string]: string } = {} -- [D55] "wood" | "scrap"
-for _, p in TycoonConfig.PADS do
-    for _, e in p.effects do
-        if e.kind == "net" then
-            table.insert(netPadIds, p.id)
-            netPadLane[p.id] = e.lane or 1
-            netPadKind[p.id] = TycoonMath.netKind(p)
-            break
-        end
-    end
-end
+-- Plasele, in ordinea din PADS (o singura lista, a starii lantului: ChainState). [D70] Baza si costul vin din rangul
+-- plasei (ChainMath.netIdentity), nu din locul ei in lista.
+local netPadIds: { string } = ChainState.NET_PAD_IDS
 StationService.NET_PAD_IDS = netPadIds
 
 local function stationsOf(data: any)
@@ -99,18 +88,32 @@ end
 -- mult sa fie urcata, altfel toata lumea ar urca doar prima.
 -- [D65] Costul de baza al nivelurilor fiecarei cladiri a lantului. Cifrele stau in StationConfig (simulatorul le
 -- verifica acolo); o cladire noua vine cu randul ei aici si cu `Stations.<veriga>` in profil.
-local UPGRADE_BASE: { [string]: number } = {
-    saw = StationConfig.SAW_UPGRADE_BASE,
-    dock = StationConfig.DOCK_UPGRADE_BASE,
-    forge = StationConfig.FORGE_UPGRADE_BASE,
-    foundry = StationConfig.FOUNDRY_UPGRADE_BASE,
-    furnace = StationConfig.FURNACE_UPGRADE_BASE,
-    market = StationConfig.MARKET_UPGRADE_BASE,
-    -- [D67] Era 3
-    wireworks = StationConfig.WIREWORKS_UPGRADE_BASE,
-    powerhouse = StationConfig.POWERHOUSE_UPGRADE_BASE,
-    depot = StationConfig.DEPOT_UPGRADE_BASE,
-}
+-- [D70, pasul j12] DERIVAT pe erele din joc: atelierul fiecarei linii si fiecare vanzator, cu constanta lui din
+-- StationConfig (<KIND>_UPGRADE_BASE: SAW_UPGRADE_BASE, ...). La comutatorul l3 intra singure Switchyard, Cable Works,
+-- Relay Station, Kiln si orasul. Pana atunci, exact cele noua de dinainte.
+local UPGRADE_BASE: { [string]: number } = {}
+do
+    local constants = StationConfig :: any
+    local function add(kind: string)
+        local base = constants[string.upper(kind) .. "_UPGRADE_BASE"]
+        assert(
+            typeof(base) == "number",
+            `StationConfig: lipseste {string.upper(kind)}_UPGRADE_BASE`
+        )
+        UPGRADE_BASE[kind] = base
+    end
+    for _, line in StationConfig.LINE_ORDER do
+        for _, step in StationConfig.LINES[line].steps do
+            if step.kind == "processor" then
+                add(step.link)
+            end
+        end
+    end
+    for _, seller in StationConfig.SELLER_ORDER do
+        add(seller)
+    end
+end
+StationService.UPGRADE_KINDS = UPGRADE_BASE
 -- [D67] DERIVATE, NU SCRISE: platforma fara de care cladirea nu exista inca (nil = e acolo de la inceput) si randurile
 -- panoului, pe ere. Atelierul unei linii se deschide cu platforma ei din FlowConfig (Forge, roata de apa, cuptorul de
 -- cupru, masina cu abur, Power House); vanzatorul, odata cu prima lui linie (Piata cu roata, Depoul cu masina). Numele
@@ -161,60 +164,8 @@ end
 -- profil) ca sa se poata intreba si "cum ar arata DACA as cumpara platforma asta" -- de acolo vin
 -- deltele de pe fantome, calculate cu exact aceeasi formula ca venitul real [D40].
 function StationService.StateFrom(data: any, bought: { [string]: boolean }): ChainMath.State
-    local s = ChainMath.empty()
-    local st = stationsOf(data)
-    for _, padId in netPadIds do
-        if bought[padId] ~= true then
-            continue
-        end
-        local entry = st.nets[padId]
-        local net = ChainMath.netIdentity(padId) :: ChainMath.NetIdentity
-        table.insert(s.nets, {
-            base = ChainMath.netBaseRank(net.rank),
-            baseLane = netPadLane[padId] or 1,
-            level = if entry ~= nil then entry.level else 1,
-            kind = netPadKind[padId] or "wood",
-        })
-    end
-    -- Nivelul fiecarei cladiri a lantului, in campul numit de tabelul liniilor (saw -> sawLevel). `or 1`: o stare
-    -- construita dintr-un profil necompletat nu are voie sa crape pe aritmetica cu nil.
-    local fields: any = s
-    for kind in UPGRADE_BASE do
-        local field = ChainMath.levelField(kind)
-        local entry = st[kind]
-        if field ~= nil then
-            fields[field] = if typeof(entry) == "table" then entry.level or 1 else 1
-        end
-    end
-    -- [D55, D56] linia fierului: Forge (platforma `workshop`), din aceleasi platforme ca intrebarea "daca"; plasa de
-    -- scrap intra cu plasele de mai sus. [D65, D67] La fel fiecare linie cu conditie: steagul ei (StationConfig) il
-    -- ridica platforma atelierului ei (FlowConfig) -- roata de apa, cuptorul de cupru, masina cu abur, Power House.
-    for _, line in StationConfig.LINE_ORDER do
-        local flag = StationConfig.LINES[line].openFlag
-        if flag ~= nil then
-            fields[flag] = bought[FlowConfig.LINES[line].processorPad or ""] == true
-        end
-    end
-    -- OAMENII [D49]: cati sunt se numara din `data.Hands` (dupa rol), treapta vine din `data.Crews`.
-    -- O platforma de meserie din `bought` fara om inca (intrebarea "daca as cumpara-o") numara un om:
-    -- altfel cartonasul de la apropiere ar arata castig zero pe fiecare angajare.
-    s.crews = CrewMath.fromProfile(data.Hands, data.Crews)
-    for role, crew in s.crews do
-        local def = TycoonConfig.CREWS[role]
-        if crew.count == 0 and def ~= nil and bought[def.pad] == true then
-            crew.count = 1
-        end
-    end
-    -- Multiplicatorii raman de unde erau: sunt efecte de platforma, nu niveluri de statie.
-    local old = TycoonMath.stateFor(bought, data.Rebirths, StationService.IndexCount(data))
-    s.sackBig = old.sackBig
-    -- [D61, partea 2] pass-ul 2x Flow, ca in PadService.StateFor: de aici ies TOATE cifrele afisate (venitul de pe
-    -- HUD, idle si offline, deltele platformelor, "+N coins a minute"), deci se dubleaza toate, la fel
-    s.priceMult = old.priceMult * PassMath.flowFactor(data)
-    s.bells = old.bells
-    s.indexFound = old.indexFound
-    s.rebirths = old.rebirths
-    return s
+    -- [D70, pasul j12] regula e pura, in ChainState (testata pe profilurile de aur si pe startul barajului)
+    return ChainState.from(data, bought)
 end
 
 function StationService.StateFor(player: Player): ChainMath.State
@@ -255,11 +206,7 @@ function StationService.Income(player: Player): number
 end
 
 function StationService.IndexCount(data: any): number
-    local n = 0
-    for _ in data.Index do
-        n += 1
-    end
-    return n
+    return ChainState.indexCount(data)
 end
 
 -- Nivelurile plaselor, pe padId -- pentru quest-uri si pentru insignele din lume.

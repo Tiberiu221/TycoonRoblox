@@ -31,14 +31,17 @@ end
 
 -- Meseriile din profil: cati oameni (numarati din Hands, dupa rol) si ce treapta (din Crews, taiata
 -- la 1..TIER_MAX -- un profil stricat nu are voie sa dea un debit inventat).
+-- [D70, pasul j12] `m`: modelul ale carui meserii se numara (fara el, ale jocului). Un om iesit din lucru la baraj
+-- (`retired`, locuieste in Dam Town) nu se mai numara in meseria lui.
 function CrewMath.fromProfile(
-    hands: { [string]: { role: string } },
-    crews: { [string]: { tier: number } }?
+    hands: { [string]: { role: string, retired: boolean? } },
+    crews: { [string]: { tier: number } }?,
+    m: ChainMath.Model?
 ): { [string]: ChainMath.Crew }
-    local out = ChainMath.emptyCrews()
+    local out = ChainMath.emptyCrews(m)
     for _, hand in hands do
         local crew = out[hand.role]
-        if crew ~= nil then
+        if crew ~= nil and hand.retired ~= true then
             crew.count += 1
         end
     end

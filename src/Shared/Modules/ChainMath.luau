@@ -1207,15 +1207,22 @@ function ChainMath.clone(s: State): State
     return copy
 end
 
-function ChainMath.emptyCrews(): { [string]: Crew }
+-- [D70, pasul j12] fara model, meseriile jocului (StationConfig.ROLES); cu model, toate ale lui (FULL: si ale barajului)
+function ChainMath.emptyCrews(m: Model?): { [string]: Crew }
     local crews: { [string]: Crew } = {}
-    for _, role in StationConfig.ROLES do
-        crews[role] = { count = 0, tier = 1 }
+    if m == nil then
+        for _, role in StationConfig.ROLES do
+            crews[role] = { count = 0, tier = 1 }
+        end
+    else
+        for _, role in m.roleOfLink do
+            crews[role] = { count = 0, tier = 1 }
+        end
     end
     return crews
 end
 
-function ChainMath.empty(): State
+function ChainMath.empty(m: Model?): State
     return {
         nets = {},
         sawLevel = 1,
@@ -1240,7 +1247,7 @@ function ChainMath.empty(): State
         kilnLevel = 1,
         townLevel = 1,
         sackBig = false,
-        crews = ChainMath.emptyCrews(),
+        crews = ChainMath.emptyCrews(m),
         priceMult = 1.0,
         bells = 1.0,
         indexFound = 0,

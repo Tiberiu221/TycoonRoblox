@@ -9,6 +9,7 @@ multe campuri, copiatul de mana devenea locul in care se strecoara o greseala; a
     python3 scripts/economy/golden_chain.py --era3 > /tmp/golden_era3.luau     # [D67] blocul `local GOLDEN_ERA3`
     python3 scripts/economy/golden_chain.py --era4 > /tmp/golden_era4.luau     # [D70] blocul `local GOLDEN_ERA4`
     python3 scripts/economy/golden_chain.py --dam-nets                           # [D70, j3] `local GOLDEN_DAM_NETS`
+    python3 scripts/economy/golden_chain.py --dam-start                          # [D70, j12] `local GOLDEN_DAM_START`
 
 si blocul `local GOLDEN = { ... }` din test se inlocuieste cu iesirea. Starile sunt construite exact ca
 `state()` din test: plasa i are baza NET_BASE_RATE * NET_BASE_GROWTH^(i-1), banda si felul din NET_LANES /
@@ -341,7 +342,22 @@ def main_dam_nets():
     print("}")
 
 
+def main_dam_start():
+    """[D70, pasul j12] Venitul de la ridicarea barajului, cu cele trei clopote ale satului (x1.10 fiecare, in ordinea
+    lor): Era 3 incheiata (ca GOLDEN_ERA4_FROM), apoi `dam_transform`. Testul il cere din profilul echivalent, trecut prin
+    ChainState sub ChainMath.FULL."""
+    s = T.dam_transform(build_era3(E123, dict(ERA3_DONE), True, True, 40, 40, 40), 0.0)
+    for _ in range(3):
+        T.unlock_bell(s)
+    print("local GOLDEN_DAM_START = {")
+    print(f"    bells = {lua(s.bells)},")
+    print(f"    income = {lua(T.income(s))},")
+    print("}")
+
+
 def main():
+    if "--dam-start" in sys.argv:
+        return main_dam_start()
     if "--dam-nets" in sys.argv:
         return main_dam_nets()
     if "--era2" in sys.argv:
