@@ -162,7 +162,8 @@ return function()
             function()
                 -- [D70, verificator 2026-10-03] Randul are 380 px (HUDController: cartonasul 440 minus 2 x 30), un singur rand.
                 -- 11 descrieri vii ieseau din el si se taiau cu "…". Latimile literelor sunt ale fontului din Studio
-                -- (scripts/art/nunito_widths.py); suma lor iese cu cel mult ~5 px fata de textul randat, deci limita e 376.
+                -- (scripts/art/nunito_widths.py); suma lor iese cu cel mult ~5 px fata de textul randat, deci limita e 376. Un
+                -- caracter pe care fontul nu-l are nu e in tabel, deci pica testul.
                 local widths = require("./fonts/NunitoWidths") :: { [string]: number }
                 local SIZE, LIMIT = 15, 376
                 for _, p in TycoonConfig.PADS do
