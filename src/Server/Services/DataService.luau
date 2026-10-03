@@ -54,6 +54,12 @@ export type Hand = {
     cycleStartAt: number,
     lastEventAt: number,
     carry: { Catch },
+    -- [D70, pasul j4] la baraj: meseria si cheia de dinainte (veteranul isi tine numele si fata), treapta veche ca
+    -- medalie, si cine a iesit din lucru (locuieste in Dam Town). Le scrie `WorldMath.buildDam` (pasul j14).
+    formerRole: string?,
+    formerKey: string?,
+    medal: number?,
+    retired: boolean?,
 }
 
 export type ProfileData = {
@@ -90,6 +96,12 @@ export type ProfileData = {
         wireworks: Station,
         powerhouse: Station,
         depot: Station,
+        -- [D70] Era 4: Switchyard, Cable Works, Relay Station, Kiln, Switch House (orasul)
+        switchyard: Station,
+        cableworks: Station,
+        relay: Station,
+        kiln: Station,
+        town: Station,
         nets: { [string]: Station },
     },
     -- GRAMEZILE [D49], ca numaratori (PileMath): nu se pierde nimic si n-au plafon -- cand o veriga
@@ -124,6 +136,25 @@ export type ProfileData = {
     PowerhousePile: { counts: { [string]: number }, processedAt: number },
     CellPile: { counts: { [string]: number } },
     DepotPile: { counts: { [string]: number }, drainedAt: number },
+    -- [D70] Era 4 (ProfileMigrate.era4Piles): butoaiele, cablul, unirea la Relay (cate o intrare pe piesa), cristalul,
+    -- orasul
+    DamStorePile: { counts: { [string]: number } },
+    SwitchyardPile: { counts: { [string]: number }, processedAt: number },
+    BarrelPile: { counts: { [string]: number } },
+    CableStorePile: { counts: { [string]: number } },
+    CableworksPile: { counts: { [string]: number }, processedAt: number },
+    CablePile: { counts: { [string]: number } },
+    RelayBarrelPile: { counts: { [string]: number }, processedAt: number },
+    RelayCablePile: { counts: { [string]: number }, processedAt: number },
+    GridPile: { counts: { [string]: number } },
+    CrystalPile: { counts: { [string]: number } },
+    KilnPile: { counts: { [string]: number }, processedAt: number },
+    IngotPile: { counts: { [string]: number } },
+    TownPile: { counts: { [string]: number }, drainedAt: number },
+    -- [D70, pasul j4] LUMEA: 1 = satul de pe rau, 2 = barajul (dupa "Build the Dam"). Amintirile satului vechi
+    -- (`oldVillage`: fotografia lui, VillageLook) le scrie barajul.
+    World: number,
+    Memories: { [string]: any },
     -- ce recompense de quest au fost deja luate; progresul NU se salveaza, se citeste din stare
     Quests: { claimed: { [string]: boolean } },
     -- roata zilnica: cand a fost ultima rotire, samanta si cate s-au facut [D46]
@@ -151,6 +182,15 @@ export type ProfileData = {
         coilsSold: number,
         cellsMade: number,
         cellsSold: number,
+        -- [D70] Era 4: butoaie incarcate, cablu tors, curent unit si vandut, lingouri arse si vandute; darul facut
+        -- barajului la "Build the Dam" (monedele de peste suma de start, scrise pe placa)
+        barrelsLoaded: number,
+        cableSpun: number,
+        gridJoined: number,
+        gridSold: number,
+        ingotsFired: number,
+        ingotsSold: number,
+        damGift: number,
         fished: number, -- [D59] pesti scosi la undita (quest-ul "Catch a fish at the pier")
         treasures: number, -- [D59] lucruri scoase din rau la ponton
         playSeconds: number, -- [D60] timpul jucat efectiv (fara zilele offline), pentru "Fastest Era 1"
@@ -209,12 +249,13 @@ export type ProfileData = {
         weeklyFishWeek: string,
     },
     -- [D61, partea 2] COLTUL CU ROBUX: ultimele chitante onorate (PurchaseId) si pass-urile tale (cheia -> true)
-    Purchases: { ids: { string }, passes: { [string]: boolean } },
+    -- [D70, pasul j4] `coinsBought`: monedele cumparate cu Robux inca in mana (R, D74 punctul 8), pasul j5
+    Purchases: { ids: { string }, passes: { [string]: boolean }, coinsBought: number },
 }
 
 local PROFILE_TEMPLATE: ProfileData = {
     -- [D61, partea 2] `lastWelcome`: suma platita la ultima revenire (Welcome Back x2) -- ca ProfileMigrate.toV14
-    Meta = { version = 18, createdAt = 0, lastSeenAt = 0, lastWelcome = 0 },
+    Meta = { version = 19, createdAt = 0, lastSeenAt = 0, lastWelcome = 0 },
     Coins = 0,
     Pearls = 0,
     Pads = {},
@@ -258,6 +299,22 @@ local PROFILE_TEMPLATE: ProfileData = {
         batteryPorter = { tier = 1 },
         electrician = { tier = 1 },
         powerHauler = { tier = 1 },
+        -- [D70] Era 4 -- ACELEASI campuri ca ProfileMigrate.toV19
+        damCollector = { tier = 1 },
+        damPorter = { tier = 1 },
+        switchman = { tier = 1 },
+        barrelHauler = { tier = 1 },
+        dispatcher = { tier = 1 },
+        cableCollector = { tier = 1 },
+        cablePorter = { tier = 1 },
+        cablemaker = { tier = 1 },
+        cableHauler = { tier = 1 },
+        relayKeeper = { tier = 1 },
+        pylonRunner = { tier = 1 },
+        crystalCollector = { tier = 1 },
+        crystalPorter = { tier = 1 },
+        crystalsmith = { tier = 1 },
+        ingotHauler = { tier = 1 },
     },
     -- ACELEASI campuri ca ProfileMigrate.toV7 [D55]: sablonul la v7 nu mai trece prin migrare.
     Stations = {
@@ -270,6 +327,12 @@ local PROFILE_TEMPLATE: ProfileData = {
         wireworks = { level = 1 },
         powerhouse = { level = 1 },
         depot = { level = 1 },
+        -- [D70] ACELEASI campuri ca ProfileMigrate.toV19
+        switchyard = { level = 1 },
+        cableworks = { level = 1 },
+        relay = { level = 1 },
+        kiln = { level = 1 },
+        town = { level = 1 },
         nets = {},
     },
     StoragePile = { counts = {} },
@@ -295,6 +358,22 @@ local PROFILE_TEMPLATE: ProfileData = {
     PowerhousePile = { counts = {}, processedAt = 0 },
     CellPile = { counts = {} },
     DepotPile = { counts = {}, drainedAt = 0 },
+    -- [D70] ACELEASI campuri ca ProfileMigrate.toV19 (era4Piles)
+    DamStorePile = { counts = {} },
+    SwitchyardPile = { counts = {}, processedAt = 0 },
+    BarrelPile = { counts = {} },
+    CableStorePile = { counts = {} },
+    CableworksPile = { counts = {}, processedAt = 0 },
+    CablePile = { counts = {} },
+    RelayBarrelPile = { counts = {}, processedAt = 0 },
+    RelayCablePile = { counts = {}, processedAt = 0 },
+    GridPile = { counts = {} },
+    CrystalPile = { counts = {} },
+    KilnPile = { counts = {}, processedAt = 0 },
+    IngotPile = { counts = {} },
+    TownPile = { counts = {}, drainedAt = 0 },
+    World = 1,
+    Memories = {},
     Quests = { claimed = {} },
     Wheel = { lastSpinAt = 0, seed = 0, spins = 0 },
     Vault = { stored = 0, updatedAt = 0 },
@@ -319,6 +398,14 @@ local PROFILE_TEMPLATE: ProfileData = {
         coilsSold = 0,
         cellsMade = 0,
         cellsSold = 0,
+        -- [D70] ACELEASI campuri ca ProfileMigrate.toV19 (era4Stats)
+        barrelsLoaded = 0,
+        cableSpun = 0,
+        gridJoined = 0,
+        gridSold = 0,
+        ingotsFired = 0,
+        ingotsSold = 0,
+        damGift = 0,
         fished = 0, -- [D59] ACELEASI campuri ca ProfileMigrate.toV9
         treasures = 0,
         playSeconds = 0, -- [D60] ACELEASI campuri ca ProfileMigrate.toV10
@@ -356,7 +443,7 @@ local PROFILE_TEMPLATE: ProfileData = {
     Streak = { day = 0, run = 0, best = 0, total = 0, offset = 0, offsetDay = 0 },
     Records = { era1Seconds = 0, incomePerSec = 0, weeklyFishMm = 0, weeklyFishWeek = "" },
     -- [D61, partea 2] ACELEASI campuri ca ProfileMigrate.toV14: chitantele onorate si copia pass-urilor
-    Purchases = { ids = {}, passes = {} },
+    Purchases = { ids = {}, passes = {}, coinsBought = 0 },
 }
 
 local function deepCopy(value: any): any
@@ -683,6 +770,7 @@ local function onPlayerAdded(player: Player)
     ProfileMigrate.toV16(profile.Data) -- Era 2 [D65]: cladirile, gramezile si oamenii Morii -- aditiv
     ProfileMigrate.toV17(profile.Data) -- Era 3 [D67]: cladirile, gramezile si oamenii Wire Works -- aditiv
     ProfileMigrate.toV18(profile.Data) -- seria zilnica [D71] -- aditiv
+    ProfileMigrate.toV19(profile.Data) -- barajul [D70]: lumea, amintirile, Era 4 adormita, monedele Robux -- aditiv
     profile:Reconcile()
     profile.OnSessionEnd:Connect(function()
         profiles[player] = nil
@@ -723,6 +811,8 @@ local function onPlayerAdded(player: Player)
     sessionStartedAt[player] = os.time()
     -- [D60] ecranul de incarcare (ReplicatedFirst) il asteapta: pana aici, dupa o calatorie cu barca, profilul inca era
     -- in celalalt place
+    -- [D70, pasul j4] lumea in care se incarca jocul (clientul o citeste la pornire); orice alta valoare inseamna satul
+    player:SetAttribute("World", if data.World == 2 then 2 else 1)
     player:SetAttribute("SaveLoaded", true)
     -- ATENTIE: se trimite DOAR jucatorul, niciodata tabelul de date.
     -- BindableEvent copiaza tabelele la trecerea prin el. Cand semnalul ducea si `data`,

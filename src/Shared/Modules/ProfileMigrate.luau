@@ -9,6 +9,8 @@ local ChainMath = require(script and script.Parent.ChainMath or "./ChainMath")
 local PileMath = require(script and script.Parent.PileMath or "./PileMath")
 local StationConfig =
     require(script and script.Parent.Parent.Config.StationConfig or "../Config/StationConfig")
+local FlowConfig =
+    require(script and script.Parent.Parent.Config.FlowConfig or "../Config/FlowConfig")
 
 local ProfileMigrate = {}
 
@@ -512,6 +514,109 @@ function ProfileMigrate.toV18(data: { [string]: any })
         data.Streak = { day = 0, run = 0, best = 0, total = 0, offset = 0, offsetDay = 0 }
     end
     data.Meta.version = 18
+end
+
+-- [D70, pasul j4] BARAJUL, ADITIV: lumea in care esti (1 = satul de pe rau, 2 = barajul), amintirile satului vechi (le
+-- umple barajul, la pasul j14), monedele cumparate cu Robux inca in mana (R, pasul j5), darul facut barajului, apoi ca
+-- toV16 / toV17: cladirile Erei 4, gramezile ei (toate din FlowConfig.FULL, ca sablonul sa le aiba cand Era 4 intra in
+-- joc), treptele celor 15 meserii si numaratorii liniilor ei (`processedStat` / `soldStat`). Nimic vechi nu se atinge.
+-- Barajul nu e in joc inca (StationConfig.ENGINE_ERAS = 3): campurile stau, necitite, pana la pasul l3.
+ProfileMigrate.ERA4_STATIONS = { "switchyard", "cableworks", "relay", "kiln", "town" }
+function ProfileMigrate.toV19(data: { [string]: any })
+    local version = if data.Meta ~= nil and data.Meta.version ~= nil then data.Meta.version else 1
+    if version >= 19 then
+        return
+    end
+    if typeof(data.World) ~= "number" then
+        data.World = 1
+    end
+    if typeof(data.Memories) ~= "table" then
+        data.Memories = {}
+    end
+    if typeof(data.Purchases) ~= "table" then
+        data.Purchases = { ids = {}, passes = {} }
+    end
+    if typeof(data.Purchases.coinsBought) ~= "number" then
+        data.Purchases.coinsBought = 0
+    end
+    if typeof(data.Stations) ~= "table" then
+        data.Stations = {}
+    end
+    for _, kind in ProfileMigrate.ERA4_STATIONS do
+        if typeof(data.Stations[kind]) ~= "table" then
+            data.Stations[kind] = { level = 1 }
+        end
+    end
+    for _, pile in ProfileMigrate.era4Piles() do
+        if typeof(data[pile.name]) ~= "table" then
+            data[pile.name] = table.clone(pile.fields)
+            data[pile.name].counts = {}
+        end
+    end
+    if typeof(data.Crews) ~= "table" then
+        data.Crews = {}
+    end
+    for _, role in StationConfig.ERA4_ROLES do
+        if typeof(data.Crews[role]) ~= "table" then
+            data.Crews[role] = { tier = 1 }
+        end
+    end
+    if typeof(data.Stats) ~= "table" then
+        data.Stats = {}
+    end
+    for _, stat in ProfileMigrate.era4Stats() do
+        if typeof(data.Stats[stat]) ~= "number" then
+            data.Stats[stat] = 0
+        end
+    end
+    data.Meta.version = 19
+end
+
+-- Gramezile Erei 4, din FlowConfig: magazia si iesirea au doar numaratoarea, intrarea unui atelier (si fiecare intrare a
+-- unirii) si ceasul ei (`stamp`), gramada vanzatorului ceasul golirii.
+function ProfileMigrate.era4Piles(): { { name: string, fields: { [string]: any } } }
+    local out = {}
+    for _, line in StationConfig.ERA_LINES_ALL[4] do
+        local spec = FlowConfig.LINES_ALL[line]
+        if spec.storePile ~= nil then
+            table.insert(out, { name = spec.storePile, fields = {} })
+        end
+        if spec.inputPile ~= nil then
+            table.insert(out, { name = spec.inputPile, fields = { [spec.stamp] = 0 } })
+        end
+        if spec.inputPiles ~= nil then
+            local parts = {}
+            for part in spec.inputPiles do
+                table.insert(parts, part)
+            end
+            table.sort(parts)
+            for _, part in parts do
+                table.insert(out, { name = spec.inputPiles[part], fields = { [spec.stamp] = 0 } })
+            end
+        end
+        table.insert(out, { name = spec.outputPile, fields = {} })
+    end
+    for _, seller in StationConfig.SELLER_ORDER_ALL do
+        local spec = FlowConfig.SELLERS_ALL[seller]
+        if spec.era == 4 then
+            table.insert(out, { name = spec.pile, fields = { drainedAt = 0 } })
+        end
+    end
+    return out
+end
+
+-- Numaratorii liniilor Erei 4 (quest-urile capitolelor 10-12) si darul facut barajului.
+function ProfileMigrate.era4Stats(): { string }
+    local out = { "damGift" }
+    for _, line in StationConfig.ERA_LINES_ALL[4] do
+        local spec = FlowConfig.LINES_ALL[line]
+        for _, stat in { spec.processedStat, spec.soldStat } do
+            if stat ~= nil and table.find(out, stat) == nil then
+                table.insert(out, stat)
+            end
+        end
+    end
+    return out
 end
 
 return ProfileMigrate

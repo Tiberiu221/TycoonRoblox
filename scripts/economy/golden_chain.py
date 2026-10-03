@@ -8,6 +8,7 @@ multe campuri, copiatul de mana devenea locul in care se strecoara o greseala; a
     python3 scripts/economy/golden_chain.py --era2 > /tmp/golden_era2.luau     # [D65] blocul `local GOLDEN_ERA2`
     python3 scripts/economy/golden_chain.py --era3 > /tmp/golden_era3.luau     # [D67] blocul `local GOLDEN_ERA3`
     python3 scripts/economy/golden_chain.py --era4 > /tmp/golden_era4.luau     # [D70] blocul `local GOLDEN_ERA4`
+    python3 scripts/economy/golden_chain.py --dam-nets                           # [D70, j3] `local GOLDEN_DAM_NETS`
 
 si blocul `local GOLDEN = { ... }` din test se inlocuieste cu iesirea. Starile sunt construite exact ca
 `state()` din test: plasa i are baza NET_BASE_RATE * NET_BASE_GROWTH^(i-1), banda si felul din NET_LANES /
@@ -327,7 +328,22 @@ def main_era4():
     print("}")
 
 
+def main_dam_nets():
+    """[D70, pasul j3] Baza si costul nivelurilor fiecarei plase a barajului, din `unlock_net_ranked` (DAM_NET_ROWS), dupa
+    id-ul platformei din joc. Testul cere ca `ChainMath.netBaseRank` / `netUpgradeBaseRank` pe rangul din rand sa dea
+    exact asta."""
+    print("local GOLDEN_DAM_NETS = {")
+    for pad_id in T.DAM_NET_ROWS:
+        s = T.State()
+        T.dam_net(pad_id)(s)
+        net = s.nets[-1]
+        print(f"    {pad_id} = {{ base = {lua(net.base)}, upgradeBase = {lua(net.upgrade_base)} }},")
+    print("}")
+
+
 def main():
+    if "--dam-nets" in sys.argv:
+        return main_dam_nets()
     if "--era2" in sys.argv:
         return main_era2()
     if "--era3" in sys.argv:

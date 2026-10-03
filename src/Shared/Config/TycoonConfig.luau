@@ -34,6 +34,9 @@ export type Needs = {
     -- dupa Collector, Sawyer-ul dupa Porter, Hauler-ul dupa Sawyer -- fiecare angajare scoate la
     -- iveala pasul urmator ca pe noua corvoada.
     after: string?,
+    -- [D70] venitul pe secunda (fara 2x Flow) de la care se deschide platforma: clopotul barajului, la
+    -- StationConfig.DAM_BELL_INCOME. Il citesc porțile abia la pasul j10; pana atunci Era 4 nu e in joc.
+    income: number?,
 }
 
 export type Pad = {
@@ -50,6 +53,11 @@ export type Pad = {
     x: number?,
     y: number?,
     needs: Needs?,
+    -- [D70] plasele barajului au RANGUL lor (baza si costul celei de-a r-a plase dintr-o era) si era cadrului, ca
+    -- `unlock_net_ranked` din simulator: turbina si plasele de cablu se cumpara amestecat, deci locul in lista nu mai
+    -- spune cat de mare e plasa. Erele 1-3 nu le au (rangul lor iese din index).
+    netRank: number?,
+    netEra: number?,
 }
 
 export type Good = { id: string, value: number }
@@ -204,6 +212,27 @@ TycoonConfig.PAD_LOOKS_LIKE = {
     works_bell = "mill_bell",
     -- masina cu abur n-are pereche in Moara: poarta, pana la arta ei, cladirea de caramida a cuptorului de cupru
     steam_engine = "copper_furnace",
+    -- [D70] platformele barajului poarta, pana la arta lor, desenele unei perechi din erele dinainte, fiecare alta (doua
+    -- colibe identice una langa alta ar parea aceeasi meserie): butoaiele pe linia curentului, cablul pe linia bobinelor,
+    -- unirea pe linia pieselor din Moara, cristalul pe linia cuprului
+    hire_dam_collector = "hire_battery_collector",
+    hire_dam_porter = "hire_battery_porter",
+    hire_switchman = "hire_electrician",
+    hire_barrel_hauler = "hire_power_hauler",
+    hire_dispatcher = "hire_clerk",
+    hire_cable_collector = "hire_works_collector",
+    hire_cable_porter = "hire_works_porter",
+    hire_cablemaker = "hire_wiredrawer",
+    hire_cable_hauler = "hire_coil_hauler",
+    hire_relay_keeper = "hire_founder",
+    hire_pylon_runner = "hire_parts_hauler",
+    crystal_kiln = "power_house",
+    crystal_shed = "battery_shed",
+    hire_crystal_collector = "hire_ore_collector",
+    hire_crystal_porter = "hire_ore_porter",
+    hire_crystalsmith = "hire_coppersmith",
+    hire_ingot_hauler = "hire_copper_hauler",
+    dam_bell = "works_bell",
 } :: { [string]: string }
 
 -- [D65] GASIRILE, pe ere: aceleasi trepte (NAMED_VALUE), inmultite cu cadrul erei. `named` e al Erei 1.
@@ -1044,6 +1073,99 @@ TycoonConfig.CREWS = {
         plural = "Power Haulers",
         secondPrice = 300000000000,
     },
+    -- [D70] ERA 4, „The Dam”, ADORMITA (platformele ei au `live = false`): cei cinci veterani ai butoaielor (si
+    -- Dispatcher-ul orasului), cei sase ai cablului si ai unirii, cei patru ai cristalului. Al doilea om, din simulator
+    -- (`DamRun.prices`), verificat de `check_config_prices`.
+    damCollector = {
+        pad = "hire_dam_collector",
+        name = "Dam Collector",
+        plural = "Dam Collectors",
+        secondPrice = 50000000000000,
+    },
+    damPorter = {
+        pad = "hire_dam_porter",
+        name = "Dam Porter",
+        plural = "Dam Porters",
+        secondPrice = 70000000000000,
+    },
+    switchman = {
+        pad = "hire_switchman",
+        name = "Switchman",
+        plural = "Switchmen",
+        secondPrice = 800000000000000,
+    },
+    barrelHauler = {
+        pad = "hire_barrel_hauler",
+        name = "Barrel Hauler",
+        plural = "Barrel Haulers",
+        secondPrice = 90000000000000,
+    },
+    dispatcher = {
+        pad = "hire_dispatcher",
+        name = "Dispatcher",
+        plural = "Dispatchers",
+        secondPrice = 900000000000000,
+    },
+    cableCollector = {
+        pad = "hire_cable_collector",
+        name = "Cable Collector",
+        plural = "Cable Collectors",
+        secondPrice = 45000000000000,
+    },
+    cablePorter = {
+        pad = "hire_cable_porter",
+        name = "Cable Porter",
+        plural = "Cable Porters",
+        secondPrice = 55000000000000,
+    },
+    cablemaker = {
+        pad = "hire_cablemaker",
+        name = "Cablemaker",
+        plural = "Cablemakers",
+        secondPrice = 1000000000000000,
+    },
+    cableHauler = {
+        pad = "hire_cable_hauler",
+        name = "Cable Hauler",
+        plural = "Cable Haulers",
+        secondPrice = 80000000000000,
+    },
+    relayKeeper = {
+        pad = "hire_relay_keeper",
+        name = "Relay Keeper",
+        plural = "Relay Keepers",
+        secondPrice = 1100000000000000,
+    },
+    pylonRunner = {
+        pad = "hire_pylon_runner",
+        name = "Pylon Runner",
+        plural = "Pylon Runners",
+        secondPrice = 75000000000000,
+    },
+    crystalCollector = {
+        pad = "hire_crystal_collector",
+        name = "Crystal Collector",
+        plural = "Crystal Collectors",
+        secondPrice = 250000000000000,
+    },
+    crystalPorter = {
+        pad = "hire_crystal_porter",
+        name = "Crystal Porter",
+        plural = "Crystal Porters",
+        secondPrice = 280000000000000,
+    },
+    crystalsmith = {
+        pad = "hire_crystalsmith",
+        name = "Crystalsmith",
+        plural = "Crystalsmiths",
+        secondPrice = 220000000000000,
+    },
+    ingotHauler = {
+        pad = "hire_ingot_hauler",
+        name = "Ingot Hauler",
+        plural = "Ingot Haulers",
+        secondPrice = 500000000000000,
+    },
 }
 -- Unde sta al doilea om al unei meserii statice, fata de primul. Sawyer-ul al doilea: in dreapta
 -- primului si putin mai jos, departe de gramada de busteni. Innkeeper-ul al doilea tot in dreapta: in
@@ -1059,6 +1181,11 @@ for role, crew in TycoonConfig.CREWS do
     crewOfPad[crew.pad] = role
 end
 TycoonConfig.CREW_OF_PAD = crewOfPad
+
+-- [D70, D74] Suma cu care porneste oricine la baraj (lumea 2): din simulator (`DamRun.start_sum`, cea mai mare dintre
+-- costul primelor 5 minute ale erei si o noapte la Works Bell), verificata de `check_config_dam`. Monedele cumparate cu
+-- Robux trec intregi peste ea (D74, punctul 8).
+TycoonConfig.DAM_START_COINS = 35000000000000
 
 -- Platformele, in ordine. Preturile NU se calculeaza aici -- vin exact din simulator (sim_tycoon.py, lacom), care le
 -- si verifica la fiecare rulare. Era 1, Era 2 si Era 3 [D67]; erele urmatoare nu exista inca [D64].
@@ -1936,6 +2063,320 @@ TycoonConfig.PADS = {
         y = 954,
         needs = { all = true },
     }),
+    -- ---- Era 4 · The Dam [D70, D74] ----
+    -- ADORMITA (`live = false`) pana la comutatorul din pasul l3 (PLAN-MOTOR-UNIRE §16). Barajul o porneste pe a doua
+    -- harta: turbina zidita in baraj, Cable Net si casele celor cinci veterani vin gratis cu el (pret 0, le da
+    -- `WorldMath.buildDam` la pasul j14), restul se cumpara in ordinea capitolului (`ERA4_UNLOCKS` din simulator, care
+    -- verifica preturile, conditiile `after` si rangurile plaselor). Conditiile pe plase se numara pe lista LUMII 2
+    -- (turbina si Cable Net incluse), de la pasul j10. Locurile (x/y) vin cu datele lumii 2, la pasul j7.
+    pad({
+        id = "dam_turbine",
+        index = 55,
+        blurb = "Built into the dam wall. The river turns it to fill batteries.",
+        note = "Comes with the Dam",
+        name = "Dam Turbine",
+        era = 4,
+        motive = "C",
+        price = 0,
+        effects = { netEffect(0.40, 3, "dam") },
+        live = false,
+        netRank = 5,
+        netEra = 4,
+    }),
+    pad({
+        id = "cable_net",
+        index = 56,
+        blurb = "Copper ore for cable, caught below the dam.",
+        note = "Comes with the Dam",
+        name = "Cable Net",
+        era = 4,
+        motive = "C",
+        price = 0,
+        effects = { netEffect(0.33, 1, "cable_ore") },
+        live = false,
+        netRank = 1,
+        netEra = 4,
+    }),
+    pad({
+        id = "hire_dam_collector",
+        index = 57,
+        blurb = "Empties the turbine into the Battery Store.",
+        note = "A veteran from the old village",
+        name = "Dam Collector",
+        era = 4,
+        motive = "A",
+        price = 0,
+        effects = { hireEffect("damCollector") },
+        live = false,
+    }),
+    pad({
+        id = "hire_dam_porter",
+        index = 58,
+        blurb = "Carries batteries from the Battery Store to the Switchyard.",
+        note = "A veteran from the old village",
+        name = "Dam Porter",
+        era = 4,
+        motive = "A",
+        price = 0,
+        effects = { hireEffect("damPorter") },
+        live = false,
+    }),
+    pad({
+        id = "hire_switchman",
+        index = 59,
+        blurb = "Keeps the Switchyard loading when you're away.",
+        note = "A veteran from the old village",
+        name = "Switchman",
+        era = 4,
+        motive = "A",
+        price = 0,
+        effects = { hireEffect("switchman") },
+        live = false,
+    }),
+    pad({
+        id = "hire_barrel_hauler",
+        index = 60,
+        blurb = "Hauls barrels from the Switchyard to the Relay Station.",
+        note = "A veteran from the old village",
+        name = "Barrel Hauler",
+        era = 4,
+        motive = "A",
+        price = 0,
+        effects = { hireEffect("barrelHauler") },
+        live = false,
+    }),
+    pad({
+        id = "hire_dispatcher",
+        index = 61,
+        blurb = "Runs the Switch House, so the town buys at full speed.",
+        note = "A veteran from the old village",
+        name = "Dispatcher",
+        era = 4,
+        motive = "A",
+        price = 0,
+        effects = { hireEffect("dispatcher") },
+        live = false,
+    }),
+    pad({
+        id = "hire_cable_collector",
+        index = 62,
+        blurb = "Empties the cable nets into the Cable Store.",
+        note = "Ore reaches the store on its own",
+        name = "Cable Collector",
+        era = 4,
+        motive = "A",
+        price = 180000000000,
+        effects = { hireEffect("cableCollector") },
+        live = false,
+        needs = { after = "cable_net" },
+    }),
+    pad({
+        id = "hire_cable_porter",
+        index = 63,
+        blurb = "Carries ore from the Cable Store to the Cable Works.",
+        note = "The Cable Works is fed on its own",
+        name = "Cable Porter",
+        era = 4,
+        motive = "A",
+        price = 220000000000,
+        effects = { hireEffect("cablePorter") },
+        live = false,
+        needs = { after = "hire_cable_collector" },
+    }),
+    pad({
+        id = "hire_cablemaker",
+        index = 64,
+        blurb = "Keeps the Cable Works spinning when you're away.",
+        note = "Cable is spun on its own",
+        name = "Cablemaker",
+        era = 4,
+        motive = "A",
+        price = 250000000000,
+        effects = { hireEffect("cablemaker") },
+        live = false,
+        needs = { after = "hire_cable_porter" },
+    }),
+    pad({
+        id = "hire_cable_hauler",
+        index = 65,
+        blurb = "Hauls cable from the Cable Works to the Relay Station.",
+        note = "Cable reaches the Relay on its own",
+        name = "Cable Hauler",
+        era = 4,
+        motive = "A",
+        price = 280000000000,
+        effects = { hireEffect("cableHauler") },
+        live = false,
+        needs = { after = "hire_cablemaker" },
+    }),
+    pad({
+        id = "hire_relay_keeper",
+        index = 66,
+        blurb = "Joins barrels and cable into power at the Relay Station.",
+        note = "Power is joined on its own",
+        name = "Relay Keeper",
+        era = 4,
+        motive = "A",
+        price = 300000000000,
+        effects = { hireEffect("relayKeeper") },
+        live = false,
+        needs = { after = "hire_cable_hauler" },
+    }),
+    pad({
+        id = "hire_pylon_runner",
+        index = 67,
+        blurb = "Runs power over the pylon bridge to the Switch House.",
+        note = "Power reaches the town on its own",
+        name = "Pylon Runner",
+        era = 4,
+        motive = "A",
+        price = 350000000000,
+        effects = { hireEffect("pylonRunner") },
+        live = false,
+        needs = { after = "hire_relay_keeper" },
+    }),
+    pad({
+        id = "second_cable_net",
+        index = 68,
+        blurb = "A second net for cable ore.",
+        name = "Second Cable Net",
+        era = 4,
+        motive = "C",
+        price = 1500000000000,
+        effects = { netEffect(0.33, 1, "cable_ore") },
+        live = false,
+        netRank = 2,
+        netEra = 4,
+        needs = {
+            netsExactly = 2,
+            prevNetLevel = TycoonConfig.PREV_NET_LEVEL,
+            after = "hire_pylon_runner",
+        },
+    }),
+    pad({
+        id = "third_cable_net",
+        index = 69,
+        blurb = "The last of the cable nets, further out.",
+        name = "Third Cable Net",
+        era = 4,
+        motive = "C",
+        price = 16000000000000,
+        effects = { netEffect(0.33, 2, "cable_ore") },
+        live = false,
+        netRank = 3,
+        netEra = 4,
+        needs = {
+            netsExactly = 3,
+            prevNetLevel = TycoonConfig.PREV_NET_LEVEL,
+            after = "second_cable_net",
+        },
+    }),
+    pad({
+        id = "crystal_kiln",
+        index = 70,
+        blurb = "Fires river crystal into ingots for the town.",
+        note = "Starts the crystal line",
+        name = "Kiln",
+        era = 4,
+        motive = "V",
+        price = 110000000000000,
+        effects = { flagEffect("kiln") },
+        live = false,
+        needs = { netsOwned = 4, after = "third_cable_net" },
+    }),
+    pad({
+        id = "crystal_net",
+        index = 71,
+        blurb = "Catches the crystal that drifts down from upstream.",
+        note = "Catches crystal",
+        name = "Crystal Net",
+        era = 4,
+        motive = "C",
+        price = 130000000000000,
+        effects = { netEffect(0.40, 3, "crystal") },
+        live = false,
+        netRank = 5,
+        netEra = 4,
+        needs = { after = "crystal_kiln" },
+    }),
+    pad({
+        id = "crystal_shed",
+        index = 72,
+        blurb = "A dry shed for crystal.",
+        note = "Opens the Crystal Collector's job",
+        name = "Crystal Shed",
+        era = 4,
+        motive = "V",
+        price = 13000000000000,
+        effects = { flagEffect("crystalShed") },
+        live = false,
+        needs = { netsOwned = 5, after = "crystal_net" },
+    }),
+    pad({
+        id = "hire_crystal_collector",
+        index = 73,
+        blurb = "Takes crystal from the net to the Crystal Shed.",
+        note = "Crystal reaches the shed on its own",
+        name = "Crystal Collector",
+        era = 4,
+        motive = "A",
+        price = 13000000000000,
+        effects = { hireEffect("crystalCollector") },
+        live = false,
+        needs = { after = "crystal_shed" },
+    }),
+    pad({
+        id = "hire_crystal_porter",
+        index = 74,
+        blurb = "Carries crystal from the Crystal Shed to the Kiln.",
+        note = "The Kiln is fed on its own",
+        name = "Crystal Porter",
+        era = 4,
+        motive = "A",
+        price = 16000000000000,
+        effects = { hireEffect("crystalPorter") },
+        live = false,
+        needs = { after = "hire_crystal_collector" },
+    }),
+    pad({
+        id = "hire_crystalsmith",
+        index = 75,
+        blurb = "Keeps the Kiln firing while you are away from it.",
+        note = "Ingots are fired on their own",
+        name = "Crystalsmith",
+        era = 4,
+        motive = "A",
+        price = 18000000000000,
+        effects = { hireEffect("crystalsmith") },
+        live = false,
+        needs = { after = "hire_crystal_porter" },
+    }),
+    pad({
+        id = "hire_ingot_hauler",
+        index = 76,
+        blurb = "Hauls ingots from the Kiln to the Switch House.",
+        note = "Ingots reach the town on their own",
+        name = "Ingot Hauler",
+        era = 4,
+        motive = "A",
+        price = 22000000000000,
+        effects = { hireEffect("ingotHauler") },
+        live = false,
+        needs = { after = "hire_crystalsmith" },
+    }),
+    pad({
+        id = "dam_bell",
+        index = 77,
+        blurb = "Ring it and The Dam is finished.",
+        note = "+10% on every sale, forever",
+        name = "Dam Bell",
+        era = 4,
+        motive = "D",
+        price = 600000000000000,
+        effects = { mulEffect("bells", 1.10) },
+        live = false,
+        needs = { all = true, income = 4000000000000 },
+    }),
 } :: { Pad }
 
 -- Index construit o singura data la incarcare, ca PadService sa nu caute liniar prin 48 de intrari
@@ -2097,14 +2538,26 @@ end
 -- [D67] Cheia din Strings.BUILDING_WORDS pentru randul unei statii: serverul trimite `kind = "net"` si pentru turbina
 -- (se urca, se rutează si se socoteste ca o plasa), dar ea nu prinde, umple baterii. Fara asta meniul si bannerul de
 -- prag ar scrie "Catches twice as much now" pe turbina [D40].
+-- [D70, verificator] TURBINELE: First Turbine (Era 3, `good = "turbine"`) si turbina zidita in baraj (`good = "dam"`). O
+-- singura intrebare, citita de cuvinte, verb, desen si plasa din rau, ca turbina barajului sa nu fie luata drept plasa.
+TycoonConfig.TURBINE_GOODS = { turbine = true, dam = true } :: { [string]: boolean }
+function TycoonConfig.isTurbine(p: Pad): boolean
+    for _, effect in p.effects do
+        if
+            effect.kind == "net"
+            and effect.good ~= nil
+            and TycoonConfig.TURBINE_GOODS[effect.good :: string]
+        then
+            return true
+        end
+    end
+    return false
+end
+
 function TycoonConfig.wordsKindOf(kind: string, id: string?): string
     local station = if kind == "net" and id ~= nil then TycoonConfig.byId[id] else nil
-    if station ~= nil then
-        for _, effect in station.effects do
-            if effect.kind == "net" and effect.good == "turbine" then
-                return "turbine"
-            end
-        end
+    if station ~= nil and TycoonConfig.isTurbine(station) then
+        return "turbine"
     end
     return kind
 end
@@ -2212,7 +2665,7 @@ function TycoonConfig.verbOf(p: Pad): string
     for _, effect in p.effects do
         if effect.kind == "net" then
             -- [D67] turbina sta in rau ca o plasa, dar nu se arunca: se construieste
-            return if effect.good == "turbine" then "build" else "cast"
+            return if TycoonConfig.isTurbine(p) then "build" else "cast"
         end
     end
     if crewOfPad[p.id] ~= nil then

@@ -55,6 +55,7 @@ local HANDLERS: { [string]: Handler } = {
             return "no profile"
         end
         data.Coins = n
+        EconomyService.TrimBought(data) -- [D70, pasul j5]
         return `coins set to {n}`
     end,
 
@@ -219,7 +220,8 @@ local HANDLERS: { [string]: Handler } = {
         local text = if typeof(arg) == "string" then arg :: string else ""
         local role, tierText, peopleText = string.match(text, "^(%a+)%s*(%d*)%s*(%d*)$")
         local def = if role ~= nil then TycoonConfig.CREWS[role] else nil
-        if data == nil or def == nil then
+        -- [D70] doar meseriile din joc (StationConfig.ROLES): ale barajului adormit au rand in CREWS, dar nu in lant
+        if data == nil or def == nil or table.find(StationConfig.ROLES, role :: string) == nil then
             return "usage: crew <role> [tier] [people]   (roles: StationConfig.ROLES, e.g. porter, smelter, founder, merchant)"
         end
         local tier = math.clamp(tonumber(tierText) or 1, 1, StationConfig.TIER_MAX)

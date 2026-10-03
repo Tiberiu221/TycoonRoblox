@@ -86,6 +86,8 @@ local function grant(player: Player, key: string): number
     local coins = coinsFor(player, key)
     assert(coins > 0, `produs necunoscut: {key}`)
     EconomyService.AddCoins(player, coins, `robux_{key}`)
+    -- [D70, pasul j5] R: monedele cumparate trec intregi peste suma de start a barajului (D74, punctul 8)
+    data.Purchases.coinsBought = PassMath.afterGrant(data.Purchases.coinsBought, coins)
     if key == "welcome2x" then
         data.Meta.lastWelcome = 0 -- o data pentru fiecare revenire
     end

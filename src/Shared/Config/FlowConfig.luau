@@ -240,8 +240,8 @@ local LINES_ALL = {
         hintedBy = { "coils" },
     }),
     -- [D70] ERA 4, „The Dam", ADORMITA pana la StationConfig.ENGINE_ERAS = 4 (pasul j): doua PIESE (butoaiele, cablul),
-    -- UNIREA lor la Relay (curentul pentru oras) si cristalul. Fara gasiri (D70 Runda 5). Platformele (storePad /
-    -- processorPad) vin cu harta barajului.
+    -- UNIREA lor la Relay (curentul pentru oras) si cristalul. Fara gasiri (D70 Runda 5). Butoaiele, cablul si unirea
+    -- sunt acolo de la baraj (fara platforma); cristalul are Kiln-ul si Crystal Shed-ul lui (pasul j2).
     barrels = lineSpec({
         line = "barrels",
         era = 4,
@@ -300,8 +300,10 @@ local LINES_ALL = {
         era = 4,
         raw = { "crystal" },
         store = "crystalShed",
+        storePad = "crystal_shed",
         storePile = "CrystalPile",
         processor = "kiln",
+        processorPad = "crystal_kiln",
         inputPile = "KilnPile",
         output = "ingot",
         outputPile = "IngotPile",

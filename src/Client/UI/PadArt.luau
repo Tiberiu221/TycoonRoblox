@@ -141,6 +141,49 @@ PadArt.BOARD_ICON = {
     hire_power_hauler = function()
         return GoodArt.icon("cell") or Assets.goods.iron
     end,
+    -- [D70] oamenii barajului, pe aceeasi regula (adormiti pana la pasul l3; marfa lor fara desen cade pe a perechii)
+    hire_dam_collector = function()
+        return Assets.icons.net
+    end,
+    hire_dam_porter = function()
+        return GoodArt.icon("charge") or Assets.goods.scrap
+    end,
+    hire_switchman = function()
+        return Assets.icons.hammer
+    end,
+    hire_barrel_hauler = function()
+        return GoodArt.icon("barrel") or Assets.goods.iron
+    end,
+    hire_cable_collector = function()
+        return Assets.icons.net
+    end,
+    hire_cable_porter = function()
+        return GoodArt.icon("cable_ore") or Assets.goods.scrap
+    end,
+    hire_cablemaker = function()
+        return Assets.icons.hammer
+    end,
+    hire_cable_hauler = function()
+        return GoodArt.icon("cable") or Assets.goods.iron
+    end,
+    hire_relay_keeper = function()
+        return Assets.icons.hammer
+    end,
+    hire_pylon_runner = function()
+        return GoodArt.icon("grid") or Assets.goods.iron
+    end,
+    hire_crystal_collector = function()
+        return Assets.icons.net
+    end,
+    hire_crystal_porter = function()
+        return GoodArt.icon("crystal") or Assets.goods.scrap
+    end,
+    hire_crystalsmith = function()
+        return Assets.icons.hammer
+    end,
+    hire_ingot_hauler = function()
+        return GoodArt.icon("ingot") or Assets.goods.iron
+    end,
 } :: { [string]: () -> Assets.Sprite }
 
 -- [D65] Platforma al carei desen il poarta `padId`: ea insasi cand tabelul `tbl` o are, altfel perechea din Era 1
@@ -186,12 +229,7 @@ PadArt.TURBINE_SCALE = 2
 PadArt.GHOST_TINT = Color3.fromRGB(26, 32, 42)
 PadArt.GHOST_FADE = 0.48
 function PadArt.isTurbine(pad: TycoonConfig.Pad): boolean
-    for _, e in pad.effects do
-        if e.kind == "net" and e.good == "turbine" then
-            return true
-        end
-    end
-    return false
+    return TycoonConfig.isTurbine(pad) -- [D70] si turbina barajului
 end
 function PadArt.turbineSprite(): Assets.Sprite?
     local own = (Assets.tycoon :: any).turbine

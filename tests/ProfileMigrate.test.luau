@@ -834,7 +834,8 @@ return function()
             local src = fs.readFile("src/Server/Services/DataService.luau")
             for _, needle in
                 {
-                    "Purchases = { ids = {}, passes = {} },",
+                    -- [D70] v19 adauga `coinsBought` in acelasi tabel
+                    "Purchases = { ids = {}, passes = {}",
                     "lastWelcome = 0",
                     "ProfileMigrate.toV14(profile.Data)",
                 }
@@ -1099,12 +1100,143 @@ return function()
             for _, needle in
                 {
                     "Streak = { day = 0, run = 0, best = 0, total = 0, offset = 0, offsetDay = 0 },",
-                    "version = 18",
                     "ProfileMigrate.toV18(profile.Data)",
                 }
             do
                 check.is_true(string.find(src, needle, 1, true) ~= nil)
             end
+        end)
+    end)
+    -- [D70, pasul j4] barajul, aditiv: lumea, amintirile, monedele Robux, Era 4 adormita
+    test.suite("ProfileMigrate.toV19 -- barajul, aditiv [D70]", function()
+        local FlowConfig = require("../src/Shared/Config/FlowConfig")
+        test.case(
+            "un profil vechi primeste lumea 1 si Era 4 la zero; ce exista nu se atinge",
+            function()
+                local data: { [string]: any } = {
+                    Meta = { version = 18 },
+                    Coins = 42,
+                    Stations = { saw = { level = 12 }, depot = { level = 30 }, nets = {} },
+                    Crews = { clerk = { tier = 4 } },
+                    Stats = { cellsSold = 9 },
+                    Purchases = { ids = { "a" }, passes = { flow2x = true } },
+                    DepotPile = { counts = { cell = 3 }, drainedAt = 5 },
+                }
+                ProfileMigrate.toV19(data)
+                check.equal(data.Meta.version, 19)
+                check.equal(data.World, 1)
+                check.equal(next(data.Memories), nil)
+                check.equal(data.Purchases.coinsBought, 0)
+                check.equal(data.Purchases.ids[1], "a")
+                check.is_true(data.Purchases.passes.flow2x)
+                for _, kind in ProfileMigrate.ERA4_STATIONS do
+                    check.equal(data.Stations[kind].level, 1)
+                end
+                for _, role in StationConfig.ERA4_ROLES do
+                    check.equal(data.Crews[role].tier, 1)
+                end
+                for _, stat in ProfileMigrate.era4Stats() do
+                    check.equal(data.Stats[stat], 0)
+                end
+                -- erele dinainte, neatinse
+                check.equal(data.Coins, 42)
+                check.equal(data.Stations.saw.level, 12)
+                check.equal(data.Stations.depot.level, 30)
+                check.equal(data.Crews.clerk.tier, 4)
+                check.equal(data.Stats.cellsSold, 9)
+                check.equal(data.DepotPile.counts.cell, 3)
+                check.equal(data.DepotPile.drainedAt, 5)
+            end
+        )
+
+        test.case("toate gramezile Erei 4 din FlowConfig.FULL, cu ceasul fiecareia", function()
+            local data: { [string]: any } = { Meta = { version = 18 } }
+            ProfileMigrate.toV19(data)
+            local game: { [string]: boolean } = {}
+            for _, pile in FlowConfig.GAME.piles do
+                game[pile] = true
+            end
+            local fresh = 0
+            for _, pile in FlowConfig.FULL.piles do
+                if not game[pile] then
+                    fresh += 1
+                    check.not_nil(data[pile])
+                    check.equal(next(data[pile].counts), nil)
+                end
+            end
+            check.equal(fresh, 13)
+            check.equal(#ProfileMigrate.era4Piles(), 13)
+            check.equal(data.SwitchyardPile.processedAt, 0)
+            check.equal(data.RelayBarrelPile.processedAt, 0)
+            check.equal(data.RelayCablePile.processedAt, 0)
+            check.equal(data.TownPile.drainedAt, 0)
+            check.equal(data.DamStorePile.processedAt, nil)
+            -- doua gramezi nu impart acelasi tabel de numarat
+            check.is_true(data.RelayBarrelPile.counts ~= data.RelayCablePile.counts)
+        end)
+
+        test.case("se poate rula de doua ori; un profil deja in lumea 2 ramane acolo", function()
+            local data: { [string]: any } = { Meta = { version = 18 } }
+            ProfileMigrate.toV19(data)
+            data.World = 2
+            data.Purchases.coinsBought = 77
+            data.Stations.relay.level = 8
+            data.GridPile.counts.grid = 4
+            data.Memories.oldVillage = { era = 3 }
+            data.Meta.version = 18
+            ProfileMigrate.toV19(data)
+            check.equal(data.World, 2)
+            check.equal(data.Purchases.coinsBought, 77)
+            check.equal(data.Stations.relay.level, 8)
+            check.equal(data.GridPile.counts.grid, 4)
+            check.equal(data.Memories.oldVillage.era, 3)
+            local bare: { [string]: any } = { Meta = { version = 19 } }
+            ProfileMigrate.toV19(bare)
+            check.equal(bare.World, nil) -- deja v19: nu se atinge
+        end)
+
+        test.case("sablonul si migrarea adauga aceleasi campuri", function()
+            local fs = require("@lune/fs")
+            local src = fs.readFile("src/Server/Services/DataService.luau")
+            local needles = {
+                "version = 19",
+                "ProfileMigrate.toV19(profile.Data)",
+                "World = 1,",
+                "Memories = {},",
+                "coinsBought = 0",
+                'player:SetAttribute("World"',
+            }
+            for _, kind in ProfileMigrate.ERA4_STATIONS do
+                table.insert(needles, kind .. " = { level = 1 },")
+            end
+            for _, role in StationConfig.ERA4_ROLES do
+                table.insert(needles, role .. " = { tier = 1 },")
+            end
+            for _, stat in ProfileMigrate.era4Stats() do
+                table.insert(needles, stat .. " = 0,")
+            end
+            for _, pile in ProfileMigrate.era4Piles() do
+                local text = pile.name .. " = { counts = {}"
+                for field in pile.fields do
+                    text ..= ", " .. field .. " = 0"
+                end
+                table.insert(needles, text .. " },")
+            end
+            for _, needle in needles do
+                if string.find(src, needle, 1, true) == nil then
+                    print("[ProfileMigrate v19] lipseste din sablon: " .. needle)
+                end
+                check.is_true(string.find(src, needle, 1, true) ~= nil)
+            end
+            -- ordinea: toV19 vine dupa toV18, iar World se pune inainte de SaveLoaded
+            check.is_true(
+                (string.find(src, "ProfileMigrate.toV18(profile.Data)", 1, true) :: number)
+                    < string.find(src, "ProfileMigrate.toV19(profile.Data)", 1, true) :: number
+            )
+            check.is_true(
+                (string.find(src, 'player:SetAttribute("World"', 1, true) :: number)
+                    < string.find(src, 'player:SetAttribute("SaveLoaded"', 1, true) :: number
+            )
         end)
     end)
 end

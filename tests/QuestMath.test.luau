@@ -462,9 +462,14 @@ return function()
                 end
             end
             -- [D65] la fel Era 2: capitolele ei cer fiecare platforma a ei, iar ultimul quest e clopotul Morii
+            -- [D70] erele fara capitole scrise inca nu se numara: capitolele 10-12 ale barajului vin la pasul j11
+            local chaptered: { [number]: boolean } = {}
+            for _, ch in QuestConfig.ALL_CHAPTERS do
+                chaptered[ch.era] = true
+            end
             local left = 0
             for _, p in TycoonConfig.PADS do
-                if not bought[p.id] then
+                if chaptered[p.era] and not bought[p.id] then
                     left += 1
                 end
             end

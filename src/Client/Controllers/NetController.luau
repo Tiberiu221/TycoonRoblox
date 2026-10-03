@@ -238,7 +238,7 @@ local function ensureAssembly(padId: string, x: number, y: number): Assembly
     local pad = TycoonConfig.byId[padId]
     local padX = if pad ~= nil and pad.x ~= nil then pad.x :: number else x
     local padY = if pad ~= nil and pad.y ~= nil then pad.y :: number else y
-    local isTurbine = pad ~= nil and TycoonMath.netKind(pad) == "turbine"
+    local isTurbine = pad ~= nil and TycoonConfig.isTurbine(pad) -- [D70] si turbina barajului
 
     -- radacina: fixa la stalp -- un stalp infipt in ponton nu pluteste, doar plasa (bob, mai jos)
     local root = Instance.new("Frame")

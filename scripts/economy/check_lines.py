@@ -574,6 +574,63 @@ def dam_gate_problems(expect):
     expect("too_many_dead: 2 din 5 trec, 3 din 5 nu", (T.too_many_dead(2, 5), T.too_many_dead(3, 5)), (False, True))
 
 
+def config_era4_problems(expect):
+    """[D70, pasul j2] Fiecare verificare noua a randurilor Erei 4 chiar prinde ce pazeste: pe o copie a simulatorului,
+    cu TycoonConfig.luau stricat intr-un singur loc (in memorie), verificarea trebuie sa se planga; neatins, sa taca."""
+
+    def broken(old, new):
+        T = load()
+        src = T._config_source("TycoonConfig.luau")
+        if old not in src:
+            raise SystemExit(f"check_lines: nu gasesc {old!r} in TycoonConfig.luau (proba e veche)")
+        mutated = src.replace(old, new, 1)
+        original = T._config_source
+        T._config_source = lambda name: mutated if name == "TycoonConfig.luau" else original(name)
+        return T
+
+    T = load()
+    expect("Era 4: randurile din joc, neatinse", (T.check_config_era4(), T.check_era4_after(T.State())), ([], []))
+    expect("Era 4: suma de start, neatinsa", T.check_config_dam_start(35e12), [])
+    expect("Era 4: alta suma de start", len(T.check_config_dam_start(40e12)), 1)
+    T = broken('id = "dam_turbine",\n        index = 55,', 'id = "dam_turbine",\n        index = 55,\n        price = 7,')
+    expect("Era 4: turbina cu pret", len(T.check_config_era4()) >= 1, True)
+    T = load()
+    T.PAD_IDS_ERA4.pop("kiln")
+    expect("Era 4: o platforma cu pret pe care simulatorul n-o stie", len(T.check_config_era4()), 1)
+    T = broken("netRank = 3,", "netRank = 4,")
+    expect("Era 4: rangul altei plase", len(T.check_config_era4()), 1)
+    T = broken('netEffect(0.33, 2, "cable_ore")', 'netEffect(0.33, 1, "cable_ore")')
+    expect("Era 4: banda altei plase", len(T.check_config_era4()), 1)
+    T = broken('after = "hire_cable_porter"', 'after = "hire_cable_collector"')
+    expect("Era 4: alta conditie after", len(T.check_era4_after(T.State())), 1)
+    T = broken("netsOwned = 4,", "netsOwned = 3,")
+    expect("Era 4: alt numar de plase la Kiln", len(T.check_era4_after(T.State())), 1)
+    T = broken(
+        'netsExactly = 3,\n            prevNetLevel = TycoonConfig.PREV_NET_LEVEL,',
+        'netsExactly = 3,',
+    )
+    expect("Era 4: a treia plasa de cablu fara prevNetLevel", len(T.check_era4_after(T.State())), 1)
+    T = broken('netsOwned = 4, after = "third_cable_net"', 'after = "third_cable_net"')
+    expect("Era 4: Kiln-ul fara numarul de plase", len(T.check_era4_after(T.State())), 1)
+    T = broken('{ after = "crystal_kiln" }', '{ netsOwned = 5, after = "crystal_kiln" }')
+    expect("Era 4: Crystal Net cu un numar de plase pe care lambda nu-l cere", len(T.check_era4_after(T.State())) >= 1, True)
+    T = broken("income = 4000000000000", "income = 3000000000000")
+    expect("Era 4: clopotul cu alt prag de venit", len(T.check_era4_after(T.State())), 1)
+    T = load()
+    T.ERA4_AFTER["cablemaker"] = "hire_cable_collector"
+    expect("Era 4: ERA4_AFTER contrazis de lambde", len(T.check_era4_after(T.State())) >= 1, True)
+    # [D74] poarta monedelor platite: o cronologie de proba de 100 s, cu cumparaturi la 10 / 40 / 90
+    from types import SimpleNamespace as NS
+
+    T = load()
+    d = NS(start_sum=10, rows_zero=[("a", "x", 10, 10, 1.0, "x"), ("b", "x", 20, 40, 1.0, "x"),
+                                    ("c", "x", 30, 90, 1.0, "x")], start_zero=NS(t=0), s_zero=NS(t=100))
+    expect("monedele platite: 20 peste suma ajung la b, 40% din era", T.paid_coins_problems(d, [("x", 20)]), [])
+    expect("monedele platite: 50 peste suma sar 90% din era", len(T.paid_coins_problems(d, [("x", 50)])), 1)
+    T.PAID_COINS_MAX_SHARE = 0.39
+    expect("monedele platite: poarta de 39% prinde 40%", len(T.paid_coins_problems(d, [("x", 20)])), 1)
+
+
 def problems():
     bad = []
 
@@ -592,6 +649,7 @@ def problems():
     join_problems(expect)
     tool_problems(expect)
     dam_gate_problems(expect)
+    config_era4_problems(expect)
 
     base = load()
     before = base.chain(era1_state(base))

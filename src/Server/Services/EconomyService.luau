@@ -19,6 +19,7 @@ local FlowMath = require(ReplicatedStorage.Shared.Modules.FlowMath)
 local PileMath = require(ReplicatedStorage.Shared.Modules.PileMath)
 local StationConfig = require(ReplicatedStorage.Shared.Config.StationConfig)
 local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
+local PassMath = require(ReplicatedStorage.Shared.Modules.PassMath)
 local DataService = require(script.Parent.DataService)
 local Analytics = require(script.Parent.Analytics)
 
@@ -153,6 +154,13 @@ function EconomyService.GetCoins(player: Player): number
     return if data ~= nil then data.Coins else 0
 end
 
+-- [D70, pasul j5] monedele cumparate cu Robux inca in mana nu trec niciodata peste monedele pe care le ai (PassMath)
+function EconomyService.TrimBought(data: DataService.ProfileData)
+    if typeof(data.Purchases) == "table" then
+        data.Purchases.coinsBought = PassMath.afterCoins(data.Purchases.coinsBought, data.Coins)
+    end
+end
+
 -- Singurul loc care aduna la Coins: clamp la 0, ca o scadere programata gresit sa nu duca la minus.
 function EconomyService.AddCoins(player: Player, n: number, _reason: string)
     local data = DataService.Get(player)
@@ -160,6 +168,9 @@ function EconomyService.AddCoins(player: Player, n: number, _reason: string)
         return
     end
     data.Coins = math.max(0, data.Coins + n)
+    if n < 0 then
+        EconomyService.TrimBought(data)
+    end
 end
 
 function EconomyService.TrySpend(player: Player, n: number, _reason: string): boolean
@@ -171,6 +182,7 @@ function EconomyService.TrySpend(player: Player, n: number, _reason: string): bo
         return false
     end
     data.Coins -= n
+    EconomyService.TrimBought(data)
     return true
 end
 

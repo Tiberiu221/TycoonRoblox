@@ -98,7 +98,8 @@ return function()
             -- [D56] +4: oamenii fierului. [D65] 18 + 18: Era 2 e Era 1 in oglinda, platforma cu platforma, iar
             -- ramasitele erelor 2-4 de dinainte de D46 (35 de platforme, niciodata `live`) au iesit.
             -- [D67] +18: Era 3 e Moara in oglinda.
-            check.equal(#TycoonConfig.PADS, 54)
+            -- [D70] +23: Era 4, barajul, adormita (pasul j2).
+            check.equal(#TycoonConfig.PADS, 77)
             for i, p in TycoonConfig.PADS do
                 check.equal(p.index, i)
             end
@@ -119,7 +120,118 @@ return function()
                 check.equal(perEra[1], 18)
                 check.equal(perEra[2], 18)
                 check.equal(perEra[3], 18)
-                check.equal(perEra[4], nil)
+                -- [D70] Era 4 nu e in oglinda: 16 cumparate si 7 date de baraj (turbina, Cable Net, cei cinci veterani)
+                check.equal(perEra[4], 23)
+                check.equal(perEra[5], nil)
+            end
+        )
+
+        test.case(
+            "[D70] Era 4 sta adormita: niciun rand in joc, iar ce vine gratis cu barajul costa 0",
+            function()
+                local free = 0
+                for _, p in TycoonConfig.PADS do
+                    if p.era == 4 then
+                        check.is_false(p.live)
+                        if p.price == 0 then
+                            free += 1
+                        end
+                    end
+                end
+                check.is_false(TycoonConfig.eraIsLive(4))
+                check.equal(free, 7)
+                for _, id in
+                    {
+                        "dam_turbine",
+                        "cable_net",
+                        "hire_dam_collector",
+                        "hire_dam_porter",
+                        "hire_switchman",
+                        "hire_barrel_hauler",
+                        "hire_dispatcher",
+                    }
+                do
+                    check.equal(TycoonConfig.byId[id].price, 0)
+                end
+                check.equal(TycoonConfig.DAM_START_COINS, 35000000000000)
+            end
+        )
+
+        test.case("[D70] turbina barajului e turbina (cuvinte, verb, desen), plasele nu", function()
+            check.is_true(TycoonConfig.isTurbine(TycoonConfig.byId.first_turbine))
+            check.is_true(TycoonConfig.isTurbine(TycoonConfig.byId.dam_turbine))
+            check.is_false(TycoonConfig.isTurbine(TycoonConfig.byId.first_net))
+            check.is_false(TycoonConfig.isTurbine(TycoonConfig.byId.cable_net))
+            check.equal(TycoonConfig.wordsKindOf("net", "dam_turbine"), "turbine")
+            check.equal(TycoonConfig.wordsKindOf("net", "cable_net"), "net")
+            check.equal(TycoonConfig.verbOf(TycoonConfig.byId.dam_turbine), "build")
+            check.equal(TycoonConfig.verbOf(TycoonConfig.byId.crystal_net), "cast")
+        end)
+
+        test.case(
+            "[D70] desenele de imprumut ale barajului: fiecare platforma alta pereche",
+            function()
+                local seen: { [string]: string } = {}
+                for _, p in TycoonConfig.PADS do
+                    local target = TycoonConfig.PAD_LOOKS_LIKE[p.id]
+                    if p.era == 4 and target ~= nil then
+                        check.equal(seen[target], nil)
+                        seen[target] = p.id
+                        check.not_nil(TycoonConfig.byId[target])
+                        check.is_true(TycoonConfig.byId[target].era < 4)
+                    end
+                end
+            end
+        )
+
+        test.case(
+            "[D70] clopotul barajului cere venitul din StationConfig, plasele lui au rang",
+            function()
+                local StationConfig = require("../src/Shared/Config/StationConfig")
+                local bell = TycoonConfig.byId.dam_bell
+                check.equal((bell.needs :: any).income, StationConfig.DAM_BELL_INCOME)
+                check.is_true((bell.needs :: any).all)
+                -- rangul si era cadrului, ca `unlock_net_ranked` din simulator (acolo le verifica PAD_NETS_ERA4)
+                local ranks = {
+                    dam_turbine = 5,
+                    cable_net = 1,
+                    second_cable_net = 2,
+                    third_cable_net = 3,
+                    crystal_net = 5,
+                }
+                for _, p in TycoonConfig.PADS do
+                    local isNet = false
+                    for _, e in p.effects do
+                        isNet = isNet or e.kind == "net"
+                    end
+                    if p.era == 4 and isNet then
+                        check.equal(p.netRank, ranks[p.id])
+                        check.equal(p.netEra, 4)
+                    elseif p.era < 4 then
+                        check.equal(p.netRank, nil)
+                        check.equal(p.netEra, nil)
+                    end
+                end
+            end
+        )
+
+        test.case(
+            "[D70] platformele din drumul marfii (FlowConfig) exista, in era liniei lor",
+            function()
+                local FlowConfig = require("../src/Shared/Config/FlowConfig")
+                for line, spec in FlowConfig.LINES_ALL do
+                    for _, id in { spec.storePad, spec.processorPad } do
+                        if id ~= nil then
+                            local p = TycoonConfig.byId[id]
+                            check.not_nil(p)
+                            check.equal(p.era, spec.era)
+                        end
+                    end
+                    if line == "crystal" then
+                        check.equal(spec.processorPad, "crystal_kiln")
+                        check.equal(spec.storePad, "crystal_shed")
+                    end
+                end
             end
         )
 
@@ -817,7 +929,8 @@ return function()
             -- CREWS e singura legatura dintre o platforma si omul pe care il aduce [D49]: PadService
             -- angajeaza prin ea, meniul o citeste, simulatorul ii verifica pretul celui de-al doilea.
             local StationConfig = require("../src/Shared/Config/StationConfig")
-            for _, role in StationConfig.ROLES do
+            -- [D70] toate meseriile scrise, si ale Erei 4 adormite
+            for _, role in StationConfig.ROLES_ALL do
                 local crew = TycoonConfig.CREWS[role]
                 check.not_nil(crew)
                 local p = TycoonConfig.byId[crew.pad]

@@ -6,6 +6,7 @@ local test = frktest.test
 local check = frktest.assert.check
 
 local StationConfig = require("../src/Shared/Config/StationConfig")
+local TycoonConfig = require("../src/Shared/Config/TycoonConfig")
 local ChainMath = require("../src/Shared/Modules/ChainMath")
 local HeldBack = require("../src/Shared/Modules/HeldBack")
 local Strings = require("../src/Shared/Config/Strings")
@@ -1624,6 +1625,15 @@ local GOLDEN_ERA4_FROM = {
         powerHauler = { 2, 5 },
     },
 }
+-- [D70, pasul j3] plasele barajului din simulator (`golden_chain.py --dam-nets`): baza si costul nivelurilor, dupa id
+local GOLDEN_DAM_NETS = {
+    dam_turbine = { base = 1.4587670625, upgradeBase = 119353668750.0 },
+    cable_net = { base = 0.33, upgradeBase = 27000000000.0 },
+    second_cable_net = { base = 0.4785, upgradeBase = 39150000000.0 },
+    third_cable_net = { base = 0.693825, upgradeBase = 56767500000.0 },
+    crystal_net = { base = 1.4587670625, upgradeBase = 119353668750.0 },
+}
+
 local GOLDEN_ERA4 = {
     {
         name = "startul barajului: veteranii pe butoaie, cablul de mana",
@@ -2993,6 +3003,87 @@ return function()
                 check.equal(ChainMath.tierCost(1, "worksCollector"), 25 * m)
                 check.equal(ChainMath.tierCost(4, "powerHauler"), 675 * m)
                 check.equal(ChainMath.tierCost(1, "millCollector"), 25 * StationConfig.ERA2_MULT)
+            end
+        )
+    end)
+
+    test.suite("ChainMath - plasele pe rang [D70, pasul j3]", function()
+        local function nets(): { TycoonConfig.Pad }
+            local out = {}
+            for _, p in TycoonConfig.PADS do
+                for _, e in p.effects do
+                    if e.kind == "net" then
+                        table.insert(out, p)
+                        break
+                    end
+                end
+            end
+            return out
+        end
+
+        test.case(
+            "plasele Erelor 1-3 ies la bit ca dupa index (formula de dinainte de rang)",
+            function()
+                local k = 0
+                for _, p in nets() do
+                    if p.era > 3 then
+                        continue
+                    end
+                    k += 1
+                    local inEra = (k - 1) % StationConfig.NETS_PER_ERA
+                    local id = ChainMath.netIdentity(p.id) :: ChainMath.NetIdentity
+                    check.equal(id.rank, inEra + 1)
+                    check.equal(id.era, p.era)
+                    check.equal(
+                        ChainMath.netBaseRank(id.rank),
+                        StationConfig.NET_BASE_RATE * StationConfig.NET_BASE_GROWTH ^ inEra
+                    )
+                    check.equal(
+                        ChainMath.netUpgradeBaseRank(id.rank, id.era),
+                        StationConfig.NET_UPGRADE_BASE_COST
+                            * StationConfig.NET_BASE_GROWTH ^ inEra
+                            * StationConfig.ERA_MULT[(k - 1) // StationConfig.NETS_PER_ERA + 1]
+                    )
+                    check.equal(ChainMath.netBase(k), ChainMath.netBaseRank(id.rank))
+                    check.equal(
+                        ChainMath.netUpgradeBase(k),
+                        ChainMath.netUpgradeBaseRank(id.rank, id.era)
+                    )
+                end
+                check.equal(k, 15)
+            end
+        )
+
+        test.case(
+            "plasele barajului: baza si costul ca in simulator (unlock_net_ranked)",
+            function()
+                local seen = 0
+                for _, p in nets() do
+                    if p.era ~= 4 then
+                        continue
+                    end
+                    seen += 1
+                    local want = GOLDEN_DAM_NETS[p.id]
+                    check.not_nil(want)
+                    local id = ChainMath.netIdentity(p.id) :: ChainMath.NetIdentity
+                    check.equal(ChainMath.netBaseRank(id.rank), want.base)
+                    check.equal(ChainMath.netUpgradeBaseRank(id.rank, id.era), want.upgradeBase)
+                end
+                check.equal(seen, 5)
+                check.equal(ChainMath.netIdentity("hire_porter"), nil)
+                -- ce prind (TycoonMath.netKind, din `good`), cu ce prinde fiecare fel in TycoonConfig.CATCH
+                local TycoonMath = require("../src/Shared/Modules/TycoonMath")
+                local kinds = {
+                    dam_turbine = "dam",
+                    cable_net = "cable_ore",
+                    second_cable_net = "cable_ore",
+                    third_cable_net = "cable_ore",
+                    crystal_net = "crystal",
+                }
+                for id, kind in kinds do
+                    check.equal(TycoonMath.netKind(TycoonConfig.byId[id]), kind)
+                    check.not_nil(TycoonConfig.CATCH[kind])
+                end
             end
         )
     end)

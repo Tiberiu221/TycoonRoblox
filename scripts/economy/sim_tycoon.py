@@ -1514,6 +1514,22 @@ def family_ready(s: State, kind: str) -> bool:
     return last is None or last.level >= PREV_NET_LEVEL
 
 
+# [D70, pasul j2] PLASELE BARAJULUI, o singura sursa pentru simulator si pentru verificarea configului jocului: dupa id-ul
+# platformei din TycoonConfig, felul, rangul, banda si era cadrului (`unlock_net_ranked`). Turbina si Cable Net vin cu
+# barajul (dam_transform), celelalte se cumpara (ERA4_UNLOCKS). `check_config_era4` le compara cu randurile din joc.
+DAM_NET_ROWS = {
+    "dam_turbine": ("dam", 5, 3, 4),
+    "cable_net": ("cable_ore", 1, 1, 4),
+    "second_cable_net": ("cable_ore", 2, 1, 4),
+    "third_cable_net": ("cable_ore", 3, 2, 4),
+    "crystal_net": ("crystal", 5, 3, 4),
+}
+
+
+def dam_net(pad_id: str):
+    return unlock_net_ranked(*DAM_NET_ROWS[pad_id])
+
+
 def dam_transform(s3: State, coins: float) -> State:
     """[D70] Barajul, pe o clona a starii de la Works Bell (plan, sectiunea 5): liniile vechi se inchid (plasele, nivelurile
     si oamenii lor raman in stare, ca in profil), cei cinci veterani intra pe treapta 1 cate unul, turbina zidita in baraj
@@ -1523,8 +1539,8 @@ def dam_transform(s3: State, coins: float) -> State:
     s.dam = True
     for role in DAM_VETERANS:
         s.crews[role].count = 1
-    unlock_net_ranked("dam", 5, 3, 4)(s)
-    unlock_net_ranked("cable_ore", 1, 1, 4)(s)
+    dam_net("dam_turbine")(s)
+    dam_net("cable_net")(s)
     s.coins = coins
     return s
 
@@ -1539,19 +1555,19 @@ ERA4_UNLOCKS = [
     (
         "cableNet2", "Second Cable Net", "C",
         lambda s: dam_nets(s, "cable_ore") == 1 and family_ready(s, "cable_ore") and people(s, "pylonRunner") >= 1,
-        unlock_net_ranked("cable_ore", 2, 1, 4),
+        dam_net("second_cable_net"),
     ),
     (
         "cableNet3", "Third Cable Net", "C",
         lambda s: dam_nets(s, "cable_ore") == 2 and family_ready(s, "cable_ore"),
-        unlock_net_ranked("cable_ore", 3, 2, 4),
+        dam_net("third_cable_net"),
     ),
     (
         "kiln", "Kiln", "V",
         lambda s: dam_nets(s, "cable_ore") >= KILN_CABLE_NETS and all(people(s, r) >= 1 for r in DAM_CREW) and not s.kiln,
         set_flag("kiln"),
     ),
-    ("crystalNet", "Crystal Net", "C", lambda s: s.kiln and dam_nets(s, "crystal") == 0, unlock_net_ranked("crystal", 5, 3, 4)),
+    ("crystalNet", "Crystal Net", "C", lambda s: s.kiln and dam_nets(s, "crystal") == 0, dam_net("crystal_net")),
     ("crystalShed", "Crystal Shed", "V", lambda s: dam_nets(s, "crystal") == 1 and not s.crystal_shed, set_flag("crystal_shed")),
     ("crystalCollector", "Crystal Collector", "A", lambda s: s.crystal_shed and people(s, "crystalCollector") == 0, hire("crystalCollector")),
     ("crystalPorter", "Crystal Porter", "A", lambda s: people(s, "crystalCollector") >= 1 and people(s, "crystalPorter") == 0, hire("crystalPorter")),
@@ -2243,6 +2259,30 @@ PAD_IDS_ERA3 = {
     "electrician": "hire_electrician", "powerHauler": "hire_power_hauler", "bell3": "works_bell",
 }
 
+# [D70, pasul j2] platformele Erei 4, adormite in joc (`live = false`) pana la pasul l3
+PAD_IDS_ERA4 = {
+    "cableCollector": "hire_cable_collector", "cablePorter": "hire_cable_porter", "cablemaker": "hire_cablemaker",
+    "cableHauler": "hire_cable_hauler", "relayKeeper": "hire_relay_keeper", "pylonRunner": "hire_pylon_runner",
+    "cableNet2": "second_cable_net", "cableNet3": "third_cable_net", "kiln": "crystal_kiln",
+    "crystalNet": "crystal_net", "crystalShed": "crystal_shed", "crystalCollector": "hire_crystal_collector",
+    "crystalPorter": "hire_crystal_porter", "crystalsmith": "hire_crystalsmith", "ingotHauler": "hire_ingot_hauler",
+    "bell4": "dam_bell",
+}
+# ce da barajul, gratis (dam_transform): turbina zidita, Cable Net si casele celor cinci veterani (pret 0 in joc)
+PAD_FREE_ERA4 = (
+    "dam_turbine", "cable_net", "hire_dam_collector", "hire_dam_porter", "hire_switchman", "hire_barrel_hauler",
+    "hire_dispatcher",
+)
+# CONDITIA `after` a fiecarei platforme cumparate a Erei 4: platforma dupa care lambda ei din ERA4_UNLOCKS devine
+# adevarata. "cable_net" = barajul (vine cu el). `check_era4_after` o dovedeste pe lambde, apoi o cauta in joc.
+ERA4_AFTER = {
+    "cableCollector": "cable_net", "cablePorter": "hire_cable_collector", "cablemaker": "hire_cable_porter",
+    "cableHauler": "hire_cablemaker", "relayKeeper": "hire_cable_hauler", "pylonRunner": "hire_relay_keeper",
+    "cableNet2": "hire_pylon_runner", "cableNet3": "second_cable_net", "kiln": "third_cable_net",
+    "crystalNet": "crystal_kiln", "crystalShed": "crystal_net", "crystalCollector": "crystal_shed",
+    "crystalPorter": "hire_crystal_collector", "crystalsmith": "hire_crystal_porter", "ingotHauler": "hire_crystalsmith",
+}
+
 
 def _config_source(name: str) -> str:
     import os
@@ -2283,6 +2323,168 @@ def check_config_prices(prices, pad_ids=None, roles=None):
         if have != want:
             bad.append(f"TycoonConfig.CREWS.{role}: al doilea om costa {have}, simulatorul deriva {want}")
     return bad
+
+
+def _config_pads() -> dict:
+    """[D70, pasul j2] Platformele din TycoonConfig.luau, ca text: {id: (era, pret, blocul randului)}. Blocul tine de la
+    `pad({` pana la `}),` (dupa stylua: campurile la 8 spatii, inchiderea la 4)."""
+    import re
+
+    out = {}
+    for m in re.finditer(r"\n    pad\(\{\n(.*?)\n    \}\),", _config_source("TycoonConfig.luau"), re.S):
+        block = m.group(1)
+        pid = re.search(r'^        id = "([^"]+)",', block, re.M)
+        era = re.search(r"^        era = (\d+),", block, re.M)
+        price = re.search(r"^        price = (\d+),", block, re.M)
+        if pid and era and price:
+            out[pid.group(1)] = (int(era.group(1)), int(price.group(1)), block)
+    return out
+
+
+def check_config_era4(pad_maps=None) -> list:
+    """[D70, pasul j2] Randurile Erei 4 din joc fata de simulator, dincolo de preturi (check_config_prices):
+    - ce da barajul costa 0, iar casele veteranilor sunt chiar platformele meseriilor lor (CREWS);
+    - INVERS, pentru Erele 2-4: orice platforma cu pret din joc e in harta simulatorului (altfel pretul ei nu-l verifica
+      nimeni), iar in Era 4 orice platforma fara pret e una data de baraj;
+    - plasele: banda si felul din `netEffect`, rangul si era cadrului, ca DAM_NET_ROWS; orice plasa a Erei 4 e acolo."""
+    import re
+
+    pads = _config_pads()
+    bad = []
+    for pid in PAD_FREE_ERA4:
+        row = pads.get(pid)
+        if row is None:
+            bad.append(f"TycoonConfig: lipseste platforma data de baraj {pid}")
+        elif row[0] != 4 or row[1] != 0:
+            bad.append(f"TycoonConfig: {pid} vine gratis cu barajul, dar are era {row[0]} si pretul {row[1]}")
+    crews = re.search(r"TycoonConfig\.CREWS = \{(.*?)\n\}", _config_source("TycoonConfig.luau"), re.S)
+    for role in DAM_VETERANS:
+        m = re.search(r"\b" + role + r' = \{[^}]*?pad = "([^"]+)"', crews.group(1)) if crews else None
+        if m is None or m.group(1) not in PAD_FREE_ERA4:
+            bad.append(f"TycoonConfig.CREWS.{role}: veteranul nu sta pe o casa data de baraj")
+    maps = pad_maps or {2: PAD_IDS_ERA2, 3: PAD_IDS_ERA3, 4: PAD_IDS_ERA4}
+    for era, ids in maps.items():
+        known = set(ids.values())
+        for pid, (pera, price, _block) in pads.items():
+            if pera != era:
+                continue
+            if price > 0 and pid not in known:
+                bad.append(f"TycoonConfig: {pid} (Era {era}) costa {price}, dar simulatorul nu-l stie (PAD_IDS_ERA{era})")
+            if era == 4 and price == 0 and pid not in PAD_FREE_ERA4:
+                bad.append(f"TycoonConfig: {pid} (Era 4) e gratis, dar nu vine cu barajul (PAD_FREE_ERA4)")
+    for pid, (_era, _price, block) in pads.items():
+        if _era == 4 and "netEffect(" in block and pid not in DAM_NET_ROWS:
+            bad.append(f"TycoonConfig: plasa {pid} a Erei 4 lipseste din DAM_NET_ROWS")
+    for pid, (kind, rank, lane, era) in DAM_NET_ROWS.items():
+        row = pads.get(pid)
+        if row is None:
+            bad.append(f"TycoonConfig: lipseste plasa {pid}")
+            continue
+        block = row[2]
+        net = re.search(r'netEffect\([0-9.]+, (\d+), "([a-z_]+)"\)', block)
+        have_rank = re.search(r"^        netRank = (\d+),", block, re.M)
+        have_era = re.search(r"^        netEra = (\d+),", block, re.M)
+        have = (
+            net.group(2) if net else None,
+            int(have_rank.group(1)) if have_rank else None,
+            int(net.group(1)) if net else None,
+            int(have_era.group(1)) if have_era else None,
+        )
+        if have != (kind, rank, lane, era):
+            bad.append(f"TycoonConfig: plasa {pid} e (fel, rang, banda, era) = {have}, simulatorul {(kind, rank, lane, era)}")
+    return bad
+
+
+def check_era4_after(s3: State) -> list:
+    """[D70, pasul j2] CONDITIILE ERAI 4. Se cumpara in ordinea capitolului (PAD_IDS_ERA4), de la baraj, cu ultima plasa
+    urcata la PREV_NET_LEVEL (quest-ul): fiecare lambda din ERA4_UNLOCKS trebuie sa devina adevarata EXACT dupa platforma
+    din ERA4_AFTER, iar randul din joc trebuie sa ceara aceeasi platforma (`after`) si, unde numara plase
+    (`netsExactly` / `netsOwned`), cate plase ale barajului ai atunci."""
+    import re
+
+    bad = []
+    unlocks = {u[0]: u for u in ERA4_UNLOCKS}
+    pads = _config_pads()
+    c = dam_transform(s3, 0.0)
+    opened, nets_at = {}, {}
+    # [verificator, 2026-10-03] de ce depinde lambda, aflat pe ea, nu scris de mana: cu ultima plasa a barajului la nivelul
+    # 1 se inchide (cere `prevNetLevel`), fara ultima plasa a barajului se inchide (numara plasele: `netsExactly`/`netsOwned`)
+    needs_level, needs_count = set(), set()
+
+    def scan(trigger):
+        for net in c.nets:
+            net.level = max(net.level, PREV_NET_LEVEL)
+        for uid in ERA4_AFTER:
+            if uid not in opened and unlocks[uid][3](c):
+                opened[uid] = trigger
+                nets_at[uid] = sum(1 for n in c.nets if n.kind in DAM_NETS)
+                dam = [i for i, n in enumerate(c.nets) if n.kind in DAM_NETS]
+                low = clone(c)
+                low.nets[dam[-1]].level = 1
+                if not unlocks[uid][3](low):
+                    needs_level.add(uid)
+                fewer = clone(c)
+                del fewer.nets[dam[-1]]
+                if not unlocks[uid][3](fewer):
+                    needs_count.add(uid)
+
+    scan("cable_net")
+    for uid in PAD_IDS_ERA4:
+        if uid not in ERA4_AFTER:
+            continue
+        if uid not in opened:
+            bad.append(f"Era 4: {uid} nu se deschide in ordinea capitolului")
+            break
+        unlocks[uid][4](c)
+        scan(PAD_IDS_ERA4[uid])
+    for uid, want in ERA4_AFTER.items():
+        if opened.get(uid, want) != want:
+            bad.append(f"Era 4: {uid} se deschide dupa {opened[uid]}, nu dupa {want} (ERA4_AFTER)")
+        row = pads.get(PAD_IDS_ERA4[uid])
+        if row is None:
+            continue
+        block = row[2]
+        after = re.search(r'after = "([a-z_0-9]+)"', block)
+        if after is None or after.group(1) != want:
+            bad.append(f"TycoonConfig: {PAD_IDS_ERA4[uid]} cere after = {after.group(1) if after else None}, simulatorul {want}")
+        counts = 0
+        for key in ("netsExactly", "netsOwned"):
+            m = re.search(key + r" = (\d+)", block)
+            if m is not None:
+                counts += 1
+            if m is not None and uid in nets_at and int(m.group(1)) != nets_at[uid]:
+                bad.append(
+                    f"TycoonConfig: {PAD_IDS_ERA4[uid]} cere {key} = {m.group(1)}, dar se deschide cu {nets_at[uid]} plase ale barajului"
+                )
+        if (counts > 0) != (uid in needs_count):
+            bad.append(
+                f"TycoonConfig: {PAD_IDS_ERA4[uid]} {'nu ' if uid in needs_count else ''}numara plasele barajului "
+                f"(netsExactly/netsOwned), dar lambda din ERA4_UNLOCKS {'le numara' if uid in needs_count else 'nu le numara'}"
+            )
+        has_level = "prevNetLevel = TycoonConfig.PREV_NET_LEVEL" in block
+        if has_level != (uid in needs_level):
+            bad.append(
+                f"TycoonConfig: {PAD_IDS_ERA4[uid]} {'are' if has_level else 'n-are'} prevNetLevel, dar lambda din "
+                f"ERA4_UNLOCKS {'nu cere' if has_level else 'cere'} ultima plasa la nivelul {PREV_NET_LEVEL} (family_ready)"
+            )
+    bell = pads.get(PAD_IDS_ERA4["bell4"])
+    if bell is None or not re.search(r"all = true", bell[2]) or not re.search(r"income = (\d+)", bell[2]):
+        bad.append("TycoonConfig: dam_bell trebuie sa ceara toata era (all = true) si venitul (income)")
+    elif int(re.search(r"income = (\d+)", bell[2]).group(1)) != int(DAM_BELL_INCOME):
+        bad.append(f"TycoonConfig: dam_bell cere alt venit decat DAM_BELL_INCOME ({big(DAM_BELL_INCOME)})")
+    return bad
+
+
+def check_config_dam_start(start_sum: float) -> list:
+    """[D70, D74] Suma de start a barajului din joc (TycoonConfig.DAM_START_COINS) = cea derivata aici (DamRun)."""
+    import re
+
+    m = re.search(r"TycoonConfig\.DAM_START_COINS = (\d+)\b", _config_source("TycoonConfig.luau"))
+    if m is None:
+        return ["TycoonConfig: nu gasesc DAM_START_COINS"]
+    if int(m.group(1)) != int(start_sum):
+        return [f"TycoonConfig: DAM_START_COINS = {m.group(1)}, simulatorul deriva {int(start_sum)}"]
+    return []
 
 
 # [D70] Erele scrise in configuratia jocului (StationConfig). Era 4 a intrat la pasul f al planului motorului, cu liniile si
@@ -2655,8 +2857,8 @@ def check_hire_guard(s3: State) -> list:
     Cable Porter-ul cere Cable Collector-ul."""
     problems = []
     s = dam_transform(s3, 0.0)
-    unlock_net_ranked("cable_ore", 2, 1, 4)(s)
-    unlock_net_ranked("cable_ore", 3, 2, 4)(s)
+    dam_net("second_cable_net")(s)
+    dam_net("third_cable_net")(s)
     for n in s.nets:
         if n.kind in ("dam", "cable_ore"):
             n.level = 30
@@ -2678,17 +2880,23 @@ def check_hire_guard(s3: State) -> list:
     return problems
 
 
-def check_dam(d: DamRun, flat_before: float, crawl_before: float):
-    """[D70] Portile barajului (plan, sectiunea 5), pe cele doua rulari."""
-    problems = check_hire_guard(d.s3)
-    # [D74] monedele platite, peste suma, sar cel mult PAID_COINS_MAX_SHARE din era
-    for label, extra in paid_coin_cases(d):
+def paid_coins_problems(d, cases) -> list:
+    """[D74] Monedele platite, peste suma de start, sar cel mult PAID_COINS_MAX_SHARE din cronologia fara bani."""
+    problems = []
+    for label, extra in cases:
         _n, last, share = spend_share(d.start_sum + extra, d.rows_zero, d.start_zero.t, d.s_zero.t)
         if share > PAID_COINS_MAX_SHARE:
             problems.append(
                 f"Era 4: {label} ({big(extra)} platite peste suma) sare {share * 100:.0f}% din era "
                 f"(pana la {last}; maxim {PAID_COINS_MAX_SHARE * 100:.0f}%) [D74]"
             )
+    return problems
+
+
+def check_dam(d: DamRun, flat_before: float, crawl_before: float):
+    """[D70] Portile barajului (plan, sectiunea 5), pe cele doua rulari."""
+    problems = check_hire_guard(d.s3)
+    problems += paid_coins_problems(d, paid_coin_cases(d))
     # suma sare cel mult WINDFALL_MAX_SHARE din cronologia fara bani
     _n, last, share = spend_share(d.start_sum, d.rows_zero, d.start_zero.t, d.s_zero.t)
     if share > WINDFALL_MAX_SHARE:
@@ -2984,6 +3192,11 @@ if __name__ == "__main__":
         4, dam.rows, dam.idle, dam.shares, dam.late_time, dam.start.t, dam.s4.t, gain_time=dam.s4.gain_time
     )
     problems += check_dam(dam, flat_before, crawl_before)
+    # [D70, pasul j2] randurile Erei 4 din joc (adormite): preturile, ce da barajul, plasele, conditiile, suma de start
+    problems += check_config_prices({**prices123, **dam.prices}, PAD_IDS_ERA4, ERA4_ROLES)
+    problems += check_config_era4()
+    problems += check_era4_after(s3)
+    problems += check_config_dam_start(dam.start_sum)
     # [D64] motorul chiar duce oricate linii: linii de proba pe o COPIE a modulului, comparate cu cifre socotite de mana
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     import check_lines

@@ -308,9 +308,10 @@ return function()
             link, line = of("hire_merchant") -- negustorul: veriga Pietei, a amandurora liniilor ei
             check.equal(link, "market")
             check.equal(line, nil)
+            -- [D70] doar platformele din joc: oamenii Erei 4 (adormita) nu sunt inca in modelul jocului (ChainMath.GAME)
             for _, pad in TycoonConfig.PADS do
                 for _, e in pad.effects do
-                    if e.kind == "hire" then
+                    if e.kind == "hire" and pad.live then
                         check.is_true((HeldBack.ofPad(pad)) ~= nil)
                     end
                 end

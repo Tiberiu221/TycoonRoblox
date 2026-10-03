@@ -70,7 +70,12 @@ function HandService.Hire(player: Player, role: string): boolean
         return false
     end
     local crews = CrewMath.fromProfile(data.Hands, data.Crews)
-    local index = crews[role].count + 1
+    -- [D70] doar meseriile erelor din joc (CREWS le are si pe ale barajului adormit)
+    local crew = crews[role]
+    if crew == nil then
+        return false
+    end
+    local index = crew.count + 1
     if index > StationConfig.MAX_PEOPLE then
         return false
     end

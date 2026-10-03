@@ -201,4 +201,83 @@ return function()
             end
         )
     end)
+    -- [D70, pasul j5; R8] monedele cumparate cu Robux inca in mana (R): ultimele cheltuite
+    test.suite("PassMath - monedele cumparate (R) [D70]", function()
+        test.case("cumperi 10 si ai 20; cheltui 5: R ramane 10", function()
+            local bought = PassMath.afterGrant(0, 10)
+            check.equal(bought, 10)
+            check.equal(PassMath.afterCoins(bought, 20 - 5), 10)
+        end)
+
+        test.case("monedele scad la 3: R scade la 3, si nu mai urca singur", function()
+            local bought = PassMath.afterCoins(10, 3)
+            check.equal(bought, 3)
+            check.equal(PassMath.afterCoins(bought, 500), 3)
+            check.equal(PassMath.afterGrant(bought, 7), 10)
+        end)
+
+        test.case("valori stricate din profil nu dau un R negativ sau infinit", function()
+            check.equal(PassMath.afterGrant(nil, 5), 5)
+            check.equal(PassMath.afterGrant(-4, 5), 5)
+            check.equal(PassMath.afterCoins(0 / 0, 9), 0)
+            check.equal(PassMath.afterCoins(math.huge, 9), 0)
+            check.equal(PassMath.afterCoins(4, -1), 0)
+        end)
+
+        test.case("fiecare scadere a monedelor taie R, iar o cumparare il creste", function()
+            local fs = require("@lune/fs")
+            local economy = fs.readFile("src/Server/Services/EconomyService.luau")
+            local spend =
+                string.match(economy, "function EconomyService%.TrySpend%(.-\nend") :: string
+            check.is_true(string.find(spend, "EconomyService.TrimBought(data)", 1, true) ~= nil)
+            local add =
+                string.match(economy, "function EconomyService%.AddCoins%(.-\nend") :: string
+            check.is_true(string.find(add, "EconomyService.TrimBought(data)", 1, true) ~= nil)
+            local dev = fs.readFile("src/Server/Services/DevService.luau")
+            local setcoins = string.match(dev, "setcoins = function.-\n    end,") :: string
+            check.is_true(string.find(setcoins, "EconomyService.TrimBought(data)", 1, true) ~= nil)
+            -- o angajare rambursata pune contorul la loc (monedele s-au intors la cat erau)
+            local station = fs.readFile("src/Server/Services/StationService.luau")
+            local refund = string.match(station, "crew_hire_refund.-return false") :: string
+            check.is_true(
+                string.find(refund, "data.Purchases.coinsBought = boughtBefore", 1, true) ~= nil
+            )
+            local purchase = fs.readFile("src/Server/Services/PurchaseService.luau")
+            check.is_true(
+                string.find(
+                    purchase,
+                    "PassMath.afterGrant(data.Purchases.coinsBought, coins)",
+                    1,
+                    true
+                ) ~= nil
+            )
+        end)
+    end)
+    -- [D70, verificator] meseriile barajului au rand in CREWS, dar nu sunt in lant: serverul le refuza, nu crapa
+    test.suite("Meseriile barajului adormit [D70]", function()
+        test.case("CrewMath nu le are; UpgradeCrew si Hire le refuza inainte de .count", function()
+            local CrewMath = require("../src/Shared/Modules/CrewMath")
+            local StationConfig = require("../src/Shared/Config/StationConfig")
+            local crews = CrewMath.fromProfile({}, {})
+            for _, role in StationConfig.ERA4_ROLES do
+                check.equal(crews[role], nil)
+            end
+            local fs = require("@lune/fs")
+            local station = fs.readFile("src/Server/Services/StationService.luau")
+            local upgrade =
+                string.match(station, "function StationService%.UpgradeCrew%(.-\nend") :: string
+            local guard = string.find(upgrade, "if crew == nil then", 1, true) :: number
+            check.not_nil(guard)
+            check.is_true(guard < (string.find(upgrade, "canUpgradeTier", 1, true) :: number))
+            local hands = fs.readFile("src/Server/Services/HandService.luau")
+            local hire = string.match(hands, "function HandService%.Hire%(.-\nend") :: string
+            check.is_true(string.find(hire, "if crew == nil then", 1, true) ~= nil)
+            check.is_true(string.find(hire, "crews[role].count", 1, true) == nil)
+            local dev = fs.readFile("src/Server/Services/DevService.luau")
+            check.is_true(
+                string.find(dev, "table.find(StationConfig.ROLES, role :: string) == nil", 1, true)
+                    ~= nil
+            )
+        end)
+    end)
 end

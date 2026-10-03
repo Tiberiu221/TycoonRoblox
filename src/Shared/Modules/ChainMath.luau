@@ -266,11 +266,23 @@ function ChainMath.netLane(baseLane: number, level: number): number
     return math.min(3, baseLane + extra)
 end
 
+-- [D70, pasul j3] PLASA DE RANG r DINTR-O ERA: baza ei si costul nivelurilor, ca `unlock_net_ranked` din simulator (aceleasi
+-- operatii, in aceeasi ordine). De la baraj, turbina si plasele de cablu se cumpara amestecat, deci locul in lista nu mai
+-- spune cat de mare e plasa: rangul vine din rand (`Pad.netRank`, `Pad.netEra`), vezi `netIdentity`.
+function ChainMath.netBaseRank(rank: number): number
+    return StationConfig.NET_BASE_RATE * StationConfig.NET_BASE_GROWTH ^ (rank - 1)
+end
+
+function ChainMath.netUpgradeBaseRank(rank: number, era: number): number
+    return StationConfig.NET_UPGRADE_BASE_COST
+        * StationConfig.NET_BASE_GROWTH ^ (rank - 1)
+        * StationConfig.ERA_MULT[era]
+end
+
 -- [D65] CINCI PLASE PE ERA: a k-a plasa a unei ere are baza celei de-a k-a plase a Erei 1 (`index` numara toate
--- plasele, de la 1: a sasea e prima a Erei 2).
+-- plasele, de la 1: a sasea e prima a Erei 2). [D70] Rangul `(index - 1) % 5 + 1`, era `(index - 1) // 5 + 1`.
 function ChainMath.netBase(index: number): number
-    local inEra = (index - 1) % StationConfig.NETS_PER_ERA
-    return StationConfig.NET_BASE_RATE * StationConfig.NET_BASE_GROWTH ^ inEra
+    return ChainMath.netBaseRank((index - 1) % StationConfig.NETS_PER_ERA + 1)
 end
 
 -- De cate ori costa mai mult nivelurile plasei `index`: cadrul erei in care sta plasa (1 in Era 1, ERA2_MULT in Era 2,
@@ -280,10 +292,42 @@ function ChainMath.netEraMult(index: number): number
 end
 
 function ChainMath.netUpgradeBase(index: number): number
-    local inEra = (index - 1) % StationConfig.NETS_PER_ERA
-    return StationConfig.NET_UPGRADE_BASE_COST
-        * StationConfig.NET_BASE_GROWTH ^ inEra
-        * ChainMath.netEraMult(index)
+    return ChainMath.netUpgradeBaseRank(
+        (index - 1) % StationConfig.NETS_PER_ERA + 1,
+        (index - 1) // StationConfig.NETS_PER_ERA + 1
+    )
+end
+
+-- [D70, pasul j3] RANGUL SI ERA CADRULUI fiecarei plase din TycoonConfig.PADS, dupa id. Plasele Erelor 1-3 il iau din
+-- locul lor printre plase (a k-a plasa: rangul (k-1) % 5 + 1, era (k-1) // 5 + 1, exact ca `netBase(index)`); ale
+-- barajului il au scris in rand. nil pentru o platforma care nu e plasa.
+export type NetIdentity = { rank: number, era: number }
+local netIdentities: { [string]: NetIdentity } = {}
+do
+    local k = 0
+    for _, p in TycoonConfig.PADS do
+        local isNet = false
+        for _, e in p.effects do
+            if e.kind == "net" then
+                isNet = true
+                break
+            end
+        end
+        if isNet then
+            k += 1
+            if p.netRank ~= nil then
+                netIdentities[p.id] = { rank = p.netRank :: number, era = p.netEra or p.era }
+            else
+                netIdentities[p.id] = {
+                    rank = (k - 1) % StationConfig.NETS_PER_ERA + 1,
+                    era = (k - 1) // StationConfig.NETS_PER_ERA + 1,
+                }
+            end
+        end
+    end
+end
+function ChainMath.netIdentity(padId: string): NetIdentity?
+    return netIdentities[padId]
 end
 
 function ChainMath.netRate(net: Net): number

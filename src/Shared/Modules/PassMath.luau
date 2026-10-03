@@ -85,4 +85,20 @@ function PassMath.rememberReceipt(ids: { string }, purchaseId: string)
     table.insert(ids, purchaseId)
 end
 
+-- [D70, pasul j5; R8 din PLAN-MOTOR-UNIRE §16] MONEDELE CUMPARATE CU ROBUX INCA IN MANA (R, `Purchases.coinsBought`).
+-- La "Build the Dam" ele trec intregi peste suma de start (D74, punctul 8). Socotite ca ultimele cheltuite: contorul
+-- creste cand le primesti si se taie la monedele pe care le mai ai cand acestea scad, deci nu poate trece niciodata peste
+-- `Coins`, iar monedele castigate din joc nu se ascund in el.
+local function count(x: any): number
+    return if typeof(x) == "number" and x == x and x > 0 and x < math.huge then x else 0
+end
+
+function PassMath.afterGrant(bought: any, granted: number): number
+    return count(bought) + count(granted)
+end
+
+function PassMath.afterCoins(bought: any, coins: number): number
+    return math.min(count(bought), count(coins))
+end
+
 return PassMath

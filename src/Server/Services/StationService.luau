@@ -144,8 +144,11 @@ function StationService.UpgradeBase(kind: string, id: string?): number
     if base ~= nil then
         return base
     elseif kind == "net" and id ~= nil then
-        local index = table.find(netPadIds, id)
-        return ChainMath.netUpgradeBase(index or 1)
+        -- [D70, pasul j3] dupa rangul plasei, nu dupa locul ei in lista (plasele barajului au rang scris)
+        local net = ChainMath.netIdentity(id)
+        return if net ~= nil
+            then ChainMath.netUpgradeBaseRank(net.rank, net.era)
+            else ChainMath.netUpgradeBase(1)
     end
     return math.huge
 end
@@ -159,13 +162,14 @@ end
 function StationService.StateFrom(data: any, bought: { [string]: boolean }): ChainMath.State
     local s = ChainMath.empty()
     local st = stationsOf(data)
-    for i, padId in netPadIds do
+    for _, padId in netPadIds do
         if bought[padId] ~= true then
             continue
         end
         local entry = st.nets[padId]
+        local net = ChainMath.netIdentity(padId) :: ChainMath.NetIdentity
         table.insert(s.nets, {
-            base = ChainMath.netBase(i),
+            base = ChainMath.netBaseRank(net.rank),
             baseLane = netPadLane[padId] or 1,
             level = if entry ~= nil then entry.level else 1,
             kind = netPadKind[padId] or "wood",
@@ -394,8 +398,9 @@ export type CrewRow = {
 -- Smelter: cat merg cand stai tu langa ele -- meniul spune asta in cuvinte, cifra ramane cea adevarata [D40].
 local function buildingOutput(s: ChainMath.State, kind: string, id: string?, level: number): number
     if kind == "net" then
-        local index = table.find(netPadIds, id or "") or 1
-        return ChainMath.levelOutput(ChainMath.netBase(index), level, "nets")
+        local net = ChainMath.netIdentity(id or "")
+        local base = if net ~= nil then ChainMath.netBaseRank(net.rank) else ChainMath.netBase(1)
+        return ChainMath.levelOutput(base, level, "nets")
     end
     -- [D64] orice cladire a lantului, dupa tabelul liniilor: un atelier (gaterul, forja [D56]) merge cu omul lui sau
     -- cat stai langa el, un vanzator (taverna) si singur, incet
@@ -734,6 +739,10 @@ function StationService.UpgradeCrew(
     end
     local crews = CrewMath.fromProfile(data.Hands, data.Crews)
     local crew = crews[role]
+    -- [D70] o meserie scrisa, dar din afara erelor din joc (barajul adormit): refuzata, nu o eroare pe server
+    if crew == nil then
+        return false, "unknown"
+    end
     local incomeBefore = StationService.Income(player)
     local reached: number
     if what == "tier" then
@@ -758,13 +767,16 @@ function StationService.UpgradeCrew(
         end
         local hands = deps.Hands
         local price = CrewMath.secondPrice(role) :: number
+        -- [D70, pasul j5] monedele cumparate cu Robux din mana inainte de plata: o rambursare le pune la loc
+        local boughtBefore = data.Purchases.coinsBought
         if hands == nil or not EconomyService.TrySpend(player, price, "crew_hire") then
             return false, if hands == nil then "unknown" else "coins"
         end
         if not hands.Hire(player, role) then
             -- nu s-a putut angaja (cheia deja luata, profil stricat): banii se dau inapoi, nimic
-            -- nu se pierde [P2]
+            -- nu se pierde [P2]; monedele s-au intors la cat erau, deci si contorul lor (R <= Coins ramane)
             EconomyService.AddCoins(player, price, "crew_hire_refund")
+            data.Purchases.coinsBought = boughtBefore
             return false, "unknown"
         end
         reached = crew.count + 1
