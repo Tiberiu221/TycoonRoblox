@@ -20,6 +20,7 @@ local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 local DamTown = require(ReplicatedStorage.Shared.Modules.DamTown)
 local HandMath = require(ReplicatedStorage.Shared.Modules.HandMath)
 
+local CameraController = require(script.Parent.CameraController)
 local Focus = require(script.Parent.Parent.UI.Focus)
 local GroundShadow = require(script.Parent.Parent.UI.GroundShadow)
 local Panels = require(script.Parent.Panels)
@@ -40,6 +41,8 @@ export type Deps = {
     CharacterPos: () -> (number, number),
     -- oamenii care lucreaza acum (ultima stare), pentru pagina
     People: () -> { Person },
+    -- [D75] primul curent vandut in sesiunea asta: bannerul cu „Look (V)” spre oraselul pictat
+    OnTownLit: (() -> ())?,
 }
 local deps: Deps? = nil
 
@@ -62,9 +65,12 @@ local PYLON_ART = {
     bridge_pylon_e = "pylon_post",
 } :: { [string]: string }
 -- [D75] oraselul pictat de pe malul de nord: luminile lui, decupate de la stanga la dreapta
-local TOWN_LIGHT_SECONDS = 6
+-- [D75] luminile trec de la stanga la dreapta in TOWN_LIGHT_SECONDS, cat tine privirea lui „Look (V)” (GlanceMath.HOLD)
+local TOWN_LIGHT_SECONDS = 2.5
 local townClip: Frame? = nil
 local townLit: boolean? = nil
+-- aprinse in sesiunea asta, dar inca nevazute: trec abia cand oraselul intra in cadru
+local townPending = false
 
 local NAME_ABOVE = 4 + 18
 -- [verificatorii k10b] cat de inalt e desenul de imprumut, pe cladire: eticheta si cardul stau deasupra lui, nu deasupra
@@ -285,8 +291,9 @@ function DamTownController.Apply(retired: { Retired })
     end
 end
 
--- [D75] Primul curent vandut la Switch House aprinde ferestrele oraselului pictat, de la stanga la dreapta, in
--- TOWN_LIGHT_SECONDS; cine intra cu el deja vandut le gaseste aprinse. Fara desen (ID 0), nimic.
+-- [D75] Primul curent vandut la Switch House aprinde ferestrele oraselului pictat. Cine intra cu el deja vandut le
+-- gaseste aprinse. Vandut acum: bannerul (OnTownLit, cu „Look (V)”), iar luminile trec de la stanga la dreapta abia
+-- cand oraselul e in cadru (PreRender), nu in spatele camerei [D43]. Fara desen (ID 0), nimic: nici banner.
 function DamTownController.SetTownLit(lit: boolean)
     local clip = townClip
     if clip == nil or lit == townLit then
@@ -299,18 +306,41 @@ function DamTownController.SetTownLit(lit: boolean)
     end
     local wasDark = townLit == false
     townLit = lit
-    local full = UDim2.fromOffset(if lit then town.w else 0, town.h)
     if lit and wasDark then
-        TweenService
-            :Create(
-                clip,
-                TweenInfo.new(TOWN_LIGHT_SECONDS, Enum.EasingStyle.Linear),
-                { Size = full }
-            )
-            :Play()
-    else
-        clip.Size = full
+        townPending = true
+        local onLit = if deps ~= nil then deps.OnTownLit else nil
+        if onLit ~= nil then
+            onLit()
+        end
+        return
     end
+    townPending = false
+    clip.Size = UDim2.fromOffset(if lit then town.w else 0, town.h)
+end
+
+-- aprinderea amanata: porneste cand mijlocul oraselului intra in cadrul camerei
+local function revealIfSeen()
+    local clip = townClip
+    if not townPending or clip == nil then
+        return
+    end
+    local camX, camY = CameraController.WorldOrigin()
+    local w, h = CameraController.VisibleSize()
+    local origin = TycoonConfig.PLOT_ORIGIN
+    if not DamTown.townInView(camX - origin.x, camY - origin.y, w, h) then
+        return
+    end
+    townPending = false
+    local world = TycoonConfig.WORLDS[DamTown.WORLD]
+    local town = if world ~= nil then world.paintedTown else nil
+    if town == nil then
+        return
+    end
+    TweenService:Create(
+        clip,
+        TweenInfo.new(TOWN_LIGHT_SECONDS, Enum.EasingStyle.Linear),
+        { Size = UDim2.fromOffset(town.w, town.h) }
+    ):Play()
 end
 
 function DamTownController.Init(d: Deps)
@@ -408,6 +438,7 @@ function DamTownController.Init(d: Deps)
     Panels.Register("people", { isOpen = isOpen, close = DamTownController.ClosePeople })
 
     RunService.PreRender:Connect(function(dt: number)
+        revealIfSeen()
         if #walkers == 0 then
             return
         end

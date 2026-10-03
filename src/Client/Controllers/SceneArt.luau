@@ -461,9 +461,16 @@ function SceneArt.BuildBackground(layers: Layers, world: number?)
         local wall = data.wall
         local sp = data.water.spillway
         local tycoon = Assets.tycoon
+        -- [D75, lotul A1] desenele barajului stau pe grila zidului (un pixel de desen = 3 de lume): panza si spuma incep pe
+        -- coloana si randul de desen cele mai apropiate de locul apei din config
+        local S = Assets.PIXEL_SCALE
+        local spillX = wall.x + math.round((sp.x - wall.x) / S) * S
+        local spillY = wall.y + math.round((sp.y - wall.y) / S) * S
         if Assets.has(tycoon.dam_wall) then
             -- [D75, lotul A1] zidul de piatra (varianta A): trepte, coama cu parapet, gura turbinei
-            image(builtLayer, tycoon.dam_wall, wall.x, wall.y, wall.w, wall.h, 8).Name = "DamWall"
+            local art = tycoon.dam_wall
+            image(builtLayer, art, wall.x, wall.y, art.width * S, art.height * S, 8).Name =
+                "DamWall"
         else
             local stone =
                 frame(builtLayer, wall.x, wall.y, wall.w, wall.h, Color3.fromRGB(128, 124, 116), 8)
@@ -484,7 +491,16 @@ function SceneArt.BuildBackground(layers: Layers, world: number?)
             cap.Name = "DamCap"
         end
         if Assets.has(tycoon.dam_spill) then
-            local sheet = image(builtLayer, tycoon.dam_spill, sp.x, sp.y, sp.w, sp.h, 11)
+            local frameW = tycoon.dam_spill.width / 3
+            local sheet = image(
+                builtLayer,
+                tycoon.dam_spill,
+                spillX,
+                spillY,
+                frameW * S,
+                tycoon.dam_spill.height * S,
+                11
+            )
             sheet.Name = "Spillway"
             sheet.ImageRectSize = Vector2.new(tycoon.dam_spill.width / 3, tycoon.dam_spill.height)
             spillArt = sheet
@@ -513,15 +529,7 @@ function SceneArt.BuildBackground(layers: Layers, world: number?)
             -- [D75, lotul A1] spuma de la piciorul deversorului, in rau (stratul Plot, sub turbina din zid)
             local foam = tycoon.dam_foam
             local fw = foam.width / 2 * Assets.PIXEL_SCALE
-            local sheet = image(
-                plot,
-                foam,
-                wall.x + wall.w - 6,
-                sp.y,
-                fw,
-                foam.height * Assets.PIXEL_SCALE,
-                8
-            )
+            local sheet = image(plot, foam, wall.x + wall.w - 6, spillY, fw, foam.height * S, 8)
             sheet.Name = "SpillFoam"
             sheet.ImageRectSize = Vector2.new(foam.width / 2, foam.height)
             foamArt = sheet

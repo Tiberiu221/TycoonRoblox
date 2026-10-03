@@ -122,13 +122,20 @@ end
 
 local function styleFar(frame: Frame, good: string)
     -- [D65] desenul marfii cand e urcat, altfel al perechii din Era 1 (UI/GoodArt)
-    local sprite = GoodArt.icon(good) or Assets.goods.driftwood
-    local w = sprite.width * Assets.PIXEL_SCALE * FAR_SCALE
+    -- [D68, D75] cristalul de la finalul Erei 3 are desenul lui de pe apa (primul din cele doua cadre)
+    local crystal = good == "crystal" and Assets.has(Assets.tycoon.river_crystal)
+    local sprite = if crystal
+        then Assets.tycoon.river_crystal
+        else GoodArt.icon(good) or Assets.goods.driftwood
+    local spriteW = if crystal then sprite.width / 2 else sprite.width
+    local w = spriteW * Assets.PIXEL_SCALE * FAR_SCALE
     local h = sprite.height * Assets.PIXEL_SCALE * FAR_SCALE
     frame.Size = UDim2.fromOffset(math.round(w), math.round(h))
     local icon = frame:FindFirstChild("Icon") :: ImageLabel?
     if icon ~= nil then
         icon.Image = if Assets.has(sprite) then Assets.url(sprite) else ""
+        icon.ImageRectSize = if crystal then Vector2.new(spriteW, sprite.height) else Vector2.zero
+        icon.ImageRectOffset = Vector2.zero
     end
 end
 
@@ -194,6 +201,10 @@ end
 
 -- [D55, D65] Ce promite raul acum, din TycoonState: marfa urmatoarei linii, cat inca n-ai plasa care o prinde.
 function RiverRenderController.SetPromise(good: string?)
+    -- [D75] cristalul are doar desenul lui de pe apa: pana la urcare, nimic (nu piesele de imprumut)
+    if good == "crystal" and not Assets.has(Assets.tycoon.river_crystal) then
+        good = nil
+    end
     if good == promised then
         return
     end

@@ -1427,6 +1427,47 @@ return function()
             check.is_true(town.x - town.w / 2 >= 880 and town.x + town.w / 2 <= 3065)
             check.is_true(math.abs(town.x - world.buildings.relay.x) < town.w / 2)
         end)
+        -- [verificatorul A1] doi busteni si o piatra din decorul imprastiat cadeau peste oraselul pictat
+        test.case("decorul imprastiat nu atinge oraselul pictat", function()
+            local VillageDecor = require("../src/Shared/Modules/VillageDecor")
+            local WorldDecor = require("../src/Shared/Modules/WorldDecor")
+            local town = world.paintedTown :: TycoonConfig.Box
+            local x0, x1, y0 = town.x - town.w / 2, town.x + town.w / 2, town.y - town.h
+            local seen = 0
+            for _, item in VillageDecor.items(W) do
+                local size = WorldDecor.FOOTPRINT[item.kind]
+                if size ~= nil then
+                    seen += 1
+                    local ix0, ix1 = item.x - size[1] / 2, item.x + size[1] / 2
+                    local touches = ix0 < x1
+                        and ix1 > x0
+                        and item.y - size[2] < town.y
+                        and item.y > y0
+                    if touches then
+                        print("peste orasel:", item.kind, item.x, item.y)
+                    end
+                    check.is_false(touches)
+                end
+            end
+            check.is_true(seen > 0)
+        end)
+        -- [verificatorul A1] luminile pornesc abia cand oraselul e in cadru: privirea spre mijlocul lui (Look) il pune in
+        -- cadru si pe telefon (camera prinsa de marginile lumii, ca CameraController.OriginFor)
+        test.case("privirea spre orasel il pune in cadru", function()
+            local DamTown = require("../src/Shared/Modules/DamTown")
+            local c = DamTown.townCenter()
+            check.not_nil(c)
+            local center = c :: { x: number, y: number }
+            local river = RiverConfig.WORLDS[W]
+            for _, view in { { 830, 459 }, { 1100, 620 }, { 1704, 809 } } do
+                local vw, vh = view[1], view[2]
+                local camX = math.clamp(center.x - vw / 2, 0, math.max(0, river.WORLD_WIDTH - vw))
+                local camY = math.clamp(center.y - vh / 2, 0, math.max(0, river.WORLD_HEIGHT - vh))
+                check.is_true(DamTown.townInView(camX, camY, vw, vh))
+            end
+            -- departe (la Dam Town, langa zid) nu se vede
+            check.is_false(DamTown.townInView(0, 600, 830, 459))
+        end)
     end)
 
     -- [D70, pasul k12] Pamantul copt al barajului (scripts/art/village_ground.py --world 2): feliile din Assets au marimea

@@ -1105,6 +1105,8 @@ end
 -- [D65, D67] marfa gata a unui vanzator al erelor noi: "Sack full — sell at the Market" / "... at the Depot"
 -- [D67] felinarele de pe strada se aprind cu primul curent vandut: anuntul, o singura data [D43]
 Strings.LAMPS_ON = "Your first power is sold — the street lamps are on!"
+-- [D75] la baraj, primul curent vandut la Switch House aprinde orasul de peste rau
+Strings.TOWN_LIT = "Your power reaches the town — its lights come on!"
 -- [D70] treptele modernizarii satului vechi, anuntate cand vin. A cincea tace cand vine odata cu primul curent vandut
 -- (atunci o anunta LAMPS_ON); altfel (al doilea Works Porter luat dupa primul curent) are fraza ei.
 -- [D70] butonul de pe bannerul unei trepte: o privire de 4 s spre satul vechi, unde s-a schimbat ceva

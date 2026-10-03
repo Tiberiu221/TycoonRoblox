@@ -127,6 +127,23 @@ function DamTown.bellsPercent(): number
     return math.floor((factor - 1) * 100 + 0.5)
 end
 
+-- [D75] ORASELUL PICTAT de pe malul de nord: mijlocul lui (spre el se uita „Look (V)” la primul curent vandut) si daca
+-- se vede din camera (x0, y0, w, h, in coordonatele terenului). Luminile se aprind abia cand mijlocul lui e in cadru:
+-- aprinse fara martor, ar fi fost un lucru intamplat in tacere [D43].
+function DamTown.townCenter(): { x: number, y: number }?
+    local world = TycoonConfig.WORLDS[DamTown.WORLD]
+    local town = if world ~= nil then world.paintedTown else nil
+    if town == nil then
+        return nil
+    end
+    return { x = town.x, y = town.y - town.h / 2 }
+end
+
+function DamTown.townInView(x0: number, y0: number, w: number, h: number): boolean
+    local c = DamTown.townCenter()
+    return c ~= nil and c.x >= x0 and c.x <= x0 + w and c.y >= y0 and c.y <= y0 + h
+end
+
 -- De cand merge ceasul plimbarii omului `index` (decalat, ca oamenii sa nu plece toti deodata). [verificatorii k10b] Pe
 -- fractia de aur a ciclului: doi oameni cu acelasi drum pleaca la o fractiune buna de ciclu unul de altul, nu la 0,9 s.
 function DamTown.phase(index: number, duration: number): number

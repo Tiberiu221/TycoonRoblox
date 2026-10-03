@@ -2748,6 +2748,20 @@ function TycoonConfig.homeClearRects(w: number?): { HomeClear }
             )
         end
     end
+    -- [D75, verificatorul A1] oraselul pictat de pe malul de nord: nimic din decorul imprastiat nu sta peste el (doi
+    -- busteni si o piatra cadeau in cutia lui). Tot ce o atinge iese, oricat de jos ii e baza.
+    local world = if w ~= nil then TycoonConfig.WORLDS[w] else nil
+    local town = if world ~= nil then world.paintedTown else nil
+    if town ~= nil then
+        local top = town.y - town.h
+        table.insert(out, {
+            x0 = town.x - town.w / 2,
+            x1 = town.x + town.w / 2,
+            y0 = top,
+            y1 = town.y,
+            frontOf = top,
+        })
+    end
     return out
 end
 
@@ -3332,15 +3346,17 @@ TycoonConfig.WORLDS[2] = {
         { x = 2735, y = TycoonConfig.LAMP_BASE_Y, era = 4 },
     },
     pylons = {
-        { name = "river_pylon", x = 2360, y = 1070, w = 48, h = 200, overRoad = false },
+        -- [D75, lotul A1] cutiile sunt exact desenul x 3 (altfel drawFitted il micsora cu o fractiune de pixel)
+        { name = "river_pylon", x = 2360, y = 1070, w = 48, h = 201, overRoad = false },
         { name = "lane_pylon", x = 2450, y = 1300, w = 24, h = 120, overRoad = false },
-        { name = "bridge_pylon_w", x = 2190, y = 1100, w = 16, h = 70, overRoad = true },
-        { name = "bridge_pylon_e", x = 2262, y = 1100, w = 16, h = 70, overRoad = true },
+        { name = "bridge_pylon_w", x = 2190, y = 1100, w = 15, h = 69, overRoad = true },
+        { name = "bridge_pylon_e", x = 2262, y = 1100, w = 15, h = 69, overRoad = true },
     },
     cards = { bellTower = { x = 760, y = 990 }, memoryWall = { x = 760, y = 1370 } },
     -- [D75, lotul A1] oraselul pictat de pe malul de nord, peste rau de Relay Station: primul cumparator din afara satului
     -- (PLAN-ERA4). Nu se viziteaza; ferestrele i se aprind cu primul curent vandut la Switch House. x = mijlocul, y = baza.
-    paintedTown = { x = 2200, y = 404, w = 1020, h = 132 },
+    -- pe grila de 3 px a pamantului copt (coltul din stanga-sus la 1692, 273)
+    paintedTown = { x = 2202, y = 405, w = 1020, h = 132 },
 }
 
 return TycoonConfig

@@ -19,6 +19,7 @@ local FlowConfig = require(ReplicatedStorage.Shared.Config.FlowConfig)
 local StationConfig = require(ReplicatedStorage.Shared.Config.StationConfig)
 local WorldConfig = require(ReplicatedStorage.Shared.Config.WorldConfig) -- [D70, pasul k1]
 local StateCopy = require(ReplicatedStorage.Shared.Modules.StateCopy) -- [D70, pasul k3]
+local DamTown = require(ReplicatedStorage.Shared.Modules.DamTown) -- [D75] oraselul pictat
 -- [D70, pasul k3] piesele fiecarei uniri din joc (Relay-ul barajului: butoaie si cablu), pentru copia starii
 local PARTS_OF = StateCopy.partsOf(FlowConfig.LINES)
 local UNIONS: { [string]: boolean } = {}
@@ -226,7 +227,6 @@ local DamTownController = require(Controllers.DamTownController) -- [D70, pasul 
 -- [D70, pasul k10] oamenii care lucreaza (ultima stare), pentru pagina „Your people” din Dam Town
 local peopleNow: { DamTownController.Person } = {}
 local AmbientController = require(Controllers.AmbientController) -- [D62, pasul 5]
-local RiverCrystalController = require(Controllers.RiverCrystalController) -- [D68, D75 lotul A1]
 local Theme = require(UI.Theme)
 local layers = CameraController.Init({ WorldGui = worldGui, World = world })
 
@@ -325,10 +325,6 @@ end)
 -- [D62, pasul 5] pasarile care trec peste sat (doar desen)
 safeInit("AmbientController", function()
     AmbientController.Init({ Scroll = layers.Scroll, World = world })
-end)
--- [D68, D75] cristalul care pluteste pe rau de la finalul Erei 3 (doar desen, doar in sat)
-safeInit("RiverCrystalController", function()
-    RiverCrystalController.Init({ Plot = layers.Plot })
 end)
 -- [D62, pasul 3] darurile raului: devreme, ca sa prinda configul raului (samanta); zborul monedelor se leaga mai jos
 safeInit("DriftController", function()
@@ -725,6 +721,10 @@ if world ~= 1 then
             CharacterPos = CharacterController.Position,
             People = function(): { DamTownController.Person }
                 return peopleNow
+            end,
+            -- [D75] primul curent vandut la baraj: luminile oraselului de peste rau, cu privirea spre el
+            OnTownLit = function()
+                lookMoment(Strings.TOWN_LIT, DamTown.townCenter())
             end,
         })
         InteractController.AddSource(DamTownController.Focus)
@@ -1898,15 +1898,20 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
     -- [D55, D65] ce pluteste in larg: marfa pe care plasele tale inca n-o prind. Scrap-ul pana la Fifth Net; minereul
     -- de cand porneste Moara pana la Tenth Net (marfa noua apare cand o poti folosi [D64]).
     -- [D70] la baraj, nimic promis inca (marfa lui o aduc plasele lui)
-    RiverRenderController.SetPromise(
-        if world ~= 1
-            then nil
-            elseif snapshot.pads.fifth_net ~= "bought" then "scrap"
-            elseif
-                snapshot.pads.water_wheel == "bought" and snapshot.pads.tenth_net ~= "bought"
-            then "ore"
-            else nil
-    )
+    -- [D68, D75] de la finalul Erei 3 (Works Bell): cristalul, marfa erei barajului (rendererul il arata doar cu desenul
+    -- lui urcat)
+    local owned = snapshot.pads
+    local promise: string? = nil
+    if world ~= 1 then
+        promise = nil
+    elseif owned.fifth_net ~= "bought" then
+        promise = "scrap"
+    elseif owned.water_wheel == "bought" and owned.tenth_net ~= "bought" then
+        promise = "ore"
+    elseif owned.works_bell == "bought" then
+        promise = "crystal"
+    end
+    RiverRenderController.SetPromise(promise)
     NetController.SetSack(sackState.rawBy, sackState.sellBy) -- [D65]
     NetController.Apply(
         snapshot.nets,
@@ -1973,8 +1978,6 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
     -- [D73] darurile se scot de pe puntea oricarui cartier deschis; [D70] aceeasi regula ca serverul, din platforme
     DriftController.SetPads(boughtPads)
     LampController.Apply(snapshot.firsts.power == true) -- [D67]
-    -- [D68] dupa Works Bell (finalul Erei 3), in sat: cristalul de pe rau
-    RiverCrystalController.SetActive(world == 1 and snapshot.pads.works_bell == "bought")
 
     if Overlay ~= nil then
         local ok, err = pcall(Overlay.Apply, snapshot)
