@@ -1473,6 +1473,12 @@ Siluetele, schelele și zidul de aici sunt propunerea loturilor A1/A2. Nimic nu 
   Fără ea, pe telefoanele mici, două capete aflate amândouă lângă 60° își luau locul unul altuia la fiecare 0,3°: salturi de
   ~500 px ale indicatorului cu etichetă. Un test nou face mersul dus-întors (±0,5° în jurul fiecărei direcții, pe cinci
   telefoane și pe lățimi de 120–330) și cere 0 salturi mari și 0 clipiri. Cu pragul vechi ar da 114.
+- **[A unsprezecea rundă]** Pragul absolut de 50° din runda a zecea aducea înapoi, la mersul într-o singură direcție, dispariția
+  etichetei pentru un cadru pe telefoanele de 896–1033 px. Acum cel mai bun capăt se ia dacă e sub prag și cu cel puțin 5° mai
+  bun decât cel ținut. Un test nou face mersul într-o direcție (0,5 / 1 / 2° pe cadru, pe șase telefoane și pe formele
+  adevărate ale etichetei) și cere 0 dispariții de un cadru; varianta din runda a zecea dădea 56.
+  **Limită acceptată:** la un du-te-vino de ±6° spre colțul cu cifre, pe telefoanele de 955–1033 px, eticheta poate sări între
+  cele două părți ale cifrelor (sus și pe marginea stângă). Săgeata arată tot timpul spre țintă, iar linia NEXT spune textul.
 
 Totalul, ~92–97 de imagini și 3 sunete până se joacă Era 4 (PLAN-HARTA §7).
 

@@ -1064,7 +1064,8 @@ function GuideMath.edgeIndicator(
 ): (number, number, boolean)
     local x, y = GuideMath.edgePlacement(q)
     local limit = GuideMath.EDGE_LABEL_OFF - (if labelShown == false then math.rad(10) else 0)
-    if GuideMath.edgeOff(x, y, q) <= limit then
+    local heldOff = GuideMath.edgeOff(x, y, q)
+    if heldOff <= limit then
         return x, y, true
     end
     -- [a noua runda] capatul tinut de histerezis a trecut de prag: intai cel mai bun capat, fara cadrul trecut (altfel
@@ -1073,9 +1074,11 @@ function GuideMath.edgeIndicator(
         local fresh = table.clone(q)
         fresh.previous = nil
         local fx, fy = GuideMath.edgePlacement(fresh)
-        -- [a zecea runda] cu aceeasi banda de 10 grade ca revenirea etichetei: altfel doua capete aflate amandoua langa 60 de
-        -- grade isi luau locul unul altuia la fiecare 0,3 grade (salturi de ~500 px pe telefoanele mici)
-        if GuideMath.edgeOff(fx, fy, q) <= limit - math.rad(10) then
+        -- [a unsprezecea runda] cel mai bun capat se ia daca e sub prag si cu cel putin 5 grade mai bun decat cel tinut. Doua
+        -- capete aflate amandoua langa 60 de grade nu-si mai iau locul unul altuia la fiecare 0,3 grade (runda a zecea), iar
+        -- la mersul intr-o directie eticheta nu mai dispare un cadru (pragul absolut de 50 de grade al rundei a zecea)
+        local freshOff = GuideMath.edgeOff(fx, fy, q)
+        if freshOff <= limit and freshOff <= heldOff - math.rad(5) then
             return fx, fy, true
         end
     end

@@ -1877,6 +1877,66 @@ return function()
             print(`  [edgePlacement] la mersul dus-intors: {jumps} salturi mari, {blinks} clipiri`)
             check.equal(jumps, 0)
             check.equal(blinks, 0)
+
+            -- [a unsprezecea runda] mers intr-o singura directie (0,5, 1 si 2 grade pe cadru, cu faze diferite), pe telefoanele
+            -- de 896-1100 px, cu formele adevarate ale etichetei: eticheta nu dispare niciodata pentru un singur cadru
+            local hides = 0
+            for _, size in
+                {
+                    { 896, 517 },
+                    { 917, 517 },
+                    { 955, 581 },
+                    { 980, 551 },
+                    { 1033, 581 },
+                    { 1100, 581 },
+                }
+            do
+                local w, h = size[1], size[2]
+                local bs = blockersFor(w, h, true)
+                for width = 120, 330, 15 do
+                    local half = (width + 24) / 2
+                    local bottom = if width > GuideMath.EDGE_LABEL_MAX then 53 else 27
+                    for _, speed in { 0.5, 1, 2 } do
+                        for _, phase in { 0, 0.33, 0.66 } do
+                            for _, sign in { 1, -1 } do
+                                local prev: { x: number, y: number }? = nil
+                                local shown: boolean? = nil
+                                local before: boolean? = nil
+                                local deg = -180 + phase
+                                while deg < 180 do
+                                    local px, py = natural(w, h, sign * deg)
+                                    local function qq(hh: number, bt: number): GuideMath.EdgeQuery
+                                        return {
+                                            x = px,
+                                            y = py,
+                                            w = w,
+                                            h = h,
+                                            half = hh,
+                                            top = 31,
+                                            bottom = bt,
+                                            blockers = bs,
+                                            margin = MARGIN,
+                                            previous = prev,
+                                        }
+                                    end
+                                    local x, y, label = GuideMath.edgeIndicator(
+                                        qq(half, bottom),
+                                        qq(15, 0),
+                                        if prev ~= nil then shown else nil
+                                    )
+                                    if label and before and shown == false then
+                                        hides += 1
+                                    end
+                                    before, shown, prev = shown, label, { x = x, y = y }
+                                    deg += speed
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+            print(`  [edgePlacement] la mersul intr-o directie: {hides} disparitii de un cadru`)
+            check.equal(hides, 0)
             -- o tinta aproape drept in sus ramane sus, cu eticheta, chiar cu eticheta cea mai lata (telefonul mic)
             local w, h = 1076, 605
             local _, uy, label = indicator(w, h, blockersFor(w, h, true), -94, { 177, 27 })
