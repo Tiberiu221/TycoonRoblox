@@ -598,6 +598,57 @@ return function()
             end
             check.equal(#bad, 0)
         end)
+        -- [verificatorii k10b] Pe o ora (din jumatate in jumatate de secunda, ca DamTownController), doi oameni la
+        -- plimbare nu stau unul in altul: fiecare pereche sta la sub 12 px cel mult 4% din timp (azi 2,6%), iar pe ecran se
+        -- vad aproape toti (in medie cel putin 14,5 din 16 siluete despartite; azi 15,1, inainte 13,9).
+        test.case("oamenii la plimbare nu stau unul peste altul", function()
+            local n = DamTown.MAX_WALKERS
+            local cycles = {}
+            for i = 1, n do
+                local c = DamTown.cycle(i)
+                cycles[i] = { cycle = c, phase = DamTown.phase(i, c.duration) }
+            end
+            local close: { [string]: number } = {}
+            local steps, seen = 0, 0
+            for t = 0, 3600, 0.5 do
+                steps += 1
+                local pos = {}
+                for i = 1, n do
+                    local x, y = HandMath.sampleAt(cycles[i].cycle, t + cycles[i].phase)
+                    pos[i] = { x = x, y = y }
+                end
+                local hidden: { [number]: boolean } = {}
+                for i = 1, n do
+                    for j = i + 1, n do
+                        if
+                            math.abs(pos[i].x - pos[j].x) < 12
+                            and math.abs(pos[i].y - pos[j].y) < 12
+                        then
+                            close[`{i}-{j}`] = (close[`{i}-{j}`] or 0) + 1
+                            hidden[j] = true
+                        end
+                    end
+                end
+                local visible = n
+                for _ in hidden do
+                    visible -= 1
+                end
+                seen += visible
+            end
+            local worst, worstPair = 0, ""
+            for pair, count in close do
+                if count > worst then
+                    worst, worstPair = count, pair
+                end
+            end
+            print(
+                `  [DamTown] cea mai lipita pereche: {worstPair}, {math.floor(worst / steps * 1000) / 10}% din timp; siluete in medie: {math.floor(
+                    seen / steps * 10
+                ) / 10}`
+            )
+            check.is_true(worst / steps <= 0.04)
+            check.is_true(seen / steps >= n - 1.5)
+        end)
     end)
 
     test.suite("World2Decor [D70, pasul k2b]", function()

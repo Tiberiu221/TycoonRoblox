@@ -257,6 +257,14 @@ return function()
             check.equal(photo.world, 1)
             -- fotografia din profil ramane neatinsa (o copie)
             check.equal(data.Memories.oldVillage.world, nil)
+            -- [verificatorii k11] decorul e cel de acum (cumparat si dupa baraj), peste fotografia veche
+            local firstDecor = require("../src/Shared/Config/VillageConfig").DECOR[1].id
+            data.Village = { decor = { [firstDecor] = true, not_in_catalog = true } }
+            local again = VillageLook.forVisitors(data)
+            check.equal(again.decorCount, 1)
+            check.is_true(again.decor[firstDecor] == true)
+            check.equal(again.decor.not_in_catalog, nil)
+            check.equal(data.Memories.oldVillage.decorCount, 4)
             -- fara fotografie (o stare stricata), satul de acum, fara semn
             data.Memories = {}
             local _, none = VillageLook.forVisitors(data)

@@ -99,7 +99,7 @@ REED = ((52, 74, 40), (84, 108, 52), (156, 160, 92))  # [k12] stuful lacului: ra
 DAM_BORROWED = {
     "canteen": "prop_tavern",
     "bellTower": "prop_bell",
-    "memoryWall": "prop_village_board",
+    "memoryWall": "prop_board_old",
     "damStore": "prop_works_store",
     "switchyard": "prop_wire_works",
     "cableStore": "prop_mill_store",

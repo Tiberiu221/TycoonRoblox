@@ -206,6 +206,21 @@ function VillageLook.decorCount(data: { [string]: any }): number
     return n
 end
 
+-- Decorul cumparat, doar cheile din catalog (fiecare are loc si pe harta satului: VillageConfig.spotsOf(d, 1)).
+local function ownedDecor(data: { [string]: any }): { [string]: boolean }
+    local decor: { [string]: boolean } = {}
+    local village = data.Village
+    local owned = if typeof(village) == "table" then village.decor else nil
+    if typeof(owned) == "table" then
+        for _, d in VillageConfig.DECOR do
+            if owned[d.id] == true then
+                decor[d.id] = true
+            end
+        end
+    end
+    return decor
+end
+
 local function levelOf(station: any): number
     if typeof(station) == "table" and typeof(station.level) == "number" then
         local level = station.level :: number
@@ -241,16 +256,7 @@ function VillageLook.of(data: { [string]: any }): Snapshot
             end
         end
     end
-    local decor: { [string]: boolean } = {}
-    local village = data.Village
-    local owned = if typeof(village) == "table" then village.decor else nil
-    if typeof(owned) == "table" then
-        for _, d in VillageConfig.DECOR do
-            if owned[d.id] == true then
-                decor[d.id] = true
-            end
-        end
-    end
+    local decor = ownedDecor(data)
     local power = typeof(data.Stats) == "table" and (tonumber(data.Stats.cellsSold) or 0) > 0
     return {
         -- [D70, pasul j10] era pe lista lumii lui: cine n-a ridicat inca barajul ramane in Era 3, chiar cu barajul in joc
@@ -282,6 +288,10 @@ function VillageLook.forVisitors(data: { [string]: any }): (Snapshot, boolean)
     if WorldConfig.sanitize(data.World) ~= 1 and typeof(old) == "table" then
         local photo = table.clone(old) :: any
         photo.world = 1
+        -- [verificatorii k11] decorul e cel de acum: cumparat si la baraj (avizierul merge in ambele lumi), se vede in
+        -- macheta, in numarul de pe poarta si in ordinea listei, ca perlele date pe aspect sa nu dispara in balci
+        photo.decor = ownedDecor(data)
+        photo.decorCount = VillageLook.decorCount(data)
         return photo :: Snapshot, true
     end
     return VillageLook.of(data), false

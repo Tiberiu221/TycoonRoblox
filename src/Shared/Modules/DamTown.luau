@@ -45,22 +45,52 @@ function DamTown.buildings(): { Building }
     return out
 end
 
+local function cottagesOf(): { TycoonConfig.Box }
+    local world = TycoonConfig.WORLDS[DamTown.WORLD]
+    return if world ~= nil then world.cottages or {} else {}
+end
+
+-- [verificatorii k10b] CINE STA UNDE: cate 5-6 oameni pe o casuta si 4 locuri pentru 16 oameni. Fiecare om isi are locul
+-- lui la usa (cinci locuri de-a lungul casutei, apoi al doilea rand) si la oprire (trei, dupa casuta lui), iar casuta si
+-- locul se aleg cu pasi diferiti, ca doi oameni sa nu faca acelasi drum. Inainte, oamenii 4 si 16 mergeau lipiti si 4-5
+-- stateau pe acelasi pixel la usa.
+local DOOR_STEP, DOOR_ROW, SPOT_STEP, SPOT_ROW = 20, 14, 18, 14
+
 -- Usa casutei omului `index` (casutele, pe rand): spre strada, intre ea si acoperis, ca drumul spre oras sa mearga pe
 -- strada si pe alee, nu peste iarba cu decor.
 function DamTown.home(index: number): HandMath.Point
-    local world = TycoonConfig.WORLDS[DamTown.WORLD]
-    local cottages = if world ~= nil then world.cottages or {} else {}
+    local cottages = cottagesOf()
     if #cottages == 0 then
         return { x = 0, y = 0 }
     end
     local c = cottages[(index - 1) % #cottages + 1]
-    return { x = c.x, y = c.y - c.h - 18 }
+    local k = (index - 1) // #cottages -- al catelea om al casutei
+    local row = k // 5 -- al doilea rand sta mai sus si intre locurile primului
+    return {
+        x = c.x + (k % 5 - 2) * DOOR_STEP + row * DOOR_STEP / 2,
+        y = c.y - c.h - 18 - row * DOOR_ROW,
+    }
+end
+
+-- Locul omului `index`: casuta se schimba la fiecare om, locul la fiecare casuta umpluta, iar cei trei vecini de casuta
+-- care merg la acelasi loc stau unul langa altul.
+function DamTown.spotOf(index: number): { x: number, y: number, face: string }
+    local n = math.max(1, #cottagesOf())
+    local k = (index - 1) // n
+    local spot = DamTown.SPOTS[k % #DamTown.SPOTS + 1]
+    -- dupa ce s-au umplut toate locurile, urmatorii stau pe un al doilea rand, putin mai jos
+    local row = k // #DamTown.SPOTS
+    return {
+        x = spot.x + ((index - 1) % n - (n - 1) / 2) * SPOT_STEP,
+        y = spot.y + row * SPOT_ROW,
+        face = spot.face,
+    }
 end
 
 -- Plimbarea omului `index`: de acasa la locul lui, pe drumuri, si inapoi.
 function DamTown.cycle(index: number): HandMath.Cycle
     local home = DamTown.home(index)
-    local spot = DamTown.SPOTS[(index - 1) % #DamTown.SPOTS + 1]
+    local spot = DamTown.spotOf(index)
     local g = RoadGraph.forWorld(DamTown.WORLD)
     local there = RoadGraph.route(g, home, { x = spot.x, y = spot.y }, true)
     local via: { HandMath.Point } = {}
@@ -97,12 +127,13 @@ function DamTown.bellsPercent(): number
     return math.floor((factor - 1) * 100 + 0.5)
 end
 
--- De cand merge ceasul plimbarii omului `index` (decalat, ca oamenii sa nu plece toti deodata).
+-- De cand merge ceasul plimbarii omului `index` (decalat, ca oamenii sa nu plece toti deodata). [verificatorii k10b] Pe
+-- fractia de aur a ciclului: doi oameni cu acelasi drum pleaca la o fractiune buna de ciclu unul de altul, nu la 0,9 s.
 function DamTown.phase(index: number, duration: number): number
     if duration <= 0 then
         return 0
     end
-    return (index * 7.3) % duration
+    return ((index * 0.6180339887) % 1) * duration
 end
 
 return DamTown

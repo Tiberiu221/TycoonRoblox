@@ -1339,6 +1339,16 @@ la granița CREWS / `DAM_START_COINS`.
 - **[Verificatorul k2b]** oamenii retrași, plimbați pe graful lumii 2, nu calcă decorul cumpărat: același test ca drumul de unde
   apari (`World2Decor`, pas de 4 px, om de 48×72), pe traseele lor.
 
+- **[Verificatorul k10b–k11, făcut]**
+  - **Pagina „Your people” ieșea goală:** cadrul listei nu primea mărime. Acum e dimensionat, iar rândurile vin în ordine:
+    veteranii, apoi meseria și numele; locuitorii, după meseria de dinainte. Textul se strânge până încape pe rând.
+  - **Plimbarea:** fiecare om are locul lui la ușă (cinci de-a lungul căsuței, apoi un al doilea rând), iar la oprire stă
+    lângă vecinii lui de căsuță. Casa și locul se aleg cu pași diferiți, iar faza vine din fracția de aur a ciclului. Testul
+    pe o oră: nicio pereche lipită peste 4% din timp (azi 2,6%), iar în medie se văd 15,1 din 16 siluete (înainte 13,9).
+  - **Eticheta „Old Bells” și cardul** stau deasupra desenului, nu deasupra cutiei turnului.
+  - **Memory Wall** împrumută avizierul vechi (ruina avizierelor), ca să nu semene cu Village Board-ul din Dam Town.
+  - **La bâlci**, peste fotografia satului vechi intră decorul de acum (macheta, numărul de pe poartă și ordinea listei).
+
 **k11. Bâlciul pentru gazdele din lumea 2.** Depinde de: j4, k10. Owner: ce intră la prima lansare (O1, luat ca recomandat).
 - `VillageLook.Snapshot.world`, copiat explicit. Până la decizie (și acum, provizoriu): fotografia satului vechi, cu semnul
   „Building the Dam”. `TitleMath` „Dam Builder” derivat din `World >= 2`; `build_balci DevWorld`. Macheta lumii 2, titlul, poza
