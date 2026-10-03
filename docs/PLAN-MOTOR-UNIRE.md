@@ -978,6 +978,14 @@ la granița CREWS / `DAM_START_COINS`.
 - Verificare (teste): a doua chemare nu face nimic; invarianta „monede noi + dar = C + completare” pe toate ramurile; nimic
   șters în afara celor 5 chei vechi; numele și chipurile sunt copii, nu referințe; venitul de după ≥ venitul de dinainte și
   egal cu startul de aur; grămezile vechi golite, cu suma vândută egală cu „Last cart”.
+- **[Făcut, 2026-10-03]** în modulul lui, `Shared/Modules/DamMath` (`DamMath.build(data, ctx)` / `preview` / `blocked`), nu
+  în `WorldMath`: WorldMath e citit la fiecare cerere și n-are de ce să tragă quest-urile, oamenii și fotografia satului.
+  `ctx` = ceasul râului, userId (veteranul care lipsește), `valueOfCounts` (prețul de acum, `EconomyService.ValueOfCounts`),
+  modelul și `eraIsLive`. Plasele dăruite prind de la `ctx.now`, nivelul 1, fără `PadService.Grant`. Chitanța (`Receipt`) are
+  „Last cart”, perlele quest-urilor, C, R, START, monedele noi, darul, completarea, venitul înainte și după, veteranii; se scrie
+  și în `Memories.dam`. Teste (`tests/DamMath.test.luau`): gărzile, a doua chemare, invarianta banilor pe șase ramuri, „Last
+  cart” pe traistă, grămezi, plase și `carry`, quest-urile, veteranii (copii, medalia, cele 5 chei), un veteran lipsă, darurile,
+  venitul după = startul de aur (19,57B/s), previzualizarea fără efect și egală cu ridicarea.
 - **[Verificatorul j10]** „Last cart” vinde și marfa și găsirile din **plasele lumii 1** (`data.Nets[*].goods`), din traistă și
   din `carry` al **tuturor** oamenilor vechi (nu doar al veteranilor), apoi le golește. Plasele rămân în profil cu nivelul lor
   (pentru `Memories`), cu `goods = {}`. Invarianta: suma „Last cart” = traista + grămezile + plasele + `carry`, iar după
@@ -988,13 +996,13 @@ la granița CREWS / `DAM_START_COINS`.
 - **Remote-uri (doar RemoteEvent):** `BuildDam`, `DamPreview`/`DamPreviewResult`, `DamBuilt`, `DamRejected`, `DamFilmSeen`;
   găleata `Dam` în RateLimiter; handlerele în NetServer; ordinea `Init` în `Bootstrap.server` fixată de un test text.
 - **`DamService`:** răspunde `soon` cât Era 4 nu e în joc; refuză cu `settling` cât plata offline nu e făcută; verifică
-  `expectedKeep`; aplică `buildDam` dintr-o bucată; invalidează Pads și Stations; `DataService.SaveNow` (scos din
+  `expectedKeep`; aplică `DamMath.build` dintr-o bucată; invalidează Pads și Stations; `DataService.SaveNow` (scos din
   PurchaseService), apoi `DamBuilt`; Analytics.
 - **DevService:** `world:N`, `dam`, saltul la capitolele 10–12, numele noilor grămezi, `up:` pe clădirile noi.
 - **[Verificatorul j10]** odată cu `data.World = 2`, și `player:SetAttribute("World", 2)`. Serverul citește lumea din profil
   (`PadService.World`, pentru statusuri și zone, de la verificatorul j10), dar atributul îl citește clientul la k1.
 - Verificare: `check_requires` pe ambele proiecte (`DamService` nu intră în bâlci); probă pe comutator: `dev dam` arată cifrele
-  lui `WorldMath`; `dev world:2`, apoi Stop/Play cu „keep save”: serverul e în lumea 2, AWAY 0, capitolul 10, plasele vechi
+  lui `DamMath`; `dev world:2`, apoi Stop/Play cu „keep save”: serverul e în lumea 2, AWAY 0, capitolul 10, plasele vechi
   stau, fără erori.
 
 ### k: clientul. Fără owner, cu desene de împrumut, în afară de k9 și k12.
