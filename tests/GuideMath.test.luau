@@ -1530,6 +1530,10 @@ return function()
     test.suite("GuideMath.edgePlacement", function()
         local HudLayout = require("../src/Shared/Modules/HudLayout")
         local MARGIN = 46 -- GuideController.EDGE_MARGIN
+        -- [verificatorul A0/k12, a saptea runda] grupul indicatorului: {jumatate din latimea etichetei, cat coboara}; ultimul
+        -- e eticheta trecuta pe doua randuri (GuideMath.EDGE_LABEL_MAX), cea mai lata si cea mai inalta pe care o arata ghidajul
+        local WRAPPED_HALF = (GuideMath.EDGE_LABEL_MAX + 24) / 2
+        local SHAPES = { { 15, 27 }, { 90, 27 }, { 177, 27 }, { WRAPPED_HALF, 27 + 26 } }
         local function blockersFor(w: number, h: number, touch: boolean): { GuideMath.Rect }
             local barH = 62 * 5 + 8 * 4
             local out: { GuideMath.Rect } =
@@ -1551,12 +1555,18 @@ return function()
             local k = math.min(sx, sy)
             return w / 2 + dx * k, h / 2 + dy * k
         end
-        local function overlaps(x: number, y: number, half: number, bs: { GuideMath.Rect }): boolean
+        local function overlaps(
+            x: number,
+            y: number,
+            half: number,
+            bs: { GuideMath.Rect },
+            bottom: number?
+        ): boolean
             for _, b in bs do
                 if
                     x + half > b.x
                     and x - half < b.x + b.w
-                    and y + 27 > b.y
+                    and y + (bottom or 27) > b.y
                     and y - 31 < b.y + b.h
                 then
                     return true
@@ -1569,6 +1579,7 @@ return function()
             local bad = 0
             for _, size in
                 {
+                    { 1033, 581, true },
                     { 1076, 605, true },
                     { 1362, 630, true },
                     { 1920, 1080, false },
@@ -1579,7 +1590,8 @@ return function()
                 local bs = blockersFor(w, h, touch)
                 for deg = 0, 359.5, 0.5 do
                     local px, py = natural(w, h, deg)
-                    for _, half in { 15, 90, 177 } do
+                    for _, shape in SHAPES do
+                        local half, bottom = shape[1], shape[2]
                         local x, y = GuideMath.edgePlacement({
                             x = px,
                             y = py,
@@ -1587,15 +1599,15 @@ return function()
                             h = h,
                             half = half,
                             top = 31,
-                            bottom = 27,
+                            bottom = bottom,
                             blockers = bs,
                             margin = MARGIN,
                         })
                         local inside = x - half >= 0
                             and x + half <= w
                             and y - 31 >= 0
-                            and y + 27 <= h
-                        if overlaps(x, y, half, bs) or not inside then
+                            and y + bottom <= h
+                        if overlaps(x, y, half, bs, bottom) or not inside then
                             bad += 1
                             if bad <= 5 then
                                 print(`  ! {w}x{h} {deg} grade, eticheta {half}: ({x}, {y})`)
@@ -1613,7 +1625,8 @@ return function()
             bs: { GuideMath.Rect },
             deg: number,
             half: number,
-            previous: { x: number, y: number }?
+            previous: { x: number, y: number }?,
+            bottom: number?
         ): (number, number)
             local px, py = natural(w, h, deg)
             return GuideMath.edgePlacement({
@@ -1623,7 +1636,7 @@ return function()
                 h = h,
                 half = half,
                 top = 31,
-                bottom = 27,
+                bottom = bottom or 27,
                 blockers = bs,
                 margin = MARGIN,
                 previous = previous,
@@ -1659,6 +1672,7 @@ return function()
             local worst = 0
             for _, size in
                 {
+                    { 1033, 581, true },
                     { 1076, 605, true },
                     { 1362, 630, true },
                     { 1920, 1080, false },
@@ -1668,8 +1682,8 @@ return function()
                 local w, h, touch = size[1] :: number, size[2] :: number, size[3] :: boolean
                 local bs = blockersFor(w, h, touch)
                 for deg = -180, 179.5, 0.5 do
-                    for _, half in { 15, 90, 177 } do
-                        local x, y = place(w, h, bs, deg, half)
+                    for _, shape in SHAPES do
+                        local x, y = place(w, h, bs, deg, shape[1], nil, shape[2])
                         worst = math.max(worst, offDeg(w, h, x, y, deg))
                     end
                 end
@@ -1681,6 +1695,39 @@ return function()
             local _, uy = place(w, h, blockersFor(w, h, true), -94, 177)
             check.is_true(uy < 60)
         end)
+
+        test.case(
+            "textele lungi ale ghidajului incap in grupul testat (cel mult doua randuri)",
+            function()
+                local StationConfig = require("../src/Shared/Config/StationConfig")
+                local perChar = 18 * 572 / 1024 -- fontul de pixeli la TEXT.body
+                local perLine = math.floor(GuideMath.EDGE_LABEL_MAX / perChar)
+                local texts = { Strings.SACK_FULL_BOTH, Strings.PLANS_WHEN_READY }
+                for _, line in StationConfig.LINE_ORDER_ALL do
+                    table.insert(texts, Strings.sackFullRaw(line))
+                end
+                for _, text in texts do
+                    local lines, used = 1, 0
+                    for word in string.gmatch(text, "%S+") do
+                        local n = utf8.len(word) or #word
+                        if used > 0 and used + 1 + n > perLine then
+                            lines += 1
+                            used = n
+                        else
+                            used += (if used > 0 then 1 else 0) + n
+                        end
+                    end
+                    if lines > 2 then
+                        print(`  ! pe {lines} randuri: {text}`)
+                    end
+                    check.is_true(lines <= 2)
+                    local half = (
+                        math.min((utf8.len(text) or #text) * perChar, GuideMath.EDGE_LABEL_MAX) + 24
+                    ) / 2
+                    check.is_true(half <= WRAPPED_HALF)
+                end
+            end
+        )
 
         test.case(
             "histerezis ca banda: nu tremura langa mijlocul barei, dar se desprinde",

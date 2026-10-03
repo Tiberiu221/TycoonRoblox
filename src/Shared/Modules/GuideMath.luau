@@ -1042,6 +1042,10 @@ GuideMath.EDGE_GAP = 8
 GuideMath.EDGE_STEP = 4 -- pasul cautarii pe inel; capatul liber se rafineaza apoi prin injumatatire
 GuideMath.EDGE_KEEP = 12 -- cat de aproape de locul din cadrul trecut ca sa fie „acelasi capat”
 GuideMath.EDGE_BAND = math.rad(15) -- cat de mult mai rau poate arata capatul vechi inainte sa-l lase
+-- [verificatorul A0/k12, a saptea runda] eticheta indicatorului trece pe doua randuri peste latimea asta: textele lungi ale
+-- ghidajului („Sack full — take the planks and iron to the Tavern”, ~500 px) acopereau altfel toata marginea de sus pe un
+-- telefon mic, iar indicatorul ajungea jos, departe de tinta
+GuideMath.EDGE_LABEL_MAX = 320 -- „... barrels and cable to the Relay Station” ramane pe doua randuri
 
 function GuideMath.edgePlacement(q: EdgeQuery): (number, number)
     local gap = GuideMath.EDGE_GAP

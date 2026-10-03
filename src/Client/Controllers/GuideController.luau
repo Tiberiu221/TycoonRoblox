@@ -594,7 +594,25 @@ local function updateGuideVisuals()
         local ex, ey = clampToEdge(hx, hy, w, h)
         -- [verificatorul k6-k8] eticheta de sub sageata ramane in panza: la o tinta din dreapta („Build the Dam when you're
         -- ready”, ~330 px) grupul se trage spre interior cu jumatate din ea; sageata se roteste tot spre tinta
-        local half = (Theme.textWidth(goal.text, Theme.TEXT.body, "strong") + 24) / 2
+        -- [verificatorul A0/k12, a saptea runda] peste GuideMath.EDGE_LABEL_MAX eticheta trece pe doua randuri: grupul e mai
+        -- ingust, deci incape si sus pe un telefon mic
+        local labelMax = GuideMath.EDGE_LABEL_MAX
+        local textW = Theme.textWidth(goal.text, Theme.TEXT.body, "strong")
+        local wraps = textW > labelMax
+        local labelH = if wraps
+            then math.ceil(Theme.textHeight(goal.text, Theme.TEXT.body, "strong", labelMax)) + 12
+            else 30
+        if edgeLabel.Text ~= goal.text then
+            edgeLabel.Text = goal.text
+            edgeLabel.TextWrapped = wraps
+            edgeLabel.AutomaticSize = if wraps
+                then Enum.AutomaticSize.None
+                else Enum.AutomaticSize.X
+            edgeLabel.Size = if wraps
+                then UDim2.fromOffset(labelMax + 24, labelH)
+                else UDim2.fromOffset(0, 30)
+        end
+        local half = (math.min(textW, labelMax) + 24) / 2
         -- [verificatorii A0, k12] ...si nu sub panourile fixe desenate peste el (bara de meniu din dreapta): alunecand de-a
         -- lungul marginii lui (GuideMath.edgePlacement). Grupul: sageata de 30 px deasupra punctului, eticheta pana la +27.
         ex, ey = GuideMath.edgePlacement({
@@ -604,7 +622,7 @@ local function updateGuideVisuals()
             h = h,
             half = math.max(half, 15),
             top = 31,
-            bottom = 27,
+            bottom = 27 + (labelH - 30),
             blockers = edgeBlockers(hudScale()),
             margin = EDGE_MARGIN,
             previous = if edgeGoalKey == goal.key then edgePrevious else nil,
@@ -616,7 +634,6 @@ local function updateGuideVisuals()
             -- 0 grade = sus (Assets.icons.arrow), rotatia creste in sensul acelor de ceasornic
             edgeIcon.Rotation = math.deg(math.atan2(hx - w / 2, -(hy - h / 2)))
         end
-        edgeLabel.Text = goal.text
     end
 end
 

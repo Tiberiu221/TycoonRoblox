@@ -1451,6 +1451,10 @@ Siluetele, schelele și zidul de aici sunt propunerea loturilor A1/A2. Nimic nu 
     (cea mai mare abatere e 53°). Penalizarea fixă a mijlocului a dispărut.
   - Histerezisul e o bandă de 15° și se golește la schimbarea țintei.
   - Testat: continuitatea, unghiul, banda care se desprinde și o țintă aproape verticală cu eticheta cea mai lată.
+- **[A șaptea rundă]** Textele lungi ale ghidajului („Sack full — take the planks and iron to the Tavern”, ~500 px; la baraj,
+  „... barrels and cable to the Relay Station”) acopereau pe un telefon mic toată marginea de sus. Acum eticheta de margine
+  trece pe două rânduri peste `GuideMath.EDGE_LABEL_MAX` (320). Testele folosesc textele adevărate (cel mult două rânduri) și
+  un telefon de 1033x581. Cea mai mare abatere față de țintă, pe toate ecranele și etichetele, e 56° (nu 53°).
 
 Totalul, ~92–97 de imagini și 3 sunete până se joacă Era 4 (PLAN-HARTA §7).
 
