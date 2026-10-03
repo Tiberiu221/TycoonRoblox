@@ -108,6 +108,23 @@ stylua/selene o prind. Rulează-le mereu pe toate, nu înlănțuite după o eroa
   bâlciul doar în 114983498774894); serverul Rojo al satului rulează detașat pe 34872 și trebuie repornit ca să citească
   o schimbare de proiect. Ce a rulat în Studio se vede în `~/Library/Logs/Roblox/*_last.log` (`CreatorOutput`, `open place`).
 
+## Stare (2026-10-03) [D74, pașii j1–j9]
+
+**Barajul (lumea 2) e în date și în modulele pure, adormit; jocul viu e neschimbat.** Pașii, cu dependențe și verificări:
+`docs/PLAN-MOTOR-UNIRE.md` §16 (j1–j15, k1–k12, l1–l3); singurul commit care schimbă jocul viu e l3. D74: așezarea aprobată,
+recomandările owner-ului luate (O1, provizoriu).
+- **Martorul lumii 1** (`tests/WorldIdentity.test.luau`): `tests/witness/world1.txt` (erele 1–3, după eră) nu se schimbă
+  niciodată din cauza barajului; `engine.txt` (listele motorului) se rescrie doar la l3. `WORLD_WITNESS=write` le rescrie.
+- **Lumile:** `WorldConfig` (era → lume), `TycoonConfig.WORLDS[1|2]` și accesoriile (`padsOfWorld`, `linePlacesOf`, …; fără
+  lume = satul), `RiverConfig.WORLDS`, `RoadGraph.forWorld` (lumea 2 ocolește zidul și canalul), `HandRoutes.forWorld` /
+  contextul implicit pe meserie, `WorldMap.forWorld`, `DriftMath.reachesFor`. Testul de așezare: `tests/World2Layout.test.luau`.
+- **Era 4 în config:** 23 de platforme `live = false` cu locurile din planșă, 15 meserii, `DAM_START_COINS` (35T), plasele pe
+  rang (`ChainMath.netIdentity`), profil **v19** (`World`, `Memories`, `Purchases.coinsBought` = monedele Robux în mână).
+  Simulatorul verifică prețurile, ce dă barajul, rangurile și condițiile Erei 4 (`check_config_era4`, `check_era4_after`).
+- **În joc acum:** 11 descrieri de platforme erau tăiate cu „…” pe cartonaș; scurtate și măsurate cu lățimile Nunito
+  (`tests/fonts/NunitoWidths.luau`, din `scripts/art/nunito_widths.py`).
+- **Urmează j10** (statusurile și porțile pe lume, pe server).
+
 ## Stare (2026-10-02) [D72]
 
 **Plasele rapide nu mai sună ca o rafală** (`CatchSound`, pur, cu teste; `SoundController` doar îl întreabă). Cât malul e
