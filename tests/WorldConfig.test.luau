@@ -110,6 +110,21 @@ return function()
             end
         end)
 
+        test.case(
+            "comutatorul local al Erei 4 nu e niciodata comis (scripts/era4_flip.py)",
+            function()
+                for _, path in luauFiles("src", {}) do
+                    local src = fs.readFile(path)
+                    if string.find(src, "-- era4_flip", 1, true) ~= nil then
+                        print(
+                            `[WorldConfig] {path}: comutatorul era4_flip e pornit; opreste-l inainte de commit`
+                        )
+                    end
+                    check.equal(string.find(src, "-- era4_flip", 1, true), nil)
+                end
+            end
+        )
+
         test.case("niciun modul nu citeste lumea jucatorului la incarcare", function()
             -- Atributul World il pune serverul inainte de SaveLoaded; un `require` care l-ar citi in corpul modulului ar
             -- prinde lumea de dinainte de profil (sau nimic). Se citeste doar din functii (randuri indentate).

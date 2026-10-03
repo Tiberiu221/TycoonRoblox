@@ -591,9 +591,12 @@ return function()
                         end
                     end
                 end
+                -- oamenii satului (Erele 1-3): fara comutator sunt toti din joc; cu el, doar ei, nu si cei ai barajului
                 for _, role in StationConfig.ROLES do
-                    check.equal(HandRoutes.routeFor(role, 1, 1, DAM_NETS, ctx), nil)
-                    check.equal(HandRoutes.standFor(role, 1, ctx), nil)
+                    if (StationConfig.ERA_OF_ROLE[role] or 1) <= 3 then
+                        check.equal(HandRoutes.routeFor(role, 1, 1, DAM_NETS, ctx), nil)
+                        check.equal(HandRoutes.standFor(role, 1, ctx), nil)
+                    end
                 end
                 -- contextul satului nu mai cara locurile barajului; meseriile barajului adormite (implicit: al jocului)
                 check.equal(HandRoutes.GAME.linePlaces.barrels, nil)
@@ -730,8 +733,10 @@ return function()
                 -- satul, cu toate clopotele: cele trei punti, ca in martor
                 check.equal(#DriftMath.reachesFor(1, everything), 3)
                 check.equal(#DriftMath.reachesFor(1, {}), 1) -- doar The Landing
-                -- barajul, azi (Era 4 nu e in joc): nicio punte
-                check.equal(#DriftMath.reachesFor(2, everything), 0)
+                -- barajul, azi (Era 4 nu e in joc): nicio punte; dupa comutator, ca mai jos
+                if not TycoonConfig.eraIsLive(4) then
+                    check.equal(#DriftMath.reachesFor(2, everything), 0)
+                end
                 -- barajul pornit: lacul si puntea barajului, taiate la zid (de pe zid nu se scoate)
                 local dam = DriftMath.reachesFor(2, everything, live)
                 check.equal(#dam, 2)

@@ -937,6 +937,13 @@ la granița CREWS / `DAM_START_COINS`.
 - Instantaneele unirii fără `pileOf(nil)`; `SackSnapshot` cu `partBy`; gardă în `DevFillPile`; `HandService.drop` păstrează
   restul.
 - Se adaugă `scripts/era4_flip.py` (R10).
+- **[Făcut]** `EconomyService`: `process` cu `FlowMath.assemble` pe uniri (ștampila pe fiecare grămadă a unei piese), viteza cu
+  `joinWaiting`; liniile și vânzătorii altei hărți nu lucrează și nu se scurg (`openFor`); scurgerea cu `drainOrder`;
+  `UseProcessor` → `useJoin`; `DropAt` întoarce `(câte, restul)`: la unire `dropJoin`, la vânzător piesele rămân la om, la un loc
+  necunoscut tot; `HandService.drop` păstrează restul în `hand.carry`; `SackSnapshot.partBy`; `StoreSnapshotOf` gol la unire;
+  `ProcessorSnapshotOf` la unire cu toate piesele laolaltă, plus `inputs` (pe piesă) și `waiting`; `DevFillPile` pe unire pune
+  piese gata în fiecare grămadă. `scripts/era4_flip.py on|off|status` (marcaj `-- era4_flip`, `off` reface fișierele identic,
+  `status` iese cu 1 cât e pornit).
 
 **j13b. Serverul pe unire: restul serviciilor.** Depinde de: j13a.
 - `HandService` sare oamenii retrași; plasele închise nu se mai umplu.
@@ -1125,6 +1132,19 @@ Totalul, ~92–97 de imagini și 3 sunete până se joacă Era 4 (PLAN-HARTA §7
 - `ENGINE_ERAS = 4` și `live = true` pe cele 23 de platforme.
 - **Testele de adormire, rescrise:** `ChainMath.test.luau:3214`, `FlowMath.test.luau:76` (devine 34) și `:374-383` / `:501`,
   `HandRoutes.test.luau:715`, `TycoonConfig.test.luau:101` / `:124` / `:1245-1262`.
+- **[Pasul j13a] Harta comutatorului, măsurată** cu `python3 scripts/era4_flip.py on` pe o copie a arborelui (842 de teste,
+  2026-10-03). Testele care depindeau de comutator fără s-o spună (așezarea satului pe `PADS`, casele din `WorldDecor`, zonele și
+  clopotul din `WorldMath.test`, oamenii satului în lumea 2, puntea râului, grămezile v19) citesc acum lista lumii 1 sau
+  `eraIsLive(4)`. Cu comutatorul pornit pică 36, în trei feluri:
+  - **adormire, de rescris aici:** `ChainMath` („modelul jocului e cel din StationConfig”, „jocul rulează încă Erele 1–3”),
+    `FlowMath` („locurile și grămezile nu se repetă”, „un rând al barajului cerut cu modelul jocului pică”), `HandRoutes` („jocul
+    nu-i vede pe oamenii barajului”), `Meseriile barajului adormit`, `TycoonConfig` („Era 4 stă adormită”), `World2Layout:170`
+    (`live` fals), `WorldIdentity` (engine.txt);
+  - **lipsuri reale, pe pașii lor:** `GuideMath` crapă la `GuideMath.luau:424` („index nil with 'role'”) pe linia unirii, în 17
+    teste (k2, k5: `STEP_OF_JOB` și `JOIN_PLACES`); `HandConfig`: meseriile barajului n-au ținută (`ROLE_OUTFIT`, k10 / A) și
+    nici destule prenume pentru doi oameni pe fiecare meserie (k10); `ChainWords:128`: `Strings.NET_WORDS` n-are unirea (k4,
+    unirea n-are plase); `EraWords:58`: textul de după Works Bell (k6);
+  - nimic altceva. Fiecare pas k își reia lista: comutatorul pornit pe o copie, apoi doar adormirile de mai sus rămân roșii.
 - Verificare: `tests/witness/world1.txt` identic (zona `dam` din lumea 1 rămâne în `ZONES`, încuiată; masa Dam Plans nu e în
   martor), `tests/witness/engine.txt` rescris cu `WORLD_WITNESS=write` și citit rând cu rând; `sim --table --chain --robust` identic;
   CLAUDE.md și DECIZII actualizate; `verify-work`; push.

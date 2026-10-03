@@ -164,15 +164,17 @@ local function pick(
     end
 end
 
--- Lasa tot ce duce in gramada `place`, la capatul drumului.
+-- Lasa tot ce duce in gramada `place`, la capatul drumului. [D70, pasul j13a] Ce nu se poate lasa acolo (la unire, ce nu
+-- e piesa ei; la un vanzator, piesele unei uniri) ramane la om: `hand.carry` se rescrie abia dupa ce DropAt a raspuns.
 local function drop(player: Player, hand: Hand, place: string)
     if #hand.carry == 0 then
         return
     end
-    local give = hand.carry
-    hand.carry = {}
-    EconomyService.DropAt(player, place, give)
-    deps.Remotes.HandDelivered:FireClient(player, hand.id, #give, place)
+    local placed, rest = EconomyService.DropAt(player, place, hand.carry)
+    hand.carry = rest
+    if placed > 0 then
+        deps.Remotes.HandDelivered:FireClient(player, hand.id, placed, place)
+    end
 end
 
 -- Instantaneul pentru TycoonState.hands [F1 spec 2.1]. Clientul reface ciclul fiecarui om din

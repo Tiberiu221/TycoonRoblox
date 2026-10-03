@@ -26,6 +26,39 @@ local function era1Nets(): { string }
 end
 
 return function()
+    test.suite("HandRoutes - unde lasa fiecare om [D70, pasul j13a]", function()
+        test.case(
+            "capatul drumului fiecarui om e un loc pe care DropAt il stie (altfel marfa i-ar ramane in brate)",
+            function()
+                local FlowConfig = require("../src/Shared/Config/FlowConfig")
+                local seen = 0
+                for era, roles in StationConfig.ERA_ROLES_ALL do
+                    -- modelul in care traieste meseria: al jocului, sau cel cu barajul pentru Era 4 adormita
+                    local flow = if era <= StationConfig.ENGINE_ERAS
+                        then FlowConfig.GAME
+                        else FlowConfig.FULL
+                    for _, role in roles do
+                        -- in contextul lumii ei (cel implicit, dupa comutator; azi barajul doarme in GAME)
+                        local place = HandRoutes.endPlace(role, HandRoutes.forRole(role))
+                        if place ~= nil then
+                            local known = flow.byStore[place] ~= nil
+                                or flow.byProcessor[place] ~= nil
+                                or flow.sellers[place] ~= nil
+                            if not known then
+                                print(
+                                    `[HandRoutes] {role}: lasa la "{place}", pe care DropAt nu-l stie`
+                                )
+                            end
+                            check.is_true(known)
+                            seen += 1
+                        end
+                    end
+                end
+                check.is_true(seen >= 28)
+            end
+        )
+    end)
+
     test.suite("HandRoutes", function()
         test.case("un singur Collector trece pe la TOATE plasele de lemn", function()
             -- in D46 un alergator avea doar primele trei; debitul unei meserii nu tine de numarul plaselor.

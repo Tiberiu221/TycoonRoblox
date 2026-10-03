@@ -1164,7 +1164,9 @@ return function()
                     check.equal(next(data[pile].counts), nil)
                 end
             end
-            check.equal(fresh, 13)
+            -- cu comutatorul l3, gramezile barajului sunt si ale jocului (deci niciuna „noua”)
+            local TycoonConfig = require("../src/Shared/Config/TycoonConfig")
+            check.equal(fresh, if TycoonConfig.eraIsLive(4) then 0 else 13)
             check.equal(#ProfileMigrate.era4Piles(), 13)
             check.equal(data.SwitchyardPile.processedAt, 0)
             check.equal(data.RelayBarrelPile.processedAt, 0)

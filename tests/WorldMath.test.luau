@@ -74,7 +74,10 @@ return function()
                 local works =
                     { works_bell = "bought", mill_bell = "bought", landing_bell = "bought" }
                 -- azi: dupa Works Bell zona barajului se deschide (si scrie „coming soon”), ca pana acum
-                check.equal(WorldMath.zoneStatuses(1, works).dam, "open")
+                local today = function(era: number): boolean
+                    return era <= 3 -- fara comutator
+                end
+                check.equal(WorldMath.zoneStatuses(1, works, today).dam, "open")
                 -- cu barajul in joc ramane incuiata: barajul se ridica pe alta harta
                 check.equal(WorldMath.zoneStatuses(1, works, damLive).dam, "locked")
                 check.equal(WorldMath.zoneStatuses(1, works, damLive).wire_works, "open")
@@ -99,7 +102,11 @@ return function()
                 local bought = allBought(pads, "dam_bell")
                 local bell = TycoonConfig.byId.dam_bell
                 -- Era 4 adormita: nicio platforma a ei nu e de cumparat inca (padStatuses le sare)
-                check.equal(TycoonMath.padStatuses(bought, pads, nil, 5e12, 1).dam_bell, nil)
+                -- dupa comutator (l3), da
+                check.equal(
+                    TycoonMath.padStatuses(bought, pads, nil, 5e12, 1).dam_bell,
+                    if TycoonConfig.eraIsLive(4) then "available" else nil
+                )
                 -- [verificatorul j10] poarta pe care se sprijina BuyPad, ca dupa comutatorul l3: copii `live` ale platformelor
                 -- barajului. Cartonasul (padBlocker) si cumpararea (padStatuses) spun acelasi lucru la fiecare prag.
                 local livePads: { TycoonConfig.Pad } = {}
@@ -186,7 +193,11 @@ return function()
             check.equal(WorldMath.zoneSign(dam, "locked", 1, today), dam.soon)
             check.equal(WorldMath.zoneSign(dam, "open", 1, today), dam.soon)
             check.equal(WorldMath.fenceText(dam, 1, today), dam.soon)
-            check.equal(WorldMath.zoneSign(dam, "open", nil, nil), dam.soon)
+            -- fara lume si fara `eraIsLive`: satul si erele din joc de acum
+            check.equal(
+                WorldMath.zoneSign(dam, "open", nil, nil),
+                if TycoonConfig.eraIsLive(4) then Strings.zoneAway("The Dam") else dam.soon
+            )
             -- dupa l3, in sat: barajul nu se mai deschide cu niciun clopot si nu mai „vine”; spune unde se ridica
             for _, status in { "locked", "open" } do
                 local sign = WorldMath.zoneSign(dam, status, 1, damLive)

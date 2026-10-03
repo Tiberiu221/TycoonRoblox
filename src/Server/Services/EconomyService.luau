@@ -247,6 +247,22 @@ local function pileOf(data: any, field: string): { counts: PileMath.Counts, [str
     return pile
 end
 
+-- [D70] La o unire (Relay Station): gramada fiecarei piese, pe linia piesei (FlowConfig `inputPiles`). O unire n-are o
+-- singura gramada de intrare, deci nimic de aici nu cheama `pileOf(data, spec.inputPile)` pe ea.
+local function joinPiles(data: any, spec: FlowConfig.Line): FlowMath.JoinPiles
+    local out: FlowMath.JoinPiles = {}
+    for part, field in spec.inputPiles :: { [string]: string } do
+        out[part] = pileOf(data, field).counts
+    end
+    return out
+end
+
+-- [D70, pasul j13a] O linie sau un vanzator al altei harti e INCHIS: nu lucreaza, nu se scurge, nu se foloseste. Gramezile
+-- lui raman in profil (le goleste „Last cart” la ridicarea barajului). In sat, azi, toate liniile din joc sunt ale lui.
+local function openFor(data: any, era: number): boolean
+    return WorldMath.allowed(data.World, era)
+end
+
 local function capacityOf(player: Player): number
     return TycoonMath.sackCapacity(deps.Pads.StateFor(player))
 end
@@ -263,13 +279,20 @@ function EconomyService.SackSnapshot(player: Player): {
     cutValue: number,
     rawBy: { [string]: number },
     sellBy: { [string]: { count: number, value: number } },
+    partBy: { [string]: number },
 }
     local data = DataService.Get(player)
     local state = deps.Pads.StateFor(player)
     local rawBy: { [string]: number } = {}
     local sellBy: { [string]: { count: number, value: number } } = {}
+    -- [D70] piesele gata ale unei uniri (butoaie, cablu), pe unirea lor: nu se vand nicaieri singure si nici nu mai sunt
+    -- brute (altfel cardul magaziei ar fi oferit „Drop”, iar ghidajul le-ar fi trimis la atelierul lor)
+    local partBy: { [string]: number } = {}
     for _, line in StationConfig.LINE_ORDER do
         rawBy[line] = 0
+        if FlowConfig.LINES[line].joins ~= nil then
+            partBy[line] = 0
+        end
     end
     for _, seller in StationConfig.SELLER_ORDER do
         sellBy[seller] = { count = 0, value = 0 }
@@ -287,6 +310,7 @@ function EconomyService.SackSnapshot(player: Player): {
             cutValue = 0,
             rawBy = rawBy,
             sellBy = sellBy,
+            partBy = partBy,
         }
     end
     -- CE duce jucatorul, nu doar cat: gramezile se deseneaza pe feluri, deci si traista.
@@ -303,8 +327,13 @@ function EconomyService.SackSnapshot(player: Player): {
                 finds += 1
             end
         else
-            local line = FlowMath.lineOfGood(item.g)
-            rawBy[line] = (rawBy[line] or 0) + 1
+            local part = FlowMath.partOf(item)
+            if part ~= nil then
+                partBy[part] = (partBy[part] or 0) + 1
+            else
+                local line = FlowMath.lineOfGood(item.g)
+                rawBy[line] = (rawBy[line] or 0) + 1
+            end
         end
     end
     for seller, items in bySeller do
@@ -326,6 +355,7 @@ function EconomyService.SackSnapshot(player: Player): {
         cutValue = sellBy.dock.value,
         rawBy = rawBy,
         sellBy = sellBy,
+        partBy = partBy,
     }
 end
 
@@ -378,13 +408,25 @@ function EconomyService.UseProcessor(
     if spec.processorPad ~= nil and data.Pads[spec.processorPad] ~= true then
         return false, spec.noProcessor, 0, 0
     end
-    local ok, why, dropped, taken = FlowMath.useProcessor(
-        data.Sack.items,
-        pileOf(data, spec.inputPile).counts,
-        pileOf(data, spec.outputPile).counts,
-        capacityOf(player),
-        spec
-    )
+    local ok, why, dropped, taken
+    if spec.joins ~= nil then
+        -- [D70] la unire: lasi piesele, fiecare in gramada ei, apoi iei ce e unit
+        ok, why, dropped, taken = FlowMath.useJoin(
+            data.Sack.items,
+            joinPiles(data, spec),
+            pileOf(data, spec.outputPile).counts,
+            capacityOf(player),
+            spec
+        )
+    else
+        ok, why, dropped, taken = FlowMath.useProcessor(
+            data.Sack.items,
+            pileOf(data, spec.inputPile :: string).counts,
+            pileOf(data, spec.outputPile).counts,
+            capacityOf(player),
+            spec
+        )
+    end
     if ok then
         push(player)
     end
@@ -446,25 +488,39 @@ end
 
 -- Un om lasa ce duce: cine goleste plasele la magazia liniei lui, cine cara de acolo la atelier, cine cara marfa gata
 -- la vanzator. `place` = un loc din FlowConfig (magazie, atelier) sau un vanzator.
-function EconomyService.DropAt(player: Player, place: string, items: { Catch }): number
+-- [D70, pasul j13a] Intoarce (cate a lasat, restul). Restul ramane la om (HandService): la unire, ce nu e piesa ei; la un
+-- vanzator, piesele unei uniri (se vand doar unite); la un loc necunoscut, tot. Nimic nu se pierde.
+function EconomyService.DropAt(player: Player, place: string, items: { Catch }): (number, { Catch })
     local data = DataService.Get(player)
     if data == nil or #items == 0 then
-        return 0
+        return 0, items
     end
     local store, processor, seller =
         FlowConfig.BY_STORE[place], FlowConfig.BY_PROCESSOR[place], FlowConfig.SELLERS[place]
+    local placed: { Catch } = items
+    local rest: { Catch } = {}
     if store ~= nil then
-        PileMath.addItems(pileOf(data, store.storePile).counts, items)
+        PileMath.addItems(pileOf(data, store.storePile :: string).counts, items)
+    elseif processor ~= nil and processor.joins ~= nil then
+        placed, rest = FlowMath.dropJoin(joinPiles(data, processor), items, processor)
     elseif processor ~= nil then
-        PileMath.addItems(pileOf(data, processor.inputPile).counts, items)
+        PileMath.addItems(pileOf(data, processor.inputPile :: string).counts, items)
     elseif seller ~= nil then
-        PileMath.addItems(pileOf(data, seller.pile).counts, items)
-        countSale(data, items)
+        placed = {}
+        for _, item in items do
+            table.insert(if FlowMath.partOf(item) == nil then placed else rest, item)
+        end
+        PileMath.addItems(pileOf(data, seller.pile).counts, placed)
+        if #placed > 0 then
+            countSale(data, placed)
+        end
     else
-        return 0
+        return 0, items
     end
-    push(player)
-    return #items
+    if #placed > 0 then
+        push(player)
+    end
+    return #placed, rest
 end
 
 -- Un om ia cel mult `n` bucati: din magazia liniei lui (brut) sau de la iesirea atelierului (gata: "planks", "iron",
@@ -522,6 +578,10 @@ export type ProcessorSnapshot = {
     rate: number,
     present: boolean,
     staffed: boolean,
+    -- [D70] doar la unire: cate piese asteapta din fiecare (linia piesei -> cate) si piesa care lipseste („Waiting for
+    -- cable”), nil cand le are pe toate. `count` / `contents` sunt atunci toate piesele, laolalta.
+    inputs: { [string]: number }?,
+    waiting: string?,
 }
 export type SellerSnapshot = {
     count: number,
@@ -533,7 +593,12 @@ export type SellerSnapshot = {
 -- Cat lucreaza ACUM atelierul unei linii: cu omul lui tot timpul, fara el doar cat stai langa el; nimic cu intrarea
 -- goala sau fara platforma care il porneste.
 local function processorSpeed(player: Player, data: any, spec: FlowConfig.Line, at: number): number
-    if next(pileOf(data, spec.inputPile).counts) == nil then
+    if spec.joins ~= nil then
+        -- [D70] unirea merge doar cu toate piesele (FlowMath.joinWaiting)
+        if FlowMath.joinWaiting(joinPiles(data, spec), spec) ~= nil then
+            return 0
+        end
+    elseif next(pileOf(data, spec.inputPile :: string).counts) == nil then
         return 0
     end
     if spec.processorPad ~= nil and data.Pads[spec.processorPad] ~= true then
@@ -551,10 +616,11 @@ end
 function EconomyService.StoreSnapshotOf(player: Player, line: string): StoreSnapshot
     local data = DataService.Get(player)
     local spec = FlowConfig.LINES[line]
-    if data == nil or spec == nil then
+    -- [D70] o unire n-are magazie
+    if data == nil or spec == nil or spec.storePile == nil then
         return { count = 0, contents = {} }
     end
-    local counts = pileOf(data, spec.storePile).counts
+    local counts = pileOf(data, spec.storePile :: string).counts
     return { count = PileMath.total(counts), contents = PileMath.contents(counts) }
 end
 
@@ -573,7 +639,27 @@ function EconomyService.ProcessorSnapshotOf(player: Player, line: string): Proce
         }
     end
     local at = now()
-    local input, output = pileOf(data, spec.inputPile).counts, pileOf(data, spec.outputPile).counts
+    local output = pileOf(data, spec.outputPile).counts
+    local input: PileMath.Counts
+    local inputs: { [string]: number }? = nil
+    local waiting: string? = nil
+    if spec.joins ~= nil then
+        -- [D70] la unire: toate piesele laolalta, plus cate din fiecare si ce lipseste
+        local piles = joinPiles(data, spec)
+        input = {}
+        local byPart: { [string]: number } = {}
+        for part, counts in piles do
+            byPart[part] = PileMath.total(counts)
+            for key, n in counts do
+                input[key] = (input[key] or 0) + n
+            end
+        end
+        inputs = byPart
+        waiting = FlowMath.joinWaiting(piles, spec)
+    else
+        input = pileOf(data, spec.inputPile :: string).counts
+    end
+    local crew = crewsOf(data)[spec.role]
     return {
         count = PileMath.total(input),
         contents = PileMath.contents(input),
@@ -581,7 +667,9 @@ function EconomyService.ProcessorSnapshotOf(player: Player, line: string): Proce
         outContents = PileMath.contents(output),
         rate = processorSpeed(player, data, spec, at),
         present = isPresent(player, spec.processor, at),
-        staffed = crewsOf(data)[spec.role].count > 0,
+        staffed = crew ~= nil and crew.count > 0,
+        inputs = inputs,
+        waiting = waiting,
     }
 end
 
@@ -632,31 +720,43 @@ end
 -- neschimbat, si totul ajunge la iesirea atelierului -- de acolo il duce cineva la vanzator [D49, D55, D65].
 local function process(player: Player, spec: FlowConfig.Line, dt: number, at: number)
     local data = DataService.Get(player)
-    if data == nil then
+    if data == nil or not openFor(data, spec.era) then
         return
     end
     local carry = slot(processCarry, player)
-    local input = pileOf(data, spec.inputPile)
-    local left, made = FlowMath.process(
-        input.counts,
-        pileOf(data, spec.outputPile).counts,
-        carry[spec.line] or 0,
-        processorSpeed(player, data, spec, at),
-        dt,
-        spec
-    )
+    local output = pileOf(data, spec.outputPile).counts
+    local speed = processorSpeed(player, data, spec, at)
+    -- gramezile de intrare: una la un atelier, cate una pe piesa la unire [D70]
+    local inputs: { { counts: PileMath.Counts, [string]: any } } = {}
+    local left, made
+    local emptied: boolean
+    if spec.joins ~= nil then
+        local piles = joinPiles(data, spec)
+        left, made = FlowMath.assemble(piles, output, carry[spec.line] or 0, speed, dt, spec)
+        for _, field in spec.inputPiles :: { [string]: string } do
+            table.insert(inputs, pileOf(data, field))
+        end
+        emptied = FlowMath.joinWaiting(piles, spec) ~= nil
+    else
+        local input = pileOf(data, spec.inputPile :: string)
+        left, made = FlowMath.process(input.counts, output, carry[spec.line] or 0, speed, dt, spec)
+        table.insert(inputs, input)
+        emptied = next(input.counts) == nil
+    end
     carry[spec.line] = left
     if made <= 0 then
         return
     end
-    input[spec.stamp] = at
+    for _, input in inputs do
+        input[spec.stamp] = at
+    end
     data.Stats[spec.processedStat] = (data.Stats[spec.processedStat] or 0) + made
     if spec.line == "wood" and not data.Firsts.FirstCut then
         data.Firsts.FirstCut = true
         Analytics.Funnel(player, "FirstCut")
     end
     local pushedAt = slot(lastProcessPushAt, player)
-    if next(input.counts) == nil or at - (pushedAt[spec.line] or 0) >= SAW_PUSH_GAP then
+    if emptied or at - (pushedAt[spec.line] or 0) >= SAW_PUSH_GAP then
         pushedAt[spec.line] = at
         push(player)
     end
@@ -666,7 +766,7 @@ end
 -- tick-ul urmator, deci nicio bucata nu se pierde la rotunjire.
 local function drain(player: Player, spec: FlowConfig.Seller, dt: number, at: number)
     local data = DataService.Get(player)
-    if data == nil then
+    if data == nil or not openFor(data, spec.era) then
         return
     end
     local seller = spec.seller
@@ -685,7 +785,8 @@ local function drain(player: Player, spec: FlowConfig.Seller, dt: number, at: nu
     if whole <= 0 or next(counts) == nil then
         return
     end
-    local batch = PileMath.take(counts, whole)
+    -- [D70] ordinea scurgerii: la orasul, lingourile inaintea curentului (ca ChainMath); la ceilalti, a cheilor
+    local batch = PileMath.take(counts, whole, nil, FlowMath.drainOrder(seller))
     local n = #batch
     local total = EconomyService.ValueOf(player, batch)
     EconomyService.SettleSale(player, total, n)
@@ -751,9 +852,16 @@ function EconomyService.DevFillPile(player: Player, place: string, n: number): n
         FlowConfig.BY_OUTPUT[place],
         FlowConfig.SELLERS[place]
     if store ~= nil then
-        target = { pileOf(data, store.storePile).counts, store.raw[1] }
+        target = { pileOf(data, store.storePile :: string).counts, store.raw[1] }
+    elseif processor ~= nil and processor.joins ~= nil then
+        -- [D70] la unire: cate `count` din fiecare piesa, gata facute, fiecare in gramada ei
+        for _, join in processor.joins :: { FlowConfig.Join } do
+            PileMath.add(pileOf(data, join.pile).counts, { g = join.good, p = true }, count)
+        end
+        push(player)
+        return count
     elseif processor ~= nil then
-        target = { pileOf(data, processor.inputPile).counts, processor.raw[1] }
+        target = { pileOf(data, processor.inputPile :: string).counts, processor.raw[1] }
     elseif output ~= nil then
         target = { pileOf(data, output.outputPile).counts, output.output }
     elseif seller ~= nil then

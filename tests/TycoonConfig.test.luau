@@ -392,7 +392,7 @@ return function()
             -- coltul lui intra peste prima plasa cu 6 pixeli, cat sa nu se vada, dar sa conteze.
             local half = TycoonConfig.PAD_SIZE / 2
             local live: { { id: string, x: number, y: number } } = {}
-            for _, p in TycoonConfig.PADS do
+            for _, p in TycoonConfig.padsOfWorld(1) do
                 if p.live and p.x ~= nil and p.y ~= nil then
                     table.insert(live, { id = p.id, x = p.x :: number, y = p.y :: number })
                 end
@@ -445,7 +445,7 @@ return function()
                 end
             end
             local half = TycoonConfig.PAD_SIZE / 2
-            for _, p in TycoonConfig.PADS do
+            for _, p in TycoonConfig.padsOfWorld(1) do
                 if p.live and p.x ~= nil and p.y ~= nil then
                     local px, py = p.x :: number, p.y :: number
                     local padBox =
@@ -544,7 +544,7 @@ return function()
                     end
                 end
                 local half = TycoonConfig.PAD_SIZE / 2
-                for _, p in TycoonConfig.PADS do
+                for _, p in TycoonConfig.padsOfWorld(1) do
                     local isNet = false
                     for _, e in p.effects do
                         isNet = isNet or e.kind == "net"
@@ -606,7 +606,7 @@ return function()
                     check.is_true(nearest <= 60)
                 end
                 -- plasele stau pe punte
-                for _, p in TycoonConfig.PADS do
+                for _, p in TycoonConfig.padsOfWorld(1) do
                     for _, e in p.effects do
                         if e.kind == "net" and p.live then
                             -- puntea cartierului ei
@@ -659,7 +659,7 @@ return function()
 
                 local half = TycoonConfig.PAD_SIZE / 2
                 local clashes = 0
-                for _, p in TycoonConfig.PADS do
+                for _, p in TycoonConfig.padsOfWorld(1) do
                     if p.live and p.x ~= nil and p.y ~= nil then
                         local px, py = p.x :: number, p.y :: number
                         if
@@ -810,7 +810,7 @@ return function()
 
                 -- numele de sub casa unei meserii: PadController.worldName, varful la baza cadrului + 10 (pad.y + 58)
                 local names: { [string]: Box } = {}
-                for _, p in TycoonConfig.PADS do
+                for _, p in TycoonConfig.padsOfWorld(1) do
                     local role = TycoonConfig.CREW_OF_PAD[p.id]
                     local crew = if role ~= nil then TycoonConfig.CREWS[role] else nil
                     if p.live and crew ~= nil and p.x ~= nil and p.y ~= nil then
@@ -839,7 +839,7 @@ return function()
                 -- mica are 28 px de desen, cea mare 34, la x3, cu baza la pad.y + 56: banda in care pot aparea
                 -- patratelele, pentru oricare din ele, nu are voie sa fie acoperita de un decor cumparat.
                 local overPips = {}
-                for _, p in TycoonConfig.PADS do
+                for _, p in TycoonConfig.padsOfWorld(1) do
                     local role = TycoonConfig.CREW_OF_PAD[p.id]
                     if p.live and role ~= nil and p.x ~= nil and p.y ~= nil then
                         local base = TycoonConfig.buildingBase(p)
@@ -1027,7 +1027,7 @@ return function()
                 for _, lamp in lamps do
                     perEra[lamp.era] = (perEra[lamp.era] or 0) + 1
                     check.is_true(lamp.x > 0 and lamp.x < RiverConfig.WORLD_WIDTH)
-                    for _, p in TycoonConfig.PADS do
+                    for _, p in TycoonConfig.padsOfWorld(1) do
                         if p.live and TycoonConfig.CREW_OF_PAD[p.id] ~= nil and p.y == 1564 then
                             check.is_true(
                                 math.abs(lamp.x - (p.x :: number)) >= LAMP_HALF + HOUSE_HALF
@@ -1093,7 +1093,7 @@ return function()
                 local b = (TycoonConfig :: any)[k]
                 bottom(k, b.x, b.y, b.w, b.h)
             end
-            for _, p in TycoonConfig.PADS do
+            for _, p in TycoonConfig.padsOfWorld(1) do
                 if p.live and p.x ~= nil and p.y ~= nil then
                     local net = false
                     for _, e in p.effects do

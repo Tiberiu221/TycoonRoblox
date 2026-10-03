@@ -213,9 +213,10 @@ return function()
             end
             local clear = TycoonConfig.homeClearRects()
             -- casele celor noua meserii ale fiecarui cartier de dupa sat, aflat in joc (satul vechi ramane cum a fost vazut)
+            -- [D70] cartierele satului (lumea 1), nu toate erele din joc: barajul se ridica pe alta harta
             local districts = 0
-            for era = 2, 8 do
-                if TycoonConfig.eraIsLive(era) then
+            for _, d in TycoonConfig.districtsOf(1) do
+                if d.era >= 2 and TycoonConfig.eraIsLive(d.era) then
                     districts += 1
                 end
             end
