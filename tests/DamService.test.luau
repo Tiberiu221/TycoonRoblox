@@ -147,7 +147,15 @@ return function()
                 local net = fs.readFile("src/Server/Net/NetServer.luau")
                 check.is_true(has(net, 'Net.Get("DamReloadFailed"):FireClient(player, "limited")'))
                 -- [verificatorul k6-k8] un drum deja in curs raspunde „busy” pe loc (FerryService.Depart il intoarce)
-                check.is_true(has(ferry, 'return "busy"'))
+                check.is_true(has(ferry, 'return "pending"'))
+                -- [verificatorul A0/k6-k8] Flooded ramane „busy” (fara drum in urma), iar ecranul asteapta doar la „pending”
+                check.is_true(has(ferry, 'Flooded then "busy"'))
+                check.is_true(
+                    has(
+                        fs.readFile("src/Client/Controllers/DamScreen.luau"),
+                        'reason == "pending" and phase == "opening"'
+                    )
+                )
                 check.is_true(has(film, "return reload(player)"))
                 check.is_true(has(boot, "return FerryService.Depart(player, {"))
                 local client = fs.readFile("src/Client/Controllers/DamController.luau")

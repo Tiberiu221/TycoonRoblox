@@ -257,10 +257,10 @@ function DamScreen.OnPreview(receipt: DamController.Receipt?, why: string?)
     elseif why ~= nil then
         local retry = DamWords.canRetry(why)
         setPhase(if retry then "counting" else "refused")
-        -- asteptarile in galben, refuzurile adevarate in rosu (ca toast-urile lui DamController); cat se asteapta chitanta
-        -- de dupa „changed”, ramane avertismentul monedelor
+        -- asteptarile in galben, refuzurile adevarate in rosu (ca toast-urile lui DamController). [A0/k6-k8] Avertismentul
+        -- monedelor vine doar cu chitanta noua: pana atunci coloanele sunt goale si nu e nimic de verificat
         setStatus(
-            if retry and changedPending then Strings.DAM_COINS_CHANGED else Strings.damRejected(why),
+            Strings.damRejected(why),
             if retry then Theme.COLOR.warnInk else Theme.COLOR.badInk
         )
         if retry then
@@ -282,8 +282,12 @@ function DamScreen.OnRejected(reason: string)
         return
     end
     showWindow()
-    -- „changed”: DamController cere singur o chitanta noua; pana vine, butonul asteapta, iar chitanta noua vine cu avertismentul
+    -- „changed”: DamController cere singur o chitanta noua; pana vine, butonul asteapta, iar chitanta noua vine cu avertismentul.
+    -- [verificatorul A0/k6-k8] Cifrele refuzate pleaca de pe ecran pana atunci
     changedPending = reason == "changed"
+    if changedPending then
+        showColumns(nil)
+    end
     local retry = DamWords.canRetry(reason)
     setPhase(if retry then "counting" else "refused")
     setStatus(
@@ -309,9 +313,10 @@ end
 
 -- [D70, pasul k8] Reincarcarea n-a plecat: in Studio spune ce sa faci; altfel „Try again” (aceeasi cerere).
 function DamScreen.OnReloadFailed(reason: string)
-    if reason == "busy" and phase == "opening" then
-        -- [verificatorul k6-k8] un drum e deja in curs (sau limita): raspunsul lui vine tot aici; asteptam din nou
-        setStatus(Strings.damReloadFailed("busy"), Theme.COLOR.inkSoft)
+    if reason == "pending" and phase == "opening" then
+        -- [verificatorul k6-k8] un drum e deja in curs: raspunsul lui vine tot aici; asteptam din nou. [A0/k6-k8] Doar
+        -- „pending”: un „busy” (Flooded de la Roblox) nu lasa niciun drum in urma si merge pe „Try again”
+        setStatus(Strings.damReloadFailed("pending"), Theme.COLOR.inkSoft)
         armOpenWait()
         return
     end

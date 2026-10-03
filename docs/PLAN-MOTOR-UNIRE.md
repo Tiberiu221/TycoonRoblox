@@ -1417,6 +1417,15 @@ explicit.**
 
 Siluetele, schelele și zidul de aici sunt propunerea loturilor A1/A2. Nimic nu se urcă înainte de aprobare.
 
+**[Verificatorul A0 și k6–k8, a treia rundă, făcut]**
+- **Planșa filmului e fidelă codului.** Benzile, amurgul, textul, Skip și camera vin din `DamMath.frameAt`, exportat cu Lune.
+  Satul are plasele, pontonul, barca bâlciului, stâlpii cu sârmă, felinarele și țărușii. Ce e propunere A2 scrie pe cadru:
+  siluetele, schelele, zidul pe jumătate, camera care urcă la râu și plasele de pe linia zidului scoase din apă.
+- **„busy” față de „pending”:** un drum deja în curs întoarce „pending”, iar ecranul așteaptă doar atunci. Flooded-ul de la
+  Roblox rămâne „busy” și duce la „Try again” pe loc, ca înainte.
+- **După „changed”,** cifrele refuzate pleacă de pe ecran până vine chitanța nouă.
+- **Eticheta de margine a ghidajului** iese și de sub panourile HUD (bara de meniu din dreapta).
+
 Totalul, ~92–97 de imagini și 3 sunete până se joacă Era 4 (PLAN-HARTA §7).
 
 ### l: proba și comutatorul

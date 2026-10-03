@@ -294,7 +294,7 @@ function Strings.damReloadFailed(reason: string): string
     elseif reason == "studio" or reason == "studio_fresh" then
         -- [verificatorul k7-k8] Play-ul din Studio porneste implicit de la zero: barajul se pierde la Stop
         return "In Studio this save is erased at Stop: turn on keep save, then build the Dam again"
-    elseif reason == "busy" then
+    elseif reason == "pending" then
         return "The Dam is still opening. One moment" -- [verificatorul k6-k8] un drum e deja in curs
     end
     return "The Dam didn't open yet. Try again"

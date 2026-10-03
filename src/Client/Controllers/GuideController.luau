@@ -567,6 +567,19 @@ local function updateGuideVisuals()
         -- [verificatorul k6-k8] eticheta de sub sageata ramane in panza: la o tinta din dreapta („Build the Dam when you're
         -- ready”, ~330 px) grupul se trage spre interior cu jumatate din ea; sageata se roteste tot spre tinta
         local half = (Theme.textWidth(goal.text, Theme.TEXT.body, "strong") + 24) / 2
+        -- [verificatorul A0/k6-k8] ...si nu sub panourile HUD (bara de meniu din dreapta are ZIndex 20, peste grup): grupul
+        -- (180 x 62, eticheta pana la ey + 27) iese din dreptunghiul lor spre interior
+        local reach = math.max(half, 90)
+        for _, b in hudBlockers(w, h, hudScale()) do
+            if
+                ey + 27 > b.y
+                and ey - 31 < b.y + b.h
+                and ex + reach > b.x
+                and ex - reach < b.x + b.w
+            then
+                ex = if b.x + b.w / 2 > w / 2 then b.x - reach - 8 else b.x + b.w + reach + 8
+            end
+        end
         ex = math.clamp(ex, math.min(half + 8, w / 2), math.max(w - half - 8, w / 2))
         edgeGroup.Position = UDim2.fromOffset(ex, ey)
         if edgeIcon ~= nil then

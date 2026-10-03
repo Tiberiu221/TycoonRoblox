@@ -5,9 +5,12 @@ Scrie DOAR in scratchpad-ul sesiunii; nimic nu intra in assets/sprites si nimic 
   a0_dam_wall.png -- zidul barajului la locul lui (lumea 2, x 640-880), cu fata din aval si spuma de la picior, ca sa nu
                      para pod. Doua variante: A, piatra (zidit din satul vechi, cum spune filmul); B, beton cu trei stavile.
                      Pamantul e cel copt la k12, cladirile sunt desenele de imprumut din joc.
-  a0_dam_film.png -- sase cadre-cheie ale filmului (DamMath.FILM): clopotele, privirea peste sat (de la Wire Works la
-                     Landing), oamenii la amurg, barajul care creste peste rau, cartonasul. Satul e cel adevarat (pamantul copt
-                     si cladirile erelor 1-3); siluetele, schelele si zidul pe jumatate sunt propunerea lotului A2.
+  a0_dam_film.png -- sase cadre-cheie ale filmului (DamMath.FILM): clopotul, privirea peste sat (de la Wire Works la
+                     Landing), oamenii la amurg, barajul care creste peste rau, cartonasul. Benzile, amurgul, textul, Skip si
+                     camera vin din DamMath.frameAt (exportat cu Lune), deci cadrul arata ce face codul de azi. Satul e cel de la
+                     sfarsitul Erei 3: pamantul copt, cladirile, casele, plasele, pontonul, barca balciului, stalpii cu sarma,
+                     felinarele aprinse si tarusii topografilor. Ce e PROPUNERE A2 (siluetele, schelele, zidul pe jumatate,
+                     camera care urca la rau, plasele scoase din apa) scrie pe cadru.
 
 Rulare: python3 scripts/art/a0_dam.py [wall|film]      (fara argument, amandoua)
 """
@@ -264,13 +267,89 @@ def village_image():
         name = {"tree_round": "prop_tree_round", "tree_pine": "prop_tree_pine", "bush": "prop_bush"}.get(item["kind"])
         if name:
             things.append((item["y"], name, item["x"], item["y"], 3))
+    # [verificatorul A0] ce mai vede jucatorul la sfarsitul Erei 3 (din TycoonConfig, prin film_props): plasele si stalpii
+    # lor, pontonul, barca balciului, stalpii cu sarma, felinarele aprinse, tarusii topografilor
+    props = film_props()
+    for net in props["nets"]:
+        if net.get("hidden"):
+            continue
+        sprite_name = "prop_turbine" if net["turbine"] else "prop_net_water"
+        things.append((net["laneY"], sprite_name, net["x"], net["laneY"] + 9 * 3, 3))
+        things.append((net["y"], "prop_netpost", net["x"], net["y"] + 12, 3))
+    pier = props["pier"]
+    things.append((pier["y"], "prop_pier_long", pier["x"], pier["y"] + 104 * 3 / 2, 3))
+    ferry = props["ferry"]
+    things.append((ferry["y"], "prop_fair_ferry", ferry["x"], ferry["y"], 2))
+    for pole in props["poles"]:
+        things.append((pole["y"], "prop_wire_pole_end" if pole["kind"] == "end" else "prop_wire_pole", pole["x"], pole["y"], 3))
+    for lamp in props["lamps"]:
+        things.append((lamp["y"], "prop_street_lamp_lit", lamp["x"], lamp["y"], 3))
+    for stake in props["stakes"]:
+        # foaia are trei cadre de 12 px (ModernConfig.SURVEY_STAKE), fiecare tarus cu cadrul lui
+        things.append((stake["y"], f"prop_survey_stakes#{stake['frame']}", stake["x"], stake["y"], 2))
     for _d, name, x, base, scale in sorted(things, key=lambda t: t[0]):
+        name, _, cell = name.partition("#")
         s = sprite(name)
+        if cell:
+            s = s.crop((int(cell) * 12, 0, int(cell) * 12 + 12, s.height))
         k = scale / D
         if k != 1:
             s = s.resize((max(1, round(s.width * k)), max(1, round(s.height * k))), Image.NEAREST)
         img.alpha_composite(s, (round(x / D - s.width / 2), round(base / D - s.height)))
     return G, img
+
+
+FILM_EXPORT = """
+local serde = require("@lune/serde")
+local T = require("../../src/Shared/Config/TycoonConfig")
+local DamMath = require("../../src/Shared/Modules/DamMath")
+local out = { nets = {}, lamps = T.streetLamps(1), poles = T.wirePoles(1), pier = T.PIER, ferry = T.FERRY,
+    stakes = T.SURVEY_STAKES, lanes = T.LANE_Y, frames = {} }
+for _, p in T.padsOfWorld(1) do
+    if p.live and p.x ~= nil then
+        for _, e in p.effects do
+            if e.kind == "net" and e.lane ~= nil then
+                table.insert(out.nets, { id = p.id, x = p.x, y = p.y, laneY = T.LANE_Y[e.lane] or 0,
+                    turbine = T.isTurbine(p) })
+            end
+        end
+    end
+end
+local districts = T.districtsOf(1)
+local first, last = districts[1].deck, districts[#districts].deck
+local eastX, westX = (last.x0 + last.x1) / 2, (first.x0 + first.x1) / 2
+for _, t in { 1, 3, 6, 9, 12, 15 } do
+    local f = DamMath.frameAt(t, false)
+    table.insert(out.frames, { t = t, phase = f.phase, text = f.text, sub = f.sub, progress = f.progress, bars = f.bars,
+        skip = f.skip, camX = eastX + (westX - eastX) * f.pan, camY = T.PLOT_ORIGIN.y + 1100 })
+end
+print(serde.encode("json", out))
+"""
+
+_PROPS = None
+
+
+def film_props():
+    """Locurile din joc (TycoonConfig) si cadrele filmului (DamMath.frameAt + DamFilm.panPoint), exportate cu Lune."""
+    global _PROPS
+    if _PROPS is None:
+        import json
+        import subprocess
+
+        tmp = os.path.join(ROOT, "scripts", "_tmp_a0")
+        os.makedirs(tmp, exist_ok=True)
+        path = os.path.join(tmp, "film.luau")
+        with open(path, "w") as f:
+            f.write(FILM_EXPORT)
+        try:
+            res = subprocess.run(["lune", "run", path], cwd=ROOT, capture_output=True, text=True)
+            if res.returncode != 0:
+                sys.exit("exportul filmului a picat:\n" + res.stderr)
+            _PROPS = json.loads(res.stdout)
+        finally:
+            os.remove(path)
+            os.rmdir(tmp)
+    return _PROPS
 
 
 def person(rng, row=2, frame=0):
@@ -395,75 +474,91 @@ def skip(img, bar):
 
 def film_plate():
     G, village = village_image()
+    props = film_props()
     rng = random.Random(4)
+    F = {f["t"]: f for f in props["frames"]}
     frames = []
-    landing = (G["districts"][0]["deck"]["x0"] + G["districts"][0]["deck"]["x1"]) / 2
-    works = (G["districts"][-1]["deck"]["x0"] + G["districts"][-1]["deck"]["x1"]) / 2
-    mill = (G["districts"][1]["deck"]["x0"] + G["districts"][1]["deck"]["x1"]) / 2
 
-    # 1. clopotele (0:01): Wire Works dupa-amiaza, benzile intra, clopotul suna (doar sunetul; aici, semnul lui)
-    f, _ = frame_view(village, works + 400, 1060)
-    f = warm(f, 0.6)
-    bar = letterbox(f, 0.5)
-    frames.append(("0:01  BELLS", "the three bells ring; the bars slide in", f))
-    # 2. privirea (0:03): camera pleaca de la Wire Works
-    f, _ = frame_view(village, works, 1100)
-    f = warm(f, 0.8)
-    bar = letterbox(f, 1)
-    caption(f, "Look how far you've come.", bar)
-    frames.append(("0:03  LOOK", "the camera starts over the Wire Works", f))
-    # 3. privirea (0:06): trece peste Moara spre Landing
-    f, _ = frame_view(village, (mill + landing) / 2 + 200, 1100)
-    f = warm(f, 1)
-    bar = letterbox(f, 1)
-    caption(f, "Look how far you've come.", bar)
-    skip(f, bar)
-    frames.append(("0:06  LOOK", "...over the Mill to the Landing", f))
-    # 4. oamenii (0:09): amurg la Landing; siluetele coboara spre rau, cu scanduri si unelte
-    f, (ox, oy) = frame_view(village, landing - 120, 1180)
-    f = tint(warm(f, 1), (70, 34, 52), 0.45)
-    street_y = 1450 / D - oy
+    def coded(t, camera=None, dusk_extra=0.0):
+        """Un cadru cum il deseneaza DamFilm.render azi: benzile, amurgul (0,45 x cat s-a lasat), camera din panPoint."""
+        f = F[t]
+        cx, cy = camera if camera is not None else (f["camX"], f["camY"])
+        img, origin = frame_view(village, cx, cy)
+        dusk = f["progress"] if f["phase"] == "people" else (1 if f["phase"] in ("build", "card") else 0)
+        if dusk + dusk_extra > 0:
+            img = tint(img, (70, 34, 52), 0.45 * min(1, dusk + dusk_extra))
+        return f, img, origin
+
+    # 1. clopotul (0:01): benzile sunt deja intregi (FILM_BARS_IN = 0,5 s); un singur clopot (SoundController)
+    f, img, _ = coded(1)
+    letterbox(img, f["bars"])
+    frames.append(("0:01  BELL", "the bars are in; one bell rings (sound)", img))
+    # 2-3. privirea: camera aluneca pe strada, de la Wire Works la Landing; Skip de la secunda 3
+    for t, desc in ((3, "the camera starts over the Wire Works; Skip appears"), (6, "...over the Mill toward the Landing")):
+        f, img, _ = coded(t)
+        bar = round(img.height * 0.12 * f["bars"])
+        letterbox(img, f["bars"])
+        caption(img, f["text"], bar)
+        if f["skip"]:
+            skip(img, bar)
+        frames.append((f"0:0{t}  LOOK", desc, img))
+    # 4. oamenii (0:09): amurgul pe jumatate (cat il lasa codul azi); siluetele sunt propunerea A2
+    f, img, (ox, oy) = coded(9)
+    # pe piata si pe alei, spre punte (strada de la y 1450 cade sub banda de jos a cadrului)
+    walk_y = 1300 / D - oy
     for i in range(14):
         fig = silhouette(person(rng, row=7 if i % 3 == 0 else 2, frame=i % 4))
         x = 30 + i * 21 + rng.randint(-4, 4)
-        y = street_y - 24 + rng.randint(-10, 10) - (i % 2) * 16
-        f.alpha_composite(fig, (x, round(y)))
-    bar = letterbox(f, 1)
-    caption(f, "Everyone lends a hand.", bar)
-    skip(f, bar)
-    frames.append(("0:09  PEOPLE", "dusk; your people walk to the river (silhouettes: A2)", f))
-    # 5. barajul (0:12): camera urca la rau; schele peste apa, zidul creste din ambele maluri (propunere A2)
-    f, (ox, oy) = frame_view(village, 760, 690)
-    f = tint(warm(f, 1), (70, 34, 52), 0.40)
-    layer = Image.new("RGBA", village.size, (0, 0, 0, 0))
-    gap = scaffold(G, layer, 640, 880, 0.55)
-    f.alpha_composite(layer.crop((ox, oy, ox + f.width, oy + f.height)))
-    # oamenii pe schele (cu ciocanele: randul „work”) si pe mal, carand piatra spre zid
+        y = walk_y - 24 + rng.randint(-10, 10) - (i % 2) * 16 - i * 3
+        img.alpha_composite(fig, (x, round(y)))
+    bar = round(img.height * 0.12)
+    letterbox(img, 1)
+    caption(img, f["text"], bar)
+    skip(img, bar)
+    frames.append(("0:09  PEOPLE", "A2 PROPOSAL: silhouettes walk to the river (dusk as the code sets it)", img))
+    # 5. barajul (0:12): PROPUNERE A2 -- camera urca la rau (azi ramane pe strada), plasele de pe linia zidului (First si
+    # Second Net) ies din apa (PLAN-HARTA §1), schelele si zidul cresc din ambele maluri
+    wall_x0, wall_x1 = 640, 880
+    for net in props["nets"]:
+        net["hidden"] = wall_x0 - 60 <= net["x"] <= wall_x1 + 60
+    _, lifted = village_image()
+    for net in props["nets"]:
+        net["hidden"] = False
+    f = F[12]
+    img, (ox, oy) = frame_view(lifted, 760, 690)
+    img = tint(img, (70, 34, 52), 0.45)
+    layer = Image.new("RGBA", lifted.size, (0, 0, 0, 0))
+    gap = scaffold(G, layer, wall_x0, wall_x1, 0.55)
+    img.alpha_composite(layer.crop((ox, oy, ox + img.width, oy + img.height)))
     for i in range(6):
         fig = silhouette(person(rng, row=6, frame=i % 4))
-        x = round((640 + 20 + (i % 3) * 70) / D - ox)
+        x = round((wall_x0 + 20 + (i % 3) * 70) / D - ox)
         y = round(gap[0] - oy - 22 + (i // 3) * ((gap[1] - gap[0]) // 2))
-        f.alpha_composite(fig, (x, y))
+        img.alpha_composite(fig, (x, y))
     for i in range(7):
         fig = silhouette(person(rng, row=7, frame=i % 4))
         x = round((900 + i * 64) / D - ox)
         y = round(800 / D - oy) + (i % 2) * 6
-        f.alpha_composite(fig, (x, y))
-    bar = letterbox(f, 1)
-    caption(f, "The old village becomes the Dam.", bar)
-    skip(f, bar)
-    frames.append(("0:12  BUILD", "the camera rises to the river: scaffolds, the wall grows (A2)", f))
-    # 6. cartonasul (0:15)
-    f = Image.new("RGBA", frames[0][2].size, (0, 0, 0, 255))
-    dr = ImageDraw.Draw(f)
+        img.alpha_composite(fig, (x, y))
+    bar = round(img.height * 0.12)
+    letterbox(img, 1)
+    caption(img, f["text"], bar)
+    skip(img, bar)
+    frames.append(
+        ("0:12  BUILD", "A2 PROPOSAL: camera rises to the river, the nets come out, scaffolds, the wall grows", img)
+    )
+    # 6. cartonasul (0:15): negru, cu titlul si randul de dedesubt (Strings.DAM_CARD_*), apoi reincarcarea
+    f = F[15]
+    img = Image.new("RGBA", frames[0][2].size, (0, 0, 0, 255))
+    dr = ImageDraw.Draw(img)
     big, small = ImageFont.truetype(FONT, 24), ImageFont.truetype(FONT, 8)
     for text, font, y, col in (
-        ("THE DAM", big, f.height * 0.40, (240, 233, 218)),
-        ("Your people built this", small, f.height * 0.58, (196, 186, 168)),
+        ("THE DAM", big, img.height * 0.40, (240, 233, 218)),
+        ("Your people built this", small, img.height * 0.58, (196, 186, 168)),
     ):
         tw = dr.textlength(text, font=font)
-        dr.text((round(f.width / 2 - tw / 2), round(y)), text, font=font, fill=col + (255,))
-    frames.append(("0:15  CARD", "black card; then the reload into the new map", f))
+        dr.text((round(img.width / 2 - tw / 2), round(y)), text, font=font, fill=col + (255,))
+    frames.append(("0:15  CARD", "black card, then the reload into the new map", img))
 
     scale, gut, head = 2, 24, 44
     fw, fh = frames[0][2].width * scale, frames[0][2].height * scale

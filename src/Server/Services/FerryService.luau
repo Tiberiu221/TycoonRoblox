@@ -9,6 +9,7 @@
 --   "closed"     universul asta n-are inca celalalt place (PlaceConfig);
 --   "no_profile" profilul inca se incarca;
 --   "busy"       prea multe cereri deodata (limita, sau Roblox a raspuns Flooded);
+--   "pending"    [verificatorul A0/k6-k8] un drum e deja in curs (doar ca rezultat al lui Depart, nu prin OnFailed);
 --   "failed"     TeleportAsync a crapat sau Roblox a refuzat teleportul;
 --   "timeout"    n-a plecat nici dupa TIMEOUT secunde.
 local Players = game:GetService("Players")
@@ -62,7 +63,8 @@ local function reasonOf(result: Enum.TeleportResult): string
 end
 
 -- Porneste drumul. Raspunsul vine ca teleport (reusit) sau ca OnFailed (motivul). [verificatorul k6-k8] Intoarce un motiv
--- doar cand nu porneste nimic si n-a raspuns nimeni: "busy" (un drum e deja in curs; al lui raspunde tot prin OnFailed) sau
+-- doar cand nu porneste nimic si n-a raspuns nimeni: "pending" (un drum e deja in curs; al lui raspunde tot prin OnFailed;
+-- nu „busy”, care e Flooded-ul Roblox, dupa care nu mai e niciun drum) sau
 -- "closed" (serviciul nu e pornit). Barca il ignora; barajul il trimite ecranului, ca a doua cerere sa aiba raspunsul ei.
 function FerryService.Depart(player: Player, trip: Trip?): string?
     local d = deps
@@ -70,7 +72,7 @@ function FerryService.Depart(player: Player, trip: Trip?): string?
         return "closed"
     end
     if departing[player] ~= nil then
-        return "busy"
+        return "pending"
     end
     local destination = if trip ~= nil and trip.destination ~= nil
         then trip.destination
