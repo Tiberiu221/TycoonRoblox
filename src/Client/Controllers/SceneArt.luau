@@ -9,7 +9,7 @@ local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 local LookMath = require(ReplicatedStorage.Shared.Modules.LookMath)
 local Prng = require(ReplicatedStorage.Shared.Modules.Prng)
 local Shoreline = require(ReplicatedStorage.Shared.Modules.Shoreline)
-local WorldDecor = require(ReplicatedStorage.Shared.Modules.WorldDecor)
+local VillageDecor = require(ReplicatedStorage.Shared.Modules.VillageDecor)
 local Assets = require(ReplicatedStorage.Shared.Config.Assets)
 
 local SceneArt = {}
@@ -86,9 +86,7 @@ export type Layers = { Fixed: Frame, Parallax: Frame, Scroll: Frame }
 
 -- Harta de sus. Straturile, de jos in sus: iarba, nisip la maluri, apa care curge, spuma la
 -- linia apei, drum, terenul jucatorului, apoi decorul (copaci, tufe, pietre, papura).
--- Decorul se aseaza determinist din seed (WorldDecor), deci lumea arata la fel la fiecare intrare.
-local DECOR_COUNT = 130
-local DECOR_SEED = 20260910
+-- Decorul se aseaza determinist din seed (WorldDecor, prin VillageDecor), deci lumea arata la fel la fiecare intrare.
 -- seed-urile hartii: aceleasi la fiecare intrare, deci malul si petele nu "sar" intre sesiuni
 local PATCH_SEED = 771104
 local FOREST_SEED = 480917
@@ -103,18 +101,8 @@ end
 
 local function buildDecor(scroll: Frame)
     -- [D65] partea veche a satului isi tine copacii pe loc, fasia noua isi primeste ai ei (WorldDecor.village)
-    local items = WorldDecor.village(DECOR_SEED, DECOR_COUNT, {
-        width = RiverConfig.WORLD_WIDTH,
-        height = RiverConfig.WORLD_HEIGHT,
-        oldWidth = RiverConfig.ERA1_WORLD_WIDTH,
-        strips = RiverConfig.DECOR_STRIPS, -- [D67]
-    }, {
-        -- Decorul trebuie sa stie cat de departe poate ajunge APA, nu unde e banda nominala:
-        -- de cand malurile serpuiesc, raul urca pana la 392 si coboara pana la 824, iar un copac
-        -- asezat dupa vechile 480/768 ar sta cu radacinile in rau.
-        riverTop = RiverConfig.SHORE_FAR.baseY - RiverConfig.SHORE_FAR.amp,
-        riverBottom = RiverConfig.SHORE_NEAR.baseY + RiverConfig.SHORE_NEAR.amp,
-    }, RiverConfig.PLOT, RiverConfig.PLOT_ERA1, TycoonConfig.homeClearRects())
+    -- [D70, pasul j1] samanta si argumentele stau in VillageDecor (le citesc si pamantul copt si martorul lumii 1)
+    local items = VillageDecor.items()
 
     local layer = Instance.new("Frame")
     layer.Name = "DecorLayer"

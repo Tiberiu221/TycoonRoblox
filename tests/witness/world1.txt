@@ -1,0 +1,2876 @@
+# Martorul lumii 1 [D70, pasul j1]. Nu se editeaza de mana; vezi WorldIdentity.test.
+## roles
+"collector"
+"porter"
+"sawyer"
+"hauler"
+"trader"
+"scrapCollector"
+"scrapPorter"
+"smelter"
+"ironHauler"
+"millCollector"
+"millPorter"
+"founder"
+"partsHauler"
+"merchant"
+"oreCollector"
+"orePorter"
+"coppersmith"
+"copperHauler"
+"worksCollector"
+"worksPorter"
+"wiredrawer"
+"coilHauler"
+"clerk"
+"batteryCollector"
+"batteryPorter"
+"electrician"
+"powerHauler"
+## lines
+"wood"
+"iron"
+"parts"
+"copper"
+"coils"
+"power"
+## sellers
+"dock"
+"market"
+"depot"
+## pad.first_net
+effects={{kind="net",lane=1,rate=0.33000000000000002}}
+era=1
+index=1
+live=true
+motive="C"
+needs={netsExactly=0}
+price=0
+x=620
+y=812
+## pad.first_runner
+effects={{field="collector",kind="hire"}}
+era=1
+index=2
+live=true
+motive="A"
+needs={netsOwned=1}
+price=5
+x=630
+y=1564
+## pad.hire_porter
+effects={{field="porter",kind="hire"}}
+era=1
+index=3
+live=true
+motive="A"
+needs={after="first_runner"}
+price=6
+x=790
+y=1564
+## pad.hire_sawyer
+effects={{field="sawyer",kind="hire"}}
+era=1
+index=4
+live=true
+motive="A"
+needs={after="hire_porter"}
+price=7
+x=950
+y=1564
+## pad.hire_hauler
+effects={{field="hauler",kind="hire"}}
+era=1
+index=5
+live=true
+motive="A"
+needs={after="hire_sawyer"}
+price=8
+x=1110
+y=1564
+## pad.dock_trader
+effects={{field="trader",kind="hire"}}
+era=1
+index=6
+live=true
+motive="A"
+needs={after="hire_hauler"}
+price=10
+x=360
+y=1244
+## pad.second_net
+effects={{kind="net",lane=1,rate=0.33000000000000002}}
+era=1
+index=7
+live=true
+motive="C"
+needs={after="dock_trader",netsExactly=1,prevNetLevel=2}
+price=28
+x=820
+y=812
+## pad.third_net
+effects={{kind="net",lane=2,rate=0.33000000000000002}}
+era=1
+index=8
+live=true
+motive="C"
+needs={netsExactly=2,prevNetLevel=2}
+price=90
+x=1020
+y=812
+## pad.bigger_sack
+effects={{field="sackBig",kind="flag"}}
+era=1
+index=9
+live=true
+motive="A"
+needs={netsOwned=2}
+price=80
+x=470
+y=1564
+## pad.far_lane_net
+effects={{kind="net",lane=2,rate=0.40000000000000002}}
+era=1
+index=10
+live=true
+motive="C"
+needs={netsExactly=3,prevNetLevel=2}
+price=900
+x=1220
+y=812
+## pad.workshop
+effects={{field="forge",kind="flag"}}
+era=1
+index=11
+live=true
+motive="V"
+needs={netsOwned=4}
+price=5500
+x=1630
+y=1324
+## pad.fifth_net
+effects={{good="scrap",kind="net",lane=3,rate=0.40000000000000002}}
+era=1
+index=12
+live=true
+motive="C"
+needs={after="workshop",netsExactly=4,prevNetLevel=2}
+price=7000
+x=1420
+y=812
+## pad.scrap_shed
+effects={{field="scrapShed",kind="flag"}}
+era=1
+index=13
+live=true
+motive="V"
+needs={netsOwned=5}
+price=700
+x=1490
+y=954
+## pad.hire_scrap_collector
+effects={{field="scrapCollector",kind="hire"}}
+era=1
+index=14
+live=true
+motive="A"
+needs={after="scrap_shed"}
+price=700
+x=1300
+y=1564
+## pad.hire_scrap_porter
+effects={{field="scrapPorter",kind="hire"}}
+era=1
+index=15
+live=true
+motive="A"
+needs={after="hire_scrap_collector"}
+price=800
+x=1450
+y=1564
+## pad.hire_smelter
+effects={{field="smelter",kind="hire"}}
+era=1
+index=16
+live=true
+motive="A"
+needs={after="hire_scrap_porter"}
+price=900
+x=1600
+y=1564
+## pad.hire_iron_hauler
+effects={{field="ironHauler",kind="hire"}}
+era=1
+index=17
+live=true
+motive="A"
+needs={after="hire_smelter"}
+price=1100
+x=1750
+y=1564
+## pad.landing_bell
+effects={{factor=1.1000000000000001,field="bells",kind="mul"}}
+era=1
+index=18
+live=true
+motive="D"
+needs={all=true}
+price=8000
+x=1780
+y=954
+## pad.water_wheel
+effects={{field="wheel",kind="flag"}}
+era=2
+index=19
+live=true
+motive="V"
+needs={after="landing_bell"}
+price=7000
+x=2010
+y=812
+## pad.sixth_net
+effects={{good="mill",kind="net",lane=1,rate=0.33000000000000002}}
+era=2
+index=20
+live=true
+motive="C"
+needs={after="water_wheel",netsExactly=5}
+price=0
+x=2300
+y=812
+## pad.hire_mill_collector
+effects={{field="millCollector",kind="hire"}}
+era=2
+index=21
+live=true
+motive="A"
+needs={netsOwned=6}
+price=16000
+x=2310
+y=1564
+## pad.hire_mill_porter
+effects={{field="millPorter",kind="hire"}}
+era=2
+index=22
+live=true
+motive="A"
+needs={after="hire_mill_collector"}
+price=20000
+x=2470
+y=1564
+## pad.hire_founder
+effects={{field="founder",kind="hire"}}
+era=2
+index=23
+live=true
+motive="A"
+needs={after="hire_mill_porter"}
+price=25000
+x=2630
+y=1564
+## pad.hire_parts_hauler
+effects={{field="partsHauler",kind="hire"}}
+era=2
+index=24
+live=true
+motive="A"
+needs={after="hire_founder"}
+price=28000
+x=2790
+y=1564
+## pad.hire_merchant
+effects={{field="merchant",kind="hire"}}
+era=2
+index=25
+live=true
+motive="A"
+needs={after="hire_parts_hauler"}
+price=35000
+x=2040
+y=1244
+## pad.seventh_net
+effects={{good="mill",kind="net",lane=1,rate=0.33000000000000002}}
+era=2
+index=26
+live=true
+motive="C"
+needs={after="hire_merchant",netsExactly=6,prevNetLevel=2}
+price=180000
+x=2500
+y=812
+## pad.eighth_net
+effects={{good="mill",kind="net",lane=2,rate=0.33000000000000002}}
+era=2
+index=27
+live=true
+motive="C"
+needs={netsExactly=7,prevNetLevel=2}
+price=900000
+x=2700
+y=812
+## pad.ninth_net
+effects={{good="mill",kind="net",lane=2,rate=0.40000000000000002}}
+era=2
+index=28
+live=true
+motive="C"
+needs={netsExactly=8,prevNetLevel=2}
+price=7500000
+x=2900
+y=812
+## pad.copper_furnace
+effects={{field="furnace",kind="flag"}}
+era=2
+index=29
+live=true
+motive="V"
+needs={netsOwned=9}
+price=30000000
+x=3310
+y=1324
+## pad.tenth_net
+effects={{good="ore",kind="net",lane=3,rate=0.40000000000000002}}
+era=2
+index=30
+live=true
+motive="C"
+needs={after="copper_furnace",netsExactly=9,prevNetLevel=2}
+price=35000000
+x=3100
+y=812
+## pad.ore_shed
+effects={{field="oreShed",kind="flag"}}
+era=2
+index=31
+live=true
+motive="V"
+needs={netsOwned=10}
+price=2500000
+x=3170
+y=954
+## pad.hire_ore_collector
+effects={{field="oreCollector",kind="hire"}}
+era=2
+index=32
+live=true
+motive="A"
+needs={after="ore_shed"}
+price=2500000
+x=2980
+y=1564
+## pad.hire_ore_porter
+effects={{field="orePorter",kind="hire"}}
+era=2
+index=33
+live=true
+motive="A"
+needs={after="hire_ore_collector"}
+price=3000000
+x=3130
+y=1564
+## pad.hire_coppersmith
+effects={{field="coppersmith",kind="hire"}}
+era=2
+index=34
+live=true
+motive="A"
+needs={after="hire_ore_porter"}
+price=3500000
+x=3280
+y=1564
+## pad.hire_copper_hauler
+effects={{field="copperHauler",kind="hire"}}
+era=2
+index=35
+live=true
+motive="A"
+needs={after="hire_coppersmith"}
+price=4000000
+x=3430
+y=1564
+## pad.mill_bell
+effects={{factor=1.1000000000000001,field="bells",kind="mul"}}
+era=2
+index=36
+live=true
+motive="D"
+needs={all=true}
+price=45000000
+x=3460
+y=954
+## pad.steam_engine
+effects={{field="steam",kind="flag"}}
+era=3
+index=37
+live=true
+motive="V"
+needs={after="mill_bell"}
+price=25000000
+x=3690
+y=812
+## pad.eleventh_net
+effects={{good="works",kind="net",lane=1,rate=0.33000000000000002}}
+era=3
+index=38
+live=true
+motive="C"
+needs={after="steam_engine",netsExactly=10}
+price=0
+x=3980
+y=812
+## pad.hire_works_collector
+effects={{field="worksCollector",kind="hire"}}
+era=3
+index=39
+live=true
+motive="A"
+needs={netsOwned=11}
+price=55000000
+x=3990
+y=1564
+## pad.hire_works_porter
+effects={{field="worksPorter",kind="hire"}}
+era=3
+index=40
+live=true
+motive="A"
+needs={after="hire_works_collector"}
+price=70000000
+x=4150
+y=1564
+## pad.hire_wiredrawer
+effects={{field="wiredrawer",kind="hire"}}
+era=3
+index=41
+live=true
+motive="A"
+needs={after="hire_works_porter"}
+price=80000000
+x=4310
+y=1564
+## pad.hire_coil_hauler
+effects={{field="coilHauler",kind="hire"}}
+era=3
+index=42
+live=true
+motive="A"
+needs={after="hire_wiredrawer"}
+price=90000000
+x=4470
+y=1564
+## pad.hire_clerk
+effects={{field="clerk",kind="hire"}}
+era=3
+index=43
+live=true
+motive="A"
+needs={after="hire_coil_hauler"}
+price=110000000
+x=3720
+y=1244
+## pad.twelfth_net
+effects={{good="works",kind="net",lane=1,rate=0.33000000000000002}}
+era=3
+index=44
+live=true
+motive="C"
+needs={after="hire_clerk",netsExactly=11,prevNetLevel=2}
+price=550000000
+x=4180
+y=812
+## pad.thirteenth_net
+effects={{good="works",kind="net",lane=2,rate=0.33000000000000002}}
+era=3
+index=45
+live=true
+motive="C"
+needs={netsExactly=12,prevNetLevel=2}
+price=3000000000
+x=4380
+y=812
+## pad.fourteenth_net
+effects={{good="works",kind="net",lane=2,rate=0.40000000000000002}}
+era=3
+index=46
+live=true
+motive="C"
+needs={netsExactly=13,prevNetLevel=2}
+price=40000000000
+x=4580
+y=812
+## pad.power_house
+effects={{field="powerhouse",kind="flag"}}
+era=3
+index=47
+live=true
+motive="V"
+needs={netsOwned=14}
+price=100000000000
+x=4990
+y=1324
+## pad.first_turbine
+effects={{good="turbine",kind="net",lane=3,rate=0.40000000000000002}}
+era=3
+index=48
+live=true
+motive="C"
+needs={after="power_house",netsExactly=14,prevNetLevel=2}
+price=120000000000
+x=4780
+y=812
+## pad.battery_shed
+effects={{field="batteryShed",kind="flag"}}
+era=3
+index=49
+live=true
+motive="V"
+needs={netsOwned=15}
+price=9000000000
+x=4850
+y=954
+## pad.hire_battery_collector
+effects={{field="batteryCollector",kind="hire"}}
+era=3
+index=50
+live=true
+motive="A"
+needs={after="battery_shed"}
+price=9000000000
+x=4660
+y=1564
+## pad.hire_battery_porter
+effects={{field="batteryPorter",kind="hire"}}
+era=3
+index=51
+live=true
+motive="A"
+needs={after="hire_battery_collector"}
+price=10000000000
+x=4810
+y=1564
+## pad.hire_electrician
+effects={{field="electrician",kind="hire"}}
+era=3
+index=52
+live=true
+motive="A"
+needs={after="hire_battery_porter"}
+price=12000000000
+x=4960
+y=1564
+## pad.hire_power_hauler
+effects={{field="powerHauler",kind="hire"}}
+era=3
+index=53
+live=true
+motive="A"
+needs={after="hire_electrician"}
+price=13000000000
+x=5110
+y=1564
+## pad.works_bell
+effects={{factor=1.1000000000000001,field="bells",kind="mul"}}
+era=3
+index=54
+live=true
+motive="D"
+needs={all=true}
+price=150000000000
+x=5140
+y=954
+## roads.points
+{x=240,y=814}
+{x=1560,y=814}
+{x=240,y=1450}
+{x=1860,y=1450}
+{x=550,y=856}
+{x=550,y=1420}
+{x=240,y=1130}
+{x=550,y=1130}
+{x=1280,y=856}
+{x=1280,y=1420}
+{x=1920,y=814}
+{x=3240,y=814}
+{x=3540,y=1450}
+{x=2230,y=856}
+{x=2230,y=1420}
+{x=1920,y=1130}
+{x=2230,y=1130}
+{x=2960,y=856}
+{x=2960,y=1420}
+{x=3600,y=814}
+{x=4920,y=814}
+{x=5220,y=1450}
+{x=3910,y=856}
+{x=3910,y=1420}
+{x=3600,y=1130}
+{x=3910,y=1130}
+{x=4640,y=856}
+{x=4640,y=1420}
+{x=550,y=814}
+{x=550,y=1450}
+{x=1280,y=814}
+{x=1280,y=1450}
+{x=2230,y=814}
+{x=2230,y=1450}
+{x=2960,y=814}
+{x=2960,y=1450}
+{x=3910,y=814}
+{x=3910,y=1450}
+{x=4640,y=814}
+{x=4640,y=1450}
+## roads.edges
+{{d=310,to=29}}
+{{d=280,to=31}}
+{{d=310,to=30}}
+{{d=580,to=32},{d=370,to=34}}
+{{d=42,to=29},{d=274,to=8}}
+{{d=30,to=30},{d=290,to=8}}
+{{d=310,to=8}}
+{{d=274,to=5},{d=290,to=6},{d=310,to=7}}
+{{d=42,to=31},{d=564,to=10}}
+{{d=30,to=32},{d=564,to=9}}
+{{d=310,to=33}}
+{{d=280,to=35}}
+{{d=580,to=36},{d=370,to=38}}
+{{d=42,to=33},{d=274,to=17}}
+{{d=30,to=34},{d=290,to=17}}
+{{d=310,to=17}}
+{{d=274,to=14},{d=290,to=15},{d=310,to=16}}
+{{d=42,to=35},{d=564,to=19}}
+{{d=30,to=36},{d=564,to=18}}
+{{d=310,to=37}}
+{{d=280,to=39}}
+{{d=580,to=40}}
+{{d=42,to=37},{d=274,to=26}}
+{{d=30,to=38},{d=290,to=26}}
+{{d=310,to=26}}
+{{d=274,to=23},{d=290,to=24},{d=310,to=25}}
+{{d=42,to=39},{d=564,to=28}}
+{{d=30,to=40},{d=564,to=27}}
+{{d=42,to=5},{d=310,to=1},{d=730,to=31}}
+{{d=30,to=6},{d=310,to=3},{d=730,to=32}}
+{{d=42,to=9},{d=730,to=29},{d=280,to=2}}
+{{d=30,to=10},{d=730,to=30},{d=580,to=4}}
+{{d=42,to=14},{d=310,to=11},{d=730,to=35}}
+{{d=30,to=15},{d=370,to=4},{d=730,to=36}}
+{{d=42,to=18},{d=730,to=33},{d=280,to=12}}
+{{d=30,to=19},{d=730,to=34},{d=580,to=13}}
+{{d=42,to=23},{d=310,to=20},{d=730,to=39}}
+{{d=30,to=24},{d=370,to=13},{d=730,to=40}}
+{{d=42,to=27},{d=730,to=37},{d=280,to=21}}
+{{d=30,to=28},{d=730,to=38},{d=580,to=22}}
+## roads.rects
+{x0=240,x1=1560,y0=772,y1=856}
+{x0=240,x1=1860,y0=1420,y1=1480}
+{x0=525,x1=575,y0=856,y1=1420}
+{x0=240,x1=550,y0=1090,y1=1170}
+{x0=1260,x1=1300,y0=856,y1=1420}
+{x0=1920,x1=3240,y0=772,y1=856}
+{x0=1860,x1=3540,y0=1420,y1=1480}
+{x0=2205,x1=2255,y0=856,y1=1420}
+{x0=1920,x1=2230,y0=1090,y1=1170}
+{x0=2940,x1=2980,y0=856,y1=1420}
+{x0=3600,x1=4920,y0=772,y1=856}
+{x0=3540,x1=5220,y0=1420,y1=1480}
+{x0=3885,x1=3935,y0=856,y1=1420}
+{x0=3600,x1=3910,y0=1090,y1=1170}
+{x0=4620,x1=4660,y0=856,y1=1420}
+## district.1
+deck={x0=240,x1=1560,y0=772,y1=856}
+era=1
+id="landing"
+roads={{id="street",x0=240,x1=1860,y0=1420,y1=1480},{id="tavern_link",x0=525,x1=575,y0=856,y1=1420},{id="plaza",x0=240,x1=550,y0=1090,y1=1170},{id="iron_lane",x0=1260,x1=1300,y0=856,y1=1420}}
+yards={{id="tavern",x0=222,x1=584,y0=1040,y1=1196},{id="stall",x0=280,x1=440,y0=1248,y1=1318},{id="storage",x0=580,x1=836,y0=968,y1=1040},{id="sawmill",x0=820,x1=1190,y0=1326,y1=1418},{id="shed",x0=1310,x1=1560,y0=968,y1=1040},{id="forge",x0=1414,x1=1856,y0=1318,y1=1418},{id="bell",x0=1712,x1=1848,y0=984,y1=1036},{id="sack",x0=430,x1=512,y0=1598,y1=1638},{id="house_collector",x0=546,x1=714,y0=1594,y1=1638},{id="house_porter",x0=718,x1=862,y0=1594,y1=1638},{id="house_sawyer",x0=878,x1=1022,y0=1594,y1=1638},{id="house_hauler",x0=1038,x1=1182,y0=1594,y1=1638},{id="house_scrap_collector",x0=1228,x1=1372,y0=1594,y1=1638},{id="house_scrap_porter",x0=1378,x1=1522,y0=1594,y1=1638},{id="house_smelter",x0=1528,x1=1672,y0=1594,y1=1638},{id="house_iron_hauler",x0=1678,x1=1822,y0=1594,y1=1638}}
+## district.2
+deck={x0=1920,x1=3240,y0=772,y1=856}
+era=2
+id="mill"
+roads={{id="mill_street",like="street",x0=1860,x1=3540,y0=1420,y1=1480},{id="market_link",like="tavern_link",x0=2205,x1=2255,y0=856,y1=1420},{id="market_plaza",like="plaza",x0=1920,x1=2230,y0=1090,y1=1170},{id="copper_lane",like="iron_lane",x0=2940,x1=2980,y0=856,y1=1420}}
+yards={{id="market",like="tavern",x0=1902,x1=2264,y0=1040,y1=1196},{id="merchant",like="stall",x0=1960,x1=2120,y0=1248,y1=1318},{id="mill_store",like="storage",x0=2260,x1=2516,y0=968,y1=1040},{id="foundry",like="sawmill",x0=2500,x1=2870,y0=1326,y1=1418},{id="ore_shed",like="shed",x0=2990,x1=3240,y0=968,y1=1040},{id="furnace",like="forge",x0=3094,x1=3536,y0=1318,y1=1418},{id="mill_bell",like="bell",x0=3392,x1=3528,y0=984,y1=1036},{id="house_mill_collector",like="house_collector",x0=2226,x1=2394,y0=1594,y1=1638},{id="house_mill_porter",like="house_porter",x0=2398,x1=2542,y0=1594,y1=1638},{id="house_founder",like="house_sawyer",x0=2558,x1=2702,y0=1594,y1=1638},{id="house_parts_hauler",like="house_hauler",x0=2718,x1=2862,y0=1594,y1=1638},{id="house_ore_collector",like="house_scrap_collector",x0=2908,x1=3052,y0=1594,y1=1638},{id="house_ore_porter",like="house_scrap_porter",x0=3058,x1=3202,y0=1594,y1=1638},{id="house_coppersmith",like="house_smelter",x0=3208,x1=3352,y0=1594,y1=1638},{id="house_copper_hauler",like="house_iron_hauler",x0=3358,x1=3502,y0=1594,y1=1638}}
+## district.3
+deck={x0=3600,x1=4920,y0=772,y1=856}
+era=3
+id="works"
+roads={{id="works_street",like="street",x0=3540,x1=5220,y0=1420,y1=1480},{id="depot_link",like="tavern_link",x0=3885,x1=3935,y0=856,y1=1420},{id="depot_plaza",like="plaza",x0=3600,x1=3910,y0=1090,y1=1170},{id="power_lane",like="iron_lane",x0=4620,x1=4660,y0=856,y1=1420}}
+yards={{id="depot",like="tavern",x0=3582,x1=3944,y0=1040,y1=1196},{id="clerk",like="stall",x0=3640,x1=3800,y0=1248,y1=1318},{id="works_store",like="storage",x0=3940,x1=4196,y0=968,y1=1040},{id="wireworks",like="sawmill",x0=4180,x1=4550,y0=1326,y1=1418},{id="battery_shed",like="shed",x0=4670,x1=4920,y0=968,y1=1040},{id="powerhouse",like="forge",x0=4774,x1=5216,y0=1318,y1=1418},{id="works_bell",like="bell",x0=5072,x1=5208,y0=984,y1=1036},{id="house_works_collector",like="house_collector",x0=3906,x1=4074,y0=1594,y1=1638},{id="house_works_porter",like="house_porter",x0=4078,x1=4222,y0=1594,y1=1638},{id="house_wiredrawer",like="house_sawyer",x0=4238,x1=4382,y0=1594,y1=1638},{id="house_coil_hauler",like="house_hauler",x0=4398,x1=4542,y0=1594,y1=1638},{id="house_battery_collector",like="house_scrap_collector",x0=4588,x1=4732,y0=1594,y1=1638},{id="house_battery_porter",like="house_scrap_porter",x0=4738,x1=4882,y0=1594,y1=1638},{id="house_electrician",like="house_smelter",x0=4888,x1=5032,y0=1594,y1=1638},{id="house_power_hauler",like="house_iron_hauler",x0=5038,x1=5182,y0=1594,y1=1638}}
+## DECK
+x0=240
+x1=1560
+y0=772
+y1=856
+## ROADS
+{id="street",x0=240,x1=1860,y0=1420,y1=1480}
+{id="tavern_link",x0=525,x1=575,y0=856,y1=1420}
+{id="plaza",x0=240,x1=550,y0=1090,y1=1170}
+{id="iron_lane",x0=1260,x1=1300,y0=856,y1=1420}
+## YARDS
+{id="tavern",x0=222,x1=584,y0=1040,y1=1196}
+{id="stall",x0=280,x1=440,y0=1248,y1=1318}
+{id="storage",x0=580,x1=836,y0=968,y1=1040}
+{id="sawmill",x0=820,x1=1190,y0=1326,y1=1418}
+{id="shed",x0=1310,x1=1560,y0=968,y1=1040}
+{id="forge",x0=1414,x1=1856,y0=1318,y1=1418}
+{id="bell",x0=1712,x1=1848,y0=984,y1=1036}
+{id="sack",x0=430,x1=512,y0=1598,y1=1638}
+{id="house_collector",x0=546,x1=714,y0=1594,y1=1638}
+{id="house_porter",x0=718,x1=862,y0=1594,y1=1638}
+{id="house_sawyer",x0=878,x1=1022,y0=1594,y1=1638}
+{id="house_hauler",x0=1038,x1=1182,y0=1594,y1=1638}
+{id="house_scrap_collector",x0=1228,x1=1372,y0=1594,y1=1638}
+{id="house_scrap_porter",x0=1378,x1=1522,y0=1594,y1=1638}
+{id="house_smelter",x0=1528,x1=1672,y0=1594,y1=1638}
+{id="house_iron_hauler",x0=1678,x1=1822,y0=1594,y1=1638}
+## DECOR
+{scale=2,sprite="barrel",x=500,y=1084}
+{scale=2,sprite="lantern",x=256,y=1190}
+{scale=2,sprite="lantern",x=598,y=1190}
+{scale=2,sprite="flowers",x=452,y=1296}
+{scale=2,sprite="flowers",x=258,y=1296}
+{scale=2,sprite="tree_pine",x=215,y=1400}
+{scale=2,sprite="log",x=880,y=1046}
+{scale=2,sprite="log",x=902,y=1066}
+{scale=2,sprite="log",x=874,y=1086}
+{scale=2,sprite="stump",x=720,y=1190}
+{scale=2,sprite="stump",x=760,y=1212}
+{scale=2,sprite="tree_round",x=1130,y=1130}
+{scale=2,sprite="flowers",x=1000,y=1190}
+{scale=2,sprite="bush",x=660,y=1262}
+{scale=2,sprite="signpost",x=612,y=1414}
+{scale=2,sprite="fence",x=638,y=1418}
+{scale=2,sprite="fence",x=734,y=1418}
+{scale=2,sprite="bush",x=1205,y=1390}
+{scale=2,sprite="tree_round",x=1450,y=1180}
+{scale=3,sprite="rock_small",x=1580,y=1170}
+{scale=2,sprite="rock_large",x=1636,y=1196}
+{scale=2,sprite="barrel",x=1730,y=1196}
+{scale=2,sprite="barrel",x=1756,y=1214}
+{scale=2,sprite="bush",x=1836,y=1220}
+{scale=2,sprite="flowers",x=1712,y=1050}
+{scale=2,sprite="signpost",x=1334,y=1414}
+{scale=2,sprite="fence",x=1358,y=1418}
+{scale=2,sprite="lantern",x=232,y=1506}
+{scale=2,sprite="lantern",x=1848,y=1506}
+{scale=2,sprite="flowers",x=716,y=1606}
+{scale=2,sprite="flowers",x=1030,y=1606}
+{scale=2,sprite="flowers",x=1375,y=1606}
+{scale=2,sprite="flowers",x=1675,y=1606}
+{scale=2,sprite="bush",x=520,y=1650}
+{scale=2,sprite="bush",x=1840,y=1650}
+## ZONES
+{era=1,id="landing",name="The Landing",x0=200,x1=1860}
+{era=2,id="mill",name="The Mill",x0=1860,x1=3560}
+{era=3,id="wire_works",name="The Wire Works",x0=3560,x1=5240}
+{era=4,id="dam",name="The Dam",soon="The Dam will rise by your pier — coming soon",x0=5240,x1=5520}
+## streetLamps
+{era=1,x=710,y=1492}
+{era=1,x=1205,y=1492}
+{era=1,x=1375,y=1492}
+{era=1,x=1525,y=1492}
+{era=2,x=2390,y=1492}
+{era=2,x=2885,y=1492}
+{era=2,x=3055,y=1492}
+{era=2,x=3205,y=1492}
+{era=3,x=4070,y=1492}
+{era=3,x=4565,y=1492}
+{era=3,x=4735,y=1492}
+{era=3,x=4885,y=1492}
+## wirePoles
+{kind="end",mirror=false,x=272,y=1418}
+{kind="line",mirror=false,x=480,y=1418}
+{kind="line",mirror=false,x=760,y=1418}
+{kind="line",mirror=false,x=1234,y=1418}
+{kind="line",mirror=false,x=1400,y=1418}
+{kind="line",mirror=false,x=1860,y=1418}
+{kind="line",mirror=false,x=2160,y=1418}
+{kind="line",mirror=false,x=2440,y=1418}
+{kind="line",mirror=false,x=2914,y=1418}
+{kind="line",mirror=false,x=3080,y=1418}
+{kind="line",mirror=false,x=3540,y=1418}
+{kind="line",mirror=false,x=3840,y=1418}
+{kind="line",mirror=false,x=4120,y=1418}
+{kind="line",mirror=false,x=4594,y=1418}
+{kind="line",mirror=false,x=4760,y=1418}
+## homeClearRects
+{frontOf=1564,x0=2230,x1=2390,y0=1490,y1=1640}
+{frontOf=1564,x0=2390,x1=2550,y0=1490,y1=1640}
+{frontOf=1564,x0=2550,x1=2710,y0=1490,y1=1640}
+{frontOf=1564,x0=2710,x1=2870,y0=1490,y1=1640}
+{frontOf=1244,x0=1960,x1=2120,y0=1170,y1=1320}
+{frontOf=1564,x0=2900,x1=3060,y0=1490,y1=1640}
+{frontOf=1564,x0=3050,x1=3210,y0=1490,y1=1640}
+{frontOf=1564,x0=3200,x1=3360,y0=1490,y1=1640}
+{frontOf=1564,x0=3350,x1=3510,y0=1490,y1=1640}
+{frontOf=1564,x0=3910,x1=4070,y0=1490,y1=1640}
+{frontOf=1564,x0=4070,x1=4230,y0=1490,y1=1640}
+{frontOf=1564,x0=4230,x1=4390,y0=1490,y1=1640}
+{frontOf=1564,x0=4390,x1=4550,y0=1490,y1=1640}
+{frontOf=1244,x0=3640,x1=3800,y0=1170,y1=1320}
+{frontOf=1564,x0=4580,x1=4740,y0=1490,y1=1640}
+{frontOf=1564,x0=4730,x1=4890,y0=1490,y1=1640}
+{frontOf=1564,x0=4880,x1=5040,y0=1490,y1=1640}
+{frontOf=1564,x0=5030,x1=5190,y0=1490,y1=1640}
+## deckSpans
+{era=1,x0=240,x1=1560}
+{era=2,x0=1920,x1=3240}
+{era=3,x0=3600,x1=4920}
+## decor
+{kind="tree_pine",x=971,y=6,z=1}
+{kind="bush",x=738,y=18,z=2}
+{kind="tree_round",x=116,y=34,z=3}
+{kind="tree_round",x=1216,y=36,z=4}
+{kind="bush",x=2224,y=39,z=5}
+{kind="bush",x=1987,y=45,z=6}
+{kind="bush",x=603,y=47,z=7}
+{kind="tree_round",x=1454,y=47,z=8}
+{kind="tree_round",x=2691,y=55,z=9}
+{kind="bush",x=2368,y=81,z=10}
+{kind="bush",x=435,y=84,z=11}
+{kind="bush",x=1717,y=84,z=12}
+{kind="tree_round",x=2825,y=88,z=13}
+{kind="bush",x=2499,y=113,z=14}
+{kind="bush",x=1067,y=123,z=15}
+{kind="tree_round",x=2126,y=136,z=16}
+{kind="tree_pine",x=1349,y=158,z=17}
+{kind="tree_round",x=154,y=166,z=18}
+{kind="bush",x=784,y=176,z=19}
+{kind="tree_pine",x=1833,y=187,z=20}
+{kind="tree_round",x=586,y=200,z=21}
+{kind="tree_round",x=2016,y=210,z=22}
+{kind="cattails",x=1539,y=260,z=23}
+{kind="cattails",x=918,y=271,z=24}
+{kind="rock_small",x=18,y=280,z=25}
+{kind="cattails",x=2370,y=282,z=26}
+{kind="cattails",x=1212,y=283,z=27}
+{kind="rock_small",x=2527,y=283,z=28}
+{kind="rock_small",x=291,y=307,z=29}
+{kind="rock_small",x=2234,y=328,z=30}
+{kind="rock_small",x=2742,y=331,z=31}
+{kind="rock_small",x=448,y=339,z=32}
+{kind="stump",x=1723,y=341,z=33}
+{kind="log",x=2072,y=341,z=34}
+{kind="cattails",x=1410,y=342,z=35}
+{kind="cattails",x=824,y=346,z=36}
+{kind="stump",x=601,y=350,z=37}
+{kind="stump",x=8,y=880,z=40}
+{kind="tree_pine",x=87,y=1094,z=46}
+{kind="tree_pine",x=100,y=1224,z=50}
+{kind="tree_round",x=9,y=1347,z=55}
+{kind="bush",x=110,y=1456,z=57}
+{kind="bush",x=36,y=1620,z=61}
+{kind="bush",x=570,y=1801,z=68}
+{kind="tree_pine",x=840,y=1805,z=69}
+{kind="bush",x=1776,y=1812,z=70}
+{kind="tree_round",x=85,y=1817,z=71}
+{kind="bush",x=2498,y=1828,z=72}
+{kind="tree_round",x=1030,y=1829,z=73}
+{kind="tree_pine",x=1265,y=1855,z=74}
+{kind="bush",x=371,y=1857,z=75}
+{kind="tree_round",x=2220,y=1857,z=76}
+{kind="tree_round",x=1649,y=1864,z=77}
+{kind="tree_round",x=710,y=1878,z=78}
+{kind="tree_pine",x=1939,y=1889,z=79}
+{kind="tree_pine",x=1140,y=1904,z=80}
+{kind="tree_pine",x=2620,y=1915,z=81}
+{kind="tree_pine",x=1394,y=1916,z=82}
+{kind="bush",x=3637,y=27,z=1}
+{kind="tree_round",x=3092,y=71,z=2}
+{kind="bush",x=3272,y=80,z=3}
+{kind="tree_round",x=2896,y=82,z=4}
+{kind="tree_pine",x=3759,y=148,z=5}
+{kind="tree_pine",x=3625,y=168,z=6}
+{kind="cattails",x=3417,y=243,z=7}
+{kind="stump",x=2892,y=251,z=8}
+{kind="rock_small",x=3108,y=296,z=9}
+{kind="cattails",x=3836,y=298,z=10}
+{kind="rock_small",x=3573,y=331,z=11}
+{kind="tree_round",x=3815,y=1751,z=16}
+{kind="bush",x=3660,y=1797,z=19}
+{kind="tree_round",x=3505,y=1877,z=21}
+{kind="bush",x=5118,y=3,z=1}
+{kind="tree_pine",x=4496,y=12,z=2}
+{kind="tree_round",x=5498,y=17,z=3}
+{kind="tree_round",x=4971,y=20,z=4}
+{kind="bush",x=4697,y=49,z=5}
+{kind="bush",x=3859,y=71,z=6}
+{kind="tree_round",x=4322,y=86,z=7}
+{kind="tree_pine",x=5368,y=87,z=8}
+{kind="tree_pine",x=4065,y=136,z=9}
+{kind="tree_round",x=4914,y=140,z=10}
+{kind="tree_round",x=4618,y=159,z=11}
+{kind="bush",x=5035,y=202,z=12}
+{kind="bush",x=5205,y=202,z=13}
+{kind="tree_round",x=4760,y=214,z=14}
+{kind="tree_round",x=3960,y=238,z=15}
+{kind="cattails",x=4468,y=255,z=16}
+{kind="log",x=4166,y=265,z=17}
+{kind="rock_small",x=5330,y=286,z=18}
+{kind="rock_small",x=4576,y=308,z=19}
+{kind="stump",x=4343,y=341,z=20}
+{kind="cattails",x=4761,y=346,z=21}
+{kind="log",x=5496,y=877,z=22}
+{kind="tree_round",x=5473,y=1100,z=23}
+{kind="bush",x=5430,y=1282,z=24}
+{kind="tree_round",x=5450,y=1610,z=25}
+{kind="bush",x=5458,y=1742,z=26}
+{kind="bush",x=5322,y=1792,z=30}
+{kind="tree_round",x=4495,y=1832,z=32}
+{kind="bush",x=4830,y=1845,z=33}
+{kind="tree_pine",x=4328,y=1869,z=34}
+{kind="tree_round",x=4978,y=1897,z=35}
+{kind="tree_round",x=5112,y=1918,z=36}
+## LINE_PLACES.wood
+inPile={x=900,y=1380}
+outPile={x=1105,y=1380}
+playerStand={x=980,y=1405}
+processorIn={x=840,y=1410}
+processorOut={x=1165,y=1412}
+secondOffset={x=-60,y=0}
+storePile={x=660,y=1010}
+storeStand={x=600,y=1010}
+workerStand={x=1110,y=1452}
+## LINE_PLACES.iron
+inPile={x=1494,y=1380}
+outPile={x=1766,y=1380}
+playerStand={x=1610,y=1405}
+processorIn={x=1430,y=1410}
+processorOut={x=1830,y=1412}
+secondOffset={x=60,y=0}
+storePile={x=1390,y=1010}
+storeStand={x=1330,y=1010}
+workerStand={x=1690,y=1452}
+## LINE_PLACES.parts
+inPile={x=2580,y=1380}
+outPile={x=2785,y=1380}
+playerStand={x=2660,y=1405}
+processorIn={x=2520,y=1410}
+processorOut={x=2845,y=1412}
+secondOffset={x=-60,y=0}
+storePile={x=2340,y=1010}
+storeStand={x=2280,y=1010}
+workerStand={x=2790,y=1452}
+## LINE_PLACES.copper
+inPile={x=3174,y=1380}
+outPile={x=3446,y=1380}
+playerStand={x=3290,y=1405}
+processorIn={x=3110,y=1410}
+processorOut={x=3510,y=1412}
+secondOffset={x=60,y=0}
+storePile={x=3070,y=1010}
+storeStand={x=3010,y=1010}
+workerStand={x=3370,y=1452}
+## LINE_PLACES.coils
+inPile={x=4260,y=1380}
+outPile={x=4465,y=1380}
+playerStand={x=4340,y=1405}
+processorIn={x=4200,y=1410}
+processorOut={x=4525,y=1412}
+secondOffset={x=-60,y=0}
+storePile={x=4020,y=1010}
+storeStand={x=3960,y=1010}
+workerStand={x=4470,y=1452}
+## LINE_PLACES.power
+inPile={x=4854,y=1380}
+outPile={x=5126,y=1380}
+playerStand={x=4970,y=1405}
+processorIn={x=4790,y=1410}
+processorOut={x=5190,y=1412}
+secondOffset={x=60,y=0}
+storePile={x=4750,y=1010}
+storeStand={x=4690,y=1010}
+workerStand={x=5050,y=1452}
+## SELLER_PLACES.dock
+building={h=144,w=192,x=400,y=1080}
+customerEntry={x=150,y=1130}
+customerSpots={{facing="up",x=340,y=1094},{facing="up",x=380,y=1098},{facing="right",x=330,y=1150},{facing="right",x=282,y=1160},{facing="left",x=385,y=1180},{facing="right",x=236,y=1196},{facing="up",x=318,y=1212},{facing="left",x=430,y=1214}}
+door={x=420,y=1130}
+pile={x=262,y=1086}
+secondOffset={x=60,y=0}
+stand={x=470,y=1152}
+## SELLER_PLACES.market
+building={h=144,w=192,x=2080,y=1080}
+customerEntry={x=1830,y=1130}
+customerSpots={{facing="up",x=2020,y=1094},{facing="up",x=2060,y=1098},{facing="right",x=2010,y=1150},{facing="right",x=1962,y=1160},{facing="left",x=2065,y=1180},{facing="right",x=1916,y=1196},{facing="up",x=1998,y=1212},{facing="left",x=2110,y=1214}}
+door={x=2100,y=1130}
+pile={x=1942,y=1086}
+secondOffset={x=60,y=0}
+stand={x=2150,y=1152}
+## SELLER_PLACES.depot
+building={h=144,w=192,x=3760,y=1080}
+customerEntry={x=3510,y=1130}
+customerSpots={{facing="up",x=3700,y=1094},{facing="up",x=3740,y=1098},{facing="right",x=3690,y=1150},{facing="right",x=3642,y=1160},{facing="left",x=3745,y=1180},{facing="right",x=3596,y=1196},{facing="up",x=3678,y=1212},{facing="left",x=3790,y=1214}}
+door={x=3780,y=1130}
+pile={x=3622,y=1086}
+secondOffset={x=60,y=0}
+stand={x=3830,y=1152}
+## PILES
+forgeIn={x=1494,y=1380}
+forgeOut={x=1766,y=1380}
+sawmillIn={x=900,y=1380}
+sawmillOut={x=1105,y=1380}
+shed={x=1390,y=1010}
+storage={x=660,y=1010}
+tavern={x=262,y=1086}
+## spots
+BOBBER_AT={x=435,y=652}
+DOCK={x=420,y=1130}
+FERRY={x=418,y=762}
+FERRY_BOARD={x=330,y=734}
+FISH_STAND={x=318,y=640}
+PIER={x=300,y=758}
+PIER_WALK={x0=264,x1=336,y0=612}
+SAWMILL={h=96,w=120,x=1000,y=1380}
+SPAWN={x=660,y=1200}
+STORAGE={h=96,w=120,x=760,y=1010}
+TAVERN={h=144,w=192,x=400,y=1080}
+TREASURE_SLOTS={{x=214,y=610},{x=214,y=660},{x=214,y=710}}
+VILLAGE_BOARD={x=486,y=850}
+WHEEL_STAND={x=400,y=850}
+## river
+DECOR_STRIPS={{plot={h=850,w=3440,x=200,y=800},x1=3840},{plot={h=850,w=5120,x=200,y=800},x1=5520}}
+ERA1_WORLD_WIDTH=2880
+ERA2_WORLD_WIDTH=3840
+LANE_YS={516,588,660,732}
+PLOT={h=850,w=5120,x=200,y=800}
+PLOT_ERA1={h=850,w=1760,x=200,y=800}
+PLOT_ERA2={h=850,w=3440,x=200,y=800}
+RIVER_BOTTOM=768
+RIVER_TOP=480
+SHORE_FAR={amp=96,baseY=488,beach=58,seed=20260912,side=-1}
+SHORE_NEAR={amp=66,baseY=758,beach=46,calm={amp=12,feather=240,x0=150,x1=5320},seed=20265154,side=1}
+SPAWNS_PER_WINDOW=14
+SPEED_MAX=160
+SPEED_MIN=100
+WINDOW_SECONDS=60
+WORLD_HEIGHT=1920
+WORLD_WIDTH=5520
+## blockedRects
+{h=288,w=264,x=0,y=480}
+{h=288,w=5184,x=336,y=480}
+{h=132,w=72,x=264,y=480}
+## riverSim.0
+{id=4,lane=2,spawnAt=2.0993306720629334,speed=140.12194887269288,tier="common"}
+{id=13,lane=3,spawnAt=4.5657425047829747,speed=104.88174999132752,tier="uncommon"}
+{id=8,lane=3,spawnAt=7.4524167599156499,speed=129.42962793167681,tier="epic"}
+{id=1,lane=4,spawnAt=23.710361779667437,speed=139.34621676802635,tier="common"}
+{id=11,lane=2,spawnAt=28.352784141898155,speed=117.34859268646687,tier="uncommon"}
+{id=3,lane=3,spawnAt=30.568600762635469,speed=110.53640273399651,tier="common"}
+{id=10,lane=2,spawnAt=37.293831375427544,speed=135.95917392056435,tier="common"}
+{id=12,lane=4,spawnAt=37.894862908869982,speed=119.57680658902973,tier="uncommon"}
+{id=6,lane=1,spawnAt=39.069518758915365,speed=126.09840439632535,tier="common"}
+{id=7,lane=3,spawnAt=39.079728643409908,speed=110.78382348176092,tier="uncommon"}
+{id=14,lane=4,spawnAt=40.547383781522512,speed=108.849788159132,tier="common"}
+{id=5,lane=1,spawnAt=45.291189355775714,speed=107.25972875021398,tier="rare"}
+{id=2,lane=1,spawnAt=45.871647773310542,speed=159.87034413963556,tier="rare"}
+{id=9,lane=4,spawnAt=50.049069402739406,speed=130.36956779193133,tier="common"}
+## riverSim.1
+{id=1004,lane=3,spawnAt=63.882835954427719,speed=129.71148307435215,tier="common"}
+{id=1012,lane=3,spawnAt=66.918071089312434,speed=138.10555671341717,tier="epic"}
+{id=1009,lane=4,spawnAt=67.134937215596437,speed=159.13173189386725,tier="common"}
+{id=1010,lane=3,spawnAt=71.81173425167799,speed=133.27289489097893,tier="uncommon"}
+{id=1003,lane=2,spawnAt=76.732355263084173,speed=155.14673428609967,tier="common"}
+{id=1001,lane=3,spawnAt=77.766927620396018,speed=103.99244617205113,tier="common"}
+{id=1013,lane=3,spawnAt=80.364164491184056,speed=133.23374487925321,tier="uncommon"}
+{id=1002,lane=3,spawnAt=83.206998109817505,speed=124.59237853996456,tier="common"}
+{id=1011,lane=1,spawnAt=83.507796814665198,speed=120.03831698559225,tier="uncommon"}
+{id=1005,lane=2,spawnAt=96.322166891768575,speed=106.93791266065091,tier="rare"}
+{id=1006,lane=3,spawnAt=102.41548416204751,speed=105.79285416286439,tier="uncommon"}
+{id=1014,lane=2,spawnAt=111.98695363942534,speed=152.69795167725533,tier="common"}
+{id=1007,lane=4,spawnAt=114.41802523098886,speed=147.06273146905005,tier="common"}
+{id=1008,lane=3,spawnAt=115.62382972799242,speed=159.64152255561203,tier="epic"}
+## riverSim.777
+{id=777010,lane=2,spawnAt=46623.020684877411,speed=125.96345799043775,tier="common"}
+{id=777008,lane=1,spawnAt=46623.904870483093,speed=130.73867621365935,tier="common"}
+{id=777006,lane=2,spawnAt=46638.054088982753,speed=135.01084649935365,tier="uncommon"}
+{id=777011,lane=4,spawnAt=46638.195069199428,speed=143.6431895243004,tier="common"}
+{id=777002,lane=2,spawnAt=46638.401298020035,speed=130.56547179818153,tier="common"}
+{id=777013,lane=3,spawnAt=46639.035742948763,speed=106.41123236622661,tier="common"}
+{id=777009,lane=1,spawnAt=46648.383018616587,speed=110.47375757712871,tier="common"}
+{id=777001,lane=1,spawnAt=46651.728786667809,speed=118.09157856740057,tier="uncommon"}
+{id=777004,lane=3,spawnAt=46652.972961212508,speed=152.75183440651745,tier="rare"}
+{id=777014,lane=3,spawnAt=46659.251074483618,speed=149.61697366088629,tier="common"}
+{id=777007,lane=4,spawnAt=46661.701465412043,speed=119.70927541609854,tier="common"}
+{id=777005,lane=2,spawnAt=46665.737184905447,speed=148.43121934682131,tier="common"}
+{id=777003,lane=1,spawnAt=46672.679983307607,speed=111.57427267171443,tier="uncommon"}
+{id=777012,lane=4,spawnAt=46679.757117759436,speed=108.0456636287272,tier="rare"}
+## catchFloat
+SPAWN_X=-64
+SPEED=130
+## catchFloat.first_net
+travel=5.2615384615384615
+turn=220
+## catchFloat.second_net
+travel=6.7999999999999998
+turn=220
+## catchFloat.third_net
+travel=8.338461538461539
+turn=220
+## catchFloat.far_lane_net
+travel=9.8769230769230774
+turn=220
+## catchFloat.fifth_net
+travel=11.415384615384616
+turn=220
+## catchFloat.sixth_net
+travel=18.184615384615384
+turn=220
+## catchFloat.seventh_net
+travel=19.723076923076924
+turn=220
+## catchFloat.eighth_net
+travel=21.261538461538461
+turn=220
+## catchFloat.ninth_net
+travel=22.800000000000001
+turn=220
+## catchFloat.tenth_net
+travel=24.338461538461537
+turn=220
+## catchFloat.eleventh_net
+travel=31.107692307692307
+turn=220
+## catchFloat.twelfth_net
+travel=32.646153846153844
+turn=220
+## catchFloat.thirteenth_net
+travel=34.184615384615384
+turn=220
+## catchFloat.fourteenth_net
+travel=35.723076923076924
+turn=220
+## catchFloat.first_turbine
+travel=37.261538461538464
+turn=220
+## drift
+ENTER_X=-60
+EXIT_X=5580
+REACH=90
+REACH_MARGIN=40
+WINDOW=56
+Y=520
+reaches={{x0=200,x1=1600},{x0=1880,x1=3280},{x0=3560,x1=4960}}
+## drift.gift.0
+gift={enterAt=9.5149209885857999,id=0,kind="barrel",speed=67.357227496802807,y=520}
+reachFrom=13.37493734707296
+reachTo=34.159640815849983
+## drift.gift.1
+gift={enterAt=68.408817365765572,id=1,kind="barrel",speed=71.610827047377825,y=520}
+reachFrom=72.039553257532106
+reachTo=91.589669597813412
+## drift.gift.2
+gift={enterAt=119.39981789980084,id=2,kind="barrel",speed=77.428337473422289,y=520}
+reachFrom=122.75776162536832
+reachTo=140.83899707073169
+## drift.gift.500
+gift={enterAt=28006.296896790154,id=500,kind="barrel",speed=65.229485936462879,y=520}
+reachFrom=28010.282824262482
+reachTo=28031.745510651941
+## padStatuses.fresh
+first_net="available"
+first_runner="outline"
+## padStatuses.fresh.levels
+first_net="available"
+first_runner="outline"
+## era.fresh
+1
+## padBlocker.fresh
+battery_shed={first=false,hire=false,kind="net",name="First Turbine",padId="first_turbine",ring=false}
+bigger_sack={first=false,hire=false,kind="net",name="Second Net",padId="second_net",ring=false}
+copper_furnace={first=false,hire=false,kind="net",name="Ninth Net",padId="ninth_net",ring=false}
+dock_trader={first=false,hire=true,kind="after",name="Hauler",padId="hire_hauler",ring=false}
+eighth_net={first=false,hire=false,kind="net",name="Seventh Net",padId="seventh_net",ring=false}
+eleventh_net={first=false,hire=false,kind="after",name="Steam Engine",padId="steam_engine",ring=false}
+far_lane_net={first=false,hire=false,kind="net",name="Third Net",padId="third_net",ring=false}
+fifth_net={first=false,hire=false,kind="after",name="Forge",padId="workshop",ring=false}
+first_runner={first=true,hire=false,kind="net",name="First Net",padId="first_net",ring=false}
+first_turbine={first=false,hire=false,kind="after",name="Power House",padId="power_house",ring=false}
+fourteenth_net={first=false,hire=false,kind="net",name="Thirteenth Net",padId="thirteenth_net",ring=false}
+hire_battery_collector={first=false,hire=false,kind="after",name="Battery Shed",padId="battery_shed",ring=false}
+hire_battery_porter={first=false,hire=true,kind="after",name="Battery Collector",padId="hire_battery_collector",ring=false}
+hire_clerk={first=false,hire=true,kind="after",name="Coil Hauler",padId="hire_coil_hauler",ring=false}
+hire_coil_hauler={first=false,hire=true,kind="after",name="Wiredrawer",padId="hire_wiredrawer",ring=false}
+hire_copper_hauler={first=false,hire=true,kind="after",name="Coppersmith",padId="hire_coppersmith",ring=false}
+hire_coppersmith={first=false,hire=true,kind="after",name="Ore Porter",padId="hire_ore_porter",ring=false}
+hire_electrician={first=false,hire=true,kind="after",name="Battery Porter",padId="hire_battery_porter",ring=false}
+hire_founder={first=false,hire=true,kind="after",name="Mill Porter",padId="hire_mill_porter",ring=false}
+hire_hauler={first=false,hire=true,kind="after",name="Sawyer",padId="hire_sawyer",ring=false}
+hire_iron_hauler={first=false,hire=true,kind="after",name="Smelter",padId="hire_smelter",ring=false}
+hire_merchant={first=false,hire=true,kind="after",name="Parts Hauler",padId="hire_parts_hauler",ring=false}
+hire_mill_collector={first=false,hire=false,kind="net",name="Sixth Net",padId="sixth_net",ring=false}
+hire_mill_porter={first=false,hire=true,kind="after",name="Mill Collector",padId="hire_mill_collector",ring=false}
+hire_ore_collector={first=false,hire=false,kind="after",name="Ore Shed",padId="ore_shed",ring=false}
+hire_ore_porter={first=false,hire=true,kind="after",name="Ore Collector",padId="hire_ore_collector",ring=false}
+hire_parts_hauler={first=false,hire=true,kind="after",name="Founder",padId="hire_founder",ring=false}
+hire_porter={first=false,hire=true,kind="after",name="Collector",padId="first_runner",ring=false}
+hire_power_hauler={first=false,hire=true,kind="after",name="Electrician",padId="hire_electrician",ring=false}
+hire_sawyer={first=false,hire=true,kind="after",name="Porter",padId="hire_porter",ring=false}
+hire_scrap_collector={first=false,hire=false,kind="after",name="Scrap Shed",padId="scrap_shed",ring=false}
+hire_scrap_porter={first=false,hire=true,kind="after",name="Scrap Collector",padId="hire_scrap_collector",ring=false}
+hire_smelter={first=false,hire=true,kind="after",name="Scrap Porter",padId="hire_scrap_porter",ring=false}
+hire_wiredrawer={first=false,hire=true,kind="after",name="Works Porter",padId="hire_works_porter",ring=false}
+hire_works_collector={first=false,hire=false,kind="net",name="Eleventh Net",padId="eleventh_net",ring=false}
+hire_works_porter={first=false,hire=true,kind="after",name="Works Collector",padId="hire_works_collector",ring=false}
+landing_bell={first=false,hire=false,kind="all",ring=false,zone="The Landing"}
+mill_bell={first=false,hire=false,kind="all",ring=false,zone="The Mill"}
+ninth_net={first=false,hire=false,kind="net",name="Eighth Net",padId="eighth_net",ring=false}
+ore_shed={first=false,hire=false,kind="net",name="Tenth Net",padId="tenth_net",ring=false}
+power_house={first=false,hire=false,kind="net",name="Fourteenth Net",padId="fourteenth_net",ring=false}
+scrap_shed={first=false,hire=false,kind="net",name="Fifth Net",padId="fifth_net",ring=false}
+second_net={first=false,hire=true,kind="after",name="Innkeeper",padId="dock_trader",ring=false}
+seventh_net={first=false,hire=true,kind="after",name="Merchant",padId="hire_merchant",ring=false}
+sixth_net={first=false,hire=false,kind="after",name="Water Wheel",padId="water_wheel",ring=false}
+steam_engine={first=false,hire=false,kind="after",name="Mill Bell",padId="mill_bell",ring=true}
+tenth_net={first=false,hire=false,kind="after",name="Copper Furnace",padId="copper_furnace",ring=false}
+third_net={first=false,hire=false,kind="net",name="Second Net",padId="second_net",ring=false}
+thirteenth_net={first=false,hire=false,kind="net",name="Twelfth Net",padId="twelfth_net",ring=false}
+twelfth_net={first=false,hire=true,kind="after",name="Clerk",padId="hire_clerk",ring=false}
+water_wheel={first=false,hire=false,kind="after",name="Landing Bell",padId="landing_bell",ring=true}
+works_bell={first=false,hire=false,kind="all",ring=false,zone="The Wire Works"}
+workshop={first=false,hire=false,kind="net",name="Fourth Net",padId="far_lane_net",ring=false}
+## padStatuses.mid_era2
+bigger_sack="bought"
+copper_furnace="outline"
+dock_trader="bought"
+eighth_net="bought"
+far_lane_net="bought"
+fifth_net="bought"
+first_net="bought"
+first_runner="bought"
+hire_founder="bought"
+hire_hauler="bought"
+hire_iron_hauler="bought"
+hire_merchant="bought"
+hire_mill_collector="bought"
+hire_mill_porter="bought"
+hire_parts_hauler="bought"
+hire_porter="bought"
+hire_sawyer="bought"
+hire_scrap_collector="bought"
+hire_scrap_porter="bought"
+hire_smelter="bought"
+landing_bell="bought"
+ninth_net="available"
+scrap_shed="bought"
+second_net="bought"
+seventh_net="bought"
+sixth_net="bought"
+third_net="bought"
+water_wheel="bought"
+workshop="bought"
+## padStatuses.mid_era2.levels
+bigger_sack="bought"
+dock_trader="bought"
+eighth_net="bought"
+far_lane_net="bought"
+fifth_net="bought"
+first_net="bought"
+first_runner="bought"
+hire_founder="bought"
+hire_hauler="bought"
+hire_iron_hauler="bought"
+hire_merchant="bought"
+hire_mill_collector="bought"
+hire_mill_porter="bought"
+hire_parts_hauler="bought"
+hire_porter="bought"
+hire_sawyer="bought"
+hire_scrap_collector="bought"
+hire_scrap_porter="bought"
+hire_smelter="bought"
+landing_bell="bought"
+ninth_net="outline"
+scrap_shed="bought"
+second_net="bought"
+seventh_net="bought"
+sixth_net="bought"
+third_net="bought"
+water_wheel="bought"
+workshop="bought"
+## era.mid_era2
+2
+## padBlocker.mid_era2
+battery_shed={first=false,hire=false,kind="net",name="First Turbine",padId="first_turbine",ring=false}
+copper_furnace={first=false,hire=false,kind="net",name="Ninth Net",padId="ninth_net",ring=false}
+eleventh_net={first=false,hire=false,kind="after",name="Steam Engine",padId="steam_engine",ring=false}
+first_turbine={first=false,hire=false,kind="after",name="Power House",padId="power_house",ring=false}
+fourteenth_net={first=false,hire=false,kind="net",name="Thirteenth Net",padId="thirteenth_net",ring=false}
+hire_battery_collector={first=false,hire=false,kind="after",name="Battery Shed",padId="battery_shed",ring=false}
+hire_battery_porter={first=false,hire=true,kind="after",name="Battery Collector",padId="hire_battery_collector",ring=false}
+hire_clerk={first=false,hire=true,kind="after",name="Coil Hauler",padId="hire_coil_hauler",ring=false}
+hire_coil_hauler={first=false,hire=true,kind="after",name="Wiredrawer",padId="hire_wiredrawer",ring=false}
+hire_copper_hauler={first=false,hire=true,kind="after",name="Coppersmith",padId="hire_coppersmith",ring=false}
+hire_coppersmith={first=false,hire=true,kind="after",name="Ore Porter",padId="hire_ore_porter",ring=false}
+hire_electrician={first=false,hire=true,kind="after",name="Battery Porter",padId="hire_battery_porter",ring=false}
+hire_ore_collector={first=false,hire=false,kind="after",name="Ore Shed",padId="ore_shed",ring=false}
+hire_ore_porter={first=false,hire=true,kind="after",name="Ore Collector",padId="hire_ore_collector",ring=false}
+hire_power_hauler={first=false,hire=true,kind="after",name="Electrician",padId="hire_electrician",ring=false}
+hire_wiredrawer={first=false,hire=true,kind="after",name="Works Porter",padId="hire_works_porter",ring=false}
+hire_works_collector={first=false,hire=false,kind="net",name="Eleventh Net",padId="eleventh_net",ring=false}
+hire_works_porter={first=false,hire=true,kind="after",name="Works Collector",padId="hire_works_collector",ring=false}
+mill_bell={first=false,hire=false,kind="all",ring=false,zone="The Mill"}
+ninth_net={first=false,hire=false,kind="level",level=2,name="Eighth Net",padId="eighth_net",ring=false}
+ore_shed={first=false,hire=false,kind="net",name="Tenth Net",padId="tenth_net",ring=false}
+power_house={first=false,hire=false,kind="net",name="Fourteenth Net",padId="fourteenth_net",ring=false}
+steam_engine={first=false,hire=false,kind="after",name="Mill Bell",padId="mill_bell",ring=true}
+tenth_net={first=false,hire=false,kind="after",name="Copper Furnace",padId="copper_furnace",ring=false}
+thirteenth_net={first=false,hire=false,kind="net",name="Twelfth Net",padId="twelfth_net",ring=false}
+twelfth_net={first=false,hire=true,kind="after",name="Clerk",padId="hire_clerk",ring=false}
+works_bell={first=false,hire=false,kind="all",ring=false,zone="The Wire Works"}
+## padStatuses.works_bell
+battery_shed="bought"
+bigger_sack="bought"
+copper_furnace="bought"
+dock_trader="bought"
+eighth_net="bought"
+eleventh_net="bought"
+far_lane_net="bought"
+fifth_net="bought"
+first_net="bought"
+first_runner="bought"
+first_turbine="bought"
+fourteenth_net="bought"
+hire_battery_collector="bought"
+hire_battery_porter="bought"
+hire_clerk="bought"
+hire_coil_hauler="bought"
+hire_copper_hauler="bought"
+hire_coppersmith="bought"
+hire_electrician="bought"
+hire_founder="bought"
+hire_hauler="bought"
+hire_iron_hauler="bought"
+hire_merchant="bought"
+hire_mill_collector="bought"
+hire_mill_porter="bought"
+hire_ore_collector="bought"
+hire_ore_porter="bought"
+hire_parts_hauler="bought"
+hire_porter="bought"
+hire_power_hauler="bought"
+hire_sawyer="bought"
+hire_scrap_collector="bought"
+hire_scrap_porter="bought"
+hire_smelter="bought"
+hire_wiredrawer="bought"
+hire_works_collector="bought"
+hire_works_porter="bought"
+landing_bell="bought"
+mill_bell="bought"
+ninth_net="bought"
+ore_shed="bought"
+power_house="bought"
+scrap_shed="bought"
+second_net="bought"
+seventh_net="bought"
+sixth_net="bought"
+steam_engine="bought"
+tenth_net="bought"
+third_net="bought"
+thirteenth_net="bought"
+twelfth_net="bought"
+water_wheel="bought"
+works_bell="bought"
+workshop="bought"
+## padStatuses.works_bell.levels
+battery_shed="bought"
+bigger_sack="bought"
+copper_furnace="bought"
+dock_trader="bought"
+eighth_net="bought"
+eleventh_net="bought"
+far_lane_net="bought"
+fifth_net="bought"
+first_net="bought"
+first_runner="bought"
+first_turbine="bought"
+fourteenth_net="bought"
+hire_battery_collector="bought"
+hire_battery_porter="bought"
+hire_clerk="bought"
+hire_coil_hauler="bought"
+hire_copper_hauler="bought"
+hire_coppersmith="bought"
+hire_electrician="bought"
+hire_founder="bought"
+hire_hauler="bought"
+hire_iron_hauler="bought"
+hire_merchant="bought"
+hire_mill_collector="bought"
+hire_mill_porter="bought"
+hire_ore_collector="bought"
+hire_ore_porter="bought"
+hire_parts_hauler="bought"
+hire_porter="bought"
+hire_power_hauler="bought"
+hire_sawyer="bought"
+hire_scrap_collector="bought"
+hire_scrap_porter="bought"
+hire_smelter="bought"
+hire_wiredrawer="bought"
+hire_works_collector="bought"
+hire_works_porter="bought"
+landing_bell="bought"
+mill_bell="bought"
+ninth_net="bought"
+ore_shed="bought"
+power_house="bought"
+scrap_shed="bought"
+second_net="bought"
+seventh_net="bought"
+sixth_net="bought"
+steam_engine="bought"
+tenth_net="bought"
+third_net="bought"
+thirteenth_net="bought"
+twelfth_net="bought"
+water_wheel="bought"
+works_bell="bought"
+workshop="bought"
+## era.works_bell
+3
+## padBlocker.works_bell
+## cycle.mid_era2.collector.1of1
+{from={x=600,y=1010},kind="walk",t0=0,t1=0.33333333333333331,to={x=550,y=1010}}
+{from={x=550,y=1010},kind="walk",t0=0.33333333333333331,t1=1.6399999999999999,to={x=550,y=814}}
+{from={x=550,y=814},kind="walk",t0=1.6399999999999999,t1=2.1066666666666665,to={x=620,y=814}}
+{from={x=620,y=814},kind="walk",t0=2.1066666666666665,t1=2.1199999999999997,to={x=620,y=812}}
+{face="right",from={x=620,y=812},kind="collect",padId="first_net",t0=2.1199999999999997,t1=2.7199999999999998,to={x=620,y=812}}
+{from={x=620,y=812},kind="walk",t0=2.7199999999999998,t1=4.0533333333333328,to={x=820,y=812}}
+{face="right",from={x=820,y=812},kind="collect",padId="second_net",t0=4.0533333333333328,t1=4.6533333333333324,to={x=820,y=812}}
+{from={x=820,y=812},kind="walk",t0=4.6533333333333324,t1=5.9866666666666655,to={x=1020,y=812}}
+{face="right",from={x=1020,y=812},kind="collect",padId="third_net",t0=5.9866666666666655,t1=6.5866666666666651,to={x=1020,y=812}}
+{from={x=1020,y=812},kind="walk",t0=6.5866666666666651,t1=7.9199999999999982,to={x=1220,y=812}}
+{face="right",from={x=1220,y=812},kind="collect",padId="far_lane_net",t0=7.9199999999999982,t1=8.5199999999999978,to={x=1220,y=812}}
+{from={x=1220,y=812},kind="walk",t0=8.5199999999999978,t1=8.5333333333333314,to={x=1220,y=814}}
+{from={x=1220,y=814},kind="walk",t0=8.5333333333333314,t1=12.999999999999998,to={x=550,y=814}}
+{from={x=550,y=814},kind="walk",t0=12.999999999999998,t1=14.306666666666665,to={x=550,y=1010}}
+{from={x=550,y=1010},kind="walk",t0=14.306666666666665,t1=14.639999999999999,to={x=600,y=1010}}
+{face="right",from={x=600,y=1010},kind="sell",t0=14.639999999999999,t1=15.639999999999999,to={x=600,y=1010}}
+duration=15.639999999999999
+## cycle.mid_era2.collector.1of2
+{from={x=600,y=1010},kind="walk",t0=0,t1=0.33333333333333331,to={x=550,y=1010}}
+{from={x=550,y=1010},kind="walk",t0=0.33333333333333331,t1=1.6399999999999999,to={x=550,y=814}}
+{from={x=550,y=814},kind="walk",t0=1.6399999999999999,t1=2.1066666666666665,to={x=620,y=814}}
+{from={x=620,y=814},kind="walk",t0=2.1066666666666665,t1=2.1199999999999997,to={x=620,y=812}}
+{face="right",from={x=620,y=812},kind="collect",padId="first_net",t0=2.1199999999999997,t1=2.7199999999999998,to={x=620,y=812}}
+{from={x=620,y=812},kind="walk",t0=2.7199999999999998,t1=4.0533333333333328,to={x=820,y=812}}
+{face="right",from={x=820,y=812},kind="collect",padId="second_net",t0=4.0533333333333328,t1=4.6533333333333324,to={x=820,y=812}}
+{from={x=820,y=812},kind="walk",t0=4.6533333333333324,t1=4.6666666666666661,to={x=820,y=814}}
+{from={x=820,y=814},kind="walk",t0=4.6666666666666661,t1=6.4666666666666659,to={x=550,y=814}}
+{from={x=550,y=814},kind="walk",t0=6.4666666666666659,t1=7.7733333333333325,to={x=550,y=1010}}
+{from={x=550,y=1010},kind="walk",t0=7.7733333333333325,t1=8.1066666666666656,to={x=600,y=1010}}
+{face="right",from={x=600,y=1010},kind="sell",t0=8.1066666666666656,t1=9.1066666666666656,to={x=600,y=1010}}
+duration=9.1066666666666656
+## cycle.mid_era2.collector.2of2
+{from={x=600,y=1010},kind="walk",t0=0,t1=0.33333333333333331,to={x=550,y=1010}}
+{from={x=550,y=1010},kind="walk",t0=0.33333333333333331,t1=1.6399999999999999,to={x=550,y=814}}
+{from={x=550,y=814},kind="walk",t0=1.6399999999999999,t1=4.7733333333333334,to={x=1020,y=814}}
+{from={x=1020,y=814},kind="walk",t0=4.7733333333333334,t1=4.7866666666666671,to={x=1020,y=812}}
+{face="right",from={x=1020,y=812},kind="collect",padId="third_net",t0=4.7866666666666671,t1=5.3866666666666667,to={x=1020,y=812}}
+{from={x=1020,y=812},kind="walk",t0=5.3866666666666667,t1=6.7199999999999998,to={x=1220,y=812}}
+{face="right",from={x=1220,y=812},kind="collect",padId="far_lane_net",t0=6.7199999999999998,t1=7.3199999999999994,to={x=1220,y=812}}
+{from={x=1220,y=812},kind="walk",t0=7.3199999999999994,t1=7.333333333333333,to={x=1220,y=814}}
+{from={x=1220,y=814},kind="walk",t0=7.333333333333333,t1=11.800000000000001,to={x=550,y=814}}
+{from={x=550,y=814},kind="walk",t0=11.800000000000001,t1=13.106666666666667,to={x=550,y=1010}}
+{from={x=550,y=1010},kind="walk",t0=13.106666666666667,t1=13.440000000000001,to={x=600,y=1010}}
+{face="right",from={x=600,y=1010},kind="sell",t0=13.440000000000001,t1=14.440000000000001,to={x=600,y=1010}}
+duration=14.440000000000001
+## cycle.mid_era2.porter.1of1
+{from={x=840,y=1410},kind="walk",t0=0,t1=0.26666666666666666,to={x=840,y=1450}}
+{from={x=840,y=1450},kind="walk",t0=0.26666666666666666,t1=2.2000000000000002,to={x=550,y=1450}}
+{from={x=550,y=1450},kind="walk",t0=2.2000000000000002,t1=5.1333333333333329,to={x=550,y=1010}}
+{from={x=550,y=1010},kind="walk",t0=5.1333333333333329,t1=5.4666666666666659,to={x=600,y=1010}}
+{face="right",from={x=600,y=1010},kind="collect",padId="storage",t0=5.4666666666666659,t1=6.0666666666666655,to={x=600,y=1010}}
+{from={x=600,y=1010},kind="walk",t0=6.0666666666666655,t1=6.3999999999999986,to={x=550,y=1010}}
+{from={x=550,y=1010},kind="walk",t0=6.3999999999999986,t1=9.3333333333333321,to={x=550,y=1450}}
+{from={x=550,y=1450},kind="walk",t0=9.3333333333333321,t1=11.266666666666666,to={x=840,y=1450}}
+{from={x=840,y=1450},kind="walk",t0=11.266666666666666,t1=11.533333333333333,to={x=840,y=1410}}
+{face="right",from={x=840,y=1410},kind="sell",t0=11.533333333333333,t1=12.533333333333333,to={x=840,y=1410}}
+duration=12.533333333333333
+## cycle.mid_era2.porter.1of2
+{from={x=840,y=1410},kind="walk",t0=0,t1=0.26666666666666666,to={x=840,y=1450}}
+{from={x=840,y=1450},kind="walk",t0=0.26666666666666666,t1=2.2000000000000002,to={x=550,y=1450}}
+{from={x=550,y=1450},kind="walk",t0=2.2000000000000002,t1=5.1333333333333329,to={x=550,y=1010}}
+{from={x=550,y=1010},kind="walk",t0=5.1333333333333329,t1=5.4666666666666659,to={x=600,y=1010}}
+{face="right",from={x=600,y=1010},kind="collect",padId="storage",t0=5.4666666666666659,t1=6.0666666666666655,to={x=600,y=1010}}
+{from={x=600,y=1010},kind="walk",t0=6.0666666666666655,t1=6.3999999999999986,to={x=550,y=1010}}
+{from={x=550,y=1010},kind="walk",t0=6.3999999999999986,t1=9.3333333333333321,to={x=550,y=1450}}
+{from={x=550,y=1450},kind="walk",t0=9.3333333333333321,t1=11.266666666666666,to={x=840,y=1450}}
+{from={x=840,y=1450},kind="walk",t0=11.266666666666666,t1=11.533333333333333,to={x=840,y=1410}}
+{face="right",from={x=840,y=1410},kind="sell",t0=11.533333333333333,t1=12.533333333333333,to={x=840,y=1410}}
+duration=12.533333333333333
+## cycle.mid_era2.porter.2of2
+{from={x=840,y=1410},kind="walk",t0=0,t1=0.26666666666666666,to={x=840,y=1450}}
+{from={x=840,y=1450},kind="walk",t0=0.26666666666666666,t1=2.2000000000000002,to={x=550,y=1450}}
+{from={x=550,y=1450},kind="walk",t0=2.2000000000000002,t1=5.1333333333333329,to={x=550,y=1010}}
+{from={x=550,y=1010},kind="walk",t0=5.1333333333333329,t1=5.4666666666666659,to={x=600,y=1010}}
+{face="right",from={x=600,y=1010},kind="collect",padId="storage",t0=5.4666666666666659,t1=6.0666666666666655,to={x=600,y=1010}}
+{from={x=600,y=1010},kind="walk",t0=6.0666666666666655,t1=6.3999999999999986,to={x=550,y=1010}}
+{from={x=550,y=1010},kind="walk",t0=6.3999999999999986,t1=9.3333333333333321,to={x=550,y=1450}}
+{from={x=550,y=1450},kind="walk",t0=9.3333333333333321,t1=11.266666666666666,to={x=840,y=1450}}
+{from={x=840,y=1450},kind="walk",t0=11.266666666666666,t1=11.533333333333333,to={x=840,y=1410}}
+{face="right",from={x=840,y=1410},kind="sell",t0=11.533333333333333,t1=12.533333333333333,to={x=840,y=1410}}
+duration=12.533333333333333
+## cycle.mid_era2.sawyer.1of1
+duration=0
+## cycle.mid_era2.sawyer.1of2
+duration=0
+## cycle.mid_era2.sawyer.2of2
+duration=0
+## cycle.mid_era2.hauler.1of1
+{from={x=420,y=1130},kind="walk",t0=0,t1=0.8666666666666667,to={x=550,y=1130}}
+{from={x=550,y=1130},kind="walk",t0=0.8666666666666667,t1=3,to={x=550,y=1450}}
+{from={x=550,y=1450},kind="walk",t0=3,t1=7.0999999999999996,to={x=1165,y=1450}}
+{from={x=1165,y=1450},kind="walk",t0=7.0999999999999996,t1=7.3533333333333326,to={x=1165,y=1412}}
+{face="left",from={x=1165,y=1412},kind="collect",padId="planks",t0=7.3533333333333326,t1=7.9533333333333323,to={x=1165,y=1412}}
+{from={x=1165,y=1412},kind="walk",t0=7.9533333333333323,t1=8.2066666666666652,to={x=1165,y=1450}}
+{from={x=1165,y=1450},kind="walk",t0=8.2066666666666652,t1=12.306666666666665,to={x=550,y=1450}}
+{from={x=550,y=1450},kind="walk",t0=12.306666666666665,t1=14.439999999999998,to={x=550,y=1130}}
+{from={x=550,y=1130},kind="walk",t0=14.439999999999998,t1=15.306666666666665,to={x=420,y=1130}}
+{face="left",from={x=420,y=1130},kind="sell",t0=15.306666666666665,t1=16.306666666666665,to={x=420,y=1130}}
+duration=16.306666666666665
+## cycle.mid_era2.hauler.1of2
+{from={x=420,y=1130},kind="walk",t0=0,t1=0.8666666666666667,to={x=550,y=1130}}
+{from={x=550,y=1130},kind="walk",t0=0.8666666666666667,t1=3,to={x=550,y=1450}}
+{from={x=550,y=1450},kind="walk",t0=3,t1=7.0999999999999996,to={x=1165,y=1450}}
+{from={x=1165,y=1450},kind="walk",t0=7.0999999999999996,t1=7.3533333333333326,to={x=1165,y=1412}}
+{face="left",from={x=1165,y=1412},kind="collect",padId="planks",t0=7.3533333333333326,t1=7.9533333333333323,to={x=1165,y=1412}}
+{from={x=1165,y=1412},kind="walk",t0=7.9533333333333323,t1=8.2066666666666652,to={x=1165,y=1450}}
+{from={x=1165,y=1450},kind="walk",t0=8.2066666666666652,t1=12.306666666666665,to={x=550,y=1450}}
+{from={x=550,y=1450},kind="walk",t0=12.306666666666665,t1=14.439999999999998,to={x=550,y=1130}}
+{from={x=550,y=1130},kind="walk",t0=14.439999999999998,t1=15.306666666666665,to={x=420,y=1130}}
+{face="left",from={x=420,y=1130},kind="sell",t0=15.306666666666665,t1=16.306666666666665,to={x=420,y=1130}}
+duration=16.306666666666665
+## cycle.mid_era2.hauler.2of2
+{from={x=420,y=1130},kind="walk",t0=0,t1=0.8666666666666667,to={x=550,y=1130}}
+{from={x=550,y=1130},kind="walk",t0=0.8666666666666667,t1=3,to={x=550,y=1450}}
+{from={x=550,y=1450},kind="walk",t0=3,t1=7.0999999999999996,to={x=1165,y=1450}}
+{from={x=1165,y=1450},kind="walk",t0=7.0999999999999996,t1=7.3533333333333326,to={x=1165,y=1412}}
+{face="left",from={x=1165,y=1412},kind="collect",padId="planks",t0=7.3533333333333326,t1=7.9533333333333323,to={x=1165,y=1412}}
+{from={x=1165,y=1412},kind="walk",t0=7.9533333333333323,t1=8.2066666666666652,to={x=1165,y=1450}}
+{from={x=1165,y=1450},kind="walk",t0=8.2066666666666652,t1=12.306666666666665,to={x=550,y=1450}}
+{from={x=550,y=1450},kind="walk",t0=12.306666666666665,t1=14.439999999999998,to={x=550,y=1130}}
+{from={x=550,y=1130},kind="walk",t0=14.439999999999998,t1=15.306666666666665,to={x=420,y=1130}}
+{face="left",from={x=420,y=1130},kind="sell",t0=15.306666666666665,t1=16.306666666666665,to={x=420,y=1130}}
+duration=16.306666666666665
+## cycle.mid_era2.trader.1of1
+duration=0
+## cycle.mid_era2.trader.1of2
+duration=0
+## cycle.mid_era2.trader.2of2
+duration=0
+## cycle.mid_era2.scrapCollector.1of1
+{from={x=1330,y=1010},kind="walk",t0=0,t1=1.4499655168313486,to={x=1420,y=812}}
+{face="right",from={x=1420,y=812},kind="collect",padId="fifth_net",t0=1.4499655168313486,t1=2.0499655168313486,to={x=1420,y=812}}
+{from={x=1420,y=812},kind="walk",t0=2.0499655168313486,t1=3.4999310336626972,to={x=1330,y=1010}}
+{face="right",from={x=1330,y=1010},kind="sell",t0=3.4999310336626972,t1=4.4999310336626976,to={x=1330,y=1010}}
+duration=4.4999310336626976
+## cycle.mid_era2.scrapCollector.1of2
+{from={x=1330,y=1010},kind="walk",t0=0,t1=1.4499655168313486,to={x=1420,y=812}}
+{face="right",from={x=1420,y=812},kind="collect",padId="fifth_net",t0=1.4499655168313486,t1=2.0499655168313486,to={x=1420,y=812}}
+{from={x=1420,y=812},kind="walk",t0=2.0499655168313486,t1=3.4999310336626972,to={x=1330,y=1010}}
+{face="right",from={x=1330,y=1010},kind="sell",t0=3.4999310336626972,t1=4.4999310336626976,to={x=1330,y=1010}}
+duration=4.4999310336626976
+## cycle.mid_era2.scrapCollector.2of2
+{from={x=1330,y=1010},kind="walk",t0=0,t1=1.4499655168313486,to={x=1420,y=812}}
+{face="right",from={x=1420,y=812},kind="collect",padId="fifth_net",t0=1.4499655168313486,t1=2.0499655168313486,to={x=1420,y=812}}
+{from={x=1420,y=812},kind="walk",t0=2.0499655168313486,t1=3.4999310336626972,to={x=1330,y=1010}}
+{face="right",from={x=1330,y=1010},kind="sell",t0=3.4999310336626972,t1=4.4999310336626976,to={x=1330,y=1010}}
+duration=4.4999310336626976
+## cycle.mid_era2.scrapPorter.1of1
+{from={x=1430,y=1410},kind="walk",t0=0,t1=0.26666666666666666,to={x=1430,y=1450}}
+{from={x=1430,y=1450},kind="walk",t0=0.26666666666666666,t1=1.2666666666666666,to={x=1280,y=1450}}
+{from={x=1280,y=1450},kind="walk",t0=1.2666666666666666,t1=4.1999999999999993,to={x=1280,y=1010}}
+{from={x=1280,y=1010},kind="walk",t0=4.1999999999999993,t1=4.5333333333333323,to={x=1330,y=1010}}
+{face="right",from={x=1330,y=1010},kind="collect",padId="shed",t0=4.5333333333333323,t1=5.133333333333332,to={x=1330,y=1010}}
+{from={x=1330,y=1010},kind="walk",t0=5.133333333333332,t1=5.466666666666665,to={x=1280,y=1010}}
+{from={x=1280,y=1010},kind="walk",t0=5.466666666666665,t1=8.3999999999999986,to={x=1280,y=1450}}
+{from={x=1280,y=1450},kind="walk",t0=8.3999999999999986,t1=9.3999999999999986,to={x=1430,y=1450}}
+{from={x=1430,y=1450},kind="walk",t0=9.3999999999999986,t1=9.6666666666666661,to={x=1430,y=1410}}
+{face="right",from={x=1430,y=1410},kind="sell",t0=9.6666666666666661,t1=10.666666666666666,to={x=1430,y=1410}}
+duration=10.666666666666666
+## cycle.mid_era2.scrapPorter.1of2
+{from={x=1430,y=1410},kind="walk",t0=0,t1=0.26666666666666666,to={x=1430,y=1450}}
+{from={x=1430,y=1450},kind="walk",t0=0.26666666666666666,t1=1.2666666666666666,to={x=1280,y=1450}}
+{from={x=1280,y=1450},kind="walk",t0=1.2666666666666666,t1=4.1999999999999993,to={x=1280,y=1010}}
+{from={x=1280,y=1010},kind="walk",t0=4.1999999999999993,t1=4.5333333333333323,to={x=1330,y=1010}}
+{face="right",from={x=1330,y=1010},kind="collect",padId="shed",t0=4.5333333333333323,t1=5.133333333333332,to={x=1330,y=1010}}
+{from={x=1330,y=1010},kind="walk",t0=5.133333333333332,t1=5.466666666666665,to={x=1280,y=1010}}
+{from={x=1280,y=1010},kind="walk",t0=5.466666666666665,t1=8.3999999999999986,to={x=1280,y=1450}}
+{from={x=1280,y=1450},kind="walk",t0=8.3999999999999986,t1=9.3999999999999986,to={x=1430,y=1450}}
+{from={x=1430,y=1450},kind="walk",t0=9.3999999999999986,t1=9.6666666666666661,to={x=1430,y=1410}}
+{face="right",from={x=1430,y=1410},kind="sell",t0=9.6666666666666661,t1=10.666666666666666,to={x=1430,y=1410}}
+duration=10.666666666666666
+## cycle.mid_era2.scrapPorter.2of2
+{from={x=1430,y=1410},kind="walk",t0=0,t1=0.26666666666666666,to={x=1430,y=1450}}
+{from={x=1430,y=1450},kind="walk",t0=0.26666666666666666,t1=1.2666666666666666,to={x=1280,y=1450}}
+{from={x=1280,y=1450},kind="walk",t0=1.2666666666666666,t1=4.1999999999999993,to={x=1280,y=1010}}
+{from={x=1280,y=1010},kind="walk",t0=4.1999999999999993,t1=4.5333333333333323,to={x=1330,y=1010}}
+{face="right",from={x=1330,y=1010},kind="collect",padId="shed",t0=4.5333333333333323,t1=5.133333333333332,to={x=1330,y=1010}}
+{from={x=1330,y=1010},kind="walk",t0=5.133333333333332,t1=5.466666666666665,to={x=1280,y=1010}}
+{from={x=1280,y=1010},kind="walk",t0=5.466666666666665,t1=8.3999999999999986,to={x=1280,y=1450}}
+{from={x=1280,y=1450},kind="walk",t0=8.3999999999999986,t1=9.3999999999999986,to={x=1430,y=1450}}
+{from={x=1430,y=1450},kind="walk",t0=9.3999999999999986,t1=9.6666666666666661,to={x=1430,y=1410}}
+{face="right",from={x=1430,y=1410},kind="sell",t0=9.6666666666666661,t1=10.666666666666666,to={x=1430,y=1410}}
+duration=10.666666666666666
+## cycle.mid_era2.smelter.1of1
+duration=0
+## cycle.mid_era2.smelter.1of2
+duration=0
+## cycle.mid_era2.smelter.2of2
+duration=0
+## cycle.mid_era2.ironHauler.1of1
+{from={x=420,y=1130},kind="walk",t0=0,t1=0.8666666666666667,to={x=550,y=1130}}
+{from={x=550,y=1130},kind="walk",t0=0.8666666666666667,t1=3,to={x=550,y=1450}}
+{from={x=550,y=1450},kind="walk",t0=3,t1=11.533333333333333,to={x=1830,y=1450}}
+{from={x=1830,y=1450},kind="walk",t0=11.533333333333333,t1=11.786666666666667,to={x=1830,y=1412}}
+{face="left",from={x=1830,y=1412},kind="collect",padId="iron",t0=11.786666666666667,t1=12.386666666666667,to={x=1830,y=1412}}
+{from={x=1830,y=1412},kind="walk",t0=12.386666666666667,t1=12.640000000000001,to={x=1830,y=1450}}
+{from={x=1830,y=1450},kind="walk",t0=12.640000000000001,t1=21.173333333333332,to={x=550,y=1450}}
+{from={x=550,y=1450},kind="walk",t0=21.173333333333332,t1=23.306666666666665,to={x=550,y=1130}}
+{from={x=550,y=1130},kind="walk",t0=23.306666666666665,t1=24.173333333333332,to={x=420,y=1130}}
+{face="left",from={x=420,y=1130},kind="sell",t0=24.173333333333332,t1=25.173333333333332,to={x=420,y=1130}}
+duration=25.173333333333332
+## cycle.mid_era2.ironHauler.1of2
+{from={x=420,y=1130},kind="walk",t0=0,t1=0.8666666666666667,to={x=550,y=1130}}
+{from={x=550,y=1130},kind="walk",t0=0.8666666666666667,t1=3,to={x=550,y=1450}}
+{from={x=550,y=1450},kind="walk",t0=3,t1=11.533333333333333,to={x=1830,y=1450}}
+{from={x=1830,y=1450},kind="walk",t0=11.533333333333333,t1=11.786666666666667,to={x=1830,y=1412}}
+{face="left",from={x=1830,y=1412},kind="collect",padId="iron",t0=11.786666666666667,t1=12.386666666666667,to={x=1830,y=1412}}
+{from={x=1830,y=1412},kind="walk",t0=12.386666666666667,t1=12.640000000000001,to={x=1830,y=1450}}
+{from={x=1830,y=1450},kind="walk",t0=12.640000000000001,t1=21.173333333333332,to={x=550,y=1450}}
+{from={x=550,y=1450},kind="walk",t0=21.173333333333332,t1=23.306666666666665,to={x=550,y=1130}}
+{from={x=550,y=1130},kind="walk",t0=23.306666666666665,t1=24.173333333333332,to={x=420,y=1130}}
+{face="left",from={x=420,y=1130},kind="sell",t0=24.173333333333332,t1=25.173333333333332,to={x=420,y=1130}}
+duration=25.173333333333332
+## cycle.mid_era2.ironHauler.2of2
+{from={x=420,y=1130},kind="walk",t0=0,t1=0.8666666666666667,to={x=550,y=1130}}
+{from={x=550,y=1130},kind="walk",t0=0.8666666666666667,t1=3,to={x=550,y=1450}}
+{from={x=550,y=1450},kind="walk",t0=3,t1=11.533333333333333,to={x=1830,y=1450}}
+{from={x=1830,y=1450},kind="walk",t0=11.533333333333333,t1=11.786666666666667,to={x=1830,y=1412}}
+{face="left",from={x=1830,y=1412},kind="collect",padId="iron",t0=11.786666666666667,t1=12.386666666666667,to={x=1830,y=1412}}
+{from={x=1830,y=1412},kind="walk",t0=12.386666666666667,t1=12.640000000000001,to={x=1830,y=1450}}
+{from={x=1830,y=1450},kind="walk",t0=12.640000000000001,t1=21.173333333333332,to={x=550,y=1450}}
+{from={x=550,y=1450},kind="walk",t0=21.173333333333332,t1=23.306666666666665,to={x=550,y=1130}}
+{from={x=550,y=1130},kind="walk",t0=23.306666666666665,t1=24.173333333333332,to={x=420,y=1130}}
+{face="left",from={x=420,y=1130},kind="sell",t0=24.173333333333332,t1=25.173333333333332,to={x=420,y=1130}}
+duration=25.173333333333332
+## cycle.mid_era2.millCollector.1of1
+{from={x=2280,y=1010},kind="walk",t0=0,t1=0.33333333333333331,to={x=2230,y=1010}}
+{from={x=2230,y=1010},kind="walk",t0=0.33333333333333331,t1=1.6399999999999999,to={x=2230,y=814}}
+{from={x=2230,y=814},kind="walk",t0=1.6399999999999999,t1=2.1066666666666665,to={x=2300,y=814}}
+{from={x=2300,y=814},kind="walk",t0=2.1066666666666665,t1=2.1199999999999997,to={x=2300,y=812}}
+{face="right",from={x=2300,y=812},kind="collect",padId="sixth_net",t0=2.1199999999999997,t1=2.7199999999999998,to={x=2300,y=812}}
+{from={x=2300,y=812},kind="walk",t0=2.7199999999999998,t1=4.0533333333333328,to={x=2500,y=812}}
+{face="right",from={x=2500,y=812},kind="collect",padId="seventh_net",t0=4.0533333333333328,t1=4.6533333333333324,to={x=2500,y=812}}
+{from={x=2500,y=812},kind="walk",t0=4.6533333333333324,t1=5.9866666666666655,to={x=2700,y=812}}
+{face="right",from={x=2700,y=812},kind="collect",padId="eighth_net",t0=5.9866666666666655,t1=6.5866666666666651,to={x=2700,y=812}}
+{from={x=2700,y=812},kind="walk",t0=6.5866666666666651,t1=6.5999999999999988,to={x=2700,y=814}}
+{from={x=2700,y=814},kind="walk",t0=6.5999999999999988,t1=9.7333333333333325,to={x=2230,y=814}}
+{from={x=2230,y=814},kind="walk",t0=9.7333333333333325,t1=11.039999999999999,to={x=2230,y=1010}}
+{from={x=2230,y=1010},kind="walk",t0=11.039999999999999,t1=11.373333333333333,to={x=2280,y=1010}}
+{face="right",from={x=2280,y=1010},kind="sell",t0=11.373333333333333,t1=12.373333333333333,to={x=2280,y=1010}}
+duration=12.373333333333333
+## cycle.mid_era2.millCollector.1of2
+{from={x=2280,y=1010},kind="walk",t0=0,t1=0.33333333333333331,to={x=2230,y=1010}}
+{from={x=2230,y=1010},kind="walk",t0=0.33333333333333331,t1=1.6399999999999999,to={x=2230,y=814}}
+{from={x=2230,y=814},kind="walk",t0=1.6399999999999999,t1=2.1066666666666665,to={x=2300,y=814}}
+{from={x=2300,y=814},kind="walk",t0=2.1066666666666665,t1=2.1199999999999997,to={x=2300,y=812}}
+{face="right",from={x=2300,y=812},kind="collect",padId="sixth_net",t0=2.1199999999999997,t1=2.7199999999999998,to={x=2300,y=812}}
+{from={x=2300,y=812},kind="walk",t0=2.7199999999999998,t1=4.0533333333333328,to={x=2500,y=812}}
+{face="right",from={x=2500,y=812},kind="collect",padId="seventh_net",t0=4.0533333333333328,t1=4.6533333333333324,to={x=2500,y=812}}
+{from={x=2500,y=812},kind="walk",t0=4.6533333333333324,t1=4.6666666666666661,to={x=2500,y=814}}
+{from={x=2500,y=814},kind="walk",t0=4.6666666666666661,t1=6.4666666666666659,to={x=2230,y=814}}
+{from={x=2230,y=814},kind="walk",t0=6.4666666666666659,t1=7.7733333333333325,to={x=2230,y=1010}}
+{from={x=2230,y=1010},kind="walk",t0=7.7733333333333325,t1=8.1066666666666656,to={x=2280,y=1010}}
+{face="right",from={x=2280,y=1010},kind="sell",t0=8.1066666666666656,t1=9.1066666666666656,to={x=2280,y=1010}}
+duration=9.1066666666666656
+## cycle.mid_era2.millCollector.2of2
+{from={x=2280,y=1010},kind="walk",t0=0,t1=0.33333333333333331,to={x=2230,y=1010}}
+{from={x=2230,y=1010},kind="walk",t0=0.33333333333333331,t1=1.6399999999999999,to={x=2230,y=814}}
+{from={x=2230,y=814},kind="walk",t0=1.6399999999999999,t1=4.7733333333333334,to={x=2700,y=814}}
+{from={x=2700,y=814},kind="walk",t0=4.7733333333333334,t1=4.7866666666666671,to={x=2700,y=812}}
+{face="right",from={x=2700,y=812},kind="collect",padId="eighth_net",t0=4.7866666666666671,t1=5.3866666666666667,to={x=2700,y=812}}
+{from={x=2700,y=812},kind="walk",t0=5.3866666666666667,t1=5.4000000000000004,to={x=2700,y=814}}
+{from={x=2700,y=814},kind="walk",t0=5.4000000000000004,t1=8.5333333333333332,to={x=2230,y=814}}
+{from={x=2230,y=814},kind="walk",t0=8.5333333333333332,t1=9.8399999999999999,to={x=2230,y=1010}}
+{from={x=2230,y=1010},kind="walk",t0=9.8399999999999999,t1=10.173333333333334,to={x=2280,y=1010}}
+{face="right",from={x=2280,y=1010},kind="sell",t0=10.173333333333334,t1=11.173333333333334,to={x=2280,y=1010}}
+duration=11.173333333333334
+## cycle.mid_era2.millPorter.1of1
+{from={x=2520,y=1410},kind="walk",t0=0,t1=0.26666666666666666,to={x=2520,y=1450}}
+{from={x=2520,y=1450},kind="walk",t0=0.26666666666666666,t1=2.2000000000000002,to={x=2230,y=1450}}
+{from={x=2230,y=1450},kind="walk",t0=2.2000000000000002,t1=5.1333333333333329,to={x=2230,y=1010}}
+{from={x=2230,y=1010},kind="walk",t0=5.1333333333333329,t1=5.4666666666666659,to={x=2280,y=1010}}
+{face="right",from={x=2280,y=1010},kind="collect",padId="millStore",t0=5.4666666666666659,t1=6.0666666666666655,to={x=2280,y=1010}}
+{from={x=2280,y=1010},kind="walk",t0=6.0666666666666655,t1=6.3999999999999986,to={x=2230,y=1010}}
+{from={x=2230,y=1010},kind="walk",t0=6.3999999999999986,t1=9.3333333333333321,to={x=2230,y=1450}}
+{from={x=2230,y=1450},kind="walk",t0=9.3333333333333321,t1=11.266666666666666,to={x=2520,y=1450}}
+{from={x=2520,y=1450},kind="walk",t0=11.266666666666666,t1=11.533333333333333,to={x=2520,y=1410}}
+{face="right",from={x=2520,y=1410},kind="sell",t0=11.533333333333333,t1=12.533333333333333,to={x=2520,y=1410}}
+duration=12.533333333333333
+## cycle.mid_era2.millPorter.1of2
+{from={x=2520,y=1410},kind="walk",t0=0,t1=0.26666666666666666,to={x=2520,y=1450}}
+{from={x=2520,y=1450},kind="walk",t0=0.26666666666666666,t1=2.2000000000000002,to={x=2230,y=1450}}
+{from={x=2230,y=1450},kind="walk",t0=2.2000000000000002,t1=5.1333333333333329,to={x=2230,y=1010}}
+{from={x=2230,y=1010},kind="walk",t0=5.1333333333333329,t1=5.4666666666666659,to={x=2280,y=1010}}
+{face="right",from={x=2280,y=1010},kind="collect",padId="millStore",t0=5.4666666666666659,t1=6.0666666666666655,to={x=2280,y=1010}}
+{from={x=2280,y=1010},kind="walk",t0=6.0666666666666655,t1=6.3999999999999986,to={x=2230,y=1010}}
+{from={x=2230,y=1010},kind="walk",t0=6.3999999999999986,t1=9.3333333333333321,to={x=2230,y=1450}}
+{from={x=2230,y=1450},kind="walk",t0=9.3333333333333321,t1=11.266666666666666,to={x=2520,y=1450}}
+{from={x=2520,y=1450},kind="walk",t0=11.266666666666666,t1=11.533333333333333,to={x=2520,y=1410}}
+{face="right",from={x=2520,y=1410},kind="sell",t0=11.533333333333333,t1=12.533333333333333,to={x=2520,y=1410}}
+duration=12.533333333333333
+## cycle.mid_era2.millPorter.2of2
+{from={x=2520,y=1410},kind="walk",t0=0,t1=0.26666666666666666,to={x=2520,y=1450}}
+{from={x=2520,y=1450},kind="walk",t0=0.26666666666666666,t1=2.2000000000000002,to={x=2230,y=1450}}
+{from={x=2230,y=1450},kind="walk",t0=2.2000000000000002,t1=5.1333333333333329,to={x=2230,y=1010}}
+{from={x=2230,y=1010},kind="walk",t0=5.1333333333333329,t1=5.4666666666666659,to={x=2280,y=1010}}
+{face="right",from={x=2280,y=1010},kind="collect",padId="millStore",t0=5.4666666666666659,t1=6.0666666666666655,to={x=2280,y=1010}}
+{from={x=2280,y=1010},kind="walk",t0=6.0666666666666655,t1=6.3999999999999986,to={x=2230,y=1010}}
+{from={x=2230,y=1010},kind="walk",t0=6.3999999999999986,t1=9.3333333333333321,to={x=2230,y=1450}}
+{from={x=2230,y=1450},kind="walk",t0=9.3333333333333321,t1=11.266666666666666,to={x=2520,y=1450}}
+{from={x=2520,y=1450},kind="walk",t0=11.266666666666666,t1=11.533333333333333,to={x=2520,y=1410}}
+{face="right",from={x=2520,y=1410},kind="sell",t0=11.533333333333333,t1=12.533333333333333,to={x=2520,y=1410}}
+duration=12.533333333333333
+## cycle.mid_era2.founder.1of1
+duration=0
+## cycle.mid_era2.founder.1of2
+duration=0
+## cycle.mid_era2.founder.2of2
+duration=0
+## cycle.mid_era2.partsHauler.1of1
+{from={x=2100,y=1130},kind="walk",t0=0,t1=0.8666666666666667,to={x=2230,y=1130}}
+{from={x=2230,y=1130},kind="walk",t0=0.8666666666666667,t1=3,to={x=2230,y=1450}}
+{from={x=2230,y=1450},kind="walk",t0=3,t1=7.0999999999999996,to={x=2845,y=1450}}
+{from={x=2845,y=1450},kind="walk",t0=7.0999999999999996,t1=7.3533333333333326,to={x=2845,y=1412}}
+{face="left",from={x=2845,y=1412},kind="collect",padId="parts",t0=7.3533333333333326,t1=7.9533333333333323,to={x=2845,y=1412}}
+{from={x=2845,y=1412},kind="walk",t0=7.9533333333333323,t1=8.2066666666666652,to={x=2845,y=1450}}
+{from={x=2845,y=1450},kind="walk",t0=8.2066666666666652,t1=12.306666666666665,to={x=2230,y=1450}}
+{from={x=2230,y=1450},kind="walk",t0=12.306666666666665,t1=14.439999999999998,to={x=2230,y=1130}}
+{from={x=2230,y=1130},kind="walk",t0=14.439999999999998,t1=15.306666666666665,to={x=2100,y=1130}}
+{face="left",from={x=2100,y=1130},kind="sell",t0=15.306666666666665,t1=16.306666666666665,to={x=2100,y=1130}}
+duration=16.306666666666665
+## cycle.mid_era2.partsHauler.1of2
+{from={x=2100,y=1130},kind="walk",t0=0,t1=0.8666666666666667,to={x=2230,y=1130}}
+{from={x=2230,y=1130},kind="walk",t0=0.8666666666666667,t1=3,to={x=2230,y=1450}}
+{from={x=2230,y=1450},kind="walk",t0=3,t1=7.0999999999999996,to={x=2845,y=1450}}
+{from={x=2845,y=1450},kind="walk",t0=7.0999999999999996,t1=7.3533333333333326,to={x=2845,y=1412}}
+{face="left",from={x=2845,y=1412},kind="collect",padId="parts",t0=7.3533333333333326,t1=7.9533333333333323,to={x=2845,y=1412}}
+{from={x=2845,y=1412},kind="walk",t0=7.9533333333333323,t1=8.2066666666666652,to={x=2845,y=1450}}
+{from={x=2845,y=1450},kind="walk",t0=8.2066666666666652,t1=12.306666666666665,to={x=2230,y=1450}}
+{from={x=2230,y=1450},kind="walk",t0=12.306666666666665,t1=14.439999999999998,to={x=2230,y=1130}}
+{from={x=2230,y=1130},kind="walk",t0=14.439999999999998,t1=15.306666666666665,to={x=2100,y=1130}}
+{face="left",from={x=2100,y=1130},kind="sell",t0=15.306666666666665,t1=16.306666666666665,to={x=2100,y=1130}}
+duration=16.306666666666665
+## cycle.mid_era2.partsHauler.2of2
+{from={x=2100,y=1130},kind="walk",t0=0,t1=0.8666666666666667,to={x=2230,y=1130}}
+{from={x=2230,y=1130},kind="walk",t0=0.8666666666666667,t1=3,to={x=2230,y=1450}}
+{from={x=2230,y=1450},kind="walk",t0=3,t1=7.0999999999999996,to={x=2845,y=1450}}
+{from={x=2845,y=1450},kind="walk",t0=7.0999999999999996,t1=7.3533333333333326,to={x=2845,y=1412}}
+{face="left",from={x=2845,y=1412},kind="collect",padId="parts",t0=7.3533333333333326,t1=7.9533333333333323,to={x=2845,y=1412}}
+{from={x=2845,y=1412},kind="walk",t0=7.9533333333333323,t1=8.2066666666666652,to={x=2845,y=1450}}
+{from={x=2845,y=1450},kind="walk",t0=8.2066666666666652,t1=12.306666666666665,to={x=2230,y=1450}}
+{from={x=2230,y=1450},kind="walk",t0=12.306666666666665,t1=14.439999999999998,to={x=2230,y=1130}}
+{from={x=2230,y=1130},kind="walk",t0=14.439999999999998,t1=15.306666666666665,to={x=2100,y=1130}}
+{face="left",from={x=2100,y=1130},kind="sell",t0=15.306666666666665,t1=16.306666666666665,to={x=2100,y=1130}}
+duration=16.306666666666665
+## cycle.mid_era2.merchant.1of1
+duration=0
+## cycle.mid_era2.merchant.1of2
+duration=0
+## cycle.mid_era2.merchant.2of2
+duration=0
+## cycle.mid_era2.oreCollector.1of1
+duration=0
+## cycle.mid_era2.oreCollector.1of2
+duration=0
+## cycle.mid_era2.oreCollector.2of2
+duration=0
+## cycle.mid_era2.orePorter.1of1
+{from={x=3110,y=1410},kind="walk",t0=0,t1=0.26666666666666666,to={x=3110,y=1450}}
+{from={x=3110,y=1450},kind="walk",t0=0.26666666666666666,t1=1.2666666666666666,to={x=2960,y=1450}}
+{from={x=2960,y=1450},kind="walk",t0=1.2666666666666666,t1=4.1999999999999993,to={x=2960,y=1010}}
+{from={x=2960,y=1010},kind="walk",t0=4.1999999999999993,t1=4.5333333333333323,to={x=3010,y=1010}}
+{face="right",from={x=3010,y=1010},kind="collect",padId="oreShed",t0=4.5333333333333323,t1=5.133333333333332,to={x=3010,y=1010}}
+{from={x=3010,y=1010},kind="walk",t0=5.133333333333332,t1=5.466666666666665,to={x=2960,y=1010}}
+{from={x=2960,y=1010},kind="walk",t0=5.466666666666665,t1=8.3999999999999986,to={x=2960,y=1450}}
+{from={x=2960,y=1450},kind="walk",t0=8.3999999999999986,t1=9.3999999999999986,to={x=3110,y=1450}}
+{from={x=3110,y=1450},kind="walk",t0=9.3999999999999986,t1=9.6666666666666661,to={x=3110,y=1410}}
+{face="right",from={x=3110,y=1410},kind="sell",t0=9.6666666666666661,t1=10.666666666666666,to={x=3110,y=1410}}
+duration=10.666666666666666
+## cycle.mid_era2.orePorter.1of2
+{from={x=3110,y=1410},kind="walk",t0=0,t1=0.26666666666666666,to={x=3110,y=1450}}
+{from={x=3110,y=1450},kind="walk",t0=0.26666666666666666,t1=1.2666666666666666,to={x=2960,y=1450}}
+{from={x=2960,y=1450},kind="walk",t0=1.2666666666666666,t1=4.1999999999999993,to={x=2960,y=1010}}
+{from={x=2960,y=1010},kind="walk",t0=4.1999999999999993,t1=4.5333333333333323,to={x=3010,y=1010}}
+{face="right",from={x=3010,y=1010},kind="collect",padId="oreShed",t0=4.5333333333333323,t1=5.133333333333332,to={x=3010,y=1010}}
+{from={x=3010,y=1010},kind="walk",t0=5.133333333333332,t1=5.466666666666665,to={x=2960,y=1010}}
+{from={x=2960,y=1010},kind="walk",t0=5.466666666666665,t1=8.3999999999999986,to={x=2960,y=1450}}
+{from={x=2960,y=1450},kind="walk",t0=8.3999999999999986,t1=9.3999999999999986,to={x=3110,y=1450}}
+{from={x=3110,y=1450},kind="walk",t0=9.3999999999999986,t1=9.6666666666666661,to={x=3110,y=1410}}
+{face="right",from={x=3110,y=1410},kind="sell",t0=9.6666666666666661,t1=10.666666666666666,to={x=3110,y=1410}}
+duration=10.666666666666666
+## cycle.mid_era2.orePorter.2of2
+{from={x=3110,y=1410},kind="walk",t0=0,t1=0.26666666666666666,to={x=3110,y=1450}}
+{from={x=3110,y=1450},kind="walk",t0=0.26666666666666666,t1=1.2666666666666666,to={x=2960,y=1450}}
+{from={x=2960,y=1450},kind="walk",t0=1.2666666666666666,t1=4.1999999999999993,to={x=2960,y=1010}}
+{from={x=2960,y=1010},kind="walk",t0=4.1999999999999993,t1=4.5333333333333323,to={x=3010,y=1010}}
+{face="right",from={x=3010,y=1010},kind="collect",padId="oreShed",t0=4.5333333333333323,t1=5.133333333333332,to={x=3010,y=1010}}
+{from={x=3010,y=1010},kind="walk",t0=5.133333333333332,t1=5.466666666666665,to={x=2960,y=1010}}
+{from={x=2960,y=1010},kind="walk",t0=5.466666666666665,t1=8.3999999999999986,to={x=2960,y=1450}}
+{from={x=2960,y=1450},kind="walk",t0=8.3999999999999986,t1=9.3999999999999986,to={x=3110,y=1450}}
+{from={x=3110,y=1450},kind="walk",t0=9.3999999999999986,t1=9.6666666666666661,to={x=3110,y=1410}}
+{face="right",from={x=3110,y=1410},kind="sell",t0=9.6666666666666661,t1=10.666666666666666,to={x=3110,y=1410}}
+duration=10.666666666666666
+## cycle.mid_era2.coppersmith.1of1
+duration=0
+## cycle.mid_era2.coppersmith.1of2
+duration=0
+## cycle.mid_era2.coppersmith.2of2
+duration=0
+## cycle.mid_era2.copperHauler.1of1
+{from={x=2100,y=1130},kind="walk",t0=0,t1=0.8666666666666667,to={x=2230,y=1130}}
+{from={x=2230,y=1130},kind="walk",t0=0.8666666666666667,t1=3,to={x=2230,y=1450}}
+{from={x=2230,y=1450},kind="walk",t0=3,t1=11.533333333333333,to={x=3510,y=1450}}
+{from={x=3510,y=1450},kind="walk",t0=11.533333333333333,t1=11.786666666666667,to={x=3510,y=1412}}
+{face="left",from={x=3510,y=1412},kind="collect",padId="copper",t0=11.786666666666667,t1=12.386666666666667,to={x=3510,y=1412}}
+{from={x=3510,y=1412},kind="walk",t0=12.386666666666667,t1=12.640000000000001,to={x=3510,y=1450}}
+{from={x=3510,y=1450},kind="walk",t0=12.640000000000001,t1=21.173333333333332,to={x=2230,y=1450}}
+{from={x=2230,y=1450},kind="walk",t0=21.173333333333332,t1=23.306666666666665,to={x=2230,y=1130}}
+{from={x=2230,y=1130},kind="walk",t0=23.306666666666665,t1=24.173333333333332,to={x=2100,y=1130}}
+{face="left",from={x=2100,y=1130},kind="sell",t0=24.173333333333332,t1=25.173333333333332,to={x=2100,y=1130}}
+duration=25.173333333333332
+## cycle.mid_era2.copperHauler.1of2
+{from={x=2100,y=1130},kind="walk",t0=0,t1=0.8666666666666667,to={x=2230,y=1130}}
+{from={x=2230,y=1130},kind="walk",t0=0.8666666666666667,t1=3,to={x=2230,y=1450}}
+{from={x=2230,y=1450},kind="walk",t0=3,t1=11.533333333333333,to={x=3510,y=1450}}
+{from={x=3510,y=1450},kind="walk",t0=11.533333333333333,t1=11.786666666666667,to={x=3510,y=1412}}
+{face="left",from={x=3510,y=1412},kind="collect",padId="copper",t0=11.786666666666667,t1=12.386666666666667,to={x=3510,y=1412}}
+{from={x=3510,y=1412},kind="walk",t0=12.386666666666667,t1=12.640000000000001,to={x=3510,y=1450}}
+{from={x=3510,y=1450},kind="walk",t0=12.640000000000001,t1=21.173333333333332,to={x=2230,y=1450}}
+{from={x=2230,y=1450},kind="walk",t0=21.173333333333332,t1=23.306666666666665,to={x=2230,y=1130}}
+{from={x=2230,y=1130},kind="walk",t0=23.306666666666665,t1=24.173333333333332,to={x=2100,y=1130}}
+{face="left",from={x=2100,y=1130},kind="sell",t0=24.173333333333332,t1=25.173333333333332,to={x=2100,y=1130}}
+duration=25.173333333333332
+## cycle.mid_era2.copperHauler.2of2
+{from={x=2100,y=1130},kind="walk",t0=0,t1=0.8666666666666667,to={x=2230,y=1130}}
+{from={x=2230,y=1130},kind="walk",t0=0.8666666666666667,t1=3,to={x=2230,y=1450}}
+{from={x=2230,y=1450},kind="walk",t0=3,t1=11.533333333333333,to={x=3510,y=1450}}
+{from={x=3510,y=1450},kind="walk",t0=11.533333333333333,t1=11.786666666666667,to={x=3510,y=1412}}
+{face="left",from={x=3510,y=1412},kind="collect",padId="copper",t0=11.786666666666667,t1=12.386666666666667,to={x=3510,y=1412}}
+{from={x=3510,y=1412},kind="walk",t0=12.386666666666667,t1=12.640000000000001,to={x=3510,y=1450}}
+{from={x=3510,y=1450},kind="walk",t0=12.640000000000001,t1=21.173333333333332,to={x=2230,y=1450}}
+{from={x=2230,y=1450},kind="walk",t0=21.173333333333332,t1=23.306666666666665,to={x=2230,y=1130}}
+{from={x=2230,y=1130},kind="walk",t0=23.306666666666665,t1=24.173333333333332,to={x=2100,y=1130}}
+{face="left",from={x=2100,y=1130},kind="sell",t0=24.173333333333332,t1=25.173333333333332,to={x=2100,y=1130}}
+duration=25.173333333333332
+## cycle.mid_era2.worksCollector.1of1
+duration=0
+## cycle.mid_era2.worksCollector.1of2
+duration=0
+## cycle.mid_era2.worksCollector.2of2
+duration=0
+## cycle.mid_era2.worksPorter.1of1
+{from={x=4200,y=1410},kind="walk",t0=0,t1=0.26666666666666666,to={x=4200,y=1450}}
+{from={x=4200,y=1450},kind="walk",t0=0.26666666666666666,t1=2.2000000000000002,to={x=3910,y=1450}}
+{from={x=3910,y=1450},kind="walk",t0=2.2000000000000002,t1=5.1333333333333329,to={x=3910,y=1010}}
+{from={x=3910,y=1010},kind="walk",t0=5.1333333333333329,t1=5.4666666666666659,to={x=3960,y=1010}}
+{face="right",from={x=3960,y=1010},kind="collect",padId="worksStore",t0=5.4666666666666659,t1=6.0666666666666655,to={x=3960,y=1010}}
+{from={x=3960,y=1010},kind="walk",t0=6.0666666666666655,t1=6.3999999999999986,to={x=3910,y=1010}}
+{from={x=3910,y=1010},kind="walk",t0=6.3999999999999986,t1=9.3333333333333321,to={x=3910,y=1450}}
+{from={x=3910,y=1450},kind="walk",t0=9.3333333333333321,t1=11.266666666666666,to={x=4200,y=1450}}
+{from={x=4200,y=1450},kind="walk",t0=11.266666666666666,t1=11.533333333333333,to={x=4200,y=1410}}
+{face="right",from={x=4200,y=1410},kind="sell",t0=11.533333333333333,t1=12.533333333333333,to={x=4200,y=1410}}
+duration=12.533333333333333
+## cycle.mid_era2.worksPorter.1of2
+{from={x=4200,y=1410},kind="walk",t0=0,t1=0.26666666666666666,to={x=4200,y=1450}}
+{from={x=4200,y=1450},kind="walk",t0=0.26666666666666666,t1=2.2000000000000002,to={x=3910,y=1450}}
+{from={x=3910,y=1450},kind="walk",t0=2.2000000000000002,t1=5.1333333333333329,to={x=3910,y=1010}}
+{from={x=3910,y=1010},kind="walk",t0=5.1333333333333329,t1=5.4666666666666659,to={x=3960,y=1010}}
+{face="right",from={x=3960,y=1010},kind="collect",padId="worksStore",t0=5.4666666666666659,t1=6.0666666666666655,to={x=3960,y=1010}}
+{from={x=3960,y=1010},kind="walk",t0=6.0666666666666655,t1=6.3999999999999986,to={x=3910,y=1010}}
+{from={x=3910,y=1010},kind="walk",t0=6.3999999999999986,t1=9.3333333333333321,to={x=3910,y=1450}}
+{from={x=3910,y=1450},kind="walk",t0=9.3333333333333321,t1=11.266666666666666,to={x=4200,y=1450}}
+{from={x=4200,y=1450},kind="walk",t0=11.266666666666666,t1=11.533333333333333,to={x=4200,y=1410}}
+{face="right",from={x=4200,y=1410},kind="sell",t0=11.533333333333333,t1=12.533333333333333,to={x=4200,y=1410}}
+duration=12.533333333333333
+## cycle.mid_era2.worksPorter.2of2
+{from={x=4200,y=1410},kind="walk",t0=0,t1=0.26666666666666666,to={x=4200,y=1450}}
+{from={x=4200,y=1450},kind="walk",t0=0.26666666666666666,t1=2.2000000000000002,to={x=3910,y=1450}}
+{from={x=3910,y=1450},kind="walk",t0=2.2000000000000002,t1=5.1333333333333329,to={x=3910,y=1010}}
+{from={x=3910,y=1010},kind="walk",t0=5.1333333333333329,t1=5.4666666666666659,to={x=3960,y=1010}}
+{face="right",from={x=3960,y=1010},kind="collect",padId="worksStore",t0=5.4666666666666659,t1=6.0666666666666655,to={x=3960,y=1010}}
+{from={x=3960,y=1010},kind="walk",t0=6.0666666666666655,t1=6.3999999999999986,to={x=3910,y=1010}}
+{from={x=3910,y=1010},kind="walk",t0=6.3999999999999986,t1=9.3333333333333321,to={x=3910,y=1450}}
+{from={x=3910,y=1450},kind="walk",t0=9.3333333333333321,t1=11.266666666666666,to={x=4200,y=1450}}
+{from={x=4200,y=1450},kind="walk",t0=11.266666666666666,t1=11.533333333333333,to={x=4200,y=1410}}
+{face="right",from={x=4200,y=1410},kind="sell",t0=11.533333333333333,t1=12.533333333333333,to={x=4200,y=1410}}
+duration=12.533333333333333
+## cycle.mid_era2.wiredrawer.1of1
+duration=0
+## cycle.mid_era2.wiredrawer.1of2
+duration=0
+## cycle.mid_era2.wiredrawer.2of2
+duration=0
+## cycle.mid_era2.coilHauler.1of1
+{from={x=3780,y=1130},kind="walk",t0=0,t1=0.8666666666666667,to={x=3910,y=1130}}
+{from={x=3910,y=1130},kind="walk",t0=0.8666666666666667,t1=3,to={x=3910,y=1450}}
+{from={x=3910,y=1450},kind="walk",t0=3,t1=7.0999999999999996,to={x=4525,y=1450}}
+{from={x=4525,y=1450},kind="walk",t0=7.0999999999999996,t1=7.3533333333333326,to={x=4525,y=1412}}
+{face="left",from={x=4525,y=1412},kind="collect",padId="coils",t0=7.3533333333333326,t1=7.9533333333333323,to={x=4525,y=1412}}
+{from={x=4525,y=1412},kind="walk",t0=7.9533333333333323,t1=8.2066666666666652,to={x=4525,y=1450}}
+{from={x=4525,y=1450},kind="walk",t0=8.2066666666666652,t1=12.306666666666665,to={x=3910,y=1450}}
+{from={x=3910,y=1450},kind="walk",t0=12.306666666666665,t1=14.439999999999998,to={x=3910,y=1130}}
+{from={x=3910,y=1130},kind="walk",t0=14.439999999999998,t1=15.306666666666665,to={x=3780,y=1130}}
+{face="left",from={x=3780,y=1130},kind="sell",t0=15.306666666666665,t1=16.306666666666665,to={x=3780,y=1130}}
+duration=16.306666666666665
+## cycle.mid_era2.coilHauler.1of2
+{from={x=3780,y=1130},kind="walk",t0=0,t1=0.8666666666666667,to={x=3910,y=1130}}
+{from={x=3910,y=1130},kind="walk",t0=0.8666666666666667,t1=3,to={x=3910,y=1450}}
+{from={x=3910,y=1450},kind="walk",t0=3,t1=7.0999999999999996,to={x=4525,y=1450}}
+{from={x=4525,y=1450},kind="walk",t0=7.0999999999999996,t1=7.3533333333333326,to={x=4525,y=1412}}
+{face="left",from={x=4525,y=1412},kind="collect",padId="coils",t0=7.3533333333333326,t1=7.9533333333333323,to={x=4525,y=1412}}
+{from={x=4525,y=1412},kind="walk",t0=7.9533333333333323,t1=8.2066666666666652,to={x=4525,y=1450}}
+{from={x=4525,y=1450},kind="walk",t0=8.2066666666666652,t1=12.306666666666665,to={x=3910,y=1450}}
+{from={x=3910,y=1450},kind="walk",t0=12.306666666666665,t1=14.439999999999998,to={x=3910,y=1130}}
+{from={x=3910,y=1130},kind="walk",t0=14.439999999999998,t1=15.306666666666665,to={x=3780,y=1130}}
+{face="left",from={x=3780,y=1130},kind="sell",t0=15.306666666666665,t1=16.306666666666665,to={x=3780,y=1130}}
+duration=16.306666666666665
+## cycle.mid_era2.coilHauler.2of2
+{from={x=3780,y=1130},kind="walk",t0=0,t1=0.8666666666666667,to={x=3910,y=1130}}
+{from={x=3910,y=1130},kind="walk",t0=0.8666666666666667,t1=3,to={x=3910,y=1450}}
+{from={x=3910,y=1450},kind="walk",t0=3,t1=7.0999999999999996,to={x=4525,y=1450}}
+{from={x=4525,y=1450},kind="walk",t0=7.0999999999999996,t1=7.3533333333333326,to={x=4525,y=1412}}
+{face="left",from={x=4525,y=1412},kind="collect",padId="coils",t0=7.3533333333333326,t1=7.9533333333333323,to={x=4525,y=1412}}
+{from={x=4525,y=1412},kind="walk",t0=7.9533333333333323,t1=8.2066666666666652,to={x=4525,y=1450}}
+{from={x=4525,y=1450},kind="walk",t0=8.2066666666666652,t1=12.306666666666665,to={x=3910,y=1450}}
+{from={x=3910,y=1450},kind="walk",t0=12.306666666666665,t1=14.439999999999998,to={x=3910,y=1130}}
+{from={x=3910,y=1130},kind="walk",t0=14.439999999999998,t1=15.306666666666665,to={x=3780,y=1130}}
+{face="left",from={x=3780,y=1130},kind="sell",t0=15.306666666666665,t1=16.306666666666665,to={x=3780,y=1130}}
+duration=16.306666666666665
+## cycle.mid_era2.clerk.1of1
+duration=0
+## cycle.mid_era2.clerk.1of2
+duration=0
+## cycle.mid_era2.clerk.2of2
+duration=0
+## cycle.mid_era2.batteryCollector.1of1
+duration=0
+## cycle.mid_era2.batteryCollector.1of2
+duration=0
+## cycle.mid_era2.batteryCollector.2of2
+duration=0
+## cycle.mid_era2.batteryPorter.1of1
+{from={x=4790,y=1410},kind="walk",t0=0,t1=0.26666666666666666,to={x=4790,y=1450}}
+{from={x=4790,y=1450},kind="walk",t0=0.26666666666666666,t1=1.2666666666666666,to={x=4640,y=1450}}
+{from={x=4640,y=1450},kind="walk",t0=1.2666666666666666,t1=4.1999999999999993,to={x=4640,y=1010}}
+{from={x=4640,y=1010},kind="walk",t0=4.1999999999999993,t1=4.5333333333333323,to={x=4690,y=1010}}
+{face="right",from={x=4690,y=1010},kind="collect",padId="batteryShed",t0=4.5333333333333323,t1=5.133333333333332,to={x=4690,y=1010}}
+{from={x=4690,y=1010},kind="walk",t0=5.133333333333332,t1=5.466666666666665,to={x=4640,y=1010}}
+{from={x=4640,y=1010},kind="walk",t0=5.466666666666665,t1=8.3999999999999986,to={x=4640,y=1450}}
+{from={x=4640,y=1450},kind="walk",t0=8.3999999999999986,t1=9.3999999999999986,to={x=4790,y=1450}}
+{from={x=4790,y=1450},kind="walk",t0=9.3999999999999986,t1=9.6666666666666661,to={x=4790,y=1410}}
+{face="right",from={x=4790,y=1410},kind="sell",t0=9.6666666666666661,t1=10.666666666666666,to={x=4790,y=1410}}
+duration=10.666666666666666
+## cycle.mid_era2.batteryPorter.1of2
+{from={x=4790,y=1410},kind="walk",t0=0,t1=0.26666666666666666,to={x=4790,y=1450}}
+{from={x=4790,y=1450},kind="walk",t0=0.26666666666666666,t1=1.2666666666666666,to={x=4640,y=1450}}
+{from={x=4640,y=1450},kind="walk",t0=1.2666666666666666,t1=4.1999999999999993,to={x=4640,y=1010}}
+{from={x=4640,y=1010},kind="walk",t0=4.1999999999999993,t1=4.5333333333333323,to={x=4690,y=1010}}
+{face="right",from={x=4690,y=1010},kind="collect",padId="batteryShed",t0=4.5333333333333323,t1=5.133333333333332,to={x=4690,y=1010}}
+{from={x=4690,y=1010},kind="walk",t0=5.133333333333332,t1=5.466666666666665,to={x=4640,y=1010}}
+{from={x=4640,y=1010},kind="walk",t0=5.466666666666665,t1=8.3999999999999986,to={x=4640,y=1450}}
+{from={x=4640,y=1450},kind="walk",t0=8.3999999999999986,t1=9.3999999999999986,to={x=4790,y=1450}}
+{from={x=4790,y=1450},kind="walk",t0=9.3999999999999986,t1=9.6666666666666661,to={x=4790,y=1410}}
+{face="right",from={x=4790,y=1410},kind="sell",t0=9.6666666666666661,t1=10.666666666666666,to={x=4790,y=1410}}
+duration=10.666666666666666
+## cycle.mid_era2.batteryPorter.2of2
+{from={x=4790,y=1410},kind="walk",t0=0,t1=0.26666666666666666,to={x=4790,y=1450}}
+{from={x=4790,y=1450},kind="walk",t0=0.26666666666666666,t1=1.2666666666666666,to={x=4640,y=1450}}
+{from={x=4640,y=1450},kind="walk",t0=1.2666666666666666,t1=4.1999999999999993,to={x=4640,y=1010}}
+{from={x=4640,y=1010},kind="walk",t0=4.1999999999999993,t1=4.5333333333333323,to={x=4690,y=1010}}
+{face="right",from={x=4690,y=1010},kind="collect",padId="batteryShed",t0=4.5333333333333323,t1=5.133333333333332,to={x=4690,y=1010}}
+{from={x=4690,y=1010},kind="walk",t0=5.133333333333332,t1=5.466666666666665,to={x=4640,y=1010}}
+{from={x=4640,y=1010},kind="walk",t0=5.466666666666665,t1=8.3999999999999986,to={x=4640,y=1450}}
+{from={x=4640,y=1450},kind="walk",t0=8.3999999999999986,t1=9.3999999999999986,to={x=4790,y=1450}}
+{from={x=4790,y=1450},kind="walk",t0=9.3999999999999986,t1=9.6666666666666661,to={x=4790,y=1410}}
+{face="right",from={x=4790,y=1410},kind="sell",t0=9.6666666666666661,t1=10.666666666666666,to={x=4790,y=1410}}
+duration=10.666666666666666
+## cycle.mid_era2.electrician.1of1
+duration=0
+## cycle.mid_era2.electrician.1of2
+duration=0
+## cycle.mid_era2.electrician.2of2
+duration=0
+## cycle.mid_era2.powerHauler.1of1
+{from={x=3780,y=1130},kind="walk",t0=0,t1=0.8666666666666667,to={x=3910,y=1130}}
+{from={x=3910,y=1130},kind="walk",t0=0.8666666666666667,t1=3,to={x=3910,y=1450}}
+{from={x=3910,y=1450},kind="walk",t0=3,t1=11.533333333333333,to={x=5190,y=1450}}
+{from={x=5190,y=1450},kind="walk",t0=11.533333333333333,t1=11.786666666666667,to={x=5190,y=1412}}
+{face="left",from={x=5190,y=1412},kind="collect",padId="cell",t0=11.786666666666667,t1=12.386666666666667,to={x=5190,y=1412}}
+{from={x=5190,y=1412},kind="walk",t0=12.386666666666667,t1=12.640000000000001,to={x=5190,y=1450}}
+{from={x=5190,y=1450},kind="walk",t0=12.640000000000001,t1=21.173333333333332,to={x=3910,y=1450}}
+{from={x=3910,y=1450},kind="walk",t0=21.173333333333332,t1=23.306666666666665,to={x=3910,y=1130}}
+{from={x=3910,y=1130},kind="walk",t0=23.306666666666665,t1=24.173333333333332,to={x=3780,y=1130}}
+{face="left",from={x=3780,y=1130},kind="sell",t0=24.173333333333332,t1=25.173333333333332,to={x=3780,y=1130}}
+duration=25.173333333333332
+## cycle.mid_era2.powerHauler.1of2
+{from={x=3780,y=1130},kind="walk",t0=0,t1=0.8666666666666667,to={x=3910,y=1130}}
+{from={x=3910,y=1130},kind="walk",t0=0.8666666666666667,t1=3,to={x=3910,y=1450}}
+{from={x=3910,y=1450},kind="walk",t0=3,t1=11.533333333333333,to={x=5190,y=1450}}
+{from={x=5190,y=1450},kind="walk",t0=11.533333333333333,t1=11.786666666666667,to={x=5190,y=1412}}
+{face="left",from={x=5190,y=1412},kind="collect",padId="cell",t0=11.786666666666667,t1=12.386666666666667,to={x=5190,y=1412}}
+{from={x=5190,y=1412},kind="walk",t0=12.386666666666667,t1=12.640000000000001,to={x=5190,y=1450}}
+{from={x=5190,y=1450},kind="walk",t0=12.640000000000001,t1=21.173333333333332,to={x=3910,y=1450}}
+{from={x=3910,y=1450},kind="walk",t0=21.173333333333332,t1=23.306666666666665,to={x=3910,y=1130}}
+{from={x=3910,y=1130},kind="walk",t0=23.306666666666665,t1=24.173333333333332,to={x=3780,y=1130}}
+{face="left",from={x=3780,y=1130},kind="sell",t0=24.173333333333332,t1=25.173333333333332,to={x=3780,y=1130}}
+duration=25.173333333333332
+## cycle.mid_era2.powerHauler.2of2
+{from={x=3780,y=1130},kind="walk",t0=0,t1=0.8666666666666667,to={x=3910,y=1130}}
+{from={x=3910,y=1130},kind="walk",t0=0.8666666666666667,t1=3,to={x=3910,y=1450}}
+{from={x=3910,y=1450},kind="walk",t0=3,t1=11.533333333333333,to={x=5190,y=1450}}
+{from={x=5190,y=1450},kind="walk",t0=11.533333333333333,t1=11.786666666666667,to={x=5190,y=1412}}
+{face="left",from={x=5190,y=1412},kind="collect",padId="cell",t0=11.786666666666667,t1=12.386666666666667,to={x=5190,y=1412}}
+{from={x=5190,y=1412},kind="walk",t0=12.386666666666667,t1=12.640000000000001,to={x=5190,y=1450}}
+{from={x=5190,y=1450},kind="walk",t0=12.640000000000001,t1=21.173333333333332,to={x=3910,y=1450}}
+{from={x=3910,y=1450},kind="walk",t0=21.173333333333332,t1=23.306666666666665,to={x=3910,y=1130}}
+{from={x=3910,y=1130},kind="walk",t0=23.306666666666665,t1=24.173333333333332,to={x=3780,y=1130}}
+{face="left",from={x=3780,y=1130},kind="sell",t0=24.173333333333332,t1=25.173333333333332,to={x=3780,y=1130}}
+duration=25.173333333333332
+## cycle.works_bell.collector.1of1
+{from={x=600,y=1010},kind="walk",t0=0,t1=0.33333333333333331,to={x=550,y=1010}}
+{from={x=550,y=1010},kind="walk",t0=0.33333333333333331,t1=1.6399999999999999,to={x=550,y=814}}
+{from={x=550,y=814},kind="walk",t0=1.6399999999999999,t1=2.1066666666666665,to={x=620,y=814}}
+{from={x=620,y=814},kind="walk",t0=2.1066666666666665,t1=2.1199999999999997,to={x=620,y=812}}
+{face="right",from={x=620,y=812},kind="collect",padId="first_net",t0=2.1199999999999997,t1=2.7199999999999998,to={x=620,y=812}}
+{from={x=620,y=812},kind="walk",t0=2.7199999999999998,t1=4.0533333333333328,to={x=820,y=812}}
+{face="right",from={x=820,y=812},kind="collect",padId="second_net",t0=4.0533333333333328,t1=4.6533333333333324,to={x=820,y=812}}
+{from={x=820,y=812},kind="walk",t0=4.6533333333333324,t1=5.9866666666666655,to={x=1020,y=812}}
+{face="right",from={x=1020,y=812},kind="collect",padId="third_net",t0=5.9866666666666655,t1=6.5866666666666651,to={x=1020,y=812}}
+{from={x=1020,y=812},kind="walk",t0=6.5866666666666651,t1=7.9199999999999982,to={x=1220,y=812}}
+{face="right",from={x=1220,y=812},kind="collect",padId="far_lane_net",t0=7.9199999999999982,t1=8.5199999999999978,to={x=1220,y=812}}
+{from={x=1220,y=812},kind="walk",t0=8.5199999999999978,t1=8.5333333333333314,to={x=1220,y=814}}
+{from={x=1220,y=814},kind="walk",t0=8.5333333333333314,t1=12.999999999999998,to={x=550,y=814}}
+{from={x=550,y=814},kind="walk",t0=12.999999999999998,t1=14.306666666666665,to={x=550,y=1010}}
+{from={x=550,y=1010},kind="walk",t0=14.306666666666665,t1=14.639999999999999,to={x=600,y=1010}}
+{face="right",from={x=600,y=1010},kind="sell",t0=14.639999999999999,t1=15.639999999999999,to={x=600,y=1010}}
+duration=15.639999999999999
+## cycle.works_bell.collector.1of2
+{from={x=600,y=1010},kind="walk",t0=0,t1=0.33333333333333331,to={x=550,y=1010}}
+{from={x=550,y=1010},kind="walk",t0=0.33333333333333331,t1=1.6399999999999999,to={x=550,y=814}}
+{from={x=550,y=814},kind="walk",t0=1.6399999999999999,t1=2.1066666666666665,to={x=620,y=814}}
+{from={x=620,y=814},kind="walk",t0=2.1066666666666665,t1=2.1199999999999997,to={x=620,y=812}}
+{face="right",from={x=620,y=812},kind="collect",padId="first_net",t0=2.1199999999999997,t1=2.7199999999999998,to={x=620,y=812}}
+{from={x=620,y=812},kind="walk",t0=2.7199999999999998,t1=4.0533333333333328,to={x=820,y=812}}
+{face="right",from={x=820,y=812},kind="collect",padId="second_net",t0=4.0533333333333328,t1=4.6533333333333324,to={x=820,y=812}}
+{from={x=820,y=812},kind="walk",t0=4.6533333333333324,t1=4.6666666666666661,to={x=820,y=814}}
+{from={x=820,y=814},kind="walk",t0=4.6666666666666661,t1=6.4666666666666659,to={x=550,y=814}}
+{from={x=550,y=814},kind="walk",t0=6.4666666666666659,t1=7.7733333333333325,to={x=550,y=1010}}
+{from={x=550,y=1010},kind="walk",t0=7.7733333333333325,t1=8.1066666666666656,to={x=600,y=1010}}
+{face="right",from={x=600,y=1010},kind="sell",t0=8.1066666666666656,t1=9.1066666666666656,to={x=600,y=1010}}
+duration=9.1066666666666656
+## cycle.works_bell.collector.2of2
+{from={x=600,y=1010},kind="walk",t0=0,t1=0.33333333333333331,to={x=550,y=1010}}
+{from={x=550,y=1010},kind="walk",t0=0.33333333333333331,t1=1.6399999999999999,to={x=550,y=814}}
+{from={x=550,y=814},kind="walk",t0=1.6399999999999999,t1=4.7733333333333334,to={x=1020,y=814}}
+{from={x=1020,y=814},kind="walk",t0=4.7733333333333334,t1=4.7866666666666671,to={x=1020,y=812}}
+{face="right",from={x=1020,y=812},kind="collect",padId="third_net",t0=4.7866666666666671,t1=5.3866666666666667,to={x=1020,y=812}}
+{from={x=1020,y=812},kind="walk",t0=5.3866666666666667,t1=6.7199999999999998,to={x=1220,y=812}}
+{face="right",from={x=1220,y=812},kind="collect",padId="far_lane_net",t0=6.7199999999999998,t1=7.3199999999999994,to={x=1220,y=812}}
+{from={x=1220,y=812},kind="walk",t0=7.3199999999999994,t1=7.333333333333333,to={x=1220,y=814}}
+{from={x=1220,y=814},kind="walk",t0=7.333333333333333,t1=11.800000000000001,to={x=550,y=814}}
+{from={x=550,y=814},kind="walk",t0=11.800000000000001,t1=13.106666666666667,to={x=550,y=1010}}
+{from={x=550,y=1010},kind="walk",t0=13.106666666666667,t1=13.440000000000001,to={x=600,y=1010}}
+{face="right",from={x=600,y=1010},kind="sell",t0=13.440000000000001,t1=14.440000000000001,to={x=600,y=1010}}
+duration=14.440000000000001
+## cycle.works_bell.porter.1of1
+{from={x=840,y=1410},kind="walk",t0=0,t1=0.26666666666666666,to={x=840,y=1450}}
+{from={x=840,y=1450},kind="walk",t0=0.26666666666666666,t1=2.2000000000000002,to={x=550,y=1450}}
+{from={x=550,y=1450},kind="walk",t0=2.2000000000000002,t1=5.1333333333333329,to={x=550,y=1010}}
+{from={x=550,y=1010},kind="walk",t0=5.1333333333333329,t1=5.4666666666666659,to={x=600,y=1010}}
+{face="right",from={x=600,y=1010},kind="collect",padId="storage",t0=5.4666666666666659,t1=6.0666666666666655,to={x=600,y=1010}}
+{from={x=600,y=1010},kind="walk",t0=6.0666666666666655,t1=6.3999999999999986,to={x=550,y=1010}}
+{from={x=550,y=1010},kind="walk",t0=6.3999999999999986,t1=9.3333333333333321,to={x=550,y=1450}}
+{from={x=550,y=1450},kind="walk",t0=9.3333333333333321,t1=11.266666666666666,to={x=840,y=1450}}
+{from={x=840,y=1450},kind="walk",t0=11.266666666666666,t1=11.533333333333333,to={x=840,y=1410}}
+{face="right",from={x=840,y=1410},kind="sell",t0=11.533333333333333,t1=12.533333333333333,to={x=840,y=1410}}
+duration=12.533333333333333
+## cycle.works_bell.porter.1of2
+{from={x=840,y=1410},kind="walk",t0=0,t1=0.26666666666666666,to={x=840,y=1450}}
+{from={x=840,y=1450},kind="walk",t0=0.26666666666666666,t1=2.2000000000000002,to={x=550,y=1450}}
+{from={x=550,y=1450},kind="walk",t0=2.2000000000000002,t1=5.1333333333333329,to={x=550,y=1010}}
+{from={x=550,y=1010},kind="walk",t0=5.1333333333333329,t1=5.4666666666666659,to={x=600,y=1010}}
+{face="right",from={x=600,y=1010},kind="collect",padId="storage",t0=5.4666666666666659,t1=6.0666666666666655,to={x=600,y=1010}}
+{from={x=600,y=1010},kind="walk",t0=6.0666666666666655,t1=6.3999999999999986,to={x=550,y=1010}}
+{from={x=550,y=1010},kind="walk",t0=6.3999999999999986,t1=9.3333333333333321,to={x=550,y=1450}}
+{from={x=550,y=1450},kind="walk",t0=9.3333333333333321,t1=11.266666666666666,to={x=840,y=1450}}
+{from={x=840,y=1450},kind="walk",t0=11.266666666666666,t1=11.533333333333333,to={x=840,y=1410}}
+{face="right",from={x=840,y=1410},kind="sell",t0=11.533333333333333,t1=12.533333333333333,to={x=840,y=1410}}
+duration=12.533333333333333
+## cycle.works_bell.porter.2of2
+{from={x=840,y=1410},kind="walk",t0=0,t1=0.26666666666666666,to={x=840,y=1450}}
+{from={x=840,y=1450},kind="walk",t0=0.26666666666666666,t1=2.2000000000000002,to={x=550,y=1450}}
+{from={x=550,y=1450},kind="walk",t0=2.2000000000000002,t1=5.1333333333333329,to={x=550,y=1010}}
+{from={x=550,y=1010},kind="walk",t0=5.1333333333333329,t1=5.4666666666666659,to={x=600,y=1010}}
+{face="right",from={x=600,y=1010},kind="collect",padId="storage",t0=5.4666666666666659,t1=6.0666666666666655,to={x=600,y=1010}}
+{from={x=600,y=1010},kind="walk",t0=6.0666666666666655,t1=6.3999999999999986,to={x=550,y=1010}}
+{from={x=550,y=1010},kind="walk",t0=6.3999999999999986,t1=9.3333333333333321,to={x=550,y=1450}}
+{from={x=550,y=1450},kind="walk",t0=9.3333333333333321,t1=11.266666666666666,to={x=840,y=1450}}
+{from={x=840,y=1450},kind="walk",t0=11.266666666666666,t1=11.533333333333333,to={x=840,y=1410}}
+{face="right",from={x=840,y=1410},kind="sell",t0=11.533333333333333,t1=12.533333333333333,to={x=840,y=1410}}
+duration=12.533333333333333
+## cycle.works_bell.sawyer.1of1
+duration=0
+## cycle.works_bell.sawyer.1of2
+duration=0
+## cycle.works_bell.sawyer.2of2
+duration=0
+## cycle.works_bell.hauler.1of1
+{from={x=420,y=1130},kind="walk",t0=0,t1=0.8666666666666667,to={x=550,y=1130}}
+{from={x=550,y=1130},kind="walk",t0=0.8666666666666667,t1=3,to={x=550,y=1450}}
+{from={x=550,y=1450},kind="walk",t0=3,t1=7.0999999999999996,to={x=1165,y=1450}}
+{from={x=1165,y=1450},kind="walk",t0=7.0999999999999996,t1=7.3533333333333326,to={x=1165,y=1412}}
+{face="left",from={x=1165,y=1412},kind="collect",padId="planks",t0=7.3533333333333326,t1=7.9533333333333323,to={x=1165,y=1412}}
+{from={x=1165,y=1412},kind="walk",t0=7.9533333333333323,t1=8.2066666666666652,to={x=1165,y=1450}}
+{from={x=1165,y=1450},kind="walk",t0=8.2066666666666652,t1=12.306666666666665,to={x=550,y=1450}}
+{from={x=550,y=1450},kind="walk",t0=12.306666666666665,t1=14.439999999999998,to={x=550,y=1130}}
+{from={x=550,y=1130},kind="walk",t0=14.439999999999998,t1=15.306666666666665,to={x=420,y=1130}}
+{face="left",from={x=420,y=1130},kind="sell",t0=15.306666666666665,t1=16.306666666666665,to={x=420,y=1130}}
+duration=16.306666666666665
+## cycle.works_bell.hauler.1of2
+{from={x=420,y=1130},kind="walk",t0=0,t1=0.8666666666666667,to={x=550,y=1130}}
+{from={x=550,y=1130},kind="walk",t0=0.8666666666666667,t1=3,to={x=550,y=1450}}
+{from={x=550,y=1450},kind="walk",t0=3,t1=7.0999999999999996,to={x=1165,y=1450}}
+{from={x=1165,y=1450},kind="walk",t0=7.0999999999999996,t1=7.3533333333333326,to={x=1165,y=1412}}
+{face="left",from={x=1165,y=1412},kind="collect",padId="planks",t0=7.3533333333333326,t1=7.9533333333333323,to={x=1165,y=1412}}
+{from={x=1165,y=1412},kind="walk",t0=7.9533333333333323,t1=8.2066666666666652,to={x=1165,y=1450}}
+{from={x=1165,y=1450},kind="walk",t0=8.2066666666666652,t1=12.306666666666665,to={x=550,y=1450}}
+{from={x=550,y=1450},kind="walk",t0=12.306666666666665,t1=14.439999999999998,to={x=550,y=1130}}
+{from={x=550,y=1130},kind="walk",t0=14.439999999999998,t1=15.306666666666665,to={x=420,y=1130}}
+{face="left",from={x=420,y=1130},kind="sell",t0=15.306666666666665,t1=16.306666666666665,to={x=420,y=1130}}
+duration=16.306666666666665
+## cycle.works_bell.hauler.2of2
+{from={x=420,y=1130},kind="walk",t0=0,t1=0.8666666666666667,to={x=550,y=1130}}
+{from={x=550,y=1130},kind="walk",t0=0.8666666666666667,t1=3,to={x=550,y=1450}}
+{from={x=550,y=1450},kind="walk",t0=3,t1=7.0999999999999996,to={x=1165,y=1450}}
+{from={x=1165,y=1450},kind="walk",t0=7.0999999999999996,t1=7.3533333333333326,to={x=1165,y=1412}}
+{face="left",from={x=1165,y=1412},kind="collect",padId="planks",t0=7.3533333333333326,t1=7.9533333333333323,to={x=1165,y=1412}}
+{from={x=1165,y=1412},kind="walk",t0=7.9533333333333323,t1=8.2066666666666652,to={x=1165,y=1450}}
+{from={x=1165,y=1450},kind="walk",t0=8.2066666666666652,t1=12.306666666666665,to={x=550,y=1450}}
+{from={x=550,y=1450},kind="walk",t0=12.306666666666665,t1=14.439999999999998,to={x=550,y=1130}}
+{from={x=550,y=1130},kind="walk",t0=14.439999999999998,t1=15.306666666666665,to={x=420,y=1130}}
+{face="left",from={x=420,y=1130},kind="sell",t0=15.306666666666665,t1=16.306666666666665,to={x=420,y=1130}}
+duration=16.306666666666665
+## cycle.works_bell.trader.1of1
+duration=0
+## cycle.works_bell.trader.1of2
+duration=0
+## cycle.works_bell.trader.2of2
+duration=0
+## cycle.works_bell.scrapCollector.1of1
+{from={x=1330,y=1010},kind="walk",t0=0,t1=1.4499655168313486,to={x=1420,y=812}}
+{face="right",from={x=1420,y=812},kind="collect",padId="fifth_net",t0=1.4499655168313486,t1=2.0499655168313486,to={x=1420,y=812}}
+{from={x=1420,y=812},kind="walk",t0=2.0499655168313486,t1=3.4999310336626972,to={x=1330,y=1010}}
+{face="right",from={x=1330,y=1010},kind="sell",t0=3.4999310336626972,t1=4.4999310336626976,to={x=1330,y=1010}}
+duration=4.4999310336626976
+## cycle.works_bell.scrapCollector.1of2
+{from={x=1330,y=1010},kind="walk",t0=0,t1=1.4499655168313486,to={x=1420,y=812}}
+{face="right",from={x=1420,y=812},kind="collect",padId="fifth_net",t0=1.4499655168313486,t1=2.0499655168313486,to={x=1420,y=812}}
+{from={x=1420,y=812},kind="walk",t0=2.0499655168313486,t1=3.4999310336626972,to={x=1330,y=1010}}
+{face="right",from={x=1330,y=1010},kind="sell",t0=3.4999310336626972,t1=4.4999310336626976,to={x=1330,y=1010}}
+duration=4.4999310336626976
+## cycle.works_bell.scrapCollector.2of2
+{from={x=1330,y=1010},kind="walk",t0=0,t1=1.4499655168313486,to={x=1420,y=812}}
+{face="right",from={x=1420,y=812},kind="collect",padId="fifth_net",t0=1.4499655168313486,t1=2.0499655168313486,to={x=1420,y=812}}
+{from={x=1420,y=812},kind="walk",t0=2.0499655168313486,t1=3.4999310336626972,to={x=1330,y=1010}}
+{face="right",from={x=1330,y=1010},kind="sell",t0=3.4999310336626972,t1=4.4999310336626976,to={x=1330,y=1010}}
+duration=4.4999310336626976
+## cycle.works_bell.scrapPorter.1of1
+{from={x=1430,y=1410},kind="walk",t0=0,t1=0.26666666666666666,to={x=1430,y=1450}}
+{from={x=1430,y=1450},kind="walk",t0=0.26666666666666666,t1=1.2666666666666666,to={x=1280,y=1450}}
+{from={x=1280,y=1450},kind="walk",t0=1.2666666666666666,t1=4.1999999999999993,to={x=1280,y=1010}}
+{from={x=1280,y=1010},kind="walk",t0=4.1999999999999993,t1=4.5333333333333323,to={x=1330,y=1010}}
+{face="right",from={x=1330,y=1010},kind="collect",padId="shed",t0=4.5333333333333323,t1=5.133333333333332,to={x=1330,y=1010}}
+{from={x=1330,y=1010},kind="walk",t0=5.133333333333332,t1=5.466666666666665,to={x=1280,y=1010}}
+{from={x=1280,y=1010},kind="walk",t0=5.466666666666665,t1=8.3999999999999986,to={x=1280,y=1450}}
+{from={x=1280,y=1450},kind="walk",t0=8.3999999999999986,t1=9.3999999999999986,to={x=1430,y=1450}}
+{from={x=1430,y=1450},kind="walk",t0=9.3999999999999986,t1=9.6666666666666661,to={x=1430,y=1410}}
+{face="right",from={x=1430,y=1410},kind="sell",t0=9.6666666666666661,t1=10.666666666666666,to={x=1430,y=1410}}
+duration=10.666666666666666
+## cycle.works_bell.scrapPorter.1of2
+{from={x=1430,y=1410},kind="walk",t0=0,t1=0.26666666666666666,to={x=1430,y=1450}}
+{from={x=1430,y=1450},kind="walk",t0=0.26666666666666666,t1=1.2666666666666666,to={x=1280,y=1450}}
+{from={x=1280,y=1450},kind="walk",t0=1.2666666666666666,t1=4.1999999999999993,to={x=1280,y=1010}}
+{from={x=1280,y=1010},kind="walk",t0=4.1999999999999993,t1=4.5333333333333323,to={x=1330,y=1010}}
+{face="right",from={x=1330,y=1010},kind="collect",padId="shed",t0=4.5333333333333323,t1=5.133333333333332,to={x=1330,y=1010}}
+{from={x=1330,y=1010},kind="walk",t0=5.133333333333332,t1=5.466666666666665,to={x=1280,y=1010}}
+{from={x=1280,y=1010},kind="walk",t0=5.466666666666665,t1=8.3999999999999986,to={x=1280,y=1450}}
+{from={x=1280,y=1450},kind="walk",t0=8.3999999999999986,t1=9.3999999999999986,to={x=1430,y=1450}}
+{from={x=1430,y=1450},kind="walk",t0=9.3999999999999986,t1=9.6666666666666661,to={x=1430,y=1410}}
+{face="right",from={x=1430,y=1410},kind="sell",t0=9.6666666666666661,t1=10.666666666666666,to={x=1430,y=1410}}
+duration=10.666666666666666
+## cycle.works_bell.scrapPorter.2of2
+{from={x=1430,y=1410},kind="walk",t0=0,t1=0.26666666666666666,to={x=1430,y=1450}}
+{from={x=1430,y=1450},kind="walk",t0=0.26666666666666666,t1=1.2666666666666666,to={x=1280,y=1450}}
+{from={x=1280,y=1450},kind="walk",t0=1.2666666666666666,t1=4.1999999999999993,to={x=1280,y=1010}}
+{from={x=1280,y=1010},kind="walk",t0=4.1999999999999993,t1=4.5333333333333323,to={x=1330,y=1010}}
+{face="right",from={x=1330,y=1010},kind="collect",padId="shed",t0=4.5333333333333323,t1=5.133333333333332,to={x=1330,y=1010}}
+{from={x=1330,y=1010},kind="walk",t0=5.133333333333332,t1=5.466666666666665,to={x=1280,y=1010}}
+{from={x=1280,y=1010},kind="walk",t0=5.466666666666665,t1=8.3999999999999986,to={x=1280,y=1450}}
+{from={x=1280,y=1450},kind="walk",t0=8.3999999999999986,t1=9.3999999999999986,to={x=1430,y=1450}}
+{from={x=1430,y=1450},kind="walk",t0=9.3999999999999986,t1=9.6666666666666661,to={x=1430,y=1410}}
+{face="right",from={x=1430,y=1410},kind="sell",t0=9.6666666666666661,t1=10.666666666666666,to={x=1430,y=1410}}
+duration=10.666666666666666
+## cycle.works_bell.smelter.1of1
+duration=0
+## cycle.works_bell.smelter.1of2
+duration=0
+## cycle.works_bell.smelter.2of2
+duration=0
+## cycle.works_bell.ironHauler.1of1
+{from={x=420,y=1130},kind="walk",t0=0,t1=0.8666666666666667,to={x=550,y=1130}}
+{from={x=550,y=1130},kind="walk",t0=0.8666666666666667,t1=3,to={x=550,y=1450}}
+{from={x=550,y=1450},kind="walk",t0=3,t1=11.533333333333333,to={x=1830,y=1450}}
+{from={x=1830,y=1450},kind="walk",t0=11.533333333333333,t1=11.786666666666667,to={x=1830,y=1412}}
+{face="left",from={x=1830,y=1412},kind="collect",padId="iron",t0=11.786666666666667,t1=12.386666666666667,to={x=1830,y=1412}}
+{from={x=1830,y=1412},kind="walk",t0=12.386666666666667,t1=12.640000000000001,to={x=1830,y=1450}}
+{from={x=1830,y=1450},kind="walk",t0=12.640000000000001,t1=21.173333333333332,to={x=550,y=1450}}
+{from={x=550,y=1450},kind="walk",t0=21.173333333333332,t1=23.306666666666665,to={x=550,y=1130}}
+{from={x=550,y=1130},kind="walk",t0=23.306666666666665,t1=24.173333333333332,to={x=420,y=1130}}
+{face="left",from={x=420,y=1130},kind="sell",t0=24.173333333333332,t1=25.173333333333332,to={x=420,y=1130}}
+duration=25.173333333333332
+## cycle.works_bell.ironHauler.1of2
+{from={x=420,y=1130},kind="walk",t0=0,t1=0.8666666666666667,to={x=550,y=1130}}
+{from={x=550,y=1130},kind="walk",t0=0.8666666666666667,t1=3,to={x=550,y=1450}}
+{from={x=550,y=1450},kind="walk",t0=3,t1=11.533333333333333,to={x=1830,y=1450}}
+{from={x=1830,y=1450},kind="walk",t0=11.533333333333333,t1=11.786666666666667,to={x=1830,y=1412}}
+{face="left",from={x=1830,y=1412},kind="collect",padId="iron",t0=11.786666666666667,t1=12.386666666666667,to={x=1830,y=1412}}
+{from={x=1830,y=1412},kind="walk",t0=12.386666666666667,t1=12.640000000000001,to={x=1830,y=1450}}
+{from={x=1830,y=1450},kind="walk",t0=12.640000000000001,t1=21.173333333333332,to={x=550,y=1450}}
+{from={x=550,y=1450},kind="walk",t0=21.173333333333332,t1=23.306666666666665,to={x=550,y=1130}}
+{from={x=550,y=1130},kind="walk",t0=23.306666666666665,t1=24.173333333333332,to={x=420,y=1130}}
+{face="left",from={x=420,y=1130},kind="sell",t0=24.173333333333332,t1=25.173333333333332,to={x=420,y=1130}}
+duration=25.173333333333332
+## cycle.works_bell.ironHauler.2of2
+{from={x=420,y=1130},kind="walk",t0=0,t1=0.8666666666666667,to={x=550,y=1130}}
+{from={x=550,y=1130},kind="walk",t0=0.8666666666666667,t1=3,to={x=550,y=1450}}
+{from={x=550,y=1450},kind="walk",t0=3,t1=11.533333333333333,to={x=1830,y=1450}}
+{from={x=1830,y=1450},kind="walk",t0=11.533333333333333,t1=11.786666666666667,to={x=1830,y=1412}}
+{face="left",from={x=1830,y=1412},kind="collect",padId="iron",t0=11.786666666666667,t1=12.386666666666667,to={x=1830,y=1412}}
+{from={x=1830,y=1412},kind="walk",t0=12.386666666666667,t1=12.640000000000001,to={x=1830,y=1450}}
+{from={x=1830,y=1450},kind="walk",t0=12.640000000000001,t1=21.173333333333332,to={x=550,y=1450}}
+{from={x=550,y=1450},kind="walk",t0=21.173333333333332,t1=23.306666666666665,to={x=550,y=1130}}
+{from={x=550,y=1130},kind="walk",t0=23.306666666666665,t1=24.173333333333332,to={x=420,y=1130}}
+{face="left",from={x=420,y=1130},kind="sell",t0=24.173333333333332,t1=25.173333333333332,to={x=420,y=1130}}
+duration=25.173333333333332
+## cycle.works_bell.millCollector.1of1
+{from={x=2280,y=1010},kind="walk",t0=0,t1=0.33333333333333331,to={x=2230,y=1010}}
+{from={x=2230,y=1010},kind="walk",t0=0.33333333333333331,t1=1.6399999999999999,to={x=2230,y=814}}
+{from={x=2230,y=814},kind="walk",t0=1.6399999999999999,t1=2.1066666666666665,to={x=2300,y=814}}
+{from={x=2300,y=814},kind="walk",t0=2.1066666666666665,t1=2.1199999999999997,to={x=2300,y=812}}
+{face="right",from={x=2300,y=812},kind="collect",padId="sixth_net",t0=2.1199999999999997,t1=2.7199999999999998,to={x=2300,y=812}}
+{from={x=2300,y=812},kind="walk",t0=2.7199999999999998,t1=4.0533333333333328,to={x=2500,y=812}}
+{face="right",from={x=2500,y=812},kind="collect",padId="seventh_net",t0=4.0533333333333328,t1=4.6533333333333324,to={x=2500,y=812}}
+{from={x=2500,y=812},kind="walk",t0=4.6533333333333324,t1=5.9866666666666655,to={x=2700,y=812}}
+{face="right",from={x=2700,y=812},kind="collect",padId="eighth_net",t0=5.9866666666666655,t1=6.5866666666666651,to={x=2700,y=812}}
+{from={x=2700,y=812},kind="walk",t0=6.5866666666666651,t1=7.9199999999999982,to={x=2900,y=812}}
+{face="right",from={x=2900,y=812},kind="collect",padId="ninth_net",t0=7.9199999999999982,t1=8.5199999999999978,to={x=2900,y=812}}
+{from={x=2900,y=812},kind="walk",t0=8.5199999999999978,t1=8.5333333333333314,to={x=2900,y=814}}
+{from={x=2900,y=814},kind="walk",t0=8.5333333333333314,t1=12.999999999999998,to={x=2230,y=814}}
+{from={x=2230,y=814},kind="walk",t0=12.999999999999998,t1=14.306666666666665,to={x=2230,y=1010}}
+{from={x=2230,y=1010},kind="walk",t0=14.306666666666665,t1=14.639999999999999,to={x=2280,y=1010}}
+{face="right",from={x=2280,y=1010},kind="sell",t0=14.639999999999999,t1=15.639999999999999,to={x=2280,y=1010}}
+duration=15.639999999999999
+## cycle.works_bell.millCollector.1of2
+{from={x=2280,y=1010},kind="walk",t0=0,t1=0.33333333333333331,to={x=2230,y=1010}}
+{from={x=2230,y=1010},kind="walk",t0=0.33333333333333331,t1=1.6399999999999999,to={x=2230,y=814}}
+{from={x=2230,y=814},kind="walk",t0=1.6399999999999999,t1=2.1066666666666665,to={x=2300,y=814}}
+{from={x=2300,y=814},kind="walk",t0=2.1066666666666665,t1=2.1199999999999997,to={x=2300,y=812}}
+{face="right",from={x=2300,y=812},kind="collect",padId="sixth_net",t0=2.1199999999999997,t1=2.7199999999999998,to={x=2300,y=812}}
+{from={x=2300,y=812},kind="walk",t0=2.7199999999999998,t1=4.0533333333333328,to={x=2500,y=812}}
+{face="right",from={x=2500,y=812},kind="collect",padId="seventh_net",t0=4.0533333333333328,t1=4.6533333333333324,to={x=2500,y=812}}
+{from={x=2500,y=812},kind="walk",t0=4.6533333333333324,t1=4.6666666666666661,to={x=2500,y=814}}
+{from={x=2500,y=814},kind="walk",t0=4.6666666666666661,t1=6.4666666666666659,to={x=2230,y=814}}
+{from={x=2230,y=814},kind="walk",t0=6.4666666666666659,t1=7.7733333333333325,to={x=2230,y=1010}}
+{from={x=2230,y=1010},kind="walk",t0=7.7733333333333325,t1=8.1066666666666656,to={x=2280,y=1010}}
+{face="right",from={x=2280,y=1010},kind="sell",t0=8.1066666666666656,t1=9.1066666666666656,to={x=2280,y=1010}}
+duration=9.1066666666666656
+## cycle.works_bell.millCollector.2of2
+{from={x=2280,y=1010},kind="walk",t0=0,t1=0.33333333333333331,to={x=2230,y=1010}}
+{from={x=2230,y=1010},kind="walk",t0=0.33333333333333331,t1=1.6399999999999999,to={x=2230,y=814}}
+{from={x=2230,y=814},kind="walk",t0=1.6399999999999999,t1=4.7733333333333334,to={x=2700,y=814}}
+{from={x=2700,y=814},kind="walk",t0=4.7733333333333334,t1=4.7866666666666671,to={x=2700,y=812}}
+{face="right",from={x=2700,y=812},kind="collect",padId="eighth_net",t0=4.7866666666666671,t1=5.3866666666666667,to={x=2700,y=812}}
+{from={x=2700,y=812},kind="walk",t0=5.3866666666666667,t1=6.7199999999999998,to={x=2900,y=812}}
+{face="right",from={x=2900,y=812},kind="collect",padId="ninth_net",t0=6.7199999999999998,t1=7.3199999999999994,to={x=2900,y=812}}
+{from={x=2900,y=812},kind="walk",t0=7.3199999999999994,t1=7.333333333333333,to={x=2900,y=814}}
+{from={x=2900,y=814},kind="walk",t0=7.333333333333333,t1=11.800000000000001,to={x=2230,y=814}}
+{from={x=2230,y=814},kind="walk",t0=11.800000000000001,t1=13.106666666666667,to={x=2230,y=1010}}
+{from={x=2230,y=1010},kind="walk",t0=13.106666666666667,t1=13.440000000000001,to={x=2280,y=1010}}
+{face="right",from={x=2280,y=1010},kind="sell",t0=13.440000000000001,t1=14.440000000000001,to={x=2280,y=1010}}
+duration=14.440000000000001
+## cycle.works_bell.millPorter.1of1
+{from={x=2520,y=1410},kind="walk",t0=0,t1=0.26666666666666666,to={x=2520,y=1450}}
+{from={x=2520,y=1450},kind="walk",t0=0.26666666666666666,t1=2.2000000000000002,to={x=2230,y=1450}}
+{from={x=2230,y=1450},kind="walk",t0=2.2000000000000002,t1=5.1333333333333329,to={x=2230,y=1010}}
+{from={x=2230,y=1010},kind="walk",t0=5.1333333333333329,t1=5.4666666666666659,to={x=2280,y=1010}}
+{face="right",from={x=2280,y=1010},kind="collect",padId="millStore",t0=5.4666666666666659,t1=6.0666666666666655,to={x=2280,y=1010}}
+{from={x=2280,y=1010},kind="walk",t0=6.0666666666666655,t1=6.3999999999999986,to={x=2230,y=1010}}
+{from={x=2230,y=1010},kind="walk",t0=6.3999999999999986,t1=9.3333333333333321,to={x=2230,y=1450}}
+{from={x=2230,y=1450},kind="walk",t0=9.3333333333333321,t1=11.266666666666666,to={x=2520,y=1450}}
+{from={x=2520,y=1450},kind="walk",t0=11.266666666666666,t1=11.533333333333333,to={x=2520,y=1410}}
+{face="right",from={x=2520,y=1410},kind="sell",t0=11.533333333333333,t1=12.533333333333333,to={x=2520,y=1410}}
+duration=12.533333333333333
+## cycle.works_bell.millPorter.1of2
+{from={x=2520,y=1410},kind="walk",t0=0,t1=0.26666666666666666,to={x=2520,y=1450}}
+{from={x=2520,y=1450},kind="walk",t0=0.26666666666666666,t1=2.2000000000000002,to={x=2230,y=1450}}
+{from={x=2230,y=1450},kind="walk",t0=2.2000000000000002,t1=5.1333333333333329,to={x=2230,y=1010}}
+{from={x=2230,y=1010},kind="walk",t0=5.1333333333333329,t1=5.4666666666666659,to={x=2280,y=1010}}
+{face="right",from={x=2280,y=1010},kind="collect",padId="millStore",t0=5.4666666666666659,t1=6.0666666666666655,to={x=2280,y=1010}}
+{from={x=2280,y=1010},kind="walk",t0=6.0666666666666655,t1=6.3999999999999986,to={x=2230,y=1010}}
+{from={x=2230,y=1010},kind="walk",t0=6.3999999999999986,t1=9.3333333333333321,to={x=2230,y=1450}}
+{from={x=2230,y=1450},kind="walk",t0=9.3333333333333321,t1=11.266666666666666,to={x=2520,y=1450}}
+{from={x=2520,y=1450},kind="walk",t0=11.266666666666666,t1=11.533333333333333,to={x=2520,y=1410}}
+{face="right",from={x=2520,y=1410},kind="sell",t0=11.533333333333333,t1=12.533333333333333,to={x=2520,y=1410}}
+duration=12.533333333333333
+## cycle.works_bell.millPorter.2of2
+{from={x=2520,y=1410},kind="walk",t0=0,t1=0.26666666666666666,to={x=2520,y=1450}}
+{from={x=2520,y=1450},kind="walk",t0=0.26666666666666666,t1=2.2000000000000002,to={x=2230,y=1450}}
+{from={x=2230,y=1450},kind="walk",t0=2.2000000000000002,t1=5.1333333333333329,to={x=2230,y=1010}}
+{from={x=2230,y=1010},kind="walk",t0=5.1333333333333329,t1=5.4666666666666659,to={x=2280,y=1010}}
+{face="right",from={x=2280,y=1010},kind="collect",padId="millStore",t0=5.4666666666666659,t1=6.0666666666666655,to={x=2280,y=1010}}
+{from={x=2280,y=1010},kind="walk",t0=6.0666666666666655,t1=6.3999999999999986,to={x=2230,y=1010}}
+{from={x=2230,y=1010},kind="walk",t0=6.3999999999999986,t1=9.3333333333333321,to={x=2230,y=1450}}
+{from={x=2230,y=1450},kind="walk",t0=9.3333333333333321,t1=11.266666666666666,to={x=2520,y=1450}}
+{from={x=2520,y=1450},kind="walk",t0=11.266666666666666,t1=11.533333333333333,to={x=2520,y=1410}}
+{face="right",from={x=2520,y=1410},kind="sell",t0=11.533333333333333,t1=12.533333333333333,to={x=2520,y=1410}}
+duration=12.533333333333333
+## cycle.works_bell.founder.1of1
+duration=0
+## cycle.works_bell.founder.1of2
+duration=0
+## cycle.works_bell.founder.2of2
+duration=0
+## cycle.works_bell.partsHauler.1of1
+{from={x=2100,y=1130},kind="walk",t0=0,t1=0.8666666666666667,to={x=2230,y=1130}}
+{from={x=2230,y=1130},kind="walk",t0=0.8666666666666667,t1=3,to={x=2230,y=1450}}
+{from={x=2230,y=1450},kind="walk",t0=3,t1=7.0999999999999996,to={x=2845,y=1450}}
+{from={x=2845,y=1450},kind="walk",t0=7.0999999999999996,t1=7.3533333333333326,to={x=2845,y=1412}}
+{face="left",from={x=2845,y=1412},kind="collect",padId="parts",t0=7.3533333333333326,t1=7.9533333333333323,to={x=2845,y=1412}}
+{from={x=2845,y=1412},kind="walk",t0=7.9533333333333323,t1=8.2066666666666652,to={x=2845,y=1450}}
+{from={x=2845,y=1450},kind="walk",t0=8.2066666666666652,t1=12.306666666666665,to={x=2230,y=1450}}
+{from={x=2230,y=1450},kind="walk",t0=12.306666666666665,t1=14.439999999999998,to={x=2230,y=1130}}
+{from={x=2230,y=1130},kind="walk",t0=14.439999999999998,t1=15.306666666666665,to={x=2100,y=1130}}
+{face="left",from={x=2100,y=1130},kind="sell",t0=15.306666666666665,t1=16.306666666666665,to={x=2100,y=1130}}
+duration=16.306666666666665
+## cycle.works_bell.partsHauler.1of2
+{from={x=2100,y=1130},kind="walk",t0=0,t1=0.8666666666666667,to={x=2230,y=1130}}
+{from={x=2230,y=1130},kind="walk",t0=0.8666666666666667,t1=3,to={x=2230,y=1450}}
+{from={x=2230,y=1450},kind="walk",t0=3,t1=7.0999999999999996,to={x=2845,y=1450}}
+{from={x=2845,y=1450},kind="walk",t0=7.0999999999999996,t1=7.3533333333333326,to={x=2845,y=1412}}
+{face="left",from={x=2845,y=1412},kind="collect",padId="parts",t0=7.3533333333333326,t1=7.9533333333333323,to={x=2845,y=1412}}
+{from={x=2845,y=1412},kind="walk",t0=7.9533333333333323,t1=8.2066666666666652,to={x=2845,y=1450}}
+{from={x=2845,y=1450},kind="walk",t0=8.2066666666666652,t1=12.306666666666665,to={x=2230,y=1450}}
+{from={x=2230,y=1450},kind="walk",t0=12.306666666666665,t1=14.439999999999998,to={x=2230,y=1130}}
+{from={x=2230,y=1130},kind="walk",t0=14.439999999999998,t1=15.306666666666665,to={x=2100,y=1130}}
+{face="left",from={x=2100,y=1130},kind="sell",t0=15.306666666666665,t1=16.306666666666665,to={x=2100,y=1130}}
+duration=16.306666666666665
+## cycle.works_bell.partsHauler.2of2
+{from={x=2100,y=1130},kind="walk",t0=0,t1=0.8666666666666667,to={x=2230,y=1130}}
+{from={x=2230,y=1130},kind="walk",t0=0.8666666666666667,t1=3,to={x=2230,y=1450}}
+{from={x=2230,y=1450},kind="walk",t0=3,t1=7.0999999999999996,to={x=2845,y=1450}}
+{from={x=2845,y=1450},kind="walk",t0=7.0999999999999996,t1=7.3533333333333326,to={x=2845,y=1412}}
+{face="left",from={x=2845,y=1412},kind="collect",padId="parts",t0=7.3533333333333326,t1=7.9533333333333323,to={x=2845,y=1412}}
+{from={x=2845,y=1412},kind="walk",t0=7.9533333333333323,t1=8.2066666666666652,to={x=2845,y=1450}}
+{from={x=2845,y=1450},kind="walk",t0=8.2066666666666652,t1=12.306666666666665,to={x=2230,y=1450}}
+{from={x=2230,y=1450},kind="walk",t0=12.306666666666665,t1=14.439999999999998,to={x=2230,y=1130}}
+{from={x=2230,y=1130},kind="walk",t0=14.439999999999998,t1=15.306666666666665,to={x=2100,y=1130}}
+{face="left",from={x=2100,y=1130},kind="sell",t0=15.306666666666665,t1=16.306666666666665,to={x=2100,y=1130}}
+duration=16.306666666666665
+## cycle.works_bell.merchant.1of1
+duration=0
+## cycle.works_bell.merchant.1of2
+duration=0
+## cycle.works_bell.merchant.2of2
+duration=0
+## cycle.works_bell.oreCollector.1of1
+{from={x=3010,y=1010},kind="walk",t0=0,t1=1.4499655168313486,to={x=3100,y=812}}
+{face="right",from={x=3100,y=812},kind="collect",padId="tenth_net",t0=1.4499655168313486,t1=2.0499655168313486,to={x=3100,y=812}}
+{from={x=3100,y=812},kind="walk",t0=2.0499655168313486,t1=3.4999310336626972,to={x=3010,y=1010}}
+{face="right",from={x=3010,y=1010},kind="sell",t0=3.4999310336626972,t1=4.4999310336626976,to={x=3010,y=1010}}
+duration=4.4999310336626976
+## cycle.works_bell.oreCollector.1of2
+{from={x=3010,y=1010},kind="walk",t0=0,t1=1.4499655168313486,to={x=3100,y=812}}
+{face="right",from={x=3100,y=812},kind="collect",padId="tenth_net",t0=1.4499655168313486,t1=2.0499655168313486,to={x=3100,y=812}}
+{from={x=3100,y=812},kind="walk",t0=2.0499655168313486,t1=3.4999310336626972,to={x=3010,y=1010}}
+{face="right",from={x=3010,y=1010},kind="sell",t0=3.4999310336626972,t1=4.4999310336626976,to={x=3010,y=1010}}
+duration=4.4999310336626976
+## cycle.works_bell.oreCollector.2of2
+{from={x=3010,y=1010},kind="walk",t0=0,t1=1.4499655168313486,to={x=3100,y=812}}
+{face="right",from={x=3100,y=812},kind="collect",padId="tenth_net",t0=1.4499655168313486,t1=2.0499655168313486,to={x=3100,y=812}}
+{from={x=3100,y=812},kind="walk",t0=2.0499655168313486,t1=3.4999310336626972,to={x=3010,y=1010}}
+{face="right",from={x=3010,y=1010},kind="sell",t0=3.4999310336626972,t1=4.4999310336626976,to={x=3010,y=1010}}
+duration=4.4999310336626976
+## cycle.works_bell.orePorter.1of1
+{from={x=3110,y=1410},kind="walk",t0=0,t1=0.26666666666666666,to={x=3110,y=1450}}
+{from={x=3110,y=1450},kind="walk",t0=0.26666666666666666,t1=1.2666666666666666,to={x=2960,y=1450}}
+{from={x=2960,y=1450},kind="walk",t0=1.2666666666666666,t1=4.1999999999999993,to={x=2960,y=1010}}
+{from={x=2960,y=1010},kind="walk",t0=4.1999999999999993,t1=4.5333333333333323,to={x=3010,y=1010}}
+{face="right",from={x=3010,y=1010},kind="collect",padId="oreShed",t0=4.5333333333333323,t1=5.133333333333332,to={x=3010,y=1010}}
+{from={x=3010,y=1010},kind="walk",t0=5.133333333333332,t1=5.466666666666665,to={x=2960,y=1010}}
+{from={x=2960,y=1010},kind="walk",t0=5.466666666666665,t1=8.3999999999999986,to={x=2960,y=1450}}
+{from={x=2960,y=1450},kind="walk",t0=8.3999999999999986,t1=9.3999999999999986,to={x=3110,y=1450}}
+{from={x=3110,y=1450},kind="walk",t0=9.3999999999999986,t1=9.6666666666666661,to={x=3110,y=1410}}
+{face="right",from={x=3110,y=1410},kind="sell",t0=9.6666666666666661,t1=10.666666666666666,to={x=3110,y=1410}}
+duration=10.666666666666666
+## cycle.works_bell.orePorter.1of2
+{from={x=3110,y=1410},kind="walk",t0=0,t1=0.26666666666666666,to={x=3110,y=1450}}
+{from={x=3110,y=1450},kind="walk",t0=0.26666666666666666,t1=1.2666666666666666,to={x=2960,y=1450}}
+{from={x=2960,y=1450},kind="walk",t0=1.2666666666666666,t1=4.1999999999999993,to={x=2960,y=1010}}
+{from={x=2960,y=1010},kind="walk",t0=4.1999999999999993,t1=4.5333333333333323,to={x=3010,y=1010}}
+{face="right",from={x=3010,y=1010},kind="collect",padId="oreShed",t0=4.5333333333333323,t1=5.133333333333332,to={x=3010,y=1010}}
+{from={x=3010,y=1010},kind="walk",t0=5.133333333333332,t1=5.466666666666665,to={x=2960,y=1010}}
+{from={x=2960,y=1010},kind="walk",t0=5.466666666666665,t1=8.3999999999999986,to={x=2960,y=1450}}
+{from={x=2960,y=1450},kind="walk",t0=8.3999999999999986,t1=9.3999999999999986,to={x=3110,y=1450}}
+{from={x=3110,y=1450},kind="walk",t0=9.3999999999999986,t1=9.6666666666666661,to={x=3110,y=1410}}
+{face="right",from={x=3110,y=1410},kind="sell",t0=9.6666666666666661,t1=10.666666666666666,to={x=3110,y=1410}}
+duration=10.666666666666666
+## cycle.works_bell.orePorter.2of2
+{from={x=3110,y=1410},kind="walk",t0=0,t1=0.26666666666666666,to={x=3110,y=1450}}
+{from={x=3110,y=1450},kind="walk",t0=0.26666666666666666,t1=1.2666666666666666,to={x=2960,y=1450}}
+{from={x=2960,y=1450},kind="walk",t0=1.2666666666666666,t1=4.1999999999999993,to={x=2960,y=1010}}
+{from={x=2960,y=1010},kind="walk",t0=4.1999999999999993,t1=4.5333333333333323,to={x=3010,y=1010}}
+{face="right",from={x=3010,y=1010},kind="collect",padId="oreShed",t0=4.5333333333333323,t1=5.133333333333332,to={x=3010,y=1010}}
+{from={x=3010,y=1010},kind="walk",t0=5.133333333333332,t1=5.466666666666665,to={x=2960,y=1010}}
+{from={x=2960,y=1010},kind="walk",t0=5.466666666666665,t1=8.3999999999999986,to={x=2960,y=1450}}
+{from={x=2960,y=1450},kind="walk",t0=8.3999999999999986,t1=9.3999999999999986,to={x=3110,y=1450}}
+{from={x=3110,y=1450},kind="walk",t0=9.3999999999999986,t1=9.6666666666666661,to={x=3110,y=1410}}
+{face="right",from={x=3110,y=1410},kind="sell",t0=9.6666666666666661,t1=10.666666666666666,to={x=3110,y=1410}}
+duration=10.666666666666666
+## cycle.works_bell.coppersmith.1of1
+duration=0
+## cycle.works_bell.coppersmith.1of2
+duration=0
+## cycle.works_bell.coppersmith.2of2
+duration=0
+## cycle.works_bell.copperHauler.1of1
+{from={x=2100,y=1130},kind="walk",t0=0,t1=0.8666666666666667,to={x=2230,y=1130}}
+{from={x=2230,y=1130},kind="walk",t0=0.8666666666666667,t1=3,to={x=2230,y=1450}}
+{from={x=2230,y=1450},kind="walk",t0=3,t1=11.533333333333333,to={x=3510,y=1450}}
+{from={x=3510,y=1450},kind="walk",t0=11.533333333333333,t1=11.786666666666667,to={x=3510,y=1412}}
+{face="left",from={x=3510,y=1412},kind="collect",padId="copper",t0=11.786666666666667,t1=12.386666666666667,to={x=3510,y=1412}}
+{from={x=3510,y=1412},kind="walk",t0=12.386666666666667,t1=12.640000000000001,to={x=3510,y=1450}}
+{from={x=3510,y=1450},kind="walk",t0=12.640000000000001,t1=21.173333333333332,to={x=2230,y=1450}}
+{from={x=2230,y=1450},kind="walk",t0=21.173333333333332,t1=23.306666666666665,to={x=2230,y=1130}}
+{from={x=2230,y=1130},kind="walk",t0=23.306666666666665,t1=24.173333333333332,to={x=2100,y=1130}}
+{face="left",from={x=2100,y=1130},kind="sell",t0=24.173333333333332,t1=25.173333333333332,to={x=2100,y=1130}}
+duration=25.173333333333332
+## cycle.works_bell.copperHauler.1of2
+{from={x=2100,y=1130},kind="walk",t0=0,t1=0.8666666666666667,to={x=2230,y=1130}}
+{from={x=2230,y=1130},kind="walk",t0=0.8666666666666667,t1=3,to={x=2230,y=1450}}
+{from={x=2230,y=1450},kind="walk",t0=3,t1=11.533333333333333,to={x=3510,y=1450}}
+{from={x=3510,y=1450},kind="walk",t0=11.533333333333333,t1=11.786666666666667,to={x=3510,y=1412}}
+{face="left",from={x=3510,y=1412},kind="collect",padId="copper",t0=11.786666666666667,t1=12.386666666666667,to={x=3510,y=1412}}
+{from={x=3510,y=1412},kind="walk",t0=12.386666666666667,t1=12.640000000000001,to={x=3510,y=1450}}
+{from={x=3510,y=1450},kind="walk",t0=12.640000000000001,t1=21.173333333333332,to={x=2230,y=1450}}
+{from={x=2230,y=1450},kind="walk",t0=21.173333333333332,t1=23.306666666666665,to={x=2230,y=1130}}
+{from={x=2230,y=1130},kind="walk",t0=23.306666666666665,t1=24.173333333333332,to={x=2100,y=1130}}
+{face="left",from={x=2100,y=1130},kind="sell",t0=24.173333333333332,t1=25.173333333333332,to={x=2100,y=1130}}
+duration=25.173333333333332
+## cycle.works_bell.copperHauler.2of2
+{from={x=2100,y=1130},kind="walk",t0=0,t1=0.8666666666666667,to={x=2230,y=1130}}
+{from={x=2230,y=1130},kind="walk",t0=0.8666666666666667,t1=3,to={x=2230,y=1450}}
+{from={x=2230,y=1450},kind="walk",t0=3,t1=11.533333333333333,to={x=3510,y=1450}}
+{from={x=3510,y=1450},kind="walk",t0=11.533333333333333,t1=11.786666666666667,to={x=3510,y=1412}}
+{face="left",from={x=3510,y=1412},kind="collect",padId="copper",t0=11.786666666666667,t1=12.386666666666667,to={x=3510,y=1412}}
+{from={x=3510,y=1412},kind="walk",t0=12.386666666666667,t1=12.640000000000001,to={x=3510,y=1450}}
+{from={x=3510,y=1450},kind="walk",t0=12.640000000000001,t1=21.173333333333332,to={x=2230,y=1450}}
+{from={x=2230,y=1450},kind="walk",t0=21.173333333333332,t1=23.306666666666665,to={x=2230,y=1130}}
+{from={x=2230,y=1130},kind="walk",t0=23.306666666666665,t1=24.173333333333332,to={x=2100,y=1130}}
+{face="left",from={x=2100,y=1130},kind="sell",t0=24.173333333333332,t1=25.173333333333332,to={x=2100,y=1130}}
+duration=25.173333333333332
+## cycle.works_bell.worksCollector.1of1
+{from={x=3960,y=1010},kind="walk",t0=0,t1=0.33333333333333331,to={x=3910,y=1010}}
+{from={x=3910,y=1010},kind="walk",t0=0.33333333333333331,t1=1.6399999999999999,to={x=3910,y=814}}
+{from={x=3910,y=814},kind="walk",t0=1.6399999999999999,t1=2.1066666666666665,to={x=3980,y=814}}
+{from={x=3980,y=814},kind="walk",t0=2.1066666666666665,t1=2.1199999999999997,to={x=3980,y=812}}
+{face="right",from={x=3980,y=812},kind="collect",padId="eleventh_net",t0=2.1199999999999997,t1=2.7199999999999998,to={x=3980,y=812}}
+{from={x=3980,y=812},kind="walk",t0=2.7199999999999998,t1=4.0533333333333328,to={x=4180,y=812}}
+{face="right",from={x=4180,y=812},kind="collect",padId="twelfth_net",t0=4.0533333333333328,t1=4.6533333333333324,to={x=4180,y=812}}
+{from={x=4180,y=812},kind="walk",t0=4.6533333333333324,t1=5.9866666666666655,to={x=4380,y=812}}
+{face="right",from={x=4380,y=812},kind="collect",padId="thirteenth_net",t0=5.9866666666666655,t1=6.5866666666666651,to={x=4380,y=812}}
+{from={x=4380,y=812},kind="walk",t0=6.5866666666666651,t1=7.9199999999999982,to={x=4580,y=812}}
+{face="right",from={x=4580,y=812},kind="collect",padId="fourteenth_net",t0=7.9199999999999982,t1=8.5199999999999978,to={x=4580,y=812}}
+{from={x=4580,y=812},kind="walk",t0=8.5199999999999978,t1=8.5333333333333314,to={x=4580,y=814}}
+{from={x=4580,y=814},kind="walk",t0=8.5333333333333314,t1=12.999999999999998,to={x=3910,y=814}}
+{from={x=3910,y=814},kind="walk",t0=12.999999999999998,t1=14.306666666666665,to={x=3910,y=1010}}
+{from={x=3910,y=1010},kind="walk",t0=14.306666666666665,t1=14.639999999999999,to={x=3960,y=1010}}
+{face="right",from={x=3960,y=1010},kind="sell",t0=14.639999999999999,t1=15.639999999999999,to={x=3960,y=1010}}
+duration=15.639999999999999
+## cycle.works_bell.worksCollector.1of2
+{from={x=3960,y=1010},kind="walk",t0=0,t1=0.33333333333333331,to={x=3910,y=1010}}
+{from={x=3910,y=1010},kind="walk",t0=0.33333333333333331,t1=1.6399999999999999,to={x=3910,y=814}}
+{from={x=3910,y=814},kind="walk",t0=1.6399999999999999,t1=2.1066666666666665,to={x=3980,y=814}}
+{from={x=3980,y=814},kind="walk",t0=2.1066666666666665,t1=2.1199999999999997,to={x=3980,y=812}}
+{face="right",from={x=3980,y=812},kind="collect",padId="eleventh_net",t0=2.1199999999999997,t1=2.7199999999999998,to={x=3980,y=812}}
+{from={x=3980,y=812},kind="walk",t0=2.7199999999999998,t1=4.0533333333333328,to={x=4180,y=812}}
+{face="right",from={x=4180,y=812},kind="collect",padId="twelfth_net",t0=4.0533333333333328,t1=4.6533333333333324,to={x=4180,y=812}}
+{from={x=4180,y=812},kind="walk",t0=4.6533333333333324,t1=4.6666666666666661,to={x=4180,y=814}}
+{from={x=4180,y=814},kind="walk",t0=4.6666666666666661,t1=6.4666666666666659,to={x=3910,y=814}}
+{from={x=3910,y=814},kind="walk",t0=6.4666666666666659,t1=7.7733333333333325,to={x=3910,y=1010}}
+{from={x=3910,y=1010},kind="walk",t0=7.7733333333333325,t1=8.1066666666666656,to={x=3960,y=1010}}
+{face="right",from={x=3960,y=1010},kind="sell",t0=8.1066666666666656,t1=9.1066666666666656,to={x=3960,y=1010}}
+duration=9.1066666666666656
+## cycle.works_bell.worksCollector.2of2
+{from={x=3960,y=1010},kind="walk",t0=0,t1=0.33333333333333331,to={x=3910,y=1010}}
+{from={x=3910,y=1010},kind="walk",t0=0.33333333333333331,t1=1.6399999999999999,to={x=3910,y=814}}
+{from={x=3910,y=814},kind="walk",t0=1.6399999999999999,t1=4.7733333333333334,to={x=4380,y=814}}
+{from={x=4380,y=814},kind="walk",t0=4.7733333333333334,t1=4.7866666666666671,to={x=4380,y=812}}
+{face="right",from={x=4380,y=812},kind="collect",padId="thirteenth_net",t0=4.7866666666666671,t1=5.3866666666666667,to={x=4380,y=812}}
+{from={x=4380,y=812},kind="walk",t0=5.3866666666666667,t1=6.7199999999999998,to={x=4580,y=812}}
+{face="right",from={x=4580,y=812},kind="collect",padId="fourteenth_net",t0=6.7199999999999998,t1=7.3199999999999994,to={x=4580,y=812}}
+{from={x=4580,y=812},kind="walk",t0=7.3199999999999994,t1=7.333333333333333,to={x=4580,y=814}}
+{from={x=4580,y=814},kind="walk",t0=7.333333333333333,t1=11.800000000000001,to={x=3910,y=814}}
+{from={x=3910,y=814},kind="walk",t0=11.800000000000001,t1=13.106666666666667,to={x=3910,y=1010}}
+{from={x=3910,y=1010},kind="walk",t0=13.106666666666667,t1=13.440000000000001,to={x=3960,y=1010}}
+{face="right",from={x=3960,y=1010},kind="sell",t0=13.440000000000001,t1=14.440000000000001,to={x=3960,y=1010}}
+duration=14.440000000000001
+## cycle.works_bell.worksPorter.1of1
+{from={x=4200,y=1410},kind="walk",t0=0,t1=0.26666666666666666,to={x=4200,y=1450}}
+{from={x=4200,y=1450},kind="walk",t0=0.26666666666666666,t1=2.2000000000000002,to={x=3910,y=1450}}
+{from={x=3910,y=1450},kind="walk",t0=2.2000000000000002,t1=5.1333333333333329,to={x=3910,y=1010}}
+{from={x=3910,y=1010},kind="walk",t0=5.1333333333333329,t1=5.4666666666666659,to={x=3960,y=1010}}
+{face="right",from={x=3960,y=1010},kind="collect",padId="worksStore",t0=5.4666666666666659,t1=6.0666666666666655,to={x=3960,y=1010}}
+{from={x=3960,y=1010},kind="walk",t0=6.0666666666666655,t1=6.3999999999999986,to={x=3910,y=1010}}
+{from={x=3910,y=1010},kind="walk",t0=6.3999999999999986,t1=9.3333333333333321,to={x=3910,y=1450}}
+{from={x=3910,y=1450},kind="walk",t0=9.3333333333333321,t1=11.266666666666666,to={x=4200,y=1450}}
+{from={x=4200,y=1450},kind="walk",t0=11.266666666666666,t1=11.533333333333333,to={x=4200,y=1410}}
+{face="right",from={x=4200,y=1410},kind="sell",t0=11.533333333333333,t1=12.533333333333333,to={x=4200,y=1410}}
+duration=12.533333333333333
+## cycle.works_bell.worksPorter.1of2
+{from={x=4200,y=1410},kind="walk",t0=0,t1=0.26666666666666666,to={x=4200,y=1450}}
+{from={x=4200,y=1450},kind="walk",t0=0.26666666666666666,t1=2.2000000000000002,to={x=3910,y=1450}}
+{from={x=3910,y=1450},kind="walk",t0=2.2000000000000002,t1=5.1333333333333329,to={x=3910,y=1010}}
+{from={x=3910,y=1010},kind="walk",t0=5.1333333333333329,t1=5.4666666666666659,to={x=3960,y=1010}}
+{face="right",from={x=3960,y=1010},kind="collect",padId="worksStore",t0=5.4666666666666659,t1=6.0666666666666655,to={x=3960,y=1010}}
+{from={x=3960,y=1010},kind="walk",t0=6.0666666666666655,t1=6.3999999999999986,to={x=3910,y=1010}}
+{from={x=3910,y=1010},kind="walk",t0=6.3999999999999986,t1=9.3333333333333321,to={x=3910,y=1450}}
+{from={x=3910,y=1450},kind="walk",t0=9.3333333333333321,t1=11.266666666666666,to={x=4200,y=1450}}
+{from={x=4200,y=1450},kind="walk",t0=11.266666666666666,t1=11.533333333333333,to={x=4200,y=1410}}
+{face="right",from={x=4200,y=1410},kind="sell",t0=11.533333333333333,t1=12.533333333333333,to={x=4200,y=1410}}
+duration=12.533333333333333
+## cycle.works_bell.worksPorter.2of2
+{from={x=4200,y=1410},kind="walk",t0=0,t1=0.26666666666666666,to={x=4200,y=1450}}
+{from={x=4200,y=1450},kind="walk",t0=0.26666666666666666,t1=2.2000000000000002,to={x=3910,y=1450}}
+{from={x=3910,y=1450},kind="walk",t0=2.2000000000000002,t1=5.1333333333333329,to={x=3910,y=1010}}
+{from={x=3910,y=1010},kind="walk",t0=5.1333333333333329,t1=5.4666666666666659,to={x=3960,y=1010}}
+{face="right",from={x=3960,y=1010},kind="collect",padId="worksStore",t0=5.4666666666666659,t1=6.0666666666666655,to={x=3960,y=1010}}
+{from={x=3960,y=1010},kind="walk",t0=6.0666666666666655,t1=6.3999999999999986,to={x=3910,y=1010}}
+{from={x=3910,y=1010},kind="walk",t0=6.3999999999999986,t1=9.3333333333333321,to={x=3910,y=1450}}
+{from={x=3910,y=1450},kind="walk",t0=9.3333333333333321,t1=11.266666666666666,to={x=4200,y=1450}}
+{from={x=4200,y=1450},kind="walk",t0=11.266666666666666,t1=11.533333333333333,to={x=4200,y=1410}}
+{face="right",from={x=4200,y=1410},kind="sell",t0=11.533333333333333,t1=12.533333333333333,to={x=4200,y=1410}}
+duration=12.533333333333333
+## cycle.works_bell.wiredrawer.1of1
+duration=0
+## cycle.works_bell.wiredrawer.1of2
+duration=0
+## cycle.works_bell.wiredrawer.2of2
+duration=0
+## cycle.works_bell.coilHauler.1of1
+{from={x=3780,y=1130},kind="walk",t0=0,t1=0.8666666666666667,to={x=3910,y=1130}}
+{from={x=3910,y=1130},kind="walk",t0=0.8666666666666667,t1=3,to={x=3910,y=1450}}
+{from={x=3910,y=1450},kind="walk",t0=3,t1=7.0999999999999996,to={x=4525,y=1450}}
+{from={x=4525,y=1450},kind="walk",t0=7.0999999999999996,t1=7.3533333333333326,to={x=4525,y=1412}}
+{face="left",from={x=4525,y=1412},kind="collect",padId="coils",t0=7.3533333333333326,t1=7.9533333333333323,to={x=4525,y=1412}}
+{from={x=4525,y=1412},kind="walk",t0=7.9533333333333323,t1=8.2066666666666652,to={x=4525,y=1450}}
+{from={x=4525,y=1450},kind="walk",t0=8.2066666666666652,t1=12.306666666666665,to={x=3910,y=1450}}
+{from={x=3910,y=1450},kind="walk",t0=12.306666666666665,t1=14.439999999999998,to={x=3910,y=1130}}
+{from={x=3910,y=1130},kind="walk",t0=14.439999999999998,t1=15.306666666666665,to={x=3780,y=1130}}
+{face="left",from={x=3780,y=1130},kind="sell",t0=15.306666666666665,t1=16.306666666666665,to={x=3780,y=1130}}
+duration=16.306666666666665
+## cycle.works_bell.coilHauler.1of2
+{from={x=3780,y=1130},kind="walk",t0=0,t1=0.8666666666666667,to={x=3910,y=1130}}
+{from={x=3910,y=1130},kind="walk",t0=0.8666666666666667,t1=3,to={x=3910,y=1450}}
+{from={x=3910,y=1450},kind="walk",t0=3,t1=7.0999999999999996,to={x=4525,y=1450}}
+{from={x=4525,y=1450},kind="walk",t0=7.0999999999999996,t1=7.3533333333333326,to={x=4525,y=1412}}
+{face="left",from={x=4525,y=1412},kind="collect",padId="coils",t0=7.3533333333333326,t1=7.9533333333333323,to={x=4525,y=1412}}
+{from={x=4525,y=1412},kind="walk",t0=7.9533333333333323,t1=8.2066666666666652,to={x=4525,y=1450}}
+{from={x=4525,y=1450},kind="walk",t0=8.2066666666666652,t1=12.306666666666665,to={x=3910,y=1450}}
+{from={x=3910,y=1450},kind="walk",t0=12.306666666666665,t1=14.439999999999998,to={x=3910,y=1130}}
+{from={x=3910,y=1130},kind="walk",t0=14.439999999999998,t1=15.306666666666665,to={x=3780,y=1130}}
+{face="left",from={x=3780,y=1130},kind="sell",t0=15.306666666666665,t1=16.306666666666665,to={x=3780,y=1130}}
+duration=16.306666666666665
+## cycle.works_bell.coilHauler.2of2
+{from={x=3780,y=1130},kind="walk",t0=0,t1=0.8666666666666667,to={x=3910,y=1130}}
+{from={x=3910,y=1130},kind="walk",t0=0.8666666666666667,t1=3,to={x=3910,y=1450}}
+{from={x=3910,y=1450},kind="walk",t0=3,t1=7.0999999999999996,to={x=4525,y=1450}}
+{from={x=4525,y=1450},kind="walk",t0=7.0999999999999996,t1=7.3533333333333326,to={x=4525,y=1412}}
+{face="left",from={x=4525,y=1412},kind="collect",padId="coils",t0=7.3533333333333326,t1=7.9533333333333323,to={x=4525,y=1412}}
+{from={x=4525,y=1412},kind="walk",t0=7.9533333333333323,t1=8.2066666666666652,to={x=4525,y=1450}}
+{from={x=4525,y=1450},kind="walk",t0=8.2066666666666652,t1=12.306666666666665,to={x=3910,y=1450}}
+{from={x=3910,y=1450},kind="walk",t0=12.306666666666665,t1=14.439999999999998,to={x=3910,y=1130}}
+{from={x=3910,y=1130},kind="walk",t0=14.439999999999998,t1=15.306666666666665,to={x=3780,y=1130}}
+{face="left",from={x=3780,y=1130},kind="sell",t0=15.306666666666665,t1=16.306666666666665,to={x=3780,y=1130}}
+duration=16.306666666666665
+## cycle.works_bell.clerk.1of1
+duration=0
+## cycle.works_bell.clerk.1of2
+duration=0
+## cycle.works_bell.clerk.2of2
+duration=0
+## cycle.works_bell.batteryCollector.1of1
+{from={x=4690,y=1010},kind="walk",t0=0,t1=1.4499655168313486,to={x=4780,y=812}}
+{face="right",from={x=4780,y=812},kind="collect",padId="first_turbine",t0=1.4499655168313486,t1=2.0499655168313486,to={x=4780,y=812}}
+{from={x=4780,y=812},kind="walk",t0=2.0499655168313486,t1=3.4999310336626972,to={x=4690,y=1010}}
+{face="right",from={x=4690,y=1010},kind="sell",t0=3.4999310336626972,t1=4.4999310336626976,to={x=4690,y=1010}}
+duration=4.4999310336626976
+## cycle.works_bell.batteryCollector.1of2
+{from={x=4690,y=1010},kind="walk",t0=0,t1=1.4499655168313486,to={x=4780,y=812}}
+{face="right",from={x=4780,y=812},kind="collect",padId="first_turbine",t0=1.4499655168313486,t1=2.0499655168313486,to={x=4780,y=812}}
+{from={x=4780,y=812},kind="walk",t0=2.0499655168313486,t1=3.4999310336626972,to={x=4690,y=1010}}
+{face="right",from={x=4690,y=1010},kind="sell",t0=3.4999310336626972,t1=4.4999310336626976,to={x=4690,y=1010}}
+duration=4.4999310336626976
+## cycle.works_bell.batteryCollector.2of2
+{from={x=4690,y=1010},kind="walk",t0=0,t1=1.4499655168313486,to={x=4780,y=812}}
+{face="right",from={x=4780,y=812},kind="collect",padId="first_turbine",t0=1.4499655168313486,t1=2.0499655168313486,to={x=4780,y=812}}
+{from={x=4780,y=812},kind="walk",t0=2.0499655168313486,t1=3.4999310336626972,to={x=4690,y=1010}}
+{face="right",from={x=4690,y=1010},kind="sell",t0=3.4999310336626972,t1=4.4999310336626976,to={x=4690,y=1010}}
+duration=4.4999310336626976
+## cycle.works_bell.batteryPorter.1of1
+{from={x=4790,y=1410},kind="walk",t0=0,t1=0.26666666666666666,to={x=4790,y=1450}}
+{from={x=4790,y=1450},kind="walk",t0=0.26666666666666666,t1=1.2666666666666666,to={x=4640,y=1450}}
+{from={x=4640,y=1450},kind="walk",t0=1.2666666666666666,t1=4.1999999999999993,to={x=4640,y=1010}}
+{from={x=4640,y=1010},kind="walk",t0=4.1999999999999993,t1=4.5333333333333323,to={x=4690,y=1010}}
+{face="right",from={x=4690,y=1010},kind="collect",padId="batteryShed",t0=4.5333333333333323,t1=5.133333333333332,to={x=4690,y=1010}}
+{from={x=4690,y=1010},kind="walk",t0=5.133333333333332,t1=5.466666666666665,to={x=4640,y=1010}}
+{from={x=4640,y=1010},kind="walk",t0=5.466666666666665,t1=8.3999999999999986,to={x=4640,y=1450}}
+{from={x=4640,y=1450},kind="walk",t0=8.3999999999999986,t1=9.3999999999999986,to={x=4790,y=1450}}
+{from={x=4790,y=1450},kind="walk",t0=9.3999999999999986,t1=9.6666666666666661,to={x=4790,y=1410}}
+{face="right",from={x=4790,y=1410},kind="sell",t0=9.6666666666666661,t1=10.666666666666666,to={x=4790,y=1410}}
+duration=10.666666666666666
+## cycle.works_bell.batteryPorter.1of2
+{from={x=4790,y=1410},kind="walk",t0=0,t1=0.26666666666666666,to={x=4790,y=1450}}
+{from={x=4790,y=1450},kind="walk",t0=0.26666666666666666,t1=1.2666666666666666,to={x=4640,y=1450}}
+{from={x=4640,y=1450},kind="walk",t0=1.2666666666666666,t1=4.1999999999999993,to={x=4640,y=1010}}
+{from={x=4640,y=1010},kind="walk",t0=4.1999999999999993,t1=4.5333333333333323,to={x=4690,y=1010}}
+{face="right",from={x=4690,y=1010},kind="collect",padId="batteryShed",t0=4.5333333333333323,t1=5.133333333333332,to={x=4690,y=1010}}
+{from={x=4690,y=1010},kind="walk",t0=5.133333333333332,t1=5.466666666666665,to={x=4640,y=1010}}
+{from={x=4640,y=1010},kind="walk",t0=5.466666666666665,t1=8.3999999999999986,to={x=4640,y=1450}}
+{from={x=4640,y=1450},kind="walk",t0=8.3999999999999986,t1=9.3999999999999986,to={x=4790,y=1450}}
+{from={x=4790,y=1450},kind="walk",t0=9.3999999999999986,t1=9.6666666666666661,to={x=4790,y=1410}}
+{face="right",from={x=4790,y=1410},kind="sell",t0=9.6666666666666661,t1=10.666666666666666,to={x=4790,y=1410}}
+duration=10.666666666666666
+## cycle.works_bell.batteryPorter.2of2
+{from={x=4790,y=1410},kind="walk",t0=0,t1=0.26666666666666666,to={x=4790,y=1450}}
+{from={x=4790,y=1450},kind="walk",t0=0.26666666666666666,t1=1.2666666666666666,to={x=4640,y=1450}}
+{from={x=4640,y=1450},kind="walk",t0=1.2666666666666666,t1=4.1999999999999993,to={x=4640,y=1010}}
+{from={x=4640,y=1010},kind="walk",t0=4.1999999999999993,t1=4.5333333333333323,to={x=4690,y=1010}}
+{face="right",from={x=4690,y=1010},kind="collect",padId="batteryShed",t0=4.5333333333333323,t1=5.133333333333332,to={x=4690,y=1010}}
+{from={x=4690,y=1010},kind="walk",t0=5.133333333333332,t1=5.466666666666665,to={x=4640,y=1010}}
+{from={x=4640,y=1010},kind="walk",t0=5.466666666666665,t1=8.3999999999999986,to={x=4640,y=1450}}
+{from={x=4640,y=1450},kind="walk",t0=8.3999999999999986,t1=9.3999999999999986,to={x=4790,y=1450}}
+{from={x=4790,y=1450},kind="walk",t0=9.3999999999999986,t1=9.6666666666666661,to={x=4790,y=1410}}
+{face="right",from={x=4790,y=1410},kind="sell",t0=9.6666666666666661,t1=10.666666666666666,to={x=4790,y=1410}}
+duration=10.666666666666666
+## cycle.works_bell.electrician.1of1
+duration=0
+## cycle.works_bell.electrician.1of2
+duration=0
+## cycle.works_bell.electrician.2of2
+duration=0
+## cycle.works_bell.powerHauler.1of1
+{from={x=3780,y=1130},kind="walk",t0=0,t1=0.8666666666666667,to={x=3910,y=1130}}
+{from={x=3910,y=1130},kind="walk",t0=0.8666666666666667,t1=3,to={x=3910,y=1450}}
+{from={x=3910,y=1450},kind="walk",t0=3,t1=11.533333333333333,to={x=5190,y=1450}}
+{from={x=5190,y=1450},kind="walk",t0=11.533333333333333,t1=11.786666666666667,to={x=5190,y=1412}}
+{face="left",from={x=5190,y=1412},kind="collect",padId="cell",t0=11.786666666666667,t1=12.386666666666667,to={x=5190,y=1412}}
+{from={x=5190,y=1412},kind="walk",t0=12.386666666666667,t1=12.640000000000001,to={x=5190,y=1450}}
+{from={x=5190,y=1450},kind="walk",t0=12.640000000000001,t1=21.173333333333332,to={x=3910,y=1450}}
+{from={x=3910,y=1450},kind="walk",t0=21.173333333333332,t1=23.306666666666665,to={x=3910,y=1130}}
+{from={x=3910,y=1130},kind="walk",t0=23.306666666666665,t1=24.173333333333332,to={x=3780,y=1130}}
+{face="left",from={x=3780,y=1130},kind="sell",t0=24.173333333333332,t1=25.173333333333332,to={x=3780,y=1130}}
+duration=25.173333333333332
+## cycle.works_bell.powerHauler.1of2
+{from={x=3780,y=1130},kind="walk",t0=0,t1=0.8666666666666667,to={x=3910,y=1130}}
+{from={x=3910,y=1130},kind="walk",t0=0.8666666666666667,t1=3,to={x=3910,y=1450}}
+{from={x=3910,y=1450},kind="walk",t0=3,t1=11.533333333333333,to={x=5190,y=1450}}
+{from={x=5190,y=1450},kind="walk",t0=11.533333333333333,t1=11.786666666666667,to={x=5190,y=1412}}
+{face="left",from={x=5190,y=1412},kind="collect",padId="cell",t0=11.786666666666667,t1=12.386666666666667,to={x=5190,y=1412}}
+{from={x=5190,y=1412},kind="walk",t0=12.386666666666667,t1=12.640000000000001,to={x=5190,y=1450}}
+{from={x=5190,y=1450},kind="walk",t0=12.640000000000001,t1=21.173333333333332,to={x=3910,y=1450}}
+{from={x=3910,y=1450},kind="walk",t0=21.173333333333332,t1=23.306666666666665,to={x=3910,y=1130}}
+{from={x=3910,y=1130},kind="walk",t0=23.306666666666665,t1=24.173333333333332,to={x=3780,y=1130}}
+{face="left",from={x=3780,y=1130},kind="sell",t0=24.173333333333332,t1=25.173333333333332,to={x=3780,y=1130}}
+duration=25.173333333333332
+## cycle.works_bell.powerHauler.2of2
+{from={x=3780,y=1130},kind="walk",t0=0,t1=0.8666666666666667,to={x=3910,y=1130}}
+{from={x=3910,y=1130},kind="walk",t0=0.8666666666666667,t1=3,to={x=3910,y=1450}}
+{from={x=3910,y=1450},kind="walk",t0=3,t1=11.533333333333333,to={x=5190,y=1450}}
+{from={x=5190,y=1450},kind="walk",t0=11.533333333333333,t1=11.786666666666667,to={x=5190,y=1412}}
+{face="left",from={x=5190,y=1412},kind="collect",padId="cell",t0=11.786666666666667,t1=12.386666666666667,to={x=5190,y=1412}}
+{from={x=5190,y=1412},kind="walk",t0=12.386666666666667,t1=12.640000000000001,to={x=5190,y=1450}}
+{from={x=5190,y=1450},kind="walk",t0=12.640000000000001,t1=21.173333333333332,to={x=3910,y=1450}}
+{from={x=3910,y=1450},kind="walk",t0=21.173333333333332,t1=23.306666666666665,to={x=3910,y=1130}}
+{from={x=3910,y=1130},kind="walk",t0=23.306666666666665,t1=24.173333333333332,to={x=3780,y=1130}}
+{face="left",from={x=3780,y=1130},kind="sell",t0=24.173333333333332,t1=25.173333333333332,to={x=3780,y=1130}}
+duration=25.173333333333332
+## stand.collector
+## stand.porter
+## stand.sawyer
+{x=1110,y=1452}
+{x=1050,y=1452}
+## stand.hauler
+## stand.trader
+{x=470,y=1152}
+{x=530,y=1152}
+## stand.scrapCollector
+## stand.scrapPorter
+## stand.smelter
+{x=1690,y=1452}
+{x=1750,y=1452}
+## stand.ironHauler
+## stand.millCollector
+## stand.millPorter
+## stand.founder
+{x=2790,y=1452}
+{x=2730,y=1452}
+## stand.partsHauler
+## stand.merchant
+{x=2150,y=1152}
+{x=2210,y=1152}
+## stand.oreCollector
+## stand.orePorter
+## stand.coppersmith
+{x=3370,y=1452}
+{x=3430,y=1452}
+## stand.copperHauler
+## stand.worksCollector
+## stand.worksPorter
+## stand.wiredrawer
+{x=4470,y=1452}
+{x=4410,y=1452}
+## stand.coilHauler
+## stand.clerk
+{x=3830,y=1152}
+{x=3890,y=1152}
+## stand.batteryCollector
+## stand.batteryPorter
+## stand.electrician
+{x=5050,y=1452}
+{x=5110,y=1452}
+## stand.powerHauler
+## chapter.landing
+era=1
+reward={pearls=6}
+{arg="first_net",goal=1,id="cast_first",kind="pad",reward={pearls=1},targetPad="first_net"}
+{goal=12,id="collect_once",kind="collected",reward={pearls=1},targetPad="first_net"}
+{goal=12,id="saw_once",kind="sawn",reward={pearls=1},targetSawmill=true}
+{goal=12,id="sell_once",kind="sold",reward={pearls=2},targetDock=true}
+{arg="first_runner",goal=1,id="hire_hand",kind="pad",reward={pearls=1},targetPad="first_runner"}
+{arg="hire_porter",goal=1,id="hire_porter",kind="pad",reward={pearls=1},targetPad="hire_porter"}
+{arg="hire_sawyer",goal=1,id="hire_sawyer",kind="pad",reward={pearls=1},targetPad="hire_sawyer"}
+{arg="hire_hauler",goal=1,id="hire_hauler",kind="pad",reward={pearls=1},targetPad="hire_hauler"}
+{arg="dock_trader",goal=1,id="hire_trader",kind="pad",reward={pearls=3},targetPad="dock_trader"}
+{goal=1,id="catch_fish",kind="fished",reward={pearls=3},targetFish=true}
+{goal=1,id="buy_decor",kind="decor",reward={pearls=2},targetBoard=true}
+{arg="net:first_net",goal=2,id="net_two",kind="level",reward={pearls=1},targetPad="first_net"}
+{arg="second_net",goal=1,id="cast_second",kind="pad",reward={pearls=1},targetPad="second_net"}
+## chapter.deeper
+era=1
+reward={pearls=8}
+{arg="net:second_net",goal=2,id="second_two",kind="level",reward={pearls=1},targetPad="second_net"}
+{arg="third_net",goal=1,id="cast_third",kind="pad",reward={pearls=2},targetPad="third_net"}
+{arg="bigger_sack",goal=1,id="big_sack",kind="pad",reward={pearls=1},targetPad="bigger_sack"}
+{arg="net:third_net",goal=2,id="third_two",kind="level",reward={pearls=1},targetPad="third_net"}
+{arg="far_lane_net",goal=1,id="cast_fourth",kind="pad",reward={pearls=3},targetPad="far_lane_net"}
+{goal=1,id="idle_one",kind="idle",reward={pearls=2}}
+{arg="dock",goal=10,id="dock_ten",kind="level",reward={pearls=2}}
+{arg="net:far_lane_net",goal=2,id="fourth_two",kind="level",reward={pearls=1},targetPad="far_lane_net"}
+## chapter.iron
+era=1
+reward={pearls=8}
+{arg="workshop",goal=1,id="build_workshop",kind="pad",reward={pearls=3},targetPad="workshop"}
+{arg="fifth_net",goal=1,id="cast_fifth",kind="pad",reward={pearls=3},targetPad="fifth_net"}
+{goal=10,id="smelt_iron",kind="smelted",reward={pearls=2},targetForge=true}
+{goal=10,id="sell_iron",kind="ironSold",reward={pearls=2},targetDock=true}
+{arg="scrap_shed",goal=1,id="build_shed",kind="pad",reward={pearls=1},targetPad="scrap_shed"}
+{arg="hire_scrap_collector",goal=1,id="hire_scrap_collector",kind="pad",reward={pearls=1},targetPad="hire_scrap_collector"}
+{arg="hire_scrap_porter",goal=1,id="hire_scrap_porter",kind="pad",reward={pearls=1},targetPad="hire_scrap_porter"}
+{arg="hire_smelter",goal=1,id="hire_smelter",kind="pad",reward={pearls=1},targetPad="hire_smelter"}
+{arg="hire_iron_hauler",goal=1,id="hire_iron_hauler",kind="pad",reward={pearls=2},targetPad="hire_iron_hauler"}
+{arg="landing_bell",goal=1,id="ring_bell",kind="pad",reward={pearls=5},targetPad="landing_bell"}
+## chapter.mill
+era=2
+reward={pearls=10}
+{always=true,arg="water_wheel",goal=1,id="build_wheel",kind="pad",reward={pearls=3},targetPad="water_wheel"}
+{arg="sixth_net",goal=1,id="cast_sixth",kind="pad",reward={pearls=2},targetPad="sixth_net"}
+{goal=10,id="cast_parts",kind="cast",reward={pearls=2},targetPlace="foundry"}
+{goal=10,id="sell_parts",kind="partsSold",reward={pearls=2},targetPlace="market"}
+{arg="hire_mill_collector",goal=1,id="hire_mill_collector",kind="pad",reward={pearls=1},targetPad="hire_mill_collector"}
+{arg="hire_mill_porter",goal=1,id="hire_mill_porter",kind="pad",reward={pearls=1},targetPad="hire_mill_porter"}
+{arg="hire_founder",goal=1,id="hire_founder",kind="pad",reward={pearls=1},targetPad="hire_founder"}
+{arg="hire_parts_hauler",goal=1,id="hire_parts_hauler",kind="pad",reward={pearls=1},targetPad="hire_parts_hauler"}
+{arg="hire_merchant",goal=1,id="hire_merchant",kind="pad",reward={pearls=2},targetPad="hire_merchant"}
+{arg="net:sixth_net",goal=2,id="sixth_two",kind="level",reward={pearls=1},targetPad="sixth_net"}
+{arg="seventh_net",goal=1,id="cast_seventh",kind="pad",reward={pearls=2},targetPad="seventh_net"}
+## chapter.full_stream
+era=2
+reward={pearls=12}
+{arg="net:seventh_net",goal=2,id="seventh_two",kind="level",reward={pearls=1},targetPad="seventh_net"}
+{arg="eighth_net",goal=1,id="cast_eighth",kind="pad",reward={pearls=2},targetPad="eighth_net"}
+{arg="net:eighth_net",goal=2,id="eighth_two",kind="level",reward={pearls=1},targetPad="eighth_net"}
+{arg="ninth_net",goal=1,id="cast_ninth",kind="pad",reward={pearls=3},targetPad="ninth_net"}
+{arg="market",goal=10,id="market_ten",kind="level",reward={pearls=3}}
+{arg="net:ninth_net",goal=2,id="ninth_two",kind="level",reward={pearls=1},targetPad="ninth_net"}
+## chapter.copper
+era=2
+reward={pearls=12}
+{arg="copper_furnace",goal=1,id="build_furnace",kind="pad",reward={pearls=3},targetPad="copper_furnace"}
+{arg="tenth_net",goal=1,id="cast_tenth",kind="pad",reward={pearls=3},targetPad="tenth_net"}
+{goal=10,id="smelt_copper",kind="copperSmelted",reward={pearls=2},targetPlace="furnace"}
+{goal=10,id="sell_copper",kind="copperSold",reward={pearls=2},targetPlace="market"}
+{arg="ore_shed",goal=1,id="build_ore_shed",kind="pad",reward={pearls=1},targetPad="ore_shed"}
+{arg="hire_ore_collector",goal=1,id="hire_ore_collector",kind="pad",reward={pearls=1},targetPad="hire_ore_collector"}
+{arg="hire_ore_porter",goal=1,id="hire_ore_porter",kind="pad",reward={pearls=1},targetPad="hire_ore_porter"}
+{arg="hire_coppersmith",goal=1,id="hire_coppersmith",kind="pad",reward={pearls=1},targetPad="hire_coppersmith"}
+{arg="hire_copper_hauler",goal=1,id="hire_copper_hauler",kind="pad",reward={pearls=2},targetPad="hire_copper_hauler"}
+{arg="mill_bell",goal=1,id="ring_mill_bell",kind="pad",reward={pearls=8},targetPad="mill_bell"}
+## chapter.wire_works
+era=3
+reward={pearls=10}
+{always=true,arg="steam_engine",goal=1,id="build_steam",kind="pad",reward={pearls=3},targetPad="steam_engine"}
+{arg="eleventh_net",goal=1,id="cast_eleventh",kind="pad",reward={pearls=2},targetPad="eleventh_net"}
+{goal=10,id="draw_coils",kind="drawn",reward={pearls=2},targetPlace="wireworks"}
+{goal=10,id="sell_coils",kind="coilsSold",reward={pearls=2},targetPlace="depot"}
+{arg="hire_works_collector",goal=1,id="hire_works_collector",kind="pad",reward={pearls=1},targetPad="hire_works_collector"}
+{arg="hire_works_porter",goal=1,id="hire_works_porter",kind="pad",reward={pearls=1},targetPad="hire_works_porter"}
+{arg="hire_wiredrawer",goal=1,id="hire_wiredrawer",kind="pad",reward={pearls=1},targetPad="hire_wiredrawer"}
+{arg="hire_coil_hauler",goal=1,id="hire_coil_hauler",kind="pad",reward={pearls=1},targetPad="hire_coil_hauler"}
+{arg="hire_clerk",goal=1,id="hire_clerk",kind="pad",reward={pearls=2},targetPad="hire_clerk"}
+{arg="net:eleventh_net",goal=2,id="eleventh_two",kind="level",reward={pearls=1},targetPad="eleventh_net"}
+{arg="twelfth_net",goal=1,id="cast_twelfth",kind="pad",reward={pearls=2},targetPad="twelfth_net"}
+## chapter.miles_of_wire
+era=3
+reward={pearls=12}
+{arg="net:twelfth_net",goal=2,id="twelfth_two",kind="level",reward={pearls=1},targetPad="twelfth_net"}
+{arg="thirteenth_net",goal=1,id="cast_thirteenth",kind="pad",reward={pearls=2},targetPad="thirteenth_net"}
+{arg="net:thirteenth_net",goal=2,id="thirteenth_two",kind="level",reward={pearls=1},targetPad="thirteenth_net"}
+{arg="fourteenth_net",goal=1,id="cast_fourteenth",kind="pad",reward={pearls=3},targetPad="fourteenth_net"}
+{arg="depot",goal=10,id="depot_ten",kind="level",reward={pearls=3}}
+{arg="net:fourteenth_net",goal=2,id="fourteenth_two",kind="level",reward={pearls=1},targetPad="fourteenth_net"}
+## chapter.power_line
+era=3
+reward={pearls=12}
+{arg="power_house",goal=1,id="build_power_house",kind="pad",reward={pearls=3},targetPad="power_house"}
+{arg="first_turbine",goal=1,id="build_turbine",kind="pad",reward={pearls=3},targetPad="first_turbine"}
+{goal=10,id="charge_cells",kind="cellsMade",reward={pearls=2},targetPlace="powerhouse"}
+{goal=10,id="sell_cells",kind="cellsSold",reward={pearls=2},targetPlace="depot"}
+{arg="battery_shed",goal=1,id="build_battery_shed",kind="pad",reward={pearls=1},targetPad="battery_shed"}
+{arg="hire_battery_collector",goal=1,id="hire_battery_collector",kind="pad",reward={pearls=1},targetPad="hire_battery_collector"}
+{arg="hire_battery_porter",goal=1,id="hire_battery_porter",kind="pad",reward={pearls=1},targetPad="hire_battery_porter"}
+{arg="hire_electrician",goal=1,id="hire_electrician",kind="pad",reward={pearls=1},targetPad="hire_electrician"}
+{arg="hire_power_hauler",goal=1,id="hire_power_hauler",kind="pad",reward={pearls=2},targetPad="hire_power_hauler"}
+{arg="works_bell",goal=1,id="ring_works_bell",kind="pad",reward={pearls=8},targetPad="works_bell"}

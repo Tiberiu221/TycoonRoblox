@@ -12,11 +12,9 @@ local serde = require("@lune/serde")
 local RiverConfig = require("../../src/Shared/Config/RiverConfig")
 local TycoonConfig = require("../../src/Shared/Config/TycoonConfig")
 local Shoreline = require("../../src/Shared/Modules/Shoreline")
-local WorldDecor = require("../../src/Shared/Modules/WorldDecor")
+local VillageDecor = require("../../src/Shared/Modules/VillageDecor")
 
--- aceleasi constante ca in SceneArt (decorul imprastiat si linia padurii)
-local DECOR_COUNT = 130
-local DECOR_SEED = 20260910
+-- aceeasi constanta ca in SceneArt (linia padurii); decorul imprastiat vine din VillageDecor, ca in joc
 local FOREST_SEED = 480917
 local STEP = 3 -- un pixel de imagine = 3 pixeli de lume
 
@@ -60,15 +58,7 @@ for _, p in TycoonConfig.PADS do
 end
 
 -- acelasi decor ca in joc (SceneArt): partea veche a satului isi tine copacii pe loc, fasia noua ii primeste pe ai ei
-local scattered = WorldDecor.village(DECOR_SEED, DECOR_COUNT, {
-    width = W,
-    height = H,
-    oldWidth = RiverConfig.ERA1_WORLD_WIDTH,
-    strips = RiverConfig.DECOR_STRIPS, -- [D67]
-}, {
-    riverTop = RiverConfig.SHORE_FAR.baseY - RiverConfig.SHORE_FAR.amp,
-    riverBottom = RiverConfig.SHORE_NEAR.baseY + RiverConfig.SHORE_NEAR.amp,
-}, RiverConfig.PLOT, RiverConfig.PLOT_ERA1, TycoonConfig.homeClearRects())
+local scattered = VillageDecor.items()
 
 local stripEnds = {}
 for _, strip in RiverConfig.DECOR_STRIPS do

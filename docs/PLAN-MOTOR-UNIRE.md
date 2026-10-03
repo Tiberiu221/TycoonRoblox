@@ -797,6 +797,15 @@ sunt LUATE, provizoriu**, și le poate schimba dintr-un cuvânt. Nimic nu aștea
   Erei 2, la Works Bell cu tot cumpărat); `HandRoutes.cycleFor/standFor` pentru fiecare meserie din `ERA_ROLES`; id-urile din
   `QuestConfig.CHAPTERS`; `LINE_ORDER` și `ROLES`.
 - Verificare: trece pe HEAD; o coordonată de drum mutată îl pică (apoi se revine).
+- **Făcut (2026-10-03), cu verificatorul:** lumea 1 e descrisă după eră (1–3), nu după `live` / `ENGINE_ERAS`, cu lista de
+  platforme dată explicit lui `padStatuses` / `era` / `padBlocker` (nivelul 1 pe ultima plasă deținută, ca poarta
+  `prevNetLevel` să fie prinsă). Pe lângă lista de mai sus fixează platformele erelor 1–3 (loc, condiție, efect, preț),
+  cartierele, curțile, decorul pus de mână, `LINE_PLACES` / `SELLER_PLACES` ale erelor 1–3, grămezile, locurile de lângă
+  ponton, râul (`RiverConfig`, `blockedRects`, `RiverSim.schedule`), plutirea spre plase, darurile râului, quest-urile
+  întregi (fără text) și ciclurile 1/1, 1/2, 2/2. Decorul îl desenează toți prin `VillageDecor.items()` (SceneArt, pământul
+  copt, martorul). **Două fișiere:** `tests/witness/world1.txt` (nu se schimbă niciodată din cauza barajului) și
+  `tests/witness/engine.txt` (listele motorului, capitolele din joc, statusurile pe toată lista; se rescrie la l3 și doar
+  atunci). Proba comutatorului pe o copie: `world1.txt` identic, doar `engine.txt` se schimbă.
 
 **j2. Rândurile Erei 4 în configurație, adormite, cu oglinda din simulator.** Depinde de: nimic. Dacă iese prea mare, se taie
 la granița CREWS / `DAM_START_COINS`.
@@ -1048,5 +1057,6 @@ Totalul, ~92–97 de imagini și 3 sunete până se joacă Era 4 (PLAN-HARTA §7
 - `ENGINE_ERAS = 4` și `live = true` pe cele 23 de platforme.
 - **Testele de adormire, rescrise:** `ChainMath.test.luau:3214`, `FlowMath.test.luau:76` (devine 34) și `:374-383` / `:501`,
   `HandRoutes.test.luau:715`, `TycoonConfig.test.luau:101` / `:124` / `:1245-1262`.
-- Verificare: j1 verde, cu excepțiile scrise (zona `dam` din lumea 1 și masa Dam Plans); `sim --table --chain --robust` identic;
+- Verificare: `tests/witness/world1.txt` identic (zona `dam` din lumea 1 rămâne în `ZONES`, încuiată; masa Dam Plans nu e în
+  martor), `tests/witness/engine.txt` rescris cu `WORLD_WITNESS=write` și citit rând cu rând; `sim --table --chain --robust` identic;
   CLAUDE.md și DECIZII actualizate; `verify-work`; push.

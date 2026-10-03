@@ -30,7 +30,7 @@ Arhivat, nu în proiect: masterplanul vechi, direcțiile concurente, documentele
 
 - **Nimic nu se pierde.** Fără dezastre, fără furt, fără scădere; offline doar binevoitor. **Singura excepție scrisă
   [D70]:** la schimbarea de hartă aleasă de jucător („Build the Dam", drumul spre Era 8) toți pornesc cu aceeași sumă
-  (35T pe proba de azi; se derivă în `sim_tycoon.py`, `START_SUM`, la pașii d–l). Ce e peste ea intră în construcție,
+  (35T: `DamRun.start_sum` din `sim_tycoon.py`, în joc `TycoonConfig.DAM_START_COINS`). Ce e peste ea intră în construcție,
   e scris pe placă și e anunțat dinainte. Nimic plătit nu se taie, iar venitul crește.
 - **Banii cumpără viteză, spațiu, aspect.** Niciodată noroc **care scade ceva ce ai** [D46]. Roata
   zilnică e gratuită, dă doar în plus, și își afișează șansele. Rotiri plătite nu există [D20].
@@ -150,7 +150,7 @@ sună la fiecare eră. Nimic nu e auzit încă în Studio: judecata e a owner-ul
   arată treapta gazdei. Fiecare treaptă vine cu un banner și, când locul nu se vede, cu „Look (V)": o privire de ~4 s spre satul vechi
   (`LookController` + `GlanceMath`, locurile în `TycoonConfig.modernLookAt`).
 - **Motorul** (`docs/PLAN-MOTOR-UNIRE.md`, pașii a–c): chei opționale pe linii (`closeFlag`, `inputs`, `into`, `value`,
-  `pool`); Erele 1–3 ies neschimbate la bit, iar `check_lines` fixează 22 de reguli. **Urmează pașii d–l**, cu hotărârile
+  `pool`); Erele 1–3 ies neschimbate la bit, iar `check_lines` fixează 22 de reguli. Pașii d–i sunt făcuți, j–l sunt în §16, cu hotărârile
   din D70 „Runda 4" (piesele se vând doar unite, startul e 35T cu AWAY 0 până la cei 6 oameni, cristalul se vinde și în
   Era 4) și „Runda 5" (veteranii pe butoaie, cablul de mână, Pylon Runner, fără găsiri sub baraj, pauza reparată din
   cifre).
@@ -193,12 +193,12 @@ picioare se repară înainte de push.
 - **Harta se schimbă [D70], DECIS în regulile mari:**
   - Era 3 se modernizează treptat.
   - La Era 4, un film scurt în care oamenii desfac satul și ridică barajul. Primii cinci lucrează mai departe, ceilalți
-    pleacă. Toți pornesc cu 35T (din prototipurile simulatorului; `START_SUM` vine la pașii d–l).
+    pleacă. Toți pornesc cu 35T (`DamRun.start_sum`; în joc `TycoonConfig.DAM_START_COINS`).
   - De la Era 4: 3 linii pe eră (două fac piese, a treia le unește), iar marfa erei vechi o duce un om pe drum în era nouă.
   - Fiecare eră are alt cumpărător. Din Era 6, roboții iau locul unor oameni.
   - La Era 8, un drum spre o hartă SF, iar racheta se construiește pe etape. Planul: `docs/PLAN-HARTA.md`.
-- **Era 4, „The Dam" [D68]: propusă, neaprobată** (`docs/PLAN-ERA4.md`). Owner-ul: *„Nu încă"*. Ce vinde barajul
-  hotărăște acasă. Cristalul se va vedea pe râu de la finalul Erei 3.
+- **Era 4, „The Dam" [D68]: înlocuită de D70 și D74** (`docs/PLAN-ERA4.md` e istorie). Barajul vinde curentul dus pe
+  stâlpi; cristalul se vede pe râu de la finalul Erei 3.
 
 ## Stare (2026-09-21) [D66]
 
