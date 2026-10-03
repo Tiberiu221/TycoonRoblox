@@ -13,6 +13,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 local Strings = require(ReplicatedStorage.Shared.Config.Strings)
+local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
 local PassMath = require(ReplicatedStorage.Shared.Modules.PassMath)
 
@@ -148,6 +149,8 @@ function WelcomeController.Init(deps: {
     note.TextWrapped = true
     -- [D71] seria zilnica, cand e ceva de spus
     local streakLine = line(6, Theme.TEXT.body, Theme.COLOR.wood, "strong")
+    -- [D70, pasul k6] in sat, cu barajul gata de ridicat: regula sumei de start, pe un rand
+    local damRule = line(7, Theme.TEXT.small, Theme.COLOR.inkSoft, "body")
 
     local button = Widgets.Button(body, {
         text = Strings.WELCOME_CONTINUE,
@@ -205,6 +208,7 @@ function WelcomeController.Init(deps: {
         away.TextSize = Theme.fitSize(away.Text, Theme.TEXT.body, "body", width)
         river.TextSize = Theme.fitSize(river.Text, Theme.TEXT.body, "strong", width)
         streakLine.TextSize = Theme.fitSize(streakLine.Text, Theme.TEXT.body, "strong", width)
+        damRule.TextSize = Theme.fitSize(damRule.Text, Theme.TEXT.small, "body", width)
     end
     -- fereastra se strange la rotirea telefonului (Widgets.Window), iar textul odata cu ea
     root:GetPropertyChangedSignal("Size"):Connect(fit)
@@ -250,13 +254,28 @@ function WelcomeController.Init(deps: {
                 streakText = Strings.streakAgain(best)
             end
         end
-        if coins <= 0 and things <= 0 and streakText == "" then
+        -- [D70, pasul k6] la baraj, cat lipsesc oameni: AWAY 0 si pe cine sa angajezi (copiate explicit, ca orice camp nou)
+        local awayStalled = info.awayStalled == true
+        local unhired: { string } = {}
+        if typeof(info.unhired) == "table" then
+            for _, role in info.unhired do
+                if typeof(role) == "string" then
+                    table.insert(unhired, role)
+                end
+            end
+        end
+        local firstMissing = unhired[1]
+        local missingCrew = if firstMissing ~= nil then TycoonConfig.CREWS[firstMissing] else nil
+        local stalled = awayStalled and missingCrew ~= nil
+        local damStart = if typeof(info.damStart) == "number" then info.damStart else nil
+        if coins <= 0 and things <= 0 and streakText == "" and not stalled then
             return
         end
         -- [D59] fara monede, dar cu ceva la ponton: titlul e raul, nu "ai castigat 0"; [D71] doar seria: un salut
         lead.Text = if coins > 0
             then Strings.WELCOME_EARNED
             elseif things > 0 then Strings.WELCOME_RIVER_TITLE
+            elseif stalled then Strings.WELCOME_STALLED_TITLE
             else Strings.WELCOME_STREAK_TITLE
         amount.Text = TycoonMath.formatNumber(coins)
         amountRow.Visible = coins > 0
@@ -271,9 +290,18 @@ function WelcomeController.Init(deps: {
             elseif phase == "slow" then Strings.welcomeSlow(fullHours, stopHours)
             else ""
         note.TextColor3 = Theme.COLOR.inkSoft
+        if stalled and missingCrew ~= nil then
+            -- randul se rupe (TextWrapped, AutomaticSize Y): pe telefon, fraza ar fi iesit din fereastra
+            note.Text = Strings.welcomeStalled(missingCrew.name)
+            note.TextColor3 = Theme.COLOR.ink
+        end
         note.Visible = note.Text ~= ""
         streakLine.Text = streakText
         streakLine.Visible = streakText ~= ""
+        damRule.Text = if damStart ~= nil
+            then Strings.damStartRule(TycoonMath.formatNumber(damStart))
+            else ""
+        damRule.Visible = damRule.Text ~= ""
         shownCoins = coins
         showDouble(deps.RobuxBuy ~= nil and coins >= 1 and ShopPanel.Exists("welcome2x"))
         fit()

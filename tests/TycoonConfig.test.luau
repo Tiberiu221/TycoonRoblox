@@ -1381,9 +1381,34 @@ return function()
             check.equal(Strings.padTakeFree("cast"), "Cast it — free")
         end)
 
+        -- [D70, pasul k6] ce urmeaza dupa ultima era a hartii tale: cu barajul adormit „coming soon”, dupa l3 drumul spre el
+        test.case(
+            "dupa ultima era a satului: barajul vine (adormit) sau se ridica (in joc)",
+            function()
+                local beyond = TycoonConfig.beyond(1)
+                assert(beyond ~= nil, "dupa Wire Works urmeaza barajul")
+                check.equal(beyond.era, 4)
+                check.equal(beyond.name, "The Dam")
+                check.equal(beyond.kind, if TycoonConfig.eraIsLive(4) then "build" else "soon")
+                -- la baraj, dupa l3: ceata Erei 5 („The river beyond”), nu din nou barajul
+                if TycoonConfig.eraIsLive(4) then
+                    local dam = TycoonConfig.beyond(2) :: TycoonConfig.Beyond
+                    check.equal(dam.kind, "soon")
+                    check.equal(dam.era, 5)
+                end
+                -- cartonasul mesei: butonul (240 px, fontul de pixeli la 18) incape
+                local build = Strings.plansBuild(" (E)")
+                check.is_true((utf8.len(build) :: number) * 18 * 0.5586 + 16 <= 240)
+            end
+        )
+
         test.case(
             "[2026-09-30] finalul ce e in joc: era urmatoare, dupa ultima era din joc",
             function()
+                -- [D70, pasul k6] dupa l3 barajul e in joc: finalul satului e drumul spre el (testul de mai sus)
+                if TycoonConfig.eraIsLive(4) then
+                    return
+                end
                 local coming = TycoonConfig.comingEra()
                 assert(coming ~= nil, "azi o era urmeaza (Era 4, The Dam)")
                 check.equal(TycoonConfig.eraIsLive(coming.era), false)

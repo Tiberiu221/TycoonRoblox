@@ -9,6 +9,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ChainMath = require(ReplicatedStorage.Shared.Modules.ChainMath)
 local ChainState = require(ReplicatedStorage.Shared.Modules.ChainState)
 local CrewMath = require(ReplicatedStorage.Shared.Modules.CrewMath)
+local DamMath = require(ReplicatedStorage.Shared.Modules.DamMath) -- [D70, pasul k6] regula sumei de start, dinainte
 local FlowConfig = require(ReplicatedStorage.Shared.Config.FlowConfig)
 local StationConfig = require(ReplicatedStorage.Shared.Config.StationConfig)
 local WorldConfig = require(ReplicatedStorage.Shared.Config.WorldConfig)
@@ -39,6 +40,8 @@ export type WelcomeInfo = {
     -- fereastra spune pe cine sa angajezi (meseriile, in ordinea liniilor; CrewMath.unhired). nil in rest.
     awayStalled: boolean?,
     unhired: { string }?,
+    -- [D70, pasul k6] in sat, cu barajul gata de ridicat: suma de start (DAM_START_COINS), spusa dinainte. nil in rest.
+    damStart: number?,
 }
 
 local deps: {
@@ -874,6 +877,7 @@ local function settleOffline(player: Player)
             stopHours = curve.stop / 3600,
             awayStalled = if unhired ~= nil then true else nil,
             unhired = unhired,
+            damStart = if DamMath.blocked(data) == nil then TycoonConfig.DAM_START_COINS else nil,
             streak = if news ~= nil
                 then {
                     run = streak.run,

@@ -1308,6 +1308,35 @@ return function()
         )
     end)
 
+    test.suite("GuideMath - drumul spre baraj [D70, pasul k6]", function()
+        test.case(
+            "barajul se poate ridica: fara quest, sageata spre Dam Plans, si cand ghidajul tace",
+            function()
+                local at = TycoonConfig.DAM_PLANS
+                local st = state({ allCrewsHired = true, pads = pads({ "first_net" }) })
+                st.damPlans = { x = at.x, y = at.y }
+                local g = GuideMath.pickGoal(st) :: GuideMath.Goal
+                check.equal(g.key, "dam_plans")
+                check.equal(g.x, at.x)
+                check.equal(g.text, Strings.plansBuild(""))
+                -- un quest activ are intaietate (al satului, inca de facut)
+                st.quest = {
+                    key = "q",
+                    text = "Cast a net",
+                    x = 1,
+                    y = 2,
+                    kind = "pad",
+                    padId = "second_net",
+                }
+                st.allCrewsHired = false
+                check.equal((GuideMath.pickGoal(st) :: GuideMath.Goal).key, "quest:q")
+                -- fara baraj gata, ghidajul tace ca inainte
+                local quiet = state({ allCrewsHired = true, pads = pads({ "first_net" }) })
+                check.equal(GuideMath.pickGoal(quiet), nil)
+            end
+        )
+    end)
+
     test.suite("GuideMath - langa tinta, cardul E al tintei [2026-09-30]", function()
         local function dist(ax: number, ay: number, bx: number, by: number): number
             return math.sqrt((ax - bx) ^ 2 + (ay - by) ^ 2)

@@ -2678,6 +2678,35 @@ function TycoonConfig.comingEra(w: number?): { era: number, name: string }?
     return nil
 end
 
+-- [D70, pasul k6] CE URMEAZA DUPA ULTIMA ERA A HARTII TALE, pentru tot ce spune finalul (clopotul, lista de quest-uri,
+-- sfatul unui echipaj la maxim): o era care nu e inca in joc (`kind = "soon"`: „The Dam is coming soon!”), sau, cand e in
+-- joc dar pe alta harta (barajul, dupa comutatorul l3), drumul spre ea (`kind = "build"`: masa Dam Plans). nil = nimic.
+export type Beyond = { kind: string, era: number, name: string }
+function TycoonConfig.beyond(w: number?): Beyond?
+    local world = WorldConfig.sanitize(w)
+    local coming = TycoonConfig.comingEra(world)
+    if coming ~= nil then
+        return { kind = "soon", era = coming.era, name = coming.name }
+    end
+    -- ultima era din joc a hartii tale (zona `dam` din sat e a lumii 2: nu se numara)
+    local last = 0
+    for _, zone in TycoonConfig.zonesOf(world) do
+        if WorldConfig.worldOfEra(zone.era) == world and TycoonConfig.eraIsLive(zone.era) then
+            last = math.max(last, zone.era)
+        end
+    end
+    local nextEra = last + 1
+    local nextWorld = WorldConfig.worldOfEra(nextEra)
+    if last > 0 and nextWorld ~= world and TycoonConfig.eraIsLive(nextEra) then
+        for _, zone in TycoonConfig.zonesOf(nextWorld) do
+            if zone.era == nextEra then
+                return { kind = "build", era = nextEra, name = zone.name }
+            end
+        end
+    end
+    return nil
+end
+
 -- [D65] CASELE OAMENILOR SI NUMELE DE SUB ELE, ca locuri pe care decorul imprastiat (copaci, tufe) n-are voie sa le
 -- acopere (WorldDecor.village). Casa mare are 120 x 102 cu baza la TycoonConfig.buildingBase, patratelele treptei stau
 -- la 10 + 6 px deasupra acoperisului, numele imediat sub ea [D58], pana la baza + 20. [2026-09-29] Dreptunghiul era

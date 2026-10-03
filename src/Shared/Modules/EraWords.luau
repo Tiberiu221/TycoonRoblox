@@ -9,6 +9,8 @@
 local Strings = require(script and script.Parent.Parent.Config.Strings or "../Config/Strings")
 local TycoonConfig =
     require(script and script.Parent.Parent.Config.TycoonConfig or "../Config/TycoonConfig")
+local WorldConfig =
+    require(script and script.Parent.Parent.Config.WorldConfig or "../Config/WorldConfig")
 
 local EraWords = {}
 
@@ -30,7 +32,9 @@ function EraWords.maxedCrew(plural: string, padId: string, isBought: (string) ->
         return Strings.crewMaxed(plural, bell.name)
     end
     local next = era + 1
-    while TycoonConfig.eraIsLive(next) do
+    local world = WorldConfig.worldOfEra(era)
+    -- [D70, pasul k6] doar erele hartii lui: barajul (alta harta) nu e un cartier in care „build up”
+    while TycoonConfig.eraIsLive(next) and WorldConfig.worldOfEra(next) == world do
         local nextBell = bellOf(next)
         if nextBell == nil or not isBought(nextBell.id) then
             local name = TycoonConfig.eraName(next)
@@ -41,9 +45,11 @@ function EraWords.maxedCrew(plural: string, padId: string, isBought: (string) ->
         end
         next += 1
     end
-    local coming = TycoonConfig.comingEra()
-    if coming ~= nil then
-        return Strings.crewMaxedComing(plural, coming.name)
+    local beyond = TycoonConfig.beyond(world)
+    if beyond ~= nil and beyond.kind == "build" then
+        return Strings.crewMaxedBuild(plural, beyond.name)
+    elseif beyond ~= nil then
+        return Strings.crewMaxedComing(plural, beyond.name)
     end
     return Strings.crewMaxedDone(plural)
 end

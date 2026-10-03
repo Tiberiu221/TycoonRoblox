@@ -92,6 +92,8 @@ export type Deps = {
     OnToast: (string, Color3?) -> (),
     -- [2026-09-30] platforma e cumparata (PadController): un clopot tras nu mai e trimis ca pas urmator
     IsBought: ((padId: string) -> boolean)?,
+    -- [D70, pasul k6] barajul se poate ridica acum (in sat): langa x1/x10/Max, „Goes into the Dam when you build it”
+    DamAvailable: (() -> boolean)?,
 }
 
 local StationMenu = {}
@@ -164,6 +166,7 @@ local captionLabel: TextLabel
 local rateLabel: TextLabel
 local unitLabel: TextLabel
 local subLabel: TextLabel
+local damNote: TextLabel -- [D70, pasul k6]
 -- [D62] Drumul pana la pragul urmator (10, 25, 50...), unde debitul se dubleaza: o tinta apropiata, care se vede
 -- umplandu-se la fiecare nivel cumparat. `milestoneFlashUntil`: cat randul pragului spune ca tocmai l-ai trecut.
 local milestoneTrack: Frame
@@ -349,6 +352,8 @@ local function renderBuilding(row: Row, snap: Snapshot)
     Widgets.SetWindowTitle(window, row.name, linkByKey(mineKey).icon, "hammer")
     setGroup(crewGroup, false)
     setGroup(buildingGroup, true)
+    local damReady = deps.DamAvailable
+    damNote.Visible = damReady ~= nil and damReady() -- [D70, pasul k6]
 
     local count = countFor(row)
     local shown = math.max(1, count) -- "Max" fara niciun nivel platibil arata urmatorul nivel
@@ -440,6 +445,7 @@ local function renderCrew(crew: CrewRow, snap: Snapshot)
     local mineKey = LINK_OF_ROLE[crew.role] or "collect"
     Widgets.SetWindowTitle(window, crew.name, linkByKey(mineKey).icon, "people")
     setGroup(buildingGroup, false)
+    damNote.Visible = false
     setGroup(crewGroup, true)
 
     levelLabel.Text = Strings.menuTierLine(crew.tier, crew.maxTier, crew.count, crew.maxPeople)
@@ -722,6 +728,14 @@ function StationMenu.Init(d: Deps)
         bulkButtons[i] = b
         table.insert(buildingGroup, b)
     end
+    -- [D70, pasul k6] langa x1 / x10 / Max (cutia din check_panel_rows: damNote), doar cat barajul se poate ridica
+    damNote = label(body, Strings.GOES_INTO_DAM, Theme.TEXT.tiny, Theme.COLOR.inkSoft, "body")
+    damNote.Position = UDim2.fromOffset(280, 232)
+    damNote.Size = UDim2.fromOffset(BODY_W - 280, 36)
+    damNote.TextWrapped = true
+    damNote.TextXAlignment = Enum.TextXAlignment.Right
+    damNote.TextYAlignment = Enum.TextYAlignment.Center
+    damNote.Visible = false
     upgradeButton = Widgets.Button(body, {
         text = Strings.STATION_UPGRADE,
         icon = "levelup",

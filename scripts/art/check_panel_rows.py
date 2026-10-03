@@ -104,6 +104,8 @@ STATION_MENU = dict(
         ("bulk1", 0, 232, 84, 36, "building"),
         ("bulk10", 92, 232, 84, 36, "building"),
         ("bulkMax", 184, 232, 84, 36, "building"),
+        # [D70, pasul k6] cu barajul gata de ridicat, in sat: ce urci aici intra in baraj
+        ("damNote", 280, 232, w - 280, 36, "building"),
         ("upgrade", 0, 280, w, 56, "building"),
         ("tierButton", 0, 228, w, 50, "crew"),
         ("hireButton", 0, 286, w, 50, "crew"),

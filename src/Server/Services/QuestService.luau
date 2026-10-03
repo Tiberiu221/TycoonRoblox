@@ -12,9 +12,14 @@ local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 
 -- [D70, verificatorul fixurilor j10-j12] numele erei care vine pe harta jucatorului (randul de final al listei, „Next” din
 -- bannerul capitolului), socotit pe server: clientul nu mai ghiceste lumea
+-- [D70, pasul k6] si cum se ajunge acolo: "soon" (nu e inca in joc) sau "build" (e in joc pe alta harta: masa Dam Plans)
 local function comingName(world: number?): string?
-    local coming = TycoonConfig.comingEra(world)
-    return if coming ~= nil then coming.name else nil
+    local beyond = TycoonConfig.beyond(world)
+    return if beyond ~= nil then beyond.name else nil
+end
+local function comingKind(world: number?): string?
+    local beyond = TycoonConfig.beyond(world)
+    return if beyond ~= nil then beyond.kind else nil
 end
 local QuestMath = require(ReplicatedStorage.Shared.Modules.QuestMath)
 local VillageLook = require(ReplicatedStorage.Shared.Modules.VillageLook)
@@ -104,6 +109,7 @@ export type Snapshot = {
     -- [D70, pasul j11] capitolul e ultimul din LUMEA jucatorului: randul de final al listei (ce urmeaza) il citeste de aici
     lastOfWorld: boolean,
     coming: string?, -- [D70] era care vine pe harta ta, sau nil
+    comingKind: string?, -- [D70, pasul k6] "soon" sau "build" (barajul, in joc pe alta harta)
     -- quest-ul activ, gata de folosit ca obiectiv de ghidaj: un singur adevar pentru sageata,
     -- pentru linia din HUD si pentru banner
     active: {
@@ -147,6 +153,7 @@ function QuestService.Snapshot(player: Player): Snapshot?
         everClaimed = next(facts.claimed) ~= nil,
         lastOfWorld = QuestMath.isLastOfWorld(chapter, facts.world),
         coming = comingName(facts.world),
+        comingKind = comingKind(facts.world), -- [D70, pasul k6]
         active = if active == nil
             then nil
             else {
@@ -189,6 +196,7 @@ export type Claimed = {
     chapterCoins: number,
     nextSubtitle: string?,
     coming: string?, -- [D70] era care vine pe harta ta: „Next” cand capitolul era ultimul al ei
+    comingKind: string?, -- [D70, pasul k6] "soon" sau "build"
 }
 
 -- Revendicarea unei recompense. Intoarce (reusit, motiv, ce s-a platit) -- motivul ajunge la client ca text, deci
@@ -237,6 +245,7 @@ function QuestService.Claim(player: Player, questId: string): (boolean, string, 
         chapterCoins = 0,
         nextSubtitle = nil,
         coming = comingName(facts.world),
+        comingKind = comingKind(facts.world), -- [D70, pasul k6]
     }
     -- [D62] ultimul quest al capitolului: se plateste si capitolul
     local closed = QuestMath.chapterClosedBy(questId, data.Quests.claimed)

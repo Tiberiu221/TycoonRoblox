@@ -97,6 +97,8 @@ export type State = {
     -- [D70, pasul k5] ce se mai poate urca acum cu castig (AmbitionMath, aceeasi tinta ca pe linia NEXT fara quest): pasul
     -- unui quest de venit il numeste. `upgradeKind` / `upgradeId`: statia (sau "crew" si meseria) al carei Upgrade pulseaza.
     ambition: { text: string, upgradeKind: string?, upgradeId: string? }?,
+    -- [D70, pasul k6] barajul se poate ridica acum (serverul, damAvailable): unde e masa Dam Plans. nil in rest.
+    damPlans: { x: number, y: number }?,
 }
 export type Goal = {
     -- "buy" | "upgrade" | "collect" | "wait" | "cut" | "smelt" | "take" | "sell" (taverna) | "deliver" (gater,
@@ -777,6 +779,19 @@ local function isHandNet(padId: string, hands: { HandInfo }): boolean
 end
 
 function GuideMath.pickGoal(s: State): Goal?
+    -- [D70, pasul k6] barajul se poate ridica si nu mai e niciun quest al satului: sageata spre masa Dam Plans, si cand
+    -- ghidajul tace (toti oamenii angajati): e singurul pas care duce mai departe
+    local plans = s.damPlans
+    if plans ~= nil and s.quest == nil then
+        return {
+            kind = "goto",
+            key = "dam_plans",
+            text = Strings.plansBuild(""),
+            x = plans.x,
+            y = plans.y,
+            immediate = true,
+        }
+    end
     if s.allCrewsHired then
         -- [D50] toti oamenii angajati: ghidajul tace de tot -- [D59] cu doua exceptii numite. Quest-ul care invata undita
         -- isi are sageata (fara ea, capitolul 2 ar cere un lucru nou fara sa arate unde). Iar cat strangi bani pentru un

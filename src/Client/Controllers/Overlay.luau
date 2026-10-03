@@ -130,6 +130,7 @@ export type Snapshot = {
     lanes: number,
     hands: { HandSnap },
     zones: { [string]: string },
+    damAvailable: boolean?, -- [D70, pasul k6] barajul se poate ridica acum: gardul zonei lui spune de unde
     workshop: boolean,
     firsts: Firsts,
     -- cati oameni are fiecare meserie (ghidajul tace cand toate au cel putin unul [D50]; pasii buclei
@@ -393,6 +394,10 @@ local function toGuideState(s: Snapshot, ambition: AmbitionMath.Ambition?): Guid
         -- [D70, pasul k3] harta ta si piesele gata din traista: la baraj, nicio tinta a satului
         world = deps.World,
         parts = if s.sack.partBy ~= nil then table.clone(s.sack.partBy) else nil,
+        -- [D70, pasul k6] barajul se poate ridica: masa Dam Plans (unde stai ca sa apara cardul ei)
+        damPlans = if s.damAvailable == true
+            then { x = TycoonConfig.DAM_PLANS.x, y = TycoonConfig.DAM_PLANS.y }
+            else nil,
         -- [D70, pasul k5] ce se mai poate urca acum (aceeasi tinta ca linia NEXT fara quest): pasul unui quest de venit
         ambition = if ambition ~= nil
             then {
@@ -638,7 +643,7 @@ local function checkProximityRefusals()
                 lastZoneRefusalAt = now
                 -- [D73] o era care nu e inca in joc nu se deschide cu niciun clopot: spune doar ca vine [D40]. [D70] Regula e
                 -- in WorldMath.fenceText, aceeasi ca a panoului zonei (ZoneController), pe harta ta.
-                local text = WorldMath.fenceText(zone, world)
+                local text = WorldMath.fenceText(zone, world, nil, snap.damAvailable == true)
                 local x, y = deps.WorldToHud(zone.x0 - 20, py)
                 JuiceController.FloatAt(x, y, text, Theme.COLOR.onDarkSoft)
             end
@@ -868,12 +873,14 @@ function Overlay.Init(d: Deps)
 
         if pad.motive == "D" then
             CeremonyController.Play(padId)
-            -- [2026-09-30] clopotul ultimei ere din joc: dupa bannerul lui, ce vine (la rand, cu clopotelul lui)
-            local coming = TycoonConfig.comingEra()
+            -- [2026-09-30] clopotul ultimei ere din joc: dupa bannerul lui, ce vine (la rand, cu clopotelul lui). [D70, pasul
+            -- k6] Cand era urmatoare e in joc pe alta harta (barajul), bannerul spune drumul spre ea: masa Dam Plans.
+            local coming = TycoonConfig.beyond(deps.World)
             if coming ~= nil and coming.era == pad.era + 1 then
+                local build = coming.kind == "build"
                 CeremonyController.PlayMoment(
-                    Strings.eraComing(coming.name),
-                    Strings.ERA_COMING_SUB,
+                    if build then Strings.eraReady(coming.name) else Strings.eraComing(coming.name),
+                    if build then Strings.ERA_READY_SUB else Strings.ERA_COMING_SUB,
                     nil,
                     {
                         onShow = function()

@@ -29,6 +29,7 @@ type ZoneView = {
     sign: TextLabel,
     signWidth: number,
     status: string?,
+    ready: boolean?, -- [D70, pasul k6] barajul se poate ridica acum (panoul zonei lui spune de unde)
 }
 local views: { [string]: ZoneView } = {}
 
@@ -57,20 +58,21 @@ end
 
 -- "locked" -> "open" [F1 spec 4.6]: gardul si estomparea se sterg USOR, nu dispar brusc -- se schimba doar la o
 -- tranzitie reala, nu la fiecare TycoonState. `zones` = starea fiecarei zone, dupa id ("open" | "locked").
-function ZoneController.Apply(zones: { [string]: string })
+function ZoneController.Apply(zones: { [string]: string }, ready: boolean?)
     for _, zone in TycoonConfig.zonesOf(world) do
         local view = views[zone.id]
         local status = zones[zone.id] or "locked"
-        if view == nil or view.status == status then
+        if view == nil or (view.status == status and view.ready == (ready == true)) then
             continue
         end
         view.status = status
+        view.ready = ready == true
         local open = status == "open"
         local built = isBuilt(zone.era)
         -- deschisa si construita: nu mai e nimic de anuntat; nefacuta inca in joc: "coming soon", inchisa sau deschisa
         -- [D73: "The Dam — opens with the Works Bell" mintea, clopotul spune doar ca vine]; facuta si inchisa: ce o deschide.
         -- [D70] Regula e in WorldMath.zoneSign (si barajul vazut din sat, dupa ce Era 4 intra in joc). Lumea vine la k1.
-        view.sign.Text = WorldMath.zoneSign(zone, status, world)
+        view.sign.Text = WorldMath.zoneSign(zone, status, world, nil, ready)
         view.sign.Visible = view.sign.Text ~= ""
         -- panoul creste dupa text: "The Wire Works — opens with the Mill Bell" are 41 de litere, adica doua randuri
         -- la latimea asta (fontul de pixeli are 0.56 em pe litera) [CLAUDE.md, capcana textului care iese din cutie]

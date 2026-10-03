@@ -140,6 +140,7 @@ end
 -- [D70, verificatorul j10] CE SCRIE O ZONA: panoul de la gardul ei (ZoneController) si textul care pluteste cand te apropii
 -- de gard (Overlay). O singura regula, ca cele doua sa nu se contrazica [D40]:
 --   * zona altei harti (barajul din sat): cat era ei nu e in joc, "coming soon" (D73); dupa, unde se ridica, fara clopot;
+--     [pasul k6] iar cand se poate ridica acum (`ready`, serverul: damAvailable), de unde: masa Dam Plans;
 --   * o era care nu e inca in joc: "coming soon", deschisa sau inchisa;
 --   * inchisa: clopotul care o deschide; deschisa si facuta: nimic (panoul dispare).
 -- `world` e lumea jucatorului (pe client, din pasul k1; azi satul); `eraIsLive` il dau testele.
@@ -148,12 +149,13 @@ local function zoneText(
     open: boolean,
     world: any,
     eraIsLive: ((number) -> boolean)?,
-    lockedText: (string) -> string
+    lockedText: (string) -> string,
+    ready: boolean?
 ): string
     local live = eraIsLive or TycoonConfig.eraIsLive
     local w = WorldConfig.sanitize(world)
     if WorldConfig.worldOfEra(zone.era) ~= w and live(zone.era) then
-        return Strings.zoneAway(zone.name)
+        return if ready == true then Strings.zoneBuildAt(zone.name) else Strings.zoneAway(zone.name)
     end
     if not live(zone.era) then
         return zone.soon or Strings.zoneSoon(zone.name)
@@ -170,20 +172,22 @@ function WorldMath.zoneSign(
     zone: TycoonConfig.Zone,
     status: string?,
     world: any,
-    eraIsLive: ((number) -> boolean)?
+    eraIsLive: ((number) -> boolean)?,
+    ready: boolean? -- [D70, pasul k6] barajul se poate ridica acum
 ): string
     return zoneText(zone, status == "open", world, eraIsLive, function(bell: string): string
         return Strings.zoneLocked(zone.name, bell)
-    end)
+    end, ready)
 end
 
 -- Textul de la gardul unei zone inchise, cand te apropii.
 function WorldMath.fenceText(
     zone: TycoonConfig.Zone,
     world: any,
-    eraIsLive: ((number) -> boolean)?
+    eraIsLive: ((number) -> boolean)?,
+    ready: boolean? -- [D70, pasul k6]
 ): string
-    return zoneText(zone, false, world, eraIsLive, Strings.refuseZoneLocked)
+    return zoneText(zone, false, world, eraIsLive, Strings.refuseZoneLocked, ready)
 end
 
 return WorldMath

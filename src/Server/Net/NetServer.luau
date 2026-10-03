@@ -111,6 +111,7 @@ export type Deps = {
         Preview: (Player) -> ({ [string]: any }?, string?),
         Build: (Player, number) -> ({ [string]: any }?, string?),
         FilmSeen: (Player) -> (),
+        Available: (Player) -> boolean, -- [D70, pasul k6]
     },
 }
 
@@ -195,6 +196,8 @@ local function buildTycoonState(player: Player): { [string]: any }
         zones = WorldMath.zoneStatuses(deps.Pads.World(player), pads),
         -- [D70, pasul k1] lumea profilului: clientul e construit pentru o singura lume si ingheata o stare a altei lumi
         world = deps.Pads.World(player),
+        -- [D70, pasul k6] barajul se poate ridica acum: masa Dam Plans, clopotul, lista, zona si fereastra de revenire
+        damAvailable = deps.Dam.Available(player),
         workshop = pads.workshop == "bought",
         -- [D56] parcat odata cu colectia: clientul nu-l mai citeste (insigna atelierului a iesit)
         pile = deps.Workshop.PileCount(player),

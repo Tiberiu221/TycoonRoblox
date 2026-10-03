@@ -65,6 +65,7 @@ require("./DamService.test")() -- [D70, pasul j15] barajul pe server
 require("./SaveLoop.test")() -- [D70, verificatorul j15] salvarea fortata
 require("./StateCopy.test")() -- [D70, pasul k3] copia starii pe linii
 require("./ChainHead.test")() -- [D70, pasul k4] capul panoului Stations, pe fiecare lume
+require("./DamEntry.test")() -- [D70, pasul k6] intrarea in baraj, din sat
 
 local frktest = require("@frktest/frktest")
 local console_reporter = require("@frktest/reporters/console_reporter")

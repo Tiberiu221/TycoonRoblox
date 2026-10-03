@@ -156,6 +156,20 @@ function Strings.eraComing(zoneName: string): string
     return `{zoneName} is coming soon!`
 end
 Strings.ERA_COMING_SUB = "It comes in a future update. Your village keeps earning while you play."
+-- [D70, pasul k6] era urmatoare e in joc, pe alta harta (barajul, dupa l3): drumul spre ea e masa Dam Plans
+function Strings.eraReady(zoneName: string): string
+    return `Time to build {zoneName}!`
+end
+Strings.ERA_READY_SUB = "Find the Dam Plans at the end of the Wire Works."
+Strings.ERA_READY_QUESTS = "All quests done! Build the Dam at the Dam Plans."
+function Strings.eraReadyNext(zoneName: string): string
+    return `build {zoneName}`
+end
+-- [D70, pasul k6] pe meniul unei cladiri din sat, cand barajul se poate ridica: nivelurile de aici nu se pierd, intra in el
+Strings.GOES_INTO_DAM = "Goes into the Dam when you build it"
+function Strings.plansBuild(keyHint: string): string
+    return `Build the Dam{keyHint}`
+end
 function Strings.eraComingNext(zoneName: string): string
     return `{zoneName} (coming soon)`
 end
@@ -193,6 +207,10 @@ Strings.DAM_BUILT = "The Dam is built!"
 -- clopot si nu mai "vine"; spune doar unde se ridica [D40, D73]
 function Strings.zoneAway(zoneName: string): string
     return `{zoneName} will rise by your pier`
+end
+-- [D70, pasul k6] barajul se poate ridica acum: zona din sat spune de unde
+function Strings.zoneBuildAt(zoneName: string): string
+    return `Build {zoneName} at the Dam Plans`
 end
 
 -- ---- [39] Sistem -------------------------------------------------------------------------------
@@ -1311,6 +1329,17 @@ function Strings.welcomeAway(duration: string): string
 end
 -- [D71] fara monede si fara ceva pe rau, dar cu o zi noua in serie: fereastra se deschide doar pentru ea
 Strings.WELCOME_STREAK_TITLE = "Good to see you again"
+-- [D70, pasul k6] la baraj, cat lipsesc oameni (AWAY 0): ce s-a intamplat si pe cine sa angajezi. Doar primul care lipseste
+-- (lantul `after` il face singurul de cumparat acum); adevarat oricine ar fi el [verificatorul j13b].
+Strings.WELCOME_STALLED_TITLE = "Welcome back to the Dam"
+function Strings.welcomeStalled(name: string): string
+    local article = if string.find(name, "^[AEIOUaeiou]") then "an" else "a"
+    return `Your Dam earned nothing while you were away. Hire {article} {name} to keep it running!`
+end
+-- [D70, pasul k6] in sat, cu barajul gata de ridicat: regula sumei de start, spusa dinainte (D70)
+function Strings.damStartRule(sum: string): string
+    return `Build the Dam and start there with {sum}`
+end
 
 -- [D60] Balciul de seara (place-ul al doilea)
 Strings.FAIR_ROW_HOME = "Row home"
@@ -1787,6 +1816,10 @@ function Strings.crewMaxedNext(plural: string, zoneName: string): string
 end
 function Strings.crewMaxedComing(plural: string, zoneName: string): string
     return `{plural} are at their best — more comes with {zoneName}`
+end
+-- [D70, pasul k6] era urmatoare e in joc pe alta harta: drumul spre ea
+function Strings.crewMaxedBuild(plural: string, zoneName: string): string
+    return `{plural} are at their best — time to build {zoneName}`
 end
 function Strings.crewMaxedDone(plural: string): string
     return `{plural} are at their best here`

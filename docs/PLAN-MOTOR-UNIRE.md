@@ -1211,6 +1211,20 @@ la granița CREWS / `DAM_START_COINS`.
   în j11), dar și `TycoonConfig.comingEra()`, care după l3 întoarce nil în lumea 1 (zona `dam` e a Erei 4). În sat, cu Era 4 în
   joc, rândul trebuie să spună „Build the Dam” (aceeași ramură ca masa Dam Plans), nu să dispară.
 
+- **k6 (făcut):** serverul trimite `damAvailable` (`DamService.Available` = `DamMath.blocked` gol, aceeași regulă ca ridicarea),
+  copiat explicit. O singură regulă pentru „ce urmează după ultima eră a hărții tale”, `TycoonConfig.beyond(w)`: „soon” (azi
+  barajul; după l3, ceața Erei 5 la baraj) sau „build” (era următoare e în joc pe altă hartă: barajul văzut din sat). O citesc
+  bannerul de după Works Bell („Time to build The Dam!” / „Find the Dam Plans at the end of the Wire Works.”), rândul de final
+  al listei și „Next” din bannerul capitolului (serverul trimite `comingKind`), sfatul unui echipaj la maxim (EraWords, doar pe
+  erele hărții lui). Masa Dam Plans, cu barajul în joc și gata de ridicat: „Build the Dam (E)” (E cere chitanța; ecranul vine
+  la k7). Zona și gardul barajului din sat: „Build The Dam at the Dam Plans” (`ready` în `zoneSign` / `fenceText`). Ghidajul,
+  fără quest activ: săgeata spre masă, și când tace (toți oamenii angajați). Meniul unei clădiri din sat: „Goes into the Dam
+  when you build it” lângă x1/x10/Max (`damNote` în `check_panel_rows`). „Welcome back”: în sat, regula sumei de start pe un
+  rând („Build the Dam and start there with 35T”, `damStart` de la server); la baraj, cu AWAY 0, „Your Dam earned nothing while
+  you were away. Hire a … to keep it running!” pe rândul care se rupe, cu primul om care lipsește (`awayStalled` / `unhired`
+  copiate). Teste: `DamEntry.test`, ramurile lui `beyond` și ale EraWords pe ambele părți ale comutatorului. Harta
+  comutatorului: 13 (doar adormirile, HandConfig de la k10 și marcajul comutatorului).
+
 **k7. Ecranul „Build the Dam”.** Depinde de: k6.
 - **[Verificatorul j15]** cât n-a venit răspunsul la „Build” (salvarea poate dura), ecranul scrie „Saving…”, iar satul golit de
   starea lumii 2 nu se desenează: clientul îngheață la schimbarea lumii (k1). Pe „save”, ecranul nu oferă „Try again”.

@@ -40,6 +40,14 @@ local function contextFor(player: Player, now: number): DamMath.Context
     }
 end
 
+-- [D70, pasul k6] Barajul se poate ridica acum (Era 4 in joc, Works Bell sunat, in sat, inca neridicat): masa Dam Plans
+-- devine „Build the Dam”, iar clopotul, lista de quest-uri, zona si fereastra de revenire spun drumul. Aceeasi regula ca la
+-- ridicare (DamMath.blocked), deci ecranul nu promite ce serverul ar refuza.
+function DamService.Available(player: Player): boolean
+    local data = DataService.Get(player)
+    return data ~= nil and DamMath.blocked(data) == nil
+end
+
 -- Ce s-ar intampla acum: chitanta, sau motivul pentru care nu se poate.
 function DamService.Preview(player: Player): (DamMath.Receipt?, string?)
     local d = deps

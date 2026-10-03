@@ -27,6 +27,9 @@ export type Deps = {
     -- [D73] o privire spre un loc al terenului (coordonatele lui TycoonConfig), cu o nota pe un toast: masa cu planurile
     -- arata tarusii topografilor de langa ponton
     Look: ((x: number, y: number, note: string) -> ())?,
+    -- [D70, pasul k6] cu barajul in joc: se poate ridica acum (serverul, `damAvailable`), si ce deschide E (ecranul, k7)
+    DamAvailable: (() -> boolean)?,
+    OpenDam: (() -> ())?,
 }
 
 local deps: Deps? = nil
@@ -106,13 +109,7 @@ function ModernController.Focus(px: number, py: number): Focus.Focus?
     local stage = current
     local plans = TycoonConfig.DAM_PLANS
     local name = TycoonConfig.eraName(plans.era)
-    if
-        stage == nil
-        or stage < PLANS_STAGE
-        or not bellRung
-        or name == nil
-        or TycoonConfig.eraIsLive(plans.era)
-    then
+    if stage == nil or stage < PLANS_STAGE or not bellRung or name == nil then
         return nil
     end
     local distance = Focus.distance(px, py, plans.x, plans.y - 20)
@@ -120,6 +117,24 @@ function ModernController.Focus(px: number, py: number): Focus.Focus?
         return nil
     end
     local h = Assets.tycoon.dam_plans.height * TycoonConfig.PROP_SCALE
+    local d0 = deps
+    if TycoonConfig.eraIsLive(plans.era) then
+        -- [D70, pasul k6] barajul e in joc: masa e drumul spre el („Build the Dam (E)”), cat serverul spune ca se poate
+        local available = d0 ~= nil and d0.DamAvailable ~= nil and d0.DamAvailable()
+        local open = if d0 ~= nil then d0.OpenDam else nil
+        if not available or open == nil then
+            return nil
+        end
+        local keyHint = if UserInputService.KeyboardEnabled then " (E)" else ""
+        return {
+            key = "dam_plans",
+            distance = distance,
+            x = plans.x,
+            y = plans.y - h - 8,
+            action = Strings.plansBuild(keyHint),
+            act = open,
+        }
+    end
     local status = Strings.comingPlans(name :: string)
     local d = deps
     local look = if d ~= nil then d.Look else nil

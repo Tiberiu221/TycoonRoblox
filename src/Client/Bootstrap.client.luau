@@ -144,6 +144,8 @@ local hudCanvas = attachHudScale(hudGui)
 -- explicit (`Init({ World = world })`); nimic din client nu citeste atributul singur. O stare a altei lumi (ridicarea
 -- barajului, o unealta de proba) nu se deseneaza peste harta asta: clientul asteapta reincarcarea (k8).
 local world: number
+-- [D70, pasul k6] barajul se poate ridica acum (TycoonState.damAvailable): masa Dam Plans il citeste la fiecare cadru
+local damAvailable = false
 do
     -- [verificatorul k1] cat asteptam profilul, imaginile mari ale hartii se incarca deja (satul se construieste abia
     -- dupa profil; inainte de k1 se construia in spatele cortinei si avea timp)
@@ -365,6 +367,13 @@ if world == 1 then
                 HUDController.Toast(note)
                 local origin = TycoonConfig.PLOT_ORIGIN
                 LookController.Look(x + origin.x, y + origin.y)
+            end,
+            -- [D70, pasul k6] cu barajul in joc, masa il ridica: E cere chitanta (ecranul ei vine la k7)
+            DamAvailable = function(): boolean
+                return damAvailable
+            end,
+            OpenDam = function()
+                DamController.RequestPreview()
             end,
         })
         -- [2026-09-30] masa cu planurile barajului: cardul ei spune ce vine
@@ -742,6 +751,10 @@ safeInit("StationMenu", function()
         },
         OnToast = HUDController.Toast,
         IsBought = PadController.IsBought,
+        -- [D70, pasul k6] in sat, cu barajul gata de ridicat: nivelurile de aici intra in el
+        DamAvailable = function(): boolean
+            return damAvailable
+        end,
     })
 end)
 safeInit("StationPanel", function()
@@ -1376,6 +1389,10 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
             lastOfWorld = rawQuests.lastOfWorld == true, -- [D70] ultimul capitol al lumii tale: randul de final
             -- [D70] era care vine pe harta ta (de la server), pentru randul de final
             coming = if typeof(rawQuests.coming) == "string" then rawQuests.coming else nil,
+            -- [D70, pasul k6] "soon" sau "build" (barajul, in joc pe alta harta: masa Dam Plans)
+            comingKind = if typeof(rawQuests.comingKind) == "string"
+                then rawQuests.comingKind
+                else nil,
             active = if a == nil
                 then nil
                 else {
@@ -1630,8 +1647,10 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
     }
 
     local rawSettings: any = raw.settings or {}
+    damAvailable = raw.damAvailable == true -- [D70, pasul k6] copiat explicit
     local snapshot = {
         world = world, -- [D70, pasul k1] harta pentru care e construit clientul (starea altei harti nu ajunge aici)
+        damAvailable = damAvailable, -- [D70, pasul k6] masa Dam Plans, zona barajului, fereastra de revenire
         -- [D54] nivelurile sunetului, copiate explicit; o valoare lipsa sau stricata cade pe implicit
         settings = {
             musicLevel = if AudioLevels.valid(rawSettings.musicLevel)
@@ -1849,7 +1868,7 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
     StationPanel.Apply(snapshot.stations)
     StationMenu.Apply(snapshot.stations)
     HandRenderController.Apply(snapshot.hands)
-    ZoneController.Apply(snapshot.zones)
+    ZoneController.Apply(snapshot.zones, snapshot.damAvailable) -- [D70, pasul k6]
     -- [D73] darurile se scot de pe puntea oricarui cartier deschis; [D70] aceeasi regula ca serverul, din platforme
     DriftController.SetPads(boughtPads)
     LampController.Apply(snapshot.firsts.power == true) -- [D67]

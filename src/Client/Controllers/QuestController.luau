@@ -37,6 +37,7 @@ export type Snapshot = {
     claimable: number,
     lastOfWorld: boolean?, -- [D70] capitolul e ultimul al lumii tale
     coming: string?, -- [D70] era care vine pe harta ta (serverul o stie), sau nil
+    comingKind: string?, -- [D70, pasul k6] "soon" sau "build" (barajul, in joc pe alta harta)
     active: { id: string, text: string, progress: number, goal: number, counter: string }?,
 }
 
@@ -88,6 +89,7 @@ local views: { RowView } = {}
 -- intr-o actualizare. Fara el, lista ramanea pe 9/9, cu toate randurile "done", si nimic dupa.
 local finale: Frame
 local finaleTitle: TextLabel
+local finaleLine: TextLabel -- [D70, pasul k6] „coming soon” sau „build it at the Dam Plans”
 local FINALE_H = 64
 -- latimea textului in rand: panoul minus rama (lg pe laturi), marginea listei (16) si bara de derulare (8), minus
 -- marginea randului (md pe laturi); cutiile: scripts/art/check_panel_rows.py (QUEST_FINALE)
@@ -272,7 +274,11 @@ local function refresh(snap: Snapshot)
     local showFinale = coming ~= nil and snap.lastOfWorld == true and allClaimed
     finale.Visible = showFinale
     if showFinale and coming ~= nil then
-        finaleTitle.Text = Strings.eraComing(coming)
+        local build = snap.comingKind == "build"
+        finaleTitle.Text = if build then Strings.eraReady(coming) else Strings.eraComing(coming)
+        finaleLine.Text = if build then Strings.ERA_READY_QUESTS else Strings.ERA_COMING_QUESTS
+        finaleLine.TextSize =
+            Theme.fitSize(finaleLine.Text, Theme.TEXT.tiny, "strong", FINALE_TEXT_W)
         finaleTitle.TextSize =
             Theme.fitSize(finaleTitle.Text, Theme.TEXT.body, "display", FINALE_TEXT_W)
     end
@@ -373,7 +379,7 @@ function QuestController.Init(d: Deps)
     finaleTitle.Position = UDim2.fromOffset(Theme.SPACE.md, 8)
     finaleTitle.Size = UDim2.fromOffset(FINALE_TEXT_W, 24)
     finaleTitle.ZIndex = Z + 3
-    local finaleLine = Widgets.Label(
+    finaleLine = Widgets.Label(
         finale,
         Strings.ERA_COMING_QUESTS,
         Theme.TEXT.tiny,
@@ -416,7 +422,10 @@ function QuestController.Init(d: Deps)
                 -- [2026-09-30] ultimul capitol din joc: "Next" spune era care vine, nu tace
                 local coming = if typeof(paid.coming) == "string" then paid.coming else nil
                 if nextSubtitle == nil and coming ~= nil then
-                    nextSubtitle = Strings.eraComingNext(coming)
+                    -- [D70, pasul k6] barajul in joc, pe alta harta: „Next: build The Dam”
+                    nextSubtitle = if paid.comingKind == "build"
+                        then Strings.eraReadyNext(coming)
+                        else Strings.eraComingNext(coming)
                 end
                 onChapter(
                     Strings.chapterDone(title, subtitle),

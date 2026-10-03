@@ -54,11 +54,12 @@ return function()
 
         test.case("toate clopotele din joc trase: era care vine, din orice cartier", function()
             local all = bought({ "landing_bell", "mill_bell", "works_bell" })
+            -- [D70, pasul k6] cu barajul in joc (dupa l3), pe alta harta: drumul spre el, nu „build up” si nici „more comes”
+            local want = if TycoonConfig.eraIsLive(4)
+                then "Collectors are at their best — time to build The Dam"
+                else "Collectors are at their best — more comes with The Dam"
             for _, pad in { landing, mill, works } do
-                check.equal(
-                    EraWords.maxedCrew("Collectors", pad, all),
-                    "Collectors are at their best — more comes with The Dam"
-                )
+                check.equal(EraWords.maxedCrew("Collectors", pad, all), want)
             end
         end)
     end)
