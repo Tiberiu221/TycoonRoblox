@@ -27,6 +27,7 @@ export type Host = {
     decor: number,
     likes: number,
     liked: boolean, -- i-ai dat deja like azi
+    building: boolean, -- [D70, pasul k11] gazda a ridicat barajul: se vede satul ei de dinainte, cu „Building the Dam”
 }
 export type Deps = {
     -- ceilalti te vad langa arcada cat esti in vizita (PresenceService)
@@ -64,7 +65,7 @@ local function hostEntry(viewer: Player, host: Player): Host?
     if data == nil or viewerData == nil then
         return nil
     end
-    local look = VillageLook.of(data)
+    local look, building = VillageLook.forVisitors(data)
     local _, title = TitleService.Worn(host)
     return {
         userId = host.UserId,
@@ -74,6 +75,7 @@ local function hostEntry(viewer: Player, host: Player): Host?
         decor = look.decorCount,
         likes = math.floor(fairOf(data).likes),
         liked = VisitMath.likedToday(fairOf(viewerData).liked, today(), host.UserId),
+        building = building,
     }
 end
 
@@ -128,7 +130,8 @@ function VisitService.Look(
         viewerData.Firsts.FirstVillageVisit = true
         Analytics.FairStep(viewer, "FirstVillageVisit")
     end
-    return true, "ok", { host = entry, village = VillageLook.of(data) }
+    local village = VillageLook.forVisitors(data)
+    return true, "ok", { host = entry, village = village }
 end
 
 function VisitService.Leave(viewer: Player)

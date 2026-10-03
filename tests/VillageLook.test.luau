@@ -241,5 +241,31 @@ return function()
             check.equal(retired[1].appearance.outfit, HandConfig.ROLE_OUTFIT.porter)
             check.equal(#VillageLook.retired({}), 0)
         end)
+        -- [D70, pasul k11, O1] in balci, o gazda care a ridicat barajul arata satul ei de dinainte, cu „Building the Dam”
+        test.case("vizitatorii: satul de acum, iar dupa baraj fotografia de dinainte", function()
+            local fs = require("@lune/fs")
+            local data: any = { World = 1, Pads = {}, Hands = {}, Village = { decor = {} } }
+            local now, building = VillageLook.forVisitors(data)
+            check.is_false(building)
+            check.equal(now.world, 1)
+            data.World = 2
+            data.Memories =
+                { oldVillage = { era = 3, pads = { first_net = true }, decorCount = 4 } }
+            local photo, built = VillageLook.forVisitors(data)
+            check.is_true(built)
+            check.equal(photo.era, 3)
+            check.equal(photo.world, 1)
+            -- fotografia din profil ramane neatinsa (o copie)
+            check.equal(data.Memories.oldVillage.world, nil)
+            -- fara fotografie (o stare stricata), satul de acum, fara semn
+            data.Memories = {}
+            local _, none = VillageLook.forVisitors(data)
+            check.is_false(none)
+            local service = fs.readFile("src/Fair/Server/Services/VisitService.luau")
+            check.not_nil(string.find(service, "VillageLook.forVisitors(data)", 1, true))
+            local client = fs.readFile("src/Fair/Client/Controllers/VisitController.luau")
+            check.not_nil(string.find(client, "building = h.building == true", 1, true))
+            check.not_nil(string.find(client, "building = e.building == true", 1, true))
+        end)
     end)
 end

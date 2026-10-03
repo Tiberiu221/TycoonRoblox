@@ -4,9 +4,10 @@
 --   DevPearls (numar)  -- perle la pornire; fisierul local incepe mereu cu profil proaspat, deci cu 0
 --   DevPasses (text)   -- pass-uri de proba, de ex. "swift,supporter" (PassService)
 --   DevStreak (numar)  -- [D71] seria zilnica la pornire (pastila din HUD, cardul, titlurile Regular / Old Friend)
+--   DevWorld (numar)   -- [D70, pasul k11] 2 = gazda a ridicat barajul: vizitatorii vad satul ei de dinainte, „Building the Dam”
 -- Atributele stau doar in fisierul local: place-ul publicat se construieste direct din proiect, fara ele.
 --
--- Rulare: lune run scripts/build_balci [perle] [pass-uri] [serie]
+-- Rulare: lune run scripts/build_balci [perle] [pass-uri] [serie] [lume]
 --   lune run scripts/build_balci                       -> 1000 de perle, fara pass-uri
 --   lune run scripts/build_balci 1000 swift,supporter  -> si cu Swift Boots si Supporter
 --   lune run scripts/build_balci 1000 "" 7             -> si cu o serie zilnica de 7 zile (titlul Regular)
@@ -18,6 +19,7 @@ local OUT = "Balci.rbxl"
 local pearls = tonumber(process.args[1]) or 1000
 local passes = process.args[2] or ""
 local streak = tonumber(process.args[3]) or 0
+local devWorld = tonumber(process.args[4]) or 1
 
 local built = process.exec("rojo", { "build", "fair.project.json", "-o", OUT })
 if not built.ok then
@@ -32,6 +34,9 @@ if passes ~= "" then
 end
 if streak > 0 then
     workspace:SetAttribute("DevStreak", streak)
+end
+if devWorld == 2 then
+    workspace:SetAttribute("DevWorld", devWorld)
 end
 fs.writeFile(OUT, roblox.serializePlace(game))
 print(

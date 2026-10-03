@@ -36,6 +36,7 @@ export type Host = {
     decor: number,
     likes: number,
     liked: boolean,
+    building: boolean, -- [D70, pasul k11] gazda a ridicat barajul: satul ei de dinainte, cu „Building the Dam”
 }
 export type Deps = {
     World: Frame,
@@ -206,7 +207,9 @@ local function refreshPanel()
         view.frame.Visible = true
         view.name.Text = host.name
         view.title.Text = host.title
-        view.sub.Text = Strings.visitRowSub(host.era, host.decor, host.likes)
+        view.sub.Text = if host.building
+            then Strings.visitBuilding(host.decor, host.likes)
+            else Strings.visitRowSub(host.era, host.decor, host.likes)
         local userId = host.userId
         actions[i] = function()
             VisitController.Visit(userId)
@@ -256,7 +259,9 @@ local function showBanner()
     end
     d.SetBanner(
         Strings.visitBannerTop(host.name),
-        Strings.visitBannerBottom(host.era, host.decor, host.likes)
+        if host.building
+            then Strings.visitBuilding(host.decor, host.likes)
+            else Strings.visitBannerBottom(host.era, host.decor, host.likes)
     )
 end
 
@@ -507,6 +512,7 @@ function VisitController.Init(d: Deps)
                         decor = if typeof(e.decor) == "number" then e.decor else 0,
                         likes = if typeof(e.likes) == "number" then e.likes else 0,
                         liked = e.liked == true,
+                        building = e.building == true, -- [D70, pasul k11]
                     })
                 end
             end
@@ -540,6 +546,7 @@ function VisitController.Init(d: Deps)
                 decor = if typeof(h.decor) == "number" then h.decor else 0,
                 likes = if typeof(h.likes) == "number" then h.likes else 0,
                 liked = h.liked == true,
+                building = h.building == true, -- [D70, pasul k11]
             }
             -- fotografia, copiata camp cu camp [CLAUDE.md, capcana 3]: un camp lipsa e un tabel gol, nu o eroare la desen
             local v: any = p.village

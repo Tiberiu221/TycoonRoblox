@@ -1798,6 +1798,10 @@ end
 function Strings.visitBannerBottom(era: number, decor: number, likes: number): string
     return `Era {era} · {decor} decorations · {likes} likes`
 end
+-- [D70, pasul k11] gazda a ridicat barajul: vizitatorul vede satul ei de dinainte, cu semnul acesta in locul erei
+function Strings.visitBuilding(decor: number, likes: number): string
+    return `Building the Dam · {decor} decorations · {likes} likes`
+end
 Strings.VISIT_GUEST_BOOK = "Guest Book"
 function Strings.visitLikeCard(keyHint: string): string
     return `Leave a like{keyHint}`

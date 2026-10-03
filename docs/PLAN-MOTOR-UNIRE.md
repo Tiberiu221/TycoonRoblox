@@ -1318,6 +1318,13 @@ la granița CREWS / `DAM_START_COINS`.
 - **[Verificatorul j10, făcut]** macheta satului din bâlci (`VillageDiorama`) și pământul copt (`village_geometry.luau`) parcurg
   `padsOfWorld(1)`, deci ruinele barajului nu apar peste satul vechi după l3. Macheta unei gazde din lumea 2 e treaba lui k11.
 
+- **k11 (făcut, varianta de lansare din O1):** `VillageLook.forVisitors(data)`: o gazdă care a ridicat barajul arată în bâlci satul
+  ei de dinainte (`Memories.oldVillage`, copiat, cu `world = 1`), iar lista porții și banda vizitei scriu „Building the Dam ·
+  N decorations · N likes” în locul erei (`building`, copiat explicit). `VillageLook.Snapshot.world` e în fotografie.
+  `build_balci [perle] [pass-uri] [serie] 2` pune `DevWorld` (Studio): gazda devine „după baraj”, cu satul ei proaspăt ca
+  fotografie (de încercat cu doi clienți). Macheta lumii 2, titlul „Dam Builder”, poza „Before the Dam” și „Watch again”:
+  după lansare (O1).
+
 **k12. Pământul copt al lumii 2.** Depinde de: j7, A0. Owner: aprobarea planșei și a urcării (2 imagini).
 - `village_geometry.luau` cu lumea ca argument (lumea 1 iese identică în JSON); `village_ground.py --world 2` scrie două felii
   (`prop_dam_ground`, `_2`) și `dam_ground.lock`; `--check` pe ambele lumi, în CI, `publish_staging` și CLAUDE.md;

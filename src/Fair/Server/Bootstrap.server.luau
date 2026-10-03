@@ -18,6 +18,7 @@ local Net = require(ReplicatedStorage.Net.Net)
 local MonetizationConfig = require(ReplicatedStorage.Shared.Config.MonetizationConfig)
 local FairLayout = require(ReplicatedStorage.Shared.Modules.FairLayout)
 local StreakMath = require(ReplicatedStorage.Shared.Modules.StreakMath) -- [D71]
+local VillageLook = require(ReplicatedStorage.Shared.Modules.VillageLook) -- [D70, pasul k11] DevWorld
 local DataService = require(Services:WaitForChild("DataService"))
 local EconomyService = require(Services:WaitForChild("EconomyService"))
 local VillageService = require(Services:WaitForChild("VillageService"))
@@ -156,6 +157,14 @@ if RunService:IsStudio() then
         local raw = Workspace:GetAttribute("DevPearls")
         if typeof(raw) == "number" and raw == raw and raw > 0 then
             EconomyService.AddPearls(player, math.min(math.floor(raw), 100000), "dev")
+            task.defer(FairNetServer.PushState, player)
+        end
+        -- [D70, pasul k11] `DevWorld` (2): gazda a ridicat barajul; fotografia de dinainte e satul de acum (profil proaspat)
+        local devWorld = Workspace:GetAttribute("DevWorld")
+        local devData = DataService.Get(player) :: any
+        if devWorld == 2 and devData ~= nil then
+            devData.Memories.oldVillage = VillageLook.of(devData)
+            devData.World = 2
             task.defer(FairNetServer.PushState, player)
         end
         -- [D71] `DevStreak`: seria zilnica de azi (pastila, cardul, titlurile seriei)

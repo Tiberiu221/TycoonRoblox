@@ -17,6 +17,8 @@ local CrewMath = require(script and script.Parent.CrewMath or "./CrewMath")
 local HandRoutes = require(script and script.Parent.HandRoutes or "./HandRoutes")
 local TycoonMath = require(script and script.Parent.TycoonMath or "./TycoonMath")
 local ModernMath = require(script and script.Parent.ModernMath or "./ModernMath")
+local WorldConfig =
+    require(script and script.Parent.Parent.Config.WorldConfig or "../Config/WorldConfig")
 local HandConfig =
     require(script and script.Parent.Parent.Config.HandConfig or "../Config/HandConfig")
 
@@ -67,6 +69,7 @@ export type Snapshot = {
     decorCount: number,
     power: boolean, -- [D67, audit] gazda a vandut deja curent: felinarele strazii ei ard (ca DataService.Firsts.power)
     modern: number, -- [D70] treapta modernizarii satului ei (ModernMath), ca vizitatorul sa-l vada cum il vede ea
+    world: number?, -- [D70, pasul k11] harta fotografiei (1 = satul); nil in fotografiile mai vechi = satul
 }
 
 local function netEffectOf(pad: TycoonConfig.Pad): number?
@@ -264,9 +267,24 @@ function VillageLook.of(data: { [string]: any }): Snapshot
         hands = VillageLook.hands(data),
         decor = decor,
         decorCount = VillageLook.decorCount(data),
+        world = WorldConfig.sanitize(data.World),
         power = power,
         modern = ModernMath.stage({ pads = bought, crews = crews, powerSold = power }),
     }
+end
+
+-- [D70, pasul k11, O1] CE VAD VIZITATORII IN BALCI. Cat macheta barajului nu e gata (dupa lansare), o gazda care a ridicat
+-- barajul arata fotografia satului ei de dinainte (`Memories.oldVillage`, facuta la ridicare), cu semnul „Building the Dam”
+-- (`building` = true). Altfel, satul de acum.
+function VillageLook.forVisitors(data: { [string]: any }): (Snapshot, boolean)
+    local memories = data.Memories
+    local old = if typeof(memories) == "table" then memories.oldVillage else nil
+    if WorldConfig.sanitize(data.World) ~= 1 and typeof(old) == "table" then
+        local photo = table.clone(old) :: any
+        photo.world = 1
+        return photo :: Snapshot, true
+    end
+    return VillageLook.of(data), false
 end
 
 return VillageLook
