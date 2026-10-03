@@ -56,7 +56,7 @@ export type Hand = {
     lastEventAt: number,
     carry: { Catch },
     -- [D70, pasul j4] la baraj: meseria si cheia de dinainte (veteranul isi tine numele si fata), treapta veche ca
-    -- medalie, si cine a iesit din lucru (locuieste in Dam Town). Le scrie `WorldMath.buildDam` (pasul j14).
+    -- medalie, si cine a iesit din lucru (locuieste in Dam Town). Le scrie `DamMath.build` (pasul j14).
     formerRole: string?,
     formerKey: string?,
     medal: number?,

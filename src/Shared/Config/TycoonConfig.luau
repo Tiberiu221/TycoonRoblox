@@ -2146,7 +2146,7 @@ TycoonConfig.PADS = {
     -- ---- Era 4 · The Dam [D70, D74] ----
     -- ADORMITA (`live = false`) pana la comutatorul din pasul l3 (PLAN-MOTOR-UNIRE §16). Barajul o porneste pe a doua
     -- harta: turbina zidita in baraj, Cable Net si casele celor cinci veterani vin gratis cu el (pret 0, le da
-    -- `WorldMath.buildDam` la pasul j14), restul se cumpara in ordinea capitolului (`ERA4_UNLOCKS` din simulator, care
+    -- `DamMath.build` la pasul j14), restul se cumpara in ordinea capitolului (`ERA4_UNLOCKS` din simulator, care
     -- verifica preturile, conditiile `after` si rangurile plaselor). Conditiile pe plase se numara pe lista LUMII 2
     -- (turbina si Cable Net incluse), de la pasul j10. Locurile (x/y) vin cu datele lumii 2, la pasul j7.
     pad({

@@ -215,7 +215,7 @@ Aici se fixează doar forma, ca tabelele Erei 4 să nu-l blocheze.
 | `check_flat` (nou) | cel mai lung tronson în care venitul nu crește ≤ cel mai lung din Erele 1–3, socotit în aceeași rulare (azi 10m52s); pentru Erele 1–3 doar raport | **B: 16m41s, pică** (riscul 1) |
 | obișnuite, pe rularea cu suma | `check_run_era(4)`, `--robust` pe `ROBUST_KNOBS_ERA4` | — |
 
-**În joc** se reiau pașii 5 și 7 din `PLAN-HARTA.md` (`WorldMath.buildDam`, `DamService`, profilul v19; v18 e seria zilnică, D71). Formula veche („păstrezi până la o noapte”) se înlocuiește cu suma fixă:
+**În joc** se reiau pașii 5 și 7 din `PLAN-HARTA.md` (`DamMath.build`, `DamService`, profilul v19; v18 e seria zilnică, D71). Formula veche („păstrezi până la o noapte”) se înlocuiește cu suma fixă:
 - `R = min(monede, Purchases.coinsBought)`: monedele Robux încă în mână, socotite ca ultimele cheltuite [2026-10-03, R8: contorul se taie la cheltuire, nu există niciun reper „de la Works Bell”];
 - `monede' = START_SUM + R`;
 - `Stats.damGift = max(0, monede − R − START_SUM)`;
@@ -966,7 +966,7 @@ la granița CREWS / `DAM_START_COINS`.
   ajunge, venitul e egal cu cel de fără comutator, nicio platformă a Erei 4 nu e `available`, capitolele se opresc la 9, zona
   `dam` e încuiată. Apoi comutatorul se oprește.
 
-**j14. `WorldMath.buildDam` și previzualizarea, pure.** Depinde de: j4, j5, j11, j12, j13b.
+**j14. Ridicarea și previzualizarea, pure (făcute în `DamMath`; planul le numea `WorldMath.buildDam`).** Depinde de: j4, j5, j11, j12, j13b.
 - **Ordinea:**
   1. gărzi;
   2. `Memories.oldVillage`, copie adâncă a satului;
@@ -993,7 +993,7 @@ la granița CREWS / `DAM_START_COINS`.
   din `carry` al **tuturor** oamenilor vechi (nu doar al veteranilor), apoi le golește. Plasele rămân în profil cu nivelul lor
   (pentru `Memories`), cu `goods = {}`. Invarianta: suma „Last cart” = traista + grămezile + plasele + `carry`, iar după
   ridicare toate sunt goale. `PadService.Grant` dă platforma **fără om** (turbina, Cable Net); casele veteranilor le scrie
-  `buildDam` direct, deci testul cere: după ridicare, fiecare meserie a barajului are exact un om, cu numele și chipul vechi.
+  `DamMath.build` direct, deci testul cere: după ridicare, fiecare meserie a barajului are exact un om, cu numele și chipul vechi.
 
 **j15. `DamService`, remote-urile și uneltele de probă.** Depinde de: j13, j14.
 - **Remote-uri (doar RemoteEvent):** `BuildDam`, `DamPreview`/`DamPreviewResult`, `DamBuilt`, `DamRejected`, `DamFilmSeen`;

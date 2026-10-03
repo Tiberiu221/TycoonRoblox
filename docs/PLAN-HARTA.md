@@ -60,7 +60,7 @@ Mă despart de tine într-un singur punct. „Partea mică din bani” nu se ob�
    - „Given to the Dam: …” (doar dacă ai peste sumă: C − R − START > 0);
    - „The village adds: …” (doar dacă ai mai puțin: START − (C − R) > 0, completarea);
    - „Income 1.21B/s → ~19.6B/s”.
-   (Textele exacte se scriu la k7; cifrele vin de la server, din `WorldMath`, PLAN-MOTOR-UNIRE §5 și §16 j14.)
+   (Textele exacte se scriu la k7; cifrele vin de la server, din `DamMath.preview`, PLAN-MOTOR-UNIRE §5 și §16 j14.)
 8. **Primele minute din Era 4:**
    - Collector, Porter, Sawyer, Hauler și Innkeeper din Era 1 lucrează deja ca Dam Collector, Dam Porter, Switchman, Barrel Hauler și Dispatcher. Au același nume și aceeași față; treapta veche li se vede ca medalie. (Pylon Runner e o angajare nouă, nu un veteran: duce curentul pe podul cu stâlpi.)
    - Clopotele rămân plăci în clopotnița de pe coamă, cu cifrele tale, **fără quest pe ele** (R11, PLAN-MOTOR-UNIRE §16: „Ring your old bells” cade în fața ordinii `DAM_CHAPTER` din simulator). Quest-urile vin din capitolele 10–12, în ordinea `DAM_CHAPTER` din simulator; ghidajul pornește cu primul tur de mână, în 6 pași (k5).
@@ -208,7 +208,7 @@ Copilul grăbit nu pierde nimic: primește suma întreagă. Nimic plătit nu se 
 4. **Filtrul pe lume** → j6–j10 (serverul, partea pură) și k1–k2 (clientul). Filtrul acoperă mult mai mult decât `PADS` (planul de aici vorbea de „~23 de bucle”): `LINE_PLACES` / `JOIN_PLACES` / `SELLER_PLACES`, `DISTRICTS`, `ZONES`, `homeClearRects`, `streetLamps`, `RoadGraph`, cache-ul de drumuri al `HandRoutes`, râul și darurile, statusurile, quest-urile și controllerele clientului. Lumea 1 trebuie să iasă bit cu bit (martorul j1 și tabelul de aur). Fiecare apelant primește un test pe un profil din lumea 2.
 5. **Profilul v19, aditiv** (v18 e seria zilnică, D71) → j4 (și j5, contorul monedelor Robux): `World`, `Memories.oldVillage` (`VillageLook.of` + treapta modernă), `Stats.damGift`, `Purchases.coinsBought`, medalia și legătura veteranului pe `Hands`.
 6. **Simulatorul. Făcut** (pasul d al motorului, PLAN-MOTOR-UNIRE §5 și §11): trecerea `dam_transform`, suma `START_SUM`, cele trei rulări și `check_dam`, plus poarta monedelor Robux (`PAID_COINS_MAX_SHARE`, D74). Planul de aici (proxy cu P și K, `check_dam_floor`) e înlocuit.
-7. **`WorldMath.buildDam` (pur) și serviciul** → PLAN-MOTOR-UNIRE §5 (formula banilor) și §16: j14 (`buildDam`, cu invarianta „monede noi + dar = C + completare”), j15 (`DamService`, `BuildDam`, plata offline deja făcută, altfel „settling”, `dev "world:2"` + Stop/Play) și k8 (salvare forțată, apoi teleport în același place, pe drumul `FerryService`/`MarkTeleporting`, cu cartonașul final ca TeleportGui).
+7. **`DamMath.build` (pur) și serviciul** → PLAN-MOTOR-UNIRE §5 (formula banilor) și §16: j14 (`DamMath.build` / `preview`, cu invarianta „monede noi + dar = C + completare”), j15 (`DamService`, `BuildDam`, plata offline deja făcută, altfel „settling”, `dev "world:2"` + Stop/Play) și k8 (salvare forțată, apoi teleport în același place, pe drumul `FerryService`/`MarkTeleporting`, cu cartonașul final ca TeleportGui).
 8. **Ecranul cu trei coloane** → k7 (cifrele vin de la server, textul trece prin `Theme.fitSize`, butonul se ține apăsat) și k6 (cardurile de nivel din Era 3 de după clopot, masa „Build the Dam (E)”).
 9. **Filmul** → k9 (15–20 s, O1).
    - `VillageDiorama` se mută în Client/UI (montat și în `fair.project.json`).

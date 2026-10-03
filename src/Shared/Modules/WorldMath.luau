@@ -1,7 +1,7 @@
 --!strict
 -- [D70, pasul j10] CE SE POATE FACE IN FIECARE LUME. Modul pur, citit de server la fiecare cerere a jucatorului (platforme,
--- niveluri, oameni, locuri, plase): un lucru al altei harti se refuza cu motiv (`closed`), nu in tacere [D43]. Aici vine,
--- la pasul j14, si trecerea in lumea 2 (`buildDam`).
+-- niveluri, oameni, locuri, plase): un lucru al altei harti se refuza cu motiv (`closed`), nu in tacere [D43]. Trecerea
+-- in lumea 2 („Build the Dam”) nu sta aici, ci in DamMath (pasul j14).
 local FlowConfig =
     require(script and script.Parent.Parent.Config.FlowConfig or "../Config/FlowConfig")
 local StationConfig =

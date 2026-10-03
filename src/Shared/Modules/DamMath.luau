@@ -49,10 +49,11 @@ DamMath.VETERANS = {
     { from = "trader", to = "dispatcher" },
 } :: { { from: string, to: string } }
 
--- Ce da barajul: platformele lumii 2 cu pretul 0 (turbina, Cable Net, cele cinci case ale veteranilor).
+-- Ce da barajul: platformele Erei 4 (prima a lumii 2) cu pretul 0 (turbina, Cable Net, cele cinci case ale veteranilor).
+-- Doar ale ei: o plasa gratuita a Erei 5 vine cu era ei, nu la ridicare [verificatorul j14].
 local GIFTS: { TycoonConfig.Pad } = {}
 for _, p in TycoonConfig.padsOfWorld(2) do
-    if p.price == 0 then
+    if p.era == WorldConfig.FIRST_ERA[2] and p.price == 0 then
         table.insert(GIFTS, p)
     end
 end
@@ -111,7 +112,11 @@ end
 -- Garzile: nil = se poate ridica; altfel motivul ("built": e deja ridicat, "soon": Era 4 nu e in joc, "bell": Works Bell
 -- nu e sunat). Le citesc si previzualizarea si serverul.
 function DamMath.blocked(data: any, eraIsLive: ((number) -> boolean)?): string?
-    if WorldConfig.sanitize(data.World) ~= 1 then
+    -- o singura data, oricare ar fi lumea de acum (o unealta de proba o poate pune inapoi pe 1): ridicarea lasa urme
+    -- in `Firsts` si in `Memories` [verificatorul j14]
+    local firsts = if typeof(data.Firsts) == "table" then data.Firsts else {}
+    local memories = if typeof(data.Memories) == "table" then data.Memories else {}
+    if WorldConfig.sanitize(data.World) ~= 1 or firsts.DamBuilt == true or memories.dam ~= nil then
         return "built"
     end
     local live = eraIsLive or TycoonConfig.eraIsLive
@@ -227,7 +232,10 @@ local function movePeople(data: any, ctx: Context): ({ Veteran }, number)
         local newKey = CrewMath.personKey(v.to, 1) :: string
         local old = data.Hands[oldKey]
         local hand: any
-        if typeof(old) == "table" and typeof(old.appearance) == "table" then
+        if data.Hands[newKey] ~= nil then
+            -- cineva lucreaza deja acolo: nu se scrie peste el (garzile o impiedica; asta e plasa de siguranta)
+            hand = data.Hands[newKey]
+        elseif typeof(old) == "table" and typeof(old.appearance) == "table" then
             local look = old.appearance
             local saved = data.Crews[v.from]
             local medal = if typeof(saved) == "table"
@@ -276,6 +284,7 @@ local function movePeople(data: any, ctx: Context): ({ Veteran }, number)
         end
     end
     for key, hand in moved do
+        hand.retired = nil -- cine lucra deja la baraj (plasa de siguranta de mai sus) nu iese din lucru
         data.Hands[key] = hand
     end
     return veterans, retired

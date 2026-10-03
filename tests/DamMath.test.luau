@@ -16,6 +16,9 @@ local TycoonConfig = require("../src/Shared/Config/TycoonConfig")
 -- venitul startului de aur (golden_chain.py --dam-start; acelasi ca in ChainMath.test, „ChainState - din profil”)
 local GOLDEN_DAM_INCOME = 19567696500.000008
 local START = TycoonConfig.DAM_START_COINS
+-- treptele meseriilor lemnului, toate diferite: medalia fiecarui veteran vine din meseria LUI [verificatorul j14]
+local OLD_TIER: { [string]: number } =
+    { collector = 2, porter = 3, sawyer = 5, hauler = 1, trader = 4 }
 local NOW = 5000
 
 local function damLive(era: number): boolean
@@ -57,7 +60,7 @@ local function village(coins: number, bought: number?): any
     local n = 0
     for era = 1, 3 do
         for _, role in StationConfig.ERA_ROLES_ALL[era] do
-            crews[role] = { tier = 4 }
+            crews[role] = { tier = OLD_TIER[role] or 4 }
             for i = 1, 2 do
                 n += 1
                 local key = CrewMath.personKey(role, i) :: string
@@ -161,6 +164,14 @@ return function()
             check.equal(again, nil)
             check.equal(why, "built")
             check.is_true(same(data, after))
+            -- si cu lumea pusa inapoi pe 1 (o unealta de proba): tot o singura data [verificatorul j14]
+            data.World = 1
+            data.Coins += 7e13
+            local back = DamMath.deepCopy(data)
+            local third, why3 = DamMath.build(data, ctx())
+            check.equal(third, nil)
+            check.equal(why3, "built")
+            check.is_true(same(data, back))
         end)
 
         test.case("banii: monede noi + dar = C + completare, pe toate ramurile", function()
@@ -209,6 +220,7 @@ return function()
                 local r = DamMath.build(data, ctx()) :: DamMath.Receipt
                 check.equal(r.pieces, 2 + 5 + 3 + 2 + 1 + 1)
                 check.equal(r.lastCart, r.pieces * 10)
+                check.equal(data.Stats.coinsEarned, r.lastCart)
                 check.equal(r.coinsBefore, 1e12 + r.lastCart)
                 check.equal(#data.Sack.items, 0)
                 check.equal(next(data.StoragePile.counts), nil)
@@ -244,6 +256,11 @@ return function()
             function()
                 local data = village(1e12)
                 local before = DamMath.deepCopy(data.Hands)
+                -- referintele chipurilor de dinainte: ale veteranilor trebuie sa fie tabele noi
+                local skinRef: { [string]: any } = {}
+                for key, hand in data.Hands do
+                    skinRef[key] = hand.appearance.skin
+                end
                 local keysBefore: { [string]: boolean } = {}
                 for key in data.Hands do
                     keysBefore[key] = true
@@ -268,7 +285,8 @@ return function()
                     check.equal(hand.name, old.name)
                     check.equal(hand.formerRole, v.from)
                     check.equal(hand.formerKey, oldKey)
-                    check.equal(hand.medal, 4) -- treapta veche, ca medalie
+                    check.equal(hand.medal, OLD_TIER[v.from]) -- treapta veche a meseriei lui, ca medalie
+                    check.is_false(rawequal(hand.appearance.skin, skinRef[oldKey]))
                     check.equal(hand.retired, nil)
                     check.equal(hand.cycleStartAt, NOW)
                     check.equal(#hand.carry, 0)
@@ -278,7 +296,16 @@ return function()
                 end
                 -- copii, nu referinte: chipul veteranului nu se schimba cu al altcuiva
                 local vet = data.Hands[CrewMath.personKey("damCollector", 1) :: string]
-                check.not_nil(data.Memories.oldVillage)
+                -- fotografia satului e luata INAINTE de orice schimbare: era 3, toti oamenii, coliba Collector-ului
+                local photo = data.Memories.oldVillage
+                check.equal(photo.era, 3)
+                check.equal(photo.crews.collector, 2)
+                check.equal(#photo.hands, 54)
+                for _, h in photo.hands do
+                    for _, hand in data.Hands do
+                        check.is_false(rawequal(h.appearance.skin, hand.appearance.skin))
+                    end
+                end
                 vet.appearance.skin[1] = 99
                 for _, h in data.Memories.oldVillage.hands do
                     check.is_true(
@@ -331,6 +358,9 @@ return function()
             "darurile barajului: turbina, Cable Net si casele veteranilor, fara angajare",
             function()
                 check.equal(#DamMath.GIFTS, 7)
+                for _, pad in DamMath.GIFTS do
+                    check.equal(pad.era, 4) -- doar ale Erei 4, nu ale erelor de dupa ea din lumea 2
+                end
                 local data = village(1e12)
                 DamMath.build(data, ctx())
                 for _, pad in DamMath.GIFTS do
@@ -349,7 +379,17 @@ return function()
 
         test.case("venitul: dupa ridicare e startul de aur, si mai mare decat inainte", function()
             local data = village(1e12)
+            -- venitul de dinainte, socotit pe satul neatins, cu acelasi model
+            local copy = DamMath.deepCopy(data)
+            local st0 = ChainState.from(copy, copy.Pads, ChainMath.FULL)
+            local before = ChainMath.valueWith(
+                ChainMath.FULL,
+                st0,
+                ChainMath.flowWith(ChainMath.FULL, st0, false)
+            )
             local r = DamMath.build(data, ctx()) :: DamMath.Receipt
+            check.equal(r.incomeBefore, before)
+            check.is_true(before > 0)
             check.equal(r.incomeAfter, GOLDEN_DAM_INCOME)
             check.is_true(r.incomeAfter >= r.incomeBefore)
             local st = ChainState.from(data, data.Pads, ChainMath.FULL)
