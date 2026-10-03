@@ -44,7 +44,7 @@ VillageConfig.DECOR = {
         id = "flowerbeds",
         name = "Flower Beds",
         where = "By the houses",
-        whereByWorld = { [2] = "On the Dam Town green" },
+        whereByWorld = { [2] = "On the town green" },
         price = 20,
         sprite = "flowerbed",
         scale = 2,
@@ -81,7 +81,7 @@ VillageConfig.DECOR = {
         id = "bench",
         name = "Bench",
         where = "By the Tavern square",
-        whereByWorld = { [2] = "By the Dam Town square" },
+        whereByWorld = { [2] = "On the town green" }, -- [verificatorul k2b] sub fantana, nu langa piata
         price = 40,
         sprite = "bench",
         scale = 2,
@@ -93,7 +93,7 @@ VillageConfig.DECOR = {
         id = "bunting",
         name = "Bunting",
         where = "Over the village street",
-        whereByWorld = { [2] = "Over the Dam Town street" },
+        whereByWorld = { [2] = "Over the town street" },
         price = 60,
         sprite = "bunting",
         scale = 2,
@@ -107,13 +107,15 @@ VillageConfig.DECOR = {
         id = "well",
         name = "Well",
         where = "In the lumber yard",
-        whereByWorld = { [2] = "East of the Dam Town square" },
+        whereByWorld = { [2] = "Beside the Canteen" },
         price = 90,
         sprite = "well",
         scale = 2,
         ground = "land",
         spots = { { x = 880, y = 1290 } },
-        spotsByWorld = { [2] = { { x = 700, y = 1124 } } }, -- [k2b] pe iarba din estul pietei, dincolo de alee
+        -- [verificatorul k2b] la vest de Canteen, la 40 px sub ponton: fasia de sub clopotnita ramane libera (pe acolo mergi
+        -- de unde apari spre ponton, roata, avizier si barca)
+        spotsByWorld = { [2] = { { x = 254, y = 1034 } } },
     },
     {
         id = "garden",
@@ -141,19 +143,20 @@ VillageConfig.DECOR = {
         id = "beehives",
         name = "Beehives",
         where = "By the Landing Bell",
-        whereByWorld = { [2] = "By the old bells" },
+        whereByWorld = { [2] = "Below the Battery Store" },
         price = 200,
         sprite = "beehives",
         scale = 2,
         ground = "land",
         spots = { { x = 1760, y = 1125 } },
-        spotsByWorld = { [2] = { { x = 636, y = 1036 } } }, -- [k2b] la piciorul zidului, sub clopotnita
+        -- [verificatorul k2b] pe iarba dintre Battery Store si Switchyard (nimeni nu trece pe acolo), nu in fasia de sub clopotnita
+        spotsByWorld = { [2] = { { x = 1120, y = 1200 } } },
     },
     {
         id = "fountain",
         name = "Fountain",
         where = "On the village green",
-        whereByWorld = { [2] = "On the Dam Town green" },
+        whereByWorld = { [2] = "On the town green" },
         price = 300,
         sprite = "fountain",
         scale = 2,
@@ -165,13 +168,14 @@ VillageConfig.DECOR = {
         id = "statue",
         name = "River Statue",
         where = "Where the street begins",
-        whereByWorld = { [2] = "Beside the Canteen" },
+        whereByWorld = { [2] = "Where the lane meets the street" },
         price = 450,
         sprite = "statue",
         scale = 2,
         ground = "land",
         spots = { { x = 320, y = 1620 } },
-        spotsByWorld = { [2] = { { x = 254, y = 1034 } } }, -- [k2b] la vest de Canteen, sub ponton
+        -- [verificatorul k2b] la gura aleii pietei, pe iarba dintre ea si Memory Wall (langa ponton era inghesuita)
+        spotsByWorld = { [2] = { { x = 612, y = 1408 } } },
     },
 } :: { Decor }
 

@@ -1106,6 +1106,11 @@ la granița CREWS / `DAM_START_COINS`.
   (`preview_dam_layout.py`) le citește din surse și le desenează cu mărimea lor reală; testul `World2Decor` din
   `World2Layout.test` le pune la aceleași reguli ca ale satului (uscat, în zonă, fără clădiri, oameni, curți, drumuri, nume,
   felinare, stâlpi, carduri E, unul peste altul).
+- **[Verificatorul k2b, făcut]** fâșia de sub clopotniță (de unde apari spre ponton, roată, avizier și barcă) e liberă: fântâna
+  (puțul) stă la vest de Canteen, statuia la gura aleii pieței, stupii pe iarba dintre Battery Store și Switchyard; textele
+  spun lucruri care se văd („On the town green”, nu „Dam Town” și nici „East of”). `World2Decor` cere acum: locurile și textele
+  pentru fiecare lume de după sat, fără busolă și fără „Dam Town”, ghirlanda peste un drum cu stâlpii pe iarbă, 32 px de capătul
+  pontonului, clienții orașului fără decor în cale și drumul tău (drept și pe drumuri) de unde apari până la colțurile satului.
 **k3. Liniile barajului în client.** Depinde de: k2, j13.
 - 6 clădiri fixe cu `borrowed`; `LineController` pentru unire (două grămezi, `waiting` copiat explicit); Overlay `DROP_AT` /
   `playerStand` la `:273, :721-743, :821`; GuideMath și `STEP_OF_JOB`.
@@ -1203,6 +1208,13 @@ la granița CREWS / `DAM_START_COINS`.
 **k10. Dam Town și oamenii retrași.** Depinde de: k9, j14.
 - Cantina, căsuțele, piața, clopotnița cu plăcile cu cifrele jucătorului, Memory Wall din `Memories.oldVillage`; oamenii
   retrași se plimbă pe graful lumii 2; o pagină „Your people”.
+- **[Verificatorul k2b]** etichetele clădirilor lumii 2 scriu exact „Canteen” și „Memory Wall”: textele avizierului de la baraj
+  le folosesc („Beside the Canteen”, „Beside the Memory Wall”), iar un test cere ca fiecare nume propriu din `whereByWorld[2]`
+  să fie printre etichetele lumii 2 (azi: și „Battery Store”, eticheta de la k3). Orașul nu se numește „Dam Town” în textele
+  jucătorului cât numele nu e pe hartă (testul World2Decor respinge „Dam Town” și cuvintele de busolă); dacă la k10 primește un
+  semn, testul se leagă de el.
+- **[Verificatorul k2b]** oamenii retrași, plimbați pe graful lumii 2, nu calcă decorul cumpărat: același test ca drumul de unde
+  apari (`World2Decor`, pas de 4 px, om de 48×72), pe traseele lor.
 
 **k11. Bâlciul pentru gazdele din lumea 2.** Depinde de: j4, k10. Owner: ce intră la prima lansare (O1, luat ca recomandat).
 - `VillageLook.Snapshot.world`, copiat explicit. Până la decizie (și acum, provizoriu): fotografia satului vechi, cu semnul

@@ -19,6 +19,7 @@ local CatchFloat = require("../src/Shared/Modules/CatchFloat")
 local StationConfig = require("../src/Shared/Config/StationConfig")
 local VillageConfig = require("../src/Shared/Config/VillageConfig")
 local Strings = require("../src/Shared/Config/Strings")
+local WorldConfig = require("../src/Shared/Config/WorldConfig")
 
 type Rect = { x0: number, x1: number, y0: number, y1: number }
 type Point = { x: number, y: number }
@@ -683,6 +684,165 @@ return function()
                 check.equal(#bad, 0)
             end
         )
+
+        -- [verificatorul k2b] o lume noua (harta Erei 8) fara locurile si textele ei ar fi desenat decorul nicaieri si ar fi
+        -- scris textul satului pe avizier
+        test.case(
+            "fiecare lume de dupa sat are locurile si textele ei pentru tot ce sta pe uscat",
+            function()
+                for w = 2, WorldConfig.COUNT do
+                    for _, d in DECOR do
+                        if d.ground == "land" then
+                            local spots = (d.spotsByWorld or {})[w]
+                            check.not_nil(spots)
+                            check.equal(#(spots or {}), #d.spots)
+                            check.not_nil((d.whereByWorld or {})[w])
+                        end
+                    end
+                end
+            end
+        )
+
+        -- [verificatorul k2b] textele trimit la lucruri care se vad: harta n-are busola, iar „Dam Town” nu scrie nicaieri
+        -- (zona se cheama „The Dam”)
+        test.case("textele de la baraj: fara busola si fara nume care nu sunt pe harta", function()
+            for _, d in DECOR do
+                local where = VillageConfig.whereOf(d, W)
+                for _, word in { "East", "West", "North", "South", "Dam Town" } do
+                    local found = string.find(string.lower(where), string.lower(word), 1, true)
+                    if found ~= nil then
+                        print(`  ! {d.id}: {where}`)
+                    end
+                    check.equal(found, nil)
+                end
+            end
+        end)
+
+        test.case(
+            "ghirlanda atarna peste un drum, cu stalpii pe iarba; nimic langa capatul pontonului",
+            function()
+                local rs = roads()
+                local function onRoad(x: number, y: number): boolean
+                    for _, r in rs do
+                        if x > r.x0 and x < r.x1 and y > r.y0 and y < r.y1 then
+                            return true
+                        end
+                    end
+                    return false
+                end
+                local PIER = TycoonConfig.PIER
+                local pierEnd = PIER.y + 156 -- capatul pontonului de pe uscat
+                for _, d in DECOR do
+                    if d.ground ~= "land" then
+                        continue
+                    end
+                    for _, spot in VillageConfig.spotsOf(d, W) do
+                        local b = boxOf(d, spot)
+                        if d.overRoad then
+                            local crosses = false
+                            for _, r in rs do
+                                crosses = crosses or hit(b, r)
+                            end
+                            check.is_true(crosses)
+                            check.is_false(onRoad(b.x0, spot.y - 1))
+                            check.is_false(onRoad(b.x1, spot.y - 1))
+                        end
+                        -- in dreptul pontonului, macar 32 px de capatul lui: altfel pontonul pare ca se termina in decor
+                        if b.x1 > PIER.x - 48 and b.x0 < PIER.x + 48 then
+                            check.is_true(b.y0 >= pierEnd + 32)
+                        end
+                    end
+                end
+            end
+        )
+
+        test.case(
+            "clientii orasului vin la Switch House fara sa treaca prin vreun decor",
+            function()
+                local town = sellers.town
+                local bad = {}
+                local function clear(x: number, y: number, what: string)
+                    local person = box(x, y, 40, 60)
+                    for _, d in DECOR do
+                        if d.ground == "land" then
+                            for i, spot in VillageConfig.spotsOf(d, W) do
+                                if hit(person, boxOf(d, spot)) then
+                                    table.insert(bad, `{what} x {d.id}_{i}`)
+                                end
+                            end
+                        end
+                    end
+                end
+                clear(town.customerEntry.x, town.customerEntry.y, "intrarea")
+                for i, spot in town.customerSpots do
+                    clear(spot.x, spot.y, `locul {i}`)
+                    -- drumul lor, in pasi de 8 px, de la intrare la loc (CustomerCrowd merge drept)
+                    local dx, dy = spot.x - town.customerEntry.x, spot.y - town.customerEntry.y
+                    local steps = math.ceil(math.sqrt(dx * dx + dy * dy) / 8)
+                    for k = 0, steps do
+                        local t = k / steps
+                        clear(
+                            town.customerEntry.x + dx * t,
+                            town.customerEntry.y + dy * t,
+                            `drumul {i}`
+                        )
+                    end
+                end
+                for _, b in bad do
+                    print("  ! " .. b)
+                end
+                check.equal(#bad, 0)
+            end
+        )
+
+        -- [verificatorul k2b] de unde apari pana la ponton, roata, avizier, barca si cardurile zidului: nici drumul tau drept,
+        -- nici cel pe drumuri (oamenii de la k10), nu trec printr-un decor de pe uscat (ghirlanda atarna sus, peste strada)
+        test.case("de unde apari pana la colturile satului, omul nu calca niciun decor", function()
+            local spawn = TycoonConfig.spawnOf(W)
+            local targets: { [string]: Point } = {
+                roata = TycoonConfig.WHEEL_STAND,
+                avizier = TycoonConfig.VILLAGE_BOARD,
+                barca = TycoonConfig.FERRY_BOARD,
+                ponton = { x = TycoonConfig.PIER.x, y = TycoonConfig.PIER.y + 156 },
+            }
+            for card, at in world.cards :: { [string]: Point } do
+                targets[card] = at
+            end
+            local decor: { { name: string, r: Rect } } = {}
+            for _, d in DECOR do
+                if d.ground == "land" and not d.overRoad then
+                    for i, spot in VillageConfig.spotsOf(d, W) do
+                        table.insert(decor, { name = `{d.id}_{i}`, r = boxOf(d, spot) })
+                    end
+                end
+            end
+            local bad = {}
+            local function walk(path: { Point }, what: string)
+                for k = 1, #path - 1 do
+                    local a, b = path[k], path[k + 1]
+                    local dx, dy = b.x - a.x, b.y - a.y
+                    local steps = math.max(1, math.ceil(math.sqrt(dx * dx + dy * dy) / 4))
+                    for i = 0, steps do
+                        local t = i / steps
+                        local person = box(a.x + dx * t, a.y + dy * t, 48, 72)
+                        for _, d in decor do
+                            if hit(person, d.r) then
+                                table.insert(bad, `{what} x {d.name}`)
+                                return
+                            end
+                        end
+                    end
+                end
+            end
+            for name, at in targets do
+                walk({ spawn, at }, `drept spre {name}`)
+                walk(RoadGraph.route(RoadGraph.forWorld(W), spawn, at), `pe drumuri spre {name}`)
+            end
+            for _, b in bad do
+                print("  ! " .. b)
+            end
+            check.equal(#bad, 0)
+        end)
 
         test.case(
             "ponton si apa la baraj: ca in sat, pe ponton, in lac, fara sa se atinga",
