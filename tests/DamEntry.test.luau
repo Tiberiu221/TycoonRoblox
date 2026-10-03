@@ -52,7 +52,7 @@ return function()
             check.equal(WorldMath.zoneSign(dam, "locked", 1, live), Strings.zoneAway(dam.name))
             check.equal(
                 WorldMath.zoneSign(dam, "locked", 1, live, true),
-                "Build The Dam at the Dam Plans"
+                "Build it at the Dam Plans"
             )
             check.equal(
                 WorldMath.fenceText(dam, 1, live, true),
@@ -87,7 +87,28 @@ return function()
                 check.is_true(lines(longest, 15, 420) <= 3)
                 check.is_true(lines(longest, 15, 200) <= 6)
                 -- regula sumei pe un singur rand, la 420
-                check.equal(lines(Strings.damStartRule("35T"), 15, 420), 1)
+                -- [verificatorul k6] regula intreaga (monedele cumparate, restul in baraj, AWAY 0): se rupe pe randuri, fereastra
+                -- creste dupa ea (WelcomeController)
+                local rule = Strings.damStartRule("35T", 6)
+                check.is_true(lines(rule, 15, 420) <= 4)
+                check.is_true(lines(rule, 15, 200) <= 9)
+                check.not_nil(string.find(rule, "coins you bought", 1, true))
+                check.not_nil(string.find(rule, "6 new workers", 1, true))
+                -- cati oameni noi cere barajul: cablul (4) si unirea (2), fara veterani
+                local DamMath = require("../src/Shared/Modules/DamMath")
+                check.equal(DamMath.newHires(), 6)
+                -- cand lipsesc mai multi, un singur om nu-l porneste
+                local many = Strings.welcomeStalled("Cable Collector", 6)
+                check.not_nil(string.find(many, "It needs 6 new workers", 1, true))
+                check.equal(string.find(many, "keep it running", 1, true), nil)
+                check.not_nil(
+                    string.find(
+                        Strings.welcomeStalled("Pylon Runner", 1),
+                        "keep it running",
+                        1,
+                        true
+                    )
+                )
                 check.equal(
                     Strings.welcomeStalled("Pylon Runner"),
                     Strings.welcomeStalled("Pylon Runner")

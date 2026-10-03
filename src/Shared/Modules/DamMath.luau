@@ -50,6 +50,39 @@ DamMath.VETERANS = {
     { from = "trader", to = "dispatcher" },
 } :: { { from: string, to: string } }
 
+-- [D70, verificatorul k6] Cati oameni noi cere barajul pana castiga si cat lipsesti (AWAY 0): meseriile liniilor deschise de
+-- la ridicare (fara platforma care sa le porneasca) si ale vanzatorului lor, fara veterani. Azi 6: cablul (4) si unirea (2).
+function DamMath.newHires(): number
+    local veteran: { [string]: boolean } = {}
+    for _, v in DamMath.VETERANS do
+        veteran[v.to] = true
+    end
+    local roles: { [string]: boolean } = {}
+    for _, line in StationConfig.LINE_ORDER_ALL do
+        local spec = FlowConfig.LINES_ALL[line]
+        if
+            spec.era == WorldConfig.FIRST_ERA[2]
+            and spec.processorPad == nil
+            and spec.storePad == nil
+        then
+            for _, step in StationConfig.LINES[line].steps do
+                roles[step.role] = true
+            end
+            local seller = StationConfig.LINES[line].seller
+            if seller ~= nil then
+                roles[StationConfig.SELLERS[seller].role] = true
+            end
+        end
+    end
+    local n = 0
+    for role in roles do
+        if not veteran[role] then
+            n += 1
+        end
+    end
+    return n
+end
+
 -- Ce da barajul: platformele Erei 4 (prima a lumii 2) cu pretul 0 (turbina, Cable Net, cele cinci case ale veteranilor).
 -- Doar ale ei: o plasa gratuita a Erei 5 vine cu era ei, nu la ridicare [verificatorul j14].
 local GIFTS: { TycoonConfig.Pad } = {}

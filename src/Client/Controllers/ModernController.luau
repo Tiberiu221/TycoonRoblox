@@ -128,6 +128,7 @@ function ModernController.Focus(px: number, py: number): Focus.Focus?
         local keyHint = if UserInputService.KeyboardEnabled then " (E)" else ""
         return {
             key = "dam_plans",
+            at = { x = plans.x, y = plans.y - 20 }, -- [verificatorul k6] punctul din care se masoara: ghidajul se retrage
             distance = distance,
             x = plans.x,
             y = plans.y - h - 8,
@@ -150,6 +151,7 @@ function ModernController.Focus(px: number, py: number): Focus.Focus?
         local keyHint = if UserInputService.KeyboardEnabled then " (E)" else ""
         return {
             key = "dam_plans",
+            at = { x = plans.x, y = plans.y - 20 }, -- [verificatorul k6] punctul din care se masoara: ghidajul se retrage
             distance = distance,
             x = plans.x,
             y = plans.y - h - 8,
@@ -161,6 +163,7 @@ function ModernController.Focus(px: number, py: number): Focus.Focus?
     end
     return {
         key = "dam_plans",
+        at = { x = plans.x, y = plans.y - 20 }, -- [verificatorul k6]
         distance = distance,
         x = plans.x,
         y = plans.y - h - 8,

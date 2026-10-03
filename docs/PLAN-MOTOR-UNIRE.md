@@ -1244,6 +1244,14 @@ la granița CREWS / `DAM_START_COINS`.
   copiate). Teste: `DamEntry.test`, ramurile lui `beyond` și ale EraWords pe ambele părți ale comutatorului. Harta
   comutatorului: 13 (doar adormirile, HandConfig de la k10 și marcajul comutatorului).
 
+- **[Verificatorul k6, făcut]** „Welcome back” din sat spune regula întreagă, pe rânduri care se rup: suma de start, plus
+  monedele cumpărate, restul în baraj, și că barajul nu câștigă cât lipsești până la cei `DamMath.newHires()` (6) oameni noi;
+  fereastra crește după rânduri (cu minimul de azi, cât încape pe ecran). La baraj, cu mai mulți oameni lipsă: „It needs 6 new
+  workers: hire a … first!”. Cardul mesei Dam Plans are `at`, iar ținta ghidajului e chiar punctul lui: săgeata și eticheta
+  se retrag lângă masă; pasul spune „Build the Dam when you're ready”. „Goes into the Dam…” și în panoul Upgrades. Zona:
+  „Build it at the Dam Plans” (pe un rând); „the Dam” cu literă mică în mijlocul frazelor noi. Ecranul barajului spune și el
+  AWAY 0 („Hire 6 new workers to earn while you're away”).
+
 **k7. Ecranul „Build the Dam”.** Depinde de: k6.
 - **[Verificatorul j15]** cât n-a venit răspunsul la „Build” (salvarea poate dura), ecranul scrie „Saving…”, iar satul golit de
   starea lumii 2 nu se desenează: clientul îngheață la schimbarea lumii (k1). Pe „save”, ecranul nu oferă „Try again”.

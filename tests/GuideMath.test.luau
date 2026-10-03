@@ -1352,7 +1352,9 @@ return function()
                 local g = GuideMath.pickGoal(st) :: GuideMath.Goal
                 check.equal(g.key, "dam_plans")
                 check.equal(g.x, at.x)
-                check.equal(g.text, Strings.plansBuild(""))
+                check.equal(g.text, Strings.PLANS_WHEN_READY)
+                -- [verificatorul k6] cardul mesei se masoara din (x, y - 20): e cardul tintei, deci ghidajul se retrage
+                check.is_true(GuideMath.isGoalCard(g, at.x, at.y - 20))
                 -- un quest activ are intaietate (al satului, inca de facut)
                 st.quest = {
                     key = "q",

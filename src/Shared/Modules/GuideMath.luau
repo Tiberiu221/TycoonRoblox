@@ -807,9 +807,10 @@ function GuideMath.pickGoal(s: State): Goal?
         return {
             kind = "goto",
             key = "dam_plans",
-            text = Strings.plansBuild(""),
+            text = Strings.PLANS_WHEN_READY, -- [verificatorul k6] „Not yet” nu e o pedeapsa
+            -- [verificatorul k6] chiar punctul din care masa isi masoara cardul (ModernController): ghidajul se retrage langa ea
             x = plans.x,
-            y = plans.y,
+            y = plans.y - 20,
             immediate = true,
         }
     end

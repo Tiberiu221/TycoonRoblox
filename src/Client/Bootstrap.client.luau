@@ -793,6 +793,10 @@ safeInit("StationMenu", function()
 end)
 safeInit("StationPanel", function()
     StationPanel.Init({
+        -- [verificatorul k6] in sat, cu barajul gata de ridicat: nivelurile de aici intra in el
+        DamAvailable = function(): boolean
+            return damAvailable
+        end,
         HudGui = hudCanvas,
         Remotes = {
             UpgradeStation = Net.Get("UpgradeStation"),

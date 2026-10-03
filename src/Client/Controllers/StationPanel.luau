@@ -64,6 +64,8 @@ export type Deps = {
     -- [2026-09-30] platforma e cumparata (PadController): un clopot tras nu mai e trimis ca pas urmator
     IsBought: ((padId: string) -> boolean)?,
     World: number?, -- [D70, pasul k2] harta: cartierele ei (la baraj, primul e al Erei 4)
+    -- [verificatorul k6] barajul se poate ridica acum (in sat): langa x1/x10/x50/Max, ca in meniul obiectului
+    DamAvailable: (() -> boolean)?,
 }
 
 local StationPanel = {}
@@ -95,6 +97,7 @@ local HEAD_SHIFT = 0 -- tot ce sta sub cap coboara cu verigile adaugate dupa D55
 local TABS_H = 44 -- randul comutatorului de cartier; 0 cat nu exista decat The Landing
 
 local advice: TextLabel
+local damNote: TextLabel -- [verificatorul k6]
 -- capul fiecarui cartier, pe era; in el, pe index: "nets" apare de doua ori (plasele fiecarei linii)
 type ChainHeadView = {
     frame: Frame,
@@ -445,6 +448,8 @@ function StationPanel.Apply(snap: Snapshot?)
     layoutTabs(snap)
     refreshChain(snap)
     refreshRows(snap)
+    local damReady = deps.DamAvailable
+    damNote.Visible = damReady ~= nil and damReady() -- [verificatorul k6]
 end
 
 function StationPanel.IsOpen(): boolean
@@ -728,6 +733,16 @@ function StationPanel.Init(d: Deps)
         Widgets.SetButtonTone(button, if i == 1 then Theme.COLOR.gold else nil)
         bulkButtons[i] = button
     end
+    -- [verificatorul k6] „Goes into the Dam when you build it”, in dreapta butoanelor (412..560), pe doua randuri
+    damNote =
+        Widgets.Label(bulkRow, Strings.GOES_INTO_DAM, Theme.TEXT.tiny, Theme.COLOR.inkSoft, "body")
+    damNote.Position = UDim2.fromOffset(412, 0)
+    damNote.Size = UDim2.new(1, -412, 0, 44)
+    damNote.TextWrapped = true
+    damNote.TextXAlignment = Enum.TextXAlignment.Right
+    damNote.TextYAlignment = Enum.TextYAlignment.Center
+    damNote.ZIndex = Z + 2
+    damNote.Visible = false
 
     rowHolder = Widgets.List(body, Z + 1, Theme.SPACE.sm)
     rowsFrame = rowHolder.Parent :: Frame

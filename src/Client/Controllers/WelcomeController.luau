@@ -16,6 +16,7 @@ local Strings = require(ReplicatedStorage.Shared.Config.Strings)
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
 local PassMath = require(ReplicatedStorage.Shared.Modules.PassMath)
+local DamMath = require(ReplicatedStorage.Shared.Modules.DamMath) -- [verificatorul k6] cati oameni noi cere barajul
 
 local ShopPanel = require(script.Parent.ShopPanel)
 local SoundController = require(script.Parent.SoundController)
@@ -149,8 +150,11 @@ function WelcomeController.Init(deps: {
     note.TextWrapped = true
     -- [D71] seria zilnica, cand e ceva de spus
     local streakLine = line(6, Theme.TEXT.body, Theme.COLOR.wood, "strong")
-    -- [D70, pasul k6] in sat, cu barajul gata de ridicat: regula sumei de start, pe un rand
+    -- [D70, pasul k6] in sat, cu barajul gata de ridicat: regula sumei de start si AWAY 0, pe randuri care se rup
     local damRule = line(7, Theme.TEXT.small, Theme.COLOR.inkSoft, "body")
+    damRule.Size = UDim2.fromScale(1, 0)
+    damRule.AutomaticSize = Enum.AutomaticSize.Y
+    damRule.TextWrapped = true
 
     local button = Widgets.Button(body, {
         text = Strings.WELCOME_CONTINUE,
@@ -208,7 +212,30 @@ function WelcomeController.Init(deps: {
         away.TextSize = Theme.fitSize(away.Text, Theme.TEXT.body, "body", width)
         river.TextSize = Theme.fitSize(river.Text, Theme.TEXT.body, "strong", width)
         streakLine.TextSize = Theme.fitSize(streakLine.Text, Theme.TEXT.body, "strong", width)
-        damRule.TextSize = Theme.fitSize(damRule.Text, Theme.TEXT.small, "body", width)
+        -- [verificatorul k6] fereastra creste cu randurile care se rup (nota curbei, AWAY 0, regula barajului): socotita
+        -- din randurile vizibile, cu minimul de azi, ca nimic sa nu intre in butoane
+        local need = 0
+        local shown = 0
+        for _, child in column:GetChildren() do
+            if child:IsA("GuiObject") and child.Visible then
+                shown += 1
+                if child:IsA("TextLabel") and child.TextWrapped then
+                    need += Theme.textHeight(child.Text, child.TextSize, "body", width) + 8
+                else
+                    need += child.Size.Y.Offset
+                end
+            end
+        end
+        need += math.max(0, shown - 1) * (Theme.SPACE.xs + 2) + BUTTON_H + 56 + Theme.SPACE.lg * 3
+        local height = math.max(HEIGHT, math.ceil(need))
+        -- pe un telefon foarte scund, cat incape (ca Widgets.Window): textul se strange, fereastra nu iese din ecran
+        local canvas = root.Parent
+        if canvas ~= nil and canvas:IsA("Frame") and canvas.Size.Y.Offset > 0 then
+            height = math.min(height, math.max(200, canvas.Size.Y.Offset - Theme.SPACE.lg * 2))
+        end
+        if root.Size.Y.Offset ~= height then
+            root.Size = UDim2.fromOffset(root.Size.X.Offset, height)
+        end
     end
     -- fereastra se strange la rotirea telefonului (Widgets.Window), iar textul odata cu ea
     root:GetPropertyChangedSignal("Size"):Connect(fit)
@@ -292,14 +319,14 @@ function WelcomeController.Init(deps: {
         note.TextColor3 = Theme.COLOR.inkSoft
         if stalled and missingCrew ~= nil then
             -- randul se rupe (TextWrapped, AutomaticSize Y): pe telefon, fraza ar fi iesit din fereastra
-            note.Text = Strings.welcomeStalled(missingCrew.name)
+            note.Text = Strings.welcomeStalled(missingCrew.name, #unhired)
             note.TextColor3 = Theme.COLOR.ink
         end
         note.Visible = note.Text ~= ""
         streakLine.Text = streakText
         streakLine.Visible = streakText ~= ""
         damRule.Text = if damStart ~= nil
-            then Strings.damStartRule(TycoonMath.formatNumber(damStart))
+            then Strings.damStartRule(TycoonMath.formatNumber(damStart), DamMath.newHires())
             else ""
         damRule.Visible = damRule.Text ~= ""
         shownCoins = coins

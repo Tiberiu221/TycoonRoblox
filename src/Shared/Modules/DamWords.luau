@@ -5,6 +5,7 @@
 -- ecranul sa nu arate un 0 care pare o pierdere [D40].
 local Strings = require(script and script.Parent.Parent.Config.Strings or "../Config/Strings")
 local TycoonMath = require(script and script.Parent.TycoonMath or "./TycoonMath")
+local DamMath = require(script and script.Parent.DamMath or "./DamMath")
 
 local DamWords = {}
 
@@ -57,6 +58,8 @@ function DamWords.columns(r: Receipt): { Column }
     end
     table.insert(gain, Strings.damVeterans(#r.veterans, r.retired))
     table.insert(gain, Strings.DAM_GAIN_FREE)
+    -- [verificatorul k6] AWAY 0 pana la oamenii noi, spus dinainte [D43]
+    table.insert(gain, Strings.damAwayZero(DamMath.newHires()))
     return {
         { title = Strings.DAM_STAYS, rows = stays },
         { title = Strings.DAM_BECOMES, rows = becomes },

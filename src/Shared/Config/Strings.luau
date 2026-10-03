@@ -156,15 +156,21 @@ function Strings.eraComing(zoneName: string): string
     return `{zoneName} is coming soon!`
 end
 Strings.ERA_COMING_SUB = "It comes in a future update. Your village keeps earning while you play."
+-- [verificatorul k6] numele unei zone in mijlocul frazei: „the Dam”, nu „The Dam”
+local function midName(name: string): string
+    return (string.gsub(name, "^The ", "the "))
+end
 -- [D70, pasul k6] era urmatoare e in joc, pe alta harta (barajul, dupa l3): drumul spre ea e masa Dam Plans
 function Strings.eraReady(zoneName: string): string
-    return `Time to build {zoneName}!`
+    return `Time to build {midName(zoneName)}!`
 end
 Strings.ERA_READY_SUB = "Find the Dam Plans at the end of the Wire Works."
 Strings.ERA_READY_QUESTS = "All quests done! Build the Dam at the Dam Plans."
 function Strings.eraReadyNext(zoneName: string): string
-    return `build {zoneName}`
+    return `build {midName(zoneName)}`
 end
+-- [verificatorul k6] pasul ghidajului spre masa Dam Plans: „Not yet” nu e o pedeapsa, deci nici textul nu graba
+Strings.PLANS_WHEN_READY = "Build the Dam when you're ready"
 -- [D70, pasul k6] pe meniul unei cladiri din sat, cand barajul se poate ridica: nivelurile de aici nu se pierd, intra in el
 Strings.GOES_INTO_DAM = "Goes into the Dam when you build it"
 function Strings.plansBuild(keyHint: string): string
@@ -244,6 +250,10 @@ function Strings.damVeterans(working: number, retired: number): string
     return if retired > 0 then `{who}; {retired} retire by the lake` else who
 end
 Strings.DAM_GAIN_FREE = "A turbine and a Cable Net, free"
+-- [verificatorul k6] AWAY 0 pana la oamenii noi, spus si pe ecranul barajului
+function Strings.damAwayZero(newHires: number): string
+    return `Hire {newHires} new workers to earn while you're away`
+end
 Strings.DAM_HOLD = "Build the Dam"
 Strings.DAM_NOT_YET = "Not yet"
 Strings.DAM_CLOSE = "Close"
@@ -288,9 +298,9 @@ end
 function Strings.zoneAway(zoneName: string): string
     return `{zoneName} will rise by your pier`
 end
--- [D70, pasul k6] barajul se poate ridica acum: zona din sat spune de unde
-function Strings.zoneBuildAt(zoneName: string): string
-    return `Build {zoneName} at the Dam Plans`
+-- [D70, pasul k6] barajul se poate ridica acum: zona din sat spune de unde (pe un rand, cu numele mesei intreg)
+function Strings.zoneBuildAt(_zoneName: string): string
+    return "Build it at the Dam Plans"
 end
 
 -- ---- [39] Sistem -------------------------------------------------------------------------------
@@ -1429,13 +1439,19 @@ Strings.WELCOME_STREAK_TITLE = "Good to see you again"
 -- [D70, pasul k6] la baraj, cat lipsesc oameni (AWAY 0): ce s-a intamplat si pe cine sa angajezi. Doar primul care lipseste
 -- (lantul `after` il face singurul de cumparat acum); adevarat oricine ar fi el [verificatorul j13b].
 Strings.WELCOME_STALLED_TITLE = "Welcome back to the Dam"
-function Strings.welcomeStalled(name: string): string
+function Strings.welcomeStalled(name: string, missing: number?): string
     local article = if string.find(name, "^[AEIOUaeiou]") then "an" else "a"
+    -- [verificatorul k6] cand lipsesc mai multi, un singur om nu-l porneste: spune cati si pe cine intai
+    if missing ~= nil and missing > 1 then
+        return `Your Dam earned nothing while you were away. It needs {missing} new workers: hire {article} {name} first!`
+    end
     return `Your Dam earned nothing while you were away. Hire {article} {name} to keep it running!`
 end
--- [D70, pasul k6] in sat, cu barajul gata de ridicat: regula sumei de start, spusa dinainte (D70)
-function Strings.damStartRule(sum: string): string
-    return `Build the Dam and start there with {sum}`
+-- [D70, pasul k6, verificatorul k6] in sat, cu barajul gata de ridicat: regula intreaga, spusa dinainte (D70, D74 pct. 8):
+-- suma de start, monedele cumparate trec peste ea, restul intra in baraj, iar pana la oamenii noi barajul nu castiga cat lipsesti
+function Strings.damStartRule(sum: string, newHires: number): string
+    return `Build the Dam and you start there with {sum}, plus any coins you bought; the rest goes into the Dam. `
+        .. `Until you hire its {newHires} new workers, it earns nothing while you're away.`
 end
 
 -- [D60] Balciul de seara (place-ul al doilea)
@@ -1920,7 +1936,8 @@ function Strings.crewMaxedComing(plural: string, zoneName: string): string
 end
 -- [D70, pasul k6] era urmatoare e in joc pe alta harta: drumul spre ea
 function Strings.crewMaxedBuild(plural: string, zoneName: string): string
-    return `{plural} are at their best — time to build {zoneName}`
+    local name = string.gsub(zoneName, "^The ", "the ")
+    return `{plural} are at their best — time to build {name}`
 end
 function Strings.crewMaxedDone(plural: string): string
     return `{plural} are at their best here`
