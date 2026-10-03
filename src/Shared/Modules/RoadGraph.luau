@@ -9,6 +9,8 @@
 -- din Dijkstra, pe cateva zeci de noduri.
 local TycoonConfig =
     require(script and script.Parent.Parent.Config.TycoonConfig or "../Config/TycoonConfig")
+local WorldConfig =
+    require(script and script.Parent.Parent.Config.WorldConfig or "../Config/WorldConfig")
 
 export type Point = { x: number, y: number }
 export type Rect = { x0: number, x1: number, y0: number, y1: number }
@@ -304,21 +306,27 @@ end
 
 -- Graful din config, construit o singura data: puntea si drumurile FIECARUI cartier [D65]. Strada Morii atinge
 -- strada satului, deci graful e unul singur si oamenii pot trece dintr-un cartier in altul.
-local configGraph: Graph? = nil
-function RoadGraph.fromConfig(): Graph
-    local g = configGraph
+-- [D70, pasul j8] Un graf pe LUME: drumurile barajului nu se leaga de ale satului (sunt alte harti). `fromConfig` e
+-- graful lumii 1, ca inainte.
+local worldGraphs: { [number]: Graph } = {}
+function RoadGraph.forWorld(w: number?): Graph
+    local world = WorldConfig.sanitize(w)
+    local g = worldGraphs[world]
     if g == nil then
         local rects: { Rect } = {}
-        for _, district in TycoonConfig.DISTRICTS do
+        for _, district in TycoonConfig.districtsOf(world) do
             table.insert(rects, district.deck)
             for _, r in district.roads do
                 table.insert(rects, { x0 = r.x0, x1 = r.x1, y0 = r.y0, y1 = r.y1 })
             end
         end
         g = RoadGraph.build(rects)
-        configGraph = g
+        worldGraphs[world] = g
     end
     return g :: Graph
+end
+function RoadGraph.fromConfig(): Graph
+    return RoadGraph.forWorld(1)
 end
 
 return RoadGraph

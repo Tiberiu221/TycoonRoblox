@@ -11,6 +11,8 @@ local TycoonConfig = require("../src/Shared/Config/TycoonConfig")
 local RiverConfig = require("../src/Shared/Config/RiverConfig")
 local Assets = require("../src/Shared/Config/Assets")
 local RoadGraph = require("../src/Shared/Modules/RoadGraph")
+local HandRoutes = require("../src/Shared/Modules/HandRoutes")
+local StationConfig = require("../src/Shared/Config/StationConfig")
 
 type Rect = { x0: number, x1: number, y0: number, y1: number }
 type Point = { x: number, y: number }
@@ -436,5 +438,116 @@ return function()
                 end
             end
         )
+    end)
+
+    -- [D70, pasul j8] drumurile pe lume: graful barajului e al lui, oamenii lui merg pe el, nu prin apa
+    test.suite("World2Roads [D70, pasul j8]", function()
+        local DAM_NETS =
+            { "dam_turbine", "cable_net", "second_cable_net", "third_cable_net", "crystal_net" }
+
+        local function wet(x: number, y: number): boolean
+            if y <= RiverConfig.WORLDS[W].RIVER_BOTTOM then
+                return true -- raul si lacul
+            end
+            for _, b in world.blocked :: { TycoonConfig.Box } do
+                if x > b.x and x < b.x + b.w and y > b.y and y < b.y + b.h then
+                    return true -- zidul si canalul
+                end
+            end
+            return false
+        end
+
+        test.case("un graf pe lume: al barajului e conex si nu e al satului", function()
+            local g2 = RoadGraph.forWorld(2)
+            check.is_true(RoadGraph.connected(g2))
+            check.is_true(RoadGraph.forWorld(1) == RoadGraph.fromConfig())
+            check.is_true(g2 ~= RoadGraph.fromConfig())
+            check.is_true(HandRoutes.forWorld(1) == HandRoutes.GAME)
+            check.is_true(HandRoutes.forWorld(2).roads == g2)
+            check.equal(HandRoutes.worldOfRole("collector"), 1)
+            check.equal(HandRoutes.worldOfRole("damCollector"), 2)
+            check.is_true(HandRoutes.forRole("relayKeeper") == HandRoutes.forWorld(2))
+        end)
+
+        test.case(
+            "oamenii barajului merg pe drumuri, nu prin apa, in timpi ca ai satului",
+            function()
+                local ctx = HandRoutes.forWorld(W)
+                -- cat tine cel mai scurt si cel mai lung ciclu din sat (toate plasele, cate un om)
+                local nets1 = {}
+                for _, p in TycoonConfig.padsOfWorld(1) do
+                    if isNet(p) then
+                        table.insert(nets1, p.id)
+                    end
+                end
+                local shortest, longest = math.huge, 0
+                for _, role in StationConfig.ROLES do
+                    local c = HandRoutes.cycleFor(role, 1, 1, nets1)
+                    if c.duration > 0 then
+                        shortest = math.min(shortest, c.duration)
+                        longest = math.max(longest, c.duration)
+                    end
+                end
+                local walked, dmin, dmax = 0, math.huge, 0
+                for _, role in StationConfig.ERA4_ROLES do
+                    for _, pair in { { 1, 1 }, { 1, 2 }, { 2, 2 } } do
+                        local c = HandRoutes.cycleFor(role, pair[1], pair[2], DAM_NETS, ctx)
+                        if c.duration > 0 then
+                            walked += 1
+                            dmin, dmax = math.min(dmin, c.duration), math.max(dmax, c.duration)
+                            check.is_true(c.duration >= shortest - 0.1 and c.duration <= longest)
+                            for _, leg in c.legs do
+                                if leg.kind == "walk" then
+                                    for k = 0, 40 do
+                                        local x = leg.from.x + (leg.to.x - leg.from.x) * k / 40
+                                        local y = leg.from.y + (leg.to.y - leg.from.y) * k / 40
+                                        if wet(x, y) then
+                                            print(
+                                                `  ! {role} {pair[1]}/{pair[2]} trece prin apa la ({x}, {y})`
+                                            )
+                                        end
+                                        check.is_false(wet(x, y))
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+                -- zece meserii care merg (3 la butoaie, 3 la cablu, Pylon Runner-ul, 3 la cristal), cate trei cazuri
+                check.equal(walked, 30)
+                check.equal(math.floor(dmin * 10 + 0.5) / 10, 4.5)
+                check.equal(math.floor(dmax * 10 + 0.5) / 10, 19.4)
+            end
+        )
+
+        test.case("turul tau de mana al cablului, pe drumurile barajului", function()
+            -- plasa -> magazie -> atelier (intrare, inel, iesire) -> intrarea cablului la Relay -> inelul Relay -> iesire -> oras
+            local g = RoadGraph.forWorld(W)
+            local cable, grid, town = lines.cable, joins.grid, sellers.town
+            local net = TycoonConfig.byId.cable_net
+            local tour = {
+                { x = net.x :: number, y = net.y :: number },
+                cable.storeStand,
+                cable.processorIn,
+                cable.playerStand,
+                cable.processorOut,
+                grid.inputIn.cable,
+                grid.playerStand,
+                grid.processorOut,
+                town.door,
+            }
+            local length = 0
+            for i = 1, #tour - 1 do
+                local points = RoadGraph.route(g, tour[i], tour[i + 1])
+                length += RoadGraph.length(points)
+                for k = 1, #points - 1 do
+                    local a, b = points[k], points[k + 1]
+                    for t = 0, 20 do
+                        check.is_false(wet(a.x + (b.x - a.x) * t / 20, a.y + (b.y - a.y) * t / 20))
+                    end
+                end
+            end
+            check.equal(math.floor(length), 2996) -- planseta aprobata (PLAN-HARTA §9)
+        end)
     end)
 end

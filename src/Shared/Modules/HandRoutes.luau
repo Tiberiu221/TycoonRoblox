@@ -21,6 +21,8 @@
 -- lung nu schimba cifra din meniu -- doar cat de des il vezi trecand.
 local HandMath = require(script and script.Parent.HandMath or "./HandMath")
 local RoadGraph = require(script and script.Parent.RoadGraph or "./RoadGraph")
+local WorldConfig =
+    require(script and script.Parent.Parent.Config.WorldConfig or "../Config/WorldConfig")
 local TycoonConfig =
     require(script and script.Parent.Parent.Config.TycoonConfig or "../Config/TycoonConfig")
 local TycoonMath = require(script and script.Parent.TycoonMath or "./TycoonMath")
@@ -61,16 +63,17 @@ HandRoutes.SCRAP_NET = scrapNet
 -- `elseif` pe fiecare meserie; Era 2 ar fi dublat totul.
 --   job = "collect" | "port" | "work" | "haul"; vanzatorii au meseria lor ("sell"), tot statica.
 export type Job = { line: string?, seller: string?, job: string }
--- [D70] CONTEXTUL in care merg oamenii: liniile (FlowConfig.GAME sau FULL), meseriile lor, locurile de pe harta si daca se
--- merge pe drumuri. Fiecare functie primeste la coada un context optional; fara el, al jocului, ca inainte. Testele barajului
--- dau locuri inventate (harta lui vine la pasul j), cu `roads = false`: drum drept.
+-- [D70] CONTEXTUL in care merg oamenii: liniile (FlowConfig.GAME sau FULL), meseriile lor, locurile de pe harta si pe ce
+-- drumuri se merge. Fiecare functie primeste la coada un context optional; fara el, al jocului, ca inainte. Testele cu
+-- locuri inventate dau `roads = false`: drum drept. [pasul j8] `roads`: graful lumii (RoadGraph.forWorld), `true` = al
+-- lumii 1 (cum era), `false` = drum drept.
 export type Context = {
     flow: FlowConfig.Model,
     jobs: { [string]: Job },
     linePlaces: { [string]: TycoonConfig.LinePlaces },
     joinPlaces: { [string]: TycoonConfig.JoinPlaces },
     sellerPlaces: { [string]: TycoonConfig.SellerPlaces },
-    roads: boolean,
+    roads: RoadGraph.Graph | boolean,
 }
 -- [D70] Meseria unui pas: StationConfig.STEP_JOBS (`job` cand e scrisa, ca la pasii unirii: Relay Keeper-ul sta,
 -- Pylon Runner-ul duce; altfel dupa pozitie, ca in Erele 1-3), verificata la incarcare.
@@ -93,7 +96,7 @@ function HandRoutes.context(
     linePlaces: { [string]: TycoonConfig.LinePlaces },
     joinPlaces: { [string]: TycoonConfig.JoinPlaces },
     sellerPlaces: { [string]: TycoonConfig.SellerPlaces },
-    roads: boolean
+    roads: RoadGraph.Graph | boolean
 ): Context
     return {
         flow = flow,
@@ -113,6 +116,32 @@ local GAME = HandRoutes.context(
     true
 )
 HandRoutes.GAME = GAME
+
+-- [D70, pasul j8] Contextul fiecarei lumi: lumea 1 e al jocului (acelasi obiect); lumea 2, barajul, cu toate liniile scrise
+-- (FlowConfig.FULL: cat Era 4 doarme, GAME n-o are), locurile si drumurile ei. Facut la prima cerere.
+local worldContexts: { [number]: Context } = { [1] = GAME }
+function HandRoutes.forWorld(w: number?): Context
+    local world = WorldConfig.sanitize(w)
+    local ctx = worldContexts[world]
+    if ctx == nil then
+        ctx = HandRoutes.context(
+            FlowConfig.FULL,
+            TycoonConfig.linePlacesOf(world),
+            TycoonConfig.joinPlacesOf(world),
+            TycoonConfig.sellerPlacesOf(world),
+            RoadGraph.forWorld(world)
+        )
+        worldContexts[world] = ctx
+    end
+    return ctx :: Context
+end
+-- Lumea in care lucreaza o meserie: a erei ei (veteranii barajului au meserii ale Erei 4, deci lucreaza in lumea 2).
+function HandRoutes.worldOfRole(role: string): number
+    return WorldConfig.worldOfEra(StationConfig.ERA_OF_ROLE[role] or 1)
+end
+function HandRoutes.forRole(role: string): Context
+    return HandRoutes.forWorld(HandRoutes.worldOfRole(role))
+end
 
 function HandRoutes.jobOf(role: string, w: Context?): Job?
     return (w or GAME).jobs[role]
@@ -208,15 +237,25 @@ local function stop(
 end
 
 -- Punctele de pe drum dintre doua locuri, fara capete. Locurile sunt toate din config (plase, usi,
--- curtea gaterului), deci cheile sunt putine: fiecare drum se cauta o singura data.
-local viaCache: { [string]: { HandMath.Point } } = {}
-local function viaBetween(from: HandMath.Point, to: HandMath.Point): { HandMath.Point }
+-- curtea gaterului), deci cheile sunt putine: fiecare drum se cauta o singura data. [D70, pasul j8] Cate o memorie pe
+-- graf (pe lume): aceleasi coordonate pot fi alt drum pe alta harta.
+local viaCaches: { [RoadGraph.Graph]: { [string]: { HandMath.Point } } } = {}
+local function viaBetween(
+    graph: RoadGraph.Graph,
+    from: HandMath.Point,
+    to: HandMath.Point
+): { HandMath.Point }
+    local viaCache = viaCaches[graph]
+    if viaCache == nil then
+        viaCache = {}
+        viaCaches[graph] = viaCache
+    end
     local key = `{from.x},{from.y}>{to.x},{to.y}`
     local cached = viaCache[key]
     if cached ~= nil then
         return cached
     end
-    local points = RoadGraph.route(RoadGraph.fromConfig(), from, to)
+    local points = RoadGraph.route(graph, from, to)
     local via: { HandMath.Point } = {}
     for i = 2, #points - 1 do
         table.insert(via, points[i])
@@ -231,10 +270,14 @@ local function onRoads(
     stops: { HandMath.Stop },
     endpoint: HandMath.Point,
     face: string?,
-    roads: boolean
+    roads: RoadGraph.Graph | boolean
 ): Route
+    local graph: RoadGraph.Graph? = if roads == true
+        then RoadGraph.fromConfig()
+        elseif roads == false then nil
+        else roads :: RoadGraph.Graph
     local function via(from: HandMath.Point, to: HandMath.Point): { HandMath.Point }
-        return if roads then viaBetween(from, to) else {}
+        return if graph ~= nil then viaBetween(graph, from, to) else {}
     end
     local here = endpoint
     for _, s in stops do
