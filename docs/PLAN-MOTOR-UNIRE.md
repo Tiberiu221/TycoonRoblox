@@ -1275,6 +1275,16 @@ la granița CREWS / `DAM_START_COINS`.
   butonului în interiorul ramei, sub etichetă; după ridicare butonul ținut dispare, iar cel rămas stă la mijloc. AWAY 0 pe
   ecran era deja făcut la reparațiile k6.
 
+- **[Verificatorul k6–k8 (a doua rundă), făcut]**
+  - **Chitanța veche:** după „changed” se uită (`lastPreview = nil`), deci un „busy” nu mai armează butonul pe cifrele
+    refuzate, iar avertismentul monedelor rămâne.
+  - **Un al doilea „Try again” peste un drum în curs:** `FerryService.Depart` întoarce „busy”, iar ecranul spune „The Dam is
+    still opening” și așteaptă din nou. Limita de rată a filmului răspunde „limited”.
+  - **Nota „Goes into the Dam”** începe după butonul Max (rândul e acum în `check_panel_rows`).
+  - **Ghidajul:** inelul auriu stă la baza mesei, iar eticheta de margine rămâne în ecran.
+  - **Regula AWAY 0** e un fapt pe rândul ei, în galben, sub coloane.
+  - **Zona din sat** scrie „Build the Dam at the Dam Plans”.
+
 **k8. Reîncărcarea în lumea 2.** Depinde de: k7.
 - `FerryService.Depart(player, destination?)` (barca rămâne identică); salvare, `MarkTeleporting`, apoi teleport în același
   place; cartonașul „THE DAM” ca TeleportGui.

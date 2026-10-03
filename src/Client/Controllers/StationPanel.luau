@@ -733,11 +733,13 @@ function StationPanel.Init(d: Deps)
         Widgets.SetButtonTone(button, if i == 1 then Theme.COLOR.gold else nil)
         bulkButtons[i] = button
     end
-    -- [verificatorul k6] „Goes into the Dam when you build it”, in dreapta butoanelor (412..560), pe doua randuri
+    -- [verificatorul k6] „Goes into the Dam when you build it”, in dreapta butoanelor, pe doua randuri. [k6-k8] Butonul Max
+    -- se termina la 104 + 3 * 82 + 76 = 426: nota incepe dupa el, cu SPACE.sm gol (434..560)
+    local noteX = 104 + 3 * 82 + 76 + Theme.SPACE.sm
     damNote =
         Widgets.Label(bulkRow, Strings.GOES_INTO_DAM, Theme.TEXT.tiny, Theme.COLOR.inkSoft, "body")
-    damNote.Position = UDim2.fromOffset(412, 0)
-    damNote.Size = UDim2.new(1, -412, 0, 44)
+    damNote.Position = UDim2.fromOffset(noteX, 0)
+    damNote.Size = UDim2.new(1, -noteX, 0, 44)
     damNote.TextWrapped = true
     damNote.TextXAlignment = Enum.TextXAlignment.Right
     damNote.TextYAlignment = Enum.TextYAlignment.Center

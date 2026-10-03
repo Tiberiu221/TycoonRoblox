@@ -25,7 +25,7 @@ export type Deps = {
     Invalidate: (Player) -> (), -- cache-urile starii (PadService si StationService)
     PushState: ((Player) -> ())?,
     -- [D70, pasul k8] reincarcarea in lumea 2 (FerryService.Depart spre acelasi place, cu cartonasul „THE DAM”)
-    Reload: ((Player) -> ())?,
+    Reload: ((Player) -> string?)?, -- [verificatorul k6-k8] un motiv cand drumul nu porneste si nu raspunde nimeni
 }
 local deps: Deps? = nil
 
@@ -116,8 +116,8 @@ end
 -- Filmul s-a vazut (sau s-a sarit): la reincarcare nu mai porneste singur. [D70, pasul k8] Apoi clientul, construit pentru
 -- satul vechi, se reincarca in lumea 2: acelasi drum ca barca (salvarea e deja facuta la ridicare). O cerere repetata
 -- (dupa un drum care n-a plecat) incearca din nou; cine e deja in lumea 2 cu harta ei nu mai are de ce sa plece.
--- [verificatorul k7-k8] Intoarce motivul cand reincarcarea nu porneste ("no_profile", "not_built"), ca ecranul sa nu astepte in
--- tacere; nil = drumul a plecat (sau raspunde FerryService prin `onFailed`).
+-- [verificatorul k7-k8] Intoarce motivul cand reincarcarea nu porneste ("no_profile", "not_built", [k6-k8] "busy" cand un drum
+-- e deja in curs), ca ecranul sa nu astepte in tacere; nil = drumul a plecat (sau raspunde FerryService prin `onFailed`).
 function DamService.FilmSeen(player: Player): string?
     local data = DataService.Get(player)
     if data == nil then
@@ -135,8 +135,9 @@ function DamService.FilmSeen(player: Player): string?
     -- doar clientul construit pe satul vechi o cere (cel din lumea 2 n-are masa Dam Plans); o cerere in plus il reincarca
     -- doar pe el, cu limita de rata a barajului (NetServer)
     if reload ~= nil and data.World ~= 1 then
-        reload(player)
-        return nil
+        -- nil: drumul a plecat (sau raspunde el prin `onFailed`); "busy": unul e deja in curs, iar cererea asta primeste
+        -- raspunsul ei pe loc [verificatorul k6-k8]
+        return reload(player)
     end
     return "not_built"
 end

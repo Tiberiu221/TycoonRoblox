@@ -564,6 +564,10 @@ local function updateGuideVisuals()
     end
     if not onScreen then
         local ex, ey = clampToEdge(hx, hy, w, h)
+        -- [verificatorul k6-k8] eticheta de sub sageata ramane in panza: la o tinta din dreapta („Build the Dam when you're
+        -- ready”, ~330 px) grupul se trage spre interior cu jumatate din ea; sageata se roteste tot spre tinta
+        local half = (Theme.textWidth(goal.text, Theme.TEXT.body, "strong") + 24) / 2
+        ex = math.clamp(ex, math.min(half + 8, w / 2), math.max(w - half - 8, w / 2))
         edgeGroup.Position = UDim2.fromOffset(ex, ey)
         if edgeIcon ~= nil then
             -- 0 grade = sus (Assets.icons.arrow), rotatia creste in sensul acelor de ceasornic

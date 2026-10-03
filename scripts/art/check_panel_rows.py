@@ -375,6 +375,21 @@ TAILOR_OUTFIT_ROW = dict(
 )
 
 
+# [verificatorul k6-k8] randul x1 / x10 / x50 / Max al panoului Upgrades (StationPanel.Init, `bulkRow`): eticheta, cele patru
+# butoane (76 lati, la 104 + i * 82) si nota barajului „Goes into the Dam when you build it” dupa Max (la baraj gata).
+BULK_ROW = dict(
+    panel="Upgrades, randul Buy x1..Max (StationPanel)", width=600 - SPACE["lg"] * 2, row_h=44,
+    boxes=lambda w: [
+        ("label", 0, 12, 96, 20, None),
+        ("x1", 104, 4, 76, 36, None),
+        ("x10", 104 + 82, 4, 76, 36, None),
+        ("x50", 104 + 2 * 82, 4, 76, 36, None),
+        ("max", 104 + 3 * 82, 4, 76, 36, None),
+        ("damNote", 104 + 3 * 82 + 76 + SPACE["sm"], 0, w - (104 + 3 * 82 + 76 + SPACE["sm"]), 44, None),
+    ],
+)
+
+
 def overlap(a, b):
     if a[5] is not None and b[5] is not None and a[5] != b[5]:
         return None  # nu apar niciodata in acelasi timp
@@ -412,7 +427,7 @@ def main():
                                       TITLE_ROW, TITLE_TO_EARN, TITLE_HEAD, MARKET_ROW, LEADERBOARD_ROW, STAGE_PANEL,
                                       PLAYER_CARD, BOOTH_PANEL,
                                       TAILOR_PANEL, TAILOR_LOOK_ROW, TAILOR_OUTFIT_ROW, VISIT_ROW,
-                                      SHOP_ROW))
+                                      SHOP_ROW, BULK_ROW))
     if bad:
         raise SystemExit(f"{bad} coliziuni de asezare")
 

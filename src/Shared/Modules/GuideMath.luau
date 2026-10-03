@@ -808,9 +808,10 @@ function GuideMath.pickGoal(s: State): Goal?
             kind = "goto",
             key = "dam_plans",
             text = Strings.PLANS_WHEN_READY, -- [verificatorul k6] „Not yet” nu e o pedeapsa
-            -- [verificatorul k6] chiar punctul din care masa isi masoara cardul (ModernController): ghidajul se retrage langa ea
+            -- [verificatorul k6] ghidajul se retrage langa masa: cardul ei se masoara din (x, y - 20), iar isGoalCard accepta
+            -- SAME_PLACE. [k6-k8] Tinta ramane la baza mesei, ca inelul auriu sa stea in fata ei, nu sub ea
             x = plans.x,
-            y = plans.y - 20,
+            y = plans.y,
             immediate = true,
         }
     end

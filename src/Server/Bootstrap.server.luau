@@ -153,8 +153,8 @@ DamService.Init({
     end,
     PushState = NetServer.PushState,
     -- [D70, pasul k8] dupa film: acelasi place, harta noua; cartonasul „THE DAM” il pune clientul (SetTeleportGui)
-    Reload = function(player: Player)
-        FerryService.Depart(player, {
+    Reload = function(player: Player): string?
+        return FerryService.Depart(player, {
             destination = "village",
             travel = { from = "dam" },
             onFailed = function(p: Player, reason: string)

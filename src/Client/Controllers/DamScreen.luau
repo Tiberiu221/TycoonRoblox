@@ -32,6 +32,7 @@ local GAP = Theme.SPACE.md
 local window: Frame? = nil
 local scroll: ScrollingFrame
 local columnsFrame: Frame
+local awayNote: TextLabel
 local columnsLayout: UIListLayout
 local columnViews: { { frame: Frame, title: TextLabel, rows: { TextLabel } } } = {}
 local status: TextLabel
@@ -126,7 +127,13 @@ local function layout()
 end
 
 local function showColumns(receipt: DamController.Receipt?)
-    local columns = if receipt ~= nil then DamWords.columns(receipt) else {}
+    local columns: { DamWords.Column } = {}
+    local away: string? = nil
+    if receipt ~= nil then
+        columns, away = DamWords.columns(receipt)
+    end
+    awayNote.Text = away or ""
+    awayNote.Visible = away ~= nil
     for i, view in columnViews do
         local column = columns[i]
         view.frame.Visible = column ~= nil
@@ -189,14 +196,8 @@ local function travelCard(): ScreenGui
     return gui
 end
 
-local function openDam()
-    setPhase("opening")
-    setStatus(Strings.DAM_OPENING, Theme.COLOR.inkSoft)
-    pcall(function()
-        TeleportService:SetTeleportGui(travelCard())
-    end)
-    DamController.FilmSeen()
-    -- [verificatorul k7-k8] fara niciun raspuns in OPEN_WAIT secunde: „Try again”, ca ecranul sa nu ramana blocat
+-- [verificatorul k7-k8] fara niciun raspuns in OPEN_WAIT secunde: „Try again”, ca ecranul sa nu ramana blocat
+local function armOpenWait()
     openToken += 1
     local token = openToken
     task.delay(OPEN_WAIT, function()
@@ -207,6 +208,16 @@ local function openDam()
             setStatus(Strings.damReloadFailed("failed"), Theme.COLOR.warnInk)
         end
     end)
+end
+
+local function openDam()
+    setPhase("opening")
+    setStatus(Strings.DAM_OPENING, Theme.COLOR.inkSoft)
+    pcall(function()
+        TeleportService:SetTeleportGui(travelCard())
+    end)
+    DamController.FilmSeen()
+    armOpenWait()
 end
 
 -- Masa Dam Plans (E): ecranul se deschide pe „Counting…” si cere chitanta.
@@ -238,16 +249,18 @@ function DamScreen.OnPreview(receipt: DamController.Receipt?, why: string?)
         else
             setStatus(Strings.DAM_HOLD_HINT)
         end
-    elseif why == "busy" and DamController.LastPreview() ~= nil then
-        -- [verificatorul k7-k8] limita: chitanta buna de dinainte ramane, iar butonul merge
+    elseif why == "busy" and not changedPending and DamController.LastPreview() ~= nil then
+        -- [verificatorul k7-k8] limita: chitanta buna de dinainte ramane, iar butonul merge. [k6-k8] Nu si dupa „changed”:
+        -- chitanta aceea tocmai a fost refuzata ca veche
         setPhase("ready")
         setStatus(Strings.DAM_HOLD_HINT)
     elseif why ~= nil then
         local retry = DamWords.canRetry(why)
         setPhase(if retry then "counting" else "refused")
-        -- asteptarile in galben, refuzurile adevarate in rosu (ca toast-urile lui DamController)
+        -- asteptarile in galben, refuzurile adevarate in rosu (ca toast-urile lui DamController); cat se asteapta chitanta
+        -- de dupa „changed”, ramane avertismentul monedelor
         setStatus(
-            Strings.damRejected(why),
+            if retry and changedPending then Strings.DAM_COINS_CHANGED else Strings.damRejected(why),
             if retry then Theme.COLOR.warnInk else Theme.COLOR.badInk
         )
         if retry then
@@ -296,6 +309,12 @@ end
 
 -- [D70, pasul k8] Reincarcarea n-a plecat: in Studio spune ce sa faci; altfel „Try again” (aceeasi cerere).
 function DamScreen.OnReloadFailed(reason: string)
+    if reason == "busy" and phase == "opening" then
+        -- [verificatorul k6-k8] un drum e deja in curs (sau limita): raspunsul lui vine tot aici; asteptam din nou
+        setStatus(Strings.damReloadFailed("busy"), Theme.COLOR.inkSoft)
+        armOpenWait()
+        return
+    end
     DamFilm.Stop() -- filmul se ridica: ecranul spune ce urmeaza
     openToken += 1
     showWindow()
@@ -333,7 +352,21 @@ function DamScreen.Init(deps: { HudGui: Frame })
     scroll.ScrollingDirection = Enum.ScrollingDirection.Y
     scroll.ZIndex = Z + 1
     scroll.Parent = body
+    local scrollLayout = Instance.new("UIListLayout")
+    scrollLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    scrollLayout.Padding = UDim.new(0, Theme.SPACE.md)
+    scrollLayout.Parent = scroll
+    -- [verificatorul k6-k8] regula AWAY 0, pe randul ei sub coloane, in galben (DamWords.columns)
+    awayNote = Widgets.Label(scroll, "", Theme.TEXT.small, Theme.COLOR.warnInk, "body")
+    awayNote.TextWrapped = true
+    awayNote.TextXAlignment = Enum.TextXAlignment.Center
+    awayNote.Size = UDim2.fromScale(1, 0)
+    awayNote.AutomaticSize = Enum.AutomaticSize.Y
+    awayNote.LayoutOrder = 2
+    awayNote.ZIndex = Z + 2
+    awayNote.Visible = false
     columnsFrame = Instance.new("Frame")
+    columnsFrame.LayoutOrder = 1
     columnsFrame.Name = "Row"
     columnsFrame.BackgroundTransparency = 1
     columnsFrame.Size = UDim2.fromScale(1, 0)

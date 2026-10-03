@@ -57,6 +57,13 @@ return function()
             check.equal(columns[1].rows[1], "You start with 35T + 2T coins you bought")
             check.not_nil(table.find(columns[2].rows, "Given to the Dam: 3T"))
             check.not_nil(table.find(columns[3].rows, "Income 1.21B/s, then 19.6B/s"))
+            -- [verificatorul k6-k8] regula AWAY 0 nu e un castig: nu sta in „You gain”, ci separat, ca fapt
+            local _, away = DamWords.columns(receipt())
+            check.equal(away, Strings.damAwayZero(6))
+            check.not_nil(string.find(away, "earns nothing", 1, true))
+            for _, c in columns do
+                check.equal(table.find(c.rows, away), nil)
+            end
         end)
 
         test.case("un rand fara ce spune lipseste: fara 0 care pare o pierdere", function()
@@ -76,6 +83,7 @@ return function()
             "toate literele ecranului sunt in Nunito (si „Saving…”, sageata)",
             function()
                 local all = rowsOf(DamWords.columns(receipt({ gift = 1, topUp = 1, kept = 1 })))
+                table.insert(all, Strings.damAwayZero(6))
                 for _, text in
                     {
                         Strings.DAM_HOLD_HINT,

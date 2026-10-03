@@ -172,8 +172,10 @@ function DamController.Init(d: Deps)
         else
             refuse(d, why)
         end
-        -- „changed”: monedele de pe ecran nu mai sunt cele adevarate, deci o chitanta noua
+        -- „changed”: monedele de pe ecran nu mai sunt cele adevarate, deci o chitanta noua. [verificatorul k6-k8] Cea veche
+        -- se uita: stiut ca veche, nu mai poate arma butonul (nici dupa un „busy”) si nu mai pleaca la Build
         if reason == "changed" then
+            lastPreview = nil
             DamController.RequestPreview()
         end
     end)

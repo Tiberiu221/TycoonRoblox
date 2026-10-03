@@ -105,7 +105,7 @@ export type Deps = {
     },
     Hands: { Snapshot: (Player) -> { any }, Retired: (Player) -> { any } },
     -- [D60] barca spre balci
-    Ferry: { Depart: (Player) -> () },
+    Ferry: { Depart: (Player) -> string? },
     -- [D70, pasul j15] barajul (DamService): previzualizarea, ridicarea, filmul
     Dam: {
         Preview: (Player) -> ({ [string]: any }?, string?),
@@ -544,7 +544,8 @@ function NetServer.Init(d: Deps)
     Net.Get("DamFilmSeen").OnServerEvent:Connect(function(player: Player)
         -- [verificatorul k7-k8] raspunde mereu: ecranul „Opening the Dam…” asteapta fie teleportul, fie un motiv [D43]
         if not RateLimiter.Allow(player, "Dam") then
-            Net.Get("DamReloadFailed"):FireClient(player, "busy")
+            -- „limited”, nu „busy”: „busy” inseamna un drum deja in curs, al carui raspuns vine singur [verificatorul k6-k8]
+            Net.Get("DamReloadFailed"):FireClient(player, "limited")
             return
         end
         local why = deps.Dam.FilmSeen(player)

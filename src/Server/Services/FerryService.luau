@@ -61,11 +61,16 @@ local function reasonOf(result: Enum.TeleportResult): string
     return if result == Enum.TeleportResult.Flooded then "busy" else "failed"
 end
 
--- Porneste drumul. Raspunsul vine ca teleport (reusit) sau ca OnFailed (motivul).
-function FerryService.Depart(player: Player, trip: Trip?)
+-- Porneste drumul. Raspunsul vine ca teleport (reusit) sau ca OnFailed (motivul). [verificatorul k6-k8] Intoarce un motiv
+-- doar cand nu porneste nimic si n-a raspuns nimeni: "busy" (un drum e deja in curs; al lui raspunde tot prin OnFailed) sau
+-- "closed" (serviciul nu e pornit). Barca il ignora; barajul il trimite ecranului, ca a doua cerere sa aiba raspunsul ei.
+function FerryService.Depart(player: Player, trip: Trip?): string?
     local d = deps
-    if d == nil or departing[player] ~= nil then
-        return
+    if d == nil then
+        return "closed"
+    end
+    if departing[player] ~= nil then
+        return "busy"
     end
     local destination = if trip ~= nil and trip.destination ~= nil
         then trip.destination
@@ -73,7 +78,7 @@ function FerryService.Depart(player: Player, trip: Trip?)
     local onFailed = if trip ~= nil and trip.onFailed ~= nil then trip.onFailed else d.OnFailed
     if IS_STUDIO then
         onFailed(player, "studio")
-        return
+        return nil
     end
     local places = PlaceConfig.forUniverse(game.GameId)
     local target: number? = nil
@@ -82,12 +87,12 @@ function FerryService.Depart(player: Player, trip: Trip?)
     end
     if target == nil then
         onFailed(player, "closed")
-        return
+        return nil
     end
     local data = DataService.Get(player)
     if data == nil then
         onFailed(player, "no_profile")
-        return
+        return nil
     end
     local startedAt = os.clock()
     departing[player] = { at = startedAt, onFailed = onFailed }
@@ -114,7 +119,7 @@ function FerryService.Depart(player: Player, trip: Trip?)
     if not ok then
         warn(`[Ferry] {player.Name} n-a plecat spre {destination}: {err}`)
         settle(player, "failed")
-        return
+        return nil
     end
     task.delay(FerryService.TIMEOUT, function()
         local now = departing[player]
@@ -123,6 +128,7 @@ function FerryService.Depart(player: Player, trip: Trip?)
             settle(player, "timeout")
         end
     end)
+    return nil
 end
 
 function FerryService.Init(d: Deps)

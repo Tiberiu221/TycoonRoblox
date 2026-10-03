@@ -32,7 +32,7 @@ export type Deps = {
         Snapshot: (Player) -> { [string]: any },
         Spin: (Player) -> (boolean, string, string?, number?, boolean?),
     },
-    Ferry: { Depart: (Player) -> () },
+    Ferry: { Depart: (Player) -> string? },
     Titles: {
         Snapshot: (Player) -> { [string]: any },
         Buy: (Player, string) -> (boolean, string),

@@ -52,7 +52,7 @@ return function()
             check.equal(WorldMath.zoneSign(dam, "locked", 1, live), Strings.zoneAway(dam.name))
             check.equal(
                 WorldMath.zoneSign(dam, "locked", 1, live, true),
-                "Build it at the Dam Plans"
+                "Build the Dam at the Dam Plans"
             )
             check.equal(
                 WorldMath.fenceText(dam, 1, live, true),

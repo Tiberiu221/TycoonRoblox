@@ -30,7 +30,9 @@ local function n(x: number): string
     return TycoonMath.formatNumber(x)
 end
 
-function DamWords.columns(r: Receipt): { Column }
+-- [verificatorul k6-k8] Al doilea rezultat: regula AWAY 0 (barajul nu castiga nimic cat lipsesti pana la oamenii noi), spusa
+-- ca fapt, pe randul ei, sub coloane, in galben: in coloana „You gain” se citea ca inca un castig.
+function DamWords.columns(r: Receipt): ({ Column }, string)
     local stays: { string } = {
         Strings.damCoins(n(r.start), if r.kept > 0 then n(r.kept) else nil),
         Strings.DAM_STAYS_THINGS,
@@ -58,13 +60,13 @@ function DamWords.columns(r: Receipt): { Column }
     end
     table.insert(gain, Strings.damVeterans(#r.veterans, r.retired))
     table.insert(gain, Strings.DAM_GAIN_FREE)
-    -- [verificatorul k6] AWAY 0 pana la oamenii noi, spus dinainte [D43]
-    table.insert(gain, Strings.damAwayZero(DamMath.newHires()))
     return {
         { title = Strings.DAM_STAYS, rows = stays },
         { title = Strings.DAM_BECOMES, rows = becomes },
         { title = Strings.DAM_GAIN, rows = gain },
-    }
+    },
+        -- [verificatorul k6] AWAY 0 pana la oamenii noi, spus dinainte [D43]
+        Strings.damAwayZero(DamMath.newHires())
 end
 
 -- Dupa un refuz: se mai poate tine butonul? Nu dupa ce barajul e ridicat („built”, „save”) sau cand nu se poate deloc

@@ -252,7 +252,8 @@ end
 Strings.DAM_GAIN_FREE = "A turbine and a Cable Net, free"
 -- [verificatorul k6] AWAY 0 pana la oamenii noi, spus si pe ecranul barajului
 function Strings.damAwayZero(newHires: number): string
-    return `Hire {newHires} new workers to earn while you're away`
+    -- [verificatorul k6-k8] un fapt, nu o indemnare: sub coloane, in galben
+    return `The Dam earns nothing while you're away until you hire {newHires} new workers`
 end
 Strings.DAM_HOLD = "Build the Dam"
 Strings.DAM_NOT_YET = "Not yet"
@@ -293,6 +294,8 @@ function Strings.damReloadFailed(reason: string): string
     elseif reason == "studio" or reason == "studio_fresh" then
         -- [verificatorul k7-k8] Play-ul din Studio porneste implicit de la zero: barajul se pierde la Stop
         return "In Studio this save is erased at Stop: turn on keep save, then build the Dam again"
+    elseif reason == "busy" then
+        return "The Dam is still opening. One moment" -- [verificatorul k6-k8] un drum e deja in curs
     end
     return "The Dam didn't open yet. Try again"
 end
@@ -303,9 +306,10 @@ Strings.DAM_COINS_CHANGED = "Your coins changed. Check the numbers, then hold ag
 function Strings.zoneAway(zoneName: string): string
     return `{zoneName} will rise by your pier`
 end
--- [D70, pasul k6] barajul se poate ridica acum: zona din sat spune de unde (pe un rand, cu numele mesei intreg)
-function Strings.zoneBuildAt(_zoneName: string): string
-    return "Build it at the Dam Plans"
+-- [D70, pasul k6] barajul se poate ridica acum: zona din sat spune de unde, cu numele mesei intreg. [verificatorul k6-k8] Si ce
+-- se ridica: panoul n-are alt nume deasupra („Build it” nu spunea ce); trece pe doua randuri (textHeight)
+function Strings.zoneBuildAt(zoneName: string): string
+    return `Build {midName(zoneName)} at the Dam Plans`
 end
 
 -- ---- [39] Sistem -------------------------------------------------------------------------------
