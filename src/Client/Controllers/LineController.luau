@@ -24,6 +24,7 @@ local StationConfig = require(ReplicatedStorage.Shared.Config.StationConfig)
 local Strings = require(ReplicatedStorage.Shared.Config.Strings)
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 local StateCopy = require(ReplicatedStorage.Shared.Modules.StateCopy)
+local FlowMath = require(ReplicatedStorage.Shared.Modules.FlowMath)
 local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
 local SceneArt = require(script.Parent.SceneArt)
 local CustomerCrowd = require(script.Parent.Parent.UI.CustomerCrowd)
@@ -348,6 +349,14 @@ function LineController.line(
     local function raw(): number
         return sack.rawBy[line] or 0
     end
+    -- [verificatorul k4] fara nimic de facut aici, dar cu marfa bruta a altei linii: cardul spune unde merge, inainte de E
+    local function hintStatus(isStore: boolean): string?
+        local hint = FlowMath.hintAt(sack.rawBy, line)
+        if hint == nil then
+            return nil
+        end
+        return Strings.placeResult(line, nil, isStore, false, hint, 0, 0, state.staffed == true)
+    end
 
     -- fumul atelierului: un cadru gol peste cladire, aratat doar cat atelierul chiar lucreaza
     local smokeHost: Frame? = nil
@@ -448,6 +457,7 @@ function LineController.line(
             text = Strings.promptTakeRaw(words, keyHint())
         end
         return {
+            status = if text == nil then hintStatus(true) else nil, -- [verificatorul k4]
             key = flow.store,
             at = places.storeStand,
             distance = d,
@@ -482,6 +492,7 @@ function LineController.line(
             text = Strings.promptTakeDone(words, keyHint())
         end
         return {
+            status = if text == nil then hintStatus(false) else nil, -- [verificatorul k4]
             key = flow.processor,
             at = places.playerStand,
             distance = d,
@@ -652,7 +663,12 @@ function LineController.join(line: string, building: Building): Line
         elseif state.out > 0 and sack.count < sack.capacity and not byHand then
             text = Strings.promptTakeDone(words, keyHint())
         end
+        -- [verificatorul k4] fara nimic de facut, cu marfa bruta a unei piese: unde merge (aceeasi regula ca serverul)
+        local hint = if text == nil then FlowMath.hintAt(sack.rawBy, line) else nil
         return {
+            status = if hint ~= nil
+                then Strings.placeResult(line, nil, false, false, hint, 0, 0, state.staffed == true)
+                else nil,
             key = flow.processor,
             at = places.playerStand,
             distance = d,
@@ -745,6 +761,35 @@ function LineController.seller(seller: string, building: Building): Seller
                 if count > 0 and unionWords ~= nil then
                     status = Strings.partsToJoin(unionWords)
                     break
+                end
+            end
+            -- [verificatorul k4] marfa bruta a liniilor lui: „The Market buys … not scrap or ore”; ce vinde alt vanzator: al
+            -- cui e (aceleasi texte ca refuzurile serverului)
+            if status == nil then
+                for _, l in StationConfig.LINE_ORDER do
+                    if StationConfig.LINES[l].seller == seller and (sack.rawBy[l] or 0) > 0 then
+                        status =
+                            Strings.placeResult(nil, seller, false, false, "raw_only", 0, 0, false)
+                        break
+                    end
+                end
+            end
+            if status == nil then
+                for other, entry in sack.sellBy do
+                    if other ~= seller and entry.count > 0 then
+                        status = Strings.placeResult(
+                            nil,
+                            seller,
+                            false,
+                            false,
+                            "other_seller",
+                            0,
+                            0,
+                            false,
+                            other
+                        )
+                        break
+                    end
                 end
             end
         end

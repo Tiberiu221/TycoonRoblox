@@ -363,6 +363,7 @@ export type LineWords = {
     -- [D70] numele liniei, pentru o unire: „the Cable line is slower" (veriga e a altei piese din aceeasi unire)
     name: string?,
     rawUnit: string?, -- [D70, pasul k4] la unire: cum se numara ce aduci („3 parts”); implicit `raw`
+    rawUnitOne: string?, -- [verificatorul k4] la singular („1 part”)
 }
 Strings.LINE_WORDS = {
     -- Era 1: locurile ei au controllerele lor, cu textele lor; de aici se iau doar cuvintele marfii (meniuri)
@@ -467,6 +468,7 @@ Strings.LINE_WORDS = {
         processor = "Relay Station",
         verb = "Join",
         rawUnit = "parts",
+        rawUnitOne = "part",
         standHere = "Stand here to join",
         working = "Joining",
         byIt = "stay by the Relay Station",
@@ -971,6 +973,9 @@ function Strings.placeResult(
         return nil
     end
     local function raw(n: number): string
+        if n == 1 and words.rawUnitOne ~= nil then
+            return `1 {words.rawUnitOne}`
+        end
         return `{n} {words.rawUnit or words.raw}`
     end
     local function done(n: number): string

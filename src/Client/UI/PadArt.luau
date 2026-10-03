@@ -8,6 +8,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Assets = require(ReplicatedStorage.Shared.Config.Assets)
 local Strings = require(ReplicatedStorage.Shared.Config.Strings)
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
+local WorldConfig = require(ReplicatedStorage.Shared.Config.WorldConfig)
 local ChainMath = require(ReplicatedStorage.Shared.Modules.ChainMath)
 local GoodArt = require(script.Parent.GoodArt)
 local Modern = require(script.Parent.Modern)
@@ -228,6 +229,13 @@ PadArt.TURBINE_SCALE = 2
 -- satul vizitat din balci sa aiba aceeasi umbra.
 PadArt.GHOST_TINT = Color3.fromRGB(26, 32, 42)
 PadArt.GHOST_FADE = 0.48
+-- [D70, verificatorul k4] O platforma a unei lumi noi (barajul): acolo n-a fost nimic de daramat, deci cat e incuiata se vede
+-- ca umbra ei (ca turbina), nu ca ruina, iar cartonasul scrie „NOT BUILT YET”. Avizierele de angajare raman aviziere.
+function PadArt.isFresh(pad: TycoonConfig.Pad): boolean
+    return WorldConfig.worldOfEra(pad.era) ~= 1
+        and PadArt.BOARD_ICON[lookOf(pad.id, PadArt.BOARD_ICON)] == nil
+end
+
 function PadArt.isTurbine(pad: TycoonConfig.Pad): boolean
     return TycoonConfig.isTurbine(pad) -- [D70] si turbina barajului
 end

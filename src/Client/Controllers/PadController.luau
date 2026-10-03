@@ -12,7 +12,6 @@ local TweenService = game:GetService("TweenService")
 
 local RiverConfig = require(ReplicatedStorage.Shared.Config.RiverConfig)
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
-local WorldConfig = require(ReplicatedStorage.Shared.Config.WorldConfig) -- [D70, pasul k4]
 local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
 local WorldMath = require(ReplicatedStorage.Shared.Modules.WorldMath)
 local HeldBack = require(ReplicatedStorage.Shared.Modules.HeldBack)
@@ -530,7 +529,8 @@ local function styleLocked(frame: TextButton, pad: TycoonConfig.Pad)
     tagTops[pad.id] = nil
     frame.BackgroundTransparency = 1
     -- [D67, audit] turbina n-are ruina desenata: e chiar ea, ca umbra intunecata (altfel parea deja construita)
-    plaques[pad.id] = if PadArt.isTurbine(pad)
+    -- [verificatorul k4] la fel o platforma a barajului: acolo n-a fost nimic de daramat
+    plaques[pad.id] = if PadArt.isTurbine(pad) or PadArt.isFresh(pad)
         then buildGhost(frame, pad, false)
         else buildRuin(frame, pad, true)
 end
@@ -548,7 +548,7 @@ local function styleAvailable(frame: TextButton, pad: TycoonConfig.Pad, affordab
 
     -- [D53] ruina, daca arta ei e urcata; altfel silueta de dinainte
     local target: GuiObject?, topY: number
-    if ruinReady(pad) and not PadArt.isTurbine(pad) then
+    if ruinReady(pad) and not PadArt.isTurbine(pad) and not PadArt.isFresh(pad) then
         target, topY = buildRuin(frame, pad, false)
     else
         -- [D67, audit] turbina: umbra ei, stinsa fara bani si aproape reala cu bani (ca obiectele fara ruina)
@@ -1443,7 +1443,7 @@ function PadController.Init(d: Deps)
                     local eyebrow = if BOARD_ICON[PadArt.lookOf(pad.id, BOARD_ICON)] ~= nil
                         then Strings.PAD_EYEBROW_WANTED
                         elseif
-                            PadArt.isTurbine(pad) or WorldConfig.worldOfEra(pad.era) ~= 1
+                            PadArt.isTurbine(pad) or PadArt.isFresh(pad)
                         then Strings.PAD_EYEBROW_NOT_BUILT
                         else Strings.PAD_EYEBROW_RUINS
                     HUDController.ShowRuinCard(pad, eyebrow, needs)

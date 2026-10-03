@@ -164,6 +164,20 @@ local function hintFor(items: { Catch }, spec: Line, m: Model?): string?
     return nil
 end
 
+-- [verificatorul k4] Acelasi indiciu, din traista pe linii pe care o are clientul (`rawBy`, de la SackSnapshot): cardul unui
+-- loc al liniei `line` spune unde merge marfa bruta a ALTEI linii, inainte de E [D43]. Aceeasi ordine si aceeasi regula ca
+-- hintFor (FlowConfig `hint` / `hintedBy`); nil = nimic de spus.
+function FlowMath.hintAt(rawBy: { [string]: number }, line: string, m: Model?): string?
+    local flow = (m or GAME).flow
+    for _, other in flow.lineOrder do
+        local spec = flow.lines[other]
+        if table.find(spec.hintedBy, line) ~= nil and (rawBy[other] or 0) > 0 then
+            return spec.hint
+        end
+    end
+    return nil
+end
+
 -- LA MAGAZIE. Muteaza `items` (traista) si `pile`. Intoarce (ok, ce s-a intamplat, cate bucati).
 function FlowMath.useStore(
     items: { Catch },

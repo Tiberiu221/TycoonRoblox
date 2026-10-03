@@ -1184,6 +1184,12 @@ la granița CREWS / `DAM_START_COINS`.
   vederea serverului, deja pe lume. „Opens at 4T” e cartonașul Dam Bell („Earn 4T coins a second first”, j11); AWAY 0 e la
   k6 (fereastra „Welcome back”). Harta comutatorului: 15 (ChainWords reparat).
 
+- **[Verificatorul k4, făcut]** indiciile și refuzurile vânzătorului ajung acum pe card, înainte de E (clientul nu trimite E fără
+  acțiune): `FlowMath.hintAt` (aceeași regulă ca `hintFor` al serverului, testată pe fiecare linie) dă „Batteries go to the
+  Switchyard”, „Ore goes to the Copper Furnace”; la Piață, Depou și Switch House, marfa brută a liniilor lor spune textul
+  vânzătorului, iar marfa altui vânzător spune al cui e (**și în sat**, după D43). Platformele încuiate ale barajului se văd
+  ca umbra lor, nu ca ruine (`PadArt.isFresh`, aceeași regulă și pentru eticheta „NOT BUILT YET”). „Dropped 1 part”.
+
 **k5. Quest-uri, linia NEXT și ghidajul pentru capitolele 10–12.** Depinde de: k4, j11.
 - `counterText` și lista fără paranteze; `HUDController.SetStep` păstrează bara de venit; primul tur în 6 pași de mână; fără
   preț și fără „While you save” pe o platformă încuiată; ghidajul sare meseriile la maxim cât ține un pas de venit; indiciul

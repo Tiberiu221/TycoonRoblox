@@ -554,6 +554,38 @@ return function()
             check.equal(d, "batteries_to_switchyard")
         end)
 
+        -- [verificatorul k4] cardul (clientul) spune acelasi indiciu ca serverul la E: hintAt din traista pe linii = hintFor
+        test.case(
+            "hintAt (cardul) da acelasi motiv ca atelierul serverului, pe fiecare linie",
+            function()
+                for _, line in F.flow.lineOrder do
+                    local spec = LA[line]
+                    if spec.joins ~= nil then
+                        continue
+                    end
+                    for _, other in F.flow.lineOrder do
+                        local otherSpec = LA[other]
+                        local good = otherSpec.raw[1]
+                        if other == line or good == nil then
+                            continue
+                        end
+                        local _, why = FlowMath.useProcessor(
+                            sack({ [good] = 1 }),
+                            {},
+                            {},
+                            60,
+                            spec,
+                            F
+                        )
+                        local hint = FlowMath.hintAt({ [other] = 1 }, line, F)
+                        check.equal(why, hint or spec.nothingDone)
+                    end
+                end
+                check.equal(FlowMath.hintAt({ barrels = 1 }, "grid", F), "batteries_to_switchyard")
+                check.equal(FlowMath.hintAt({}, "cable", F), nil)
+            end
+        )
+
         test.case(
             "la oras: doar piese -> part_to_relay; cu lingouri si curent, piesele raman",
             function()
