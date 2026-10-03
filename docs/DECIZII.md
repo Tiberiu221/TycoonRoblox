@@ -11,6 +11,23 @@ Convenție: în tot proiectul, „server" înseamnă o instanță Roblox efemer�
 
 ---
 
+## D75 — Planșele barajului (A0): zidul de piatră, filmul, pământul; săgeata ghidajului rămâne cum e
+**DECIS de owner pe 2026-10-03:** *„alege recomandatele și continuă dezvoltarea”*, la planșele A0 și la întrebarea despre
+indicatorul de margine al ghidajului.
+
+1. **Zidul barajului: varianta A, de piatră.** E zidit din satul vechi, cum spune filmul („The old village becomes the Dam”),
+   cu fața din aval în trepte, panza deversorului, spuma de la picior și gura turbinei (`scripts/art/a0_dam.py`).
+   Varianta B (beton cu stavile) cade. Lotul A1 se desenează pe A.
+2. **Filmul:** cele șase cadre-cheie sunt aprobate ca direcție pentru A2, cu ce scrie pe ele ca propunere: siluetele la
+   amurg, schelele, zidul care crește din ambele maluri, camera care urcă la râu și plasele scoase din apă.
+3. **Pământul lumii 2** (k12) e aprobat ca planșă. **Urcarea celor două imagini rămâne o cerere separată:** e o publicare pe
+   Roblox, iar acordul pentru ea nu se deduce din „recomandatele”. Contează abia la l3.
+4. **Indicatorul de margine al ghidajului:** rămâne compromisul de acum (PLAN-MOTOR-UNIRE §16, a unsprezecea rundă). Pe
+   telefoanele mici, lângă colțul cu cifre, eticheta poate sări după un du-te-vino de ±3° sau se poate ascunde 50–80 ms la
+   alergat; săgeata arată mereu spre țintă, iar linia NEXT spune textul.
+
+---
+
 ## D74 — Cartierul barajului: așezarea propusă, cu recomandările
 **DECIS de owner pe 2026-10-03:** *„ia recomandatele și continuă”*, la cele opt întrebări din PLAN-HARTA §9 (planșa
 `scripts/art/preview_dam_layout.py`). Așezarea propusă devine planul hărții lumii 2. Coordonatele se pun în joc la pasul j.
