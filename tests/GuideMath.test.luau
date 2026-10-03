@@ -1532,7 +1532,51 @@ return function()
         local MARGIN = 46 -- GuideController.EDGE_MARGIN
         -- [verificatorul A0/k12, a saptea runda] grupul indicatorului: {jumatate din latimea etichetei, cat coboara}; ultimul
         -- e eticheta trecuta pe doua randuri (GuideMath.EDGE_LABEL_MAX), cea mai lata si cea mai inalta pe care o arata ghidajul
-        local WRAPPED_HALF = (GuideMath.EDGE_LABEL_MAX + 24) / 2
+        -- [a opta runda] textele adevarate ale indicatorului, rupte ca in joc: fontul de pixeli (572/1024 em la 18 px, ~18,4 px pe
+        -- rand), randuri echilibrate (GuideMath.balancedWidth). Cel mai lat grup rupt dintre ele intra in forme.
+        local StationConfig = require("../src/Shared/Config/StationConfig")
+        local PER_CHAR, LINE_H = 18 * 572 / 1024, 18.4
+        local function wrapLines(text: string, width: number): { number }
+            local perLine = math.max(1, math.floor(width / PER_CHAR))
+            local lines: { number } = {}
+            local used = 0
+            for word in string.gmatch(text, "%S+") do
+                local n = utf8.len(word) or #word
+                if used > 0 and used + 1 + n > perLine then
+                    table.insert(lines, used)
+                    used = n
+                else
+                    used += (if used > 0 then 1 else 0) + n
+                end
+            end
+            table.insert(lines, used)
+            return lines
+        end
+        local function labelOf(text: string): (number, { number })
+            local full = (utf8.len(text) or #text) * PER_CHAR
+            if full <= GuideMath.EDGE_LABEL_MAX then
+                return full, { utf8.len(text) or #text }
+            end
+            local width = GuideMath.balancedWidth(function(w: number): number
+                return #wrapLines(text, w) * LINE_H
+            end, GuideMath.EDGE_LABEL_MAX, full / 2)
+            return width, wrapLines(text, width)
+        end
+        local GUIDE_TEXTS: { string } =
+            { Strings.SACK_FULL_BOTH, Strings.PLANS_WHEN_READY, Strings.stepStayCut(99) }
+        for _, line in StationConfig.LINE_ORDER_ALL do
+            table.insert(GUIDE_TEXTS, Strings.sackFullRaw(line))
+        end
+        for _, pad in TycoonConfig.PADS do
+            table.insert(GUIDE_TEXTS, Strings.guideBuy(pad.name))
+        end
+        local WRAPPED_HALF = 0
+        for _, text in GUIDE_TEXTS do
+            local width, lines = labelOf(text)
+            if #lines > 1 then
+                WRAPPED_HALF = math.max(WRAPPED_HALF, (width + 24) / 2)
+            end
+        end
         local SHAPES = { { 15, 27 }, { 90, 27 }, { 177, 27 }, { WRAPPED_HALF, 27 + 26 } }
         local function blockersFor(w: number, h: number, touch: boolean): { GuideMath.Rect }
             local barH = 62 * 5 + 8 * 4
@@ -1575,34 +1619,53 @@ return function()
             return false
         end
 
-        test.case("pe orice directie: niciodata sub un panou fix, mereu intreg pe ecran", function()
-            local bad = 0
-            for _, size in
-                {
-                    { 1033, 581, true },
-                    { 1076, 605, true },
-                    { 1362, 630, true },
-                    { 1920, 1080, false },
-                    { 2275, 1080, false },
+        local CANVASES = {
+            { 917, 517, true },
+            { 1033, 581, true },
+            { 1076, 605, true },
+            { 1362, 630, true },
+            { 1920, 1080, false },
+            { 2275, 1080, false },
+        }
+        -- indicatorul intreg (GuideMath.edgeIndicator): eticheta cand arata spre tinta, altfel doar sageata (15 lata, nimic sub)
+        local function indicator(
+            w: number,
+            h: number,
+            bs: { GuideMath.Rect },
+            deg: number,
+            shape: { number },
+            previous: { x: number, y: number }?
+        ): (number, number, boolean)
+            local px, py = natural(w, h, deg)
+            local function q(half: number, bottom: number): GuideMath.EdgeQuery
+                return {
+                    x = px,
+                    y = py,
+                    w = w,
+                    h = h,
+                    half = half,
+                    top = 31,
+                    bottom = bottom,
+                    blockers = bs,
+                    margin = MARGIN,
+                    previous = previous,
                 }
-            do
+            end
+            return GuideMath.edgeIndicator(q(shape[1], shape[2]), q(15, 0))
+        end
+
+        test.case("pe orice directie: niciodata sub un panou fix, mereu intreg pe ecran", function()
+            local bad, arrowOnly, total = 0, 0, 0
+            for _, size in CANVASES do
                 local w, h, touch = size[1] :: number, size[2] :: number, size[3] :: boolean
                 local bs = blockersFor(w, h, touch)
                 for deg = 0, 359.5, 0.5 do
-                    local px, py = natural(w, h, deg)
                     for _, shape in SHAPES do
-                        local half, bottom = shape[1], shape[2]
-                        local x, y = GuideMath.edgePlacement({
-                            x = px,
-                            y = py,
-                            w = w,
-                            h = h,
-                            half = half,
-                            top = 31,
-                            bottom = bottom,
-                            blockers = bs,
-                            margin = MARGIN,
-                        })
+                        local x, y, label = indicator(w, h, bs, deg, shape)
+                        local half, bottom =
+                            if label then shape[1] else 15, if label then shape[2] else 0
+                        total += 1
+                        arrowOnly += if label then 0 else 1
                         local inside = x - half >= 0
                             and x + half <= w
                             and y - 31 >= 0
@@ -1616,6 +1679,7 @@ return function()
                     end
                 end
             end
+            print(`  [edgePlacement] doar sageata: {arrowOnly} din {total} asezari`)
             check.equal(bad, 0)
         end)
 
@@ -1668,64 +1732,80 @@ return function()
             check.is_true(worst <= 8)
         end)
 
-        test.case("cu panouri: arata spre tinta (cel mult 75 de grade departe de ea)", function()
+        test.case("cu panouri: arata spre tinta (cel mult 60 de grade departe de ea)", function()
             local worst = 0
-            for _, size in
-                {
-                    { 1033, 581, true },
-                    { 1076, 605, true },
-                    { 1362, 630, true },
-                    { 1920, 1080, false },
-                    { 2275, 1080, false },
-                }
-            do
+            for _, size in CANVASES do
                 local w, h, touch = size[1] :: number, size[2] :: number, size[3] :: boolean
                 local bs = blockersFor(w, h, touch)
                 for deg = -180, 179.5, 0.5 do
                     for _, shape in SHAPES do
-                        local x, y = place(w, h, bs, deg, shape[1], nil, shape[2])
+                        local x, y = indicator(w, h, bs, deg, shape)
                         worst = math.max(worst, offDeg(w, h, x, y, deg))
                     end
                 end
             end
             print(`  [edgePlacement] cea mai mare abatere fata de tinta: {math.floor(worst)} grade`)
-            check.is_true(worst <= 75)
-            -- o tinta aproape drept in sus ramane sus, chiar cu eticheta cea mai lata (telefonul mic)
+            check.is_true(worst <= 60)
+            -- eticheta ascunsa revine abia la 10 grade sub prag: langa prag nu clipeste
+            local function q(half: number, bottom: number, deg: number): GuideMath.EdgeQuery
+                local px, py = natural(917, 517, deg)
+                return {
+                    x = px,
+                    y = py,
+                    w = 917,
+                    h = 517,
+                    half = half,
+                    top = 31,
+                    bottom = bottom,
+                    blockers = blockersFor(917, 517, true),
+                    margin = MARGIN,
+                }
+            end
+            local flips = 0
+            for _, shown in { true, false } do
+                local last: boolean? = shown
+                for deg = -70, -50, 0.5 do
+                    local _, _, label =
+                        GuideMath.edgeIndicator(q(WRAPPED_HALF, 53, deg), q(15, 0, deg), last)
+                    if last ~= nil and label ~= last then
+                        flips += 1
+                    end
+                    last = label
+                end
+            end
+            check.is_true(flips <= 2)
+            -- o tinta aproape drept in sus ramane sus, cu eticheta, chiar cu eticheta cea mai lata (telefonul mic)
             local w, h = 1076, 605
-            local _, uy = place(w, h, blockersFor(w, h, true), -94, 177)
-            check.is_true(uy < 60)
+            local _, uy, label = indicator(w, h, blockersFor(w, h, true), -94, { 177, 27 })
+            check.is_true(uy < 60 and label)
         end)
 
         test.case(
-            "textele lungi ale ghidajului incap in grupul testat (cel mult doua randuri)",
+            "textele lungi ale ghidajului: cel mult doua randuri, echilibrate, cat grupul testat",
             function()
-                local StationConfig = require("../src/Shared/Config/StationConfig")
-                local perChar = 18 * 572 / 1024 -- fontul de pixeli la TEXT.body
-                local perLine = math.floor(GuideMath.EDGE_LABEL_MAX / perChar)
-                local texts = { Strings.SACK_FULL_BOTH, Strings.PLANS_WHEN_READY }
-                for _, line in StationConfig.LINE_ORDER_ALL do
-                    table.insert(texts, Strings.sackFullRaw(line))
-                end
-                for _, text in texts do
-                    local lines, used = 1, 0
-                    for word in string.gmatch(text, "%S+") do
-                        local n = utf8.len(word) or #word
-                        if used > 0 and used + 1 + n > perLine then
-                            lines += 1
-                            used = n
-                        else
-                            used += (if used > 0 then 1 else 0) + n
-                        end
+                for _, text in GUIDE_TEXTS do
+                    local width, lines = labelOf(text)
+                    local longest, shortest = 0, math.huge
+                    for _, n in lines do
+                        longest = math.max(longest, n)
+                        shortest = math.min(shortest, n)
                     end
-                    if lines > 2 then
-                        print(`  ! pe {lines} randuri: {text}`)
+                    local ok = #lines <= 2
+                        and (#lines == 1 or shortest * 2 >= longest)
+                        and longest * PER_CHAR <= width + 0.5
+                        and (width + 24) / 2 <= math.max(WRAPPED_HALF, 177)
+                    if not ok then
+                        print(
+                            `  ! {#lines} randuri ({table.concat(lines, "/")}) la {math.floor(width)}: {text}`
+                        )
                     end
-                    check.is_true(lines <= 2)
-                    local half = (
-                        math.min((utf8.len(text) or #text) * perChar, GuideMath.EDGE_LABEL_MAX) + 24
-                    ) / 2
-                    check.is_true(half <= WRAPPED_HALF)
+                    check.is_true(ok)
                 end
+                -- niciun rand orfan: „Take the scrap from the Scrap” / „Shed” iese echilibrat
+                local _, scrap = labelOf("Take the scrap from the Scrap Shed")
+                check.is_true(
+                    #scrap == 2 and math.min(scrap[1], scrap[2]) * 2 >= math.max(scrap[1], scrap[2])
+                )
             end
         )
 

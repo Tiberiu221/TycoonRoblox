@@ -330,6 +330,8 @@ end
 -- il faceau sa sara prin ecran. `edgePrevious`: locul din cadrul trecut, pentru histerezis (GuideMath.edgePlacement).
 local edgePrevious: { x: number, y: number }? = nil
 local edgeGoalKey: string? = nil -- histerezisul tine doar pentru aceeasi tinta
+-- [a opta runda] eticheta indicatorului, masurata o data pe text: latimea ariei de text si inaltimea placii
+local edgeTextW, edgeLabelH = 0, 30
 local function edgeBlockers(scale: number): { GuideMath.Rect }
     local canvas = deps.HudGui
     local origin = canvas.AbsolutePosition
@@ -596,26 +598,40 @@ local function updateGuideVisuals()
         -- ready”, ~330 px) grupul se trage spre interior cu jumatate din ea; sageata se roteste tot spre tinta
         -- [verificatorul A0/k12, a saptea runda] peste GuideMath.EDGE_LABEL_MAX eticheta trece pe doua randuri: grupul e mai
         -- ingust, deci incape si sus pe un telefon mic
-        local labelMax = GuideMath.EDGE_LABEL_MAX
-        local textW = Theme.textWidth(goal.text, Theme.TEXT.body, "strong")
-        local wraps = textW > labelMax
-        local labelH = if wraps
-            then math.ceil(Theme.textHeight(goal.text, Theme.TEXT.body, "strong", labelMax)) + 12
-            else 30
+        -- [a opta runda] randurile echilibrate (GuideMath.balancedWidth), masurate si desenate la ACEEASI latime: aria de
+        -- text a placii e exact `edgeTextW` (UIPadding 8 + 8); o singura data pe text
         if edgeLabel.Text ~= goal.text then
+            local labelMax = GuideMath.EDGE_LABEL_MAX
+            local full = Theme.textWidth(goal.text, Theme.TEXT.body, "strong")
+            local wraps = full > labelMax
+            edgeTextW = full
+            edgeLabelH = 30
+            if wraps then
+                local text = goal.text
+                local function heightAt(width: number): number
+                    return Theme.textHeight(text, Theme.TEXT.body, "strong", width)
+                end
+                edgeTextW = GuideMath.balancedWidth(heightAt, labelMax, full / 2)
+                edgeLabelH = math.ceil(heightAt(edgeTextW)) + 12
+            end
             edgeLabel.Text = goal.text
             edgeLabel.TextWrapped = wraps
             edgeLabel.AutomaticSize = if wraps
                 then Enum.AutomaticSize.None
                 else Enum.AutomaticSize.X
             edgeLabel.Size = if wraps
-                then UDim2.fromOffset(labelMax + 24, labelH)
+                then UDim2.fromOffset(edgeTextW + 2 * Theme.SPACE.sm, edgeLabelH)
                 else UDim2.fromOffset(0, 30)
         end
-        local half = (math.min(textW, labelMax) + 24) / 2
+        local labelH = edgeLabelH
+        local half = (edgeTextW + 24) / 2
         -- [verificatorii A0, k12] ...si nu sub panourile fixe desenate peste el (bara de meniu din dreapta): alunecand de-a
         -- lungul marginii lui (GuideMath.edgePlacement). Grupul: sageata de 30 px deasupra punctului, eticheta pana la +27.
-        ex, ey = GuideMath.edgePlacement({
+        local blockers = edgeBlockers(hudScale())
+        local previous = if edgeGoalKey == goal.key then edgePrevious else nil
+        local showLabel: boolean
+        -- [a opta runda] fara loc pentru eticheta care sa arate spre tinta (telefonul cel mai mic): doar sageata
+        ex, ey, showLabel = GuideMath.edgeIndicator({
             x = ex,
             y = ey,
             w = w,
@@ -623,10 +639,22 @@ local function updateGuideVisuals()
             half = math.max(half, 15),
             top = 31,
             bottom = 27 + (labelH - 30),
-            blockers = edgeBlockers(hudScale()),
+            blockers = blockers,
             margin = EDGE_MARGIN,
-            previous = if edgeGoalKey == goal.key then edgePrevious else nil,
-        })
+            previous = previous,
+        }, {
+            x = ex,
+            y = ey,
+            w = w,
+            h = h,
+            half = 15,
+            top = 31,
+            bottom = 0,
+            blockers = blockers,
+            margin = EDGE_MARGIN,
+            previous = previous,
+        }, if previous ~= nil then edgeLabel.Visible else nil)
+        edgeLabel.Visible = showLabel
         edgeGoalKey = goal.key
         edgePrevious = { x = ex, y = ey }
         edgeGroup.Position = UDim2.fromOffset(ex, ey)

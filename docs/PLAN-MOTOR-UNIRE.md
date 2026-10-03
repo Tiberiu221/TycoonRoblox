@@ -1455,6 +1455,13 @@ Siluetele, schelele și zidul de aici sunt propunerea loturilor A1/A2. Nimic nu 
   „... barrels and cable to the Relay Station”) acopereau pe un telefon mic toată marginea de sus. Acum eticheta de margine
   trece pe două rânduri peste `GuideMath.EDGE_LABEL_MAX` (320). Testele folosesc textele adevărate (cel mult două rânduri) și
   un telefon de 1033x581. Cea mai mare abatere față de țintă, pe toate ecranele și etichetele, e 56° (nu 53°).
+- **[A opta rundă]** **Eticheta pe două rânduri:**
+  - E echilibrată (`GuideMath.balancedWidth`: cea mai îngustă lățime cu tot atâtea rânduri), măsurată și desenată la aceeași
+    lățime. Nu mai rămân orfani („…the Scrap” / „Shed”) și nici texte pe un rând într-o placă înaltă de două.
+  - Pe cel mai mic telefon (917x517) eticheta n-are loc sus: atinge și cifrele, și bara de meniu. Când locul ei ar sta la peste
+    60° de țintă, indicatorul arată doar săgeata (`GuideMath.edgeIndicator`, cu o bandă de 10° la revenire), iar linia NEXT
+    spune textul. Asta se întâmplă în 1,4% din așezări.
+  - Testat pe șase ecrane, cu textele adevărate ale ghidajului; cea mai mare abatere e 59°.
 
 Totalul, ~92–97 de imagini și 3 sunete până se joacă Era 4 (PLAN-HARTA §7).
 

@@ -1047,6 +1047,51 @@ GuideMath.EDGE_BAND = math.rad(15) -- cat de mult mai rau poate arata capatul ve
 -- telefon mic, iar indicatorul ajungea jos, departe de tinta
 GuideMath.EDGE_LABEL_MAX = 320 -- „... barrels and cable to the Relay Station” ramane pe doua randuri
 
+-- [verificatorul A0/k12, a opta runda] INDICATORUL INTREG: cu eticheta, daca locul ei liber arata spre tinta (cel mult
+-- EDGE_LABEL_OFF departe); altfel doar sageata (`q` cu half si bottom ale sagetii), la locul ei bun. Pe telefonul cel mai
+-- mic, o eticheta pe doua randuri atinge si cifrele din stanga-sus, si bara de meniu, deci n-are loc sus: indicatorul ar fi
+-- ajuns jos, cu 114 grade departe de tinta. Linia NEXT din HUD spune oricum acelasi text.
+GuideMath.EDGE_LABEL_OFF = math.rad(60)
+function GuideMath.edgeOff(x: number, y: number, q: EdgeQuery): number
+    local mx, my = q.w / 2, q.h / 2
+    local d = math.abs(math.atan2(y - my, x - mx) - math.atan2(q.y - my, q.x - mx)) % (2 * math.pi)
+    return if d > math.pi then 2 * math.pi - d else d
+end
+-- `labelShown`: eticheta se vedea in cadrul trecut; ascunsa, revine abia la 10 grade sub prag (nu clipeste la prag)
+function GuideMath.edgeIndicator(
+    q: EdgeQuery,
+    arrowOnly: EdgeQuery,
+    labelShown: boolean?
+): (number, number, boolean)
+    local x, y = GuideMath.edgePlacement(q)
+    local limit = GuideMath.EDGE_LABEL_OFF - (if labelShown == false then math.rad(10) else 0)
+    if GuideMath.edgeOff(x, y, q) <= limit then
+        return x, y, true
+    end
+    local ax, ay = GuideMath.edgePlacement(arrowOnly)
+    return ax, ay, false
+end
+
+-- [verificatorul A0/k12, a opta runda] Cea mai ingusta latime a textului (cel mult `max`) la care ramane pe tot atatea randuri
+-- cat la `max`: randuri echilibrate („Take the scrap from” / „the Scrap Shed”, nu „...the Scrap” / „Shed”) si o placa cat
+-- textul. `heightAt(w)`: inaltimea textului rupt la latimea w (Theme.textHeight in joc). `lo`: de unde incepe cautarea.
+function GuideMath.balancedWidth(heightAt: (number) -> number, max: number, lo: number): number
+    local target = heightAt(max) + 0.5
+    local a, b = math.max(1, math.min(lo, max)), max
+    if heightAt(a) <= target then
+        return math.ceil(a)
+    end
+    for _ = 1, 12 do
+        local mid = (a + b) / 2
+        if heightAt(mid) <= target then
+            b = mid
+        else
+            a = mid
+        end
+    end
+    return math.ceil(b)
+end
+
 function GuideMath.edgePlacement(q: EdgeQuery): (number, number)
     local gap = GuideMath.EDGE_GAP
     local margin = q.margin or 0
