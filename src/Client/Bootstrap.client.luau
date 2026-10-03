@@ -218,6 +218,9 @@ local DriftController = require(Controllers.DriftController) -- [D62, pasul 3]
 local DamController = require(Controllers.DamController) -- [D70, pasul j15]
 local DamScreen = require(Controllers.DamScreen) -- [D70, pasul k7]
 local DamFilm = require(Controllers.DamFilm) -- [D70, pasul k9]
+local DamTownController = require(Controllers.DamTownController) -- [D70, pasul k10]
+-- [D70, pasul k10] oamenii care lucreaza (ultima stare), pentru pagina „Your people” din Dam Town
+local peopleNow: { DamTownController.Person } = {}
 local AmbientController = require(Controllers.AmbientController) -- [D62, pasul 5]
 local Theme = require(UI.Theme)
 local layers = CameraController.Init({ WorldGui = worldGui, World = world })
@@ -704,6 +707,20 @@ safeInit("WelcomeController", function()
     })
 end)
 -- [D70, pasul k7] ecranul „Build the Dam” (il deschide masa Dam Plans, k6), apoi cererile si raspunsurile (j15)
+-- [D70, pasul k10] Dam Town (doar la baraj): cladirile orasului, plimbarea oamenilor retrasi, pagina „Your people”
+if world ~= 1 then
+    safeInit("DamTownController", function()
+        DamTownController.Init({
+            Plot = layers.Plot,
+            HudGui = hudCanvas,
+            CharacterPos = CharacterController.Position,
+            People = function(): { DamTownController.Person }
+                return peopleNow
+            end,
+        })
+        InteractController.AddSource(DamTownController.Focus)
+    end)
+end
 safeInit("DamFilm", function()
     DamFilm.Init({
         SetHudVisible = function(visible: boolean)
@@ -1325,6 +1342,9 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
             -- fiecare camp trimis de server se copiaza EXPLICIT, altfel se pierde tacut]
             x = h.x,
             y = h.y,
+            -- [D70, pasul k10] la baraj: meseria de dinainte a veteranului si medalia (pagina „Your people”)
+            formerRole = if typeof(h.formerRole) == "string" then h.formerRole else nil,
+            medal = if typeof(h.medal) == "number" then h.medal else nil,
             appearance = {
                 body = a.body,
                 hair = a.hair,
@@ -1333,6 +1353,27 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
                 outfit = a.outfit,
             },
         }
+    end
+    -- [D70, pasul k10] oamenii iesiti din lucru (Dam Town), copiati camp cu camp
+    local retired: { DamTownController.Retired } = {}
+    if typeof(raw.retired) == "table" then
+        for i, r in raw.retired do
+            local a: any = r.appearance
+            if typeof(r) == "table" and typeof(a) == "table" then
+                retired[i] = {
+                    id = tostring(r.id),
+                    role = tostring(r.role),
+                    name = tostring(r.name),
+                    appearance = {
+                        body = a.body,
+                        hair = a.hair,
+                        skin = { a.skin[1], a.skin[2], a.skin[3] },
+                        hairColor = { a.hairColor[1], a.hairColor[2], a.hairColor[3] },
+                        outfit = a.outfit,
+                    },
+                }
+            end
+        end
     end
     -- [D65] fiecare zona a hartii tale, copiata dupa id (o zona pe care serverul n-o trimite ramane inchisa). [D70] Pe
     -- lumea ta: la baraj, Dam Town si ceata Erei 5
@@ -1678,6 +1719,7 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
     damAvailable = raw.damAvailable == true -- [D70, pasul k6] copiat explicit
     local snapshot = {
         world = world, -- [D70, pasul k1] harta pentru care e construit clientul (starea altei harti nu ajunge aici)
+        retired = retired, -- [D70, pasul k10] oamenii iesiti din lucru (Dam Town)
         damAvailable = damAvailable, -- [D70, pasul k6] masa Dam Plans, zona barajului, fereastra de revenire
         -- [D54] nivelurile sunetului, copiate explicit; o valoare lipsa sau stricata cade pe implicit
         settings = {
@@ -1896,6 +1938,15 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
     StationPanel.Apply(snapshot.stations)
     StationMenu.Apply(snapshot.stations)
     HandRenderController.Apply(snapshot.hands)
+    if world ~= 1 then
+        -- [D70, pasul k10] Dam Town: cine lucreaza (pagina) si cine se plimba
+        local people: { DamTownController.Person } = {}
+        for _, h in snapshot.hands do
+            table.insert(people, { name = h.name, role = h.role, formerRole = h.formerRole })
+        end
+        peopleNow = people
+        DamTownController.Apply(snapshot.retired)
+    end
     ZoneController.Apply(snapshot.zones, snapshot.damAvailable) -- [D70, pasul k6]
     -- [D73] darurile se scot de pe puntea oricarui cartier deschis; [D70] aceeasi regula ca serverul, din platforme
     DriftController.SetPads(boughtPads)

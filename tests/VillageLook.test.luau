@@ -217,5 +217,29 @@ return function()
             check.equal(nets[1], "first_net")
             check.equal(nets[2], "second_net")
         end)
+        -- [D70, pasul k10] cine a iesit din lucru la baraj: in ordinea cheilor, cu tinuta meseriei lui vechi
+        test.case("retrasii: doar ei, in ordinea cheilor, cu tinuta meseriei lor", function()
+            local HandConfig = require("../src/Shared/Config/HandConfig")
+            local face = {
+                body = "a",
+                hair = "short",
+                skin = { 1, 1, 1 },
+                hairColor = { 0, 0, 0 },
+                outfit = "x",
+            }
+            local data = {
+                Hands = {
+                    b = { role = "hauler", name = "Wren", appearance = face, retired = true },
+                    a = { role = "porter", name = "Ivo", appearance = face, retired = true },
+                    c = { role = "collector", name = "Nell", appearance = face },
+                },
+            }
+            local retired = VillageLook.retired(data)
+            check.equal(#retired, 2)
+            check.equal(retired[1].id, "a")
+            check.equal(retired[2].name, "Wren")
+            check.equal(retired[1].appearance.outfit, HandConfig.ROLE_OUTFIT.porter)
+            check.equal(#VillageLook.retired({}), 0)
+        end)
     end)
 end

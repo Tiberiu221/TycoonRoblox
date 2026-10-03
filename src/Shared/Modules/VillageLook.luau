@@ -47,7 +47,13 @@ export type HandSnap = {
     appearance: any,
     x: number?,
     y: number?,
+    -- [D70, pasul k10] la baraj: meseria de dinainte a unui veteran si treapta ei veche (medalia); nil in sat
+    formerRole: string?,
+    medal: number?,
 }
+-- [D70, pasul k10] Un om iesit din lucru la baraj: locuieste in Dam Town (casutele), se plimba, nu cara nimic. Poarta
+-- tinuta meseriei lui vechi.
+export type RetiredSnap = { id: string, role: string, name: string, appearance: any }
 
 export type Snapshot = {
     era: number,
@@ -148,6 +154,35 @@ function VillageLook.hands(data: { [string]: any }): { HandSnap }
             appearance = dressed(hand.appearance, hand.role),
             x = if stand ~= nil then stand.x else nil,
             y = if stand ~= nil then stand.y else nil,
+            formerRole = if typeof(hand.formerRole) == "string" then hand.formerRole else nil,
+            medal = if typeof(hand.medal) == "number" then hand.medal else nil,
+        })
+    end
+    return result
+end
+
+-- [D70, pasul k10] Oamenii iesiti din lucru la baraj, in ordinea cheilor (aceeasi ordine la fiecare stare, deci fiecare isi
+-- pastreaza casuta si plimbarea). Fara nimeni iesit: lista goala.
+function VillageLook.retired(data: { [string]: any }): { RetiredSnap }
+    local result: { RetiredSnap } = {}
+    local hands = data.Hands
+    if typeof(hands) ~= "table" then
+        return result
+    end
+    local ids: { string } = {}
+    for id, hand in hands do
+        if typeof(hand) == "table" and hand.retired == true then
+            table.insert(ids, id)
+        end
+    end
+    table.sort(ids)
+    for _, id in ids do
+        local hand = hands[id]
+        table.insert(result, {
+            id = id,
+            role = hand.role,
+            name = hand.name,
+            appearance = dressed(hand.appearance, hand.role),
         })
     end
     return result

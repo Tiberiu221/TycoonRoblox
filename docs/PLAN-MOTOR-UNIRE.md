@@ -1293,6 +1293,16 @@ la granița CREWS / `DAM_START_COINS`.
   până la foile lor (A4), veteranii arată ca în Era 1, iar cei noi ca perechea lor din Era 3 sau din Moara (`OUTFIT_LOOKS_LIKE`,
   O1). 30 de prenume în plus, la coada lui `MORE_NAMES`, pentru 84 de oameni (42 de meserii × 2). Harta comutatorului: 11, doar
   adormirile și marcajul comutatorului.
+- **k10b (făcut, cu desene de împrumut până la A1):** `Shared/Modules/DamTown` (pur): clădirile orașului cu numele de pe hartă
+  („Canteen”, „Old Bells”, „Memory Wall”, aceleași ca în textele avizierului, test), plimbarea oamenilor retrași de la ușa
+  căsuței (spre stradă) la piață, Memory Wall, clopotniță sau stradă, **doar pe drumuri** (`RoadGraph.route(…, roadsOnly)`, fără
+  scurtătura pe iarbă a muncitorilor), cu test: pe uscat și fără tălpi pe baza decorului cumpărat; bonusul clopotelor vechi
+  din efectele lor (+33%). Serverul trimite `retired` (`VillageLook.retired`, în ordinea cheilor, cu ținuta meseriei vechi),
+  iar `hands` poartă `formerRole` / `medal`; clientul le copiază explicit. `Controllers/DamTownController` (doar la baraj):
+  clădirile (taverna, clopotul, avizierul, coliba, încadrate în cutiile lor), cardul clopotniței („Your old bells: +33% on
+  every sale”, fără quest, R11), Memory Wall → pagina „Your people” (cine lucrează, veteranii cu meseria de dinainte, cine
+  locuiește în oraș); cel mult 16 se plimbă deodată, ceilalți stau în casă (pagina îi arată pe toți). Macheta satului vechi
+  și „Watch again” rămân după lansare (O1).
 - **[Verificatorul k2b]** etichetele clădirilor lumii 2 scriu exact „Canteen” și „Memory Wall”: textele avizierului de la baraj
   le folosesc („Beside the Canteen”, „Beside the Memory Wall”), iar un test cere ca fiecare nume propriu din `whereByWorld[2]`
   să fie printre etichetele lumii 2 (azi: și „Battery Store”, eticheta de la k3). Orașul nu se numește „Dam Town” în textele

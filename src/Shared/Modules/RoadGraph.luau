@@ -220,7 +220,9 @@ end
 -- Drumul de la `from` la `to`: intri pe drum in cel mai apropiat punct, mergi pe drumuri, iesi in
 -- dreptul tintei. Primul punct e `from`, ultimul `to`. Cand drumurile ar ocoli prea mult (vezi
 -- GRASS_COST), linie dreapta.
-function RoadGraph.route(g: Graph, from: Point, to: Point): { Point }
+-- [D70, pasul k10] `roadsOnly`: fara scurtatura pe iarba (oamenii la plimbare prin oras nu calca straturile de flori);
+-- implicit, ca inainte.
+function RoadGraph.route(g: Graph, from: Point, to: Point, roadsOnly: boolean?): { Point }
     local direct = { { x = from.x, y = from.y }, { x = to.x, y = to.y } }
     if #g.segs == 0 then
         return direct
@@ -336,7 +338,8 @@ function RoadGraph.route(g: Graph, from: Point, to: Point): { Point }
     -- intrarea si iesirea sunt pe iarba; restul pe drum
     local viaRoads = (dist(from, entry) + dist(exit, to)) * RoadGraph.GRASS_COST + best[T]
     if
-        dist(from, to) * RoadGraph.GRASS_COST <= viaRoads
+        not roadsOnly
+        and dist(from, to) * RoadGraph.GRASS_COST <= viaRoads
         and not RoadGraph.blockedBetween(g, from, to)
     then
         return direct

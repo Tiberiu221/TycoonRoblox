@@ -522,6 +522,84 @@ return function()
         )
     end)
 
+    -- [D70, pasul k10] Dam Town: numele de pe harta (cele din textele avizierului), plimbarea oamenilor retrasi pe uscat si
+    -- pe drumuri, fara sa calce decorul cumparat
+    test.suite("DamTown [D70, pasul k10]", function()
+        local DamTown = require("../src/Shared/Modules/DamTown")
+        local HandMath = require("../src/Shared/Modules/HandMath")
+        test.case("numele din textele avizierului sunt pe harta", function()
+            local labels: { [string]: boolean } = {}
+            for _, b in DamTown.buildings() do
+                labels[b.label] = true
+            end
+            check.is_true(labels.Canteen == true)
+            check.is_true(labels["Memory Wall"] == true)
+            check.equal(Strings.LINE_WORDS.barrels.store, "Battery Store")
+            for _, d in VillageConfig.DECOR do
+                local where = VillageConfig.whereOf(d, W)
+                for _, name in { "Canteen", "Memory Wall", "Battery Store" } do
+                    if string.find(where, name, 1, true) ~= nil then
+                        check.is_true(labels[name] == true or name == "Battery Store")
+                    end
+                end
+            end
+        end)
+        test.case("bonusul clopotelor vechi vine din efectele lor", function()
+            check.equal(DamTown.bellsPercent(), 33)
+        end)
+        test.case("oamenii retrasi se plimba pe uscat, fara sa calce decorul", function()
+            local decor: { { name: string, r: Rect } } = {}
+            for _, d in VillageConfig.DECOR do
+                if d.ground == "land" and not d.overRoad then
+                    for i, spot in VillageConfig.spotsOf(d, W) do
+                        local art = (Assets.decor :: any)[d.sprite]
+                        table.insert(decor, {
+                            name = `{d.id}_{i}`,
+                            r = box(spot.x, spot.y, art.width * d.scale, art.height * d.scale),
+                        })
+                    end
+                end
+            end
+            local function wet(x: number, y: number): boolean
+                if y <= RiverConfig.WORLDS[W].RIVER_BOTTOM then
+                    return true
+                end
+                for _, b in world.blocked :: { TycoonConfig.Box } do
+                    if x > b.x and x < b.x + b.w and y > b.y and y < b.y + b.h then
+                        return true
+                    end
+                end
+                return false
+            end
+            local bad = {}
+            for i = 1, DamTown.MAX_WALKERS do
+                local cycle = DamTown.cycle(i)
+                check.is_true(cycle.duration > 0)
+                for t = 0, cycle.duration, 0.25 do
+                    local x, y = HandMath.sampleAt(cycle, t)
+                    if wet(x, y) then
+                        table.insert(bad, `omul {i} in apa la ({math.floor(x)}, {math.floor(y)})`)
+                        break
+                    end
+                    -- talpile (o fasie de 24 x 12 la picioare) pe baza decorului (ultimii 24 px): asta inseamna „calca”;
+                    -- un om pe strada trece prin fata unui strat de flori de pe iarba, cu adancimea dupa talpi
+                    local feet = { x0 = x - 12, x1 = x + 12, y0 = y - 12, y1 = y }
+                    for _, d in decor do
+                        local base = { x0 = d.r.x0, x1 = d.r.x1, y0 = d.r.y1 - 24, y1 = d.r.y1 }
+                        if hit(feet, base) then
+                            table.insert(bad, `omul {i} calca {d.name}`)
+                            break
+                        end
+                    end
+                end
+            end
+            for _, b in bad do
+                print("  ! " .. b)
+            end
+            check.equal(#bad, 0)
+        end)
+    end)
+
     test.suite("World2Decor [D70, pasul k2b]", function()
         local DECOR = VillageConfig.DECOR
         local zone = TycoonConfig.zonesOf(W)[1]

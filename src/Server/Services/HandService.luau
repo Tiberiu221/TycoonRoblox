@@ -183,6 +183,15 @@ end
 
 -- Instantaneul pentru TycoonState.hands [F1 spec 2.1]. Clientul reface ciclul fiecarui om din
 -- HandRoutes cu exact aceleasi argumente (`role`, `index`, `count`, `nets`), deci il deseneaza unde e.
+-- [D70, pasul k10] Oamenii iesiti din lucru la baraj (Dam Town ii plimba); in sat nimeni nu iese din lucru.
+function HandService.Retired(player: Player): { any }
+    local data = DataService.Get(player)
+    if data == nil then
+        return {}
+    end
+    return VillageLook.retired(data)
+end
+
 function HandService.Snapshot(player: Player): { any }
     local data = DataService.Get(player)
     if data == nil then

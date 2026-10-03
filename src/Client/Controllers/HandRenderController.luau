@@ -43,6 +43,8 @@ export type HandSnap = {
     -- unde sa iasa o pozitie.
     x: number?,
     y: number?,
+    formerRole: string?, -- [D70, pasul k10] la baraj: meseria de dinainte a veteranului
+    medal: number?, -- si treapta ei veche
 }
 
 export type Deps = {

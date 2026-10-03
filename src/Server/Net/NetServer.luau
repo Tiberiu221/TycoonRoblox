@@ -103,7 +103,7 @@ export type Deps = {
         ScrapItem: (Player, number) -> (boolean, string),
         PileCount: (Player) -> number,
     },
-    Hands: { Snapshot: (Player) -> { any } },
+    Hands: { Snapshot: (Player) -> { any }, Retired: (Player) -> { any } },
     -- [D60] barca spre balci
     Ferry: { Depart: (Player) -> () },
     -- [D70, pasul j15] barajul (DamService): previzualizarea, ridicarea, filmul
@@ -190,6 +190,8 @@ local function buildTycoonState(player: Player): { [string]: any }
         -- cat adauga la venit/s fiecare platforma inca necumparata, pentru cartonasul de la apropiere
         padDeltas = padDeltas,
         hands = deps.Hands.Snapshot(player),
+        -- [D70, pasul k10] oamenii iesiti din lucru la baraj (locuiesc in Dam Town); gol in sat
+        retired = deps.Hands.Retired(player),
         -- Mill se vede mereu (estompata, ingradita) si se deschide cu Landing Bell [B4, C].
         -- [D65, D67] La fel zona fiecarei ere urmatoare, cu clopotul erei dinainte (ZONE_BELL). Una deschisa dar inca
         -- nefacuta (platformele ei nu sunt `live`) ramane estompata si scrie "coming soon": asta o decide clientul.

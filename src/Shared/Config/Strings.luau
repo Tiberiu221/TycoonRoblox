@@ -259,6 +259,23 @@ Strings.DAM_FILM_LOOK = "Look how far you've come."
 Strings.DAM_FILM_PEOPLE = "Everyone lends a hand."
 Strings.DAM_FILM_BUILD = "The old village becomes the Dam."
 Strings.DAM_FILM_SKIP = "Skip"
+-- [D70, pasul k10] Dam Town: clopotele vechi, Memory Wall si pagina oamenilor
+function Strings.oldBells(pct: number): string
+    return `Your old bells: +{pct}% on every sale`
+end
+Strings.PEOPLE_TITLE = "Your people"
+function Strings.peopleOpen(keyHint: string): string
+    return `Your people{keyHint}`
+end
+function Strings.personAt(name: string, job: string): string
+    return `{name} — {job}`
+end
+function Strings.personVeteran(name: string, job: string, was: string): string
+    return `{name} — {job} (was {was})`
+end
+function Strings.personRetired(name: string, was: string): string
+    return `{name} — lives in town (was {was})`
+end
 Strings.DAM_CARD_SUB = "Your people built this"
 function Strings.damReloadFailed(reason: string): string
     if reason == "studio" then
