@@ -368,6 +368,23 @@ return function()
                 wordOf
             )
             check.equal(none, nil)
+            -- [verificatorul A0/k12] decide cuvantul: 4 + 4 bucati de scrap bat 5 de minereu
+            local function note(r: { [string]: number }, at: string): (string?, string?, string?)
+                return StateCopy.sellerNote(sack(r), at, LINES, SELLERS, sellerOf, wordOf)
+            end
+            local k1, w1, a1 = note({ copper = 5, iron = 4, parts = 4 }, "market")
+            check.equal(k1, "raw")
+            check.equal(w1, "parts") -- egalitate in cuvant: atelierul de alaturi (Foundry) primul
+            check.equal(a1, "iron")
+            local _, w2, a2 = note({ power = 3, coils = 1, copper = 1 }, "depot")
+            check.equal(w2, "power") -- „batteries” 3 bate „ore” 1 + 1
+            check.equal(a2, nil)
+            -- la egalitate intre cuvinte, ambele cu un atelier al Depoului: ordinea tabelului („ore”), cu ambele ateliere
+            local _, w4, a4 = note({ power = 2, coils = 1, copper = 1 }, "depot")
+            check.equal(w4, "coils")
+            check.equal(a4, "copper")
+            local _, w3 = note({ copper = 3, coils = 1, power = 3 }, "depot")
+            check.equal(w3, "copper") -- „ore” 4 bate „batteries” 3
             -- o traista fara `partBy` (inainte de prima stare) nu cade
             local bare: StateCopy.SellerSack = { rawBy = { wood = 1 }, sellBy = {} }
             check.equal(StateCopy.sellerNote(bare, "market", LINES, SELLERS, sellerOf), "raw")

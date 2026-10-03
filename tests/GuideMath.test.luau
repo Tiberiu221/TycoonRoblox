@@ -1523,25 +1523,62 @@ return function()
             end
         )
     end)
-
-    -- [verificatorii A0, k12] Indicatorul de margine ramane pe marginea spre care arata si ocoleste doar bara de meniu (cel
-    -- mai lat text al ghidajului, unul mijlociu si unul scurt), pe un telefon mic, un telefon, PC si un ecran lat.
+    -- [verificatorii A0, k12] Indicatorul de margine (GuideMath.edgePlacement) nu sta niciodata sub un panou fix al HUD-ului:
+    -- bara de meniu, cifrele din stanga-sus (HudLayout, cu randul pasului), joystick-ul si butonul E pe telefon; pe orice
+    -- directie, cu o eticheta scurta, una mijlocie si cea mai lata; pe doua telefoane, PC si un ecran lat. Si nu sare intre
+    -- capete cat punctul firesc ramane acoperit (histerezis).
     test.suite("GuideMath.edgePlacement", function()
-        test.case("pe orice directie: pe marginea lui, niciodata sub bara de meniu", function()
-            local MARGIN = 46 -- GuideController.EDGE_MARGIN
+        local HudLayout = require("../src/Shared/Modules/HudLayout")
+        local MARGIN = 46 -- GuideController.EDGE_MARGIN
+        local function blockersFor(w: number, h: number, touch: boolean): { GuideMath.Rect }
+            local barH = 62 * 5 + 8 * 4
+            local out: { GuideMath.Rect } =
+                { { x = w - 20 - 62, y = h / 2 - barH / 2, w = 62, h = barH } }
+            for _, r in HudLayout.rects(true) do
+                table.insert(out, r)
+            end
+            if touch then
+                table.insert(out, { x = 44, y = h - 44 - 170, w = 170, h = 170 }) -- MoveStick
+                table.insert(out, { x = w - 44 - 108, y = h - 44 - 108, w = 108, h = 108 }) -- ActionButton
+            end
+            return out
+        end
+        local function natural(w: number, h: number, deg: number): (number, number)
+            local a = math.rad(deg)
+            local dx, dy = math.cos(a), math.sin(a)
+            local sx = (w / 2 - MARGIN) / math.max(math.abs(dx), 1e-9)
+            local sy = (h / 2 - MARGIN) / math.max(math.abs(dy), 1e-9)
+            local k = math.min(sx, sy)
+            return w / 2 + dx * k, h / 2 + dy * k
+        end
+        local function overlaps(x: number, y: number, half: number, bs: { GuideMath.Rect }): boolean
+            for _, b in bs do
+                if
+                    x + half > b.x
+                    and x - half < b.x + b.w
+                    and y + 27 > b.y
+                    and y - 31 < b.y + b.h
+                then
+                    return true
+                end
+            end
+            return false
+        end
+
+        test.case("pe orice directie: niciodata sub un panou fix, mereu intreg pe ecran", function()
             local bad = 0
-            for _, size in { { 1076, 605 }, { 1362, 630 }, { 1920, 1080 }, { 2275, 1080 } } do
-                local w, h = size[1], size[2]
-                local barH = 62 * 5 + 8 * 4
-                local bar = { x = w - 20 - 62, y = h / 2 - barH / 2, w = 62, h = barH }
-                for deg = 0, 359 do
-                    local a = math.rad(deg)
-                    local dx, dy = math.cos(a), math.sin(a)
-                    local sx = (w / 2 - MARGIN) / math.max(math.abs(dx), 1e-9)
-                    local sy = (h / 2 - MARGIN) / math.max(math.abs(dy), 1e-9)
-                    local k = math.min(sx, sy)
-                    local px, py = w / 2 + dx * k, h / 2 + dy * k
-                    local onSide = sx <= sy
+            for _, size in
+                {
+                    { 1076, 605, true },
+                    { 1362, 630, true },
+                    { 1920, 1080, false },
+                    { 2275, 1080, false },
+                }
+            do
+                local w, h, touch = size[1] :: number, size[2] :: number, size[3] :: boolean
+                local bs = blockersFor(w, h, touch)
+                for deg = 0, 359.5, 0.5 do
+                    local px, py = natural(w, h, deg)
                     for _, half in { 15, 90, 177 } do
                         local x, y = GuideMath.edgePlacement({
                             x = px,
@@ -1551,20 +1588,13 @@ return function()
                             half = half,
                             top = 31,
                             bottom = 27,
-                            blockers = { bar },
+                            blockers = bs,
                         })
-                        local hit = x + half > bar.x
-                            and x - half < bar.x + bar.w
-                            and y + 27 > bar.y
-                            and y - 31 < bar.y + bar.h
-                        local near = if onSide
-                            then math.min(x, w - x) <= w / 4
-                            else math.min(y, h - y) <= h / 4
                         local inside = x - half >= 0
                             and x + half <= w
                             and y - 31 >= 0
                             and y + 27 <= h
-                        if hit or not near or not inside then
+                        if overlaps(x, y, half, bs) or not inside then
                             bad += 1
                             if bad <= 5 then
                                 print(`  ! {w}x{h} {deg} grade, eticheta {half}: ({x}, {y})`)
@@ -1574,6 +1604,40 @@ return function()
                 end
             end
             check.equal(bad, 0)
+        end)
+
+        test.case("langa mijlocul barei nu sare dintr-o parte in alta (histerezis)", function()
+            local w, h = 1076, 605
+            local bs = blockersFor(w, h, true)
+            local function place(deg: number, previous: { x: number, y: number }?): (number, number)
+                local px, py = natural(w, h, deg)
+                return GuideMath.edgePlacement({
+                    x = px,
+                    y = py,
+                    w = w,
+                    h = h,
+                    half = 90,
+                    top = 31,
+                    bottom = 27,
+                    blockers = bs,
+                    previous = previous,
+                })
+            end
+            -- intra in banda barei de sus (directia urca spre est), apoi tremura in jurul mijlocului ei
+            local x, y = place(-15)
+            local prev = { x = x, y = y }
+            for _, deg in { -10, -5, -1, 0.5, -0.5, 1, 0, 2, -2, 0.3 } do
+                local nx, ny = place(deg, prev)
+                -- acelasi capat (rafinat prin injumatatire: sub o zecime de pixel)
+                check.is_true(math.abs(nx - prev.x) < 0.5 and math.abs(ny - prev.y) < 0.5)
+                prev = { x = nx, y = ny }
+            end
+            -- fara cadrul trecut, alege capatul mai apropiat; o tinta clar spre stanga-sus duce sub cifre, pe marginea din
+            -- stanga, iar una aproape drept in sus ramane sus, langa cifre
+            local cx, cy = place(-120)
+            check.is_true(cx < w / 4 and cy > 182)
+            local ux, uy = place(-95)
+            check.is_true(uy < 60 and ux > 502)
         end)
     end)
 end

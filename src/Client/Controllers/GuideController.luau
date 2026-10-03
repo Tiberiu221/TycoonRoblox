@@ -325,8 +325,10 @@ local function hudBlockers(w: number, h: number, scale: number): { GuideMath.Rec
     return out
 end
 
--- [verificatorii A0, k12] Panourile FIXE desenate peste indicatorul de margine (atributul GuideBlocker: bara de meniu).
--- Nu toti copiii panzei: toast-urile, bannerele si monedele in zbor sunt trecatoare si il faceau sa sara prin ecran.
+-- [verificatorii A0, k12] Panourile FIXE ale HUD-ului (atributul GuideBlocker: bara de meniu, cifrele din stanga-sus,
+-- joystick-ul si butonul E pe telefon). Nu toti copiii panzei: toast-urile, bannerele si monedele in zbor sunt trecatoare si
+-- il faceau sa sara prin ecran. `edgePrevious`: locul din cadrul trecut, pentru histerezis (GuideMath.edgePlacement).
+local edgePrevious: { x: number, y: number }? = nil
 local function edgeBlockers(scale: number): { GuideMath.Rect }
     local canvas = deps.HudGui
     local origin = canvas.AbsolutePosition
@@ -425,6 +427,7 @@ end
 local function hideGuide()
     worldArrow.Visible = false
     edgeGroup.Visible = false
+    edgePrevious = nil
     ring.Visible = false
     hideTrail()
     routeKey = ""
@@ -561,6 +564,7 @@ local function updateGuideVisuals()
     if w <= 0 or h <= 0 then
         worldArrow.Visible = false
         edgeGroup.Visible = false
+        edgePrevious = nil
         return
     end
     local hx, hy = deps.WorldToHud(gx, gy)
@@ -579,6 +583,9 @@ local function updateGuideVisuals()
     worldArrow.Position = UDim2.fromOffset(gx, arrowY)
     worldArrow.Visible = onScreen and not ownCard
     edgeGroup.Visible = not onScreen
+    if onScreen then
+        edgePrevious = nil -- [verificatorii A0, k12] histerezisul tine doar cat indicatorul ramane pe ecran
+    end
     if onScreen and not ownCard then
         placeLabel(gx, arrowY, ringY, w, h)
     end
@@ -598,7 +605,9 @@ local function updateGuideVisuals()
             top = 31,
             bottom = 27,
             blockers = edgeBlockers(hudScale()),
+            previous = edgePrevious,
         })
+        edgePrevious = { x = ex, y = ey }
         edgeGroup.Position = UDim2.fromOffset(ex, ey)
         if edgeIcon ~= nil then
             -- 0 grade = sus (Assets.icons.arrow), rotatia creste in sensul acelor de ceasornic

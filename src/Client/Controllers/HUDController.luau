@@ -202,6 +202,7 @@ function HUDController.Init(
     coinPill.Size = UDim2.fromOffset(COIN_PILL_W, COIN_PILL_H)
     coinPill.ZIndex = 12
     Widgets.PillBackground(coinPill, 12)
+    coinPill:SetAttribute("GuideBlocker", true) -- [verificatorii A0, k12] indicatorul ghidajului il ocoleste
     coinPill.Parent = deps.HudGui
 
     coinRow = Instance.new("Frame")
@@ -235,6 +236,7 @@ function HUDController.Init(
     pearlPill.Size = UDim2.fromOffset(PEARL_PILL_W, COIN_PILL_H)
     pearlPill.ZIndex = 12
     Widgets.PillBackground(pearlPill, 12)
+    pearlPill:SetAttribute("GuideBlocker", true) -- [verificatorii A0, k12] indicatorul ghidajului il ocoleste
     pearlPill.Parent = deps.HudGui
 
     local pearlDot = Widgets.PearlIcon(pearlPill, 22, 13)
@@ -254,6 +256,7 @@ function HUDController.Init(
     ratePill.Size = UDim2.fromOffset(RATE_PILL_W, RATE_PILL_H)
     ratePill.ZIndex = 12
     Widgets.PillBackground(ratePill, 12)
+    ratePill:SetAttribute("GuideBlocker", true) -- [verificatorii A0, k12] indicatorul ghidajului il ocoleste
     ratePill.Parent = deps.HudGui
 
     rateValue = Widgets.Label(ratePill, "+0.0/s", Theme.TEXT.body, Theme.COLOR.gold, "strong")
@@ -269,6 +272,7 @@ function HUDController.Init(
     idlePill.ZIndex = 12
     idlePill.Visible = false
     Widgets.PillBackground(idlePill, 12)
+    idlePill:SetAttribute("GuideBlocker", true) -- [verificatorii A0, k12] indicatorul ghidajului il ocoleste
     idlePill.Parent = deps.HudGui
 
     -- Fulgerul inaintea cuvantului. Daca sprite-ul lipseste, Widgets.Icon da nil si cuvantul
@@ -308,6 +312,7 @@ function HUDController.Init(
     objPill.ZIndex = 12
     objPill.Visible = false
     Widgets.PillBackground(objPill, 12)
+    objPill:SetAttribute("GuideBlocker", true) -- [verificatorii A0, k12] indicatorul ghidajului il ocoleste
     objPill.Parent = deps.HudGui
 
     local eyebrow = Widgets.Label(objPill, "NEXT", Theme.TEXT.tiny, Theme.COLOR.gold, "strong")
@@ -395,6 +400,7 @@ function HUDController.Init(
     -- si se aprinde rosu cand se umple -- semnalul de "du-te si vinde" [DECIZII D40, D43]. La
     -- dreapta grupului monede+rata, centrata pe inaltimea lui [F2 spec Agent U pct.3].
     sackChip, sackValue = Widgets.Chip(deps.HudGui, "capacity", 12, "Sack")
+    sackChip:SetAttribute("GuideBlocker", true) -- [verificatorii A0, k12]
     -- [D63] pe randul de sus, la aceeasi inaltime cu monedele si perlele (era mai inalt si cobora intre randuri)
     sackChip.Position = UDim2.fromOffset(GRID.sack.x, GRID.sack.y)
     sackChip.Size = UDim2.fromOffset(GRID.sack.w, GRID.sack.h)
@@ -550,6 +556,7 @@ function HUDController.Init(
     base.BackgroundTransparency = 0.55
     base.ZIndex = 10
     base.Visible = showTouch
+    base:SetAttribute("GuideBlocker", true) -- [verificatorii A0, k12] doar cat se vede (pe telefon)
     base.Parent = deps.HudGui
     local baseRound = Instance.new("UICorner")
     baseRound.CornerRadius = UDim.new(1, 0)
@@ -620,6 +627,7 @@ function HUDController.Init(
 
     local action = touchButton(deps.HudGui, "", deps.Interact, function() end)
     action.Name = "ActionButton"
+    action:SetAttribute("GuideBlocker", true) -- [verificatorii A0, k12]
     -- [D59] Butonul se si TINE apasat (bara undiței). Degetul care a apasat e urmarit pana se ridica oriunde pe ecran:
     -- InputEnded-ul butonului nu vine daca degetul aluneca de pe el, iar undita ar ramane "tinuta" singura.
     action.InputBegan:Connect(function(input: InputObject)

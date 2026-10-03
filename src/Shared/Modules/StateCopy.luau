@@ -192,10 +192,13 @@ end
 -- [verificatorul k9-k10a] CE SPUNE CARDUL UNUI VANZATOR cand n-ai nimic de vandut acolo, in ordinea refuzurilor serverului
 -- (FlowMath.deliver): o piesa a unei uniri ("part", unirea ei), marfa altui vanzator ("other", vanzatorul ei), apoi marfa
 -- bruta a ORICAREI linii ("raw", linia ei; si a liniilor fara vanzator, ca butoaiele si cablul barajului). Ordinea e cea
--- din tabele, nu a unui `pairs`. (nil, nil): ai ce vinde aici, sau traista n-are nimic de spus.
--- [verificatorul k12] La brut, intai liniile vanzatorului de aici (`sellerOf`: atelierul de alaturi), apoi linia cu cele mai
--- multe bucati: „scrap” si „ore” sunt cuvintele a cate doua linii, iar cu amandoua in traista cardul Pietei trimitea la
--- Forja pentru 3 bucati si tacea despre cele 9 ale Foundry-ului. `partBy` poate lipsi (traista goala, inainte de stare).
+-- din tabele, nu a unui `pairs`. (nil, nil, nil): ai ce vinde aici, sau traista n-are nimic de spus. `partBy` poate lipsi
+-- (traista goala, inainte de prima stare).
+-- [verificatorii k12, A0/k12] La brut decide CUVANTUL cu cele mai multe bucati (`wordOf`: „scrap”, „ore” si „batteries”
+-- sunt cuvintele a cate doua linii, deci 4 + 4 bucati de scrap bat 5 de minereu); in cuvantul ales, linia cu cele mai
+-- multe bucati. Atelierul de alaturi (`sellerOf`) decide doar la egalitate. Al treilea rezultat: a doua linie din traista
+-- cu acelasi cuvant, ca un card sa le numeasca pe amandoua (Strings.rawGoesToBoth). Fara `wordOf`, fiecare linie e
+-- cuvantul ei.
 export type SellerSack = {
     rawBy: { [string]: number },
     sellBy: { [string]: { count: number, value: number } },
@@ -211,50 +214,76 @@ function StateCopy.sellerNote(
 ): (string?, string?, string?)
     local here = sack.sellBy[seller]
     if here ~= nil and here.count > 0 then
-        return nil, nil
+        return nil, nil, nil
     end
     local parts = sack.partBy or {}
     for _, line in lineOrder do
         if (parts[line] or 0) > 0 then
-            return "part", line
+            return "part", line, nil
         end
     end
     for _, other in sellerOrder do
         local entry = sack.sellBy[other]
         if other ~= seller and entry ~= nil and entry.count > 0 then
-            return "other", other
+            return "other", other, nil
         end
     end
-    -- [verificatorul A0/k12] linia cu cele mai multe bucati; atelierul de alaturi decide doar la egalitate (altfel 9 bucati
-    -- de minereu de cupru erau trimise la Wire Works pentru una singura)
-    local best: string?, most = nil, 0
     local function own(line: string): boolean
         return sellerOf ~= nil and sellerOf(line) == seller
     end
+    local function wordFor(line: string): string
+        return if wordOf ~= nil then wordOf(line) or line else line
+    end
+    local function count(line: string): number
+        return if parts[line] == nil then sack.rawBy[line] or 0 else 0
+    end
+    -- cuvintele, cu bucatile lor si daca vreo linie a lor e a vanzatorului de aici
+    local total: { [string]: number } = {}
+    local mine: { [string]: boolean } = {}
+    local words: { string } = {}
     for _, line in lineOrder do
-        local n = if parts[line] == nil then sack.rawBy[line] or 0 else 0
-        if n > most or (n > 0 and n == most and best ~= nil and own(line) and not own(best)) then
-            best, most = line, n
+        local n = count(line)
+        if n > 0 then
+            local word = wordFor(line)
+            if total[word] == nil then
+                total[word] = 0
+                table.insert(words, word)
+            end
+            total[word] += n
+            mine[word] = mine[word] or own(line)
         end
     end
-    if best == nil then
+    local word: string? = nil
+    for _, w in words do
+        if
+            word == nil
+            or total[w] > total[word]
+            or (total[w] == total[word] and mine[w] and not mine[word])
+        then
+            word = w
+        end
+    end
+    if word == nil then
         return nil, nil, nil
     end
-    -- a doua linie din traista cu ACELASI cuvant pentru marfa bruta („scrap”, „ore”): cardul le numeste pe amandoua
-    if wordOf ~= nil then
-        local word = wordOf(best)
-        for _, line in lineOrder do
+    -- in cuvantul ales: linia cu cele mai multe bucati (la egalitate, a vanzatorului de aici), apoi a doua
+    local best: string?, second: string? = nil, nil
+    for _, line in lineOrder do
+        local n = count(line)
+        if n > 0 and wordFor(line) == word then
             if
-                line ~= best
-                and parts[line] == nil
-                and (sack.rawBy[line] or 0) > 0
-                and wordOf(line) == word
+                best == nil
+                or n > count(best)
+                or (n == count(best) and own(line) and not own(best))
             then
-                return "raw", best, line
+                second = best
+                best = line
+            elseif second == nil then
+                second = line
             end
         end
     end
-    return "raw", best, nil
+    return "raw", best, second
 end
 
 return StateCopy

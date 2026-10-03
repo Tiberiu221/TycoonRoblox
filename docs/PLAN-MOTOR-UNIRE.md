@@ -1433,6 +1433,17 @@ Siluetele, schelele și zidul de aici sunt propunerea loturilor A1/A2. Nimic nu 
   doar la egalitate. Când două linii din sac au același cuvânt, cardul le numește pe amândouă („Scrap goes to the Forge and
   the Foundry”, `Strings.rawGoesToBoth`). Planșa filmului are firele dintre stâlpi (`ModernConfig.wireSpans`), iar Skip
   apare și pe cartonaș.
+- **[A cincea rundă]** **Indicatorul de margine:**
+  - Locurile lui posibile formează un inel de-a lungul marginilor. `GuideMath.edgePlacement` merge pe inel până la cel mai
+    apropiat loc liber, trecând și după colț, și ocolește toate panourile fixe: bara de meniu, cifrele din stânga-sus,
+    joystick-ul și butonul E pe telefon (atributul `GuideBlocker`).
+  - Un capăt care trece de mijlocul ecranului costă jumătate de latură în plus. Așa, o țintă clar spre stânga-sus duce sub
+    cifre, pe marginea din stânga.
+  - Histerezis (`previous`): cât punctul firesc rămâne acoperit, indicatorul stă pe capătul ales.
+  - Testat pe patru ecrane, din jumătate în jumătate de grad.
+
+  **Cardul vânzătorului** alege întâi cuvântul cu cele mai multe bucăți (4 + 4 bucăți de scrap bat 5 de minereu), apoi linia
+  din el; atelierul de alături decide doar la egalitate.
 
 Totalul, ~92–97 de imagini și 3 sunete până se joacă Era 4 (PLAN-HARTA §7).
 
