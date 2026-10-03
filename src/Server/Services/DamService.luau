@@ -116,10 +116,15 @@ end
 -- Filmul s-a vazut (sau s-a sarit): la reincarcare nu mai porneste singur. [D70, pasul k8] Apoi clientul, construit pentru
 -- satul vechi, se reincarca in lumea 2: acelasi drum ca barca (salvarea e deja facuta la ridicare). O cerere repetata
 -- (dupa un drum care n-a plecat) incearca din nou; cine e deja in lumea 2 cu harta ei nu mai are de ce sa plece.
-function DamService.FilmSeen(player: Player)
+-- [verificatorul k7-k8] Intoarce motivul cand reincarcarea nu porneste ("no_profile", "not_built"), ca ecranul sa nu astepte in
+-- tacere; nil = drumul a plecat (sau raspunde FerryService prin `onFailed`).
+function DamService.FilmSeen(player: Player): string?
     local data = DataService.Get(player)
-    if data == nil or data.Firsts.DamBuilt ~= true then
-        return
+    if data == nil then
+        return "no_profile"
+    end
+    if data.Firsts.DamBuilt ~= true then
+        return "not_built"
     end
     if not data.Firsts.DamFilmSeen then
         data.Firsts.DamFilmSeen = true
@@ -131,7 +136,9 @@ function DamService.FilmSeen(player: Player)
     -- doar pe el, cu limita de rata a barajului (NetServer)
     if reload ~= nil and data.World ~= 1 then
         reload(player)
+        return nil
     end
+    return "not_built"
 end
 
 function DamService.Init(d: Deps)

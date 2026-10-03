@@ -288,11 +288,16 @@ function Strings.personRetired(name: string, was: string): string
 end
 Strings.DAM_CARD_SUB = "Your people built this"
 function Strings.damReloadFailed(reason: string): string
-    if reason == "studio" then
+    if reason == "studio_kept" then
         return "In Studio: press Stop, then Play, to open the Dam"
+    elseif reason == "studio" or reason == "studio_fresh" then
+        -- [verificatorul k7-k8] Play-ul din Studio porneste implicit de la zero: barajul se pierde la Stop
+        return "In Studio this save is erased at Stop: turn on keep save, then build the Dam again"
     end
     return "The Dam didn't open yet. Try again"
 end
+-- [verificatorul k7-k8] monedele s-au schimbat intre chitanta si ridicare (o cumparare cu Robux): cifrele de sus sunt noi
+Strings.DAM_COINS_CHANGED = "Your coins changed. Check the numbers, then hold again"
 -- [D70, verificatorul j10] zona unei alte harti (barajul, vazut din sat), cand era ei e in joc: nu se deschide cu niciun
 -- clopot si nu mai "vine"; spune doar unde se ridica [D40, D73]
 function Strings.zoneAway(zoneName: string): string

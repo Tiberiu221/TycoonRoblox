@@ -400,22 +400,26 @@ function Widgets.HoldButton(
         z = o.z,
         onClick = function() end,
     })
+    -- [verificatorul k7-k8] umplerea sta in interiorul ramei de lemn (8 px), sub eticheta (Row e la z + 1), in pergament
+    -- deschis, ca sa se vada pe fata aurie a butonului
+    local INSET = 8
     local fill = Instance.new("Frame")
     fill.Name = "HoldFill"
-    fill.BackgroundColor3 = Theme.COLOR.gold
-    fill.BackgroundTransparency = 0.45
+    fill.BackgroundColor3 = Theme.COLOR.parchment
+    fill.BackgroundTransparency = 0.3
     fill.BorderSizePixel = 0
-    fill.Size = UDim2.fromScale(0, 1)
-    fill.ZIndex = o.z + 1
+    fill.Position = UDim2.fromOffset(INSET, INSET)
+    fill.Size = UDim2.new(0, 0, 1, -INSET * 2)
+    fill.ZIndex = o.z
     fill.Parent = button
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 8)
-    corner.Parent = fill
     local enabled = true
     local heldSince: number? = nil
+    local holdInput: InputObject? = nil
+    local startPos = Vector3.zero
     local function stop()
         heldSince = nil
-        fill.Size = UDim2.fromScale(0, 1)
+        holdInput = nil
+        fill.Size = UDim2.new(0, 0, 1, -INSET * 2)
     end
     button.InputBegan:Connect(function(input: InputObject)
         local kind = input.UserInputType
@@ -424,6 +428,20 @@ function Widgets.HoldButton(
             and (kind == Enum.UserInputType.MouseButton1 or kind == Enum.UserInputType.Touch)
         then
             heldSince = os.clock()
+            holdInput = input
+            startPos = input.Position
+            -- [verificatorul k7-k8] degetul ridicat oriunde (sau atingerea anulata) opreste tinerea, nu doar pe buton
+            input:GetPropertyChangedSignal("UserInputState"):Connect(function()
+                if
+                    holdInput == input
+                    and (
+                        input.UserInputState == Enum.UserInputState.End
+                        or input.UserInputState == Enum.UserInputState.Cancel
+                    )
+                then
+                    stop()
+                end
+            end)
         end
     end)
     button.InputEnded:Connect(function(input: InputObject)
@@ -438,8 +456,22 @@ function Widgets.HoldButton(
         if since == nil then
             return
         end
-        local f = (os.clock() - since) / math.max(0.1, o.seconds)
-        fill.Size = UDim2.fromScale(math.clamp(f, 0, 1), 1)
+        -- [verificatorul k7-k8] pe telefon, degetul tras de pe buton (gestul de anulare) opreste tinerea
+        local input = holdInput
+        if
+            input ~= nil
+            and input.UserInputType == Enum.UserInputType.Touch
+            and (input.Position - startPos).Magnitude > 48
+        then
+            stop()
+            return
+        end
+        if not button.Visible or not button:IsDescendantOf(game) then
+            stop()
+            return
+        end
+        local f = math.clamp((os.clock() - since) / math.max(0.1, o.seconds), 0, 1)
+        fill.Size = UDim2.new(f, -INSET * 2 * f, 1, -INSET * 2)
         if f >= 1 then
             stop()
             o.onDone()
@@ -452,7 +484,11 @@ function Widgets.HoldButton(
             if not on then
                 stop()
             end
-            Widgets.SetButtonTone(button, if on then Theme.COLOR.gold else Theme.COLOR.parchmentDim)
+            -- [verificatorul k7-k8] stins: acelasi gri ca butoanele fara pret din meniul obiectului
+            Widgets.SetButtonTone(
+                button,
+                if on then Theme.COLOR.gold else Color3.fromRGB(150, 144, 136)
+            )
         end,
     }
 end

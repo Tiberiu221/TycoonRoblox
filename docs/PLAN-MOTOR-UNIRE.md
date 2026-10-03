@@ -1267,6 +1267,14 @@ la granița CREWS / `DAM_START_COINS`.
   drumul fără „Try again” (`DamWords.canRetry`). După ridicare: „The Dam is built!” (filmul vine la k9, reîncărcarea la k8).
   `check_panel_rows`: `DAM_SCREEN`.
 
+- **[Verificatorul k7-k8, făcut]** ținerea se oprește când fereastra se închide (Q) sau degetul pleacă de pe buton (telefon),
+  iar barajul se ridică doar cu fereastra deschisă; „Opening the Dam…” primește mereu un răspuns (serverul răspunde și la
+  limită și la „no_profile”, iar clientul oferă „Try again” după 30 s); „changed” lasă pe ecran „Your coins changed…” până la
+  următoarea ținere; o previzualizare oprită de limită păstrează chitanța bună sau reîncearcă singură; în Studio textul spune
+  dacă trebuie „keep save”; cartonașul bărcii se pune din nou la fiecare drum; titlurile coloanelor în lemn închis; umplerea
+  butonului în interiorul ramei, sub etichetă; după ridicare butonul ținut dispare, iar cel rămas stă la mijloc. AWAY 0 pe
+  ecran era deja făcut la reparațiile k6.
+
 **k8. Reîncărcarea în lumea 2.** Depinde de: k7.
 - `FerryService.Depart(player, destination?)` (barca rămâne identică); salvare, `MarkTeleporting`, apoi teleport în același
   place; cartonașul „THE DAM” ca TeleportGui.

@@ -110,7 +110,7 @@ export type Deps = {
     Dam: {
         Preview: (Player) -> ({ [string]: any }?, string?),
         Build: (Player, number) -> ({ [string]: any }?, string?),
-        FilmSeen: (Player) -> (),
+        FilmSeen: (Player) -> string?,
         Available: (Player) -> boolean, -- [D70, pasul k6]
     },
 }
@@ -538,8 +538,14 @@ function NetServer.Init(d: Deps)
         Net.Get("DamBuilt"):FireClient(player, receipt)
     end)
     Net.Get("DamFilmSeen").OnServerEvent:Connect(function(player: Player)
-        if RateLimiter.Allow(player, "Dam") then
-            deps.Dam.FilmSeen(player)
+        -- [verificatorul k7-k8] raspunde mereu: ecranul „Opening the Dam…” asteapta fie teleportul, fie un motiv [D43]
+        if not RateLimiter.Allow(player, "Dam") then
+            Net.Get("DamReloadFailed"):FireClient(player, "busy")
+            return
+        end
+        local why = deps.Dam.FilmSeen(player)
+        if why ~= nil then
+            Net.Get("DamReloadFailed"):FireClient(player, why)
         end
     end)
 

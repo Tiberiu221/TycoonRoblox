@@ -372,11 +372,24 @@ local function update(dt: number)
     end
 end
 
+-- [verificatorul k7-k8] cartonasul barcii e pus din nou la fiecare drum: alt drum (reincarcarea in lumea 2) poate fi pus
+-- intre timp pe cartonasul lui
+local travelGui: ScreenGui? = nil
+local function armTravel()
+    local t = travelGui
+    if t ~= nil then
+        pcall(function()
+            TeleportService:SetTeleportGui(t)
+        end)
+    end
+end
+
 -- Porneste drumul. Intoarce false daca un drum e deja in curs.
 function RideScene.Start(r: Ride): boolean
     if opts == nil or state ~= "idle" then
         return false
     end
+    armTravel()
     ride = r
     state = "riding"
     rideT = 0
@@ -553,9 +566,8 @@ function RideScene.Init(o: Options)
     local text = rowingLabel:Clone()
     text.Visible = true
     text.Parent = black
-    pcall(function()
-        TeleportService:SetTeleportGui(travel)
-    end)
+    travelGui = travel
+    armTravel()
 
     RunService.PreRender:Connect(update)
 end

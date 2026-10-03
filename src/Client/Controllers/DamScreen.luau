@@ -40,6 +40,11 @@ local hold: Widgets.HoldButton
 -- "counting" (asteapta chitanta) | "ready" | "saving" | "done" (ridicat) | "refused" (fara chitanta buna) | "opening"
 -- (se reincarca in lumea 2) | "stuck" (reincarcarea n-a plecat: „Try again”, afara de Studio)
 local phase = "counting"
+-- [verificatorul k7-k8] monedele s-au schimbat ("changed"): chitanta noua vine cu avertismentul, nu cu indiciul obisnuit
+local changedPending = false
+-- cat asteapta „Opening the Dam…” un raspuns (teleportul sau un motiv) inainte sa ofere „Try again”: peste termenul barcii
+local OPEN_WAIT = 30
+local openToken = 0
 
 local function isOpen(): boolean
     local w = window
@@ -53,7 +58,18 @@ end
 function DamScreen.Close()
     local w = window
     if w ~= nil and phase ~= "saving" and phase ~= "opening" then
+        -- [verificatorul k7-k8] o tinere in curs se opreste: fereastra ascunsa nu ridica barajul
+        hold.SetEnabled(false)
+        changedPending = false
         w.Visible = false
+    end
+end
+
+-- [verificatorul k7-k8] un raspuns (ridicat, refuzat, drumul picat) se vede mereu, chiar daca fereastra fusese inchisa
+local function showWindow()
+    local w = window
+    if w ~= nil then
+        w.Visible = true
     end
 end
 
@@ -87,7 +103,12 @@ local function layout()
     local buttonsH = if sideBySide then BUTTON_H else BUTTON_H * 2 + 8
     status.Position = UDim2.new(0, 0, 1, -(buttonsH + Theme.SPACE.sm))
     scroll.Size = UDim2.new(1, 0, 1, -(buttonsH + STATUS_H + Theme.SPACE.sm * 2))
-    if sideBySide then
+    if not hold.button.Visible then
+        -- [verificatorul k7-k8] un singur buton („Try again”, „Close”): la mijloc
+        notYet.AnchorPoint = Vector2.new(0.5, 1)
+        notYet.Position = UDim2.fromScale(0.5, 1)
+        notYet.Size = UDim2.fromOffset(math.min(240, bodyW), BUTTON_H)
+    elseif sideBySide then
         notYet.AnchorPoint = Vector2.new(0, 1)
         notYet.Position = UDim2.new(0.5, -(200 + 8 + 240) / 2, 1, 0)
         notYet.Size = UDim2.fromOffset(200, BUTTON_H)
@@ -132,6 +153,9 @@ local function setPhase(next: string)
             else Strings.DAM_NOT_YET
     )
     notYet.Visible = next ~= "saving" and next ~= "opening"
+    -- [verificatorul k7-k8] dupa ridicare, butonul tinut nu mai are ce face: dispare
+    hold.button.Visible = next == "counting" or next == "ready" or next == "refused"
+    layout()
 end
 
 -- [D70, pasul k8] Cartonasul din timpul drumului (TeleportGui): negru, „THE DAM”, ramane si la sosire (Loading il pastreaza
@@ -171,6 +195,17 @@ local function openDam()
         TeleportService:SetTeleportGui(travelCard())
     end)
     DamController.FilmSeen()
+    -- [verificatorul k7-k8] fara niciun raspuns in OPEN_WAIT secunde: „Try again”, ca ecranul sa nu ramana blocat
+    openToken += 1
+    local token = openToken
+    task.delay(OPEN_WAIT, function()
+        if phase == "opening" and openToken == token then
+            DamFilm.Stop()
+            showWindow()
+            setPhase("stuck")
+            setStatus(Strings.damReloadFailed("failed"), Theme.COLOR.warnInk)
+        end
+    end)
 end
 
 -- Masa Dam Plans (E): ecranul se deschide pe „Counting…” si cere chitanta.
@@ -197,28 +232,57 @@ function DamScreen.OnPreview(receipt: DamController.Receipt?, why: string?)
     if receipt ~= nil then
         showColumns(receipt)
         setPhase("ready")
+        if changedPending then
+            setStatus(Strings.DAM_COINS_CHANGED, Theme.COLOR.warnInk)
+        else
+            setStatus(Strings.DAM_HOLD_HINT)
+        end
+    elseif why == "busy" and DamController.LastPreview() ~= nil then
+        -- [verificatorul k7-k8] limita: chitanta buna de dinainte ramane, iar butonul merge
+        setPhase("ready")
         setStatus(Strings.DAM_HOLD_HINT)
     elseif why ~= nil then
-        setPhase(if DamWords.canRetry(why) then "counting" else "refused")
-        setStatus(Strings.damRejected(why), Theme.COLOR.badInk)
+        local retry = DamWords.canRetry(why)
+        setPhase(if retry then "counting" else "refused")
+        -- asteptarile in galben, refuzurile adevarate in rosu (ca toast-urile lui DamController)
+        setStatus(
+            Strings.damRejected(why),
+            if retry then Theme.COLOR.warnInk else Theme.COLOR.badInk
+        )
+        if retry then
+            -- fara chitanta: o cerere noua peste doua secunde, cat ecranul e tot deschis si asteapta
+            task.delay(2, function()
+                if phase == "counting" and isOpen() then
+                    DamController.RequestPreview()
+                end
+            end)
+        end
     end
 end
 
 function DamScreen.OnRejected(reason: string)
     if reason == "save" or reason == "built" then
+        showWindow()
         setPhase("done")
         setStatus(Strings.damRejected(reason), Theme.COLOR.warnInk)
         return
     end
-    -- „changed”: DamController cere singur o chitanta noua; pana vine, butonul asteapta
-    setPhase(if DamWords.canRetry(reason) then "counting" else "refused")
-    setStatus(Strings.damRejected(reason), Theme.COLOR.badInk)
-    if reason ~= "changed" and DamWords.canRetry(reason) and DamController.LastPreview() ~= nil then
+    showWindow()
+    -- „changed”: DamController cere singur o chitanta noua; pana vine, butonul asteapta, iar chitanta noua vine cu avertismentul
+    changedPending = reason == "changed"
+    local retry = DamWords.canRetry(reason)
+    setPhase(if retry then "counting" else "refused")
+    setStatus(
+        Strings.damRejected(reason),
+        if retry then Theme.COLOR.warnInk else Theme.COLOR.badInk
+    )
+    if reason ~= "changed" and retry and DamController.LastPreview() ~= nil then
         setPhase("ready")
     end
 end
 
 function DamScreen.OnBuilt(_receipt: DamController.Receipt)
+    showWindow()
     setPhase("opening")
     setStatus(Strings.DAM_BUILT, Theme.COLOR.goodInk)
     -- [D70, pasul k9] filmul (prima vizionare: Skip de la secunda 3), apoi reincarcarea in lumea 2 (k8)
@@ -228,7 +292,11 @@ end
 -- [D70, pasul k8] Reincarcarea n-a plecat: in Studio spune ce sa faci; altfel „Try again” (aceeasi cerere).
 function DamScreen.OnReloadFailed(reason: string)
     DamFilm.Stop() -- filmul se ridica: ecranul spune ce urmeaza
-    setPhase(if reason == "studio" then "done" else "stuck")
+    openToken += 1
+    showWindow()
+    -- in Studio barca nu pleaca: „Try again” n-ar face nimic, deci doar „Close” cu ce sa faci
+    local studio = reason == "studio" or reason == "studio_kept" or reason == "studio_fresh"
+    setPhase(if studio then "done" else "stuck")
     setStatus(Strings.damReloadFailed(reason), Theme.COLOR.warnInk)
 end
 
@@ -283,7 +351,8 @@ function DamScreen.Init(deps: { HudGui: Frame })
         stack.SortOrder = Enum.SortOrder.LayoutOrder
         stack.Padding = UDim.new(0, Theme.SPACE.xs + 2)
         stack.Parent = frame
-        local title = Widgets.Label(frame, "", Theme.TEXT.body, Theme.COLOR.gold, "strong")
+        -- [verificatorul k7-k8] lemn inchis, nu auriu: pe pergament auriul abia se citea (1,5:1)
+        local title = Widgets.Label(frame, "", Theme.TEXT.body, Theme.COLOR.woodDark, "strong")
         title.LayoutOrder = 0
         title.ZIndex = Z + 2
         local rows: { TextLabel } = {}
@@ -328,9 +397,11 @@ function DamScreen.Init(deps: { HudGui: Frame })
         z = Z + 1,
         seconds = HOLD_SECONDS,
         onDone = function()
-            if phase ~= "ready" then
+            -- [verificatorul k7-k8] doar cu fereastra deschisa: o tinere ramasa dupa Q nu ridica barajul
+            if phase ~= "ready" or not isOpen() then
                 return
             end
+            changedPending = false
             if DamController.Build() then
                 setPhase("saving")
                 setStatus(Strings.DAM_SAVING)

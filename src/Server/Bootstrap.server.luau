@@ -158,7 +158,14 @@ DamService.Init({
             destination = "village",
             travel = { from = "dam" },
             onFailed = function(p: Player, reason: string)
-                Net.Get("DamReloadFailed"):FireClient(p, reason)
+                -- [verificatorul k7-k8] in Studio conteaza salvarea: „keep save” pastreaza barajul la Stop, cea proaspata nu
+                local why = reason
+                if reason == "studio" then
+                    why = if DataService.StudioSave(p) == "kept"
+                        then "studio_kept"
+                        else "studio_fresh"
+                end
+                Net.Get("DamReloadFailed"):FireClient(p, why)
             end,
         })
     end,
