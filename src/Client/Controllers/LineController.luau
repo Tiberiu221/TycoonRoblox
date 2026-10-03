@@ -755,42 +755,21 @@ function LineController.seller(seller: string, building: Building): Seller
         if mine ~= nil and mine.count > 0 then
             text = Strings.promptSellAt(keyHint(), TycoonMath.formatNumber(mine.value))
         else
-            -- [verificatorul k3] piesele unei uniri nu se vand aici: cardul spune unde merg, nu tace [D43]
-            for union, count in sack.partBy or {} do
-                local unionWords = Strings.LINE_WORDS[union]
-                if count > 0 and unionWords ~= nil then
-                    status = Strings.partsToJoin(unionWords)
-                    break
-                end
-            end
-            -- [verificatorul k4] marfa bruta a liniilor lui: „The Market buys … not scrap or ore”; ce vinde alt vanzator: al
-            -- cui e (aceleasi texte ca refuzurile serverului)
-            if status == nil then
-                for _, l in StationConfig.LINE_ORDER do
-                    if StationConfig.LINES[l].seller == seller and (sack.rawBy[l] or 0) > 0 then
-                        status =
-                            Strings.placeResult(nil, seller, false, false, "raw_only", 0, 0, false)
-                        break
-                    end
-                end
-            end
-            if status == nil then
-                for other, entry in sack.sellBy do
-                    if other ~= seller and entry.count > 0 then
-                        status = Strings.placeResult(
-                            nil,
-                            seller,
-                            false,
-                            false,
-                            "other_seller",
-                            0,
-                            0,
-                            false,
-                            other
-                        )
-                        break
-                    end
-                end
+            -- [verificatorii k3, k4, k9-k10a] n-ai ce vinde aici: cardul spune unde merge ce duci, nu tace si nu suna a
+            -- refuz [D43] (piesele la unire, marfa altui vanzator, marfa bruta a oricarei linii, la atelierul ei)
+            local kind, which = StateCopy.sellerNote(
+                sack,
+                seller,
+                StationConfig.LINE_ORDER,
+                StationConfig.SELLER_ORDER
+            )
+            local words = if which ~= nil then Strings.LINE_WORDS[which] else nil
+            if kind == "part" and words ~= nil then
+                status = Strings.partsToJoin(words)
+            elseif kind == "other" and which ~= nil then
+                status = Strings.sellerElsewhere(which)
+            elseif kind == "raw" and words ~= nil then
+                status = Strings.rawGoesTo(words)
             end
         end
         return {

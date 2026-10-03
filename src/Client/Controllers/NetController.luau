@@ -254,7 +254,9 @@ local function ensureAssembly(padId: string, x: number, y: number): Assembly
     root.BackgroundTransparency = 1
     root.Position = UDim2.fromOffset(padX, padY)
     root.Size = UDim2.fromOffset(0, 0)
-    root.ZIndex = 4
+    -- [verificatorul k9-k10a] turbina din zid sta peste spuma deversorului (Plot, Z 8): ZIndex-ul copiilor nu iese din
+    -- radacina (ZIndexBehavior.Sibling), deci radacina insasi trebuie sa fie deasupra; plasele raman la 4
+    root.ZIndex = if wall ~= nil then 9 else 4
     root.Parent = deps.Plot
 
     -- [verificatorul k3] si turbina din zid are stalpul ei pe punte, unde o goleste Dam Collector-ul

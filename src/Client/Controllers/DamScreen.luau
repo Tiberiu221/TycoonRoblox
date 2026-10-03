@@ -164,6 +164,7 @@ local function travelCard(): ScreenGui
     local gui = Instance.new("ScreenGui")
     gui.Name = "DamTravel"
     gui.IgnoreGuiInset = true
+    gui.ScreenInsets = Enum.ScreenInsets.None -- [verificatorul k9-k10a] negru pana in colturi, si pe telefonul cu crestatura
     local black = Instance.new("Frame")
     black.Size = UDim2.fromScale(1, 1)
     black.BackgroundColor3 = Color3.new(0, 0, 0)
@@ -285,8 +286,12 @@ function DamScreen.OnBuilt(_receipt: DamController.Receipt)
     showWindow()
     setPhase("opening")
     setStatus(Strings.DAM_BUILT, Theme.COLOR.goodInk)
-    -- [D70, pasul k9] filmul (prima vizionare: Skip de la secunda 3), apoi reincarcarea in lumea 2 (k8)
-    DamFilm.Play(false, openDam)
+    -- [D70, pasul k9] filmul (prima vizionare: Skip de la secunda 3), apoi reincarcarea in lumea 2 (k8). [verificatorul
+    -- k9-k10a] Orice ar cadea in film, barajul e deja ridicat si salvat: drumul spre lumea 2 pleaca oricum.
+    if not pcall(DamFilm.Play, false, openDam) then
+        DamFilm.Stop()
+        openDam()
+    end
 end
 
 -- [D70, pasul k8] Reincarcarea n-a plecat: in Studio spune ce sa faci; altfel „Try again” (aceeasi cerere).

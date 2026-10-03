@@ -141,6 +141,22 @@ function DamService.FilmSeen(player: Player): string?
     return "not_built"
 end
 
+-- [verificatorul k9-k10a] Filmul s-a pierdut: barajul e ridicat (si salvat inainte de film), dar jucatorul a iesit din joc
+-- in cele 17 s. Clientul lumii 2 arata atunci cartonasul „THE DAM” si cere CardSeen.
+function DamService.FilmPending(player: Player): boolean
+    local data = DataService.Get(player)
+    return data ~= nil and data.Firsts.DamBuilt == true and data.Firsts.DamFilmSeen ~= true
+end
+
+-- Cartonasul s-a vazut la baraj: doar noteaza filmul (fara reincarcare: clientul e deja pe harta barajului).
+function DamService.CardSeen(player: Player)
+    local data = DataService.Get(player)
+    if data ~= nil and data.Firsts.DamBuilt == true and not data.Firsts.DamFilmSeen then
+        data.Firsts.DamFilmSeen = true
+        Analytics.DamStep(player, "DamFilmSeen")
+    end
+end
+
 function DamService.Init(d: Deps)
     deps = d
     Players.PlayerRemoving:Connect(function(player: Player)

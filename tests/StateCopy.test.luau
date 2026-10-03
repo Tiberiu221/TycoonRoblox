@@ -236,4 +236,119 @@ return function()
             end
         )
     end)
+
+    -- [verificatorul k9-k10a] Cardul unui vanzator cand n-ai ce vinde acolo: in ordinea refuzurilor serverului
+    -- (FlowMath.deliver), pentru orice marfa, cu texte care spun unde merge si incap pe placa (cel mult doua randuri).
+    test.suite("StateCopy.sellerNote", function()
+        local StationConfig = require("../src/Shared/Config/StationConfig")
+        local Strings = require("../src/Shared/Config/Strings")
+        local LINES = StationConfig.LINE_ORDER_ALL
+        local SELLERS = StationConfig.SELLER_ORDER_ALL
+        local function sack(
+            raw: { [string]: number }?,
+            sell: { [string]: number }?,
+            parts: { [string]: number }?
+        )
+            local out: StateCopy.SackBy = { rawBy = {}, sellBy = {}, partBy = {} }
+            for _, l in LINES do
+                out.rawBy[l] = (raw or {})[l] or 0
+            end
+            out.partBy.grid = (parts or {}).grid or 0
+            for _, s in SELLERS do
+                out.sellBy[s] = { count = (sell or {})[s] or 0, value = 0 }
+            end
+            return out
+        end
+
+        test.case("la Switch House: bateriile si minereul de cablu spun unde merg", function()
+            local kind, which = StateCopy.sellerNote(sack({ barrels = 3 }), "town", LINES, SELLERS)
+            check.equal(kind, "raw")
+            check.equal(which, "barrels")
+            check.equal(
+                Strings.rawGoesTo(Strings.LINE_WORDS.barrels),
+                "Batteries go to the Switchyard"
+            )
+            kind, which = StateCopy.sellerNote(sack({ cable = 2 }), "town", LINES, SELLERS)
+            check.equal(which, "cable")
+            check.equal(
+                Strings.rawGoesTo(Strings.LINE_WORDS.cable),
+                "Cable ore goes to the Cable Works"
+            )
+        end)
+
+        test.case(
+            "ordinea serverului: piesa, alt vanzator, brut; nimic cand ai ce vinde aici",
+            function()
+                local both = sack({ parts = 4 }, { dock = 2 }, { grid = 1 })
+                check.equal(StateCopy.sellerNote(both, "market", LINES, SELLERS), "part")
+                local kind, which = StateCopy.sellerNote(
+                    sack({ parts = 4 }, { dock = 2 }),
+                    "market",
+                    LINES,
+                    SELLERS
+                )
+                check.equal(kind, "other")
+                check.equal(which, "dock")
+                check.equal(
+                    StateCopy.sellerNote(sack({ wood = 5 }), "market", LINES, SELLERS),
+                    "raw"
+                )
+                check.equal(
+                    StateCopy.sellerNote(
+                        sack({ wood = 5 }, { market = 1 }),
+                        "market",
+                        LINES,
+                        SELLERS
+                    ),
+                    nil
+                )
+                check.equal(StateCopy.sellerNote(sack(), "depot", LINES, SELLERS), nil)
+                -- in sat (Erele 1-3), fara linii de baraj in ordine: la fel
+                check.equal(
+                    StateCopy.sellerNote(
+                        sack({ copper = 1 }),
+                        "depot",
+                        StationConfig.LINE_ORDER,
+                        StationConfig.SELLER_ORDER
+                    ),
+                    "raw"
+                )
+            end
+        )
+
+        test.case("textele incap pe placa cardului: cel mult doua randuri", function()
+            -- placa: 320 px (InteractController.STATUS_MAX_W) minus marginile, fontul de pixeli la 18 px (0,56 em)
+            local perLine = math.floor((320 - 2 * 8) / (18 * 0.56))
+            local function lines(text: string): number
+                local n, used = 1, 0
+                for word in string.gmatch(text, "%S+") do
+                    local w = utf8.len(word) or #word
+                    if used > 0 and used + 1 + w > perLine then
+                        n += 1
+                        used = w
+                    else
+                        used += (if used > 0 then 1 else 0) + w
+                    end
+                end
+                return n
+            end
+            local texts: { string } = {}
+            for _, s in SELLERS do
+                table.insert(texts, Strings.sellerElsewhere(s))
+            end
+            for _, l in LINES do
+                local words = Strings.LINE_WORDS[l]
+                if l ~= "grid" then
+                    table.insert(texts, Strings.rawGoesTo(words))
+                end
+            end
+            table.insert(texts, Strings.partsToJoin(Strings.LINE_WORDS.grid))
+            for _, text in texts do
+                if lines(text) > 2 then
+                    print(`[sellerNote] prea lung: {text}`)
+                end
+                check.is_true(lines(text) <= 2)
+            end
+        end)
+    end)
 end

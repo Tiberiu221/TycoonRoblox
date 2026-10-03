@@ -937,6 +937,18 @@ function Strings.promptDropPart(part: LineWords, keyHint: string): string
     return `Drop {part.done}{keyHint}`
 end
 -- [D70, pasul k4] piesele duse la un vanzator: „Barrels and cable go to the Relay Station first”
+-- [verificatorul k9-k10a] Cardul unui vanzator, cand n-ai nimic de vandut acolo (StateCopy.sellerNote): unde merge ce
+-- duci, nu un refuz. Scurte, ca placa cardului sa ramana pe cel mult doua randuri (testul din StateCopy).
+function Strings.sellerElsewhere(seller: string): string
+    local words = Strings.LINK_WORDS[seller]
+    return `Your sack has goods for the {if words ~= nil then words.goTo else "Tavern"}`
+end
+-- „Logs go to the Sawmill”, „Scrap goes to the Foundry”, „Cable ore goes to the Cable Works”
+function Strings.rawGoesTo(line: LineWords): string
+    local raw = line.raw
+    local verb = if string.sub(raw, -1) == "s" then "go" else "goes"
+    return `{string.upper(string.sub(raw, 1, 1))}{string.sub(raw, 2)} {verb} to the {line.processor}`
+end
 function Strings.partsToJoin(union: LineWords): string
     return `{string.upper(string.sub(union.raw, 1, 1))}{string.sub(union.raw, 2)} go to the {union.processor} first`
 end

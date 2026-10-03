@@ -1301,6 +1301,18 @@ la granița CREWS / `DAM_START_COINS`.
   urmează. Sonda: `cinematic:play`, `cinematic:seek:<t>`. **Provizoriu până la A2:** siluetele, schelele și barajul care
   crește (azi, amurgul peste satul adevărat). `VillageDiorama` în `Client/UI` și „Watch again” vin cu Memory Wall, după
   lansare (O1); muzica filmului vine cu sunetele lui A2.
+- **[Verificatorul k9–k10a, făcut]** `DamFilm.Init` cădea pe `Widgets.Label(ScreenGui)` (un ScreenGui n-are ZIndex), deci
+  filmul nu pornea, iar jucătorul rămânea blocat fără HUD. În satul viu se vedea doar un avertisment la fiecare pornire. Acum
+  totul stă pe un Frame rădăcină, iar un test interzice orice Widget pus direct pe un ScreenGui. `Play` nu blochează nimic dacă
+  desenul nu e întreg, iar `DamScreen.OnBuilt` pleacă spre lumea 2 chiar dacă filmul cade.
+  - **Ecranul:** filmul merge de la margine la margine (`ScreenInsets.None`, și cartonașul drumului), iar Skip stă în zona
+    sigură. Textul stă în mijlocul benzii de jos și nu ajunge la Skip, iar cartonașul apare din negru cu tot cu texte.
+  - **Filmul pierdut** (o ieșire din joc în cele 17 s): `damFilmPending` în stare. La baraj, o dată, cartonașul „THE DAM” se
+    ridică peste harta nouă, apoi `DamCardSeen` îl notează, fără reîncărcare.
+  - **Cardul unui vânzător fără ce vinde** (`StateCopy.sellerNote`, ordinea serverului): piesele la unire, „Your sack has
+    goods for the Tavern”, „Batteries go to the Switchyard” (și pentru liniile fără vânzător). Textele nu mai sună a refuz
+    după o vânzare și încap pe două rânduri (testat).
+  - **Turbina din zid** stă peste spuma deversorului.
 
 **k10. Dam Town și oamenii retrași.** Depinde de: k9, j14.
 - Cantina, căsuțele, piața, clopotnița cu plăcile cu cifrele jucătorului, Memory Wall din `Memories.oldVillage`; oamenii

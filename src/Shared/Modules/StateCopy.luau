@@ -189,4 +189,37 @@ function StateCopy.partsOf(
     return out
 end
 
+-- [verificatorul k9-k10a] CE SPUNE CARDUL UNUI VANZATOR cand n-ai nimic de vandut acolo, in ordinea refuzurilor serverului
+-- (FlowMath.deliver): o piesa a unei uniri ("part", unirea ei), marfa altui vanzator ("other", vanzatorul ei), apoi marfa
+-- bruta a ORICAREI linii ("raw", linia ei; si a liniilor fara vanzator, ca butoaiele si cablul barajului). Ordinea e cea
+-- din tabele, nu a unui `pairs`. (nil, nil): ai ce vinde aici, sau traista n-are nimic de spus.
+function StateCopy.sellerNote(
+    sack: SackBy,
+    seller: string,
+    lineOrder: { string },
+    sellerOrder: { string }
+): (string?, string?)
+    local here = sack.sellBy[seller]
+    if here ~= nil and here.count > 0 then
+        return nil, nil
+    end
+    for _, line in lineOrder do
+        if (sack.partBy[line] or 0) > 0 then
+            return "part", line
+        end
+    end
+    for _, other in sellerOrder do
+        local entry = sack.sellBy[other]
+        if other ~= seller and entry ~= nil and entry.count > 0 then
+            return "other", other
+        end
+    end
+    for _, line in lineOrder do
+        if sack.partBy[line] == nil and (sack.rawBy[line] or 0) > 0 then
+            return "raw", line
+        end
+    end
+    return nil, nil
+end
+
 return StateCopy

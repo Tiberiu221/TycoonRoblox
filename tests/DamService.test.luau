@@ -156,5 +156,57 @@ return function()
                 check.is_true(has(Strings.damReloadFailed("studio_fresh"), "keep save"))
             end
         )
+
+        -- [verificatorul k9-k10a] cine iese din joc in cele 17 s ale filmului il vede macar ca un cartonas la baraj
+        test.case("filmul pierdut: cartonasul la baraj, notat fara reincarcare", function()
+            check.is_true(has(fs.readFile("src/Shared/Net/Net.luau"), '"DamCardSeen"'))
+            local server = fs.readFile("src/Server/Net/NetServer.luau")
+            local card = string.match(server, 'Net%.Get%("DamCardSeen"%).-\n    end%)') or ""
+            check.is_true(has(card, 'RateLimiter.Allow(player, "Dam")'))
+            check.is_true(has(card, "deps.Dam.CardSeen(player)"))
+            check.is_true(has(server, "damFilmPending = deps.Dam.FilmPending(player)"))
+            local service = fs.readFile("src/Server/Services/DamService.luau")
+            local cardSeen = string.match(service, "function DamService%.CardSeen%(.-\nend") or ""
+            check.is_true(has(cardSeen, "DamFilmSeen = true"))
+            check.is_false(has(cardSeen, "reload"))
+            local boot = fs.readFile("src/Client/Bootstrap.client.luau")
+            check.is_true(has(boot, "raw.damFilmPending == true and world ~= 1"))
+            check.is_true(has(boot, "DamFilm.PlayCard, DamController.CardSeen"))
+        end)
+
+        -- [verificatorul k9-k10a] Widgets citeste ZIndex-ul parintelui: un ScreenGui n-are, iar Init-ul filmului cadea
+        -- (in satul de azi, ca avertisment la fiecare pornire). Nimic din client nu pune un Widget direct pe un ScreenGui.
+        test.case("niciun Widget pus direct pe un ScreenGui", function()
+            local film = fs.readFile("src/Client/Controllers/DamFilm.luau")
+            check.is_false(string.find(film, "Widgets%.%a+%(gui[,%)]") ~= nil)
+            check.is_false(string.find(film, "Widgets%.%a+%(safeGui[,%)]") ~= nil)
+            local bad = 0
+            for _, dir in
+                {
+                    "src/Client",
+                    "src/Client/Controllers",
+                    "src/Client/UI",
+                    "src/Fair/Client",
+                    "src/Fair/Client/Controllers",
+                }
+            do
+                if fs.isDir(dir) then
+                    for _, name in fs.readDir(dir) do
+                        if string.sub(name, -5) == ".luau" then
+                            local src = fs.readFile(`{dir}/{name}`)
+                            for var in
+                                string.gmatch(src, '(%w+)%s*=%s*Instance%.new%("ScreenGui"%)')
+                            do
+                                if string.find(src, `Widgets%.%a+%({var}[,%)]`) ~= nil then
+                                    print(`[DamService] Widget pe ScreenGui: {dir}/{name} ({var})`)
+                                    bad += 1
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+            check.equal(bad, 0)
+        end)
     end)
 end

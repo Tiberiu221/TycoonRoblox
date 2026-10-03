@@ -37,6 +37,7 @@ export type Deps = {
         DamRejected: RemoteEvent,
         DamFilmSeen: RemoteEvent,
         DamReloadFailed: RemoteEvent, -- [D70, pasul k8]
+        DamCardSeen: RemoteEvent, -- [verificatorul k9-k10a]
     },
     OnToast: (string, Color3?) -> (),
     -- cine asculta (ecranul, k7): chitanta noua sau motivul; ridicarea gata
@@ -131,6 +132,14 @@ function DamController.FilmSeen()
     local d = deps
     if d ~= nil then
         d.Remotes.DamFilmSeen:FireServer()
+    end
+end
+
+-- [verificatorul k9-k10a] la baraj: cartonasul „THE DAM” al filmului pierdut s-a vazut (serverul doar il noteaza)
+function DamController.CardSeen()
+    local d = deps
+    if d ~= nil then
+        d.Remotes.DamCardSeen:FireServer()
     end
 end
 

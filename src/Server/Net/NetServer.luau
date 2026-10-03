@@ -112,6 +112,8 @@ export type Deps = {
         Build: (Player, number) -> ({ [string]: any }?, string?),
         FilmSeen: (Player) -> string?,
         Available: (Player) -> boolean, -- [D70, pasul k6]
+        FilmPending: (Player) -> boolean, -- [verificatorul k9-k10a]
+        CardSeen: (Player) -> (),
     },
 }
 
@@ -200,6 +202,8 @@ local function buildTycoonState(player: Player): { [string]: any }
         world = deps.Pads.World(player),
         -- [D70, pasul k6] barajul se poate ridica acum: masa Dam Plans, clopotul, lista, zona si fereastra de revenire
         damAvailable = deps.Dam.Available(player),
+        -- [verificatorul k9-k10a] filmul barajului s-a pierdut (o iesire din joc in timpul lui): cartonasul la baraj
+        damFilmPending = deps.Dam.FilmPending(player),
         workshop = pads.workshop == "bought",
         -- [D56] parcat odata cu colectia: clientul nu-l mai citeste (insigna atelierului a iesit)
         pile = deps.Workshop.PileCount(player),
@@ -546,6 +550,12 @@ function NetServer.Init(d: Deps)
         local why = deps.Dam.FilmSeen(player)
         if why ~= nil then
             Net.Get("DamReloadFailed"):FireClient(player, why)
+        end
+    end)
+    -- [verificatorul k9-k10a] la baraj, dupa cartonasul filmului pierdut: doar se noteaza, fara raspuns
+    Net.Get("DamCardSeen").OnServerEvent:Connect(function(player: Player)
+        if RateLimiter.Allow(player, "Dam") then
+            deps.Dam.CardSeen(player)
         end
     end)
 

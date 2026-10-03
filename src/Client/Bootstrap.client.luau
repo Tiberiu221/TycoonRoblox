@@ -146,6 +146,8 @@ local hudCanvas = attachHudScale(hudGui)
 local world: number
 -- [D70, pasul k6] barajul se poate ridica acum (TycoonState.damAvailable): masa Dam Plans il citeste la fiecare cadru
 local damAvailable = false
+-- [verificatorul k9-k10a] cartonasul filmului pierdut s-a aratat in sesiunea asta (o singura data)
+local damCardShown = false
 do
     -- [verificatorul k1] cat asteptam profilul, imaginile mari ale hartii se incarca deja (satul se construieste abia
     -- dupa profil; inainte de k1 se construia in spatele cortinei si avea timp)
@@ -743,6 +745,7 @@ safeInit("DamController", function()
             DamRejected = Net.Get("DamRejected"),
             DamFilmSeen = Net.Get("DamFilmSeen"),
             DamReloadFailed = Net.Get("DamReloadFailed"), -- [D70, pasul k8]
+            DamCardSeen = Net.Get("DamCardSeen"), -- [verificatorul k9-k10a]
         },
         OnToast = function(text: string, color: Color3?)
             HUDController.Toast(text, color)
@@ -1723,6 +1726,12 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
 
     local rawSettings: any = raw.settings or {}
     damAvailable = raw.damAvailable == true -- [D70, pasul k6] copiat explicit
+    -- [verificatorul k9-k10a] filmul barajului s-a pierdut (ai iesit din joc in timpul lui): la baraj, o singura data,
+    -- cartonasul „THE DAM”, apoi serverul il noteaza (DamCardSeen)
+    if raw.damFilmPending == true and world ~= 1 and not damCardShown then
+        damCardShown = true
+        task.defer(DamFilm.PlayCard, DamController.CardSeen)
+    end
     local snapshot = {
         world = world, -- [D70, pasul k1] harta pentru care e construit clientul (starea altei harti nu ajunge aici)
         retired = retired, -- [D70, pasul k10] oamenii iesiti din lucru (Dam Town)
