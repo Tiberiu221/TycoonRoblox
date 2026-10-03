@@ -876,6 +876,13 @@ la granița CREWS / `DAM_START_COINS`.
 - Teste: verificatorul de așezare `synth_check` portat în `tests/`, pe lume; oglinda clienților; felinarele generalizate
   dincolo de `for era = 1, 3`.
 - Verificare: j1 identic; `village_ground --check` neschimbat; `check_config_prices` găsește toate prețurile.
+- **Făcut (2026-10-03).** `TycoonConfig.WORLDS[2]` (mărimea, cele două cartiere cu drumuri și curți, zonele `dam_town` fără
+  gard și `fog5` cu text neutru, spawn, `blocked`, apa, zidul, cele 9 clădiri, căsuțele, felinarele, stâlpii, cardurile) și
+  `RiverConfig.WORLDS` (lumea 1 = copia de azi; lumea 2: 3.385 px, terenul până la 3145, malul amenajat). Grămezile stau în
+  locurile liniilor, ale unirii și ale vânzătorului (ca la Erele 2–3), deci n-au tabel separat. Testul de așezare
+  (`tests/World2Layout.test.luau`) aplică regulile satului pe lumea 2 și derivă felinarele din regula străzii.
+  **Amânat la k11:** sloturile decorului cumpărat în Dam Town. Schița din scratchpad nu le are pe toate (lipsește bunting-ul),
+  iar clientul le citește abia atunci.
 
 **j8. Drumurile pe lume.** Depinde de: j7.
 - `RoadGraph.forWorld(w)` (`fromConfig()` rămâne `forWorld(1)`); `HandRoutes.context` poartă graful în loc de `true`; cheia

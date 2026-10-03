@@ -1041,7 +1041,8 @@ return function()
                 end
                 -- niciun felinar peste un om care lucreaza pe loc (cutia lui 40x60, prinsa de talpi)
                 for _, lamp in lamps do
-                    for _, place in TycoonConfig.LINE_PLACES do
+                    -- [D70] felinarele satului: oamenii satului (lumea 2 are felinarele ei, WORLDS[2])
+                    for _, place in TycoonConfig.linePlacesOf(1) do
                         local w = place.workerStand
                         for _, spot in { w, { x = w.x + place.secondOffset.x, y = w.y } } do
                             local apart = math.abs(lamp.x - spot.x) >= 15 + 20
@@ -1111,7 +1112,7 @@ return function()
                     end
                 end
             end
-            for name, pl in TycoonConfig.LINE_PLACES do
+            for name, pl in TycoonConfig.linePlacesOf(1) do -- [D70] stalpii satului, langa oamenii satului
                 local w = pl.workerStand
                 bottom(`{name}.worker`, w.x, w.y, 40, 60)
                 bottom(`{name}.second`, w.x + pl.secondOffset.x, w.y, 40, 60)

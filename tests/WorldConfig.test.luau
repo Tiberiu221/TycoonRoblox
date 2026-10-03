@@ -40,23 +40,25 @@ return function()
             end
         end)
 
-        test.case(
-            "lumea 2: platformele barajului; restul gol pana vin datele ei (pasul j7)",
-            function()
-                local pads = TycoonConfig.padsOfWorld(2)
-                check.equal(#pads, 23)
-                for _, p in pads do
-                    check.equal(p.era, 4)
-                end
-                check.equal(#TycoonConfig.padsOfWorld(1) + #pads, #TycoonConfig.PADS)
-                -- o lume care nu exista e satul (sanitize), nu o lista goala
-                check.is_true(TycoonConfig.padsOfWorld(9) == TycoonConfig.padsOfWorld(1))
-                check.equal(next(TycoonConfig.linePlacesOf(2)), nil)
-                check.equal(next(TycoonConfig.sellerPlacesOf(2)), nil)
-                check.equal(#TycoonConfig.streetLamps(2), 0)
-                check.equal(#TycoonConfig.wirePoles(2), 0)
+        test.case("lumea 2: platformele si locurile barajului", function()
+            local pads = TycoonConfig.padsOfWorld(2)
+            check.equal(#pads, 23)
+            for _, p in pads do
+                check.equal(p.era, 4)
             end
-        )
+            check.equal(#TycoonConfig.padsOfWorld(1) + #pads, #TycoonConfig.PADS)
+            -- o lume care nu exista e satul (sanitize), nu o lista goala
+            check.is_true(TycoonConfig.padsOfWorld(9) == TycoonConfig.padsOfWorld(1))
+            -- [j7] locurile liniilor, unirii si vanzatorului barajului sunt toate ale lumii 2
+            local lines = TycoonConfig.linePlacesOf(2)
+            for _, line in { "barrels", "cable", "crystal" } do
+                check.is_true(lines[line] == TycoonConfig.LINE_PLACES[line])
+            end
+            check.is_true(TycoonConfig.joinPlacesOf(2).grid == TycoonConfig.JOIN_PLACES.grid)
+            check.is_true(TycoonConfig.sellerPlacesOf(2).town == TycoonConfig.SELLER_PLACES.town)
+            check.equal(TycoonConfig.linePlacesOf(2).wood, nil)
+            check.equal(TycoonConfig.sellerPlacesOf(2).dock, nil)
+        end)
 
         test.case("niciun modul nu citeste lumea jucatorului la incarcare", function()
             -- Atributul World il pune serverul inainte de SaveLoaded; un `require` care l-ar citi in corpul modulului ar

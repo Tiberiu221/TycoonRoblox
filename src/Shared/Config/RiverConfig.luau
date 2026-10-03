@@ -90,4 +90,33 @@ RiverConfig.DECOR_STRIPS = {
     { x1 = RiverConfig.WORLD_WIDTH, plot = RiverConfig.PLOT },
 }
 
+-- [D70, pasul j7] RAUL FIECAREI LUMI, cu aceleasi chei ca RiverConfig (ca sa poata fi dat oricui primeste `cfg`:
+-- WorldMap, RiverSim, Shoreline). Lumea 1 e o copie a celui de azi, cu aceleasi obiecte. Lumea 2 (barajul, 3.385 px):
+-- terenul pana la x 3145 (cartierul pana la 3065, plus 80, ca satul), malul amenajat pe toata lungimea, o singura fasie de
+-- decor. Le citesc doar cei care stiu de lumi (pasul j9); RiverConfig ramane raul lumii 1.
+local function riverOfWorld(overrides: { [string]: any }): { [string]: any }
+    local out = table.clone(RiverConfig) :: { [string]: any }
+    for key, value in overrides do
+        out[key] = value
+    end
+    return out
+end
+local DAM_WIDTH = 3385
+local DAM_PLOT = { x = 200, y = 800, w = 2945, h = 850 }
+local damShoreNear = table.clone(RiverConfig.SHORE_NEAR)
+damShoreNear.calm = { x0 = 150, x1 = DAM_PLOT.x + DAM_PLOT.w, feather = 240, amp = 12 }
+RiverConfig.WORLDS = {
+    riverOfWorld({}),
+    riverOfWorld({
+        WORLD_WIDTH = DAM_WIDTH,
+        ERA1_WORLD_WIDTH = DAM_WIDTH,
+        ERA2_WORLD_WIDTH = DAM_WIDTH,
+        PLOT = DAM_PLOT,
+        PLOT_ERA1 = DAM_PLOT,
+        PLOT_ERA2 = DAM_PLOT,
+        SHORE_NEAR = damShoreNear,
+        DECOR_STRIPS = { { x1 = DAM_WIDTH, plot = DAM_PLOT } },
+    }),
+}
+
 return RiverConfig

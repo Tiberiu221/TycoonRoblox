@@ -467,12 +467,16 @@ return function()
             check.is_true(TycoonConfig.zonesOf(1) == TycoonConfig.ZONES)
             check.is_true(TycoonConfig.decorOf(1) == TycoonConfig.DECOR)
             check.is_true(TycoonConfig.spawnOf(1) == TycoonConfig.SPAWN)
+            -- locurile erelor 1-3 sunt ale lumii 1, cele ale barajului (pasul j7) nu
+            local lines1, sellers1 = TycoonConfig.linePlacesOf(1), TycoonConfig.sellerPlacesOf(1)
             for line, place in TycoonConfig.LINE_PLACES do
-                check.is_true(TycoonConfig.linePlacesOf(1)[line] == place)
+                local era1to3 = (StationConfig.ERA_OF_LINE[line] or math.huge) <= WORLD1_ERAS
+                check.equal(lines1[line] == place, era1to3)
             end
-            for seller, place in TycoonConfig.SELLER_PLACES do
-                check.is_true(TycoonConfig.sellerPlacesOf(1)[seller] == place)
+            for _, seller in { "dock", "market", "depot" } do
+                check.is_true(sellers1[seller] == TycoonConfig.SELLER_PLACES[seller])
             end
+            check.equal(sellers1.town, nil)
         end)
 
         test.case("lumea 1 e exact cea din martor (tests/witness/world1.txt)", function()

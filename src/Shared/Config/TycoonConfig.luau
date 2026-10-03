@@ -492,7 +492,16 @@ TycoonConfig.PLOT_ORIGIN = { x = 0, y = 0 }
 -- Cartierele terenului, de la vest la est (aval). Zona unei ere se vede de la inceput, estompata
 -- si ingradita, si se deschide cu clopotul erei dinainte [B, B4]. `soon`: ce scrie panoul cat era nu e in joc (fara el,
 -- Strings.zoneSoon).
-export type Zone = { id: string, name: string, era: number, x0: number, x1: number, soon: string? }
+-- [D70] `fence = false`: zona n-are gard (Dam Town, lumea 2: e deschisa de cand ajungi acolo).
+export type Zone = {
+    id: string,
+    name: string,
+    era: number,
+    x0: number,
+    x1: number,
+    soon: string?,
+    fence: boolean?,
+}
 TycoonConfig.ZONES = {
     { id = "landing", name = "The Landing", era = 1, x0 = 200, x1 = 1860 },
     { id = "mill", name = "The Mill", era = 2, x0 = 1860, x1 = 3560 },
@@ -642,6 +651,14 @@ local TAVERN_CUSTOMER_SPOTS = {
 local TAVERN_CUSTOMER_ENTRY = { x = 150, y = 1130 }
 local marketCustomerSpots: { { x: number, y: number, facing: string } } = {}
 local depotCustomerSpots: { { x: number, y: number, facing: string } } = {}
+-- [D70] clientii tavernei, mutati cu `dx` (orasul barajului)
+local function shiftedSpots(dx: number): { { x: number, y: number, facing: string } }
+    local out = {}
+    for _, spot in TAVERN_CUSTOMER_SPOTS do
+        table.insert(out, { x = spot.x + dx, y = spot.y, facing = spot.facing })
+    end
+    return out
+end
 for _, spot in TAVERN_CUSTOMER_SPOTS do
     table.insert(marketCustomerSpots, { x = spot.x + MILL_DX, y = spot.y, facing = spot.facing })
     table.insert(depotCustomerSpots, { x = spot.x + WORKS_DX, y = spot.y, facing = spot.facing })
@@ -717,6 +734,41 @@ TycoonConfig.LINE_PLACES = {
         outPile = shifted(TycoonConfig.PILES.forgeOut, WORKS_DX),
         secondOffset = { x = 60, y = 0 },
     },
+    -- [D70, pasul j7] BARAJUL (lumea 2, docs/PLAN-HARTA.md §9, aprobata in D74). Coordonatele sunt ale lumii 2: le citesc
+    -- doar cei care stiu de lumi (TycoonConfig.linePlacesOf(2)); felinarele si martorul lumii 1 le sar.
+    barrels = {
+        storeStand = { x = 930, y = 1010 },
+        processorIn = { x = 930, y = 1410 },
+        processorOut = { x = 1255, y = 1412 },
+        playerStand = { x = 1070, y = 1405 },
+        workerStand = { x = 1200, y = 1452 },
+        storePile = { x = 990, y = 1010 },
+        inPile = { x = 990, y = 1380 },
+        outPile = { x = 1195, y = 1380 },
+        secondOffset = { x = -60, y = 0 },
+    },
+    cable = {
+        storeStand = { x = 1350, y = 1010 },
+        processorIn = { x = 1350, y = 1410 },
+        processorOut = { x = 1675, y = 1412 },
+        playerStand = { x = 1490, y = 1405 },
+        workerStand = { x = 1620, y = 1452 },
+        storePile = { x = 1410, y = 1010 },
+        inPile = { x = 1410, y = 1380 },
+        outPile = { x = 1615, y = 1380 },
+        secondOffset = { x = -60, y = 0 },
+    },
+    crystal = {
+        storeStand = { x = 2535, y = 1010 },
+        processorIn = { x = 2635, y = 1410 },
+        processorOut = { x = 3035, y = 1412 },
+        playerStand = { x = 2815, y = 1405 },
+        workerStand = { x = 2895, y = 1452 },
+        storePile = { x = 2595, y = 1010 },
+        inPile = { x = 2699, y = 1380 },
+        outPile = { x = 2971, y = 1380 },
+        secondOffset = { x = 60, y = 0 },
+    },
 } :: { [string]: LinePlaces }
 -- Cladirile fixe ale Morii (ca depozitul si gaterul Erei 1: nu sunt platforme, sunt acolo cand se deschide cartierul)
 TycoonConfig.MILL_STORE =
@@ -760,11 +812,31 @@ TycoonConfig.SELLER_PLACES = {
         customerSpots = depotCustomerSpots,
         customerEntry = shifted(TAVERN_CUSTOMER_ENTRY, WORKS_DX),
     },
+    -- [D70, pasul j7] Switch House, orasul barajului (lumea 2): clientii in oglinda tavernei, mutati cu usa ei
+    town = {
+        door = { x = 2059, y = 1130 },
+        stand = { x = 2109, y = 1152 },
+        pile = { x = 1901, y = 1086 },
+        building = { x = 2039, y = 1080, w = 192, h = 144 },
+        secondOffset = { x = 60, y = 0 },
+        customerSpots = shiftedSpots(2059 - TycoonConfig.DOCK.x),
+        customerEntry = shifted(TAVERN_CUSTOMER_ENTRY, 2059 - TycoonConfig.DOCK.x),
+    },
 } :: { [string]: SellerPlaces }
--- [D70] Locurile fiecarei UNIRI (Relay-ul barajului), dupa linia ei. Gol pana la harta barajului (pasul j): HandRoutes
--- nu da drum niciunui om fara loc, iar testele isi aduc locuri inventate. Nu sta in LINE_PLACES: felinarele (lampHitsWorker)
--- si testele de asezare le parcurg pe toate.
-TycoonConfig.JOIN_PLACES = {} :: { [string]: JoinPlaces }
+-- [D70] Locurile fiecarei UNIRI (Relay-ul barajului), dupa linia ei. Nu sta in LINE_PLACES: n-are magazie, iar fiecare
+-- piesa isi are intrarea si gramada. [pasul j7] Relay-ul, casa-pod de la capatul canalului (lumea 2, PLAN-HARTA §9):
+-- butoaiele si cablul intra pe stanga, curentul iese pe dreapta, spre podul cu stalpi.
+TycoonConfig.JOIN_PLACES = {
+    grid = {
+        inputIn = { barrels = { x = 1897, y = 1410 }, cable = { x = 2025, y = 1410 } },
+        inPiles = { barrels = { x = 1961, y = 1380 }, cable = { x = 2089, y = 1380 } },
+        processorOut = { x = 2425, y = 1412 },
+        playerStand = { x = 2205, y = 1405 },
+        workerStand = { x = 2285, y = 1452 },
+        outPile = { x = 2361, y = 1380 },
+        secondOffset = { x = 60, y = 0 },
+    },
+} :: { [string]: JoinPlaces }
 
 -- CARTIERELE: puntea, drumurile si curtile fiecaruia. Primul e The Landing, cu tabelele lui de mai sus (DECK, ROADS,
 -- YARDS); al doilea e Moara, aceeasi asezare mutata cu MILL_DX. Strada Morii incepe unde se termina strada satului
@@ -2083,6 +2155,8 @@ TycoonConfig.PADS = {
         price = 0,
         effects = { netEffect(0.40, 3, "dam") },
         live = false,
+        x = 980,
+        y = 812,
         netRank = 5,
         netEra = 4,
     }),
@@ -2097,6 +2171,8 @@ TycoonConfig.PADS = {
         price = 0,
         effects = { netEffect(0.33, 1, "cable_ore") },
         live = false,
+        x = 1380,
+        y = 812,
         netRank = 1,
         netEra = 4,
     }),
@@ -2111,6 +2187,8 @@ TycoonConfig.PADS = {
         price = 0,
         effects = { hireEffect("damCollector") },
         live = false,
+        x = 760,
+        y = 1564,
     }),
     pad({
         id = "hire_dam_porter",
@@ -2123,6 +2201,8 @@ TycoonConfig.PADS = {
         price = 0,
         effects = { hireEffect("damPorter") },
         live = false,
+        x = 910,
+        y = 1564,
     }),
     pad({
         id = "hire_switchman",
@@ -2135,6 +2215,8 @@ TycoonConfig.PADS = {
         price = 0,
         effects = { hireEffect("switchman") },
         live = false,
+        x = 1060,
+        y = 1564,
     }),
     pad({
         id = "hire_barrel_hauler",
@@ -2147,6 +2229,8 @@ TycoonConfig.PADS = {
         price = 0,
         effects = { hireEffect("barrelHauler") },
         live = false,
+        x = 1210,
+        y = 1564,
     }),
     pad({
         id = "hire_dispatcher",
@@ -2159,6 +2243,8 @@ TycoonConfig.PADS = {
         price = 0,
         effects = { hireEffect("dispatcher") },
         live = false,
+        x = 1770,
+        y = 1030,
     }),
     pad({
         id = "hire_cable_collector",
@@ -2171,6 +2257,8 @@ TycoonConfig.PADS = {
         price = 180000000000,
         effects = { hireEffect("cableCollector") },
         live = false,
+        x = 1370,
+        y = 1564,
         needs = { after = "cable_net" },
     }),
     pad({
@@ -2184,6 +2272,8 @@ TycoonConfig.PADS = {
         price = 220000000000,
         effects = { hireEffect("cablePorter") },
         live = false,
+        x = 1520,
+        y = 1564,
         needs = { after = "hire_cable_collector" },
     }),
     pad({
@@ -2197,6 +2287,8 @@ TycoonConfig.PADS = {
         price = 250000000000,
         effects = { hireEffect("cablemaker") },
         live = false,
+        x = 1670,
+        y = 1564,
         needs = { after = "hire_cable_porter" },
     }),
     pad({
@@ -2210,6 +2302,8 @@ TycoonConfig.PADS = {
         price = 280000000000,
         effects = { hireEffect("cableHauler") },
         live = false,
+        x = 1820,
+        y = 1564,
         needs = { after = "hire_cablemaker" },
     }),
     pad({
@@ -2223,6 +2317,8 @@ TycoonConfig.PADS = {
         price = 300000000000,
         effects = { hireEffect("relayKeeper") },
         live = false,
+        x = 2190,
+        y = 1564,
         needs = { after = "hire_cable_hauler" },
     }),
     pad({
@@ -2236,6 +2332,8 @@ TycoonConfig.PADS = {
         price = 350000000000,
         effects = { hireEffect("pylonRunner") },
         live = false,
+        x = 2350,
+        y = 1564,
         needs = { after = "hire_relay_keeper" },
     }),
     pad({
@@ -2248,6 +2346,8 @@ TycoonConfig.PADS = {
         price = 1500000000000,
         effects = { netEffect(0.33, 1, "cable_ore") },
         live = false,
+        x = 1580,
+        y = 812,
         netRank = 2,
         netEra = 4,
         needs = {
@@ -2266,6 +2366,8 @@ TycoonConfig.PADS = {
         price = 16000000000000,
         effects = { netEffect(0.33, 2, "cable_ore") },
         live = false,
+        x = 1780,
+        y = 812,
         netRank = 3,
         netEra = 4,
         needs = {
@@ -2285,6 +2387,8 @@ TycoonConfig.PADS = {
         price = 110000000000000,
         effects = { flagEffect("kiln") },
         live = false,
+        x = 2835,
+        y = 1324,
         needs = { netsOwned = 4, after = "third_cable_net" },
     }),
     pad({
@@ -2298,6 +2402,8 @@ TycoonConfig.PADS = {
         price = 130000000000000,
         effects = { netEffect(0.40, 3, "crystal") },
         live = false,
+        x = 2625,
+        y = 812,
         netRank = 5,
         netEra = 4,
         needs = { after = "crystal_kiln" },
@@ -2313,6 +2419,8 @@ TycoonConfig.PADS = {
         price = 13000000000000,
         effects = { flagEffect("crystalShed") },
         live = false,
+        x = 2695,
+        y = 954,
         needs = { netsOwned = 5, after = "crystal_net" },
     }),
     pad({
@@ -2326,6 +2434,8 @@ TycoonConfig.PADS = {
         price = 13000000000000,
         effects = { hireEffect("crystalCollector") },
         live = false,
+        x = 2510,
+        y = 1564,
         needs = { after = "crystal_shed" },
     }),
     pad({
@@ -2339,6 +2449,8 @@ TycoonConfig.PADS = {
         price = 16000000000000,
         effects = { hireEffect("crystalPorter") },
         live = false,
+        x = 2660,
+        y = 1564,
         needs = { after = "hire_crystal_collector" },
     }),
     pad({
@@ -2352,6 +2464,8 @@ TycoonConfig.PADS = {
         price = 18000000000000,
         effects = { hireEffect("crystalsmith") },
         live = false,
+        x = 2810,
+        y = 1564,
         needs = { after = "hire_crystal_porter" },
     }),
     pad({
@@ -2365,6 +2479,8 @@ TycoonConfig.PADS = {
         price = 22000000000000,
         effects = { hireEffect("ingotHauler") },
         live = false,
+        x = 2960,
+        y = 1564,
         needs = { after = "hire_crystalsmith" },
     }),
     pad({
@@ -2378,6 +2494,8 @@ TycoonConfig.PADS = {
         price = 600000000000000,
         effects = { mulEffect("bells", 1.10) },
         live = false,
+        x = 2985,
+        y = 954,
         needs = { all = true, income = 4000000000000 },
     }),
 } :: { Pad }
@@ -2405,6 +2523,10 @@ end
 -- unui lucru vine din era lui. Geometria lumii 2 intra in WORLDS[2] (pasul j7), niciodata in DISTRICTS / ZONES / DECOR,
 -- care raman ale lumii 1 (R4: altfel drumurile ei s-ar lega de ale satului, iar pamantul copt s-ar schimba). Fiecare
 -- accesoriu primeste lumea; fara ea, lumea 1, deci cine nu stie inca de lumi vede satul de azi, neschimbat.
+-- `Box`: x, y, w, h. La `blocked` / `water` (x, y) e coltul din stanga-sus, ca la WorldMap.blockedRects; la cladiri si
+-- casute (x, y) e mijlocul bazei, ca STORAGE / TAVERN.
+export type Box = { x: number, y: number, w: number, h: number }
+export type Pylon = { name: string, x: number, y: number, w: number, h: number, overRoad: boolean }
 export type World = {
     districts: { District },
     zones: { Zone },
@@ -2412,6 +2534,16 @@ export type World = {
     spawn: { x: number, y: number },
     lamps: { Lamp }?,
     poles: { WirePole }?,
+    -- [D70, pasul j7] doar lumea 2 (lumea 1 le are in RiverConfig si in constantele de mai sus)
+    width: number?,
+    height: number?,
+    blocked: { Box }?, -- unde nu se merge pe uscat: zidul si canalul (raul il pune WorldMap)
+    water: { [string]: Box }?, -- lacul, deversorul, canalul (desen)
+    wall: Box?,
+    buildings: { [string]: Box }?,
+    cottages: { Box }?,
+    pylons: { Pylon }?,
+    cards: { [string]: { x: number, y: number } }?,
 }
 TycoonConfig.WORLDS = {
     [1] = {
@@ -2799,5 +2931,319 @@ function TycoonConfig.verbOf(p: Pad): string
     end
     return "build"
 end
+
+-- [D70, pasul j7] LUMEA 2, BARAJUL (docs/PLAN-HARTA.md §9, aprobata in D74; planseta: scripts/art/preview_dam_layout.py).
+-- 3.385 px: lacul si Dam Town la vest (pontonul, barca, roata, avizierul si comorile raman pe coordonatele satului),
+-- zidul la x 640-880, cartierul barajului la x 880-3065, ceata Erei 5 dupa el. Doua cartiere, fiecare cu puntea lui:
+-- puntea lacului (x 240-640) si puntea barajului (x 880-2760); strada le leaga. Nimic de aici nu e citit de lumea 1:
+-- ajunge la joc doar prin accesoriile cu lumea 2 (districtsOf(2), zonesOf(2), ...).
+-- Curtile au id-uri cu `_yard` / `house_`: simulatorul cauta pretul unei platforme dupa primul `id = "..."` din fisier.
+TycoonConfig.WORLDS[2] = {
+    width = 3385,
+    height = 1920,
+    districts = {
+        {
+            id = "dam_town",
+            era = 4,
+            deck = { x0 = 240, x1 = 640, y0 = 772, y1 = 856 },
+            roads = {
+                { id = "town_lane", x0 = 525, x1 = 575, y0 = 856, y1 = 1420, like = "tavern_link" },
+                { id = "town_plaza", x0 = 240, x1 = 550, y0 = 1090, y1 = 1170, like = "plaza" },
+            },
+            yards = {
+                { id = "canteen_yard", x0 = 222, x1 = 584, y0 = 1040, y1 = 1196, like = "tavern" },
+                { id = "memory_wall_yard", x0 = 650, x1 = 870, y0 = 1326, y1 = 1356 },
+                {
+                    id = "cottage_1_yard",
+                    x0 = 218,
+                    x1 = 362,
+                    y0 = 1594,
+                    y1 = 1638,
+                    like = "house_collector",
+                },
+                {
+                    id = "cottage_2_yard",
+                    x0 = 358,
+                    x1 = 502,
+                    y0 = 1594,
+                    y1 = 1638,
+                    like = "house_collector",
+                },
+                {
+                    id = "cottage_3_yard",
+                    x0 = 498,
+                    x1 = 642,
+                    y0 = 1594,
+                    y1 = 1638,
+                    like = "house_collector",
+                },
+            },
+        },
+        {
+            id = "dam",
+            era = 4,
+            deck = { x0 = 880, x1 = 2760, y0 = 772, y1 = 856 },
+            roads = {
+                { id = "dam_street", x0 = 240, x1 = 3065, y0 = 1420, y1 = 1480, like = "street" },
+                { id = "dam_lane", x0 = 880, x1 = 920, y0 = 856, y1 = 1420, like = "iron_lane" },
+                {
+                    id = "cable_lane",
+                    x0 = 1300,
+                    x1 = 1340,
+                    y0 = 856,
+                    y1 = 1420,
+                    like = "iron_lane",
+                },
+                {
+                    id = "pylon_lane",
+                    x0 = 2465,
+                    x1 = 2505,
+                    y0 = 856,
+                    y1 = 1420,
+                    like = "iron_lane",
+                },
+                {
+                    id = "switch_square",
+                    x0 = 1879,
+                    x1 = 2485,
+                    y0 = 1090,
+                    y1 = 1170,
+                    like = "plaza",
+                },
+            },
+            yards = {
+                {
+                    id = "dam_store_yard",
+                    x0 = 922,
+                    x1 = 1166,
+                    y0 = 968,
+                    y1 = 1040,
+                    like = "storage",
+                },
+                {
+                    id = "switchyard_yard",
+                    x0 = 922,
+                    x1 = 1275,
+                    y0 = 1326,
+                    y1 = 1418,
+                    like = "sawmill",
+                },
+                {
+                    id = "cable_store_yard",
+                    x0 = 1342,
+                    x1 = 1586,
+                    y0 = 968,
+                    y1 = 1040,
+                    like = "shed",
+                },
+                {
+                    id = "cableworks_yard",
+                    x0 = 1342,
+                    x1 = 1695,
+                    y0 = 1326,
+                    y1 = 1418,
+                    like = "forge",
+                },
+                {
+                    id = "dispatcher_yard",
+                    x0 = 1690,
+                    x1 = 1850,
+                    y0 = 1034,
+                    y1 = 1104,
+                    like = "stall",
+                },
+                {
+                    id = "switch_house_yard",
+                    x0 = 1861,
+                    x1 = 2185,
+                    y0 = 1040,
+                    y1 = 1196,
+                    like = "tavern",
+                },
+                { id = "relay_yard", x0 = 1877, x1 = 2445, y0 = 1318, y1 = 1418, like = "forge" },
+                { id = "pylon_yard", x0 = 2300, x1 = 2420, y0 = 1040, y1 = 1084 },
+                {
+                    id = "crystal_shed_yard",
+                    x0 = 2515,
+                    x1 = 2765,
+                    y0 = 968,
+                    y1 = 1040,
+                    like = "shed",
+                },
+                { id = "kiln_yard", x0 = 2619, x1 = 3061, y0 = 1318, y1 = 1418, like = "forge" },
+                { id = "dam_bell_yard", x0 = 2917, x1 = 3053, y0 = 984, y1 = 1036, like = "bell" },
+                {
+                    id = "house_dam_collector",
+                    x0 = 688,
+                    x1 = 832,
+                    y0 = 1594,
+                    y1 = 1638,
+                    like = "house_collector",
+                },
+                {
+                    id = "house_dam_porter",
+                    x0 = 838,
+                    x1 = 982,
+                    y0 = 1594,
+                    y1 = 1638,
+                    like = "house_collector",
+                },
+                {
+                    id = "house_switchman",
+                    x0 = 988,
+                    x1 = 1132,
+                    y0 = 1594,
+                    y1 = 1638,
+                    like = "house_collector",
+                },
+                {
+                    id = "house_barrel_hauler",
+                    x0 = 1138,
+                    x1 = 1282,
+                    y0 = 1594,
+                    y1 = 1638,
+                    like = "house_collector",
+                },
+                {
+                    id = "house_cable_collector",
+                    x0 = 1298,
+                    x1 = 1442,
+                    y0 = 1594,
+                    y1 = 1638,
+                    like = "house_collector",
+                },
+                {
+                    id = "house_cable_porter",
+                    x0 = 1448,
+                    x1 = 1592,
+                    y0 = 1594,
+                    y1 = 1638,
+                    like = "house_collector",
+                },
+                {
+                    id = "house_cablemaker",
+                    x0 = 1598,
+                    x1 = 1742,
+                    y0 = 1594,
+                    y1 = 1638,
+                    like = "house_collector",
+                },
+                {
+                    id = "house_cable_hauler",
+                    x0 = 1748,
+                    x1 = 1892,
+                    y0 = 1594,
+                    y1 = 1638,
+                    like = "house_collector",
+                },
+                {
+                    id = "house_relay_keeper",
+                    x0 = 2118,
+                    x1 = 2262,
+                    y0 = 1594,
+                    y1 = 1638,
+                    like = "house_collector",
+                },
+                {
+                    id = "house_pylon_runner",
+                    x0 = 2278,
+                    x1 = 2422,
+                    y0 = 1594,
+                    y1 = 1638,
+                    like = "house_collector",
+                },
+                {
+                    id = "house_crystal_collector",
+                    x0 = 2438,
+                    x1 = 2582,
+                    y0 = 1594,
+                    y1 = 1638,
+                    like = "house_collector",
+                },
+                {
+                    id = "house_crystal_porter",
+                    x0 = 2588,
+                    x1 = 2732,
+                    y0 = 1594,
+                    y1 = 1638,
+                    like = "house_collector",
+                },
+                {
+                    id = "house_crystalsmith",
+                    x0 = 2738,
+                    x1 = 2882,
+                    y0 = 1594,
+                    y1 = 1638,
+                    like = "house_collector",
+                },
+                {
+                    id = "house_ingot_hauler",
+                    x0 = 2888,
+                    x1 = 3032,
+                    y0 = 1594,
+                    y1 = 1638,
+                    like = "house_collector",
+                },
+            },
+        },
+    },
+    zones = {
+        { id = "dam_town", name = "The Dam", era = 4, x0 = 200, x1 = 3065, fence = false },
+        -- ceata Erei 5: text neutru, fara numele erei (O1, PLAN-MOTOR-UNIRE §16)
+        {
+            id = "fog5",
+            name = "The river beyond",
+            era = 5,
+            x0 = 3065,
+            x1 = 3385,
+            soon = "More river lies beyond the dam",
+        },
+    },
+    decor = {},
+    spawn = { x = 800, y = 1180 },
+    blocked = {
+        { x = 640, y = 768, w = 240, h = 192 }, -- zidul barajului, pe uscat (in rau il blocheaza raul)
+        { x = 2193, y = 856, w = 64, h = 234 }, -- canalul de sub Relay, intre punte si piata Switch House
+        { x = 2193, y = 1170, w = 64, h = 66 }, -- si de sub piata pana la stavila
+    },
+    water = {
+        lake = { x = 0, y = 480, w = 640, h = 288 },
+        spillway = { x = 690, y = 480, w = 140, h = 288 },
+        canal = { x = 2193, y = 768, w = 64, h = 468 }, -- apa deschisa 768..1236; sub Relay intra in stavila
+    },
+    wall = { x = 640, y = 392, w = 240, h = 568 },
+    buildings = {
+        damStore = { x = 1090, y = 1010, w = 120, h = 96 }, -- Battery Store (D74, punctul 7)
+        switchyard = { x = 1090, y = 1380, w = 120, h = 96 },
+        cableStore = { x = 1510, y = 1010, w = 120, h = 96 },
+        cableworks = { x = 1510, y = 1380, w = 120, h = 96 },
+        relay = { x = 2225, y = 1380, w = 192, h = 144 },
+        switchHouse = { x = 2039, y = 1080, w = 192, h = 144 },
+        canteen = { x = 400, y = 1080, w = 192, h = 144 },
+        bellTower = { x = 760, y = 960, w = 96, h = 240 },
+        memoryWall = { x = 760, y = 1340, w = 192, h = 96 },
+    },
+    cottages = {
+        { x = 290, y = 1620, w = 120, h = 102 },
+        { x = 430, y = 1620, w = 120, h = 102 },
+        { x = 570, y = 1620, w = 120, h = 102 },
+    },
+    -- felinarele strazii: regula streetLamps (intre case vecine), ocolind oamenii Relay-ului
+    lamps = {
+        { x = 835, y = TycoonConfig.LAMP_BASE_Y, era = 4 },
+        { x = 1290, y = TycoonConfig.LAMP_BASE_Y, era = 4 },
+        { x = 1445, y = TycoonConfig.LAMP_BASE_Y, era = 4 },
+        { x = 1745, y = TycoonConfig.LAMP_BASE_Y, era = 4 },
+        { x = 2585, y = TycoonConfig.LAMP_BASE_Y, era = 4 },
+        { x = 2735, y = TycoonConfig.LAMP_BASE_Y, era = 4 },
+    },
+    pylons = {
+        { name = "river_pylon", x = 2360, y = 1070, w = 48, h = 200, overRoad = false },
+        { name = "lane_pylon", x = 2450, y = 1300, w = 24, h = 120, overRoad = false },
+        { name = "bridge_pylon_w", x = 2190, y = 1100, w = 16, h = 70, overRoad = true },
+        { name = "bridge_pylon_e", x = 2262, y = 1100, w = 16, h = 70, overRoad = true },
+    },
+    cards = { bellTower = { x = 760, y = 990 }, memoryWall = { x = 760, y = 1370 } },
+}
 
 return TycoonConfig

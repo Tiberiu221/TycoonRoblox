@@ -58,6 +58,7 @@ require("./StreakMath.test")() -- [D71]
 require("./CatchSound.test")() -- [D72]
 require("./WorldIdentity.test")() -- [D70, pasul j1] martorul lumii 1
 require("./WorldConfig.test")() -- [D70, pasul j6] lumile
+require("./World2Layout.test")() -- [D70, pasul j7] asezarea barajului
 
 local frktest = require("@frktest/frktest")
 local console_reporter = require("@frktest/reporters/console_reporter")
