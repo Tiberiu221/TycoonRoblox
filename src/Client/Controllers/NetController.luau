@@ -17,7 +17,6 @@ local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 
 local RiverConfig = require(ReplicatedStorage.Shared.Config.RiverConfig)
-local StationConfig = require(ReplicatedStorage.Shared.Config.StationConfig)
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
 local Prng = require(ReplicatedStorage.Shared.Modules.Prng)
@@ -167,14 +166,8 @@ local function fadeBob(padId: string, bob: Frame, fade: number)
         end
     end
 end
-local sackRaw = 0 -- cati busteni bruti duci: decide unde te trimite mesajul de traista plina [D49]
-local sackRawScrap = 0 -- [D55] cat scrap brut duci: el merge la forja, nu la gater
-local sackIron = 0 -- [D56] cat fier duci: mesajul spune "planks", "iron" sau amandoua [D40]
-local sackFinds = 0 -- [D56] gasirile neprelucrate: nu sunt scanduri
--- [D65] traista, pe linii si pe vanzatori (TycoonState.sack): marfa Morii nu e nici bustean, nici scandura
-local sackRawBy: { [string]: number } = {}
-local sackSellBy: { [string]: { count: number, value: number } } = {}
-local sackPartsFull: string? = nil -- [verificatorul A2] piesele unei uniri in traista (barajul): textul lor de sac plin
+-- [D76] fraza traistei pline (unde duci marfa), aleasa de sackFullText din GuideMath, pe starea ghidajului; nil = traista nu e plina
+local sackFullText: string? = nil
 local LocalPlayer = Players.LocalPlayer
 
 local TIER_COLORS: { [string]: Color3 } = {}
@@ -587,37 +580,10 @@ local function refreshContents(padId: string)
     end
 end
 
--- Traista plina: unde sa te duci depinde de ce duci, bustenii la gater, scandurile la taverna [D49].
--- [D65] marfa bruta a oricarei linii merge la atelierul ei; ce se vinde doar la Piata, la Piata.
--- [D76] aceeasi fraza pe toast si pe cardul plasei: dupa ce ghidajul tace (D50), cardul e singurul care arata drumul.
+-- [D76] Traista plina: unde duci marfa. Fraza o alege sackFullText din GuideMath (prin Overlay), aceeasi ca a sagetii; pana la
+-- prima stare a ghidajului, doar „Sack full”.
 local function fullText(): string
-    local rawLine: string? = nil
-    for _, line in StationConfig.LINE_ORDER do
-        if (sackRawBy[line] or 0) > 0 then
-            rawLine = line
-            break
-        end
-    end
-    local atDock = if sackSellBy.dock ~= nil then sackSellBy.dock.count else 0
-    -- [D65, D67] marfa gata a unui vanzator al erelor noi (Piata, Depoul), cand taverna n-are nimic de luat
-    local sellAt: string? = nil
-    for _, seller in StationConfig.SELLER_ORDER do
-        local entry = sackSellBy[seller]
-        if seller ~= "dock" and entry ~= nil and entry.count > 0 then
-            sellAt = seller
-            break
-        end
-    end
-    return if sackRaw > 0
-        then Strings.SACK_FULL_LOGS
-        elseif sackRawScrap > 0 then Strings.SACK_FULL_SCRAP
-        elseif rawLine ~= nil then Strings.sackFullRaw(rawLine)
-        elseif sackPartsFull ~= nil then sackPartsFull
-        elseif sellAt ~= nil and atDock == 0 then Strings.sackFullSell(sellAt)
-        elseif sackIron > 0 and sackCount - sackIron - sackFinds > 0 then Strings.SACK_FULL_BOTH
-        elseif sackIron > 0 then Strings.SACK_FULL_IRON
-        elseif sackFinds >= sackCount then Strings.SACK_FULL_FINDS -- [D56] fara nicio scandura
-        else Strings.SACK_FULL_PLANKS
+    return sackFullText or Strings.CARD_SACK_FULL
 end
 
 -- Colecteaza plasa asta. Nu exista un remot care sa spuna "refuzat, traista plina" -- verificam AICI,
@@ -682,14 +648,9 @@ function NetController.Focus(px: number, py: number): Focus.Focus?
     }
 end
 
--- [D65] Traista pe linii si pe vanzatori; inainte de Apply.
-function NetController.SetSack(
-    rawBy: { [string]: number },
-    sellBy: { [string]: { count: number, value: number } },
-    partsFull: string? -- [verificatorul A2] textul sacului plin cu piese (GuideMath.partsFullText), ca la ghidaj
-)
-    sackRawBy, sackSellBy = rawBy, sellBy
-    sackPartsFull = partsFull
+-- [D76] Fraza traistei pline, de la Overlay (sackFullText din GuideMath): aceeasi pe sageata, pe cardul plasei si in toast.
+function NetController.SetFullText(text: string?)
+    sackFullText = text
 end
 
 -- Starea vine din TycoonState, inlocuita in intregime la fiecare mesaj [F0 spec 4.1].
@@ -698,17 +659,9 @@ function NetController.Apply(
     newSackCount: number,
     newSackCapacity: number,
     _lanes: number,
-    levels: { [string]: number }?,
-    newSackRaw: number?,
-    newSackRawScrap: number?,
-    newSackIron: number?,
-    newSackFinds: number?
+    levels: { [string]: number }?
 )
     sackCount, sackCapacity = newSackCount, newSackCapacity
-    sackRaw = newSackRaw or sackCount
-    sackRawScrap = newSackRawScrap or 0
-    sackIron = newSackIron or 0
-    sackFinds = newSackFinds or 0
     netLevels = levels or netLevels
     updatePlayerSack()
     local seen: { [string]: boolean } = {}

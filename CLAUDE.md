@@ -113,8 +113,10 @@ stylua/selene o prind. Rulează-le mereu pe toate, nu înlănțuite după o eroa
 **Arta barajului e desenată și legată în cod; owner-ul a aprobat planșele A1, A2 și A4 și urcarea lor, în ordinea A1 → A4 → A2
 [D76].** Pământul copt (A3, `prop_dam_ground` / `_2`) nu intră în acord: se cere separat. A4 (`scripts/art/a4_*.py`, planșa
 `a4_plate.py`): clădirile, casele, marfa și ținutele barajului (70). „Look across (E)” rămâne pe cardul Switch House.
-- **Schimbări voite în sat [D76, A4]:** cardul plasei cu sacul plin spune unde duci marfa (aceeași frază ca toast-ul,
-  `fullText` din `NetController`); clienții tavernei, ai Pieței și ai Depoului pleacă cu marfa vândută (`FlowMath.soldGood`);
+- **Schimbări voite în sat [D76, A4]:** cardul plasei cu sacul plin spune unde duci marfa, cu aceeași frază ca săgeata
+  (`GuideMath.sackFullText`, prin Overlay). Placa se rupe pe rânduri echilibrate, iar cardul E ocolește panourile fixe ale
+  HUD-ului (`GuideMath.cardPlacement`: lângă ele sau sub obiect). Clienții tavernei, ai Pieței și ai Depoului pleacă cu marfa
+  vândută (`FlowMath.soldGood`);
   după Works Bell, cristalul plutește pe curentul din larg (D68), acum că desenul lui e urcat.
 - **Urcarea [D76]:** A1 (16), A4 (70) și A2 (13 desene, piesa filmului și două sunete) sunt urcate, toate aprobate de
   moderare (2026-10-04). Mai au ID 0 doar pământul copt al barajului (A3, cerere separată) și coafura `bald` (intenționat).
@@ -124,6 +126,8 @@ Detaliile, rundele de verificator și ce urmează la urcare: `docs/PLAN-MOTOR-UN
   Old Bells, Memory Wall, căsuțele, stâlpii, orășelul pictat (se aprinde cu primul curent, cu Look (V); LookController pornește
   în orice lume), cristalul pe curentul din larg.
 - **A2** (`scripts/art/a2_*.py`, `scripts/audio/a2_film.py`, planșa `a2_plate.py`): filmul, cu decorul pur în `DamFilmSet`.
+- **Sonda duce profilul de la un Play la altul:** `probe.py export F`, apoi `probe.py play --profile F` (doar pe profil de
+  probă; `ProbeCarry` refuză un profil pe care JSON l-ar schimba). Așa se face Stop/Play-ul de după „Build the Dam” (l1).
 - **Capcană:** stylua a căzut o dată cu „Abort trap” în poartă; rulat din nou, trece. Verificatorii primesc intervalul de
   commit-uri (`base: "A B"`), ca lucrul necomis să nu le intre în diff.
 

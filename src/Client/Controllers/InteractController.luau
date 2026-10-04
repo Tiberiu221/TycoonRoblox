@@ -66,6 +66,9 @@ local upgradeScale: UIScale
 local current: Focus.Focus? = nil
 local shownAction: string? = nil
 local shownUpgrade: string? = nil
+-- [verificatorul D76] panza HUD si trecerea din lume in ea (SetHud, din Bootstrap): cardul ocoleste panourile fixe
+local hud: { WorldToHud: (number, number) -> (number, number), HudGui: Frame }? = nil
+local cardPlace = "above" -- unde a stat cardul in cadrul trecut (histerezisul din GuideMath.cardPlacement)
 
 -- ce stie din starea jocului, impins de Overlay la fiecare TycoonState
 local goal: GuideMath.Goal? = nil
@@ -74,6 +77,8 @@ local coins = 0
 local rows: { StationRow } = {}
 
 local ACTION_W, UPGRADE_W, CARD_H = 240, 180, 44
+-- [verificatorul D76] sub obiect: cat de jos de picioarele tale (sau de punctul locului) incepe cardul
+local CARD_BELOW = 20
 local CARD_Z = 12 -- in Scroll: peste teren (5) si ghidaj (9), sub pasari (60)
 -- pictograma de nivel (Widgets.Button: min(28, inaltime - 10)), distanta pana la text si marginea ramei, pe o parte
 local UPGRADE_ICON, UPGRADE_GAP, UPGRADE_SIDE = 28, Theme.SPACE.sm, 18
@@ -107,6 +112,7 @@ local function nextLevelCost(kind: string?, id: string?): number?
 end
 
 local function hide()
+    cardPlace = "above" -- [verificatorul D76] urmatorul card incepe de la locul lui firesc
     if card.Visible then
         card.Visible = false
     end
@@ -114,20 +120,102 @@ end
 
 -- Placa cu motivul ("Logs to the sawmill, scrap to the Forge first") creste dupa text pana la STATUS_MAX_W, apoi se rupe
 -- pe randuri si creste in jos. Cu latimea fixa de 240, o fraza de 452 iesea de pe placa [2026-09-15].
+-- [verificatorul D76] Randurile echilibrate (GuideMath.balancedWidth, ca eticheta ghidajului): „Sack full — take the” /
+-- „planks to the Tavern”, nu „...the planks to” / „the Tavern”, iar placa se ingusteaza cat textul. Cei 8 px de rezerva:
+-- sub UIScale, Roblox poate rupe cu o fractiune de pixel mai devreme decat masuratoarea.
 local STATUS_MAX_W = 320
 local function fitStatus(text: string)
     local pad = Theme.SPACE.sm * 2 -- UIPadding-ul placii, stanga + dreapta
     local line = Theme.textWidth(text, Theme.TEXT.body, "strong")
-    local width = math.clamp(math.ceil(line + pad + 8), ACTION_W, STATUS_MAX_W)
     local wraps = line + pad > STATUS_MAX_W
-    local height = if wraps
-        then math.max(
-            CARD_H - 4,
-            math.ceil(Theme.textHeight(text, Theme.TEXT.body, "strong", width - pad) + 12)
-        )
-        else CARD_H - 4
+    local width = math.clamp(math.ceil(line + pad + 8), ACTION_W, STATUS_MAX_W)
+    local height = CARD_H - 4
+    if wraps then
+        local function heightAt(w: number): number
+            return Theme.textHeight(text, Theme.TEXT.body, "strong", w)
+        end
+        local textW = GuideMath.balancedWidth(heightAt, STATUS_MAX_W - pad, line / 2)
+        width = math.max(ACTION_W, textW + pad + 8)
+        height = math.max(CARD_H - 4, math.ceil(heightAt(textW) + 12))
+    end
     statusLabel.TextWrapped = wraps
     statusLabel.Size = UDim2.fromOffset(width, height)
+end
+
+-- [verificatorul D76] Cat ocupa ce se vede pe card (butonul sau placa, plus Upgrade), in unitatile lumii. UIListLayout il
+-- centreaza pe mijlocul cardului, si pe orizontala, si pe verticala.
+local function contentSize(): (number, number)
+    local left = if actionButton.Visible
+        then actionButton.Size.X.Offset
+        elseif statusLabel.Visible then statusLabel.Size.X.Offset
+        else 0
+    local up = if upgradeButton.Visible then upgradeButton.Size.X.Offset else 0
+    local width = left + up + (if left > 0 and up > 0 then Theme.SPACE.sm else 0)
+    local height =
+        math.max(CARD_H - 4, if statusLabel.Visible then statusLabel.Size.Y.Offset else 0)
+    return width, height
+end
+
+-- [verificatorul D76] Panourile FIXE ale HUD-ului (atributul GuideBlocker: cifrele din stanga-sus, bara de meniu, joystick-ul
+-- si butonul E pe telefon), in coordonatele panzei. Toast-urile si bannerele sunt trecatoare: n-au voie sa mute cardul.
+local function fixedBlockers(canvas: Frame): { GuideMath.Rect }
+    local width = canvas.Size.X.Offset
+    local scale = if width > 0 then canvas.AbsoluteSize.X / width else 1
+    if scale <= 0 then
+        scale = 1
+    end
+    local origin = canvas.AbsolutePosition
+    local out: { GuideMath.Rect } = {}
+    for _, child in canvas:GetChildren() do
+        if
+            child:IsA("GuiObject")
+            and child.Visible
+            and child:GetAttribute("GuideBlocker") == true
+        then
+            local size = child.AbsoluteSize / scale
+            local pos = (child.AbsolutePosition - origin) / scale
+            table.insert(out, { x = pos.X, y = pos.Y, w = size.X, h = size.Y })
+        end
+    end
+    return out
+end
+
+-- [verificatorul D76] Unde sta cardul: deasupra obiectului, ca pana acum; langa coltul cu cifre (pe telefon) mutat pe langa
+-- el sau sub obiect (GuideMath.cardPlacement). Fara panza HUD (inainte de SetHud), deasupra.
+local function place(f: Focus.Focus, y: number): (number, number)
+    local h = hud
+    if h == nil then
+        return f.x, y
+    end
+    local w, ht = contentSize()
+    local mid = y - CARD_H / 2
+    local cx, top = h.WorldToHud(f.x, mid - ht / 2)
+    local rx = h.WorldToHud(f.x + 100, mid)
+    local perWorld = (rx - cx) / 100 -- unitati de panza pe px de lume
+    if perWorld <= 0 or w <= 0 then
+        return f.x, y
+    end
+    local _, py = deps.CharacterPos()
+    local belowTop = math.max(py, if f.at ~= nil then f.at.y else f.y) + CARD_BELOW
+    local _, belowY = h.WorldToHud(f.x, belowTop)
+    local canvas = h.HudGui
+    local where, shift = GuideMath.cardPlacement({
+        centerX = cx,
+        aboveY = top,
+        belowY = belowY,
+        width = w * perWorld,
+        height = ht * perWorld,
+        screenW = canvas.Size.X.Offset,
+        screenH = canvas.Size.Y.Offset,
+        blockers = fixedBlockers(canvas),
+        current = cardPlace,
+    })
+    cardPlace = where
+    local x = f.x + shift / perWorld
+    if where == "below" then
+        return x, belowTop + ht / 2 + CARD_H / 2
+    end
+    return x, y
 end
 
 -- Cat de lat trebuie sa fie butonul ca eticheta sa incapa intre marginile ramei (niciodata sub latimea de baza).
@@ -210,14 +298,6 @@ local function update()
     end
     current = f
 
-    -- [2026-09-29] tinut in ecran: pe telefon (~460 px de teren pe inaltime) cardul Pietei si al tavernei iesea pe sus
-    local y = f.y
-    local viewTop = deps.ViewTop
-    if viewTop ~= nil then
-        y = math.max(y, viewTop() + CARD_H + 8)
-    end
-    local origin = TycoonConfig.PLOT_ORIGIN
-    card.Position = UDim2.fromOffset(math.round(f.x + origin.x), math.round(y + origin.y))
     local action = f.action
     if action ~= shownAction then
         shownAction = action
@@ -257,6 +337,17 @@ local function update()
             and g.upgradeId == f.upgradeId
         upgradeScale.Scale = if wanted then 1 + 0.07 * math.abs(math.sin(os.clock() * 4)) else 1
     end
+    -- [2026-09-29] tinut in ecran: pe telefon (~460 px de teren pe inaltime) cardul Pietei si al tavernei iesea pe sus.
+    -- [verificatorul D76] Dupa ce stie ce arata (latimea placii si a butonului Upgrade), ca sa ocoleasca panourile fixe.
+    local y = f.y
+    local viewTop = deps.ViewTop
+    if viewTop ~= nil then
+        y = math.max(y, viewTop() + CARD_H + 8)
+    end
+    local x
+    x, y = place(f, y)
+    local origin = TycoonConfig.PLOT_ORIGIN
+    card.Position = UDim2.fromOffset(math.round(x + origin.x), math.round(y + origin.y))
     if not card.Visible then
         card.Visible = true
     end
@@ -311,6 +402,15 @@ end
 -- false cand nu e niciunul, ca U sa-si pastreze rostul vechi (lista statiilor).
 function InteractController.OpenUpgrade(): boolean
     return openUpgrade()
+end
+
+-- [verificatorul D76] Panza HUD si trecerea din lume in ea (worldToHud din Bootstrap, definita dupa Init): de acum cardul
+-- ocoleste panourile fixe ale HUD-ului (GuideMath.cardPlacement).
+function InteractController.SetHud(h: {
+    WorldToHud: (number, number) -> (number, number),
+    HudGui: Frame,
+})
+    hud = h
 end
 
 -- [D65] Un loc care nu are controllerul lui cu nume (locurile unei linii din LineController) isi adauga aici sursa de

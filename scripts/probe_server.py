@@ -29,6 +29,7 @@ PORT = int(os.environ.get("DRIFTWOOD_PROBE_PORT", "8787"))
 OUT = "/tmp/driftwood_probe.json"
 ROLES = ("edit", "server", "bridge")
 PROBE_FLAG = "/tmp/driftwood_probe_run"
+PROBE_PROFILE = "/tmp/driftwood_probe_profile.json"  # [l1] scris de `probe.py play --profile`
 
 
 def queue_path(role):
@@ -56,6 +57,20 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self.send_response(200)
             self._cors()
             self.send_header("Content-Type", "text/plain")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
+        # [PLAN §16, l1] profilul dus de la un Play de proba la urmatorul (`probe.py play --profile`), doar cat steagul e proaspat
+        if urllib.parse.urlparse(self.path).path == "/probeprofile":
+            fresh = os.path.exists(PROBE_FLAG) and time.time() - os.path.getmtime(PROBE_FLAG) < 120
+            body = b""
+            if fresh and os.path.exists(PROBE_PROFILE):
+                with open(PROBE_PROFILE, "rb") as f:
+                    body = f.read()
+            self.send_response(200)
+            self._cors()
+            self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
             self.wfile.write(body)

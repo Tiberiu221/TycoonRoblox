@@ -11,7 +11,8 @@
 --              Un Play pornit de aici ruleaza pe un PROFIL DE PROBA, niciodata pe salvarea owner-ului: inainte de
 --              start pune atributul `ProbeRun` pe Workspace (partile de joc se cloneaza din fereastra de editare, deci
 --              il au din prima clipa), iar DataService il citeste doar in Studio. La sfarsit il sterge.
---   server  -- partea de server a unui Play. Comenzi: `stop` (opreste testul), `client:<comanda>` (o trimite clientului
+--   server  -- partea de server a unui Play. La pornire ia profilul dus, daca `probe.py play --profile` l-a cerut [l1].
+--              Comenzi: `stop` (opreste testul), `client:<comanda>` (o trimite clientului
 --              printr-un atribut replicat), `report` (erorile serverului), `dev:<id>|<comanda>:<arg>` (o comanda din
 --              consola de dev, data jocului prin BindableFunction-ul `ServerStorage.DevProbe`, fara HTTP din joc;
 --              raspunsul e tiparit ca al clientului).
@@ -424,6 +425,27 @@ if role == "server" or role == "solo" then
         end)
         if ok and response ~= nil and response.Success and response.Body == "1" then
             Workspace:SetAttribute("ProbeRun", true)
+        end
+    end
+    -- [PLAN §16, l1] profilul dus din Play-ul de proba de dinainte (`probe.py play --profile FISIER`): il pune in
+    -- ServerStorage INAINTE de `ProbeDecided`, iar DataService il ia in locul profilului gol (doar intr-un Play de proba)
+    if Workspace:GetAttribute("ProbeRun") == true then
+        httpOn()
+        local ok, response = pcall(function()
+            return HttpService:RequestAsync({ Url = `{BASE}/probeprofile`, Method = "GET" })
+        end)
+        if ok and response ~= nil and response.Success and #response.Body > 2 then
+            local okSet, err = pcall(function()
+                local value = Instance.new("StringValue")
+                value.Name = "ProbeProfile"
+                value.Value = response.Body
+                value.Parent = game:GetService("ServerStorage")
+            end)
+            if okSet then
+                print(`[Driftwood] Play de proba cu profilul dus ({#response.Body} caractere)`)
+            else
+                warn(`[Driftwood] profilul dus nu incape intr-un StringValue: {err}`)
+            end
         end
     end
     Workspace:SetAttribute("ProbeDecided", true)

@@ -3,6 +3,7 @@
 -- Poarta e verificata pe SERVER, nu pe client: in productie handler-ul nici nu se conecteaza,
 -- deci un pachet trimis de mana nu are ce sa faca. Fiecare comanda intoarce o linie de raspuns,
 -- afisata in jurnalul panoului.
+local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
@@ -16,6 +17,7 @@ local QuestMath = require(ReplicatedStorage.Shared.Modules.QuestMath)
 local CrewMath = require(ReplicatedStorage.Shared.Modules.CrewMath)
 local FlowConfig = require(ReplicatedStorage.Shared.Config.FlowConfig)
 local WorldConfig = require(ReplicatedStorage.Shared.Config.WorldConfig)
+local ProbeCarry = require(ReplicatedStorage.Shared.Modules.ProbeCarry) -- [PLAN §16, l1]
 
 local DataService = require(script.Parent.DataService)
 local DevState = require(script.Parent.DevState)
@@ -449,6 +451,29 @@ local HANDLERS: { [string]: Handler } = {
             TycoonMath.formatNumber(r.incomeBefore),
             TycoonMath.formatNumber(r.incomeAfter)
         )
+    end,
+
+    -- [PLAN §16, l1] SONDA: profilul de acum, ca JSON, pentru Play-ul urmator (`probe.py export FISIER`, apoi `probe.py play
+    -- --profile FISIER`). O salvare de proba se pierde la Stop, iar drumul spre baraj trece printr-o reincarcare (in Studio:
+    -- Stop, apoi Play). Refuza un profil pe care drumul prin JSON l-ar schimba (ProbeCarry), ca sa nu duca altul decat cel
+    -- jucat.
+    export = function(player: Player, _arg: unknown): string
+        local data = DataService.Get(player)
+        if data == nil then
+            return "no profile"
+        end
+        local okEncode, json = pcall(function()
+            return HttpService:JSONEncode(data)
+        end)
+        if not okEncode then
+            return `refused: the profile does not encode as JSON ({json})`
+        end
+        local back = HttpService:JSONDecode(json)
+        local diff = ProbeCarry.firstDiff(data, back)
+        if diff ~= nil then
+            return `refused: JSON changes the profile at {diff}`
+        end
+        return json
     end,
 
     -- [D65] UNEALTA ERELOR: aduce profilul la INCEPUTUL capitolului N (chapter 4 = Era 2, cu clopotul Erei 1 tras):

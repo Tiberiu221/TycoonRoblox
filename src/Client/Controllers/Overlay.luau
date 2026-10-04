@@ -658,7 +658,14 @@ local function refreshGuide(snapshot: Snapshot)
     local gainAmbition = if stations ~= nil
         then AmbitionMath.pick(stations.rows, stations.crews, StationConfig.MILESTONES, true)
         else nil
-    local goal = GuideController.Apply(toGuideState(snapshot, gainAmbition))
+    local state = toGuideState(snapshot, gainAmbition)
+    -- [D76] cardul plasei cu traista plina spune aceeasi fraza ca sageata (GuideMath.sackFullText)
+    NetController.SetFullText(
+        if state.sackCapacity > 0 and state.sackCount >= state.sackCapacity
+            then GuideMath.sackFullText(state)
+            else nil
+    )
+    local goal = GuideController.Apply(state)
     -- [D63] tinta fara sfarsit: HUD-ul o arata doar cand n-are nici quest, nici pas de ghidaj
     HUDController.SetAmbition(ambition)
     HUDController.SetStep(goal, snapshot.coins)

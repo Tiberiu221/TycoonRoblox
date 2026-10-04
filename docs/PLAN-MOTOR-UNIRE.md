@@ -1448,6 +1448,9 @@ explicit.**
   owner, la l2/l3:** textul care spune unde duci marfa merge pe cardul plasei pline? Statusul ar lua aceeași alegere ca
   toast-ul (atenție la lățime pe telefonul mic). **[2026-10-04, D76: da, făcut]** `NetController` alege fraza o singură dată
   (`fullText`), pentru toast și pentru card; placa cardului crește până la 320 și se rupe pe rânduri (`fitStatus`).
+  **[Verificatorul D76, făcut]** Fraza o alege acum `GuideMath.sackFullText` (aceeași ca săgeata, prin Overlay): cu fier și
+  piese, cardul spunea „planks and iron”, fără nicio scândură. Placa are rânduri echilibrate (`balancedWidth`), iar cardul E
+  ocolește panourile fixe ale HUD-ului (`GuideMath.cardPlacement`): pe telefon, fraza intra sub colțul cu cifre.
 - **A4 (2026-10-04; planșa trimisă owner-ului, așteaptă aprobarea și acordul de urcare):** 70 de desene. Generatoarele sunt
   `scripts/art/a4_works.py`, `a4_halls.py`, `a4_goods.py`, `a4_huts_power.py`, `a4_huts_cable.py` și `a4_outfits.py`, iar planșa
   se face cu `python3 scripts/art/a4_plate.py`. Inventarul e în `scratchpad/a4_inventory.json`. Legătura în cod e făcută, cu ID 0:

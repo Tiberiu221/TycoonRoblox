@@ -2322,6 +2322,8 @@ end
 function Strings.cardUpgrade(cost: string?, keyHint: string): string
     return if cost ~= nil then `Upgrade{keyHint} · {cost}` else `Upgrade{keyHint}`
 end
+-- [D76] doar pana la prima stare a ghidajului; apoi cardul plasei pline spune unde duci marfa (sackFullText din GuideMath)
+Strings.CARD_SACK_FULL = "Sack full"
 -- [D54] panoul "Sound": nivelul muzicii si al efectelor, 0..10
 Strings.MENU_SOUND = "Sound"
 Strings.AUDIO_TITLE = "Sound"

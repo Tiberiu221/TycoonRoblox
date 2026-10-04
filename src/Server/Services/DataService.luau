@@ -11,6 +11,7 @@
 -- apoi place-ul in care ajungi (ProfileStore cere, prin MessagingService, sesiunii vechi sa se inchida), iar cine e
 -- "in drum" (MarkTeleporting) nu e dat afara cand se intampla asta.
 local DataStoreService = game:GetService("DataStoreService")
+local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -770,6 +771,24 @@ local function onPlayerAdded(player: Player)
         return
     end
     profile:AddUserId(player.UserId)
+    -- [PLAN §16, l1] Play de proba cu profilul dus din Play-ul de dinainte (`probe.py play --profile`): partea de server a
+    -- sondei il pune in ServerStorage inainte de `ProbeDecided`. Doar pe profilul de proba (Mock), niciodata pe o salvare.
+    local carried = if probe then ServerStorage:FindFirstChild("ProbeProfile") else nil
+    if carried ~= nil and carried:IsA("StringValue") then
+        local ok, decoded = pcall(function()
+            return HttpService:JSONDecode(carried.Value)
+        end)
+        if ok and typeof(decoded) == "table" then
+            profile.Data = decoded
+            print(
+                "[Driftwood] probe run: the profile comes from the previous probe Play (probe.py play --profile)"
+            )
+        else
+            warn(
+                `[Driftwood] probe run: the carried profile does not decode, starting fresh ({decoded})`
+            )
+        end
+    end
     ProfileMigrate.toV2(profile.Data)
     ProfileMigrate.toV3(profile.Data) -- inainte de Reconcile: goleste orice profil sub v2 [F0 spec 1.3]
     ProfileMigrate.toV4(profile.Data) -- gaterul [D48]: nivelul lui si gramada, aditiv

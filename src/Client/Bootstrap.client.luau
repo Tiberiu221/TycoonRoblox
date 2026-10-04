@@ -20,7 +20,6 @@ local StationConfig = require(ReplicatedStorage.Shared.Config.StationConfig)
 local WorldConfig = require(ReplicatedStorage.Shared.Config.WorldConfig) -- [D70, pasul k1]
 local StateCopy = require(ReplicatedStorage.Shared.Modules.StateCopy) -- [D70, pasul k3]
 local DamTown = require(ReplicatedStorage.Shared.Modules.DamTown) -- [D75] oraselul pictat
-local GuideMath = require(ReplicatedStorage.Shared.Modules.GuideMath) -- [verificatorul A2] textul sacului cu piese
 -- [D70, pasul k3] piesele fiecarei uniri din joc (Relay-ul barajului: butoaie si cablu), pentru copia starii
 local PARTS_OF = StateCopy.partsOf(FlowConfig.LINES)
 local UNIONS: { [string]: boolean } = {}
@@ -1157,6 +1156,9 @@ local function worldToHud(x: number, y: number): (number, number)
     return vx / hudScale, vy / hudScale
 end
 
+-- [verificatorul D76] cardul E ocoleste panourile fixe ale HUD-ului (pe telefon, coltul cu cifre)
+InteractController.SetHud({ WorldToHud = worldToHud, HudGui = hudCanvas })
+
 -- Coltul stratului tutorialului (inainte sa existe, al lumii: amandoua acopera tot ecranul).
 local function tutorialOrigin(): Vector2
     local s = tutorialScreen
@@ -1935,21 +1937,13 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
         promise = "crystal"
     end
     RiverRenderController.SetPromise(promise)
-    NetController.SetSack(
-        sackState.rawBy,
-        sackState.sellBy,
-        GuideMath.partsFullText(sackState.partBy, sackContents) -- [verificatorul A2] la baraj, ca ghidajul
-    ) -- [D65]
+    -- [D76] fraza traistei pline vine de la Overlay (sackFullText din GuideMath), aceeasi ca a sagetii
     NetController.Apply(
         snapshot.nets,
         sackCount,
         sackCapacity,
         snapshot.lanes,
-        snapshot.stations.netLevels,
-        sackState.raw,
-        sackState.rawScrap,
-        sackState.iron,
-        sackState.finds
+        snapshot.stations.netLevels
     )
     -- [D70, pasul k1] lucrurile satului, doar in sat (la baraj nu sunt pornite)
     if world == 1 then

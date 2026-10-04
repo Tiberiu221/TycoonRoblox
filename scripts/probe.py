@@ -11,6 +11,8 @@ ATENTIE: ceasul jurnalului Studio ramane in urma cat doarme Mac-ul. Nimic de aic
 in fisier.
 
   python3 scripts/probe.py play                 porneste un Play DE PROBA (profil gol, nu salvarea owner-ului)
+  python3 scripts/probe.py play --profile F     la fel, cu profilul scris de `export` (drumul trece printr-un Stop) [l1]
+  python3 scripts/probe.py export F             scrie profilul Play-ului de proba de acum in F (JSON)
   python3 scripts/probe.py stop                 opreste Play-ul
   python3 scripts/probe.py wait-boot [sec]      asteapta "server bootstrap complet" si sonda clientului
   python3 scripts/probe.py errors               erorile si avertismentele jocului de la ultimul Play incoace
@@ -33,6 +35,7 @@ CREATOR = re.compile(r"\[FLog::Creator(\w+)\]\s?(.*)$")
 PROBE = re.compile(r"\[\[PROBE (\w+) (\d+)/(\d+)\]\](.*)$")
 BOOT_MARK = "sonda incarcata (server)"
 PROBE_FLAG = "/tmp/driftwood_probe_run"
+PROBE_PROFILE = "/tmp/driftwood_probe_profile.json"  # [l1] il da probe_server.py partii de server a Play-ului
 
 
 def log_path():
@@ -179,9 +182,28 @@ def main():
         return
     verb = args[0]
     if verb == "play":
+        # [PLAN §16, l1] fara --profile, Play-ul porneste gol: un profil ramas de la o proba veche nu se ia niciodata
+        if os.path.exists(PROBE_PROFILE):
+            os.remove(PROBE_PROFILE)
+        if len(args) > 2 and args[1] == "--profile":
+            with open(args[2], encoding="utf-8") as f:
+                body = f.read()
+            json.loads(body)  # un fisier stricat cade aici, nu in joc
+            with open(PROBE_PROFILE, "w", encoding="utf-8") as f:
+                f.write(body)
         open(PROBE_FLAG, "w").close()  # partea de server a Play-ului intreaba de el: doar asa porneste pe profil de proba
         queue("edit", "play")
-        print("cerut: play (de proba)")
+        print("cerut: play (de proba)" + (f", cu profilul din {args[2]}" if os.path.exists(PROBE_PROFILE) else ""))
+    elif verb == "export":
+        if len(args) < 2:
+            sys.exit("folosire: probe.py export FISIER")
+        reply = dev("export", 60.0)
+        if reply is None or not reply.startswith("{"):
+            sys.exit(f"exportul n-a mers: {reply}")
+        data = json.loads(reply)
+        with open(args[1], "w", encoding="utf-8") as f:
+            f.write(reply)
+        print(f"profil scris in {args[1]} ({len(reply)} caractere, lumea {data.get('World')}, monede {data.get('Coins')})")
     elif verb == "stop":
         queue("server", "stop")
         print("cerut: stop")

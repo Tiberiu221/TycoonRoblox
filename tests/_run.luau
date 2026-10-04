@@ -68,6 +68,7 @@ require("./StateCopy.test")() -- [D70, pasul k3] copia starii pe linii
 require("./ChainHead.test")() -- [D70, pasul k4] capul panoului Stations, pe fiecare lume
 require("./DamEntry.test")() -- [D70, pasul k6] intrarea in baraj, din sat
 require("./DamWords.test")() -- [D70, pasul k7] ecranul „Build the Dam”
+require("./ProbeCarry.test")() -- [PLAN §16, l1] profilul de proba dus de la un Play la altul
 
 local frktest = require("@frktest/frktest")
 local console_reporter = require("@frktest/reporters/console_reporter")

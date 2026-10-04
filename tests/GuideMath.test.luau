@@ -845,6 +845,150 @@ return function()
         )
     end)
 
+    test.suite("GuideMath.sackFullText [D76, verificatorul D76]", function()
+        local function full(over: { [string]: any }): GuideMath.State
+            over.sackCapacity = over.sackCapacity or 30
+            over.sackCount = over.sackCount or over.sackCapacity
+            over.pads = over.pads or pads({ "first_net" })
+            over.firstsSell = true
+            return state(over)
+        end
+
+        test.case("traistele pure: busteni, scanduri, fier, gasiri", function()
+            check.equal(GuideMath.sackFullText(full({})), Strings.SACK_FULL_LOGS)
+            check.equal(GuideMath.sackFullText(full({ sackCut = 30 })), Strings.SACK_FULL_PLANKS)
+            check.equal(
+                GuideMath.sackFullText(full({ sackCut = 30, sackIron = 30 })),
+                Strings.SACK_FULL_IRON
+            )
+            check.equal(
+                GuideMath.sackFullText(full({ sackCut = 30, sackFinds = 30 })),
+                Strings.SACK_FULL_FINDS
+            )
+            check.equal(
+                GuideMath.sackFullText(full({ sackCut = 30, sackIron = 10 })),
+                Strings.SACK_FULL_BOTH
+            )
+        end)
+
+        test.case(
+            "fier si piese: nu „planks and iron” (piesele merg la Piata, nu sunt scanduri)",
+            function()
+                local s = full({
+                    sackCapacity = 40,
+                    sackCut = 3,
+                    sackIron = 3,
+                    sellAt = { dock = 3, market = 37 },
+                })
+                check.equal(GuideMath.sackFullText(s), Strings.SACK_FULL_IRON)
+            end
+        )
+
+        test.case("gasiri si piese: „finds”, nu „planks”", function()
+            local s = full({ sackCut = 5, sackFinds = 5, sellAt = { dock = 5, market = 25 } })
+            check.equal(GuideMath.sackFullText(s), Strings.SACK_FULL_FINDS)
+        end)
+
+        test.case("doar marfa Pietei: la Piata", function()
+            local s = full({ sackCut = 0, sellAt = { market = 30 } })
+            check.equal(
+                GuideMath.sackFullText(s),
+                Strings.guideSellAt(Strings.LINK_WORDS.market.label, true)
+            )
+        end)
+
+        test.case("cardul plasei spune ce spune sageata (pickGoal, traista plina)", function()
+            for _, over in
+                {
+                    {},
+                    { sackCut = 30 },
+                    { sackCut = 30, sackIron = 10 },
+                    { sackCut = 3, sackIron = 3, sellAt = { dock = 3, market = 27 } },
+                    { sackCut = 5, sackFinds = 5, sellAt = { dock = 5, market = 25 } },
+                    { sackCut = 0, sellAt = { market = 30 } },
+                    { sackRawScrap = 30 },
+                }
+            do
+                local s = full(over)
+                local goal = GuideMath.pickGoal(s)
+                check.is_true(goal ~= nil)
+                check.equal((goal :: GuideMath.Goal).text, GuideMath.sackFullText(s))
+            end
+        end)
+    end)
+
+    test.suite("GuideMath.cardPlacement [verificatorul D76]", function()
+        -- telefonul mic, in unitatile panzei HUD: 1076x605 (667x375 la 0,62), blocul cu cifre in stanga-sus
+        local HUD = { x = 20, y = 12, w = 482, h = 170 }
+        local function query(over: { [string]: any }): GuideMath.LabelQuery
+            local q: { [string]: any } = {
+                centerX = 538,
+                aboveY = 200,
+                belowY = 360,
+                width = 380,
+                height = 70,
+                screenW = 1076,
+                screenH = 605,
+                blockers = {},
+                current = "above",
+            }
+            for k, v in over do
+                q[k] = v
+            end
+            return q :: any
+        end
+
+        test.case("loc liber: deasupra, pe loc (ca pana acum)", function()
+            local place, shift = GuideMath.cardPlacement(query({}))
+            check.equal(place, "above")
+            check.equal(shift, 0)
+        end)
+
+        test.case("sub cifre: se muta la dreapta lor, intreg pe ecran", function()
+            local place, shift =
+                GuideMath.cardPlacement(query({ centerX = 400, aboveY = 120, blockers = { HUD } }))
+            check.equal(place, "above")
+            -- marginea stanga ajunge la 8 dupa bloc: 20 + 482 + 8 = 510; locul firesc incepea la 400 - 190 = 210
+            check.equal(shift, 510 - 210)
+        end)
+
+        test.case("lat cat nu incape langa cifre: trece sub obiect", function()
+            local place, shift = GuideMath.cardPlacement(
+                query({ centerX = 538, aboveY = 120, width = 600, blockers = { HUD } })
+            )
+            check.equal(place, "below")
+            check.equal(shift, 0)
+        end)
+
+        test.case(
+            "ocupat peste tot: ramane deasupra, ca pana acum (cardul se apasa, nu se ascunde)",
+            function()
+                local low = { x = 0, y = 330, w = 1076, h = 160 }
+                local place, shift = GuideMath.cardPlacement(
+                    query({ centerX = 538, aboveY = 120, width = 600, blockers = { HUD, low } })
+                )
+                check.equal(place, "above")
+                check.equal(shift, 0)
+            end
+        )
+
+        test.case(
+            "nu sare la fiecare pas: de sub obiect inapoi deasupra doar cu loc in plus",
+            function()
+                -- deasupra, la 10 px sub bloc (y 192): ajunge margin 8, nu si margin + return 20
+                local blocker = { x = 300, y = 12, w = 476, h = 170 }
+                local stay = GuideMath.cardPlacement(
+                    query({ aboveY = 192, width = 1000, current = "below", blockers = { blocker } })
+                )
+                check.equal(stay, "below")
+                local keep = GuideMath.cardPlacement(
+                    query({ aboveY = 192, width = 1000, current = "above", blockers = { blocker } })
+                )
+                check.equal(keep, "above")
+            end
+        )
+    end)
+
     test.suite("GuideMath.labelPlacement [D52]", function()
         -- Ecran 1600x900, eticheta 300x34 deasupra unei tinte din mijloc; panourile sunt cele din colt.
         local function query(over: { [string]: any }): GuideMath.LabelQuery

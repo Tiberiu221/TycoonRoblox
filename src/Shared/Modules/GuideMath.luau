@@ -396,6 +396,13 @@ local function carryGoal(s: State, full: boolean): Goal
     return sellGoal(s, full, not s.firstsSell)
 end
 
+-- [D76, verificatorul D76] Fraza traistei pline: unde duci ce ai in ea. Aceeasi pentru sageata (pickGoal, pasul b), pentru
+-- cardul plasei si pentru toast-ul ei (NetController, prin Overlay), ca pe ecran sa nu apara doua fraze. Cu fier si piese in
+-- traista, nu „planks and iron”: scandurile se numara doar din ce cumpara taverna (`sackCut`), iar piesele merg la Piata.
+function GuideMath.sackFullText(s: State): string
+    return carryGoal(s, true).text
+end
+
 -- [D50] Sageata si dara ghideaza doar pana ai cate un om la fiecare meserie. Owner-ul: "doar pana
 -- jucatorul ajunge sa aiba toate npc-urile". Dupa aia lantul merge singur, iar o sageata care tot
 -- arata ar fi zgomot.
@@ -1050,6 +1057,76 @@ function GuideMath.labelPlacement(q: LabelQuery): (string, number)
         return "below", shift
     end
     return "hidden", shift
+end
+
+-- ---- cardul E, langa panourile fixe [verificatorul D76] ----------------------------------------------
+-- Cardul obiectului de langa tine (InteractController) sta in lume, iar HUD-ul se deseneaza peste ea. Pe telefon, langa
+-- coltul cu cifre, fraza de pe card (unde duci marfa) intra sub ele. Regula: deasupra obiectului, ca pana acum, daca nu
+-- atinge niciun panou fix (GuideBlocker); altfel tot deasupra, mutat langa panoul care il acopera (cat mai putin, si doar
+-- daca ramane intreg pe ecran); altfel sub obiect, la fel; altfel deasupra, ca pana acum. Cardul nu se ascunde niciodata:
+-- se apasa. Histerezis: de sub obiect se intoarce deasupra doar cu loc in plus (LABEL_RETURN), ca sa nu sara la fiecare pas.
+-- Intoarce locul ("above" | "below") si cat se muta cardul pe orizontala, in unitatile intrarii (panza HUD).
+function GuideMath.cardPlacement(q: LabelQuery): (string, number)
+    local margin = GuideMath.LABEL_MARGIN
+    local left = q.centerX - q.width / 2
+    local onScreen = 0
+    if q.width <= q.screenW - 2 * margin then
+        if left < margin then
+            onScreen = margin - left
+        elseif left + q.width > q.screenW - margin then
+            onScreen = q.screenW - margin - (left + q.width)
+        end
+    end
+    local function hit(x: number, y: number, pad: number): Rect?
+        for _, b in q.blockers do
+            if
+                x < b.x + b.w + pad
+                and b.x < x + q.width + pad
+                and y < b.y + b.h + pad
+                and b.y < y + q.height + pad
+            then
+                return b
+            end
+        end
+        return nil
+    end
+    local function inside(x: number): boolean
+        return x >= margin and x + q.width <= q.screenW - margin
+    end
+    -- cea mai mica mutare (fata de locul firesc) la care cardul nu atinge niciun panou, pe randul `y`; nil daca nu e niciuna
+    local function slot(y: number, pad: number): number?
+        local x0 = left + onScreen
+        if hit(x0, y, pad) == nil then
+            return onScreen
+        end
+        local best: number? = nil
+        for _, b in q.blockers do
+            for _, x in { b.x + b.w + pad, b.x - pad - q.width } do
+                if inside(x) and hit(x, y, pad) == nil then
+                    local shift = x - left
+                    if
+                        best == nil
+                        or math.abs(shift - onScreen) < math.abs((best :: number) - onScreen)
+                    then
+                        best = shift
+                    end
+                end
+            end
+        end
+        return best
+    end
+    local abovePad = if q.current == "below" then margin + GuideMath.LABEL_RETURN else margin
+    local above = slot(q.aboveY, abovePad)
+    if above ~= nil then
+        return "above", above
+    end
+    if q.belowY + q.height <= q.screenH - margin then
+        local below = slot(q.belowY, margin)
+        if below ~= nil then
+            return "below", below
+        end
+    end
+    return "above", onScreen
 end
 
 -- ---- indicatorul de margine [verificatorii A0, k12] ---------------------------------------------------
