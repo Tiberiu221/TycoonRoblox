@@ -1466,6 +1466,9 @@ explicit.**
   separat.
   - **A1 urcat (2026-10-04):** 16 desene, regenerate din `a1_*.py` identice la pixel cu cele de pe planșă, 16 din 16
     aprobate de moderare. Singura schimbare în satul viu: după Works Bell, cristalul plutește pe curentul din larg (D68).
+  - **A4 urcat (2026-10-04):** 70 de desene (50 de clădiri, case, grămezi și încărcături, 5 mărfuri, 15 ținute), identice la
+    pixel cu cele de pe planșă, 70 din 70 aprobate. `upload_assets.py`: ținutele barajului în `OVERRIDE`, iar marfa se scrie
+    în tabelul `goods` (`table_key`), altfel `goods_barrel` ar fi căzut peste `props.barrel`. Rândurile de împrumut rămân.
 **[2026-10-03] A0, planșele sunt gata și așteaptă owner-ul** (`python3 scripts/art/a0_dam.py [wall|film]`, în scratchpad):
 - **`a0_dam_wall.png`:** zidul la locul lui, în două variante. **A** e de piatră, zidit din satul vechi, cu fața în trepte (recomandat:
   e ce spune filmul). **B** e de beton, cu trei stavile. Ambele au coama cu parapetul spre lac, fața din aval, panza

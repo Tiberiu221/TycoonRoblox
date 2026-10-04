@@ -70,6 +70,22 @@ OVERRIDE = {
     "outfit_lampkeeper": "lampkeeper",
     "outfit_harvest": "harvest",
     "outfit_supporter": "supporter",  # vine cu pass-ul Supporter
+    # [D75, lotul A4] oamenii barajului
+    "outfit_turbineer": "Turbineer",
+    "outfit_lugger": "Lugger",
+    "outfit_switchman": "Switchman",
+    "outfit_cooper": "Cooper",
+    "outfit_dispatcher": "Dispatcher",
+    "outfit_spooler": "Spooler",
+    "outfit_packer": "Packer",
+    "outfit_cablemaker": "Cablemaker",
+    "outfit_reeler": "Reeler",
+    "outfit_relayman": "Relayman",
+    "outfit_linewalker": "Linewalker",
+    "outfit_gemfinder": "Gemfinder",
+    "outfit_bearer": "Bearer",
+    "outfit_crystalsmith": "Crystalsmith",
+    "outfit_bullioner": "Bullioner",
     "ui_helm": "helm_face",
 }
 
@@ -108,9 +124,13 @@ def manifest_key(name):
 
 # [D60] Cheie cu tabel ("fair.bench"): balciul are chei care exista si in alte tabele (bench, barrel, crate, table),
 # iar write_manifest scrie PRIMA potrivire din fisier -- fara tabel, ID-ul balciului ar fi ajuns peste decorul satului.
+# [D76, lotul A4] Marfa in tabelul `goods`: `goods_barrel` ar fi dat peste `props.barrel` (butoiul de decor, primul din fisier).
 def table_key(name):
     m = re.match(r"prop_fair_(\w+)$", name)
-    return f"fair.{m.group(1)}" if m else None
+    if m:
+        return f"fair.{m.group(1)}"
+    m = re.match(r"goods_(\w+)$", name)
+    return f"goods.{m.group(1)}" if m else None
 
 
 def api_key():
