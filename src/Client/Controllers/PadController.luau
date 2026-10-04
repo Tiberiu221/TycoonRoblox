@@ -334,8 +334,9 @@ local function buildGhost(
     if isNetPad(pad) then
         return ghostNet(frame, pad, affordable)
     end
-    -- statiile stau pe o dala, exact ca dupa cumparare (aceeasi linie de sol: 1, 8)
-    if Assets.has(Assets.tycoon.platform) then
+    -- statiile stau pe o dala, exact ca dupa cumparare (aceeasi linie de sol: 1, 8). [inventarul A4] La baraj, unde
+    -- cartierul are pamantul lui, cumparata nu are dala (styleBought), deci nici umbra ei: dala Erei 1 disparea la cumparare
+    if Assets.has(Assets.tycoon.platform) and not (PadArt.isFresh(pad) and hasGround(pad.era)) then
         local plat = ghostImage(
             frame,
             Assets.tycoon.platform,

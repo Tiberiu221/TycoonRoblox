@@ -37,6 +37,17 @@ local function count(items: { PileMath.Catch }, good: string, cut: boolean?): nu
 end
 
 return function()
+    -- [inventarul A4] clientul pleaca acasa cu marfa vanzatorului: Piata ramane cu piesa de masina, Depoul si Switch House
+    -- nu mai dau piesa de masina a Morii
+    test.suite("FlowConfig.customerGood [inventarul A4]", function()
+        test.case("fiecare vanzator, marfa ultimei linii din preferintele lui", function()
+            check.equal(FlowConfig.customerGood("market"), "parts")
+            check.equal(FlowConfig.customerGood("depot"), "coils")
+            check.equal(FlowConfig.customerGood("town"), "grid")
+            check.equal(FlowConfig.customerGood("nimeni"), nil)
+        end)
+    end)
+
     test.suite("FlowConfig - drumul marfii, ca date", function()
         test.case(
             "fiecare linie a lantului isi are drumul, cu cladirea, omul si vanzatorul din StationConfig",

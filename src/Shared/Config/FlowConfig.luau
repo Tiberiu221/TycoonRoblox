@@ -323,6 +323,16 @@ local LINES_ALL = {
 } :: { [string]: Line }
 FlowConfig.LINES_ALL = LINES_ALL
 
+-- [inventarul A4] Ce duce acasa clientul unui vanzator: marfa ultimei linii din preferintele lui (Piata: piesa de masina;
+-- Depoul: colacul de sarma; Switch House: curentul). nil pentru un vanzator necunoscut.
+function FlowConfig.customerGood(seller: string): string?
+    local spec = StationConfig.SELLERS[seller]
+    local order = if spec ~= nil then spec.priority else nil
+    local last = if order ~= nil then order[#order] else nil
+    local line = if last ~= nil then LINES_ALL[last] else nil
+    return if line ~= nil then line.output else nil
+end
+
 local SELLERS_ALL = {
     dock = {
         seller = "dock",

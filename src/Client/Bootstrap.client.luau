@@ -50,6 +50,7 @@ local ModernMath = require(ReplicatedStorage.Shared.Modules.ModernMath)
 -- module din `UI` chiar la incarcare.
 local Controllers = script.Parent:WaitForChild("Controllers")
 local UI = script.Parent:WaitForChild("UI")
+local Modern = require(UI.Modern) -- [inventarul A4] treapta modernizarii, si la baraj (caruciorul de fier)
 local HUDController = require(Controllers.HUDController)
 local IndexController = require(Controllers.IndexController)
 local RiverRenderController = require(Controllers.RiverRenderController)
@@ -270,6 +271,11 @@ end)
 safeInit("LookController", function()
     LookController.Init({ CharacterPos = CharacterController.Position })
 end)
+-- [inventarul A4] Barajul vine dupa satul modernizat de tot (Era 3, ultima treapta): oamenii lui impreuna caruciorul de fier,
+-- nu roaba de lemn a Erei 1 (ModernController ruleaza doar in sat, deci acolo treapta se pune singura)
+if world ~= 1 then
+    Modern.stage = #ModernMath.STAGES
+end
 
 -- [D70] Bannerul unei trepte a modernizarii (sau al felinarelor aprinse), cu butonul "Look (V)" cand locul schimbat, din
 -- satul vechi, nu e pe ecran: o privire de 4 s spre el (LookController).
@@ -1919,7 +1925,8 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
     local owned = snapshot.pads
     local promise: string? = nil
     if world ~= 1 then
-        promise = nil
+        -- [inventarul A4] la baraj, ca in sat (D53): marfa pe care plasele tale inca n-o prind, cristalul pana la Crystal Net
+        promise = if owned.crystal_net ~= "bought" then "crystal" else nil
     elseif owned.fifth_net ~= "bought" then
         promise = "scrap"
     elseif owned.water_wheel == "bought" and owned.tenth_net ~= "bought" then

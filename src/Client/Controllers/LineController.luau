@@ -697,6 +697,16 @@ function LineController.join(line: string, building: Building): Line
     return self
 end
 
+-- [inventarul A4] Ce duce acasa clientul unui vanzator: marfa ultimei linii din preferintele lui (Piata: piesa de masina, ca
+-- inainte; Depoul: colacul de sarma; Switch House: curentul). Inainte toti plecau cu piesa de masina a Morii.
+local function customerCarry(seller: string): string
+    local good = FlowConfig.customerGood(seller)
+    if good == nil or good == "parts" then
+        return "part"
+    end
+    return `good:{good}`
+end
+
 -- Vanzatorul unui cartier: cladirea, gramada de langa ea si predarea la usa.
 function LineController.seller(seller: string, building: Building): Seller
     local flow = FlowConfig.SELLERS[seller]
@@ -722,7 +732,7 @@ function LineController.seller(seller: string, building: Building): Seller
         spots = places.customerSpots,
         entry = places.customerEntry,
         seedBase = 950000,
-        held = "part",
+        held = customerCarry(seller),
     })
     RunService.PreRender:Connect(crowd.Step)
     deps.Remotes.Sold.OnClientEvent:Connect(

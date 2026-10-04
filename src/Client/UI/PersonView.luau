@@ -211,7 +211,11 @@ function PersonView.new(parent: Instance, name: string, held: string?): View
             held == "plank"
         then Assets.goods.planks -- [D65] clientul Pietei pleaca cu o piesa de masina (desenul ei cand e urcat, altfel al perechii)
 
-        elseif held == "part" then GoodArt.icon("parts")
+        elseif held == "part" then GoodArt.icon("parts") -- [inventarul A4] „good:<marfa>”: clientul unui vanzator pleaca cu ce a cumparat (Depoul, Switch House)
+
+        elseif held ~= nil and string.sub(held, 1, 5) == "good:" then GoodArt.icon(
+            string.sub(held, 6)
+        )
         else nil
     if sprite ~= nil and Assets.has(sprite) then
         local s = Instance.new("ImageLabel")
