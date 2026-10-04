@@ -113,11 +113,17 @@ local function nextLevelCost(kind: string?, id: string?): number?
     return nil
 end
 
-local function hide()
-    cardKey, cardOf = nil, nil -- [verificatorul D76] urmatorul card incepe de la locul lui firesc
+-- [verificatorul D76] cardul ascuns doar cat e deschis un meniu, tine o privire Look sau tii E: isi pastreaza locul, ca
+-- dupa ce inchizi meniul Upgrade butonul sa fie unde l-ai lasat
+local function conceal()
     if card.Visible then
         card.Visible = false
     end
+end
+
+local function hide()
+    cardKey, cardOf = nil, nil -- [verificatorul D76] urmatorul card incepe de la locul lui firesc
+    conceal()
 end
 
 -- Placa cu motivul ("Logs to the sawmill, scrap to the Forge first") creste dupa text pana la STATUS_MAX_W, apoi se rupe
@@ -247,7 +253,7 @@ local function update()
     if Panels.AnyOpen() then
         current = nil
         PadController.SetApproachSuppressed(false)
-        hide()
+        conceal()
         return
     end
     local looking = deps.Looking
@@ -255,7 +261,7 @@ local function update()
         -- undita aruncata mulineaza mai departe (rig-ul citeste tasta singur); cartonasul platformei tace si el
         current = nil
         PadController.SetApproachSuppressed(true)
-        hide()
+        conceal()
         return
     end
     local cx, cy = deps.CharacterPos()
@@ -285,7 +291,7 @@ local function update()
         -- E e al treburii in curs: niciun card, niciun cartonas de cumparare
         current = f
         PadController.SetApproachSuppressed(true)
-        hide()
+        conceal()
         return
     end
 

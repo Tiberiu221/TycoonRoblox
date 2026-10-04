@@ -1090,9 +1090,9 @@ end
 -- Un loc lateral se numeste dupa marginea la care sta (NEXT si AWAY se termina amandoua la x 502: acelasi loc). Trei praguri,
 -- ca sa nu sara la un pas:
 --   - locul tinut (`currentKey`) ramane cat nu atinge niciun panou si nici marginea de jos a ecranului;
---   - un loc nou e liber cu LABEL_MARGIN (`loose`);
---   - unul mai bun il inlocuieste pe cel tinut doar liber cu LABEL_MARGIN + LABEL_RETURN (`strict`): pe verticala si fata
---     de marginea de jos mereu, pe orizontala doar locurile firesti (x-ul unui loc lateral e legat de panou, nu de mers).
+--   - un card nou ia cel mai bun loc liber cu LABEL_MARGIN (`loose`);
+--   - unul mai bun il inlocuieste pe cel tinut doar liber cu LABEL_MARGIN + LABEL_RETURN (`strict`), si fata de marginea de
+--     jos. In banda dintre cele doua praguri, locul tinut ramane: acolo conteaza din ce parte vii (histerezisul voit).
 -- Mai bun = treapta mai mica, sau aceeasi treapta mai aproape de locul firesc cu peste LABEL_RETURN. Daca niciun loc nu e
 -- liber (cardul e mai lat decat golul dintre joystick si butonul E), cel care acopera cel mai putin, in plafon; cel tinut
 -- ramane cat nu acopera cu mai mult de LABEL_MARGIN / 2 in adancime. Cardul nu se ascunde niciodata: se apasa.
@@ -1151,6 +1151,20 @@ function GuideMath.cardCovered(
     return area
 end
 
+-- Cat de adanc intra cardul (la x, y) sub un panou: cea mai mare dintre suprapuneri, masurata pe latura ei scurta. O arie
+-- n-ar spune asta: un card intrat de jos in linia NEXT acopera sute de unitati pe fiecare unitate de adancime.
+function GuideMath.cardDepth(q: CardQuery, x: number, y: number): number
+    local depth = 0
+    for _, b in q.blockers do
+        local w = math.min(x + q.width, b.x + b.w) - math.max(x, b.x)
+        local h = math.min(y + q.height, b.y + b.h) - math.max(y, b.y)
+        if w > 0 and h > 0 then
+            depth = math.max(depth, math.min(w, h))
+        end
+    end
+    return depth
+end
+
 -- Locurile cu nume ale cardului (vezi mai sus), in ordinea treptelor.
 function GuideMath.cardSpots(q: CardQuery): { CardSpot }
     local margin = GuideMath.LABEL_MARGIN
@@ -1199,16 +1213,14 @@ function GuideMath.cardPlacement(q: CardQuery): (string, number, string)
         return cap == nil or math.abs(s.x - naturalX) <= cap + capExtra
     end
     local function free(s: CardSpot, mode: string): boolean
-        local side = s.tier % 2 == 1
         if mode == "keep" then
             return inCap(s, extra)
                 and s.y + q.height <= q.screenH
                 and GuideMath.cardCovered(q, s.x, s.y, 0, 0) <= 0
         elseif mode == "strict" then
-            local padX = if side then margin else margin + extra
             return inCap(s, 0)
                 and s.y + q.height <= q.screenH - margin - extra
-                and GuideMath.cardCovered(q, s.x, s.y, padX, margin + extra) <= 0
+                and GuideMath.cardCovered(q, s.x, s.y, margin + extra, margin + extra) <= 0
         end
         return inCap(s, 0)
             and s.y + q.height <= q.screenH - margin
@@ -1237,7 +1249,8 @@ function GuideMath.cardPlacement(q: CardQuery): (string, number, string)
             loose = s
         end
     end
-    local pick: CardSpot? = strict or loose
+    -- un card nou: cel mai bun loc liber cu LABEL_MARGIN; pragul `strict` e doar pentru a-l inlocui pe cel tinut
+    local pick: CardSpot? = loose
     if kept ~= nil then
         pick = kept
         local k = kept :: CardSpot
@@ -1257,7 +1270,6 @@ function GuideMath.cardPlacement(q: CardQuery): (string, number, string)
         local least: CardSpot? = nil
         local leastArea = math.huge
         local previous: CardSpot? = nil
-        local previousArea = math.huge
         for _, s in spots do
             if inCap(s, 0) or (s.key == q.currentKey and inCap(s, extra)) then
                 local area = GuideMath.cardCovered(q, s.x, s.y, 0, 0)
@@ -1265,13 +1277,20 @@ function GuideMath.cardPlacement(q: CardQuery): (string, number, string)
                     least, leastArea = s, area
                 end
                 if s.key == q.currentKey then
-                    previous, previousArea = s, area
+                    previous = s
                 end
             end
         end
         pick = least
-        if previous ~= nil and previousArea <= leastArea + margin / 2 * q.height then
-            pick = previous
+        local l = least
+        local prev = previous
+        if
+            prev ~= nil
+            and l ~= nil
+            and GuideMath.cardDepth(q, prev.x, prev.y)
+                <= GuideMath.cardDepth(q, l.x, l.y) + margin / 2
+        then
+            pick = prev
         end
     end
     local chosen = pick or spots[1]

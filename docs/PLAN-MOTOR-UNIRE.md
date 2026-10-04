@@ -1472,10 +1472,15 @@ explicit.**
   pe 79.056 de plimbări (pași de 0,4–3 unități, rândul de jos legat de obiect sau de tine), tot niciunul.
   **[A cincea rundă, făcut]**
   - Trei praguri: locul ținut rămâne cât nu atinge nimic; unul nou are nevoie de `LABEL_MARGIN`; unul mai bun îl înlocuiește
-    pe cel ținut doar cu `LABEL_MARGIN + LABEL_RETURN`. Pe orizontală, locurile laterale cer doar `LABEL_MARGIN`, fiindcă
-    x-ul lor e legat de panou. Acum un card venit de jos urcă lângă cifre ca un card nou, deci așezarea nu mai depinde de drum.
+    pe cel ținut doar cu `LABEL_MARGIN + LABEL_RETURN`. **[A șasea rundă]** Un card nou ia cel mai bun loc liber cu
+    `LABEL_MARGIN` (înainte lua întâi un loc „strict”, chiar de treaptă mai rea, și cobora sub tine fără rost). Pragul strict e
+    același pe toate laturile: un loc lateral (treapta 1) îl ia doar un card nou sau unul care era pe locul firesc, iar unul
+    venit de dedesubt urcă direct pe locul firesc. Cât stai în banda dintre cele două praguri, locul ținut rămâne: acolo
+    contează din ce parte vii, fiindcă așa e histerezisul voit. Cardul ascuns doar cât e deschis un meniu, o privire Look sau
+    E ținut își păstrează locul.
   - Un loc lateral se numește după marginea la care stă (NEXT și AWAY se termină la același x).
-  - Rezerva cardului prea lat ține locul vechi doar cât intră cel mult `LABEL_MARGIN / 2` sub un panou și respectă plafonul.
+  - Rezerva cardului prea lat ține locul vechi doar cât intră cel mult `LABEL_MARGIN / 2` mai adânc sub un panou decât locul
+    cel mai puțin acoperit (`GuideMath.cardDepth`, adâncimea pe latura scurtă a suprapunerii, nu aria), și respectă plafonul.
   - Pulsul pastilei Sack nu mai mută cardul: panourile se citesc fără `UIScale` (și la indicatorul ghidajului).
   - Testele măsoară și suprapunerea pe plimbări, plus un tremur la colțul NEXT–joystick. În scratchpad, pe 250.776 de puncte
     cu tremur pe loc, cardul nu mai schimbă locul după ce s-a așezat.
