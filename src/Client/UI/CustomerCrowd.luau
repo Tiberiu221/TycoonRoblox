@@ -45,6 +45,12 @@ local SPAWN_GAP = 0.9 -- vin pe rand, nu toti deodata
 local LEAVE_GAP = 1.2 -- o vanzare pe secunda n-are voie sa goleasca locul intr-o clipa
 
 local CustomerCrowd = {}
+-- [verificatorul A2] filmul barajului: si clientii pleaca (se sting cu oamenii satului, 0..1; la 1 nu mai vin altii).
+-- Comun tuturor multimilor (taverna, Piata, Depoul).
+local filmFade = 0
+function CustomerCrowd.SetFilmFade(k: number)
+    filmFade = math.clamp(k, 0, 1)
+end
 
 function CustomerCrowd.new(o: Options): Crowd
     local customers: { Customer } = {}
@@ -142,7 +148,7 @@ function CustomerCrowd.new(o: Options): Crowd
                 present += 1
             end
         end
-        if present < target and now - lastSpawnAt >= SPAWN_GAP then
+        if present < target and now - lastSpawnAt >= SPAWN_GAP and filmFade <= 0 then
             lastSpawnAt = now
             spawnCustomer()
         elseif present > target and now - lastLeaveAt >= LEAVE_GAP then
@@ -186,6 +192,11 @@ function CustomerCrowd.new(o: Options): Crowd
             end
             c.view.Pose(c.x, c.y, "idle", c.facing, moving, dt)
             c.view.SetHeld(if c.bought then 1 else 0)
+            c.view.SetFade(filmFade)
+            local shown = filmFade < 1
+            if c.view.frame.Visible ~= shown then
+                c.view.frame.Visible = shown
+            end
         end
     end
 

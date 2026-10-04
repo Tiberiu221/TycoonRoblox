@@ -945,18 +945,19 @@ def film_workers(n, s):
     nf = FILM_TOP * D + n * D
     sf = FILM_BOTTOM * D - s * D
     return [
-        ((FILM_X0_W + 60) / D, (nf - 6) / D, 0, "right"),
-        ((FILM_X0_W + 172) / D, (nf - 6) / D, 1, "left"),
-        ((FILM_X0_W + 84) / D, (sf + 24) / D, 1, "right"),
-        ((FILM_X0_W + 190) / D, (sf + 24) / D, 0, "left"),
+        ((FILM_X0_W + 50) / D, (nf - 6) / D, 0, "right"),
+        ((FILM_X0_W + 170) / D, (nf - 6) / D, 1, "left"),
+        ((FILM_X0_W + 110) / D, (sf + 24) / D, 1, "right"),
+        ((FILM_X0_W + 222) / D, (sf + 24) / D, 0, "left"),
     ]
 
 
 # pozitiile recuzitei (colt stanga-sus, in pixeli de arta): DamFilmSet.props() = baza jos-centru in lume, de la care se scade jumatatea
 # latimii si inaltimea desenului
-PROP_CRANE = (293, 222)  # (927, 811) lume, cadru 32 x 48
-PROP_CART = (176, 258)  # (569, 823) lume, 28 x 16
-PROP_PILE = (320, 261)  # (1009, 831) lume, 32 x 16
+# [verificatorul A2] aliniate cu DamFilmSet.props() de azi; caruta si gramada cad in afara cutiei compozitiei (150..360)
+PROP_CRANE = (291, 222)  # (920, 811) lume, cadru 32 x 48
+PROP_CART = (486, 258)  # (1500, 823) lume, 28 x 16
+PROP_PILE = (421, 261)  # (1312, 831) lume, 32 x 16
 
 
 def blit_clipped(dst, src, pos, clip):

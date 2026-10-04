@@ -148,10 +148,11 @@ function SoundController.SetLevel(newLevel: number)
 end
 
 -- `gain` (0..1) scade si mai mult un sunet din lume dupa distanta; volumul lui de baza e in VOLUME.
-function SoundController.Play(key: string, pitch: number?, gain: number?)
+-- Intoarce sunetul pornit (cine vrea sa-l opreasca mai devreme, ca filmul barajului la Skip), sau nil.
+function SoundController.Play(key: string, pitch: number?, gain: number?): Sound?
     local id = (Assets.sounds :: any)[key]
     if id == nil or id == 0 then
-        return -- cheie necunoscuta sau sunetul inca neurcat [O1]
+        return nil -- cheie necunoscuta sau sunetul inca neurcat [O1]
     end
     local sound = Instance.new("Sound")
     sound.SoundId = Assets.soundUrl(id)
@@ -161,6 +162,7 @@ function SoundController.Play(key: string, pitch: number?, gain: number?)
     sound.Parent = SoundService
     sound:Play()
     Debris:AddItem(sound, 4) -- curatenie fara sa tinem evidenta manuala a fiecarui Sound
+    return sound
 end
 
 -- [D62] Un nivel (sau o treapta) cumparat. Pana se urca sunetul lui, "pop"-ul de azi tine locul.

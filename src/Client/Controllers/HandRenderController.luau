@@ -72,9 +72,9 @@ type Hand = {
 local HandRenderController = {}
 local deps: Deps
 local tracked: { [string]: Hand } = {}
--- [verificatorul A2] filmul barajului: oamenii satului lasa lucrul (siluetele lor merg spre rau); cei ascunsi de film
--- revin la capat
-local filmHidden = false
+-- [verificatorul A2] filmul barajului: oamenii satului lasa lucrul (siluetele lor merg spre rau). Se sting lin (0..1),
+-- odata cu aparitia siluetelor; la 1 ies din cadru, iar la capat revin exact cei ascunsi.
+local filmFade = 0
 local hiddenByFilm: { [string]: boolean } = {}
 
 -- [D58] Raza in care se vede meseria: putin peste raza cardului obiectelor (RiverConfig.INTERACT_DISTANCE = 130), ca
@@ -307,8 +307,15 @@ function HandRenderController.Apply(hands: { HandSnap })
         if snap.x == nil then
             rec.cycle = HandRoutes.cycleFor(snap.role, snap.index, snap.count, snap.nets)
         end
-        if filmHidden then
-            hiddenByFilm[snap.id] = true
+        if filmFade > 0 then
+            rec.view.SetFade(filmFade)
+            rec.job.Visible = false
+            if filmFade >= 1 then
+                hiddenByFilm[snap.id] = true
+                rec.frame.Visible = false
+            elseif not rec.frame.Visible then
+                rec.frame.Visible = true
+            end
         elseif not rec.frame.Visible then
             rec.frame.Visible = true
         end
@@ -329,31 +336,33 @@ function HandRenderController.Apply(hands: { HandSnap })
     end
 end
 
--- [verificatorul A2] Filmul barajului: oamenii satului (si etichetele lor) ies din cadru cat merg siluetele spre rau, apoi
--- revin exact cei ascunsi.
-function HandRenderController.SetFilmHidden(hidden: boolean)
-    if hidden == filmHidden then
+-- [verificatorul A2] Filmul barajului: oamenii satului (si etichetele lor) se sting cat apar siluetele (k 0..1), la 1 ies din
+-- cadru, iar la 0 revin exact cei ascunsi.
+function HandRenderController.SetFilmFade(k: number)
+    local a = math.clamp(k, 0, 1)
+    if a == filmFade then
         return
     end
-    filmHidden = hidden
-    if hidden then
+    filmFade = a
+    if a <= 0 then
         for id, rec in tracked do
-            if rec.frame.Visible then
-                hiddenByFilm[id] = true
-                rec.frame.Visible = false
-                rec.job.Visible = false
+            rec.view.SetFade(0)
+            if hiddenByFilm[id] then
+                rec.frame.Visible = true
+                rec.job.Visible = true
             end
         end
+        table.clear(hiddenByFilm)
         return
     end
-    for id in hiddenByFilm do
-        local rec = tracked[id]
-        if rec ~= nil then
-            rec.frame.Visible = true
-            rec.job.Visible = true
+    for id, rec in tracked do
+        if rec.frame.Visible or hiddenByFilm[id] then
+            hiddenByFilm[id] = true
+            rec.view.SetFade(a)
+            rec.job.Visible = false
+            rec.frame.Visible = a < 1
         end
     end
-    table.clear(hiddenByFilm)
 end
 
 -- [D62] Oamenii unei meserii spun ceva cand le cumperi o treapta: treapta nu le schimba infatisarea, deci altfel

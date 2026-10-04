@@ -36,6 +36,9 @@ export type View = {
     SetCarry: (kind: string?, step: number) -> (),
     -- [D70] desenul roabei (caruciorul de fier din treapta 2 a modernizarii); aceleasi cadre
     SetBarrowArt: (sprite: Assets.Sprite) -> (),
+    -- [verificatorul A2] 0 = ca de obicei, 1 = stins de tot (filmul barajului: oamenii lasa lucrul); straturile isi pastreaza
+    -- transparenta lor de baza (umbra 0,25, parul lipsa 1)
+    SetFade: (alpha: number) -> (),
     Destroy: () -> (),
 }
 
@@ -122,6 +125,18 @@ function PersonView.new(parent: Instance, name: string, held: string?): View
     holder.ZIndex = 6
     holder.Parent = parent
 
+    -- transparenta de baza a fiecarui strat, inmultita cu stingerea (SetFade); la 0, exact ce era
+    local fade = 0
+    local baseT: { [Instance]: number } = {}
+    local function setT(img: ImageLabel, base: number)
+        baseT[img] = base
+        setIfChanged(
+            img,
+            "ImageTransparency",
+            if fade > 0 then 1 - (1 - base) * (1 - fade) else base
+        )
+    end
+
     if Assets.has(Assets.shadow) then
         local sh = Instance.new("ImageLabel")
         sh.Name = "Shadow"
@@ -132,6 +147,7 @@ function PersonView.new(parent: Instance, name: string, held: string?): View
         sh.Position = UDim2.new(0.5, 0, 1, -2)
         sh.Size = UDim2.fromOffset(28, 10)
         sh.ImageTransparency = 0.25
+        baseT[sh] = 0.25
         sh.ZIndex = 5
         sh.Parent = holder
     end
@@ -277,7 +293,7 @@ function PersonView.new(parent: Instance, name: string, held: string?): View
             UDim2.fromOffset((loadX + (if mirror then -slide else slide)) * PX, at.load.y * PX)
         )
         setIfChanged(c, "ZIndex", if at.load.over then 3 else 1)
-        setIfChanged(c, "ImageTransparency", if task == "tip" and frameIndex == 3 then 0.6 else 0)
+        setT(c, if task == "tip" and frameIndex == 3 then 0.6 else 0)
         local loadSprite: Assets.Sprite? = nil
         if cargoKind ~= nil then
             loadSprite = GoodArt.pick(cargoKind :: string, function(g: string): Assets.Sprite?
@@ -304,6 +320,22 @@ function PersonView.new(parent: Instance, name: string, held: string?): View
 
     local view: View = {
         frame = holder,
+        SetFade = function(alpha: number)
+            local a = math.clamp(alpha, 0, 1)
+            if a == fade then
+                return
+            end
+            fade = a
+            for _, d in holder:GetDescendants() do
+                if d:IsA("ImageLabel") then
+                    local base = baseT[d] or 0
+                    setIfChanged(d, "ImageTransparency", 1 - (1 - base) * (1 - a))
+                end
+            end
+            if not layered then
+                body.BackgroundTransparency = a
+            end
+        end,
         SetAppearance = function(a: Appearance)
             appearance = a
         end,
@@ -373,11 +405,11 @@ function PersonView.new(parent: Instance, name: string, held: string?): View
                 local hairSheet = (Assets.people.hair :: any)[a.hair]
                 if hairSheet ~= nil and Assets.has(hairSheet) then
                     setIfChanged(hair, "Image", Assets.url(hairSheet))
-                    setIfChanged(hair, "ImageTransparency", 0)
+                    setT(hair, 0)
                     setIfChanged(hair, "ImageColor3", rgbOf(a.hairColor))
                     setFrame(hair, row, frameIndex, facing)
                 else
-                    setIfChanged(hair, "ImageTransparency", 1) -- chel: foaia nu s-a incarcat (id 0)
+                    setT(hair, 1) -- chel: foaia nu s-a incarcat (id 0)
                 end
             end
             if outfit ~= nil then
@@ -391,10 +423,10 @@ function PersonView.new(parent: Instance, name: string, held: string?): View
                 end
                 if outfitSheet ~= nil and Assets.has(outfitSheet) then
                     setIfChanged(outfit, "Image", Assets.url(outfitSheet))
-                    setIfChanged(outfit, "ImageTransparency", 0)
+                    setT(outfit, 0)
                     setFrame(outfit, row, frameIndex, facing)
                 else
-                    setIfChanged(outfit, "ImageTransparency", 1)
+                    setT(outfit, 1)
                 end
             end
         end,

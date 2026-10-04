@@ -214,6 +214,32 @@ return function()
                 end
             end
         end)
+        -- [verificatorul A2] ce nu incape intreg in cadru nu se arata (DamFilm), deci nimic nu e taiat de margine
+        test.case("o recuzita se arata doar intreaga in cadru", function()
+            local boxes = DamFilmSet.propBoxes()
+            check.is_true(DamFilmSet.fitsView(boxes[1], 1205)) -- macaraua
+            check.is_true(DamFilmSet.fitsView(boxes[3], 1205)) -- gramada
+            check.is_false(DamFilmSet.fitsView(boxes[2], 1440)) -- caruta: pe 16:10 ar fi doar manerul
+            check.is_true(DamFilmSet.fitsView(boxes[2], 1600))
+            for _, vw in { 1000, 1205, 1350, 1440, 1500, 1600 } do
+                for _, b in boxes do
+                    if DamFilmSet.fitsView(b, vw) then
+                        local camX = math.max(0, DamFilmSet.camera(900) - vw / 2)
+                        check.is_true(b.x0 >= camX and b.x1 <= camX + vw)
+                    end
+                end
+            end
+        end)
+        -- [verificatorul A2] pe alee omul priveste deja spre locul lui de pe punte
+        test.case("pe alee si pe punte omul priveste in aceeasi parte", function()
+            local people = phase("people")
+            for _, w in DamFilmSet.walkers() do
+                local _, _, _, onAlley = DamFilmSet.walkerAt(w, 0.2)
+                local _, _, _, onDeck = DamFilmSet.walkerAt(w, DamFilmSet.arrivesAt(w) - 0.05)
+                check.equal(onAlley, onDeck)
+                check.is_true(people.from >= 0)
+            end
+        end)
         -- [verificatorul A2] macaraua si gramada se vad de la rau de la latimea 1205 in sus (caruta, abia pe 16:9)
         test.case("macaraua si gramada sunt in cadru la rau", function()
             local cx = DamFilmSet.camera(900)

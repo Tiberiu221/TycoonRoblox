@@ -152,6 +152,15 @@ function DamFilmSet.propBoxes(): { Box }
     }
 end
 
+-- [verificatorul A2] O recuzita se arata la rau doar daca incape intreaga in cadru (latimea vazuta `visibleW`, camera in
+-- dreptul zidului, prinsa de marginile lumii ca in CameraController.OriginFor): pe 16:10 din caruta se vedea doar manerul.
+function DamFilmSet.fitsView(box: Box, visibleW: number): boolean
+    local cx = DamFilmSet.camera(900)
+    local worldW = (RiverConfig.WORLDS :: any)[1].WORLD_WIDTH
+    local camX = math.clamp(cx - visibleW / 2, 0, math.max(0, worldW - visibleW))
+    return box.x0 >= camX and box.x1 <= camX + visibleW
+end
+
 -- Cutia unui om (talpile la x, y), la scara oamenilor.
 function DamFilmSet.personBox(x: number, y: number): Box
     local w, h =
@@ -265,8 +274,9 @@ function DamFilmSet.walkers(): { Walker }
         local k = column[spot.alley] or 0
         column[spot.alley] = k + 1
         local fromY = DamFilmSet.DECK_WALK_Y + 120 + k * DamFilmSet.COLUMN_STEP
-        -- [verificatorul A2] pe alee, usor oblic (de pe o margine a ei spre mijloc): mersul din profil nu mai aluneca drept
-        local sway = if k % 2 == 0 then -DamFilmSet.ALLEY_SWAY else DamFilmSet.ALLEY_SWAY
+        -- [verificatorul A2] pe alee, usor oblic (de pe marginea dinspre care vine spre mijloc): mersul din profil nu mai
+        -- aluneca drept, iar omul priveste de la inceput spre locul lui de pe punte
+        local sway = if spot.x >= ax then -DamFilmSet.ALLEY_SWAY else DamFilmSet.ALLEY_SWAY
         table.insert(out, {
             path = {
                 { x = ax + sway, y = fromY },

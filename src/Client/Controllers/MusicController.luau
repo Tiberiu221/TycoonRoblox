@@ -163,6 +163,13 @@ function MusicController.PlayCueSfx(id: number, volume: number)
     table.insert(cueSfx, s)
 end
 
+-- [verificatorul A2] Un sunet al filmului pornit pe alt grup (efectele, cand muzica e pe 0): se stinge si el la EndCue.
+function MusicController.TrackSfx(s: Sound?)
+    if s ~= nil then
+        table.insert(cueSfx, s)
+    end
+end
+
 -- [directorul A2] Incarca piesa dinainte (ecranul „Build the Dam”), ca filmul sa porneasca cu ea.
 function MusicController.Preload(id: number)
     if id == 0 then

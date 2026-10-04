@@ -26,6 +26,7 @@ local MusicController = require(script.Parent.MusicController)
 local NetController = require(script.Parent.NetController)
 local DriftController = require(script.Parent.DriftController)
 local HandRenderController = require(script.Parent.HandRenderController)
+local CustomerCrowd = require(script.Parent.Parent.UI.CustomerCrowd)
 local RiverRenderController = require(script.Parent.RiverRenderController)
 local Panels = require(script.Parent.Panels)
 local SoundController = require(script.Parent.SoundController)
@@ -118,6 +119,7 @@ type Set = {
     workers: { Figure },
     layer: Frame,
     builtProps: { ImageLabel },
+    propBox: { [ImageLabel]: DamFilmSet.Box }, -- [verificatorul A2] doar ce incape intreg in cadru
 }
 local set: Set? = nil
 local closedHeard = false
@@ -277,6 +279,8 @@ local function buildSet(): Set?
     end
     local props = DamFilmSet.props()
     local builtProps: { ImageLabel } = {}
+    local propBox: { [ImageLabel]: DamFilmSet.Box } = {}
+    local boxes = DamFilmSet.propBoxes() -- macaraua, caruta, gramada
     local crane = sheet(
         items,
         plot,
@@ -290,11 +294,12 @@ local function buildSet(): Set?
         crane.Position = UDim2.fromOffset(props.crane.x, props.crane.y)
         crane.ZIndex = depthZ(props.crane.y)
         table.insert(builtProps, crane)
+        propBox[crane] = boxes[1]
     end
     for _, p in
         {
-            { sprite = t.film_stone_cart, at = props.cart, name = "FilmCart" },
-            { sprite = t.film_stone_pile, at = props.pile, name = "FilmPile" },
+            { sprite = t.film_stone_cart, at = props.cart, name = "FilmCart", box = boxes[2] },
+            { sprite = t.film_stone_pile, at = props.pile, name = "FilmPile", box = boxes[3] },
         }
     do
         local img = sheet(items, plot, p.sprite, p.sprite.width, p.sprite.height, S, p.name)
@@ -302,6 +307,7 @@ local function buildSet(): Set?
             img.Position = UDim2.fromOffset(p.at.x, p.at.y)
             img.ZIndex = depthZ(p.at.y)
             table.insert(builtProps, img)
+            propBox[img] = p.box
         end
     end
     local dust: { ImageLabel } = {}
@@ -378,6 +384,7 @@ local function buildSet(): Set?
         workers = workers,
         layer = layer,
         builtProps = builtProps,
+        propBox = propBox,
     }
 end
 
@@ -392,7 +399,8 @@ local function clearSet()
     NetController.SetFilmLift(nil, nil, nil)
     RiverRenderController.SetCalm(0)
     DriftController.SetCalm(0)
-    HandRenderController.SetFilmHidden(false)
+    HandRenderController.SetFilmFade(0)
+    CustomerCrowd.SetFilmFade(0)
 end
 
 local function renderSet(frame: DamMath.FilmFrame, t: number)
@@ -404,8 +412,13 @@ local function renderSet(frame: DamMath.FilmFrame, t: number)
     -- [verificatorul A2] cat urca zidul, raul se linisteste: nimic nu mai pluteste prin zid sau spre plasele scoase
     RiverRenderController.SetCalm(lift)
     DriftController.SetCalm(lift) -- si darurile de pe rau
-    -- [verificatorul A2] de la „people”, oamenii satului au lasat lucrul: pe drumurile lor merg acum siluetele
-    HandRenderController.SetFilmHidden(t >= DamMath.FILM[3].from)
+    -- [verificatorul A2] de la „people”, oamenii satului si clientii lasa lucrul: se sting cat apar siluetele (doar daca
+    -- filmul chiar are siluete; fara desenul lor raman la lucru, ca textul „Everyone lends a hand” sa nu arate un sat gol)
+    local leaving = if s ~= nil and #s.walkers > 0
+        then math.clamp((t - DamMath.FILM[3].from) / DamFilmSet.FADE_IN, 0, 1)
+        else 0
+    HandRenderController.SetFilmFade(leaving)
+    CustomerCrowd.SetFilmFade(leaving)
     if s == nil then
         return
     end
@@ -468,8 +481,10 @@ local function renderSet(frame: DamMath.FilmFrame, t: number)
     if crane ~= nil then
         crane.ImageRectOffset = Vector2.new((math.floor(t / 0.9) % 2) * crane.ImageRectSize.X, 0)
     end
+    local visibleW = CameraController.VisibleSize()
     for _, p in s.builtProps do
-        p.Visible = shown
+        local box = s.propBox[p]
+        p.Visible = shown and (box == nil or DamFilmSet.fitsView(box, visibleW))
     end
     -- [directorul A2] praful de nord iese din pietrele care se aseaza (pe marginea neterminata), nu de pe zidul gata
     local fronts =
@@ -572,7 +587,7 @@ local function render(t: number)
             if musicOn then
                 MusicController.PlayCueSfx(Assets.sounds.film_build, FILM_BUILD_VOLUME)
             else
-                SoundController.Play("film_build")
+                MusicController.TrackSfx(SoundController.Play("film_build"))
             end
         elseif frame.phase == "card" and Assets.sounds.film_close == 0 and not cued then
             SoundController.Play("chime")
@@ -585,7 +600,7 @@ local function render(t: number)
         if MusicController.Level() > 0 then
             MusicController.PlayCueSfx(Assets.sounds.film_close, FILM_CLOSE_VOLUME)
         else
-            SoundController.Play("film_close")
+            MusicController.TrackSfx(SoundController.Play("film_close"))
         end
     end
     if frame.done then
