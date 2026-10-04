@@ -59,6 +59,8 @@ return function()
                     "ingot"
                 )
                 check.equal(FlowMath.soldGood("town", { grid = 1 }, FlowMath.FULL), "grid")
+                check.equal(FlowMath.soldGood("dock", { iron = 2, planks = 3 }), "iron") -- taverna: fierul inaintea scandurilor
+                check.equal(FlowMath.soldGood("dock", { planks = 3 }), "planks")
                 check.equal(FlowMath.soldGood("depot", {}), nil)
                 check.equal(FlowMath.soldGood("depot", nil), nil)
             end

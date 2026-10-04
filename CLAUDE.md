@@ -153,8 +153,8 @@ recomandările owner-ului luate (O1, provizoriu).
   până la A2, k9); ținutele și prenumele, Dam Town și „Your people” (k10); bâlciul pentru gazdele de după baraj (k11).
 - **Schimbări voite și în sat (D43/D40):** contorul listei fără paranteze; un quest pe o platformă încuiată n-are preț; la Piață și
   Depou, refuzul „raw_only” e al lor, iar cardurile atelierelor și vânzătorilor spun unde merge marfa adusă greșit. [2026-10-04]
-  Clienții Pieței și ai Depoului pleacă acasă cu marfa care tocmai a plecat din grămadă (`FlowMath.soldGood`; înainte, toți
-  cu piesa de mașină a Morii).
+  Clienții tavernei, ai Pieței și ai Depoului pleacă acasă cu marfa care tocmai a plecat din grămadă (`FlowMath.soldGood`; o
+  găsire, ca ladă). Înainte: la tavernă mereu scândura, la Piață și la Depou mereu piesa de mașină a Morii.
 - **Comutatorul local:** `python3 scripts/era4_flip.py on|off|status` (nu se comite; un test îl prinde). Cu el pornit, pe o
   copie, pică 11 teste: doar adormirile de rescris la l3 și marcajul comutatorului (lista în PLAN, la l3).
 - **Capcane noi:** `rojo serve` pica pe o legătură `Packages/Packages -> Packages` (ștearsă; caut-o întâi dacă serve nu

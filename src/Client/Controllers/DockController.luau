@@ -19,6 +19,7 @@ local UserInputService = game:GetService("UserInputService")
 
 local RiverConfig = require(ReplicatedStorage.Shared.Config.RiverConfig)
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
+local FlowMath = require(ReplicatedStorage.Shared.Modules.FlowMath) -- [verificatorul A4] ce duce clientul acasa
 local TycoonMath = require(ReplicatedStorage.Shared.Modules.TycoonMath)
 local Assets = require(ReplicatedStorage.Shared.Config.Assets)
 local Strings = require(ReplicatedStorage.Shared.Config.Strings)
@@ -121,6 +122,9 @@ function DockController.RefreshModern()
     DockController.SetLevel(tavernLevel)
 end
 
+-- [verificatorul A4] ce e in gramada tavernei (ultima stare): clientul trimis acasa duce marfa care pleaca acum din ea
+local dockContents: { [string]: number }? = nil
+
 function DockController.Apply(
     newSack: Sack,
     dock: {
@@ -135,6 +139,7 @@ function DockController.Apply(
     saleValueLabel.Text = TycoonMath.formatNumber(sack.cutValue)
     if dock ~= nil then
         pile.Set(dock.count, dock.contents)
+        dockContents = dock.contents
     end
 end
 
@@ -355,7 +360,8 @@ function DockController.Init(d: Deps)
             end
             playSaleDeparture()
             if customerCrowd ~= nil then
-                customerCrowd.OnSold(itemCount)
+                -- [verificatorul A4] ca la Piata si la Depou: clientul duce marfa care pleaca acum (fierul inaintea scandurilor)
+                customerCrowd.OnSold(itemCount, FlowMath.soldGood("dock", dockContents))
             end
         end
     )

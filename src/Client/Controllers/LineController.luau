@@ -117,24 +117,24 @@ local SMOKE_AT: { [string]: { own: { number }, borrowed: { number }, key: string
             w = 64,
             h = 48,
         },
-        -- [verificatorul k3] atelierele barajului, cat poarta desenele erelor 2-3: hornul desenului de imprumut (`own` se
-        -- masoara pe foile lor, la A4)
+        -- [verificatorul k3] atelierele barajului, cat poarta desenele erelor 2-3: hornul desenului de imprumut. [Lotul A4]
+        -- `own`, masurat de directorii de arta pe foile noi (a4_works.py, a4_halls.py): gura hornului
         switchyard = {
-            own = { 0.79, 0.02 },
+            own = { 0.80, 0.05 },
             borrowed = { 0.79, 0.02 },
             key = "switchyard",
             w = 40,
             h = 32,
         },
         cableworks = {
-            own = { 0.79, 0.06 },
-            borrowed = { 0.79, 0.06 },
+            own = { 0.84, 0.05 },
+            borrowed = { 0.79, 0.02 }, -- turnatoria Morii: gura hornului pe randul 0 (era luata gresit de la gater)
             key = "cable_works",
             w = 40,
             h = 32,
         },
         kiln = {
-            own = { 0.5, 0.0 },
+            own = { 0.883, 0.021 },
             borrowed = { 0.5, 0.0 },
             key = "crystal_kiln",
             w = 64,

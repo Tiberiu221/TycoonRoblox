@@ -25,7 +25,7 @@ export type Options = {
     held: string, -- ce duce acasa cine a cumparat (PersonView: "plank", "part")
 }
 export type Crowd = {
-    OnSold: (itemCount: number?) -> (),
+    OnSold: (itemCount: number?, good: string?) -> (), -- [verificatorul A4] marfa vanduta: clientul o duce acasa
     Step: (dt: number) -> (),
 }
 

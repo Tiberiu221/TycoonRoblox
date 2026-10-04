@@ -12,6 +12,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local AnimConfig = require(ReplicatedStorage.Shared.Config.AnimConfig)
 local Assets = require(ReplicatedStorage.Shared.Config.Assets)
+local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig) -- [verificatorul A4] gasirile (lookOf)
 local HandConfig = require(ReplicatedStorage.Shared.Config.HandConfig)
 local GoodArt = require(script.Parent.GoodArt)
 local Modern = require(script.Parent.Modern)
@@ -39,7 +40,7 @@ export type View = {
     -- [verificatorul A2] 0 = ca de obicei, 1 = stins de tot (filmul barajului: oamenii lasa lucrul); straturile isi pastreaza
     -- transparenta lor de baza (umbra 0,25, parul lipsa 1)
     SetFade: (alpha: number) -> (),
-    -- [verificatorul A4] ce duce in brate (clientul unui vanzator): marfa tocmai cumparata; nil = cea data la creare
+    -- [verificatorul A4] ce duce in brate (clientul unui vanzator): marfa tocmai cumparata; nil = neschimbat
     SetHeldGood: (good: string?) -> (),
     Destroy: () -> (),
 }
@@ -334,12 +335,18 @@ function PersonView.new(parent: Instance, name: string, held: string?): View
         frame = holder,
         SetHeldGood = function(good: string?)
             local img = item
-            local bought = if good ~= nil then GoodArt.icon(good) else nil
+            -- o gasire se duce ca lada ei (ca in PileView.goodSprite), cat o marfa: 36 px de lata
+            local find = good ~= nil and TycoonConfig.lookOf(good) == "named"
+            local bought = if find
+                then Assets.crate.common
+                elseif good ~= nil then GoodArt.icon(good)
+                else nil
             if img == nil or bought == nil or not Assets.has(bought) then
                 return
             end
+            local k = if find then 36 / bought.width else 1.5
             setIfChanged(img, "Image", Assets.url(bought))
-            setIfChanged(img, "Size", UDim2.fromOffset(bought.width * 1.5, bought.height * 1.5))
+            setIfChanged(img, "Size", UDim2.fromOffset(bought.width * k, bought.height * k))
         end,
         SetFade = function(alpha: number)
             local a = math.clamp(alpha, 0, 1)
