@@ -201,13 +201,28 @@ return function()
                 end
             end
         end)
-        test.case("pe randuri vecine nimeni nu sta exact in spatele altuia", function()
+        test.case("pe punte nimeni nu sta exact in spatele altuia", function()
             local walkers = DamFilmSet.walkers()
+            check.equal(#walkers, DamFilmSet.WALKERS)
+            local tall = DamFilmSet.CELL_H * DamFilmSet.PERSON_SCALE
             for i = 1, #walkers do
                 for j = i + 1, #walkers do
                     local a, b = walkers[i], walkers[j]
-                    if a.toY ~= b.toY and math.abs(a.toY - b.toY) < 30 then
+                    if a.toY ~= b.toY and math.abs(a.toY - b.toY) < tall then
                         check.is_true(math.abs(a.toX - b.toX) >= 12)
+                    end
+                end
+            end
+        end)
+        -- [verificatorul A2] macaraua si gramada se vad de la rau de la latimea 1205 in sus (caruta, abia pe 16:9)
+        test.case("macaraua si gramada sunt in cadru la rau", function()
+            local cx = DamFilmSet.camera(900)
+            local boxes = DamFilmSet.propBoxes()
+            for _, vw in { 1205, 1440, 1600 } do
+                local camX = math.max(0, cx - vw / 2)
+                for k, b in boxes do
+                    if k ~= 2 or vw >= 1600 then
+                        check.is_true(b.x0 >= camX and b.x1 <= camX + vw)
                     end
                 end
             end

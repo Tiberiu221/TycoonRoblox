@@ -267,11 +267,10 @@ local function render(dt: number)
             local pulse = 0.7 + math.sin(now * 3.1 + gift.id) * 0.1
             glow.BackgroundTransparency = 1 - (1 - pulse) * (1 - calm)
         end
-        if calm > 0 then
-            for _, child in view.holder:GetChildren() do
-                if child:IsA("ImageLabel") then
-                    child.ImageTransparency = calm
-                end
+        -- [verificatorul A2] si inapoi la 0: un dar stins pe jumatate (Skip in secunda in care urca camera) revine
+        for _, child in view.holder:GetChildren() do
+            if child:IsA("ImageLabel") and child.ImageTransparency ~= calm then
+                child.ImageTransparency = calm
             end
         end
         -- primul dar al sesiunii si orice bustean de aur se anunta: altfel, pe un ecran mic, nici nu stii ca trece

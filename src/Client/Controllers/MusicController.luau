@@ -31,6 +31,7 @@ local FADE_CHANGE = 0.35
 local CUE_FADE = 0.2
 local CUE_DRIFT = 0.12 -- cat are voie piesa sa se departeze de ceasul filmului
 local cue: Sound? = nil
+local cueSfx: { Sound } = {} -- [verificatorul A2] sunetele piesei (santierul, inchiderea): se sting odata cu ea, la Skip
 
 -- Estomparea, pe grup. Pornirea din liniste pune grupul la 0 INAINTE de Play/Resume: altfel un cadru ar
 -- suna la volumul de dinainte -- exact "prea tare la intrare". La 0 muzica se opreste abia cand s-a stins,
@@ -113,6 +114,16 @@ function MusicController.PlayCue(id: number, at: number?)
     end
     MusicController.EndCue()
     local g = musicGroup()
+    -- [verificatorul A2] grupul poate fi inca in urcarea de la intrare (4 s): piesa nu porneste aproape muta, grupul trece
+    -- direct la nivelul ales
+    fadeToken += 1
+    TweenService
+        :Create(
+            g,
+            TweenInfo.new(0.05),
+            { Volume = AudioLevels.volume(level, AudioLevels.MUSIC_MAX) }
+        )
+        :Play()
     local loop = sound
     if loop ~= nil then
         TweenService:Create(loop, TweenInfo.new(CUE_FADE), { Volume = 0 }):Play()
@@ -149,6 +160,7 @@ function MusicController.PlayCueSfx(id: number, volume: number)
     s.Parent = SoundService
     s:Play()
     Debris:AddItem(s, 6)
+    table.insert(cueSfx, s)
 end
 
 -- [directorul A2] Incarca piesa dinainte (ecranul „Build the Dam”), ca filmul sa porneasca cu ea.
@@ -166,8 +178,14 @@ function MusicController.Preload(id: number)
     end)
 end
 
--- Piesa scurta se stinge (la capat sau la Skip) si bucla revine lin.
+-- Piesa scurta se stinge (la capat sau la Skip), cu sunetele ei, si bucla revine lin.
 function MusicController.EndCue()
+    for _, s in cueSfx do
+        if s.Parent ~= nil then
+            TweenService:Create(s, TweenInfo.new(CUE_FADE), { Volume = 0 }):Play()
+        end
+    end
+    table.clear(cueSfx)
     local c = cue
     if c == nil then
         return

@@ -8,6 +8,7 @@
 -- la „build” camera urca la rau, plasele de pe linia zidului ies din apa, iar zidul creste din ambele maluri peste schele,
 -- cu oamenii la lucru, macaraua, caruta si gramada de piatra. Muzica filmului (MusicController.PlayCue), santierul si
 -- inchiderea zidului se aud. Fiecare desen si sunet cu ID 0 lipseste pur si simplu; zidul cade pe piatra simpla.
+local ContentProvider = game:GetService("ContentProvider")
 local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -24,6 +25,7 @@ local CharacterController = require(script.Parent.CharacterController)
 local MusicController = require(script.Parent.MusicController)
 local NetController = require(script.Parent.NetController)
 local DriftController = require(script.Parent.DriftController)
+local HandRenderController = require(script.Parent.HandRenderController)
 local RiverRenderController = require(script.Parent.RiverRenderController)
 local Panels = require(script.Parent.Panels)
 local SoundController = require(script.Parent.SoundController)
@@ -100,7 +102,7 @@ local P = DamFilmSet.PERSON_SCALE
 local CW, CH = DamFilmSet.CELL_W, DamFilmSet.CELL_H
 type Figure = { img: ImageLabel, walker: DamFilmSet.Walker?, right: string, left: string? }
 -- [directorul A2] in stratul lumii (Scroll): amurgul peste teren (Plot e la 5), oamenii peste amurg
-local DUSK_Z = 10
+local DUSK_Z = 61 -- [verificatorul A2] peste pasari (Ambient, 60), cardul E (12) si sageata ghidajului (9)
 type Set = {
     items: { Instance },
     bell: ImageLabel?,
@@ -390,6 +392,7 @@ local function clearSet()
     NetController.SetFilmLift(nil, nil, nil)
     RiverRenderController.SetCalm(0)
     DriftController.SetCalm(0)
+    HandRenderController.SetFilmHidden(false)
 end
 
 local function renderSet(frame: DamMath.FilmFrame, t: number)
@@ -401,6 +404,8 @@ local function renderSet(frame: DamMath.FilmFrame, t: number)
     -- [verificatorul A2] cat urca zidul, raul se linisteste: nimic nu mai pluteste prin zid sau spre plasele scoase
     RiverRenderController.SetCalm(lift)
     DriftController.SetCalm(lift) -- si darurile de pe rau
+    -- [verificatorul A2] de la „people”, oamenii satului au lasat lucrul: pe drumurile lor merg acum siluetele
+    HandRenderController.SetFilmHidden(t >= DamMath.FILM[3].from)
     if s == nil then
         return
     end
@@ -557,12 +562,18 @@ local function render(t: number)
     if frame.phase ~= lastPhase then
         lastPhase = frame.phase
         -- [directorul A2] cu piesa filmului urcata, clopotul si clopotelul nu se mai pun peste ea (ea are clopotul ei, in Re)
-        local cued = Assets.music.dam_film ~= 0
+        -- [verificatorul A2] cu muzica pe 0, filmul nu ramane mut: clopotul, clopotelul si sunetele santierului raman efecte
+        local musicOn = MusicController.Level() > 0
+        local cued = Assets.music.dam_film ~= 0 and musicOn
         if frame.phase == "bells" and not cued then
             SoundController.Play("bell")
         elseif frame.phase == "build" then
             -- [D75, lotul A2] santierul, pe grupul muzicii, la volumul din amestecul facut cu piesa
-            MusicController.PlayCueSfx(Assets.sounds.film_build, FILM_BUILD_VOLUME)
+            if musicOn then
+                MusicController.PlayCueSfx(Assets.sounds.film_build, FILM_BUILD_VOLUME)
+            else
+                SoundController.Play("film_build")
+            end
         elseif frame.phase == "card" and Assets.sounds.film_close == 0 and not cued then
             SoundController.Play("chime")
         end
@@ -571,7 +582,11 @@ local function render(t: number)
     -- [D75, lotul A2] zidul se inchide (cu FILM_MEET_BEFORE inaintea cartonasului): piatra, apoi apa care se strange
     if frame.built >= 1 and not closedHeard then
         closedHeard = true
-        MusicController.PlayCueSfx(Assets.sounds.film_close, FILM_CLOSE_VOLUME)
+        if MusicController.Level() > 0 then
+            MusicController.PlayCueSfx(Assets.sounds.film_close, FILM_CLOSE_VOLUME)
+        else
+            SoundController.Play("film_close")
+        end
     end
     if frame.done then
         finish()
@@ -654,7 +669,7 @@ function DamFilm.PlayCard(done: () -> ())
     c.Visible = true
     cardAlpha(0)
     -- [directorul A2] cartonasul singur are finalul piesei filmului (acordul de la secunda 14), nu clopotelul
-    if Assets.music.dam_film ~= 0 then
+    if Assets.music.dam_film ~= 0 and MusicController.Level() > 0 then
         MusicController.PlayCue(Assets.music.dam_film, DamMath.FILM[#DamMath.FILM].from)
     else
         SoundController.Play("chime")
@@ -662,6 +677,8 @@ function DamFilm.PlayCard(done: () -> ())
 end
 
 local function renderCard(t: number)
+    -- [verificatorul A2] acordul final al piesei, pe ceasul cartonasului (o incarcare tarzie nu-l muta la inceputul piesei)
+    MusicController.CueSync(DamMath.FILM[#DamMath.FILM].from + t)
     if t < CARD_HOLD then
         return
     end
@@ -700,6 +717,37 @@ end
 -- [directorul A2] ecranul „Build the Dam” s-a deschis: piesa filmului se incarca de acum, ca filmul sa porneasca cu ea
 function DamFilm.Preload()
     MusicController.Preload(Assets.music.dam_film)
+    -- [verificatorul A2] si desenele filmului care sunt urcate: la singura vizionare n-au voie sa apara cu intarziere
+    local t = Assets.tycoon
+    local urls: { string } = {}
+    for _, sprite in
+        {
+            t.film_wall,
+            t.film_scaffold,
+            t.film_wall_edge_n,
+            t.film_wall_edge_s,
+            t.film_crane,
+            t.film_stone_cart,
+            t.film_stone_pile,
+            t.film_dust,
+            t.film_walkers,
+            t.film_walkers_l,
+            t.film_workers,
+            t.film_workers_l,
+            t.film_works_bell_swing,
+        }
+    do
+        if Assets.has(sprite) then
+            table.insert(urls, Assets.url(sprite))
+        end
+    end
+    if #urls > 0 then
+        task.spawn(function()
+            pcall(function()
+                ContentProvider:PreloadAsync(urls)
+            end)
+        end)
+    end
 end
 
 function DamFilm.IsPlaying(): boolean

@@ -116,6 +116,7 @@ DamFilmSet.ALLEYS = { "tavern_link", "iron_lane" } -- TycoonConfig.ROADS
 DamFilmSet.DECK_WALK_Y = 864 -- pe marginea de jos a puntii, unde aleile intra in ea
 DamFilmSet.COLUMN_STEP = 72 -- cat de departe merge un om de cel din fata lui, pe alee
 DamFilmSet.ROW_SHIFT = { 0, 17, -9 } -- randurile de pe punte, decalate: nimeni nu sta exact in spatele altuia
+DamFilmSet.ALLEY_SWAY = 14 -- cat pleaca un om de langa mijlocul aleii (aleile au 40-50 px)
 
 -- Stalpii plaselor de pe puntea Landing-ului (x), din config.
 function DamFilmSet.deckPosts(): { number }
@@ -236,7 +237,9 @@ function DamFilmSet.spots(): { Spot }
             for _, o in out do
                 local dy = math.abs(c.y - o.y)
                 local dx = math.abs(c.x - o.x)
-                if (dy < 18 and dx < DamFilmSet.WALKER_GAP_X) or (dy < 30 and dx < 12) then
+                -- [verificatorul A2] nici pe randuri mai departe (sub inaltimea unui om) nimeni nu sta exact in spatele altuia
+                local tall = DamFilmSet.CELL_H * DamFilmSet.PERSON_SCALE
+                if (dy < 18 and dx < DamFilmSet.WALKER_GAP_X) or (dy < tall and dx < 12) then
                     ok = false
                     break
                 end
@@ -262,13 +265,15 @@ function DamFilmSet.walkers(): { Walker }
         local k = column[spot.alley] or 0
         column[spot.alley] = k + 1
         local fromY = DamFilmSet.DECK_WALK_Y + 120 + k * DamFilmSet.COLUMN_STEP
+        -- [verificatorul A2] pe alee, usor oblic (de pe o margine a ei spre mijloc): mersul din profil nu mai aluneca drept
+        local sway = if k % 2 == 0 then -DamFilmSet.ALLEY_SWAY else DamFilmSet.ALLEY_SWAY
         table.insert(out, {
             path = {
-                { x = ax, y = fromY },
+                { x = ax + sway, y = fromY },
                 { x = ax, y = DamFilmSet.DECK_WALK_Y },
                 { x = spot.x, y = spot.y },
             },
-            fromX = ax,
+            fromX = ax + sway,
             fromY = fromY,
             toX = spot.x,
             toY = spot.y,
@@ -334,16 +339,16 @@ function DamFilmSet.workers(built: number): { Worker }
 end
 
 -- Unde stau lucrurile de pe mal (baza, ancorate jos-mijloc), pe punte, in golurile dintre stalpii plaselor
--- [verificatorul A2]: macaraua langa piciorul de est al zidului (intre Second si Third Net), caruta dupa Far Lane Net, gramada
--- dupa Fifth Net (inainte de First Net ar fi stat peste avizierul satului); oamenii au locurile dintre First si Second Net si
--- dintre Third si Far Lane Net.
+-- [verificatorul A2]: macaraua langa piciorul de est al zidului (intre Second si Third Net), gramada dupa Far Lane Net (in
+-- cadru de la latimea 1205 in sus), caruta dupa Fifth Net (pe ecranele mai inguste de 16:9 iese din cadru: puntea e mai lata
+-- decat ce se vede); oamenii au locurile dintre First si Second Net si dintre Third si Far Lane Net.
 export type Prop = { x: number, y: number }
 function DamFilmSet.props(): { crane: Prop, cart: Prop, pile: Prop }
     local wall = DamFilmSet.wall()
     return {
         crane = { x = 920, y = wall.bottom + 40 },
-        cart = { x = 1320, y = wall.bottom + 52 },
-        pile = { x = 1500, y = wall.bottom + 60 },
+        cart = { x = 1500, y = wall.bottom + 52 },
+        pile = { x = 1312, y = wall.bottom + 60 },
     }
 end
 

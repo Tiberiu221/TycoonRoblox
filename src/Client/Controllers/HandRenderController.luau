@@ -72,6 +72,10 @@ type Hand = {
 local HandRenderController = {}
 local deps: Deps
 local tracked: { [string]: Hand } = {}
+-- [verificatorul A2] filmul barajului: oamenii satului lasa lucrul (siluetele lor merg spre rau); cei ascunsi de film
+-- revin la capat
+local filmHidden = false
+local hiddenByFilm: { [string]: boolean } = {}
 
 -- [D58] Raza in care se vede meseria: putin peste raza cardului obiectelor (RiverConfig.INTERACT_DISTANCE = 130), ca
 -- numele sa apara inainte sa ajungi langa om. Aprinderea si stingerea dureaza JOB_FADE secunde.
@@ -303,7 +307,9 @@ function HandRenderController.Apply(hands: { HandSnap })
         if snap.x == nil then
             rec.cycle = HandRoutes.cycleFor(snap.role, snap.index, snap.count, snap.nets)
         end
-        if not rec.frame.Visible then
+        if filmHidden then
+            hiddenByFilm[snap.id] = true
+        elseif not rec.frame.Visible then
             rec.frame.Visible = true
         end
         local line = if isNew then hello(snap) else nil
@@ -313,11 +319,41 @@ function HandRenderController.Apply(hands: { HandSnap })
     end
     -- nimic nu se pierde, deci un om nu ar trebui sa dispara -- simetric cu NetController
     for id, rec in tracked do
+        if not seen[id] then
+            hiddenByFilm[id] = nil
+        end
         if not seen[id] and rec.frame.Visible then
             rec.frame.Visible = false
             rec.job.Visible = false -- [D67, audit] eticheta sta pe teren, nu in om: se ascunde separat
         end
     end
+end
+
+-- [verificatorul A2] Filmul barajului: oamenii satului (si etichetele lor) ies din cadru cat merg siluetele spre rau, apoi
+-- revin exact cei ascunsi.
+function HandRenderController.SetFilmHidden(hidden: boolean)
+    if hidden == filmHidden then
+        return
+    end
+    filmHidden = hidden
+    if hidden then
+        for id, rec in tracked do
+            if rec.frame.Visible then
+                hiddenByFilm[id] = true
+                rec.frame.Visible = false
+                rec.job.Visible = false
+            end
+        end
+        return
+    end
+    for id in hiddenByFilm do
+        local rec = tracked[id]
+        if rec ~= nil then
+            rec.frame.Visible = true
+            rec.job.Visible = true
+        end
+    end
+    table.clear(hiddenByFilm)
 end
 
 -- [D62] Oamenii unei meserii spun ceva cand le cumperi o treapta: treapta nu le schimba infatisarea, deci altfel

@@ -91,6 +91,9 @@ local VOLUME: { [string]: number } = {
     -- [D62] nivelul urcat se aude des (x1 apasat la rand), deci incet; pragul e rar si se aude
     levelup = 0.4,
     milestone = 0.65,
+    -- [verificatorul A2] filmul barajului cu muzica pe 0: santierul si zidul care se inchide raman efecte
+    film_build = 0.3,
+    film_close = 0.5,
 }
 
 -- [D62] NIVELURILE CUMPARATE LA RAND URCA IN INALTIME, ca o scara: fiecare apasare suna putin mai sus decat cea
