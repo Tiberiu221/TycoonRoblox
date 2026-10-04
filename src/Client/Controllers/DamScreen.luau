@@ -226,6 +226,7 @@ function DamScreen.Open()
     if w == nil or not Panels.CanOpen("dam") then
         return
     end
+    DamFilm.Preload() -- [directorul A2] piesa filmului, incarcata cat citesti ecranul
     Panels.CloseOthers("dam")
     if phase == "counting" or phase == "ready" or phase == "refused" then
         showColumns(DamController.LastPreview())

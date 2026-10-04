@@ -6,6 +6,8 @@
 -- sunetul ramane fix la 1, iar estomparea urca grupul de la 0 spre tinta nivelului. Owner-ul: "muzica este
 -- prea tare, nu prea este de fundal". Implicit nivelul 4 (AudioLevels), cu ~11 dB sub vechiul 0.35.
 -- Intra incet, dupa prima stare primita, ca sa nu sara peste cardul capitolului.
+local ContentProvider = game:GetService("ContentProvider")
+local Debris = game:GetService("Debris")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local SoundService = game:GetService("SoundService")
@@ -24,8 +26,10 @@ local trackId: number? = nil -- [D61] piesa aleasa la Init (satul: raul; balciul
 
 local FADE_IN_FIRST = 4
 local FADE_CHANGE = 0.35
--- [D75, lotul A2] o piesa scurta peste bucla (filmul barajului): bucla tace lin cat canta ea
-local CUE_FADE = 0.6
+-- [D75, lotul A2] o piesa scurta peste bucla (filmul barajului): bucla tace lin cat canta ea. [directorul A2] 0,2 s: la
+-- 0,6 bucla mai canta sub clopotul de la inceput, iar dupa Skip piesa mai atarna
+local CUE_FADE = 0.2
+local CUE_DRIFT = 0.12 -- cat are voie piesa sa se departeze de ceasul filmului
 local cue: Sound? = nil
 
 -- Estomparea, pe grup. Pornirea din liniste pune grupul la 0 INAINTE de Play/Resume: altfel un cadru ar
@@ -86,13 +90,8 @@ function MusicController.SetLevel(newLevel: number)
     fadeTo(AudioLevels.volume(level, AudioLevels.MUSIC_MAX), FADE_CHANGE)
 end
 
--- [D75, lotul A2] O piesa scurta, o singura data (filmul barajului): bucla raului tace lin, piesa canta pe grupul "Music"
--- (nivelul din panou ramane al jucatorului: la 0 nu se aude nici ea). 0 = neurcata: nimic se schimba.
-function MusicController.PlayCue(id: number)
-    if id == 0 then
-        return
-    end
-    MusicController.EndCue()
+-- Grupul "Music", facut acum daca bucla raului nu e urcata (la nivelul ales).
+local function musicGroup(): SoundGroup
     local g = group
     if g == nil then
         -- bucla raului neurcata: grupul se face acum, la nivelul ales
@@ -103,6 +102,17 @@ function MusicController.PlayCue(id: number)
         group = made
         g = made
     end
+    return g :: SoundGroup
+end
+
+-- [D75, lotul A2] O piesa scurta, o singura data (filmul barajului): bucla raului tace lin, piesa canta pe grupul "Music"
+-- (nivelul din panou ramane al jucatorului: la 0 nu se aude nici ea), de la secunda `at`. 0 = neurcata: nimic se schimba.
+function MusicController.PlayCue(id: number, at: number?)
+    if id == 0 then
+        return
+    end
+    MusicController.EndCue()
+    local g = musicGroup()
     local loop = sound
     if loop ~= nil then
         TweenService:Create(loop, TweenInfo.new(CUE_FADE), { Volume = 0 }):Play()
@@ -113,8 +123,47 @@ function MusicController.PlayCue(id: number)
     c.Volume = 1
     c.SoundGroup = g
     c.Parent = SoundService
+    c.TimePosition = at or 0
     c:Play()
     cue = c
+end
+
+-- [directorul A2] Piesa sta pe ceasul filmului: o incarcare tarzie sau un Seek nu o mai lasa in urma imaginii.
+function MusicController.CueSync(t: number)
+    local c = cue
+    if c ~= nil and c.IsLoaded and math.abs(c.TimePosition - t) > CUE_DRIFT then
+        c.TimePosition = math.max(0, t)
+    end
+end
+
+-- [directorul A2] Un sunet al piesei (santierul, zidul care se inchide) pe acelasi grup ca ea, la volumul din amestecul
+-- facut cu ea: altfel, pe grupul efectelor, ar fi cu 13-17 dB peste muzica.
+function MusicController.PlayCueSfx(id: number, volume: number)
+    if id == 0 then
+        return
+    end
+    local s = Instance.new("Sound")
+    s.SoundId = Assets.soundUrl(id)
+    s.Volume = volume
+    s.SoundGroup = musicGroup()
+    s.Parent = SoundService
+    s:Play()
+    Debris:AddItem(s, 6)
+end
+
+-- [directorul A2] Incarca piesa dinainte (ecranul „Build the Dam”), ca filmul sa porneasca cu ea.
+function MusicController.Preload(id: number)
+    if id == 0 then
+        return
+    end
+    task.spawn(function()
+        local probe = Instance.new("Sound")
+        probe.SoundId = Assets.soundUrl(id)
+        pcall(function()
+            ContentProvider:PreloadAsync({ probe })
+        end)
+        probe:Destroy()
+    end)
 end
 
 -- Piesa scurta se stinge (la capat sau la Skip) si bucla revine lin.

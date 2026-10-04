@@ -741,6 +741,7 @@ safeInit("DamFilm", function()
             hudGui.Enabled = visible
         end,
         Plot = layers.Plot, -- [D75, lotul A2] decorul filmului
+        Scroll = layers.Scroll, -- [directorul A2] amurgul in lume, oamenii peste el
     })
 end)
 safeInit("DamScreen", function()

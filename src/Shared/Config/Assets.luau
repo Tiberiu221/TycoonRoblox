@@ -323,6 +323,7 @@ local Assets = {
         painted_town_lit = sprite(0, 340, 44), -- doar luminile lui, peste el
         -- [D75, lotul A2] filmul barajului (scripts/art/a2_*.py; DamFilm, DamFilmSet). 0 = desenate, inca neurcate: filmul
         -- ramane amurgul peste satul adevarat, cu zidul din piatra simpla care creste peste rau.
+        film_wall = sprite(0, 80, 189), -- zidul uscat al filmului (fara deversor si gura turbinei), taiat in doua jumatati
         film_scaffold = sprite(0, 80, 16), -- un etaj de schela cat zidul, repetat pe verticala
         film_wall_edge_n = sprite(0, 80, 10), -- capatul neterminat al jumatatii de nord
         film_wall_edge_s = sprite(0, 80, 10), -- si al celei de sud
@@ -332,6 +333,9 @@ local Assets = {
         film_dust = sprite(0, 48, 12), -- 3 cadre de 16 x 12
         film_walkers = sprite(0, 64, 96), -- siluete: 4 randuri (gol, grinda, piatra, felinar) x 4 cadre de 16 x 24
         film_workers = sprite(0, 64, 48), -- 2 randuri (ciocanul, funia) x 4 cadre de 16 x 24
+        -- spre stanga: lumina asfintitului ramane pe stanga (oglindite, ar fi avut-o pe spate)
+        film_walkers_l = sprite(0, 64, 96),
+        film_workers_l = sprite(0, 64, 48),
         film_works_bell_swing = sprite(0, 120, 56), -- 3 cadre de 40 x 56, exact peste works_bell
         platform = sprite(136060284598059, 48, 24),
         weights = sprite(116698981575799, 24, 16),

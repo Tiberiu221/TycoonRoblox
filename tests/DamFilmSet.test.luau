@@ -55,6 +55,30 @@ return function()
             check.equal(n + s, wall.bottom - wall.top)
             check.equal(select(1, DamFilmSet.halves(0)), 0)
         end)
+        test.case(
+            "capetele neterminate nu se opresc pe treptele zidului (directorul A2)",
+            function()
+                local wall = DamFilmSet.wall()
+                local span = wall.bottom - wall.top
+                local lastN, lastS = 0, 0
+                for i = 0, 400 do
+                    local n, s = DamFilmSet.halves(i / 400)
+                    local nRows, sRows = n / 3, s / 3
+                    check.is_false(
+                        nRows >= DamFilmSet.SKIP_NORTH.from and nRows <= DamFilmSet.SKIP_NORTH.to
+                    )
+                    if i < 400 then
+                        check.is_false(
+                            sRows >= DamFilmSet.SKIP_SOUTH.from
+                                and sRows <= DamFilmSet.SKIP_SOUTH.to
+                        )
+                    end
+                    check.is_true(n + s <= span)
+                    check.is_true(n >= lastN and s >= lastS)
+                    lastN, lastS = n, s
+                end
+            end
+        )
         test.case("plasele de pe linia zidului ies din apa, celelalte nu", function()
             local x0, x1 = DamFilmSet.liftRange()
             local lifted = {}

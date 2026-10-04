@@ -81,13 +81,28 @@ function DamFilmSet.wall(): Wall
     }
 end
 
+-- [directorul A2] Randurile zidului filmului (film_wall) pe care un capat neterminat nu se opreste: la nord treapta de sub
+-- coama (randurile 24-28 ar lasa o jumatate de treapta peste capatul neterminat), la sud cea de deasupra piciorului (primul
+-- rand vazut, 189 - s, nu cade in 125-127). Se sare peste ele, la randul de dupa.
+DamFilmSet.SKIP_NORTH = { from = 24, to = 28 }
+DamFilmSet.SKIP_SOUTH = { from = 62, to = 64 }
+
 -- Cat s-a ridicat din fiecare jumatate (nord, sud), pe grila, pentru `built` 0..1. La 1 se ating exact.
 function DamFilmSet.halves(built: number): (number, number)
     local wall = DamFilmSet.wall()
+    local S = DamFilmSet.SCALE
     local span = wall.bottom - wall.top
     local k = math.clamp(built, 0, 1)
-    local north = grid(span / 2 * k)
-    local south = if k >= 1 then span - north else grid(span / 2 * k)
+    local n = math.round(span / 2 * k / S)
+    local s = math.round(span / 2 * k / S)
+    if n >= DamFilmSet.SKIP_NORTH.from and n <= DamFilmSet.SKIP_NORTH.to then
+        n = DamFilmSet.SKIP_NORTH.to + 1
+    end
+    if s >= DamFilmSet.SKIP_SOUTH.from and s <= DamFilmSet.SKIP_SOUTH.to then
+        s = DamFilmSet.SKIP_SOUTH.to + 1
+    end
+    local north = n * S
+    local south = if k >= 1 then span - north else math.min(s * S, span - north)
     return north, south
 end
 
