@@ -1460,6 +1460,10 @@ explicit.**
   - Cardul se mută lângă cifre cel mult un sfert din lățimea lui, ca să rămână peste obiectul lui (altfel butonul Upgrade al
     tavernei cădea pe depozit). Altfel trece sub obiect. Are histerezis și pe lateral, ca să nu sară la fiecare pas pe punte.
   - Sonda așteaptă profilul dus (`ProbeDecided`), spune „carried profile”, iar `wait-boot` pică dacă profilul nu s-a luat.
+  **[A treia rundă, făcut]** Sub picioare cardul se mută oricât trebuie: pe telefonul mic, lângă tavernă, limita de un
+  sfert îl trimitea înapoi sub cifre, fiindcă locul de sub tine e liber doar la dreapta joystick-ului. Un card deja mutat
+  deasupra rămâne acolo până la un sfert plus `LABEL_RETURN`, ca să nu sară la o mișcare de sub un pixel. Testele folosesc
+  blocurile adevărate ale telefonului (cifrele, bara de meniu, joystick-ul, butonul E).
 - **A4 (2026-10-04; planșa trimisă owner-ului, așteaptă aprobarea și acordul de urcare):** 70 de desene. Generatoarele sunt
   `scripts/art/a4_works.py`, `a4_halls.py`, `a4_goods.py`, `a4_huts_power.py`, `a4_huts_cable.py` și `a4_outfits.py`, iar planșa
   se face cu `python3 scripts/art/a4_plate.py`. Inventarul e în `scratchpad/a4_inventory.json`. Legătura în cod e făcută, cu ID 0:

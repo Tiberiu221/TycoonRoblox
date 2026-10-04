@@ -1080,12 +1080,16 @@ end
 
 -- ---- cardul E, langa panourile fixe [verificatorul D76] ----------------------------------------------
 -- Cardul obiectului de langa tine (InteractController) sta in lume, iar HUD-ul se deseneaza peste ea. Pe telefon, langa
--- coltul cu cifre, fraza de pe card (unde duci marfa) intra sub ele. Regula: deasupra obiectului, ca pana acum, daca nu
--- atinge niciun panou fix (GuideBlocker); altfel tot deasupra, mutat langa panoul care il acopera, dar cel mult un sfert
--- din latimea lui (CARD_SHIFT_MAX), ca sa ramana peste obiectul lui si sa nu-si puna butonul Upgrade pe cladirea vecina;
--- altfel sub obiect (sub picioarele tale), la fel; altfel deasupra, ca pana acum. Cardul nu se ascunde niciodata: se apasa.
--- Histerezis: din locul de sub obiect sau dintr-unul mutat, cardul se intoarce la locul firesc doar cu loc in plus
--- (LABEL_RETURN), ca sa nu sara la fiecare pas. Locurile mutate se masoara mereu cu aceeasi margine, ca sa nu tresara.
+-- coltul cu cifre, fraza de pe card (unde duci marfa) intra sub ele. Regula, in ordine:
+--   1. deasupra obiectului, ca pana acum, daca nu atinge niciun panou fix (GuideBlocker);
+--   2. tot deasupra, mutat langa panoul care il acopera, dar cel mult un sfert din latimea lui (CARD_SHIFT_MAX), ca sa
+--      ramana peste obiectul lui si sa nu-si puna butonul Upgrade pe cladirea vecina;
+--   3. sub obiect (sub picioarele tale), intai mutat putin, apoi oricat trebuie: acolo cardul e al tau, nu al cladirii, iar
+--      pe telefonul mic doar asa ocoleste joystick-ul;
+--   4. altfel deasupra, ca pana acum. Cardul nu se ascunde niciodata: se apasa.
+-- Histerezis, ca sa nu sara la fiecare pas: din locul de sub obiect sau dintr-unul mutat, cardul se intoarce la locul firesc
+-- doar cu loc in plus (LABEL_RETURN), iar un card deja mutat deasupra ramane acolo pana la un sfert plus LABEL_RETURN.
+-- Locurile mutate se masoara mereu cu aceeasi margine, ca sa nu tresara.
 -- Intoarce locul ("above" | "below") si cat se muta cardul pe orizontala, in unitatile intrarii (panza HUD).
 export type CardQuery = {
     centerX: number,
@@ -1127,8 +1131,8 @@ function GuideMath.cardPlacement(q: CardQuery): (string, number)
         end
         return false
     end
-    -- locul firesc (liber cu `freePad`), altfel cea mai mica mutare langa un panou, de cel mult `maxShift`; nil = niciunul
-    local function slot(y: number, freePad: number): number?
+    -- locul firesc (liber cu `freePad`), altfel cea mai mica mutare langa un panou, de cel mult `cap`; nil = niciunul
+    local function slot(y: number, freePad: number, cap: number): number?
         if not hit(left + onScreen, y, freePad) then
             return onScreen
         end
@@ -1139,7 +1143,7 @@ function GuideMath.cardPlacement(q: CardQuery): (string, number)
                 if
                     x >= margin
                     and x + q.width <= q.screenW - margin
-                    and math.abs(shift - onScreen) <= maxShift
+                    and math.abs(shift - onScreen) <= cap
                     and not hit(x, y, margin)
                     and (
                         best == nil
@@ -1154,13 +1158,16 @@ function GuideMath.cardPlacement(q: CardQuery): (string, number)
     end
     local wasShifted = q.currentShift ~= nil and math.abs(q.currentShift - onScreen) > 0.5
     local abovePad = if q.current == "below" or wasShifted then back else margin
-    local above = slot(q.aboveY, abovePad)
+    local aboveCap = if q.current ~= "below" and wasShifted
+        then maxShift + GuideMath.LABEL_RETURN
+        else maxShift
+    local above = slot(q.aboveY, abovePad, aboveCap)
     if above ~= nil then
         return "above", above
     end
     if q.belowY + q.height <= q.screenH - margin then
         local belowPad = if q.current == "below" and wasShifted then back else margin
-        local below = slot(q.belowY, belowPad)
+        local below = slot(q.belowY, belowPad, maxShift) or slot(q.belowY, belowPad, math.huge)
         if below ~= nil then
             return "below", below
         end

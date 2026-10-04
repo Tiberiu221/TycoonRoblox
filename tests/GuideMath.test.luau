@@ -1052,6 +1052,85 @@ return function()
             check.equal(fromAbove, 60)
         end)
 
+        -- [verificatorul D76, a treia runda] blocurile adevarate ale telefonului mic: cifrele, bara de meniu, joystick-ul, E
+        local PHONE = {
+            HUD,
+            { x = 994, y = 131, w = 62, h = 342 },
+            { x = 44, y = 391, w = 170, h = 170 },
+            { x = 924, y = 453, w = 108, h = 108 },
+        }
+        local function touches(place: string, shift: number, q: GuideMath.CardQuery): boolean
+            local x = q.centerX - q.width / 2 + shift
+            local y = if place == "below" then q.belowY else q.aboveY
+            for _, b in q.blockers do
+                if x < b.x + b.w and b.x < x + q.width and y < b.y + b.h and b.y < y + q.height then
+                    return true
+                end
+            end
+            return false
+        end
+
+        test.case(
+            "sub picioare se muta oricat trebuie: langa taverna nu cade sub cifre si nici peste joystick",
+            function()
+                local q = query({
+                    centerX = 360,
+                    aboveY = 14,
+                    belowY = 330,
+                    width = 603,
+                    height = 55,
+                    blockers = PHONE,
+                })
+                local place, shift = GuideMath.cardPlacement(q)
+                check.equal(place, "below")
+                check.is_false(touches(place, shift, q))
+            end
+        )
+
+        test.case("mergand pe langa taverna, cardul nu sare intre deasupra si dedesubt", function()
+            local place, shift = "above", nil :: number?
+            local changes = 0
+            for cx = 380, 300, -2 do
+                local q = query({
+                    centerX = cx,
+                    aboveY = 14,
+                    belowY = 330,
+                    width = 603,
+                    height = 55,
+                    blockers = PHONE,
+                    current = place,
+                    currentShift = shift,
+                })
+                local p, s = GuideMath.cardPlacement(q)
+                if p ~= place then
+                    changes += 1
+                end
+                check.is_false(touches(p, s, q))
+                place, shift = p, s
+            end
+            check.is_true(changes <= 1)
+        end)
+
+        test.case(
+            "la limita unui sfert, o jumatate de unitate nu-l muta dintr-un loc in altul",
+            function()
+                -- cardul de 380 mutat deasupra cu ~95 (limita); pas cu pas in jurul ei, cu cadrul trecut dat inapoi
+                local place, shift = "above", nil :: number?
+                local seen: { string } = {}
+                for _, cx in { 610, 606, 605, 604.6, 604.5, 605, 604.5, 605 } do
+                    local p, s = GuideMath.cardPlacement(
+                        query({ centerX = cx, aboveY = 120, current = place, currentShift = shift })
+                    )
+                    table.insert(seen, p)
+                    place, shift = p, s
+                end
+                -- odata mutat deasupra, ramane deasupra pe toata oscilatia
+                for _, p in seen do
+                    check.equal(p, "above")
+                end
+            end
+        )
+
         test.case("de sub obiect inapoi deasupra doar cu loc in plus", function()
             local wide = { x = 300, y = 12, w = 476, h = 170 }
             local stay = GuideMath.cardPlacement(
