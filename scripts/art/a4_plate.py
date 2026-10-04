@@ -142,21 +142,22 @@ def pair_tiles(names_pairs, scale=4):
 
 
 def outfit_tiles(names, scale=4):
-    """Fiecare tinuta: stand (idle_down, randul 3) si mers (walk_side, randul 2), peste corpul a si parul short."""
-    body, hair = load("body_a"), load("hair_short")
+    """Fiecare tinuta: stand (idle_down) si mers (walk_side), compusa ca in joc (a4_outfits.person_img: corpul tins cu pielea,
+    parul tins, tinuta DEASUPRA parului, ca in PersonView), pe corpul, parul si culorile alese de generatorul tinutelor."""
+    import a4_outfits as AO
+
+    AO.register()  # retetele noi in settlers.OUTFITS (doar in memorie), ca build_sheet sa le stie
     tiles = []
     for name in names:
-        sheet = load("outfit_" + name.lower())
-        if sheet is None:
+        key = name.lower()
+        if key not in AO.WHO:
             continue
-        t = Image.new("RGBA", (16 * 2 + 4, 24), (0, 0, 0, 0))
-        for k, (row, frame) in enumerate(((3, 0), (2, 1))):
-            cell = Image.new("RGBA", (16, 24), (0, 0, 0, 0))
-            for layer in (body, sheet, hair):
-                if layer is not None:
-                    cell.alpha_composite(layer.crop((frame * 16, row * 24, frame * 16 + 16, row * 24 + 24)))
-            t.alpha_composite(cell, (k * 20, 0))
-        tiles.append((name, t.resize((t.width * scale, t.height * scale), Image.NEAREST)))
+        stand = AO.person_img(key, key, "idle_down", 0, scale)
+        walk = AO.person_img(key, key, "walk_side", 1, scale)
+        t = Image.new("RGBA", (stand.width + walk.width + 4 * scale, max(stand.height, walk.height)), (0, 0, 0, 0))
+        t.alpha_composite(stand.convert("RGBA"), (0, 0))
+        t.alpha_composite(walk.convert("RGBA"), (stand.width + 4 * scale, 0))
+        tiles.append((name, t))
     return tiles
 
 
@@ -166,7 +167,7 @@ def main():
     panels = [
         ("THE DAM, FIRST HIRES", "A4 buildings and huts at their places (crop x 200-3300, y 840-1700)", crop(first, 200, 840, 3300, 1700, 1)),
         ("THE DAM, SECOND HIRES", "the huts grow with the second hire", crop(second, 200, 840, 3300, 1700, 1)),
-        ("THE RELAY BANK", "Switch House, Relay Station, Kiln, Crystal Shed, Dam Bell (x2)", crop(first, 1850, 860, 3150, 1480, 2)),
+        ("THE RELAY BANK", "Switch House, Relay Station, Kiln, Crystal Shed, Dam Bell (x2)", crop(first, 1850, 830, 3150, 1480, 2)),
         ("DAM TOWN", "the canteen among the A1 landmarks and cottages (x2)", crop(first, 150, 860, 1000, 1700, 2)),
     ]
     huts = ["dam_collector", "dam_porter", "switchman", "barrel_hauler", "relay_keeper", "pylon_runner", "cable_collector",
