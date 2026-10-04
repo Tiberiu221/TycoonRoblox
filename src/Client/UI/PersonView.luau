@@ -335,7 +335,7 @@ function PersonView.new(parent: Instance, name: string, held: string?): View
         frame = holder,
         SetHeldGood = function(good: string?)
             local img = item
-            -- o gasire se duce ca lada ei (ca in PileView.goodSprite), cat o marfa: 36 px de lata
+            -- o gasire se duce ca lada ei (ca in PileView.goodSprite), cat o marfa
             local find = good ~= nil and TycoonConfig.lookOf(good) == "named"
             local bought = if find
                 then Assets.crate.common
@@ -344,9 +344,14 @@ function PersonView.new(parent: Instance, name: string, held: string?): View
             if img == nil or bought == nil or not Assets.has(bought) then
                 return
             end
-            local k = if find then 36 / bought.width else 1.5
+            -- [verificatorul A4] lada, in aceeasi cutie ca marfa (36 x 27): mai inalta, i-ar fi acoperit ochii omului
+            local k = if find then math.min(36 / bought.width, 27 / bought.height) else 1.5
             setIfChanged(img, "Image", Assets.url(bought))
-            setIfChanged(img, "Size", UDim2.fromOffset(bought.width * k, bought.height * k))
+            setIfChanged(
+                img,
+                "Size",
+                UDim2.fromOffset(math.round(bought.width * k), math.round(bought.height * k))
+            )
         end,
         SetFade = function(alpha: number)
             local a = math.clamp(alpha, 0, 1)
