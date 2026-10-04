@@ -19,6 +19,7 @@ local UserInputService = game:GetService("UserInputService")
 
 local Assets = require(ReplicatedStorage.Shared.Config.Assets)
 local DamTown = require(ReplicatedStorage.Shared.Modules.DamTown) -- [verificatorul A1] oraselul pictat (Look across)
+local LOOK_ARM_SECONDS = 1.5
 local FlowConfig = require(ReplicatedStorage.Shared.Config.FlowConfig)
 local RiverConfig = require(ReplicatedStorage.Shared.Config.RiverConfig)
 local StationConfig = require(ReplicatedStorage.Shared.Config.StationConfig)
@@ -43,6 +44,8 @@ export type Deps = {
     CharacterPos: () -> (number, number),
     -- [verificatorul A1, provizoriu] o privire (LookController.Look) spre un loc al terenului; nil = fara privire
     LookAt: ((x: number, y: number) -> ())?,
+    -- [verificatorul A1] privirea nu se ofera cat bannerul oraselului (cu Look-ul lui) inca asteapta
+    LookAcrossReady: (() -> boolean)?,
 }
 
 -- Ce stie clientul despre traista (TycoonState.sack) si despre gramezile unei linii (TycoonState.flow).
@@ -702,6 +705,7 @@ function LineController.seller(seller: string, building: Building): Seller
 
     local sack: Sack = EMPTY_SACK
     local isOpen = false
+    local sellShownAt = -math.huge -- [verificatorul A1] ultima data cand cardul a aratat „Sell”
     local pile = PileView.new(deps.Plot, places.pile.x, places.pile.y, { warnAt = 60 })
     local art, label = drawBuilding(building)
     local ruin = drawRuin(building)
@@ -757,6 +761,7 @@ function LineController.seller(seller: string, building: Building): Seller
         local status: string? = nil
         if mine ~= nil and mine.count > 0 then
             text = Strings.promptSellAt(keyHint(), TycoonMath.formatNumber(mine.value))
+            sellShownAt = os.clock()
         else
             -- [verificatorii k3, k4, k9-k10a] n-ai ce vinde aici: cardul spune unde merge ce duci, nu tace si nu suna a
             -- refuz [D43] (piesele la unire, marfa altui vanzator, marfa bruta a oricarei linii, la atelierul ei)
@@ -790,12 +795,17 @@ function LineController.seller(seller: string, building: Building): Seller
         -- oraselul care iti cumpara curentul (doar cu desenul lui urcat)
         local lookAt = deps.LookAt
         local center = DamTown.townCenter()
+        -- [verificatorul A1] armata abia la LOOK_ARM_SECONDS dupa ce cardul n-a mai aratat „Sell”: o a doua apasare pe E,
+        -- din obisnuinta, nu muta camera peste rau
+        local ready = deps.LookAcrossReady
         local across = text == nil
             and status == nil
             and (places :: any).lookAcross == true
             and lookAt ~= nil
             and center ~= nil
             and Assets.has(Assets.tycoon.painted_town)
+            and os.clock() - sellShownAt >= LOOK_ARM_SECONDS
+            and (ready == nil or ready())
         return {
             status = status,
             key = seller,

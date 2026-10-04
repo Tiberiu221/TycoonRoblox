@@ -444,6 +444,9 @@ safeInit("LineController", function()
             Panels.CloseAll()
             LookController.Look(TycoonConfig.PLOT_ORIGIN.x + x, TycoonConfig.PLOT_ORIGIN.y + y)
         end,
+        LookAcrossReady = function(): boolean
+            return not DamTownController.TownPending()
+        end,
     })
 end)
 if world == 1 then

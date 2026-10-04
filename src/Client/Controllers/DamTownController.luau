@@ -320,6 +320,11 @@ function DamTownController.SetTownLit(lit: boolean)
     clip.Size = UDim2.fromOffset(if lit then town.w else 0, town.h)
 end
 
+-- [verificatorul A1] luminile asteapta inca sa fie vazute (bannerul cu Look-ul lui e pe drum sau pe ecran)
+function DamTownController.TownPending(): boolean
+    return townPending
+end
+
 -- [verificatorul A1] bannerul TOWN_LIT a aparut (onShow): de acum ceasul plasei de siguranta (DamTown.TOWN_WAIT_SECONDS)
 function DamTownController.TownBannerShown()
     if townPending and townDeadline == nil then
