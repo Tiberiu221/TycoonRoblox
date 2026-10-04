@@ -116,7 +116,8 @@ stylua/selene o prind. Rulează-le mereu pe toate, nu înlănțuite după o eroa
 - **Schimbări voite în sat [D76, A4]:** cardul plasei cu sacul plin spune unde duci marfa (aceeași frază ca toast-ul,
   `fullText` din `NetController`); clienții tavernei, ai Pieței și ai Depoului pleacă cu marfa vândută (`FlowMath.soldGood`);
   după Works Bell, cristalul plutește pe curentul din larg (D68), acum că desenul lui e urcat.
-- **Urcarea [D76]:** A1 (16) și A4 (70) sunt urcate, toate aprobate de moderare (2026-10-04). Urmează A2 cu sunetele.
+- **Urcarea [D76]:** A1 (16), A4 (70) și A2 (13 desene, piesa filmului și două sunete) sunt urcate, toate aprobate de
+  moderare (2026-10-04). Mai au ID 0 doar pământul copt al barajului (A3, cerere separată) și coafura `bald` (intenționat).
   `upload_assets.py` scrie marfa în tabelul `goods` (`goods_barrel` ar fi căzut peste `props.barrel`).
 Detaliile, rundele de verificator și ce urmează la urcare: `docs/PLAN-MOTOR-UNIRE.md`, nota „A1 și A2, starea”.
 - **A1** (`scripts/art/a1_*.py`, planșa `a1_plate.py`): zidul de piatră, deversorul, spuma, fața turbinei (pe grila zidului),

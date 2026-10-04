@@ -342,20 +342,20 @@ local Assets = {
         dam_bell = sprite(78677977120528, 40, 56), -- al patrulea clopot
         -- [D75, lotul A2] filmul barajului (scripts/art/a2_*.py; DamFilm, DamFilmSet). 0 = desenate, inca neurcate: filmul
         -- ramane amurgul peste satul adevarat, cu zidul din piatra simpla care creste peste rau.
-        film_wall = sprite(0, 80, 189), -- zidul uscat al filmului (fara deversor si gura turbinei), taiat in doua jumatati
-        film_scaffold = sprite(0, 80, 16), -- un etaj de schela cat zidul, repetat pe verticala
-        film_wall_edge_n = sprite(0, 80, 10), -- capatul neterminat al jumatatii de nord
-        film_wall_edge_s = sprite(0, 80, 10), -- si al celei de sud
-        film_crane = sprite(0, 64, 48), -- 2 cadre de 32 x 48
-        film_stone_cart = sprite(0, 28, 16),
-        film_stone_pile = sprite(0, 32, 16),
-        film_dust = sprite(0, 48, 12), -- 3 cadre de 16 x 12
-        film_walkers = sprite(0, 64, 96), -- siluete: 4 randuri (gol, grinda, piatra, felinar) x 4 cadre de 16 x 24
-        film_workers = sprite(0, 64, 48), -- 2 randuri (ciocanul, funia) x 4 cadre de 16 x 24
+        film_wall = sprite(132993983564517, 80, 189), -- zidul uscat al filmului (fara deversor si gura turbinei), taiat in doua jumatati
+        film_scaffold = sprite(116777338065071, 80, 16), -- un etaj de schela cat zidul, repetat pe verticala
+        film_wall_edge_n = sprite(118932292536621, 80, 10), -- capatul neterminat al jumatatii de nord
+        film_wall_edge_s = sprite(80914219246772, 80, 10), -- si al celei de sud
+        film_crane = sprite(111317512688615, 64, 48), -- 2 cadre de 32 x 48
+        film_stone_cart = sprite(111001263446499, 28, 16),
+        film_stone_pile = sprite(80852361589262, 32, 16),
+        film_dust = sprite(114669069480463, 48, 12), -- 3 cadre de 16 x 12
+        film_walkers = sprite(79037203748737, 64, 96), -- siluete: 4 randuri (gol, grinda, piatra, felinar) x 4 cadre de 16 x 24
+        film_workers = sprite(81017675583673, 64, 48), -- 2 randuri (ciocanul, funia) x 4 cadre de 16 x 24
         -- spre stanga: lumina asfintitului ramane pe stanga (oglindite, ar fi avut-o pe spate)
-        film_walkers_l = sprite(0, 64, 96),
-        film_workers_l = sprite(0, 64, 48),
-        film_works_bell_swing = sprite(0, 120, 56), -- 3 cadre de 40 x 56, exact peste works_bell
+        film_walkers_l = sprite(137914780493524, 64, 96),
+        film_workers_l = sprite(128355897480869, 64, 48),
+        film_works_bell_swing = sprite(105163771175819, 120, 56), -- 3 cadre de 40 x 56, exact peste works_bell
         platform = sprite(136060284598059, 48, 24),
         weights = sprite(116698981575799, 24, 16),
         -- pier2 (64x48) a fost respins: se citea ca o lada cu capac. pier3 e pontonul inalt,
@@ -673,7 +673,7 @@ local Assets = {
     music = {
         river = 72095931356905,
         fair = 106949553479700, -- [D61] melodia balciului (scripts/audio/make_music.py fair)
-        dam_film = 0, -- [D75, lotul A2] piesa filmului barajului, 17 s (scripts/audio/a2_film.py); 0 = neurcata
+        dam_film = 129151995366361, -- [D75, lotul A2] piesa filmului barajului, 17 s (scripts/audio/a2_film.py); 0 = neurcata
     },
     sounds = {
         splash = 125294013048224,
@@ -695,8 +695,8 @@ local Assets = {
         levelup = 108593613284344,
         milestone = 79391496851488,
         -- [D75, lotul A2] filmul barajului (scripts/audio/a2_film.py): santierul si zidul care se inchide; 0 = neurcate
-        film_build = 0,
-        film_close = 0,
+        film_build = 119251249620287,
+        film_close = 87673881630526,
     },
 }
 
