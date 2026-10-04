@@ -1464,6 +1464,8 @@ explicit.**
   `upload_assets.py` (fiecare urcare cu acordul owner-ului), ID-urile în `Assets.luau` și moderarea.
 - **[2026-10-04, D76] A1, A2 și A4 sunt aprobate, cu acordul de urcare în ordinea A1 → A4 → A2.** A3 (pământul copt) se cere
   separat.
+  - **A1 urcat (2026-10-04):** 16 desene, regenerate din `a1_*.py` identice la pixel cu cele de pe planșă, 16 din 16
+    aprobate de moderare. Singura schimbare în satul viu: după Works Bell, cristalul plutește pe curentul din larg (D68).
 **[2026-10-03] A0, planșele sunt gata și așteaptă owner-ul** (`python3 scripts/art/a0_dam.py [wall|film]`, în scratchpad):
 - **`a0_dam_wall.png`:** zidul la locul lui, în două variante. **A** e de piatră, zidit din satul vechi, cu fața în trepte (recomandat:
   e ce spune filmul). **B** e de beton, cu trei stavile. Ambele au coama cu parapetul spre lac, fața din aval, panza

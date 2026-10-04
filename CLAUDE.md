@@ -114,7 +114,9 @@ stylua/selene o prind. Rulează-le mereu pe toate, nu înlănțuite după o eroa
 [D76].** Pământul copt (A3, `prop_dam_ground` / `_2`) nu intră în acord: se cere separat. A4 (`scripts/art/a4_*.py`, planșa
 `a4_plate.py`): clădirile, casele, marfa și ținutele barajului (70). „Look across (E)” rămâne pe cardul Switch House.
 - **Schimbări voite în sat [D76, A4]:** cardul plasei cu sacul plin spune unde duci marfa (aceeași frază ca toast-ul,
-  `fullText` din `NetController`); clienții tavernei, ai Pieței și ai Depoului pleacă cu marfa vândută (`FlowMath.soldGood`).
+  `fullText` din `NetController`); clienții tavernei, ai Pieței și ai Depoului pleacă cu marfa vândută (`FlowMath.soldGood`);
+  după Works Bell, cristalul plutește pe curentul din larg (D68), acum că desenul lui e urcat.
+- **Urcarea [D76]:** A1 e urcat, 16 din 16 aprobate de moderare (2026-10-04). Urmează A4, apoi A2 cu sunetele.
 Detaliile, rundele de verificator și ce urmează la urcare: `docs/PLAN-MOTOR-UNIRE.md`, nota „A1 și A2, starea”.
 - **A1** (`scripts/art/a1_*.py`, planșa `a1_plate.py`): zidul de piatră, deversorul, spuma, fața turbinei (pe grila zidului),
   Old Bells, Memory Wall, căsuțele, stâlpii, orășelul pictat (se aprinde cu primul curent, cu Look (V); LookController pornește
