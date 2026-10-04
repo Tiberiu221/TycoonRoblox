@@ -215,10 +215,19 @@ def main():
         # [verificatorul D76] cu `play --profile`, Play-ul trebuie sa fi luat chiar profilul dus: altfel proba ar rula pe un
         # profil gol (satul, nu barajul) crezand ca e la baraj
         if ok and os.path.exists(PROBE_PROFILE):
-            took = any("the profile comes from the previous probe Play" in line
-                       for _, line in creator_lines(read_from(last_play_offset())))
+            # sonda clientului poate raspunde inaintea profilului: se asteapta fraza serverului, oricare ar fi (cel mult 30 s)
+            took = None
+            end = time.time() + 30
+            while took is None and time.time() < end:
+                for _, line in creator_lines(read_from(last_play_offset())):
+                    if "the profile comes from the previous probe Play" in line:
+                        took = True
+                    elif "no carried profile" in line or "carried profile does not decode" in line:
+                        took = False
+                if took is None:
+                    time.sleep(0.5)
             print("profilul dus: luat" if took else "profilul dus: NU a fost luat (Play pe profil gol)")
-            ok = took
+            ok = took is True
         sys.exit(0 if ok else 1)
     elif verb == "errors":
         sys.exit(1 if show_problems() > 0 else 0)

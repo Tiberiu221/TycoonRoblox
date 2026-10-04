@@ -884,7 +884,7 @@ function Overlay.Init(d: Deps)
                 local build = coming.kind == "build"
                 CeremonyController.PlayMoment(
                     if build then Strings.eraReady(coming.name) else Strings.eraComing(coming.name),
-                    if build then Strings.ERA_READY_SUB else Strings.ERA_COMING_SUB,
+                    if build then Strings.ERA_READY_SUB else Strings.eraComingSub(deps.World),
                     nil,
                     {
                         onShow = function()

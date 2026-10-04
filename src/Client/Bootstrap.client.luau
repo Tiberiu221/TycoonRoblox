@@ -785,6 +785,7 @@ end)
 safeInit("QuestController", function()
     QuestController.Init({
         HudGui = hudCanvas,
+        World = world, -- [l1] randul de final pe harta ta
         Remotes = {
             ClaimQuest = Net.Get("ClaimQuest"),
             QuestRejected = Net.Get("QuestRejected"),
@@ -1045,6 +1046,9 @@ if game:GetService("RunService"):IsStudio() then
             return
         end
         Panels.CloseAll()
+        if verb == "close" then
+            WelcomeController.Close() -- [l1] fereastra de revenire nu e in Panels
+        end
         if verb == "open" and a == "stations" then
             StationPanel.Toggle()
         elseif verb == "open" then
@@ -1059,6 +1063,8 @@ if game:GetService("RunService"):IsStudio() then
             StationPanel.OpenAt(a, if b ~= "" then b else nil)
         elseif verb == "crew" then
             openCrew(a)
+        elseif verb == "dam" then
+            DamScreen.Open() -- [l1] ecranul „Build the Dam”, ca E la masa Dam Plans
         end
     end)
 end

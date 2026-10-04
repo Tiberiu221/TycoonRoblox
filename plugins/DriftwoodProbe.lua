@@ -185,7 +185,7 @@ local function collectTexts(rootName: string?): { any }
             table.insert(out, {
                 name = d.Name,
                 parent = d.Parent and d.Parent.Name or "",
-                text = string.sub(d.Text, 1, 70),
+                text = string.sub(d.Text, 1, 240), -- [l1] frazele lungi intregi (bucatile se lipesc la citire)
                 size = d.TextSize,
                 scaled = d.TextScaled,
                 fits = d.TextFits,
@@ -254,7 +254,7 @@ local function collectFind(name: string): { any }
             if d:IsA("ImageLabel") or d:IsA("ImageButton") then
                 row.image = d.Image
             elseif d:IsA("TextLabel") or d:IsA("TextButton") then
-                row.text = string.sub(d.Text, 1, 70)
+                row.text = string.sub(d.Text, 1, 240)
             end
             table.insert(out, row)
             if #out >= 24 then

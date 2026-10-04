@@ -127,7 +127,22 @@ function AmbitionMath.pick(
     end
     -- 3. cel mai apropiat prag, oriunde: nivelurile nu se termina, deci tinta asta exista mereu
     if gainOnly then
-        return nil
+        -- [l1] pasul unui quest de venit: veriga slaba poate fi un om deja la treapta 5 si doi, iar un vanzator (Switch
+        -- House) n-are linie, deci randul lui se compara cu veriga slaba a intregului lant si nu e marcat. Fara asta, la baraj
+        -- linia NEXT ramanea fara pas la 3,1T/s, desi un nivel la Switch House urca venitul. Orice nivel care chiar aduce
+        -- ceva acum, cel care aduce cel mai mult.
+        local any: Ambition? = nil
+        local anyGain = 0
+        for _, row in rows do
+            local gain = row.gain or 0
+            if gain > anyGain then
+                local a = milestoneOf(row, milestones)
+                if a ~= nil then
+                    any, anyGain = a, gain
+                end
+            end
+        end
+        return any
     end
     local best: Ambition? = nil
     for _, row in rows do

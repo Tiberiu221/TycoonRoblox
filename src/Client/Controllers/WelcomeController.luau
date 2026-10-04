@@ -64,6 +64,14 @@ function WelcomeController.IsOpen(): boolean
     return w ~= nil and w.Visible
 end
 
+-- [l1] sonda (`ui:close`): fereastra se inchide ca la „Back to the river”
+function WelcomeController.Close()
+    local w = window
+    if w ~= nil then
+        w.Visible = false
+    end
+end
+
 function WelcomeController.Init(deps: {
     HudGui: Frame,
     WelcomeBack: RemoteEvent,

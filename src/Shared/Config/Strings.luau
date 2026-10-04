@@ -155,7 +155,13 @@ end
 function Strings.eraComing(zoneName: string): string
     return `{zoneName} is coming soon!`
 end
-Strings.ERA_COMING_SUB = "It comes in a future update. Your village keeps earning while you play."
+-- [l1] la baraj locul tau e barajul, nu satul (ca „Welcome back to the Dam”, „Your Dam earned nothing”)
+local function homeName(world: number?): string
+    return if world == 2 then "Dam" else "village"
+end
+function Strings.eraComingSub(world: number?): string
+    return `It comes in a future update. Your {homeName(world)} keeps earning while you play.`
+end
 -- [verificatorul k6] numele unei zone in mijlocul frazei: „the Dam”, nu „The Dam”
 local function midName(name: string): string
     return (string.gsub(name, "^The ", "the "))
@@ -179,7 +185,9 @@ end
 function Strings.eraComingNext(zoneName: string): string
     return `{zoneName} (coming soon)`
 end
-Strings.ERA_COMING_QUESTS = "All quests done! Your village keeps earning while you play."
+function Strings.eraComingQuests(world: number?): string
+    return `All quests done! Your {homeName(world)} keeps earning while you play.`
+end
 -- pe un singur rand in cardul E (320 px la 18 px, 0,56 em pe litera)
 function Strings.comingPlans(zoneName: string): string
     return `{zoneName} plans · coming soon`

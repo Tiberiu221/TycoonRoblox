@@ -126,6 +126,9 @@ Detaliile, rundele de verificator și ce urmează la urcare: `docs/PLAN-MOTOR-UN
   Old Bells, Memory Wall, căsuțele, stâlpii, orășelul pictat (se aprinde cu primul curent, cu Look (V); LookController pornește
   în orice lume), cristalul pe curentul din larg.
 - **A2** (`scripts/art/a2_*.py`, `scripts/audio/a2_film.py`, planșa `a2_plate.py`): filmul, cu decorul pur în `DamFilmSet`.
+- **l1 făcut (PLAN §16):** barajul jucat cap-coadă cu sonda pe comutator, fără erori. Reparate: numele Kiln-ului, pasul
+  quest-ului de venit (`AmbitionMath`, `gainOnly`), „Your Dam keeps earning”. **Urmează:** l2 (owner-ul în Studio: filmul,
+  bannerele, mersul, telefonul), acordul pentru A3 (pământul copt), apoi l3.
 - **Sonda duce profilul de la un Play la altul:** `probe.py export F`, apoi `probe.py play --profile F` (doar pe profil de
   probă; `ProbeCarry` refuză un profil pe care JSON l-ar schimba). Așa se face Stop/Play-ul de după „Build the Dam” (l1).
 - **Capcană:** stylua a căzut o dată cu „Abort trap” în poartă; rulat din nou, trece. Verificatorii primesc intervalul de

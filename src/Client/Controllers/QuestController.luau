@@ -51,6 +51,7 @@ export type Deps = {
     OnToast: (string, Color3?) -> (),
     -- Go! la un quest de nivel deschide panoul de niveluri pe statia lui; dat din Bootstrap
     OpenStation: ((string, string?) -> ())?,
+    World: number?, -- [l1] harta ta: la baraj, randul de final spune „Your Dam”
 }
 
 local QuestController = {}
@@ -276,7 +277,9 @@ local function refresh(snap: Snapshot)
     if showFinale and coming ~= nil then
         local build = snap.comingKind == "build"
         finaleTitle.Text = if build then Strings.eraReady(coming) else Strings.eraComing(coming)
-        finaleLine.Text = if build then Strings.ERA_READY_QUESTS else Strings.ERA_COMING_QUESTS
+        finaleLine.Text = if build
+            then Strings.ERA_READY_QUESTS
+            else Strings.eraComingQuests(deps.World)
         finaleLine.TextSize =
             Theme.fitSize(finaleLine.Text, Theme.TEXT.tiny, "strong", FINALE_TEXT_W)
         finaleTitle.TextSize =
@@ -381,7 +384,7 @@ function QuestController.Init(d: Deps)
     finaleTitle.ZIndex = Z + 3
     finaleLine = Widgets.Label(
         finale,
-        Strings.ERA_COMING_QUESTS,
+        Strings.eraComingQuests(deps.World),
         Theme.TEXT.tiny,
         Theme.COLOR.onDarkSoft,
         "strong"
@@ -389,7 +392,7 @@ function QuestController.Init(d: Deps)
     finaleLine.Position = UDim2.fromOffset(Theme.SPACE.md, 36)
     finaleLine.Size = UDim2.fromOffset(FINALE_TEXT_W, 20)
     finaleLine.TextSize =
-        Theme.fitSize(Strings.ERA_COMING_QUESTS, Theme.TEXT.tiny, "strong", FINALE_TEXT_W)
+        Theme.fitSize(Strings.eraComingQuests(deps.World), Theme.TEXT.tiny, "strong", FINALE_TEXT_W)
     finaleLine.ZIndex = Z + 3
 
     -- [D62] Serverul a platit: perlele zboara de la butonul apasat (sau din mijlocul ferestrei) spre contor. Pozitia

@@ -533,6 +533,11 @@ local HANDLERS: { [string]: Handler } = {
                 done += 1
             end
         end
+        -- [l1] capitolele sarite au cules si au vandut: altfel prima vanzare de la baraj canta „First sale. The river pays.”
+        if done > 0 then
+            data.Firsts.FirstCollect = true
+            data.Firsts.FirstSell = true
+        end
         PadService.Invalidate(player)
         StationService.Invalidate(player)
         local pushState = deps.PushState

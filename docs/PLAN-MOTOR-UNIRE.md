@@ -1576,6 +1576,27 @@ Totalul, ~92–97 de imagini și 3 sunete până se joacă Era 4 (PLAN-HARTA §7
 - Verificări: `errors` gol, niciun text care iese din cutie; quest-urile nu se întorc în capitolul 1; grămezile vechi nu mai
   cresc; un al doilea Build nu face nimic.
 
+- **[l1 făcut, 2026-10-04]** Pe comutatorul local, cu sonda, pe profil de probă (`probe.py export` / `play --profile` duc
+  profilul peste Stop/Play), fără nicio eroare de la un capăt la altul.
+  - Satul terminat (`chapter:10`), apoi ecranul „Build the Dam” (`ui:dam`): coloanele, 35T, 19,5B/s.
+  - Ridicarea pe drumul adevărat (`BuildDam`), apoi `DamFilmSeen`. Studio spune Stop/Play, iar clientul pornește la baraj.
+  - Absențele: peste un minut, fereastra spune „hire a Cable Collector first”; sub un minut nu se deschide.
+  - Turul cablului de mână: tors, unit la Relay, vândut la Switch House. Cei 6 oameni noi: AWAY 19,5B/s, iar 3 minute
+    aduc 3,52T.
+  - Kiln-ul și cristalul de mână, Crystal Shed, oamenii cristalului, „Earn 4T”, Dam Bell. O absență de 2 h după clopot plătește
+    cât venitul.
+  - Grămezile satului nu mai cresc, iar o a doua ridicare e refuzată („The Dam is already built”).
+  - **Reparate pe drum:**
+    - Kiln-ul n-avea numele pe acoperiș (`PadArt.ROOF_SIGN.crystal_kiln`, singurul rând din inventarul A4 rămas nescris).
+    - Pasul quest-ului de venit rămânea gol la 3,1T/s, deși un nivel la Switch House urca venitul (`AmbitionMath`,
+      `gainOnly`). Un vânzător n-are linie, deci rândul lui nu era marcat drept verigă slabă.
+    - Finalul de după Dam Bell spunea „Your village keeps earning”; acum spune „Your Dam” (`Strings.eraComingSub` /
+      `eraComingQuests`).
+    - Sonda: `ui:dam`, `ui:close` închide și fereastra de revenire, iar textele lungi se citesc întregi. `chapter`
+      notează prima culegere și prima vânzare (altfel prima vânzare de la baraj cânta „First sale”).
+  - **Nevăzut de sondă** (Studio în fundal: tween-urile și `PreRender` stau): filmul, bannerele (TOWN_LIT, clopotul) și contorul
+    de monede. Vizita în bâlci la o gazdă de după baraj s-a probat la k11 (`build_balci ... 2`). Toate trec la l2.
+
 **l2. Ce poate verifica doar owner-ul, în Studio și pe staging.**
 - Filmul și mișcarea, mersul (~8 s până la Relay), riscul de pe telefon (460 vs 476 px).
 - Teleportul, doar pe un place publicat: fereastra satului din Studio se închide întâi, altfel Roblox răspunde 409. Cere acordul

@@ -168,5 +168,34 @@ return function()
             row.gain = 5
             check.not_nil(AmbitionMath.pick({ row }, {}, M, true))
         end)
+
+        -- [l1] la baraj: veriga slaba e un om la maxim, iar Switch House (vanzator, fara linie) nu e marcat, desi un nivel
+        -- acolo chiar urca venitul. Pasul quest-ului de venit il numeste; un rand fara castig nu.
+        test.case("gainOnly: veriga slaba la maxim, un nivel care aduce totusi ceva", function()
+            local town = {
+                kind = "town",
+                name = "Switch House",
+                level = 1,
+                nextMilestone = 10,
+                bottleneck = false,
+                gain = 1.8e12,
+            }
+            local kiln = {
+                kind = "kiln",
+                name = "Kiln",
+                level = 10,
+                nextMilestone = 25,
+                bottleneck = false,
+                gain = 0,
+            }
+            local maxed = crew("crystalCollector", 5, 2, true)
+            local a = AmbitionMath.pick({ kiln, town }, { maxed }, M, true)
+            check.not_nil(a)
+            check.equal((a :: AmbitionMath.Ambition).kind, "town")
+            check.equal((a :: AmbitionMath.Ambition).target, 10)
+            -- niciun castig nicaieri: tot nimic
+            town.gain = 0
+            check.equal(AmbitionMath.pick({ kiln, town }, { maxed }, M, true), nil)
+        end)
     end)
 end

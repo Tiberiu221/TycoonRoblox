@@ -23,6 +23,8 @@ PadArt.ROOF_SIGN = {
     workshop = Strings.FORGE_LABEL,
     copper_furnace = Strings.LINE_WORDS.copper.processor,
     power_house = Strings.LINE_WORDS.power.processor,
+    -- [l1] Kiln-ul barajului: desenul lasa banda de zid de sub cupola (randurile 10-15) pentru nume (a4_halls.py)
+    crystal_kiln = Strings.LINE_WORDS.crystal.processor,
 } :: { [string]: string }
 PadArt.ROOF_SIGN_Y = 30
 
