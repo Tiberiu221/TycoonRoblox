@@ -68,8 +68,9 @@ local shownAction: string? = nil
 local shownUpgrade: string? = nil
 -- [verificatorul D76] panza HUD si trecerea din lume in ea (SetHud, din Bootstrap): cardul ocoleste panourile fixe
 local hud: { WorldToHud: (number, number) -> (number, number), HudGui: Frame }? = nil
-local cardPlace = "above" -- unde a stat cardul in cadrul trecut (histerezisul din GuideMath.cardPlacement)
-local cardShift: number? = nil -- si cat era mutat pe orizontala (unitati de panza)
+-- locul cardului din cadrul trecut (GuideMath.cardPlacement il tine cat e liber) si al cui card era
+local cardKey: string? = nil
+local cardOf: string? = nil
 
 -- ce stie din starea jocului, impins de Overlay la fiecare TycoonState
 local goal: GuideMath.Goal? = nil
@@ -113,7 +114,7 @@ local function nextLevelCost(kind: string?, id: string?): number?
 end
 
 local function hide()
-    cardPlace, cardShift = "above", nil -- [verificatorul D76] urmatorul card incepe de la locul lui firesc
+    cardKey, cardOf = nil, nil -- [verificatorul D76] urmatorul card incepe de la locul lui firesc
     if card.Visible then
         card.Visible = false
     end
@@ -200,7 +201,11 @@ local function place(f: Focus.Focus, y: number): (number, number)
     local belowTop = math.max(py, if f.at ~= nil then f.at.y else f.y) + CARD_BELOW
     local _, belowY = h.WorldToHud(f.x, belowTop)
     local canvas = h.HudGui
-    local where, shift = GuideMath.cardPlacement({
+    -- alt obiect: alt card, deci de la locul lui firesc
+    if cardOf ~= f.key then
+        cardKey, cardOf = nil, f.key
+    end
+    local where, shift, key = GuideMath.cardPlacement({
         centerX = cx,
         aboveY = top,
         belowY = belowY,
@@ -209,10 +214,9 @@ local function place(f: Focus.Focus, y: number): (number, number)
         screenW = canvas.Size.X.Offset,
         screenH = canvas.Size.Y.Offset,
         blockers = fixedBlockers(canvas),
-        current = cardPlace,
-        currentShift = cardShift,
+        currentKey = cardKey,
     })
-    cardPlace, cardShift = where, shift
+    cardKey = key
     local x = f.x + shift / perWorld
     if where == "below" then
         return x, belowTop + ht / 2 + CARD_H / 2

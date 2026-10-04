@@ -1464,6 +1464,12 @@ explicit.**
   sfert îl trimitea înapoi sub cifre, fiindcă locul de sub tine e liber doar la dreapta joystick-ului. Un card deja mutat
   deasupra rămâne acolo până la un sfert plus `LABEL_RETURN`, ca să nu sară la o mișcare de sub un pixel. Testele folosesc
   blocurile adevărate ale telefonului (cifrele, bara de meniu, joystick-ul, butonul E).
+  **[A patra rundă, făcut] Regula e rescrisă:** cardul alege între locuri cu nume (deasupra pe loc; deasupra lângă un panou de
+  pe rândul lui, cel mult un sfert; dedesubt pe loc; dedesubt lângă un panou, oricât). Îl păstrează pe cel ales cât e liber
+  (`currentKey`), iar unul nou trebuie să fie mai bun și liber cu `LABEL_RETURN`, inclusiv față de marginea de jos a
+  ecranului. Locurile vin doar de la panourile de pe rândul cardului. Când nu e niciun loc liber, alege locul care acoperă cel
+  mai puțin. Testele plimbă cardul pe cinci ecrane, cu pastilele adevărate din `HudLayout`: niciun dus-întors. În scratchpad,
+  pe 79.056 de plimbări (pași de 0,4–3 unități, rândul de jos legat de obiect sau de tine), tot niciunul.
 - **A4 (2026-10-04; planșa trimisă owner-ului, așteaptă aprobarea și acordul de urcare):** 70 de desene. Generatoarele sunt
   `scripts/art/a4_works.py`, `a4_halls.py`, `a4_goods.py`, `a4_huts_power.py`, `a4_huts_cable.py` și `a4_outfits.py`, iar planșa
   se face cu `python3 scripts/art/a4_plate.py`. Inventarul e în `scratchpad/a4_inventory.json`. Legătura în cod e făcută, cu ID 0:

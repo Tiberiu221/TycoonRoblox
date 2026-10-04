@@ -5,6 +5,7 @@ local test = frktest.test
 local check = frktest.assert.check
 
 local GuideMath = require("../src/Shared/Modules/GuideMath")
+local HudLayoutTop = require("../src/Shared/Modules/HudLayout")
 
 local function pads(boughtIds: { string }, availableIds: { string }?): { [string]: string }
     local m: { [string]: string } = {}
@@ -968,97 +969,45 @@ return function()
     end)
 
     test.suite("GuideMath.cardPlacement [verificatorul D76]", function()
-        -- telefonul mic, in unitatile panzei HUD: 1076x605 (667x375 la 0,62), blocul cu cifre in stanga-sus (x 20..502,
-        -- y 12..182); cardul are 380 de unitati, deci se poate muta cel mult 95 (un sfert)
-        local HUD = { x = 20, y = 12, w = 482, h = 170 }
-        local function query(over: { [string]: any }): GuideMath.CardQuery
+        -- Ecranele, in unitatile panzei HUD (HUD la 0,62 pe telefon, 1 pe desktop): pastilele adevarate din HudLayout (linia
+        -- NEXT cu randul pasului), bara de meniu din dreapta, iar pe telefon joystick-ul si butonul E.
+        local function screen(
+            w: number,
+            h: number,
+            touch: boolean
+        ): { w: number, h: number, blockers: { any } }
+            local blockers: { any } = {}
+            for _, r in HudLayoutTop.rects(true) do
+                table.insert(blockers, r)
+            end
+            table.insert(blockers, { x = w - 82, y = h / 2 - 171, w = 62, h = 342 })
+            if touch then
+                table.insert(blockers, { x = 44, y = h - 214, w = 170, h = 170 })
+                table.insert(blockers, { x = w - 152, y = h - 152, w = 108, h = 108 })
+            end
+            return { w = w, h = h, blockers = blockers }
+        end
+        local SE = screen(1076, 605, true) -- 667x375
+        local SCREENS =
+            { SE, screen(1194, 581, true), screen(1310, 605, true), screen(1362, 630, true) }
+        table.insert(SCREENS, screen(1920, 1080, false))
+
+        local function query(sc: any, over: { [string]: any }): GuideMath.CardQuery
             local q: { [string]: any } = {
                 centerX = 640,
-                aboveY = 200,
-                belowY = 360,
+                aboveY = 260,
+                belowY = 380,
                 width = 380,
-                height = 70,
-                screenW = 1076,
-                screenH = 605,
-                blockers = { HUD },
-                current = "above",
+                height = 55,
+                screenW = sc.w,
+                screenH = sc.h,
+                blockers = sc.blockers,
             }
             for k, v in over do
                 q[k] = v
             end
             return q :: any
         end
-
-        test.case("loc liber: deasupra, pe loc (ca pana acum)", function()
-            local place, shift = GuideMath.cardPlacement(query({ blockers = {} }))
-            check.equal(place, "above")
-            check.equal(shift, 0)
-        end)
-
-        test.case("atinge putin cifrele: se muta langa ele, tot peste obiectul lui", function()
-            -- incepea la 450; langa bloc incepe la 502 + 8 = 510, deci 60 (sub sfertul de 95)
-            local place, shift = GuideMath.cardPlacement(query({ aboveY = 120 }))
-            check.equal(place, "above")
-            check.equal(shift, 60)
-        end)
-
-        test.case(
-            "ar trebui mutat departe de obiectul lui: trece sub obiect, nu peste cladirea vecina",
-            function()
-                -- incepea la 210: langa bloc ar fi o mutare de 300, peste sfertul cardului
-                local place, shift = GuideMath.cardPlacement(query({ centerX = 400, aboveY = 120 }))
-                check.equal(place, "below")
-                check.equal(shift, 0)
-            end
-        )
-
-        test.case(
-            "ocupat peste tot: ramane deasupra, ca pana acum (cardul se apasa, nu se ascunde)",
-            function()
-                local low = { x = 0, y = 330, w = 1076, h = 160 }
-                local place, shift = GuideMath.cardPlacement(
-                    query({ centerX = 400, aboveY = 120, blockers = { HUD, low } })
-                )
-                check.equal(place, "above")
-                check.equal(shift, 0)
-            end
-        )
-
-        test.case(
-            "nu sare pe lateral la fiecare pas: inapoi pe locul firesc doar cu loc in plus",
-            function()
-                -- la 192 locul firesc e liber cu margin 8 (182 + 8 = 190), dar nu si cu margin + return (202)
-                local fresh = GuideMath.cardPlacement(query({ aboveY = 192 }))
-                check.equal(fresh, "above")
-                local _, natural = GuideMath.cardPlacement(query({ aboveY = 192 }))
-                check.equal(natural, 0)
-                -- mutat in cadrul trecut: ramane mutat la ±2 in jurul marginii
-                for _, y in { 188, 192, 190, 194 } do
-                    local place, shift =
-                        GuideMath.cardPlacement(query({ aboveY = y, currentShift = 60 }))
-                    check.equal(place, "above")
-                    check.equal(shift, 60)
-                end
-                -- cu loc in plus se intoarce
-                local _, home = GuideMath.cardPlacement(query({ aboveY = 205, currentShift = 60 }))
-                check.equal(home, 0)
-            end
-        )
-
-        test.case("nu tresare: locul mutat e acelasi, venit de dedesubt sau de deasupra", function()
-            local _, fromBelow = GuideMath.cardPlacement(query({ aboveY = 120, current = "below" }))
-            local _, fromAbove = GuideMath.cardPlacement(query({ aboveY = 120, current = "above" }))
-            check.equal(fromBelow, 60)
-            check.equal(fromAbove, 60)
-        end)
-
-        -- [verificatorul D76, a treia runda] blocurile adevarate ale telefonului mic: cifrele, bara de meniu, joystick-ul, E
-        local PHONE = {
-            HUD,
-            { x = 994, y = 131, w = 62, h = 342 },
-            { x = 44, y = 391, w = 170, h = 170 },
-            { x = 924, y = 453, w = 108, h = 108 },
-        }
         local function touches(place: string, shift: number, q: GuideMath.CardQuery): boolean
             local x = q.centerX - q.width / 2 + shift
             local y = if place == "below" then q.belowY else q.aboveY
@@ -1070,77 +1019,127 @@ return function()
             return false
         end
 
+        test.case("loc liber: deasupra, pe loc (ca pana acum)", function()
+            local place, shift, key = GuideMath.cardPlacement(query(SE, {}))
+            check.equal(place, "above")
+            check.equal(shift, 0)
+            check.equal(key, "above:natural")
+        end)
+
+        test.case("atinge putin linia NEXT: se muta langa ea, tot peste obiectul lui", function()
+            -- incepea la 450; langa linia NEXT (20..502) incepe la 510, deci 60, sub sfertul de 95
+            local q = query(SE, { aboveY = 150 })
+            local place, shift = GuideMath.cardPlacement(q)
+            check.equal(place, "above")
+            check.equal(shift, 60)
+            check.is_false(touches(place, shift, q))
+        end)
+
         test.case(
-            "sub picioare se muta oricat trebuie: langa taverna nu cade sub cifre si nici peste joystick",
+            "ar trebui mutat departe de obiect: trece sub obiect, nu peste cladirea vecina",
             function()
-                local q = query({
-                    centerX = 360,
-                    aboveY = 14,
-                    belowY = 330,
-                    width = 603,
-                    height = 55,
-                    blockers = PHONE,
-                })
+                local q = query(SE, { centerX = 400, aboveY = 150 })
                 local place, shift = GuideMath.cardPlacement(q)
                 check.equal(place, "below")
                 check.is_false(touches(place, shift, q))
             end
         )
 
-        test.case("mergand pe langa taverna, cardul nu sare intre deasupra si dedesubt", function()
-            local place, shift = "above", nil :: number?
+        test.case(
+            "langa taverna pe telefonul mic: sub tine, ocolind joystick-ul, nu sub cifre",
+            function()
+                local q = query(SE, { centerX = 360, aboveY = 14, belowY = 330, width = 603 })
+                local place, shift = GuideMath.cardPlacement(q)
+                check.equal(place, "below")
+                check.is_false(touches(place, shift, q))
+            end
+        )
+
+        test.case(
+            "mai lat decat golul dintre joystick si E: locul care acopera cel mai putin, nu sub cifre",
+            function()
+                local q = query(SE, { centerX = 360, aboveY = 14, belowY = 330, width = 722 })
+                local place, shift = GuideMath.cardPlacement(q)
+                -- deasupra pe loc ar acoperi monedele, rata si linia NEXT
+                local x = q.centerX - q.width / 2 + shift
+                local y = if place == "below" then q.belowY else q.aboveY
+                check.is_true(y > 190 or x > 510)
+            end
+        )
+
+        test.case("cardul pastrat: la granita unui panou nu sare la fiecare pas", function()
+            -- deasupra, cu marginea de sus a cardului in jurul liniei NEXT (182 + 8 = 190), cu cadrul trecut dat inapoi
+            local key: string? = nil
+            local seen: { string } = {}
+            for _, y in { 196, 191, 189.5, 190.5, 189.5, 190.5, 189.5, 191 } do
+                local _, _, k = GuideMath.cardPlacement(query(SE, { aboveY = y, currentKey = key }))
+                key = k
+                table.insert(seen, k)
+            end
             local changes = 0
-            for cx = 380, 300, -2 do
-                local q = query({
-                    centerX = cx,
-                    aboveY = 14,
-                    belowY = 330,
-                    width = 603,
-                    height = 55,
-                    blockers = PHONE,
-                    current = place,
-                    currentShift = shift,
-                })
-                local p, s = GuideMath.cardPlacement(q)
-                if p ~= place then
+            for n = 2, #seen do
+                if seen[n] ~= seen[n - 1] then
                     changes += 1
                 end
-                check.is_false(touches(p, s, q))
-                place, shift = p, s
             end
             check.is_true(changes <= 1)
         end)
 
-        test.case(
-            "la limita unui sfert, o jumatate de unitate nu-l muta dintr-un loc in altul",
-            function()
-                -- cardul de 380 mutat deasupra cu ~95 (limita); pas cu pas in jurul ei, cu cadrul trecut dat inapoi
-                local place, shift = "above", nil :: number?
-                local seen: { string } = {}
-                for _, cx in { 610, 606, 605, 604.6, 604.5, 605, 604.5, 605 } do
-                    local p, s = GuideMath.cardPlacement(
-                        query({ centerX = cx, aboveY = 120, current = place, currentShift = shift })
-                    )
-                    table.insert(seen, p)
-                    place, shift = p, s
-                end
-                -- odata mutat deasupra, ramane deasupra pe toata oscilatia
-                for _, p in seen do
-                    check.equal(p, "above")
+        -- Plimbari: jucatorul merge pas cu pas (1 px de lume = 1,37 unitati pe telefon), pe toate cele opt directii, de pe o
+        -- grila de locuri, cu carduri de latimi diferite. Cardul nu face niciodata dus-intors (A, B, A) si isi schimba
+        -- locul de cel mult trei ori pe o plimbare dreapta.
+        test.case("plimbari pe toate ecranele: fara dus-intors, cel mult trei schimbari", function()
+            local blips, worst = 0, 0
+            for _, sc in SCREENS do
+                for c0 = 120, sc.w - 120, 97 do
+                    for a0 = 20, 320, 37 do
+                        for _, width in { 329, 614, 722 } do
+                            for _, dir in
+                                {
+                                    { 1, 0 },
+                                    { -1, 0 },
+                                    { 0, 1 },
+                                    { 0, -1 },
+                                    { 1, 1 },
+                                    { -1, 1 },
+                                    { 1, -1 },
+                                    { -1, -1 },
+                                }
+                            do
+                                local key: string? = nil
+                                local keys: { string } = {}
+                                local changes = 0
+                                for t = 0, 60 do
+                                    local aboveY = a0 - dir[2] * t * 1.37
+                                    local _, _, k = GuideMath.cardPlacement({
+                                        centerX = c0 - dir[1] * t * 1.37,
+                                        aboveY = aboveY,
+                                        belowY = aboveY + 150,
+                                        width = width,
+                                        height = 55,
+                                        screenW = sc.w,
+                                        screenH = sc.h,
+                                        blockers = sc.blockers,
+                                        currentKey = key,
+                                    })
+                                    if key ~= nil and k ~= key then
+                                        changes += 1
+                                    end
+                                    local n = #keys
+                                    if n >= 2 and keys[n - 1] == k and keys[n] ~= k then
+                                        blips += 1
+                                    end
+                                    table.insert(keys, k)
+                                    key = k
+                                end
+                                worst = math.max(worst, changes)
+                            end
+                        end
+                    end
                 end
             end
-        )
-
-        test.case("de sub obiect inapoi deasupra doar cu loc in plus", function()
-            local wide = { x = 300, y = 12, w = 476, h = 170 }
-            local stay = GuideMath.cardPlacement(
-                query({ aboveY = 192, width = 1000, current = "below", blockers = { wide } })
-            )
-            check.equal(stay, "below")
-            local keep = GuideMath.cardPlacement(
-                query({ aboveY = 192, width = 1000, current = "above", blockers = { wide } })
-            )
-            check.equal(keep, "above")
+            check.equal(blips, 0)
+            check.is_true(worst <= 3)
         end)
     end)
 
