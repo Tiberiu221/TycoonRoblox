@@ -1440,8 +1440,10 @@ explicit.**
   acela poate înmuia pixel art-ul (de văzut în Studio). Rămâne așa până la l2, unde owner-ul judecă filmul.
 - **Notă (verificatorul A2, a șasea rundă):** cu sacul plin, cardul plasei arată doar „Sack full” (așa e din D51 și în sat),
   iar textul care spune unde duci marfa (`GuideMath.partsFullText` la baraj, SACK_FULL_LOGS etc. în sat) apare în toast doar
-  într-o fereastră de un cadru. Direcția o dă săgeata ghidajului. Dacă owner-ul vrea textul pe card, statusul plasei pline
-  ia aceeași alegere ca toast-ul (atenție la lățime pe telefonul mic).
+  într-o fereastră de un cadru. Direcția o dă săgeata ghidajului doar cât ghidajul vorbește: după ce toate meseriile au om
+  (D50) ghidajul tace și rămân doar „Sack full” pe card și sacul roșu din HUD (în sat la fel, cu buștenii). **Întrebare pentru
+  owner, la l2/l3:** textul care spune unde duci marfa merge pe cardul plasei pline? Statusul ar lua aceeași alegere ca
+  toast-ul (atenție la lățime pe telefonul mic).
 - **Urcarea, după aprobare:** desenele se scriu din generatoare în `assets/sprites`, sunetele în `assets/audio`, apoi
   `upload_assets.py` (fiecare urcare cu acordul owner-ului), ID-urile în `Assets.luau` și moderarea.
 **[2026-10-03] A0, planșele sunt gata și așteaptă owner-ul** (`python3 scripts/art/a0_dam.py [wall|film]`, în scratchpad):

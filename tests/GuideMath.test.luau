@@ -1284,6 +1284,26 @@ return function()
             check.is_true(full ~= nil)
             check.equal((full :: GuideMath.Goal).x, stand.x)
             check.equal((full :: GuideMath.Goal).text, Strings.sackFullRaw("grid"))
+            -- [verificatorul A2] traista plina: ghidajul spune acelasi text ca toast-ul plasei (GuideMath.partsFullText)
+            for _, contents in { { barrel = 30 }, { cable = 30 }, { barrel = 10, cable = 20 } } do
+                local said = GuideMath.pickGoal(state({
+                    world = 2,
+                    sackCount = 30,
+                    sackCapacity = 30,
+                    parts = { grid = 30 },
+                    sackContents = contents,
+                    pads = { dam_turbine = "bought" },
+                }))
+                check.is_true(said ~= nil)
+                check.equal(
+                    (said :: GuideMath.Goal).text,
+                    GuideMath.partsFullText({ grid = 30 }, contents)
+                )
+            end
+            check.equal(
+                GuideMath.partsFullText({ grid = 30 }, { barrel = 30 }),
+                Strings.sackFullPart(Strings.LINE_WORDS.barrels, Strings.LINE_WORDS.grid)
+            )
             -- piese la Relay si niciun Relay Keeper: stai in inelul lui; curent gata si niciun Pylon Runner: il iei
             local lines = { grid = { raw = 0, store = 0, input = 2, output = 0 } }
             local work = GuideMath.loopStep(state({ world = 2, lines = lines }), nil)
