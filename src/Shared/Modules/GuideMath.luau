@@ -1080,18 +1080,22 @@ end
 
 -- ---- cardul E, langa panourile fixe [verificatorul D76] ----------------------------------------------
 -- Cardul obiectului de langa tine (InteractController) sta in lume, iar HUD-ul se deseneaza peste ea. Pe telefon, langa
--- coltul cu cifre, fraza de pe card (unde duci marfa) intra sub ele. [A patra runda] Patru runde de reguli „daca... altfel”
--- au produs de fiecare data sarituri noi la un pas, asa ca acum cardul alege intre LOCURI cu nume si il tine pe cel ales:
+-- coltul cu cifre, fraza de pe card (unde duci marfa) intra sub ele. [A patra si a cincea runda] Regulile „daca... altfel” au
+-- produs la fiecare runda sarituri noi la un pas, asa ca cardul alege intre LOCURI cu nume si il tine pe cel ales:
 --   0. deasupra obiectului, pe locul lui firesc (ca pana acum);
 --   1. deasupra, lipit de un panou de pe randul lui, mutat cel mult un sfert din latime (CARD_SHIFT_MAX): ramane peste
 --      obiectul lui, iar butonul Upgrade nu cade pe cladirea vecina;
 --   2. sub obiect (sub picioarele tale), pe locul firesc;
 --   3. sub obiect, lipit de un panou de pe randul lui, oricat trebuie (pe telefonul mic, doar asa ocoleste joystick-ul).
--- Un loc e liber cand nu atinge niciun panou fix (GuideBlocker) cu LABEL_MARGIN. Locul din cadrul trecut (`currentKey`)
--- ramane cat e liber; il inlocuieste doar unul mai bun (treapta mai mica, sau aceeasi treapta mai aproape cu peste
--- LABEL_RETURN) si liber cu loc in plus (LABEL_RETURN). Asa, la granita unui panou, cardul nu sare la fiecare pas. Locurile
--- se iau doar de la panourile de pe randul cardului: o pastila de mai sus nu da locuri fantoma. Daca niciun loc nu e liber
--- (cardul e mai lat decat golul dintre joystick si butonul E), cel care acopera cel mai putin. Cardul nu se ascunde: se apasa.
+-- Un loc lateral se numeste dupa marginea la care sta (NEXT si AWAY se termina amandoua la x 502: acelasi loc). Trei praguri,
+-- ca sa nu sara la un pas:
+--   - locul tinut (`currentKey`) ramane cat nu atinge niciun panou si nici marginea de jos a ecranului;
+--   - un loc nou e liber cu LABEL_MARGIN (`loose`);
+--   - unul mai bun il inlocuieste pe cel tinut doar liber cu LABEL_MARGIN + LABEL_RETURN (`strict`): pe verticala si fata
+--     de marginea de jos mereu, pe orizontala doar locurile firesti (x-ul unui loc lateral e legat de panou, nu de mers).
+-- Mai bun = treapta mai mica, sau aceeasi treapta mai aproape de locul firesc cu peste LABEL_RETURN. Daca niciun loc nu e
+-- liber (cardul e mai lat decat golul dintre joystick si butonul E), cel care acopera cel mai putin, in plafon; cel tinut
+-- ramane cat nu acopera cu mai mult de LABEL_MARGIN / 2 in adancime. Cardul nu se ascunde niciodata: se apasa.
 -- Intoarce locul ("above" | "below"), cat se muta pe orizontala (unitatile panzei HUD) si numele locului, de dat inapoi.
 export type CardQuery = {
     centerX: number,
@@ -1104,62 +1108,74 @@ export type CardQuery = {
     blockers: { Rect },
     currentKey: string?, -- locul din cadrul trecut (al treilea rezultat); nil = un card nou
 }
+export type CardSpot = {
+    place: string,
+    key: string,
+    x: number,
+    y: number,
+    tier: number,
+    cap: number?,
+}
 GuideMath.CARD_SHIFT_MAX = 0.25 -- din latimea cardului
 
-type CardSpot = { place: string, key: string, x: number, y: number, tier: number, cap: number? }
-
--- numele unui panou: dupa colt si latime, nu dupa inaltime (linia NEXT creste cu randul pasului)
-local function blockerKey(b: Rect): string
-    return `{math.round(b.x)},{math.round(b.y)},{math.round(b.w)}`
-end
-
-function GuideMath.cardPlacement(q: CardQuery): (string, number, string)
+-- unde ar sta cardul pe locul lui firesc, tinut intreg pe ecran
+local function cardNatural(q: CardQuery): number
     local margin = GuideMath.LABEL_MARGIN
-    local extra = GuideMath.LABEL_RETURN
     local left = q.centerX - q.width / 2
-    local onScreen = 0
     if q.width <= q.screenW - 2 * margin then
         if left < margin then
-            onScreen = margin - left
+            return margin
         elseif left + q.width > q.screenW - margin then
-            onScreen = q.screenW - margin - (left + q.width)
+            return q.screenW - margin - q.width
         end
     end
-    local naturalX = left + onScreen
-    local function covered(x: number, y: number, pad: number): number
-        local area = 0
-        for _, b in q.blockers do
-            local w = math.min(x + q.width, b.x + b.w + pad) - math.max(x, b.x - pad)
-            local h = math.min(y + q.height, b.y + b.h + pad) - math.max(y, b.y - pad)
-            if w > 0 and h > 0 then
-                area += w * h
-            end
+    return left
+end
+
+-- Cat din card (la x, y) acopera panourile, cu `padX` / `padY` de jur imprejurul lor; 0 = liber.
+function GuideMath.cardCovered(
+    q: CardQuery,
+    x: number,
+    y: number,
+    padX: number,
+    padY: number
+): number
+    local area = 0
+    for _, b in q.blockers do
+        local w = math.min(x + q.width, b.x + b.w + padX) - math.max(x, b.x - padX)
+        local h = math.min(y + q.height, b.y + b.h + padY) - math.max(y, b.y - padY)
+        if w > 0 and h > 0 then
+            area += w * h
         end
-        return area
     end
+    return area
+end
+
+-- Locurile cu nume ale cardului (vezi mai sus), in ordinea treptelor.
+function GuideMath.cardSpots(q: CardQuery): { CardSpot }
+    local margin = GuideMath.LABEL_MARGIN
+    local extra = GuideMath.LABEL_RETURN
+    local naturalX = cardNatural(q)
     local spots: { CardSpot } = {}
     local function row(place: string, y: number, tier: number, cap: number?)
         table.insert(
             spots,
             { place = place, key = `{place}:natural`, x = naturalX, y = y, tier = tier }
         )
+        local seen: { [string]: boolean } = {}
         for _, b in q.blockers do
             if y < b.y + b.h + margin + extra and b.y < y + q.height + margin + extra then
-                local key = blockerKey(b)
-                -- in ordine fixa (dreapta, apoi stanga): la egalitate castiga mereu acelasi
                 for _, side in
                     { { "right", b.x + b.w + margin }, { "left", b.x - margin - q.width } }
                 do
                     local x = side[2] :: number
-                    if x >= margin and x + q.width <= q.screenW - margin then
-                        table.insert(spots, {
-                            place = place,
-                            key = `{place}:{side[1]}:{key}`,
-                            x = x,
-                            y = y,
-                            tier = tier + 1,
-                            cap = cap,
-                        })
+                    local key = `{place}:{side[1]}:{math.round(x)}`
+                    if not seen[key] and x >= margin and x + q.width <= q.screenW - margin then
+                        seen[key] = true
+                        table.insert(
+                            spots,
+                            { place = place, key = key, x = x, y = y, tier = tier + 1, cap = cap }
+                        )
                     end
                 end
             end
@@ -1169,17 +1185,34 @@ function GuideMath.cardPlacement(q: CardQuery): (string, number, string)
     if q.belowY + q.height <= q.screenH then
         row("below", q.belowY, 2, nil)
     end
-    -- `pad`: departarea de panouri si de marginea de jos a ecranului; locul pastrat are voie pana la marginea ecranului
-    -- (`edge` 0), unul nou are nevoie de margine: altfel randul de jos aparea si disparea la un pas
-    local function free(s: CardSpot, pad: number, capExtra: number, edge: number): boolean
+    return spots
+end
+
+function GuideMath.cardPlacement(q: CardQuery): (string, number, string)
+    local margin = GuideMath.LABEL_MARGIN
+    local extra = GuideMath.LABEL_RETURN
+    local left = q.centerX - q.width / 2
+    local naturalX = cardNatural(q)
+    local spots = GuideMath.cardSpots(q)
+    local function inCap(s: CardSpot, capExtra: number): boolean
         local cap = s.cap
-        if cap ~= nil and math.abs(s.x - naturalX) > cap + capExtra then
-            return false
+        return cap == nil or math.abs(s.x - naturalX) <= cap + capExtra
+    end
+    local function free(s: CardSpot, mode: string): boolean
+        local side = s.tier % 2 == 1
+        if mode == "keep" then
+            return inCap(s, extra)
+                and s.y + q.height <= q.screenH
+                and GuideMath.cardCovered(q, s.x, s.y, 0, 0) <= 0
+        elseif mode == "strict" then
+            local padX = if side then margin else margin + extra
+            return inCap(s, 0)
+                and s.y + q.height <= q.screenH - margin - extra
+                and GuideMath.cardCovered(q, s.x, s.y, padX, margin + extra) <= 0
         end
-        if s.y + q.height > q.screenH - edge then
-            return false
-        end
-        return covered(s.x, s.y, pad) <= 0
+        return inCap(s, 0)
+            and s.y + q.height <= q.screenH - margin
+            and GuideMath.cardCovered(q, s.x, s.y, margin, margin) <= 0
     end
     local function better(a: CardSpot, b: CardSpot?): boolean
         if b == nil then
@@ -1194,17 +1227,17 @@ function GuideMath.cardPlacement(q: CardQuery): (string, number, string)
     local strict: CardSpot? = nil
     local loose: CardSpot? = nil
     for _, s in spots do
-        if s.key == q.currentKey and free(s, margin, extra, 0) then
+        if s.key == q.currentKey and free(s, "keep") then
             kept = s
         end
-        if free(s, margin + extra, 0, margin + extra) and better(s, strict) then
+        if free(s, "strict") and better(s, strict) then
             strict = s
         end
-        if free(s, margin, 0, margin) and better(s, loose) then
+        if free(s, "loose") and better(s, loose) then
             loose = s
         end
     end
-    local pick: CardSpot? = loose
+    local pick: CardSpot? = strict or loose
     if kept ~= nil then
         pick = kept
         local k = kept :: CardSpot
@@ -1219,26 +1252,29 @@ function GuideMath.cardPlacement(q: CardQuery): (string, number, string)
         end
     end
     if pick == nil then
-        -- nimic liber: locul care acopera cel mai putin (cel din cadrul trecut, cat nu acopera vizibil mai mult)
+        -- nimic liber: locul (in plafon) care acopera cel mai putin; cel tinut ramane cat nu acopera cu mai mult de
+        -- LABEL_MARGIN / 2 in adancime (o arie cat latimea cardului ar fi lasat doua treimi din card sub linia NEXT)
         local least: CardSpot? = nil
         local leastArea = math.huge
         local previous: CardSpot? = nil
         local previousArea = math.huge
         for _, s in spots do
-            local area = covered(s.x, s.y, 0)
-            if area < leastArea or (area == leastArea and better(s, least)) then
-                least, leastArea = s, area
-            end
-            if s.key == q.currentKey then
-                previous, previousArea = s, area
+            if inCap(s, 0) or (s.key == q.currentKey and inCap(s, extra)) then
+                local area = GuideMath.cardCovered(q, s.x, s.y, 0, 0)
+                if area < leastArea or (area == leastArea and better(s, least)) then
+                    least, leastArea = s, area
+                end
+                if s.key == q.currentKey then
+                    previous, previousArea = s, area
+                end
             end
         end
         pick = least
-        if previous ~= nil and previousArea <= leastArea + q.width * extra then
+        if previous ~= nil and previousArea <= leastArea + margin / 2 * q.height then
             pick = previous
         end
     end
-    local chosen = pick :: CardSpot
+    local chosen = pick or spots[1]
     return chosen.place, chosen.x - left, chosen.key
 end
 

@@ -1055,15 +1055,86 @@ return function()
             end
         )
 
+        -- cat acopera locul ales si cat acopera cel mai bun loc cu nume (in plafon)
+        local function overlap(
+            q: GuideMath.CardQuery,
+            place: string,
+            shift: number
+        ): (number, number)
+            local x = q.centerX - q.width / 2 + shift
+            local y = if place == "below" then q.belowY else q.aboveY
+            local chosen = GuideMath.cardCovered(q, x, y, 0, 0)
+            local best = math.huge
+            local natural = q.centerX - q.width / 2
+            for _, spot in GuideMath.cardSpots(q) do
+                local cap = spot.cap
+                if cap == nil or math.abs(spot.x - natural) <= cap then
+                    best = math.min(best, GuideMath.cardCovered(q, spot.x, spot.y, 0, 0))
+                end
+            end
+            return chosen, best
+        end
+        local DEPTH = GuideMath.LABEL_MARGIN / 2 -- cat poate intra cardul tinut sub un panou, cand nu e loc liber
+
         test.case(
-            "mai lat decat golul dintre joystick si E: locul care acopera cel mai putin, nu sub cifre",
+            "mai lat decat golul dintre joystick si E: locul care acopera cel mai putin",
             function()
-                local q = query(SE, { centerX = 360, aboveY = 14, belowY = 330, width = 722 })
-                local place, shift = GuideMath.cardPlacement(q)
-                -- deasupra pe loc ar acoperi monedele, rata si linia NEXT
-                local x = q.centerX - q.width / 2 + shift
-                local y = if place == "below" then q.belowY else q.aboveY
-                check.is_true(y > 190 or x > 510)
+                -- randul de jos pe joystick si pe E, iar deasupra cardul coboara in linia NEXT
+                for _, width in { 695, 741 } do
+                    local key: string? = nil
+                    for y = 200, 140, -1.37 do
+                        local q = query(SE, {
+                            centerX = 560,
+                            aboveY = y,
+                            belowY = 440,
+                            width = width,
+                            currentKey = key,
+                        })
+                        local place, shift, k = GuideMath.cardPlacement(q)
+                        local chosen, best = overlap(q, place, shift)
+                        check.is_true(chosen <= best + DEPTH * q.height)
+                        key = k
+                    end
+                end
+            end
+        )
+
+        test.case(
+            "acelasi loc, acelasi card: venit de dedesubt, urca langa cifre ca un card nou",
+            function()
+                local q = query(SE, { centerX = 690, aboveY = 60, belowY = 330, width = 329 })
+                local freshPlace, _, freshKey = GuideMath.cardPlacement(q)
+                q.currentKey = "below:natural"
+                local backPlace, _, backKey = GuideMath.cardPlacement(q)
+                check.equal(freshPlace, "above")
+                check.equal(backPlace, freshPlace)
+                check.equal(backKey, freshKey)
+            end
+        )
+
+        test.case(
+            "la coltul dintre linia NEXT si joystick, un pas inainte si inapoi nu-l muta",
+            function()
+                -- 844x390: randurile la 162 de unitati unul de altul, deasupra pe marginea liniei NEXT, dedesubt pe joystick
+                local sc = SCREENS[4]
+                local key: string? = nil
+                local changes = 0
+                for n = 0, 40 do
+                    local y = 190 + (if n % 2 == 0 then 0.7 else -0.7)
+                    local q = query(sc, {
+                        centerX = 600,
+                        aboveY = y,
+                        belowY = y + 162,
+                        width = 587,
+                        currentKey = key,
+                    })
+                    local _, _, k = GuideMath.cardPlacement(q)
+                    if key ~= nil and k ~= key then
+                        changes += 1
+                    end
+                    key = k
+                end
+                check.is_true(changes <= 1)
             end
         )
 
@@ -1089,7 +1160,7 @@ return function()
         -- grila de locuri, cu carduri de latimi diferite. Cardul nu face niciodata dus-intors (A, B, A) si isi schimba
         -- locul de cel mult trei ori pe o plimbare dreapta.
         test.case("plimbari pe toate ecranele: fara dus-intors, cel mult trei schimbari", function()
-            local blips, worst = 0, 0
+            local blips, worst, covers = 0, 0, 0
             for _, sc in SCREENS do
                 for c0 = 120, sc.w - 120, 97 do
                     for a0 = 20, 320, 37 do
@@ -1111,7 +1182,7 @@ return function()
                                 local changes = 0
                                 for t = 0, 60 do
                                     local aboveY = a0 - dir[2] * t * 1.37
-                                    local _, _, k = GuideMath.cardPlacement({
+                                    local q: GuideMath.CardQuery = {
                                         centerX = c0 - dir[1] * t * 1.37,
                                         aboveY = aboveY,
                                         belowY = aboveY + 150,
@@ -1121,9 +1192,15 @@ return function()
                                         screenH = sc.h,
                                         blockers = sc.blockers,
                                         currentKey = key,
-                                    })
+                                    }
+                                    local place, shift, k = GuideMath.cardPlacement(q)
                                     if key ~= nil and k ~= key then
                                         changes += 1
+                                    end
+                                    -- nu acopera panourile mai mult decat cel mai bun loc cu nume
+                                    local chosen, best = overlap(q, place, shift)
+                                    if chosen > best + DEPTH * q.height then
+                                        covers += 1
                                     end
                                     local n = #keys
                                     if n >= 2 and keys[n - 1] == k and keys[n] ~= k then
@@ -1140,6 +1217,7 @@ return function()
             end
             check.equal(blips, 0)
             check.is_true(worst <= 3)
+            check.equal(covers, 0)
         end)
     end)
 

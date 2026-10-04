@@ -174,7 +174,11 @@ local function fixedBlockers(canvas: Frame): { GuideMath.Rect }
             and child.Visible
             and child:GetAttribute("GuideBlocker") == true
         then
-            local size = child.AbsoluteSize / scale
+            -- [verificatorul D76] fara scara trecatoare a panoului (pulsul pastilei Sack cand traista se umple): altfel
+            -- cardul E fugea sub picioare fara niciun pas
+            local pulse = child:FindFirstChildOfClass("UIScale")
+            local k = if pulse ~= nil and pulse.Scale > 0 then pulse.Scale else 1
+            local size = child.AbsoluteSize / (scale * k)
             local pos = (child.AbsolutePosition - origin) / scale
             table.insert(out, { x = pos.X, y = pos.Y, w = size.X, h = size.Y })
         end

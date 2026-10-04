@@ -1470,6 +1470,15 @@ explicit.**
   ecranului. Locurile vin doar de la panourile de pe rândul cardului. Când nu e niciun loc liber, alege locul care acoperă cel
   mai puțin. Testele plimbă cardul pe cinci ecrane, cu pastilele adevărate din `HudLayout`: niciun dus-întors. În scratchpad,
   pe 79.056 de plimbări (pași de 0,4–3 unități, rândul de jos legat de obiect sau de tine), tot niciunul.
+  **[A cincea rundă, făcut]**
+  - Trei praguri: locul ținut rămâne cât nu atinge nimic; unul nou are nevoie de `LABEL_MARGIN`; unul mai bun îl înlocuiește
+    pe cel ținut doar cu `LABEL_MARGIN + LABEL_RETURN`. Pe orizontală, locurile laterale cer doar `LABEL_MARGIN`, fiindcă
+    x-ul lor e legat de panou. Acum un card venit de jos urcă lângă cifre ca un card nou, deci așezarea nu mai depinde de drum.
+  - Un loc lateral se numește după marginea la care stă (NEXT și AWAY se termină la același x).
+  - Rezerva cardului prea lat ține locul vechi doar cât intră cel mult `LABEL_MARGIN / 2` sub un panou și respectă plafonul.
+  - Pulsul pastilei Sack nu mai mută cardul: panourile se citesc fără `UIScale` (și la indicatorul ghidajului).
+  - Testele măsoară și suprapunerea pe plimbări, plus un tremur la colțul NEXT–joystick. În scratchpad, pe 250.776 de puncte
+    cu tremur pe loc, cardul nu mai schimbă locul după ce s-a așezat.
 - **A4 (2026-10-04; planșa trimisă owner-ului, așteaptă aprobarea și acordul de urcare):** 70 de desene. Generatoarele sunt
   `scripts/art/a4_works.py`, `a4_halls.py`, `a4_goods.py`, `a4_huts_power.py`, `a4_huts_cable.py` și `a4_outfits.py`, iar planșa
   se face cu `python3 scripts/art/a4_plate.py`. Inventarul e în `scratchpad/a4_inventory.json`. Legătura în cod e făcută, cu ID 0:
