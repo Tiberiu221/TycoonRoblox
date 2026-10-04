@@ -108,6 +108,19 @@ stylua/selene o prind. Rulează-le mereu pe toate, nu înlănțuite după o eroa
   bâlciul doar în 114983498774894); serverul Rojo al satului rulează detașat pe 34872 și trebuie repornit ca să citească
   o schimbare de proiect. Ce a rulat în Studio se vede în `~/Library/Logs/Roblox/*_last.log` (`CreatorOutput`, `open place`).
 
+## Stare (2026-10-04) [D75, loturile A1–A2]
+
+**Arta barajului e desenată și legată în cod cu ID 0; planșele A1 și A2 (cu mixul sonor) așteaptă aprobarea owner-ului.**
+Detaliile, rundele de verificator și ce urmează la urcare: `docs/PLAN-MOTOR-UNIRE.md`, nota „A1 și A2, starea”.
+- **A1** (`scripts/art/a1_*.py`, planșa `a1_plate.py`): zidul de piatră, deversorul, spuma, fața turbinei (pe grila zidului),
+  Old Bells, Memory Wall, căsuțele, stâlpii, orășelul pictat (se aprinde cu primul curent, cu Look (V); LookController pornește
+  în orice lume), cristalul pe curentul din larg.
+- **A2** (`scripts/art/a2_*.py`, `scripts/audio/a2_film.py`, planșa `a2_plate.py`): filmul, cu decorul pur în `DamFilmSet`.
+- **Întrebare deschisă:** pe telefon, malul de nord al barajului nu intră niciodată în cadru de pe punte (recomandat: „Look
+  across (E)” la Old Bells).
+- **Capcană:** stylua a căzut o dată cu „Abort trap” în poartă; rulat din nou, trece. Verificatorii primesc intervalul de
+  commit-uri (`base: "A B"`), ca lucrul necomis să nu le intre în diff.
+
 ## Stare (2026-10-03) [D74, pașii j1–j15, k1–k12, A0]
 
 **Barajul (lumea 2) e în date și în modulele pure, adormit; jocul viu e neschimbat.** Pașii, cu dependențe și verificări:

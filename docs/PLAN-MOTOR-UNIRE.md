@@ -1410,7 +1410,7 @@ explicit.**
 **[2026-10-03, D75] A0 e aprobat: zidul de piatră (A), filmul, pământul (urcarea lui cere încă acordul). Urmează A1, pe A.**
 
 **[2026-10-04] A1 și A2, starea:**
-- **A1 (planșa trimisă owner-ului, așteaptă aprobarea și acordul de urcare):** `scripts/art/a1_wall.py`, `a1_town.py`,
+- **A1 (planșa trimisă owner-ului, a doua oară cu fața turbinei pe 2026-10-04; 16 desene; așteaptă aprobarea și acordul de urcare):** `scripts/art/a1_wall.py`, `a1_town.py`,
   `a1_pylons.py`, `a1_painted.py`, `a1_turbine.py`; planșa `python3 scripts/art/a1_plate.py`. Legătura în cod e făcută, cu ID 0.
   - Orășelul pictat se aprinde cu primul curent vândut la baraj: banner cu Look (V), iar luminile trec când orășelul e în
     cadru sau la 10 s după banner.
@@ -1424,9 +1424,18 @@ explicit.**
     iar pe telefon se vede o înălțime de 459 px). Orășelul se vede doar prin Look-ul bannerului, ~2 s. Recomandarea: un loc de
     privit permanent, de exemplu „Look across (E)” pe cardul clopotniței Old Bells, care stă la râu. Alternativa (orășelul mai
     jos) nu încape: sub el e râul.
-- **A2 (filmul):** legătura în cod e făcută (`DamFilmSet`, pur și testat; `DamMath.frameAt` cu `rise` / `built`;
-  `MusicController.PlayCue`; `NetController.SetFilmLift`), cu ID 0. Arta (`a2_build.py`, `a2_people.py`) și sunetele
-  (`scripts/audio/a2_film.py`) se fac; planșa e `python3 scripts/art/a2_plate.py`.
+- **A2 (filmul; planșa și mixul sonor trimise owner-ului pe 2026-10-04, așteaptă aprobarea și acordul de urcare):**
+  `scripts/art/a2_build.py`, `a2_people.py`, `scripts/audio/a2_film.py` (13 desene, piesa de 17 s, două sunete), planșa
+  `python3 scripts/art/a2_plate.py`. Legătura în cod, cu ID 0:
+  - `DamFilmSet`, pur și testat: zidul pe linia barajului, jumătățile care sar peste trepte, oamenii pe alei spre punte,
+    locurile lor departe de stâlpi și recuzită, camera de la clopot și la râu după înălțimea văzută.
+  - `DamMath.frameAt` cu `rise` / `built`.
+  - Amurgul e în lume, iar oamenii stau peste el (`deps.Scroll`).
+  - Râul se liniștește cât urcă zidul (`SetFilmLift`, `SetCalm` pe râu și pe daruri).
+  - Piesa e pe ceasul filmului, iar sunetele cântă pe grupul ei (`MusicController.PlayCue` / `CueSync` / `PlayCueSfx`).
+  - Trei runde de verificator și două de directori.
+- **Urcarea, după aprobare:** desenele se scriu din generatoare în `assets/sprites`, sunetele în `assets/audio`, apoi
+  `upload_assets.py` (fiecare urcare cu acordul owner-ului), ID-urile în `Assets.luau` și moderarea.
 **[2026-10-03] A0, planșele sunt gata și așteaptă owner-ul** (`python3 scripts/art/a0_dam.py [wall|film]`, în scratchpad):
 - **`a0_dam_wall.png`:** zidul la locul lui, în două variante. **A** e de piatră, zidit din satul vechi, cu fața în trepte (recomandat:
   e ce spune filmul). **B** e de beton, cu trei stavile. Ambele au coama cu parapetul spre lac, fața din aval, panza
