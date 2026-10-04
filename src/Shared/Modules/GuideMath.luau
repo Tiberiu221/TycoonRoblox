@@ -282,6 +282,14 @@ local function partsGoal(s: State, full: boolean, immediate: boolean): Goal?
     for _, line in JOIN_LINES do
         if ((s.parts or {})[line] or 0) > 0 then
             local goal = rawGoal(line, full, immediate)
+            -- [verificatorul A2] sacul plin: textul vine din aceeasi regula ca toast-ul plasei (partsFullText)
+            if full then
+                goal.text = GuideMath.partsFullText(
+                    { [line] = (s.parts or {})[line] },
+                    s.sackContents
+                ) or goal.text
+                return goal
+            end
             -- [verificatorul k3] o singura piesa in traista: textul o numeste doar pe ea
             local joins = FlowConfig.LINES[line].joins
             if joins ~= nil and s.sackContents ~= nil then
@@ -293,10 +301,8 @@ local function partsGoal(s: State, full: boolean, immediate: boolean): Goal?
                     kinds += 1
                 end
                 if kinds == 1 and only ~= nil then
-                    local part, union = Strings.LINE_WORDS[only], Strings.LINE_WORDS[line]
-                    goal.text = if full
-                        then Strings.sackFullPart(part, union)
-                        else Strings.guidePartTo(part, union)
+                    goal.text =
+                        Strings.guidePartTo(Strings.LINE_WORDS[only], Strings.LINE_WORDS[line])
                 end
             end
             return goal
@@ -314,7 +320,9 @@ function GuideMath.partsFullText(
     model: { [string]: any }?
 ): string?
     local lines = model or FlowConfig.LINES
-    for line, n in partBy or {} do
+    -- in ordinea liniilor (ca partsGoal), nu in ordinea tabelului: cu doua uniri, ghidajul si toast-ul numesc aceeasi
+    for _, line in StationConfig.LINE_ORDER_ALL do
+        local n = (partBy or {})[line] or 0
         local def = lines[line]
         if n > 0 and def ~= nil and def.joins ~= nil then
             if contents ~= nil then
