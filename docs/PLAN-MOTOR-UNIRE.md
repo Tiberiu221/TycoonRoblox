@@ -1423,7 +1423,10 @@ explicit.**
   - **Întrebare pentru owner:** pe telefon, malul de nord (orășelul) nu intră niciodată în cadru de pe punte (râul are 290 px,
     iar pe telefon se vede o înălțime de 459 px). Orășelul se vede doar prin Look-ul bannerului, ~2 s. Recomandarea: un loc de
     privit permanent, de exemplu „Look across (E)” pe cardul clopotniței Old Bells, care stă la râu. Alternativa (orășelul mai
-    jos) nu încape: sub el e râul.
+    jos) nu încape: sub el e râul. **[2026-10-04, provizoriu, „continua dezvoltarea”]** Făcut pe cardul **Switch House**
+    (vânzătorul curentului, deci cumpărătorul din orășel), nu pe Old Bells: acolo cardul ar fi pierdut rândul cu bonusul
+    clopotelor. Apare doar când n-ai nimic de vândut sau de spus acolo și doar cu desenul orășelului urcat
+    (`SELLER_PLACES.town.lookAcross`, `LineController`, `Strings.lookAcross`). Se scoate ușor dacă owner-ul nu-l vrea.
 - **A2 (filmul; planșa și mixul sonor trimise owner-ului pe 2026-10-04, așteaptă aprobarea și acordul de urcare):**
   `scripts/art/a2_build.py`, `a2_people.py`, `scripts/audio/a2_film.py` (13 desene, piesa de 17 s, două sunete), planșa
   `python3 scripts/art/a2_plate.py`. Legătura în cod, cu ID 0:

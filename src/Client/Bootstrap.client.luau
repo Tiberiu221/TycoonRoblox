@@ -439,6 +439,11 @@ safeInit("LineController", function()
             Sold = Net.Get("Sold"), -- [D65] clientii Pietei vin dupa vanzarile ei
         },
         CharacterPos = CharacterController.Position,
+        -- [verificatorul A1, provizoriu] privirea de pe cardul Switch House, spre oraselul pictat
+        LookAt = function(x: number, y: number)
+            Panels.CloseAll()
+            LookController.Look(TycoonConfig.PLOT_ORIGIN.x + x, TycoonConfig.PLOT_ORIGIN.y + y)
+        end,
     })
 end)
 if world == 1 then

@@ -18,6 +18,7 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
 local Assets = require(ReplicatedStorage.Shared.Config.Assets)
+local DamTown = require(ReplicatedStorage.Shared.Modules.DamTown) -- [verificatorul A1] oraselul pictat (Look across)
 local FlowConfig = require(ReplicatedStorage.Shared.Config.FlowConfig)
 local RiverConfig = require(ReplicatedStorage.Shared.Config.RiverConfig)
 local StationConfig = require(ReplicatedStorage.Shared.Config.StationConfig)
@@ -40,6 +41,8 @@ export type Deps = {
     Plot: Frame,
     Remotes: { UsePlace: RemoteEvent, AtPlace: RemoteEvent, Sold: RemoteEvent },
     CharacterPos: () -> (number, number),
+    -- [verificatorul A1, provizoriu] o privire (LookController.Look) spre un loc al terenului; nil = fara privire
+    LookAt: ((x: number, y: number) -> ())?,
 }
 
 -- Ce stie clientul despre traista (TycoonState.sack) si despre gramezile unei linii (TycoonState.flow).
@@ -783,6 +786,16 @@ function LineController.seller(seller: string, building: Building): Seller
                 status = Strings.rawGoesTo(words)
             end
         end
+        -- [verificatorul A1, provizoriu] n-ai nimic de vandut si nimic de spus: cardul Switch House priveste peste rau, la
+        -- oraselul care iti cumpara curentul (doar cu desenul lui urcat)
+        local lookAt = deps.LookAt
+        local center = DamTown.townCenter()
+        local across = text == nil
+            and status == nil
+            and (places :: any).lookAcross == true
+            and lookAt ~= nil
+            and center ~= nil
+            and Assets.has(Assets.tycoon.painted_town)
         return {
             status = status,
             key = seller,
@@ -790,10 +803,15 @@ function LineController.seller(seller: string, building: Building): Seller
             distance = d,
             x = building.x,
             y = building.y - building.h - NAME_ABOVE - 6, -- deasupra numelui, ca la atelier si la magazie
-            action = text,
+            action = if across then Strings.lookAcross(keyHint()) else text,
             act = if text ~= nil
                 then function()
                     deps.Remotes.UsePlace:FireServer(seller)
+                end
+                elseif across then function()
+                    local c = center :: { x: number, y: number }
+                    local look = lookAt :: (number, number) -> ()
+                    look(c.x, c.y)
                 end
                 else nil,
             upgradeKind = flow.station,

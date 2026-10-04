@@ -1504,6 +1504,19 @@ return function()
         end)
         -- [verificatorul A1] la baraj bannerul oraselului si al atelierelor noi au „Look (V)” doar daca LookController
         -- porneste si acolo (fara Init e tacut: butonul nu apare)
+        -- [verificatorul A1, provizoriu] pe telefon malul de nord nu intra in cadru de pe punte: cardul Switch House (vanzatorul
+        -- curentului, `town`) are „Look across” spre oraselul pictat
+        test.case("Switch House priveste peste rau, spre oraselul pictat", function()
+            local DamTown = require("../src/Shared/Modules/DamTown")
+            check.is_true((TycoonConfig.SELLER_PLACES.town :: any).lookAcross == true)
+            check.not_nil(DamTown.townCenter())
+            for seller, place in TycoonConfig.SELLER_PLACES do
+                if seller ~= "town" then
+                    check.is_true((place :: any).lookAcross == nil)
+                end
+            end
+            check.equal(Strings.lookAcross(" (E)"), "Look across (E)")
+        end)
         test.case("Look (V) porneste in orice lume", function()
             local fs = require("@lune/fs")
             local src = fs.readFile("src/Client/Bootstrap.client.luau")
