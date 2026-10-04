@@ -74,6 +74,28 @@ local function withCrews(extra: { [string]: number }): { [string]: number }
 end
 
 return function()
+    test.suite("GuideMath.partsFullText [verificatorul A2]", function()
+        local FlowConfig = require("../src/Shared/Config/FlowConfig")
+        test.case(
+            "o piesa o numeste doar pe ea, amandoua dau textul unirii, fara piese nimic",
+            function()
+                local full = FlowConfig.FULL.lines
+                check.equal(
+                    GuideMath.partsFullText({ grid = 2 }, { barrel = 2 }, full),
+                    Strings.sackFullPart(Strings.LINE_WORDS.barrels, Strings.LINE_WORDS.grid)
+                )
+                check.equal(
+                    GuideMath.partsFullText({ grid = 3 }, { barrel = 2, cable = 1 }, full),
+                    Strings.sackFullRaw("grid")
+                )
+                check.equal(GuideMath.partsFullText({}, { planks = 3 }, full), nil)
+                check.equal(GuideMath.partsFullText(nil, nil), nil)
+                -- si scurte, cat sa incapa pe telefonul mic (eticheta de margine si linia NEXT)
+                check.is_true((utf8.len(Strings.sackFullRaw("grid")) or 99) <= 48)
+            end
+        )
+    end)
+
     test.suite("GuideMath - regula 0: quest-ul activ bate tot", function()
         test.case("un quest de cumparare CU banii in mana: pasul e platforma", function()
             local st = state({ pads = pads({ "first_net" }), coins = 20 })

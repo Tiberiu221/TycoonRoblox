@@ -174,6 +174,7 @@ local sackFinds = 0 -- [D56] gasirile neprelucrate: nu sunt scanduri
 -- [D65] traista, pe linii si pe vanzatori (TycoonState.sack): marfa Morii nu e nici bustean, nici scandura
 local sackRawBy: { [string]: number } = {}
 local sackSellBy: { [string]: { count: number, value: number } } = {}
+local sackPartsFull: string? = nil -- [verificatorul A2] piesele unei uniri in traista (barajul): textul lor de sac plin
 local LocalPlayer = Players.LocalPlayer
 
 local TIER_COLORS: { [string]: Color3 } = {}
@@ -613,6 +614,7 @@ local function collect(padId: string)
             then Strings.SACK_FULL_LOGS
             elseif sackRawScrap > 0 then Strings.SACK_FULL_SCRAP
             elseif rawLine ~= nil then Strings.sackFullRaw(rawLine)
+            elseif sackPartsFull ~= nil then sackPartsFull
             elseif sellAt ~= nil and atDock == 0 then Strings.sackFullSell(sellAt)
             elseif sackIron > 0 and sackCount - sackIron - sackFinds > 0 then Strings.SACK_FULL_BOTH
             elseif sackIron > 0 then Strings.SACK_FULL_IRON
@@ -678,9 +680,11 @@ end
 -- [D65] Traista pe linii si pe vanzatori; inainte de Apply.
 function NetController.SetSack(
     rawBy: { [string]: number },
-    sellBy: { [string]: { count: number, value: number } }
+    sellBy: { [string]: { count: number, value: number } },
+    partsFull: string? -- [verificatorul A2] textul sacului plin cu piese (GuideMath.partsFullText), ca la ghidaj
 )
     sackRawBy, sackSellBy = rawBy, sellBy
+    sackPartsFull = partsFull
 end
 
 -- Starea vine din TycoonState, inlocuita in intregime la fiecare mesaj [F0 spec 4.1].

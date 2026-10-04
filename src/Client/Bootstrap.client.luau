@@ -20,6 +20,7 @@ local StationConfig = require(ReplicatedStorage.Shared.Config.StationConfig)
 local WorldConfig = require(ReplicatedStorage.Shared.Config.WorldConfig) -- [D70, pasul k1]
 local StateCopy = require(ReplicatedStorage.Shared.Modules.StateCopy) -- [D70, pasul k3]
 local DamTown = require(ReplicatedStorage.Shared.Modules.DamTown) -- [D75] oraselul pictat
+local GuideMath = require(ReplicatedStorage.Shared.Modules.GuideMath) -- [verificatorul A2] textul sacului cu piese
 -- [D70, pasul k3] piesele fiecarei uniri din joc (Relay-ul barajului: butoaie si cablu), pentru copia starii
 local PARTS_OF = StateCopy.partsOf(FlowConfig.LINES)
 local UNIONS: { [string]: boolean } = {}
@@ -1919,7 +1920,11 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
         promise = "crystal"
     end
     RiverRenderController.SetPromise(promise)
-    NetController.SetSack(sackState.rawBy, sackState.sellBy) -- [D65]
+    NetController.SetSack(
+        sackState.rawBy,
+        sackState.sellBy,
+        GuideMath.partsFullText(sackState.partBy, sackContents) -- [verificatorul A2] la baraj, ca ghidajul
+    ) -- [D65]
     NetController.Apply(
         snapshot.nets,
         sackCount,

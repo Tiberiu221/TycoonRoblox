@@ -280,7 +280,14 @@ local function render(dt: number)
             and facing == "down"
             and task ~= "load"
             and task ~= "tip"
-        updateJob(rec, x, y, barrowFront, px, py, dt)
+        -- [verificatorul A2] cat omul se stinge in filmul barajului, eticheta meseriei nu mai apare
+        if filmFade > 0 then
+            if rec.job.Visible then
+                rec.job.Visible = false
+            end
+        else
+            updateJob(rec, x, y, barrowFront, px, py, dt)
+        end
 
         if rec.bubble ~= nil then
             rec.bubble.Position =

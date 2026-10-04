@@ -305,6 +305,35 @@ local function partsGoal(s: State, full: boolean, immediate: boolean): Goal?
     return nil
 end
 
+-- [verificatorul A2] Textul sacului plin cu piesele unei uniri, acelasi pentru ghidaj (partsGoal) si pentru toast-ul plasei
+-- (NetController): o singura piesa -> „Sack full — take the barrels to the Relay”, amandoua -> „Sack full — barrels and cable
+-- to the Relay”; nil fara piese. `model`: liniile (implicit cele din joc; testele dau FlowConfig.FULL).
+function GuideMath.partsFullText(
+    partBy: { [string]: number }?,
+    contents: { [string]: number }?,
+    model: { [string]: any }?
+): string?
+    local lines = model or FlowConfig.LINES
+    for line, n in partBy or {} do
+        local def = lines[line]
+        if n > 0 and def ~= nil and def.joins ~= nil then
+            if contents ~= nil then
+                local only: string? = nil
+                local kinds = 0
+                for part in StateCopy.partsCarried(contents, def.joins) do
+                    only = part
+                    kinds += 1
+                end
+                if kinds == 1 and only ~= nil then
+                    return Strings.sackFullPart(Strings.LINE_WORDS[only], Strings.LINE_WORDS[line])
+                end
+            end
+            return Strings.sackFullRaw(line)
+        end
+    end
+    return nil
+end
+
 -- Ce se vinde la alt vanzator decat taverna -> la usa lui; nil daca n-ai.
 local function extraSellGoal(s: State, full: boolean, immediate: boolean): Goal?
     for _, seller in StationConfig.SELLER_ORDER do

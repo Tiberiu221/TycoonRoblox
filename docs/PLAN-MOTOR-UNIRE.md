@@ -1434,6 +1434,10 @@ explicit.**
   - Râul se liniștește cât urcă zidul (`SetFilmLift`, `SetCalm` pe râu și pe daruri).
   - Piesa e pe ceasul filmului, iar sunetele cântă pe grupul ei (`MusicController.PlayCue` / `CueSync` / `PlayCueSfx`).
   - Trei runde de verificator și două de directori.
+- **Limită acceptată (verificatorul A2, a cincea rundă):** în cele 0,5 s în care oamenii satului și clienții se sting la
+  „people”, straturile omului (corpul, părul, ținuta, încărcătura roabei) se sting fiecare. Prin ținută se ghicește corpul,
+  iar prin peretele roabei se văd bușteni, la amurg și doar o jumătate de secundă. Remediul ar fi un CanvasGroup pe om, dar
+  acela poate înmuia pixel art-ul (de văzut în Studio). Rămâne așa până la l2, unde owner-ul judecă filmul.
 - **Urcarea, după aprobare:** desenele se scriu din generatoare în `assets/sprites`, sunetele în `assets/audio`, apoi
   `upload_assets.py` (fiecare urcare cu acordul owner-ului), ID-urile în `Assets.luau` și moderarea.
 **[2026-10-03] A0, planșele sunt gata și așteaptă owner-ul** (`python3 scripts/art/a0_dam.py [wall|film]`, în scratchpad):
