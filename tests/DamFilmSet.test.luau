@@ -224,6 +224,16 @@ return function()
                 end
             end
         end)
+        test.case("pe zidul inchis oamenii nu stau unul peste altul", function()
+            local list = DamFilmSet.workers(1)
+            for i = 1, #list do
+                for j = i + 1, #list do
+                    local a = DamFilmSet.personBox(list[i].x, list[i].y)
+                    local b = DamFilmSet.personBox(list[j].x, list[j].y)
+                    check.is_false(a.x0 < b.x1 and b.x0 < a.x1 and a.y0 < b.y1 and b.y0 < a.y1)
+                end
+            end
+        end)
         test.case("macaraua, caruta si gramada stau pe punte, langa zid, nu pe el", function()
             local wall = DamFilmSet.wall()
             local deck = TycoonConfig.DECK

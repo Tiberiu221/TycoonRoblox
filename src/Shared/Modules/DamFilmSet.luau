@@ -323,11 +323,13 @@ function DamFilmSet.workers(built: number): { Worker }
     local north, south = DamFilmSet.halves(built)
     local northFront = wall.top + north
     local southFront = wall.bottom - south
+    -- [directorul A2] x-urile alternate intre nord si sud: cand zidul se inchide, cei patru stau in sir pe cusatura, nu
+    -- cate doi unul peste altul
     return {
-        { x = wall.x0 + 60, y = northFront - 6, kind = 0, facing = "right" },
-        { x = wall.x0 + 172, y = northFront - 6, kind = 1, facing = "left" },
-        { x = wall.x0 + 84, y = southFront + 24, kind = 1, facing = "right" },
-        { x = wall.x0 + 190, y = southFront + 24, kind = 0, facing = "left" },
+        { x = wall.x0 + 50, y = northFront - 6, kind = 0, facing = "right" },
+        { x = wall.x0 + 170, y = northFront - 6, kind = 1, facing = "left" },
+        { x = wall.x0 + 110, y = southFront + 24, kind = 1, facing = "right" },
+        { x = wall.x0 + 222, y = southFront + 24, kind = 0, facing = "left" },
     }
 end
 
