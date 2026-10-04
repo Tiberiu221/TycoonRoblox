@@ -1398,6 +1398,24 @@ return function()
             check.is_true(near(t.dam_foam.height * S, spill.h))
             check.equal(t.river_crystal.width % 2, 0)
         end)
+        -- [verificatorul A1] fata turbinei barajului sta in gura arcului, pe grila zidului (nu turbina Erei 3, cu pixeli mai
+        -- fini): cutia ei e chiar gura (coloanele 64-79 ale zidului), iar foaia de miscare are 4 cadre cat desenul fix
+        test.case("fata turbinei sta pe grila zidului, in gura arcului", function()
+            local t = Assets.tycoon
+            local box = world.turbine :: TycoonConfig.Box
+            local gx = math.round(world.wall.x / S) * S
+            local gy = math.round(world.wall.y / S) * S
+            check.equal(box.w, t.dam_turbine.width * S)
+            check.equal(box.x - box.w / 2, gx + 64 * S)
+            check.equal(box.x + box.w / 2, gx + 80 * S)
+            local top = box.y - t.dam_turbine.height * S / 2
+            check.equal((top - gy) % S, 0)
+            check.is_true(
+                top >= box.y - box.h / 2 and top + t.dam_turbine.height * S <= box.y + box.h / 2
+            )
+            check.equal(t.dam_turbine_spin.width, 4 * t.dam_turbine.width)
+            check.equal(t.dam_turbine_spin.height, t.dam_turbine.height)
+        end)
         test.case("stalpii au desenul cat cutia lor", function()
             local art = {
                 river_pylon = Assets.tycoon.pylon_tall,

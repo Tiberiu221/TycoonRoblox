@@ -1408,6 +1408,25 @@ explicit.**
 | A4 | Clădirile, colibele, mărfurile, ținutele | ~14 + ~20–28 + ~12–15 + 10–15 | Da; pot veni și după lansare |
 
 **[2026-10-03, D75] A0 e aprobat: zidul de piatră (A), filmul, pământul (urcarea lui cere încă acordul). Urmează A1, pe A.**
+
+**[2026-10-04] A1 și A2, starea:**
+- **A1 (planșa trimisă owner-ului, așteaptă aprobarea și acordul de urcare):** `scripts/art/a1_wall.py`, `a1_town.py`,
+  `a1_pylons.py`, `a1_painted.py`, `a1_turbine.py`; planșa `python3 scripts/art/a1_plate.py`. Legătura în cod e făcută, cu ID 0.
+  - Orășelul pictat se aprinde cu primul curent vândut la baraj: banner cu Look (V), iar luminile trec când orășelul e în
+    cadru sau la 10 s după banner.
+  - Cristalul de pe râu e promisiunea curentului din larg (D53), după Works Bell.
+  - Decorul împrăștiat iese din cutia orășelului.
+  - Zidul stă pe grila pământului copt.
+  - **Verificatorul pe f0537fd:** turbina Erei 3 pusă în zid avea pixeli de 2,6 ori mai fini decât piatra și călca pe pila
+    din stânga a arcului. Acum zidul are fața lui de turbină (`dam_turbine`, 16×20, 4 cadre), pe grila zidului, în gura
+    arcului (cutia mutată la x 831–879). Planșa are un detaliu la rezoluția jocului.
+  - **Întrebare pentru owner:** pe telefon, malul de nord (orășelul) nu intră niciodată în cadru de pe punte (râul are 290 px,
+    iar pe telefon se vede o înălțime de 459 px). Orășelul se vede doar prin Look-ul bannerului, ~2 s. Recomandarea: un loc de
+    privit permanent, de exemplu „Look across (E)” pe cardul clopotniței Old Bells, care stă la râu. Alternativa (orășelul mai
+    jos) nu încape: sub el e râul.
+- **A2 (filmul):** legătura în cod e făcută (`DamFilmSet`, pur și testat; `DamMath.frameAt` cu `rise` / `built`;
+  `MusicController.PlayCue`; `NetController.SetFilmLift`), cu ID 0. Arta (`a2_build.py`, `a2_people.py`) și sunetele
+  (`scripts/audio/a2_film.py`) se fac; planșa e `python3 scripts/art/a2_plate.py`.
 **[2026-10-03] A0, planșele sunt gata și așteaptă owner-ul** (`python3 scripts/art/a0_dam.py [wall|film]`, în scratchpad):
 - **`a0_dam_wall.png`:** zidul la locul lui, în două variante. **A** e de piatră, zidit din satul vechi, cu fața în trepte (recomandat:
   e ce spune filmul). **B** e de beton, cu trei stavile. Ambele au coama cu parapetul spre lac, fața din aval, panza

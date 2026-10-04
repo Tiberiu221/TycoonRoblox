@@ -307,6 +307,9 @@ local Assets = {
         dam_wall = sprite(0, 80, 189), -- zidul de piatra (varianta A, D75), cu gura turbinei
         dam_spill = sprite(0, 141, 96), -- panza deversorului: 3 cadre de 47 x 96, peste zid
         dam_foam = sprite(0, 52, 96), -- spuma de la picior: 2 cadre de 26 x 96
+        -- [verificatorul A1] fata turbinei, in gura arcului (pe grila zidului, nu turbina Erei 3 cu pixeli mai fini)
+        dam_turbine = sprite(0, 16, 20),
+        dam_turbine_spin = sprite(0, 64, 20), -- 4 cadre: roata se invarte (UI/Spin)
         old_bells = sprite(0, 32, 80), -- clopotnita cu cele trei clopote vechi
         memory_wall = sprite(0, 64, 32),
         dam_cottage_1 = sprite(0, 40, 34),

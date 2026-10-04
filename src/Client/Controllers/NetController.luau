@@ -357,9 +357,19 @@ local function ensureAssembly(padId: string, x: number, y: number): Assembly
     local art: ImageLabel? = nil
     local spin: Spin.Sheet? = nil
     local turbineArt = if isTurbine then turbineSprite() else nil
+    -- [verificatorul A1] zidita, cu desenul ei: fata turbinei barajului, pe grila zidului de piatra (x3), in gura arcului
+    local damFace = if wall ~= nil and Assets.has(Assets.tycoon.dam_turbine)
+        then Assets.tycoon.dam_turbine
+        else nil
+    if damFace ~= nil then
+        turbineArt = damFace
+    end
     if turbineArt ~= nil then
         local tw, th = turbineArt.width * TURBINE_SCALE, turbineArt.height * TURBINE_SCALE
-        if wall ~= nil then
+        if damFace ~= nil then
+            tw, th = damFace.width * Assets.PIXEL_SCALE, damFace.height * Assets.PIXEL_SCALE
+            body.ZIndex = 9
+        elseif wall ~= nil then
             -- [verificatorul k3] zidita: incape in cutia ei de pe fata zidului, peste spuma de la picior (Z 8)
             local k = math.min(wall.w / tw, wall.h / th)
             tw, th = tw * k, th * k

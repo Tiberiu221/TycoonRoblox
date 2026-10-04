@@ -3319,7 +3319,9 @@ TycoonConfig.WORLDS[2] = {
         canal = { x = 2193, y = 768, w = 64, h = 468 }, -- apa deschisa 768..1236; sub Relay intra in stavila
     },
     wall = { x = 640, y = 392, w = 240, h = 568 },
-    turbine = { x = 852, y = 729, w = 56, h = 78 }, -- x 824-880, y 690-768: fata zidului, in banda apei
+    -- x 831-879, y 690-768: gura arcului din zidul de piatra (prop_dam_wall, coloanele 64-79), in banda apei [verificatorul
+    -- A1: mutata cu 3 px pe gura lui, ca roata pe grila zidului sa nu calce pe pila din stanga]
+    turbine = { x = 855, y = 729, w = 48, h = 78 },
     buildings = {
         damStore = { x = 1090, y = 1010, w = 120, h = 96 }, -- Battery Store (D74, punctul 7)
         switchyard = { x = 1090, y = 1380, w = 120, h = 96 },

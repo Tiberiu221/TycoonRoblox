@@ -58,7 +58,7 @@ def ground_image(G, lake=True):
     return img
 
 
-def compose(src, lit):
+def compose(src, lit, turbine_art=True):
     G = VG.geometry(2)
     img = ground_image(G)
     dam = G["dam"]
@@ -115,18 +115,36 @@ def compose(src, lit):
         img.alpha_composite(s, (round(x / D - s.width / 2), round(base / D - s.height)))
     # turbina zidita si spuma (stratul Plot), apoi oraselul pictat
     tb = dam["turbine"]
-    turbine = load(src, "prop_turbine")
-    k = min(tb["w"] / D / turbine.width, tb["h"] / D / turbine.height)
-    turbine = turbine.resize((round(turbine.width * k), round(turbine.height * k)), Image.NEAREST)
     foam = frame(load(src, "prop_dam_foam"), 2, 0)
-    img.alpha_composite(foam, (round((wall["x"] + wall["w"] - 6) / D), sy))
-    img.alpha_composite(turbine, (round(tb["x"] / D - turbine.width / 2), round((tb["y"] + tb["h"] / 2) / D - turbine.height)))
+    img.alpha_composite(foam, (wx + round(wall["w"] / D) - 2, sy))
+    if turbine_art:
+        # [verificatorul A1] ca NetController: mijlocul la (tb.x, tb.y); aici, la scara plansei (detaliul la rezolutia
+        # jocului e in turbine_inset)
+        turbine = load(src, "prop_turbine")
+        k = min(tb["w"] / D / turbine.width, tb["h"] / D / turbine.height)
+        turbine = turbine.resize((round(turbine.width * k), round(turbine.height * k)), Image.NEAREST)
+        img.alpha_composite(turbine, (round(tb["x"] / D - turbine.width / 2), round(tb["y"] / D - turbine.height / 2)))
     town = {"x": 2202, "y": 405, "w": 1020, "h": 132}  # TycoonConfig.WORLDS[2].paintedTown
     tx, ty = round((town["x"] - town["w"] / 2) / D), round((town["y"] - town["h"]) / D)
     img.alpha_composite(load(src, "prop_painted_town"), (tx, ty))
     if lit:
         img.alpha_composite(load(src, "prop_painted_town_lit"), (tx, ty))
     return img
+
+
+def turbine_inset(src, G, img_no_turbine):
+    """[verificatorul A1] Gura turbinei la rezolutia jocului: piatra zidului are pixeli de 3 px de lume, iar turbina din
+    zid (desenul de 48 px al turbinei Erei 3, TURBINE_SCALE 2, potrivit in cutia ei: 56 x 56) are pixeli de ~1,2 px. Asa
+    o deseneaza NetController, cu mijlocul la (tb.x, tb.y)."""
+    tb = G["dam"]["turbine"]
+    x0, y0, x1, y1 = 760, 630, 960, 820
+    part = img_no_turbine.crop((x0 // D, y0 // D, x1 // D, y1 // D))
+    part = part.resize((part.width * D, part.height * D), Image.NEAREST)
+    turbine = load(src, "prop_turbine")
+    k = min(tb["w"] / turbine.width, tb["h"] / turbine.height)
+    turbine = turbine.resize((round(turbine.width * k), round(turbine.height * k)), Image.NEAREST)
+    part.alpha_composite(turbine, (round(tb["x"] - x0 - turbine.width / 2), round(tb["y"] - y0 - turbine.height / 2)))
+    return part.resize((part.width * 3, part.height * 3), Image.NEAREST)
 
 
 def crop(img, x0, y0, x1, y1, scale):
@@ -137,10 +155,12 @@ def crop(img, x0, y0, x1, y1, scale):
 def main():
     src = sys.argv[sys.argv.index("--src") + 1] if "--src" in sys.argv else os.path.join(P.SCRATCH, "a1")
     dark, lit = compose(src, False), compose(src, True)
+    inset = turbine_inset(src, VG.geometry(2), compose(src, False, turbine_art=False))
     panels = [
         ("DAM TOWN AND THE WALL", "stone wall A, spillway, foam, Old Bells, Memory Wall, cottages", crop(dark, 120, 300, 1260, 1700, 2)),
         ("THE RELAY BANK, DARK", "canal, Relay (borrowed art), pylons; painted town before any power is sold", crop(dark, 1560, 240, 2860, 1480, 2)),
         ("THE RELAY BANK, LIT", "after the first power is sold at the Switch House (lights reveal left to right)", crop(lit, 1560, 240, 2860, 1480, 2)),
+        ("THE TURBINE ARCH, GAME PIXELS (x3)", "the Era 3 turbine drawn in the wall as the game does: finer pixels than the stone", inset),
     ]
     sheet_names = [
         ("prop_dam_wall", 1), ("prop_dam_spill", 3), ("prop_dam_foam", 2), ("prop_old_bells", 1), ("prop_memory_wall", 1),
