@@ -1567,6 +1567,17 @@ return function()
         for _, line in StationConfig.LINE_ORDER_ALL do
             table.insert(GUIDE_TEXTS, Strings.sackFullRaw(line))
         end
+        -- [l3] si piesele unirii barajului, una cate una
+        for _, part in { "barrels", "cable" } do
+            table.insert(
+                GUIDE_TEXTS,
+                Strings.sackFullPart(Strings.LINE_WORDS[part], Strings.LINE_WORDS.grid)
+            )
+            table.insert(
+                GUIDE_TEXTS,
+                Strings.guidePartTo(Strings.LINE_WORDS[part], Strings.LINE_WORDS.grid)
+            )
+        end
         for _, pad in TycoonConfig.PADS do
             table.insert(GUIDE_TEXTS, Strings.guideBuy(pad.name))
         end

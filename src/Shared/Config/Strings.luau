@@ -400,6 +400,9 @@ export type LineWords = {
     name: string?,
     rawUnit: string?, -- [D70, pasul k4] la unire: cum se numara ce aduci („3 parts”); implicit `raw`
     rawUnitOne: string?, -- [verificatorul k4] la singular („1 part”)
+    -- [l3, verificatorul A0/k12] numele scurt al atelierului, in textele sacului plin (pe telefonul mic trebuie sa incapa sub
+    -- ~48 de litere, si pe eticheta de margine a ghidajului, si pe linia NEXT)
+    processorShort: string?,
 }
 Strings.LINE_WORDS = {
     -- Era 1: locurile ei au controllerele lor, cu textele lor; de aici se iau doar cuvintele marfii (meniuri)
@@ -505,6 +508,7 @@ Strings.LINE_WORDS = {
         verb = "Join",
         rawUnit = "parts",
         rawUnitOne = "part",
+        processorShort = "Relay",
         standHere = "Stand here to join",
         working = "Joining",
         byIt = "stay by the Relay Station",
@@ -935,7 +939,7 @@ function Strings.guidePartTo(part: LineWords, union: LineWords): string
     return `Take the {part.done} to the {union.processor}`
 end
 function Strings.sackFullPart(part: LineWords, union: LineWords): string
-    return `Sack full — take the {part.done} to the {union.processor}`
+    return `Sack full — take the {part.done} to the {union.processorShort or union.processor}`
 end
 function Strings.promptDropPart(part: LineWords, keyHint: string): string
     return `Drop {part.done}{keyHint}`
@@ -1100,6 +1104,10 @@ Strings.SACK_FULL_FINDS = "Sack full — take the finds to the Tavern" -- [D56] 
 -- [D65] marfa Morii: bruta la atelierul liniei ei, gata la Piata
 function Strings.sackFullRaw(line: string): string
     local words = Strings.LINE_WORDS[line] or Strings.LINE_WORDS.wood
+    -- [l3] unirea (doua piese): „Sack full — barrels and cable to the Relay”, nu 59 de litere care nu incap pe telefon
+    if words.rawUnit ~= nil then
+        return `Sack full — {words.raw} to the {words.processorShort or words.processor}`
+    end
     return `Sack full — take the {words.raw} to the {words.processor}`
 end
 -- [D65, D67] marfa gata a unui vanzator al erelor noi: "Sack full — sell at the Market" / "... at the Depot"

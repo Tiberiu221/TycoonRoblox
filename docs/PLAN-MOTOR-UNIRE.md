@@ -1536,6 +1536,8 @@ Totalul, ~92–97 de imagini și 3 sunete până se joacă Era 4 (PLAN-HARTA §7
 
 **l3. Comutatorul: singurul commit care schimbă jocul.** Depinde de: l1, l2.
 - `ENGINE_ERAS = 4` și `live = true` pe cele 23 de platforme.
+- **[Făcut pe 2026-10-04]** Textul sacului plin la unire e acum „Sack full — barrels and cable to the Relay” (42 de litere;
+  `LINE_WORDS.grid.processorShort`), iar piesele „Sack full — take the barrels to the Relay”. Toate trei sunt în `GUIDE_TEXTS`.
 - **[Verificatorul A0/k12, a noua rundă] Înainte de comutare, textul sacului plin la Relay.** „Sack full — take the barrels and
   cable to the Relay Station” (59 de litere) e prea lung pentru telefonul cel mai mic (917x517). Indicatorul de margine ar
   arăta doar săgeata pe tot sfertul de sus-dreapta (~30% din direcții), iar linia NEXT îl taie. Ca să încapă și pe NEXT, se
