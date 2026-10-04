@@ -23,6 +23,7 @@ local CameraController = require(script.Parent.CameraController)
 local CharacterController = require(script.Parent.CharacterController)
 local MusicController = require(script.Parent.MusicController)
 local NetController = require(script.Parent.NetController)
+local RiverRenderController = require(script.Parent.RiverRenderController)
 local Panels = require(script.Parent.Panels)
 local SoundController = require(script.Parent.SoundController)
 local Theme = require(script.Parent.Parent.UI.Theme)
@@ -63,13 +64,18 @@ local reduced = false
 
 -- unde trece camera: de la mijlocul ultimului cartier al satului (Wire Works) la primul (Landing), pe strada; [D75, lotul
 -- A2] apoi (`rise`) urca la rau, in dreptul zidului care creste
+-- [verificatorul A2] pornirea e in dreptul clopotului Works Bell (la clopot se leagana el), nu in mijlocul cartierului: de
+-- acolo, pe 16:9 si pe telefon, clopotul ramanea in afara cadrului
 local function panPoint(pan: number, rise: number): (number, number)
     local districts = TycoonConfig.districtsOf(1)
     local first, last = districts[1].deck, districts[#districts].deck
-    local eastX, westX = (last.x0 + last.x1) / 2, (first.x0 + first.x1) / 2
+    local bell = DamFilmSet.bell()
+    local eastX = if bell ~= nil then bell.x else (last.x0 + last.x1) / 2
+    local westX = (first.x0 + first.x1) / 2
     local origin = TycoonConfig.PLOT_ORIGIN
     local x, y = eastX + (westX - eastX) * pan, 1100
-    local riverX, riverY = DamFilmSet.camera()
+    local _, visibleH = CameraController.VisibleSize()
+    local riverX, riverY = DamFilmSet.camera(visibleH)
     return origin.x + x + (riverX - x) * rise, origin.y + y + (riverY - y) * rise
 end
 
@@ -195,12 +201,15 @@ local function buildSet(): Set?
         "FilmScaffold"
     )
     if scaffold ~= nil then
-        -- un etaj de schela repetat pe verticala, peste golul dintre jumatati
+        -- un etaj de schela repetat pe verticala, pe toata deschiderea, fix in lume [verificatorul A2: mutat cu jumatatea de
+        -- nord, aluneca]; sub jumatatile de piatra (Z 6), care o acopera pe masura ce cresc
         scaffold.AnchorPoint = Vector2.new(0, 0)
         scaffold.ScaleType = Enum.ScaleType.Tile
         scaffold.TileSize = UDim2.fromOffset(t.film_scaffold.width * S, t.film_scaffold.height * S)
         scaffold.ImageRectSize = Vector2.zero
-        scaffold.ZIndex = 6
+        scaffold.Position = UDim2.fromOffset(wall.x0, wall.top)
+        scaffold.Size = UDim2.fromOffset(wall.x1 - wall.x0, wall.bottom - wall.top)
+        scaffold.ZIndex = 5
     end
     local edgeN = sheet(
         items,
@@ -328,16 +337,17 @@ local function clearSet()
         end
     end
     NetController.SetFilmLift(nil, nil, nil)
+    RiverRenderController.SetCalm(0)
 end
 
 local function renderSet(frame: DamMath.FilmFrame, t: number)
     local s = set
     local x0, x1 = DamFilmSet.liftRange()
-    NetController.SetFilmLift(
-        x0,
-        x1,
-        if frame.phase == "build" or frame.phase == "card" then frame.rise else 0
-    )
+    local atRiver = frame.phase == "build" or frame.phase == "card"
+    local lift = if atRiver then frame.rise else 0
+    NetController.SetFilmLift(x0, x1, lift)
+    -- [verificatorul A2] cat urca zidul, raul se linisteste: nimic nu mai pluteste prin zid sau spre plasele scoase
+    RiverRenderController.SetCalm(lift)
     if s == nil then
         return
     end
@@ -354,6 +364,8 @@ local function renderSet(frame: DamMath.FilmFrame, t: number)
         local w = fig.walker :: DamFilmSet.Walker
         fig.img.Visible = walking
         if walking then
+            -- [verificatorul A2] apar din amurg, nu dintr-odata
+            fig.img.ImageTransparency = 1 - math.clamp((t - peopleFrom) / DamFilmSet.FADE_IN, 0, 1)
             local x, y, moving, facing = DamFilmSet.walkerAt(w, t - peopleFrom)
             fig.img.Position = UDim2.fromOffset(math.round(x), math.round(y))
             fig.img.ZIndex = depthZ(y)
@@ -363,11 +375,13 @@ local function renderSet(frame: DamMath.FilmFrame, t: number)
     end
     -- zidul, schelele si santierul, in „build”
     local building = frame.phase == "build"
+    -- [verificatorul A2] zidul inchis, recuzita si oamenii de pe zid raman si sub cartonasul care se lasa (o secunda)
+    local shown = atRiver
     local wall = DamFilmSet.wall()
     local northH, southH = DamFilmSet.halves(frame.built)
-    s.north.Visible = building and northH > 0
+    s.north.Visible = shown and northH > 0
     s.north.Size = UDim2.fromOffset(wall.x1 - wall.x0, northH)
-    s.south.Visible = building and southH > 0
+    s.south.Visible = shown and southH > 0
     s.south.Position = UDim2.fromOffset(wall.x0, wall.bottom - southH)
     s.south.Size = UDim2.fromOffset(wall.x1 - wall.x0, southH)
     local southArt = s.southArt
@@ -379,8 +393,6 @@ local function renderSet(frame: DamMath.FilmFrame, t: number)
     local scaffold = s.scaffold
     if scaffold ~= nil then
         scaffold.Visible = building and gap > 0
-        scaffold.Position = UDim2.fromOffset(wall.x0, northFront)
-        scaffold.Size = UDim2.fromOffset(wall.x1 - wall.x0, math.max(0, gap))
     end
     local edgeN, edgeS = s.edgeN, s.edgeS
     if edgeN ~= nil then
@@ -398,7 +410,7 @@ local function renderSet(frame: DamMath.FilmFrame, t: number)
         crane.ImageRectOffset = Vector2.new((math.floor(t / 0.9) % 2) * crane.ImageRectSize.X, 0)
     end
     for _, p in s.builtProps do
-        p.Visible = building
+        p.Visible = shown
     end
     local fronts = { { x = wall.x0 + 100, y = northFront }, { x = wall.x0 + 150, y = southFront } }
     for i, puff in s.dust do
@@ -409,7 +421,7 @@ local function renderSet(frame: DamMath.FilmFrame, t: number)
     local spots = DamFilmSet.workers(frame.built)
     for i, img in s.workers do
         local spot = spots[i]
-        img.Visible = building and spot ~= nil and gap > 0
+        img.Visible = shown and spot ~= nil
         if spot ~= nil then
             img.Position = UDim2.fromOffset(spot.x, spot.y)
             img.ZIndex = 8

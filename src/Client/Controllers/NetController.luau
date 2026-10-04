@@ -801,7 +801,19 @@ local function updateNetMotion(now: number)
             local k = (lift :: { x0: number, x1: number, k: number }).k
             dy += (-POST_H - baseY - dy) * k
         end
-        assembly.bob.Visible = not (lifted and (lift :: { k: number }).k >= 1)
+        -- [verificatorul A2] spre varful stalpului se stinge (ultima parte a ridicarii), nu dispare dintr-odata
+        local liftK = if lifted then (lift :: { k: number }).k else 0
+        local hidden = liftK >= 1
+        if assembly.bob.Visible == hidden then
+            assembly.bob.Visible = not hidden
+        end
+        local liftArt = assembly.art
+        if liftArt ~= nil then
+            local fade = math.clamp((liftK - 0.7) / 0.3, 0, 1)
+            if liftArt.ImageTransparency ~= fade then
+                liftArt.ImageTransparency = fade
+            end
+        end
         netDy[padId] = dy
         assembly.bob.Position = UDim2.fromOffset(math.round(baseX), math.round(baseY + dy))
         assembly.bodyScale.Scale = scale
@@ -861,6 +873,15 @@ local function updateFloaters()
                 TycoonMath.netTick(snap.nextCatchAt, snap.interval, now, snap.count, snap.capacity)
             snap.nextCatchAt = nextAt
         end
+        -- [D75, lotul A2] filmul barajului: cat urca zidul, raul se linisteste; nimic nu mai pluteste spre plase sau prin zid
+        local calm = if filmLift ~= nil then (filmLift :: { k: number }).k else 0
+        if calm >= 1 then
+            for key, rec in recs do
+                releaseFloater(rec)
+                recs[key] = nil
+            end
+            continue
+        end
         local travel = CatchFloat.travel(snap.x, CatchFloat.SPAWN_X_BY_WORLD[deps.World or 1])
         local stride = CatchFloat.stride(snap.interval, travel)
         -- bustenul aterizeaza unde e plasa ACUM, nu unde ar sta ea nemiscata
@@ -890,7 +911,7 @@ local function updateFloaters()
             local x, y, alpha, scale =
                 CatchFloat.at(snap.x, netY, t, now, rec.mode or "turn", key, rec.bornAt)
             rec.frame.Position = UDim2.fromOffset(math.round(x), math.round(y))
-            rec.icon.ImageTransparency = alpha
+            rec.icon.ImageTransparency = math.max(alpha, calm)
             rec.scale.Scale = scale
             local visible = alpha < 0.98
             if rec.frame.Visible ~= visible then

@@ -33,6 +33,8 @@ local styledGoodOf: { [number]: string } = {}
 -- [D55, D65] marfa pe care plasele tale inca n-o prind (scrap pana la Fifth Net, minereu pana la Tenth Net); nil = doar
 -- busteni
 local promised: string? = "scrap"
+-- [D75, lotul A2] filmul barajului: cat urca zidul, curentul din larg se stinge (0..1; la 1 nu mai trece nimic prin zid)
+local calm = 0
 
 local hidden: { [number]: boolean } = {}
 local scheduleCache: { [number]: { RiverSim.RiverObject } } = {}
@@ -163,6 +165,9 @@ local function render()
             if x > cfg.WORLD_WIDTH + cfg.OBJECT_WIDTH then
                 continue
             end
+            if calm >= 1 then
+                continue
+            end
             local good = farGood(obj.id)
             local w, h = 40, 20
             local bob = math.sin(now * 2.2 + obj.id) * 1.5
@@ -180,6 +185,10 @@ local function render()
                 styleFar(frame, good)
             end
             frame.Position = UDim2.fromOffset(math.round(x), math.round(y + bob))
+            local icon = frame:FindFirstChild("Icon") :: ImageLabel?
+            if icon ~= nil and icon.ImageTransparency ~= calm then
+                icon.ImageTransparency = calm
+            end
             if not frame.Visible then
                 frame.Visible = true
             end
@@ -210,6 +219,11 @@ function RiverRenderController.SetPromise(good: string?)
     end
     promised = good
     table.clear(styledGoodOf)
+end
+
+-- [D75, lotul A2] Filmul barajului: curentul din larg se stinge cat urca zidul (0 = ca de obicei, 1 = nimic nu trece).
+function RiverRenderController.SetCalm(k: number)
+    calm = math.clamp(k, 0, 1)
 end
 
 function RiverRenderController.Hide(objectId: number)

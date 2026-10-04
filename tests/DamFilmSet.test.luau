@@ -120,6 +120,34 @@ return function()
                 end
             end
         end)
+        test.case(
+            "pe punte nimeni nu sta pe stalpi, insigne sau recuzita; drumul ocoleste taverna si taraba",
+            function()
+                local posts = DamFilmSet.deckPosts()
+                check.is_true(#posts >= 4)
+                local boxes = DamFilmSet.propBoxes()
+                for _, w in DamFilmSet.walkers() do
+                    for _, px in posts do
+                        check.is_true(math.abs(w.toX - px) >= DamFilmSet.POST_CLEAR)
+                    end
+                    local me = DamFilmSet.personBox(w.toX, w.toY)
+                    for _, b in boxes do
+                        local hit = me.x0 < b.x1 and b.x0 < me.x1 and me.y0 < b.y1 and b.y0 < me.y1
+                        check.is_false(hit)
+                    end
+                    for _, r in DamFilmSet.AVOID do
+                        check.is_false(DamFilmSet.segmentHits(w.fromX, w.fromY, w.toX, w.toY, r))
+                    end
+                end
+                -- recuzita nu sta nici ea pe stalpi (cu insignele lor)
+                for _, b in boxes do
+                    for _, px in posts do
+                        check.is_true(b.x1 <= px - 28 or b.x0 >= px + 28)
+                    end
+                end
+                check.is_true(DamFilmSet.FADE_IN > 0 and DamFilmSet.FADE_IN <= 1)
+            end
+        )
         test.case("oamenii de pe zid stau pe capetele neterminate", function()
             local wall = DamFilmSet.wall()
             for _, built in { 0.15, 0.5, 0.9 } do
@@ -177,14 +205,34 @@ return function()
                 check.equal(DamMath.frameAt(build.from + 0.1, false, true).rise, 1)
             end
         )
-        test.case("de la rau se vad zidul intreg si puntea cu oamenii", function()
-            local cx, cy = DamFilmSet.camera()
+        test.case("intre benzile negre se vad zidul (si puntea, cand incape)", function()
             local wall = DamFilmSet.wall()
+            local deck = TycoonConfig.DECK
+            local function band(vh: number): (number, number)
+                local _, cy = DamFilmSet.camera(vh)
+                return cy - vh / 2 + DamFilmSet.BAR * vh, cy + vh / 2 - DamFilmSet.BAR * vh
+            end
+            -- desktop / tableta (900 de lume): de la malul de nord pana la marginea de jos a puntii
+            local top, bottom = band(900)
+            check.is_true(top <= wall.top - 10 and bottom >= deck.y1)
+            -- telefoanele (scara 0.85): zidul aproape intreg, cu ambele capete in lucru vazute
+            for _, h in { 390, 430, 581 } do
+                local vh = h / 0.85
+                local t2, b2 = band(vh)
+                local n, so = DamFilmSet.halves(0.3)
+                check.is_true(t2 <= wall.top + 25 and b2 >= wall.bottom - 25)
+                check.is_true(t2 < wall.top + n and b2 > wall.bottom - so)
+            end
+            local cx = DamFilmSet.camera(900)
             check.is_true(cx > wall.x0 and cx < wall.x1)
-            -- cel mai mic ecran: 844 x 390 (scara 0.85), latimea vazuta ~993, inaltimea ~459
-            local vh = 390 / 0.85
-            check.is_true(cy - vh / 2 <= wall.top + 60) -- capatul de nord, cu o fasie de mal
-            check.is_true(cy + vh / 2 >= TycoonConfig.DECK.y0 + 30) -- si marginea puntii
+        end)
+        test.case("la clopot camera porneste din dreptul lui: Works Bell e in cadru", function()
+            local bell = DamFilmSet.bell() :: DamFilmSet.Prop
+            local worldW = (RiverConfig.WORLDS :: any)[1].WORLD_WIDTH
+            for _, vw in { 993, 1205, 1600, 2276 } do
+                local camX = math.clamp(bell.x - vw / 2, 0, math.max(0, worldW - vw))
+                check.is_true(bell.x - 60 >= camX and bell.x + 60 <= camX + vw)
+            end
         end)
     end)
 end
