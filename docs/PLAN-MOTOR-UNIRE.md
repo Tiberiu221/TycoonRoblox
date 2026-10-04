@@ -1447,7 +1447,12 @@ explicit.**
   (D50) ghidajul tace și rămân doar „Sack full” pe card și sacul roșu din HUD (în sat la fel, cu buștenii). **Întrebare pentru
   owner, la l2/l3:** textul care spune unde duci marfa merge pe cardul plasei pline? Statusul ar lua aceeași alegere ca
   toast-ul (atenție la lățime pe telefonul mic).
-- **A4 (2026-10-04, în lucru):** inventarul (70 de desene) în `scratchpad/a4_inventory.json`. Legătura în cod e făcută, cu ID 0.
+- **A4 (2026-10-04; planșa trimisă owner-ului, așteaptă aprobarea și acordul de urcare):** 70 de desene. Generatoarele sunt
+  `scripts/art/a4_works.py`, `a4_halls.py`, `a4_goods.py`, `a4_huts_power.py`, `a4_huts_cable.py` și `a4_outfits.py`, iar planșa
+  se face cu `python3 scripts/art/a4_plate.py`. Inventarul e în `scratchpad/a4_inventory.json`. Legătura în cod e făcută, cu ID 0:
+  - Assets, OWN / OWN_BUILT / HOME_SPRITES / HOME_SCALE, LOAD_SPRITE, PILE_OF;
+  - hornurile, în SMOKE_AT și PadArt.CHIMNEY.
+  Rândurile din `GOOD_LOOKS_LIKE` și `PAD_LOOKS_LIKE` pleacă abia când fiecare desen al lor e urcat.
   Golurile rezolvate din cod:
   - La baraj oamenii împing căruciorul de fier (`Modern.cartStage`; `Modern.stage` rămâne 0, deci casele de împrumut nu primesc
     geamurile satului modernizat; casele A4 au ferestrele aprinse desenate în ele).

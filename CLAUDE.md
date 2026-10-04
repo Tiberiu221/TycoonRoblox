@@ -108,9 +108,11 @@ stylua/selene o prind. Rulează-le mereu pe toate, nu înlănțuite după o eroa
   bâlciul doar în 114983498774894); serverul Rojo al satului rulează detașat pe 34872 și trebuie repornit ca să citească
   o schimbare de proiect. Ce a rulat în Studio se vede în `~/Library/Logs/Roblox/*_last.log` (`CreatorOutput`, `open place`).
 
-## Stare (2026-10-04) [D75, loturile A1–A2]
+## Stare (2026-10-04) [D75, loturile A1–A2–A4]
 
-**Arta barajului e desenată și legată în cod cu ID 0; planșele A1 și A2 (cu mixul sonor) așteaptă aprobarea owner-ului.**
+**Arta barajului e desenată și legată în cod cu ID 0; planșele A1, A2 (cu mixul sonor) și A4 așteaptă aprobarea owner-ului.**
+A4 (`scripts/art/a4_*.py`, planșa `a4_plate.py`): clădirile, casele, marfa și ținutele barajului (70). „Look across (E)” e pe
+cardul Switch House (provizoriu).
 Detaliile, rundele de verificator și ce urmează la urcare: `docs/PLAN-MOTOR-UNIRE.md`, nota „A1 și A2, starea”.
 - **A1** (`scripts/art/a1_*.py`, planșa `a1_plate.py`): zidul de piatră, deversorul, spuma, fața turbinei (pe grila zidului),
   Old Bells, Memory Wall, căsuțele, stâlpii, orășelul pictat (se aprinde cu primul curent, cu Look (V); LookController pornește
