@@ -46,6 +46,23 @@ return function()
             check.equal(FlowConfig.customerGood("town"), "grid")
             check.equal(FlowConfig.customerGood("nimeni"), nil)
         end)
+        -- [verificatorul A4] clientul trimis acasa duce marfa care pleaca acum din gramada (ordinea de scurgere)
+        test.case(
+            "FlowMath.soldGood: prima marfa din ordinea de scurgere care mai e in gramada",
+            function()
+                check.equal(FlowMath.soldGood("depot", { cell = 3, coils = 2 }), "cell")
+                check.equal(FlowMath.soldGood("depot", { coils = 2 }), "coils")
+                check.equal(FlowMath.soldGood("market", { copper = 1, parts = 4 }), "copper")
+                check.equal(FlowMath.soldGood("market", { parts = 4, copper = 0 }), "parts")
+                check.equal(
+                    FlowMath.soldGood("town", { grid = 1, ingot = 2 }, FlowMath.FULL),
+                    "ingot"
+                )
+                check.equal(FlowMath.soldGood("town", { grid = 1 }, FlowMath.FULL), "grid")
+                check.equal(FlowMath.soldGood("depot", {}), nil)
+                check.equal(FlowMath.soldGood("depot", nil), nil)
+            end
+        )
     end)
 
     test.suite("FlowConfig - drumul marfii, ca date", function()

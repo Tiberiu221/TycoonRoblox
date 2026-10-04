@@ -735,10 +735,12 @@ function LineController.seller(seller: string, building: Building): Seller
         held = customerCarry(seller),
     })
     RunService.PreRender:Connect(crowd.Step)
+    -- [verificatorul A4] ce e in gramada de la usa (ultima stare): clientul trimis acasa duce marfa care pleaca acum din ea
+    local pileContents: { [string]: number }? = nil
     deps.Remotes.Sold.OnClientEvent:Connect(
         function(_total: number, itemCount: number, soldBy: string?)
             if soldBy == seller then
-                crowd.OnSold(itemCount)
+                crowd.OnSold(itemCount, FlowMath.soldGood(seller, pileContents))
             end
         end
     )
@@ -755,6 +757,7 @@ function LineController.seller(seller: string, building: Building): Seller
         end
         if state ~= nil then
             pile.Set(state.count, state.contents)
+            pileContents = state.contents
         end
     end
 

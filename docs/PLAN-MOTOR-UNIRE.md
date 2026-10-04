@@ -1447,6 +1447,13 @@ explicit.**
   (D50) ghidajul tace și rămân doar „Sack full” pe card și sacul roșu din HUD (în sat la fel, cu buștenii). **Întrebare pentru
   owner, la l2/l3:** textul care spune unde duci marfa merge pe cardul plasei pline? Statusul ar lua aceeași alegere ca
   toast-ul (atenție la lățime pe telefonul mic).
+- **A4 (2026-10-04, în lucru):** inventarul (70 de desene) în `scratchpad/a4_inventory.json`. Legătura în cod e făcută, cu ID 0.
+  Golurile rezolvate din cod:
+  - La baraj oamenii împing căruciorul de fier (`Modern.cartStage`; `Modern.stage` rămâne 0, deci casele de împrumut nu primesc
+    geamurile satului modernizat; casele A4 au ferestrele aprinse desenate în ele).
+  - Clienții pleacă cu marfa care tocmai a plecat din grămadă (`FlowMath.soldGood`; schimbare voită și în sat).
+  - Curentul din larg la baraj promite cristalul până la Crystal Net.
+  - Umbrele platformelor barajului nu mai stau pe dala Erei 1.
 - **Urcarea, după aprobare:** desenele se scriu din generatoare în `assets/sprites`, sunetele în `assets/audio`, apoi
   `upload_assets.py` (fiecare urcare cu acordul owner-ului), ID-urile în `Assets.luau` și moderarea.
 **[2026-10-03] A0, planșele sunt gata și așteaptă owner-ul** (`python3 scripts/art/a0_dam.py [wall|film]`, în scratchpad):

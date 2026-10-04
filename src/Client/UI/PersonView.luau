@@ -39,6 +39,8 @@ export type View = {
     -- [verificatorul A2] 0 = ca de obicei, 1 = stins de tot (filmul barajului: oamenii lasa lucrul); straturile isi pastreaza
     -- transparenta lor de baza (umbra 0,25, parul lipsa 1)
     SetFade: (alpha: number) -> (),
+    -- [verificatorul A4] ce duce in brate (clientul unui vanzator): marfa tocmai cumparata; nil = cea data la creare
+    SetHeldGood: (good: string?) -> (),
     Destroy: () -> (),
 }
 
@@ -330,6 +332,15 @@ function PersonView.new(parent: Instance, name: string, held: string?): View
 
     local view: View = {
         frame = holder,
+        SetHeldGood = function(good: string?)
+            local img = item
+            local bought = if good ~= nil then GoodArt.icon(good) else nil
+            if img == nil or bought == nil or not Assets.has(bought) then
+                return
+            end
+            setIfChanged(img, "Image", Assets.url(bought))
+            setIfChanged(img, "Size", UDim2.fromOffset(bought.width * 1.5, bought.height * 1.5))
+        end,
         SetFade = function(alpha: number)
             local a = math.clamp(alpha, 0, 1)
             if a == fade then

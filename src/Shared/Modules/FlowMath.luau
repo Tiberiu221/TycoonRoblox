@@ -415,4 +415,28 @@ function FlowMath.drainOrder(seller: string, m: Model?): { string }?
     return if spec ~= nil then spec.takeOrder else nil
 end
 
+-- [verificatorul A4] Ce marfa pleaca acum din gramada unui vanzator: prima din ordinea de scurgere (takeOrder, altfel in
+-- ordinea cheilor, ca PileMath.take) care mai e in gramada; nil cu gramada goala. Clientul trimis acasa o duce in brate.
+function FlowMath.soldGood(seller: string, contents: { [string]: number }?, m: Model?): string?
+    if contents == nil then
+        return nil
+    end
+    local order = FlowMath.drainOrder(seller, m)
+    if order ~= nil then
+        for _, good in order do
+            if (contents[good] or 0) > 0 then
+                return good
+            end
+        end
+    end
+    local keys: { string } = {}
+    for good, n in contents do
+        if n > 0 then
+            table.insert(keys, good)
+        end
+    end
+    table.sort(keys)
+    return keys[1]
+end
+
 return FlowMath

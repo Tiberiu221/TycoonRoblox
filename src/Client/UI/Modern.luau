@@ -102,10 +102,14 @@ function Modern.lights(host: GuiObject, building: Assets.Sprite, stage: number?)
     )
 end
 
+-- [verificatorul A4] treapta citita doar de carucior: la baraj (lumea 2) oamenii imping caruciorul de fier, dar casele lor
+-- de imprumut nu primesc geamurile satului modernizat (Modern.stage ramane 0 acolo)
+Modern.cartStage = nil :: number?
+
 -- Roaba oamenilor: caruciorul de fier de la treapta 2 (aceeasi foaie, aceleasi cadre).
 function Modern.barrow(stage: number?): Assets.Sprite
     local iron = tycoon.barrow_iron
-    if ModernMath.has(stage or Modern.stage, "carts") and has(iron) then
+    if ModernMath.has(stage or Modern.cartStage or Modern.stage, "carts") and has(iron) then
         return iron
     end
     return Assets.tycoon.barrow

@@ -106,10 +106,13 @@ function CustomerCrowd.new(o: Options): Crowd
     end
 
     -- Pleaca pe drumul mare, spre locul de unde a venit; cu marfa in brate, daca pleaca pentru ca a cumparat.
-    local function leave(c: Customer, bought: boolean)
+    local function leave(c: Customer, bought: boolean, good: string?)
         c.state = "leaving"
         c.spot = nil
         c.bought = bought
+        if bought and good ~= nil then
+            c.view.SetHeldGood(good) -- [verificatorul A4] ce a cumparat chiar acum
+        end
         c.path = { { x = c.x, y = o.entry.y }, { x = o.entry.x, y = o.entry.y } }
     end
 
@@ -125,7 +128,7 @@ function CustomerCrowd.new(o: Options): Crowd
     local self = {}
 
     -- O vanzare: intra in fereastra clientilor si trimite un client acasa cu marfa.
-    function self.OnSold(itemCount: number?)
+    function self.OnSold(itemCount: number?, good: string?)
         local now = os.clock()
         if type(itemCount) == "number" then
             TavernCrowd.add(crowd, now, itemCount)
@@ -134,7 +137,7 @@ function CustomerCrowd.new(o: Options): Crowd
             local c = firstWaiting()
             if c ~= nil then
                 lastLeaveAt = now
-                leave(c, true)
+                leave(c, true, good)
             end
         end
     end

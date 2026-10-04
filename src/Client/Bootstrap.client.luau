@@ -271,10 +271,10 @@ end)
 safeInit("LookController", function()
     LookController.Init({ CharacterPos = CharacterController.Position })
 end)
--- [inventarul A4] Barajul vine dupa satul modernizat de tot (Era 3, ultima treapta): oamenii lui impreuna caruciorul de fier,
--- nu roaba de lemn a Erei 1 (ModernController ruleaza doar in sat, deci acolo treapta se pune singura)
+-- [inventarul A4] Barajul vine dupa satul modernizat (Era 3): oamenii lui imping caruciorul de fier, nu roaba de lemn a Erei 1.
+-- [verificatorul A4] Doar caruciorul (Modern.cartStage): treapta intreaga ar fi aprins si geamurile caselor de imprumut.
 if world ~= 1 then
-    Modern.stage = #ModernMath.STAGES
+    Modern.cartStage = ModernMath.stageOf("carts")
 end
 
 -- [D70] Bannerul unei trepte a modernizarii (sau al felinarelor aprinse), cu butonul "Look (V)" cand locul schimbat, din
@@ -1919,7 +1919,7 @@ Net.Get("TycoonState").OnClientEvent:Connect(function(raw: { [string]: any })
     )
     -- [D55, D65] ce pluteste in larg: marfa pe care plasele tale inca n-o prind. Scrap-ul pana la Fifth Net; minereul
     -- de cand porneste Moara pana la Tenth Net (marfa noua apare cand o poti folosi [D64]).
-    -- [D70] la baraj, nimic promis inca (marfa lui o aduc plasele lui)
+    -- [D70, inventarul A4] la baraj: cristalul, pana la Crystal Net (marfa pe care plasele lui inca n-o prind)
     -- [D68, D75] de la finalul Erei 3 (Works Bell): cristalul, marfa erei barajului (rendererul il arata doar cu desenul
     -- lui urcat)
     local owned = snapshot.pads
