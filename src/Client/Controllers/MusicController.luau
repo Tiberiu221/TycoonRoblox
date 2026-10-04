@@ -24,6 +24,9 @@ local trackId: number? = nil -- [D61] piesa aleasa la Init (satul: raul; balciul
 
 local FADE_IN_FIRST = 4
 local FADE_CHANGE = 0.35
+-- [D75, lotul A2] o piesa scurta peste bucla (filmul barajului): bucla tace lin cat canta ea
+local CUE_FADE = 0.6
+local cue: Sound? = nil
 
 -- Estomparea, pe grup. Pornirea din liniste pune grupul la 0 INAINTE de Play/Resume: altfel un cadru ar
 -- suna la volumul de dinainte -- exact "prea tare la intrare". La 0 muzica se opreste abia cand s-a stins,
@@ -81,6 +84,54 @@ function MusicController.SetLevel(newLevel: number)
     applied = true
     level = newLevel
     fadeTo(AudioLevels.volume(level, AudioLevels.MUSIC_MAX), FADE_CHANGE)
+end
+
+-- [D75, lotul A2] O piesa scurta, o singura data (filmul barajului): bucla raului tace lin, piesa canta pe grupul "Music"
+-- (nivelul din panou ramane al jucatorului: la 0 nu se aude nici ea). 0 = neurcata: nimic se schimba.
+function MusicController.PlayCue(id: number)
+    if id == 0 then
+        return
+    end
+    MusicController.EndCue()
+    local g = group
+    if g == nil then
+        -- bucla raului neurcata: grupul se face acum, la nivelul ales
+        local made = Instance.new("SoundGroup")
+        made.Name = "Music"
+        made.Volume = AudioLevels.volume(level, AudioLevels.MUSIC_MAX)
+        made.Parent = SoundService
+        group = made
+        g = made
+    end
+    local loop = sound
+    if loop ~= nil then
+        TweenService:Create(loop, TweenInfo.new(CUE_FADE), { Volume = 0 }):Play()
+    end
+    local c = Instance.new("Sound")
+    c.Name = "Cue"
+    c.SoundId = Assets.soundUrl(id)
+    c.Volume = 1
+    c.SoundGroup = g
+    c.Parent = SoundService
+    c:Play()
+    cue = c
+end
+
+-- Piesa scurta se stinge (la capat sau la Skip) si bucla revine lin.
+function MusicController.EndCue()
+    local c = cue
+    if c == nil then
+        return
+    end
+    cue = nil
+    TweenService:Create(c, TweenInfo.new(CUE_FADE), { Volume = 0 }):Play()
+    task.delay(CUE_FADE, function()
+        c:Destroy()
+    end)
+    local loop = sound
+    if loop ~= nil then
+        TweenService:Create(loop, TweenInfo.new(CUE_FADE), { Volume = 1 }):Play()
+    end
 end
 
 -- [D61] `Track` = alta piesa decat raul; `Proximity` = cat de aproape esti de sursa ei (0..1): muzicantii din balci.

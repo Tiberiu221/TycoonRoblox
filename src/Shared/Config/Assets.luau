@@ -318,6 +318,18 @@ local Assets = {
         river_crystal = sprite(0, 36, 16), -- 2 cadre de 18 x 16: cristalul care pluteste de la finalul Erei 3
         painted_town = sprite(0, 340, 44), -- oraselul pictat de pe malul de nord
         painted_town_lit = sprite(0, 340, 44), -- doar luminile lui, peste el
+        -- [D75, lotul A2] filmul barajului (scripts/art/a2_*.py; DamFilm, DamFilmSet). 0 = desenate, inca neurcate: filmul
+        -- ramane amurgul peste satul adevarat, cu zidul din piatra simpla care creste peste rau.
+        film_scaffold = sprite(0, 80, 16), -- un etaj de schela cat zidul, repetat pe verticala
+        film_wall_edge_n = sprite(0, 80, 10), -- capatul neterminat al jumatatii de nord
+        film_wall_edge_s = sprite(0, 80, 10), -- si al celei de sud
+        film_crane = sprite(0, 64, 48), -- 2 cadre de 32 x 48
+        film_stone_cart = sprite(0, 28, 16),
+        film_stone_pile = sprite(0, 32, 16),
+        film_dust = sprite(0, 48, 12), -- 3 cadre de 16 x 12
+        film_walkers = sprite(0, 64, 96), -- siluete: 4 randuri (gol, grinda, piatra, felinar) x 4 cadre de 16 x 24
+        film_workers = sprite(0, 64, 48), -- 2 randuri (ciocanul, funia) x 4 cadre de 16 x 24
+        film_works_bell_swing = sprite(0, 120, 56), -- 3 cadre de 40 x 56, exact peste works_bell
         platform = sprite(136060284598059, 48, 24),
         weights = sprite(116698981575799, 24, 16),
         -- pier2 (64x48) a fost respins: se citea ca o lada cu capac. pier3 e pontonul inalt,
@@ -591,6 +603,7 @@ local Assets = {
     music = {
         river = 72095931356905,
         fair = 106949553479700, -- [D61] melodia balciului (scripts/audio/make_music.py fair)
+        dam_film = 0, -- [D75, lotul A2] piesa filmului barajului, 17 s (scripts/audio/a2_film.py); 0 = neurcata
     },
     sounds = {
         splash = 125294013048224,
@@ -611,6 +624,9 @@ local Assets = {
         -- atunci SoundController foloseste "pop" si "chime"
         levelup = 108593613284344,
         milestone = 79391496851488,
+        -- [D75, lotul A2] filmul barajului (scripts/audio/a2_film.py): santierul si zidul care se inchide; 0 = neurcate
+        film_build = 0,
+        film_close = 0,
     },
 }
 

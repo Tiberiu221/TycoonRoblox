@@ -4,19 +4,25 @@
 -- peste satul tau de la Wire Works la Landing, amurgul, cartonasul „THE DAM”. Mersul se opreste, panourile se inchid, HUD-ul
 -- se stinge. Cu „miscare redusa” (GuiService.ReducedMotionEnabled) camera sare, nu aluneca.
 --
--- PROVIZORIU: siluetele la apus, schelele si barajul care creste vin cu arta lotului A2 (planse, aprobarea owner-ului, apoi
--- urcarea). Pana atunci fazele „people” si „build” sunt amurgul peste satul adevarat, cu textul lor.
+-- [D75, lotul A2] Decorul fazelor (DamFilmSet, pur): Works Bell se leagana la clopot; la „people” siluetele pleaca spre rau;
+-- la „build” camera urca la rau, plasele de pe linia zidului ies din apa, iar zidul creste din ambele maluri peste schele,
+-- cu oamenii la lucru, macaraua, caruta si gramada de piatra. Muzica filmului (MusicController.PlayCue), santierul si
+-- inchiderea zidului se aud. Fiecare desen si sunet cu ID 0 lipseste pur si simplu; zidul cade pe piatra simpla.
 local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
+local Assets = require(ReplicatedStorage.Shared.Config.Assets)
+local DamFilmSet = require(ReplicatedStorage.Shared.Modules.DamFilmSet)
 local DamMath = require(ReplicatedStorage.Shared.Modules.DamMath)
 local Strings = require(ReplicatedStorage.Shared.Config.Strings)
 local TycoonConfig = require(ReplicatedStorage.Shared.Config.TycoonConfig)
 
 local CameraController = require(script.Parent.CameraController)
 local CharacterController = require(script.Parent.CharacterController)
+local MusicController = require(script.Parent.MusicController)
+local NetController = require(script.Parent.NetController)
 local Panels = require(script.Parent.Panels)
 local SoundController = require(script.Parent.SoundController)
 local Theme = require(script.Parent.Parent.UI.Theme)
@@ -26,6 +32,7 @@ local DamFilm = {}
 
 export type Deps = {
     SetHudVisible: (boolean) -> (),
+    Plot: Frame?, -- [D75, lotul A2] terenul satului: decorul filmului se pune peste el, in coordonatele lui
 }
 local deps: Deps? = nil
 
@@ -54,21 +61,361 @@ local onDone: (() -> ())? = nil
 local lastPhase = ""
 local reduced = false
 
--- unde trece camera: de la mijlocul ultimului cartier al satului (Wire Works) la primul (Landing), pe strada
-local function panPoint(pan: number): (number, number)
+-- unde trece camera: de la mijlocul ultimului cartier al satului (Wire Works) la primul (Landing), pe strada; [D75, lotul
+-- A2] apoi (`rise`) urca la rau, in dreptul zidului care creste
+local function panPoint(pan: number, rise: number): (number, number)
     local districts = TycoonConfig.districtsOf(1)
     local first, last = districts[1].deck, districts[#districts].deck
     local eastX, westX = (last.x0 + last.x1) / 2, (first.x0 + first.x1) / 2
     local origin = TycoonConfig.PLOT_ORIGIN
-    return origin.x + eastX + (westX - eastX) * pan, origin.y + 1100
+    local x, y = eastX + (westX - eastX) * pan, 1100
+    local riverX, riverY = DamFilmSet.camera()
+    return origin.x + x + (riverX - x) * rise, origin.y + y + (riverY - y) * rise
 end
 
-local panNow = 0
+local panNow, riseNow = 0, 0
 local function focusGetter(): (number?, number?)
     if not playing then
         return nil, nil
     end
-    return panPoint(panNow)
+    return panPoint(panNow, riseNow)
+end
+
+-- [D75, lotul A2] DECORUL FILMULUI, facut la Play in terenul satului si sters la capat. Un desen cu ID 0 nu se face.
+local S = Assets.PIXEL_SCALE
+local P = DamFilmSet.PERSON_SCALE
+local CW, CH = DamFilmSet.CELL_W, DamFilmSet.CELL_H
+type Figure = { img: ImageLabel, walker: DamFilmSet.Walker? }
+type Set = {
+    items: { Instance },
+    bell: ImageLabel?,
+    north: Frame,
+    south: Frame,
+    southArt: ImageLabel?,
+    scaffold: ImageLabel?,
+    edgeN: ImageLabel?,
+    edgeS: ImageLabel?,
+    crane: ImageLabel?,
+    dust: { ImageLabel },
+    walkers: { Figure },
+    workers: { ImageLabel },
+    builtProps: { ImageLabel },
+}
+local set: Set? = nil
+local closedHeard = false
+
+local function depthZ(y: number): number
+    return 5 + math.clamp(math.floor(y / 64), 0, 40)
+end
+
+-- Un desen (sau un cadru dintr-o foaie), ancorat jos-mijloc; nil cand nu e urcat.
+local function sheet(
+    items: { Instance },
+    parent: Instance,
+    sprite: Assets.Sprite,
+    frameW: number,
+    frameH: number,
+    scale: number,
+    name: string
+): ImageLabel?
+    if not Assets.has(sprite) then
+        return nil
+    end
+    local img = Instance.new("ImageLabel")
+    img.Name = name
+    img.BackgroundTransparency = 1
+    img.Image = Assets.url(sprite)
+    img.ResampleMode = Enum.ResamplerMode.Pixelated
+    img.AnchorPoint = Vector2.new(0.5, 1)
+    img.Size = UDim2.fromOffset(frameW * scale, frameH * scale)
+    img.ImageRectSize = Vector2.new(frameW, frameH)
+    img.Visible = false
+    img.Parent = parent
+    table.insert(items, img)
+    return img
+end
+
+-- Cadrul `frame` din randul `row` al unei foi de oameni (16 x 24); randurile privesc spre dreapta, deci spre stanga se
+-- oglindesc (ca PersonView).
+local function personFrame(img: ImageLabel, row: number, frame: number, facing: string)
+    local mirror = facing == "left"
+    img.ImageRectOffset = Vector2.new(CW * frame + (if mirror then CW else 0), CH * row)
+    img.ImageRectSize = Vector2.new(if mirror then -CW else CW, CH)
+end
+
+local function buildSet(): Set?
+    local d = deps
+    local plot = if d ~= nil then d.Plot else nil
+    if plot == nil then
+        return nil
+    end
+    local t = Assets.tycoon
+    local items: { Instance } = {}
+    local wall = DamFilmSet.wall()
+    local fullH = t.dam_wall.height * S
+    -- cele doua jumatati ale zidului: un cadru care taie desenul zidului lumii 2 (sus, malul de nord; jos, capatul de
+    -- sud), sau piatra simpla cat desenul nu e urcat
+    local function half(name: string): (Frame, ImageLabel?)
+        local clip = Instance.new("Frame")
+        clip.Name = name
+        clip.BorderSizePixel = 0
+        clip.ClipsDescendants = true
+        clip.ZIndex = 6
+        clip.Visible = false
+        clip.Position = UDim2.fromOffset(wall.x0, wall.top)
+        clip.Size = UDim2.fromOffset(wall.x1 - wall.x0, 0)
+        local art: ImageLabel? = nil
+        if Assets.has(t.dam_wall) then
+            clip.BackgroundTransparency = 1
+            local img = Instance.new("ImageLabel")
+            img.BackgroundTransparency = 1
+            img.Image = Assets.url(t.dam_wall)
+            img.ResampleMode = Enum.ResamplerMode.Pixelated
+            img.Size = UDim2.fromOffset(t.dam_wall.width * S, fullH)
+            img.ZIndex = 6
+            img.Parent = clip
+            art = img
+        else
+            clip.BackgroundColor3 = Color3.fromRGB(128, 124, 116)
+            clip.BackgroundTransparency = 0
+        end
+        clip.Parent = plot
+        table.insert(items, clip)
+        return clip, art
+    end
+    local north = half("FilmWallNorth")
+    local south, southArt = half("FilmWallSouth")
+    local scaffold = sheet(
+        items,
+        plot,
+        t.film_scaffold,
+        t.film_scaffold.width,
+        t.film_scaffold.height,
+        S,
+        "FilmScaffold"
+    )
+    if scaffold ~= nil then
+        -- un etaj de schela repetat pe verticala, peste golul dintre jumatati
+        scaffold.AnchorPoint = Vector2.new(0, 0)
+        scaffold.ScaleType = Enum.ScaleType.Tile
+        scaffold.TileSize = UDim2.fromOffset(t.film_scaffold.width * S, t.film_scaffold.height * S)
+        scaffold.ImageRectSize = Vector2.zero
+        scaffold.ZIndex = 6
+    end
+    local edgeN = sheet(
+        items,
+        plot,
+        t.film_wall_edge_n,
+        t.film_wall_edge_n.width,
+        t.film_wall_edge_n.height,
+        S,
+        "FilmEdgeN"
+    )
+    local edgeS = sheet(
+        items,
+        plot,
+        t.film_wall_edge_s,
+        t.film_wall_edge_s.width,
+        t.film_wall_edge_s.height,
+        S,
+        "FilmEdgeS"
+    )
+    for _, e in { edgeN, edgeS } do
+        if e ~= nil then
+            e.ZIndex = 7
+        end
+    end
+    local props = DamFilmSet.props()
+    local builtProps: { ImageLabel } = {}
+    local crane = sheet(
+        items,
+        plot,
+        t.film_crane,
+        t.film_crane.width / 2,
+        t.film_crane.height,
+        S,
+        "FilmCrane"
+    )
+    if crane ~= nil then
+        crane.Position = UDim2.fromOffset(props.crane.x, props.crane.y)
+        crane.ZIndex = depthZ(props.crane.y)
+        table.insert(builtProps, crane)
+    end
+    for _, p in
+        {
+            { sprite = t.film_stone_cart, at = props.cart, name = "FilmCart" },
+            { sprite = t.film_stone_pile, at = props.pile, name = "FilmPile" },
+        }
+    do
+        local img = sheet(items, plot, p.sprite, p.sprite.width, p.sprite.height, S, p.name)
+        if img ~= nil then
+            img.Position = UDim2.fromOffset(p.at.x, p.at.y)
+            img.ZIndex = depthZ(p.at.y)
+            table.insert(builtProps, img)
+        end
+    end
+    local dust: { ImageLabel } = {}
+    for i = 1, 2 do
+        local img = sheet(
+            items,
+            plot,
+            t.film_dust,
+            t.film_dust.width / 3,
+            t.film_dust.height,
+            S,
+            `FilmDust{i}`
+        )
+        if img ~= nil then
+            img.ZIndex = 8
+            table.insert(dust, img)
+        end
+    end
+    local walkers: { Figure } = {}
+    for i, w in DamFilmSet.walkers() do
+        local img = sheet(items, plot, t.film_walkers, CW, CH, P, `FilmWalker{i}`)
+        if img ~= nil then
+            table.insert(walkers, { img = img, walker = w })
+        end
+    end
+    local workers: { ImageLabel } = {}
+    for i = 1, #DamFilmSet.workers(0) do
+        local img = sheet(items, plot, t.film_workers, CW, CH, P, `FilmWorker{i}`)
+        if img ~= nil then
+            table.insert(workers, img)
+        end
+    end
+    -- Works Bell, leganat peste desenul platformei lui (acelasi loc, aceeasi marime)
+    local bell: ImageLabel? = nil
+    local at = DamFilmSet.bell()
+    if at ~= nil then
+        bell = sheet(
+            items,
+            plot,
+            t.film_works_bell_swing,
+            t.film_works_bell_swing.width / 3,
+            t.film_works_bell_swing.height,
+            S,
+            "FilmBell"
+        )
+        if bell ~= nil then
+            bell.Position = UDim2.fromOffset(at.x, at.y)
+            bell.ZIndex = 4 -- peste platformele terenului (PadController, Z 3)
+        end
+    end
+    return {
+        items = items,
+        bell = bell,
+        north = north,
+        south = south,
+        southArt = southArt,
+        scaffold = scaffold,
+        edgeN = edgeN,
+        edgeS = edgeS,
+        crane = crane,
+        dust = dust,
+        walkers = walkers,
+        workers = workers,
+        builtProps = builtProps,
+    }
+end
+
+local function clearSet()
+    local s = set
+    set = nil
+    if s ~= nil then
+        for _, item in s.items do
+            item:Destroy()
+        end
+    end
+    NetController.SetFilmLift(nil, nil, nil)
+end
+
+local function renderSet(frame: DamMath.FilmFrame, t: number)
+    local s = set
+    local x0, x1 = DamFilmSet.liftRange()
+    NetController.SetFilmLift(
+        x0,
+        x1,
+        if frame.phase == "build" or frame.phase == "card" then frame.rise else 0
+    )
+    if s == nil then
+        return
+    end
+    local bell = s.bell
+    if bell ~= nil then
+        bell.Visible = frame.phase == "bells"
+        local f = DamFilmSet.bellFrame(t)
+        bell.ImageRectOffset = Vector2.new(f * bell.ImageRectSize.X, 0)
+    end
+    -- siluetele, de la „people” pana la capat
+    local peopleFrom = DamMath.FILM[3].from
+    local walking = t >= peopleFrom
+    for i, fig in s.walkers do
+        local w = fig.walker :: DamFilmSet.Walker
+        fig.img.Visible = walking
+        if walking then
+            local x, y, moving, facing = DamFilmSet.walkerAt(w, t - peopleFrom)
+            fig.img.Position = UDim2.fromOffset(math.round(x), math.round(y))
+            fig.img.ZIndex = depthZ(y)
+            local step = if moving then math.floor((t + i * 0.13) * DamFilmSet.WALK_FPS) % 4 else 0
+            personFrame(fig.img, w.kind, step, facing)
+        end
+    end
+    -- zidul, schelele si santierul, in „build”
+    local building = frame.phase == "build"
+    local wall = DamFilmSet.wall()
+    local northH, southH = DamFilmSet.halves(frame.built)
+    s.north.Visible = building and northH > 0
+    s.north.Size = UDim2.fromOffset(wall.x1 - wall.x0, northH)
+    s.south.Visible = building and southH > 0
+    s.south.Position = UDim2.fromOffset(wall.x0, wall.bottom - southH)
+    s.south.Size = UDim2.fromOffset(wall.x1 - wall.x0, southH)
+    local southArt = s.southArt
+    if southArt ~= nil then
+        southArt.Position = UDim2.fromOffset(0, southH - southArt.Size.Y.Offset)
+    end
+    local northFront, southFront = wall.top + northH, wall.bottom - southH
+    local gap = southFront - northFront
+    local scaffold = s.scaffold
+    if scaffold ~= nil then
+        scaffold.Visible = building and gap > 0
+        scaffold.Position = UDim2.fromOffset(wall.x0, northFront)
+        scaffold.Size = UDim2.fromOffset(wall.x1 - wall.x0, math.max(0, gap))
+    end
+    local edgeN, edgeS = s.edgeN, s.edgeS
+    if edgeN ~= nil then
+        edgeN.Visible = building and gap > 0
+        edgeN.Position =
+            UDim2.fromOffset((wall.x0 + wall.x1) / 2, northFront + edgeN.Size.Y.Offset / 2)
+    end
+    if edgeS ~= nil then
+        edgeS.Visible = building and gap > 0
+        edgeS.Position =
+            UDim2.fromOffset((wall.x0 + wall.x1) / 2, southFront + edgeS.Size.Y.Offset / 2)
+    end
+    local crane = s.crane
+    if crane ~= nil then
+        crane.ImageRectOffset = Vector2.new((math.floor(t / 0.9) % 2) * crane.ImageRectSize.X, 0)
+    end
+    for _, p in s.builtProps do
+        p.Visible = building
+    end
+    local fronts = { { x = wall.x0 + 100, y = northFront }, { x = wall.x0 + 150, y = southFront } }
+    for i, puff in s.dust do
+        puff.Visible = building and gap > 0
+        puff.Position = UDim2.fromOffset(fronts[i].x, fronts[i].y)
+        puff.ImageRectOffset = Vector2.new((math.floor(t / 0.12 + i) % 3) * puff.ImageRectSize.X, 0)
+    end
+    local spots = DamFilmSet.workers(frame.built)
+    for i, img in s.workers do
+        local spot = spots[i]
+        img.Visible = building and spot ~= nil and gap > 0
+        if spot ~= nil then
+            img.Position = UDim2.fromOffset(spot.x, spot.y)
+            img.ZIndex = 8
+            personFrame(img, spot.kind, math.floor((t + i * 0.21) * 7) % 4, spot.facing)
+        end
+    end
 end
 
 -- Cartonasul „THE DAM”: fundalul si textele apar impreuna din negru (`a` = cat de transparente sunt).
@@ -96,6 +443,8 @@ local function finish()
     skipButton.Visible = false
     caption.Visible = false
     CameraController.ReleaseFocus(focusGetter)
+    clearSet()
+    MusicController.EndCue()
     local done = onDone
     onDone = nil
     if done ~= nil then
@@ -120,6 +469,8 @@ local function render(t: number)
     topBar.Size = UDim2.fromScale(1, barH)
     bottomBar.Size = UDim2.fromScale(1, barH)
     panNow = frame.pan
+    riseNow = frame.rise
+    renderSet(frame, t)
     -- amurgul: se lasa in „people”, ramane in „build”
     local duskAmount = if frame.phase == "people"
         then frame.progress
@@ -139,9 +490,16 @@ local function render(t: number)
         lastPhase = frame.phase
         if frame.phase == "bells" then
             SoundController.Play("bell")
-        elseif frame.phase == "card" then
+        elseif frame.phase == "build" then
+            SoundController.Play("film_build") -- [D75, lotul A2] santierul
+        elseif frame.phase == "card" and Assets.sounds.film_close == 0 then
             SoundController.Play("chime")
         end
+    end
+    -- [D75, lotul A2] zidul se inchide (cu FILM_MEET_BEFORE inaintea cartonasului): piatra, apoi apa care se strange
+    if frame.built >= 1 and not closedHeard then
+        closedHeard = true
+        SoundController.Play("film_close")
     end
     if frame.done then
         finish()
@@ -191,8 +549,13 @@ function DamFilm.Play(seen: boolean, done: () -> ())
     playing = true
     startedAt = os.clock()
     lastPhase = ""
+    closedHeard = false
     enter()
     c.Visible = false
+    clearSet()
+    local ok2, made = pcall(buildSet)
+    set = if ok2 then made else nil
+    MusicController.PlayCue(Assets.music.dam_film)
     CameraController.SetFocus(focusGetter)
     render(0)
 end
@@ -260,6 +623,8 @@ end
 
 -- Reincarcarea n-a plecat (Studio, un drum esuat): filmul se ridica, ca ecranul barajului sa spuna ce urmeaza.
 function DamFilm.Stop()
+    clearSet()
+    MusicController.EndCue()
     playing = false
     onDone = nil
     cardOnly = false

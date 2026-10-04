@@ -60,7 +60,8 @@ require("./WorldIdentity.test")() -- [D70, pasul j1] martorul lumii 1
 require("./WorldConfig.test")() -- [D70, pasul j6] lumile
 require("./World2Layout.test")() -- [D70, pasul j7] asezarea barajului
 require("./WorldMath.test")() -- [D70, pasul j10] portile pe lume
-require("./DamMath.test")() -- [D70, pasul j14] ridicarea barajului, pura
+require("./DamMath.test")()
+require("./DamFilmSet.test")() -- [D75, lotul A2] -- [D70, pasul j14] ridicarea barajului, pura
 require("./DamService.test")() -- [D70, pasul j15] barajul pe server
 require("./SaveLoop.test")() -- [D70, verificatorul j15] salvarea fortata
 require("./StateCopy.test")() -- [D70, pasul k3] copia starii pe linii

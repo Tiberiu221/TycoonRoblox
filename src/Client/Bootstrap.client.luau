@@ -740,6 +740,7 @@ safeInit("DamFilm", function()
         SetHudVisible = function(visible: boolean)
             hudGui.Enabled = visible
         end,
+        Plot = layers.Plot, -- [D75, lotul A2] decorul filmului
     })
 end)
 safeInit("DamScreen", function()

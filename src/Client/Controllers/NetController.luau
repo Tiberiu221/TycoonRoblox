@@ -122,6 +122,8 @@ local floaters: { [string]: { [number]: Floater } } = {} -- padId -> momentul (x
 local freeFloaters: { Floater } = {}
 local sackCount = 0
 local sackCapacity = 0
+-- [D75, lotul A2] filmul barajului: plasele de pe linia zidului (x0..x1) urca spre varful stalpului si ies din apa (k 0..1)
+local filmLift: { x0: number, x1: number, k: number }? = nil
 local sackRaw = 0 -- cati busteni bruti duci: decide unde te trimite mesajul de traista plina [D49]
 local sackRawScrap = 0 -- [D55] cat scrap brut duci: el merge la forja, nu la gater
 local sackIron = 0 -- [D56] cat fier duci: mesajul spune "planks", "iron" sau amandoua [D40]
@@ -780,6 +782,16 @@ local function updateNetMotion(now: number)
             dy, scale = 0, 1
             baseX, baseY = wall.x - assembly.padX, wall.y - assembly.padY
         end
+        local lift = filmLift
+        local lifted = lift ~= nil
+            and wall == nil
+            and assembly.padX >= lift.x0
+            and assembly.padX <= lift.x1
+        if lifted then
+            local k = (lift :: { x0: number, x1: number, k: number }).k
+            dy += (-POST_H - baseY - dy) * k
+        end
+        assembly.bob.Visible = not (lifted and (lift :: { k: number }).k >= 1)
         netDy[padId] = dy
         assembly.bob.Position = UDim2.fromOffset(math.round(baseX), math.round(baseY + dy))
         assembly.bodyScale.Scale = scale
@@ -890,6 +902,16 @@ end
 -- rapida (NetCaught) nu duce `contents`, doar server-ul il calculeaza pe deplin.
 -- [D62] Plasei i s-a cumparat un nivel: insigna "Lv N" de pe stalp sare (acolo se citeste nivelul), iar plasa
 -- stropeste. Textul insignei vine cu starea, imediat dupa.
+-- [D75, lotul A2] Filmul barajului: plasele cu stalpul intre x0 si x1 ies din apa (k 0..1: urca spre varful stalpului, iar
+-- la 1 nu se mai vad). nil = inapoi in apa (filmul s-a oprit fara reincarcare).
+function NetController.SetFilmLift(x0: number?, x1: number?, k: number?)
+    if x0 == nil or x1 == nil or k == nil then
+        filmLift = nil
+        return
+    end
+    filmLift = { x0 = x0, x1 = x1, k = math.clamp(k, 0, 1) }
+end
+
 function NetController.Celebrate(padId: string)
     local assembly = assemblies[padId]
     if assembly == nil then

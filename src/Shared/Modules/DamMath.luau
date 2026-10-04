@@ -436,6 +436,11 @@ DamMath.FILM = {
 DamMath.FILM_SECONDS = 17
 DamMath.FILM_SKIP_AT = 3
 DamMath.FILM_BARS_IN = 0.5 -- cat intra benzile negre
+-- [D75, lotul A2] in faza „build” camera urca la rau (in FILM_RISE_SECONDS), iar zidul creste din ambele maluri: porneste
+-- de la FILM_BUILT_FROM si se inchide cu FILM_MEET_BEFORE secunde inaintea cartonasului (atunci se aude inchiderea)
+DamMath.FILM_RISE_SECONDS = 1
+DamMath.FILM_BUILT_FROM = 0.15
+DamMath.FILM_MEET_BEFORE = 0.4
 
 export type FilmFrame = {
     phase: string,
@@ -444,6 +449,8 @@ export type FilmFrame = {
     progress: number, -- 0..1 in faza
     bars: number, -- 0..1: benzile negre
     pan: number, -- 0..1: camera, de la Wire Works (0) la Landing (1)
+    rise: number, -- [D75, lotul A2] 0..1: camera, de pe strada Landing-ului (0) la rau, in dreptul zidului (1)
+    built: number, -- [D75, lotul A2] 0..1: cat s-a ridicat din fiecare jumatate a zidului (0 inainte de „build”)
     skip: boolean,
     done: boolean,
 }
@@ -468,6 +475,18 @@ function DamMath.frameAt(t: number, seen: boolean, reduced: boolean?): FilmFrame
     local look = DamMath.FILM[2]
     local panRaw = (at - look.from) / (look.to - look.from)
     local pan = if reduced then (if panRaw > 0 then 1 else 0) else smooth(panRaw)
+    local build = DamMath.FILM[1]
+    for _, p in DamMath.FILM do
+        if p.phase == "build" then
+            build = p
+        end
+    end
+    local riseRaw = (at - build.from) / DamMath.FILM_RISE_SECONDS
+    local rise = if reduced then (if riseRaw >= 0 then 1 else 0) else smooth(riseRaw)
+    local builtRaw = (at - build.from) / (build.to - build.from - DamMath.FILM_MEET_BEFORE)
+    local built = if at < build.from
+        then 0
+        else DamMath.FILM_BUILT_FROM + (1 - DamMath.FILM_BUILT_FROM) * smooth(builtRaw)
     return {
         phase = current.phase,
         text = current.text,
@@ -475,6 +494,8 @@ function DamMath.frameAt(t: number, seen: boolean, reduced: boolean?): FilmFrame
         progress = progress,
         bars = if reduced then 1 else math.clamp(at / DamMath.FILM_BARS_IN, 0, 1),
         pan = pan,
+        rise = rise,
+        built = built,
         skip = seen or at >= DamMath.FILM_SKIP_AT,
         done = at >= DamMath.FILM_SECONDS,
     }
