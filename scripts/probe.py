@@ -212,6 +212,13 @@ def main():
         if os.path.exists(PROBE_FLAG):
             os.remove(PROBE_FLAG)  # un Play apasat de owner imediat dupa n-are voie sa fie luat drept unul de proba
         print("pornit" if ok else "NU a pornit in timpul dat")
+        # [verificatorul D76] cu `play --profile`, Play-ul trebuie sa fi luat chiar profilul dus: altfel proba ar rula pe un
+        # profil gol (satul, nu barajul) crezand ca e la baraj
+        if ok and os.path.exists(PROBE_PROFILE):
+            took = any("the profile comes from the previous probe Play" in line
+                       for _, line in creator_lines(read_from(last_play_offset())))
+            print("profilul dus: luat" if took else "profilul dus: NU a fost luat (Play pe profil gol)")
+            ok = took
         sys.exit(0 if ok else 1)
     elif verb == "errors":
         sys.exit(1 if show_problems() > 0 else 0)

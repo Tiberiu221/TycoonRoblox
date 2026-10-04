@@ -69,6 +69,7 @@ local shownUpgrade: string? = nil
 -- [verificatorul D76] panza HUD si trecerea din lume in ea (SetHud, din Bootstrap): cardul ocoleste panourile fixe
 local hud: { WorldToHud: (number, number) -> (number, number), HudGui: Frame }? = nil
 local cardPlace = "above" -- unde a stat cardul in cadrul trecut (histerezisul din GuideMath.cardPlacement)
+local cardShift: number? = nil -- si cat era mutat pe orizontala (unitati de panza)
 
 -- ce stie din starea jocului, impins de Overlay la fiecare TycoonState
 local goal: GuideMath.Goal? = nil
@@ -112,7 +113,7 @@ local function nextLevelCost(kind: string?, id: string?): number?
 end
 
 local function hide()
-    cardPlace = "above" -- [verificatorul D76] urmatorul card incepe de la locul lui firesc
+    cardPlace, cardShift = "above", nil -- [verificatorul D76] urmatorul card incepe de la locul lui firesc
     if card.Visible then
         card.Visible = false
     end
@@ -209,8 +210,9 @@ local function place(f: Focus.Focus, y: number): (number, number)
         screenH = canvas.Size.Y.Offset,
         blockers = fixedBlockers(canvas),
         current = cardPlace,
+        currentShift = cardShift,
     })
-    cardPlace = where
+    cardPlace, cardShift = where, shift
     local x = f.x + shift / perWorld
     if where == "below" then
         return x, belowTop + ht / 2 + CARD_H / 2

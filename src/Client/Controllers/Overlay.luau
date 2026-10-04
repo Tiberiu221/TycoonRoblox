@@ -374,6 +374,7 @@ local function toGuideState(s: Snapshot, ambition: AmbitionMath.Ambition?): Guid
         sackRawScrap = s.sack.rawScrap or 0, -- [D55]
         sackIron = contents.iron or 0, -- [D56]
         sackFinds = s.sack.finds or 0,
+        sackPlanks = contents.planks or 0, -- [verificatorul D76] numarate direct, nu prin scadere
         hands = hands,
         firstsCollect = s.firsts.collect,
         firstsSell = s.firsts.sell,
@@ -659,13 +660,13 @@ local function refreshGuide(snapshot: Snapshot)
         then AmbitionMath.pick(stations.rows, stations.crews, StationConfig.MILESTONES, true)
         else nil
     local state = toGuideState(snapshot, gainAmbition)
-    -- [D76] cardul plasei cu traista plina spune aceeasi fraza ca sageata (GuideMath.sackFullText)
+    local goal = GuideController.Apply(state)
+    -- [D76] cardul plasei cu traista plina: fraza sagetii cand ea arata un drum cu traista, altfel unde o golesti
     NetController.SetFullText(
         if state.sackCapacity > 0 and state.sackCount >= state.sackCapacity
-            then GuideMath.sackFullText(state)
+            then GuideMath.cardFullText(state, goal)
             else nil
     )
-    local goal = GuideController.Apply(state)
     -- [D63] tinta fara sfarsit: HUD-ul o arata doar cand n-are nici quest, nici pas de ghidaj
     HUDController.SetAmbition(ambition)
     HUDController.SetStep(goal, snapshot.coins)

@@ -602,11 +602,13 @@ function DevService.Init(d: typeof(deps))
         if mode == nil then
             return
         end
+        -- [verificatorul D76] un profil dus din Play-ul de dinainte (probe.py play --profile) nu e „fresh”
+        local probeLine = if DataService.ProbeCarried(player)
+            then "save: probe run, carried profile (your saved game is untouched)"
+            else "save: probe run, fresh profile (your saved game is untouched)"
         local line = if mode == "kept"
             then "save: your saved game (keep save ON)"
-            elseif
-                mode == "probe"
-            then "save: probe run, fresh profile (your saved game is untouched)"
+            elseif mode == "probe" then probeLine
             else "save: fresh, erased at Stop (keep save OFF)"
         print(`[Driftwood] {line}`)
         remote:FireClient(player, "savemode", line)

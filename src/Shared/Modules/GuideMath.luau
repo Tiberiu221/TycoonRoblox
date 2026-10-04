@@ -72,6 +72,10 @@ export type State = {
     sackRawScrap: number?, -- [D55] scrap brut din traista: nu e bustean, nu merge la gater
     sackIron: number?, -- [D56] cat din `sackCut` e fier: textul tavernei spune ce duci [D40]
     sackFinds: number?, -- [D56] cat din `sackCut` sunt gasiri neprelucrate
+    -- [verificatorul D76] scandurile din traista, numarate direct (`contents.planks`): prin scadere, o gasire trecuta prin
+    -- forja intra la „planks” („planks and iron” fara nicio scandura), iar o gasire a Pietei iesea din scanduri. nil = prin
+    -- scadere, ca inainte (testele vechi).
+    sackPlanks: number?,
     hands: { HandInfo }, -- hands[i].nets: plasele pe care le deserveste alergatorul, nu de mana
     firstsCollect: boolean,
     firstsSell: boolean,
@@ -166,6 +170,11 @@ local function sellText(s: State, full: boolean): string
     local iron = s.sackIron or 0
     local finds = s.sackFinds or 0
     local planks = (s.sackCut or 0) - iron - finds
+    -- [verificatorul D76] cu scandurile numarate, gasirile tavernei sunt restul a ce cumpara ea (prelucrate sau nu)
+    if s.sackPlanks ~= nil then
+        planks = s.sackPlanks
+        finds = math.max(0, (s.sackCut or 0) - planks - iron)
+    end
     if iron > 0 and planks > 0 then
         return if full then Strings.SACK_FULL_BOTH else Strings.GUIDE_SELL_BOTH
     elseif iron > 0 then
@@ -396,11 +405,21 @@ local function carryGoal(s: State, full: boolean): Goal
     return sellGoal(s, full, not s.firstsSell)
 end
 
--- [D76, verificatorul D76] Fraza traistei pline: unde duci ce ai in ea. Aceeasi pentru sageata (pickGoal, pasul b), pentru
--- cardul plasei si pentru toast-ul ei (NetController, prin Overlay), ca pe ecran sa nu apara doua fraze. Cu fier si piese in
--- traista, nu „planks and iron”: scandurile se numara doar din ce cumpara taverna (`sackCut`), iar piesele merg la Piata.
+-- [D76, verificatorul D76] Fraza traistei pline: unde duci ce ai in ea, aceeasi ca a sagetii la pasul b (fara quest). Cu
+-- fier si piese in traista, nu „planks and iron”: scandurile se numara direct (`sackPlanks`), iar piesele merg la Piata.
 function GuideMath.sackFullText(s: State): string
     return carryGoal(s, true).text
+end
+
+-- [verificatorul D76] Fraza de pe cardul plasei pline si din toast-ul ei (NetController, prin Overlay). Cand sageata arata
+-- un drum cu traista (`deliver` / `sell`; cu traista plina, textul ei e cel de sac plin), cardul spune exact fraza ei. Cand
+-- arata alt pas (cu un quest activ, „Stay in the ring” vine inaintea vanzarii, D51), cardul spune unde se goleste traista:
+-- tot adevarat, si raspunde la ce intreaba plasa (de ce n-o poti goli).
+function GuideMath.cardFullText(s: State, goal: Goal?): string
+    if goal ~= nil and (goal.kind == "deliver" or goal.kind == "sell") then
+        return goal.text
+    end
+    return GuideMath.sackFullText(s)
 end
 
 -- [D50] Sageata si dara ghideaza doar pana ai cate un om la fiecare meserie. Owner-ul: "doar pana
@@ -1062,12 +1081,29 @@ end
 -- ---- cardul E, langa panourile fixe [verificatorul D76] ----------------------------------------------
 -- Cardul obiectului de langa tine (InteractController) sta in lume, iar HUD-ul se deseneaza peste ea. Pe telefon, langa
 -- coltul cu cifre, fraza de pe card (unde duci marfa) intra sub ele. Regula: deasupra obiectului, ca pana acum, daca nu
--- atinge niciun panou fix (GuideBlocker); altfel tot deasupra, mutat langa panoul care il acopera (cat mai putin, si doar
--- daca ramane intreg pe ecran); altfel sub obiect, la fel; altfel deasupra, ca pana acum. Cardul nu se ascunde niciodata:
--- se apasa. Histerezis: de sub obiect se intoarce deasupra doar cu loc in plus (LABEL_RETURN), ca sa nu sara la fiecare pas.
+-- atinge niciun panou fix (GuideBlocker); altfel tot deasupra, mutat langa panoul care il acopera, dar cel mult un sfert
+-- din latimea lui (CARD_SHIFT_MAX), ca sa ramana peste obiectul lui si sa nu-si puna butonul Upgrade pe cladirea vecina;
+-- altfel sub obiect (sub picioarele tale), la fel; altfel deasupra, ca pana acum. Cardul nu se ascunde niciodata: se apasa.
+-- Histerezis: din locul de sub obiect sau dintr-unul mutat, cardul se intoarce la locul firesc doar cu loc in plus
+-- (LABEL_RETURN), ca sa nu sara la fiecare pas. Locurile mutate se masoara mereu cu aceeasi margine, ca sa nu tresara.
 -- Intoarce locul ("above" | "below") si cat se muta cardul pe orizontala, in unitatile intrarii (panza HUD).
-function GuideMath.cardPlacement(q: LabelQuery): (string, number)
+export type CardQuery = {
+    centerX: number,
+    aboveY: number,
+    belowY: number,
+    width: number,
+    height: number,
+    screenW: number,
+    screenH: number,
+    blockers: { Rect },
+    current: string?, -- "above" | "below": unde a stat in cadrul trecut
+    currentShift: number?, -- cat era mutat in cadrul trecut
+}
+GuideMath.CARD_SHIFT_MAX = 0.25 -- din latimea cardului
+
+function GuideMath.cardPlacement(q: CardQuery): (string, number)
     local margin = GuideMath.LABEL_MARGIN
+    local back = margin + GuideMath.LABEL_RETURN
     local left = q.centerX - q.width / 2
     local onScreen = 0
     if q.width <= q.screenW - 2 * margin then
@@ -1077,7 +1113,8 @@ function GuideMath.cardPlacement(q: LabelQuery): (string, number)
             onScreen = q.screenW - margin - (left + q.width)
         end
     end
-    local function hit(x: number, y: number, pad: number): Rect?
+    local maxShift = q.width * GuideMath.CARD_SHIFT_MAX
+    local function hit(x: number, y: number, pad: number): boolean
         for _, b in q.blockers do
             if
                 x < b.x + b.w + pad
@@ -1085,43 +1122,45 @@ function GuideMath.cardPlacement(q: LabelQuery): (string, number)
                 and y < b.y + b.h + pad
                 and b.y < y + q.height + pad
             then
-                return b
+                return true
             end
         end
-        return nil
+        return false
     end
-    local function inside(x: number): boolean
-        return x >= margin and x + q.width <= q.screenW - margin
-    end
-    -- cea mai mica mutare (fata de locul firesc) la care cardul nu atinge niciun panou, pe randul `y`; nil daca nu e niciuna
-    local function slot(y: number, pad: number): number?
-        local x0 = left + onScreen
-        if hit(x0, y, pad) == nil then
+    -- locul firesc (liber cu `freePad`), altfel cea mai mica mutare langa un panou, de cel mult `maxShift`; nil = niciunul
+    local function slot(y: number, freePad: number): number?
+        if not hit(left + onScreen, y, freePad) then
             return onScreen
         end
         local best: number? = nil
         for _, b in q.blockers do
-            for _, x in { b.x + b.w + pad, b.x - pad - q.width } do
-                if inside(x) and hit(x, y, pad) == nil then
-                    local shift = x - left
-                    if
+            for _, x in { b.x + b.w + margin, b.x - margin - q.width } do
+                local shift = x - left
+                if
+                    x >= margin
+                    and x + q.width <= q.screenW - margin
+                    and math.abs(shift - onScreen) <= maxShift
+                    and not hit(x, y, margin)
+                    and (
                         best == nil
                         or math.abs(shift - onScreen) < math.abs((best :: number) - onScreen)
-                    then
-                        best = shift
-                    end
+                    )
+                then
+                    best = shift
                 end
             end
         end
         return best
     end
-    local abovePad = if q.current == "below" then margin + GuideMath.LABEL_RETURN else margin
+    local wasShifted = q.currentShift ~= nil and math.abs(q.currentShift - onScreen) > 0.5
+    local abovePad = if q.current == "below" or wasShifted then back else margin
     local above = slot(q.aboveY, abovePad)
     if above ~= nil then
         return "above", above
     end
     if q.belowY + q.height <= q.screenH - margin then
-        local below = slot(q.belowY, margin)
+        local belowPad = if q.current == "below" and wasShifted then back else margin
+        local below = slot(q.belowY, belowPad)
         if below ~= nil then
             return "below", below
         end

@@ -469,6 +469,7 @@ local IS_STUDIO = RunService:IsStudio()
 local STUDIO_STORE = "StudioDevSettings_v1"
 local studioFresh: { [Player]: boolean } = {}
 local studioProbe: { [Player]: boolean } = {} -- [D63] Play pornit de sonda: profil de proba
+local studioCarried: { [Player]: boolean } = {} -- [l1] profilul de proba vine din Play-ul de dinainte (probe.py --profile)
 -- [D60] cand a inceput sesiunea asta, ca la plecare sa se adune timpul jucat efectiv (Stats.playSeconds)
 local sessionStartedAt: { [Player]: number } = {}
 -- [D60] cine a urcat in barca: sesiunea lui o va lua celalalt place, deci pierderea ei nu e o eroare de aratat
@@ -711,6 +712,11 @@ function DataService.IsTeleporting(player: Player): boolean
 end
 
 -- [2026-09-15] "fresh" = Play-ul din Studio a pornit de la zero (store Mock), "kept" = pe salvarea reala, nil = in joc.
+-- [l1] Play-ul de proba a pornit pe profilul dus din cel de dinainte (`probe.py play --profile`), nu pe unul gol.
+function DataService.ProbeCarried(player: Player): boolean
+    return studioCarried[player] == true
+end
+
 function DataService.StudioSave(player: Player): string?
     if not IS_STUDIO then
         return nil
@@ -772,21 +778,32 @@ local function onPlayerAdded(player: Player)
     end
     profile:AddUserId(player.UserId)
     -- [PLAN §16, l1] Play de proba cu profilul dus din Play-ul de dinainte (`probe.py play --profile`): partea de server a
-    -- sondei il pune in ServerStorage inainte de `ProbeDecided`. Doar pe profilul de proba (Mock), niciodata pe o salvare.
-    local carried = if probe then ServerStorage:FindFirstChild("ProbeProfile") else nil
-    if carried ~= nil and carried:IsA("StringValue") then
-        local ok, decoded = pcall(function()
-            return HttpService:JSONDecode(carried.Value)
-        end)
-        if ok and typeof(decoded) == "table" then
-            profile.Data = decoded
-            print(
-                "[Driftwood] probe run: the profile comes from the previous probe Play (probe.py play --profile)"
-            )
+    -- sondei il pune in ServerStorage, apoi `ProbeDecided`. [verificatorul D76] Se asteapta `ProbeDecided` (cel mult 3 s):
+    -- `ProbeRun` vine din fereastra de editare inaintea cererii HTTP, deci fara asteptare profilul putea sosi prea tarziu.
+    -- Doar pe profilul de proba (Mock), niciodata pe o salvare; Output-ul spune in ambele cazuri ce s-a luat.
+    if probe then
+        local waited = os.clock()
+        while Workspace:GetAttribute("ProbeDecided") ~= true and os.clock() - waited < 3 do
+            task.wait(0.05)
+        end
+        local carried = ServerStorage:FindFirstChild("ProbeProfile")
+        if carried ~= nil and carried:IsA("StringValue") then
+            local ok, decoded = pcall(function()
+                return HttpService:JSONDecode(carried.Value)
+            end)
+            if ok and typeof(decoded) == "table" then
+                profile.Data = decoded
+                studioCarried[player] = true
+                print(
+                    "[Driftwood] probe run: the profile comes from the previous probe Play (probe.py play --profile)"
+                )
+            else
+                warn(
+                    `[Driftwood] probe run: the carried profile does not decode, starting fresh ({decoded})`
+                )
+            end
         else
-            warn(
-                `[Driftwood] probe run: the carried profile does not decode, starting fresh ({decoded})`
-            )
+            print("[Driftwood] probe run: no carried profile, starting fresh")
         end
     end
     ProfileMigrate.toV2(profile.Data)
@@ -867,6 +884,7 @@ function DataService.Init(deps: { Place: string? })
     Players.PlayerRemoving:Connect(function(player: Player)
         studioFresh[player] = nil
         studioProbe[player] = nil
+        studioCarried[player] = nil
         teleporting[player] = nil
         streakNews[player] = nil
         local profile = profiles[player]

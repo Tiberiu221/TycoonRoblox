@@ -113,9 +113,9 @@ stylua/selene o prind. Rulează-le mereu pe toate, nu înlănțuite după o eroa
 **Arta barajului e desenată și legată în cod; owner-ul a aprobat planșele A1, A2 și A4 și urcarea lor, în ordinea A1 → A4 → A2
 [D76].** Pământul copt (A3, `prop_dam_ground` / `_2`) nu intră în acord: se cere separat. A4 (`scripts/art/a4_*.py`, planșa
 `a4_plate.py`): clădirile, casele, marfa și ținutele barajului (70). „Look across (E)” rămâne pe cardul Switch House.
-- **Schimbări voite în sat [D76, A4]:** cardul plasei cu sacul plin spune unde duci marfa, cu aceeași frază ca săgeata
-  (`GuideMath.sackFullText`, prin Overlay). Placa se rupe pe rânduri echilibrate, iar cardul E ocolește panourile fixe ale
-  HUD-ului (`GuideMath.cardPlacement`: lângă ele sau sub obiect). Clienții tavernei, ai Pieței și ai Depoului pleacă cu marfa
+- **Schimbări voite în sat [D76, A4]:** cardul plasei cu sacul plin spune unde duci marfa (`GuideMath.cardFullText`, prin
+  Overlay: fraza săgeții când ea e pe drumul traistei). Placa se rupe pe rânduri echilibrate, iar cardul E ocolește panourile
+  fixe ale HUD-ului (`GuideMath.cardPlacement`: mutat cel mult un sfert din lățime, altfel sub obiect). Clienții tavernei, ai Pieței și ai Depoului pleacă cu marfa
   vândută (`FlowMath.soldGood`);
   după Works Bell, cristalul plutește pe curentul din larg (D68), acum că desenul lui e urcat.
 - **Urcarea [D76]:** A1 (16), A4 (70) și A2 (13 desene, piesa filmului și două sunete) sunt urcate, toate aprobate de

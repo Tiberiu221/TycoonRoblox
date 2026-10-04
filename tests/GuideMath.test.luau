@@ -38,6 +38,7 @@ local function state(over: { [string]: any }): GuideMath.State
         sackRawScrap = get("sackRawScrap", 0),
         sackIron = get("sackIron", 0),
         sackFinds = get("sackFinds", 0),
+        sackPlanks = over.sackPlanks, -- [verificatorul D76] nil = scandurile prin scadere, ca inainte
         hands = get("hands", {}),
         firstsCollect = get("firstsCollect", false),
         firstsSell = get("firstsSell", false),
@@ -897,6 +898,55 @@ return function()
             )
         end)
 
+        test.case(
+            "fier cu o gasire trecuta prin forja: „iron”, nu „planks and iron”",
+            function()
+                -- 28 de fier si 2 gasiri prelucrate: taverna cumpara 30, dar n-ai nicio scandura
+                local s = full({ sackCut = 30, sackIron = 28, sackFinds = 0, sackPlanks = 0 })
+                check.equal(GuideMath.sackFullText(s), Strings.SACK_FULL_IRON)
+            end
+        )
+
+        test.case("scanduri si gasiri ale Pietei: „planks”, nu „finds”", function()
+            local s = full({
+                sackCut = 10,
+                sackFinds = 20,
+                sackPlanks = 10,
+                sellAt = { dock = 10, market = 20 },
+            })
+            check.equal(GuideMath.sackFullText(s), Strings.SACK_FULL_PLANKS)
+        end)
+
+        test.case("gasiri trecute prin gater, fara scanduri: „finds”", function()
+            local s = full({ sackCut = 30, sackFinds = 0, sackPlanks = 0 })
+            check.equal(GuideMath.sackFullText(s), Strings.SACK_FULL_FINDS)
+        end)
+
+        test.case("cu un quest activ: drumul sagetii, altfel unde golesti traista", function()
+            -- „Stay in the ring” vine inaintea vanzarii (D51): cardul nu trimite in inel, spune unde golesti traista
+            local ring = full({
+                sackCut = 30,
+                sackPlanks = 30,
+                sawIn = 5,
+                crews = { collector = 1, porter = 1 },
+            })
+            ring.quest =
+                { key = "q", text = "q", x = 0, y = 0, kind = "sold", goal = 40, progress = 0 }
+            local goal = GuideMath.pickGoal(ring)
+            check.is_true(goal ~= nil)
+            check.equal((goal :: GuideMath.Goal).kind, "cut")
+            check.equal(GuideMath.cardFullText(ring, goal), Strings.SACK_FULL_PLANKS)
+            -- un pas cu traista: exact fraza sagetii
+            local carry = full({ sackCut = 30, sackPlanks = 30 })
+            local carryGoal = GuideMath.pickGoal(carry)
+            check.equal(
+                GuideMath.cardFullText(carry, carryGoal),
+                (carryGoal :: GuideMath.Goal).text
+            )
+            -- fara pas (ghidajul n-are nimic de aratat): unde golesti traista
+            check.equal(GuideMath.cardFullText(carry, nil), GuideMath.sackFullText(carry))
+        end)
+
         test.case("cardul plasei spune ce spune sageata (pickGoal, traista plina)", function()
             for _, over in
                 {
@@ -918,18 +968,19 @@ return function()
     end)
 
     test.suite("GuideMath.cardPlacement [verificatorul D76]", function()
-        -- telefonul mic, in unitatile panzei HUD: 1076x605 (667x375 la 0,62), blocul cu cifre in stanga-sus
+        -- telefonul mic, in unitatile panzei HUD: 1076x605 (667x375 la 0,62), blocul cu cifre in stanga-sus (x 20..502,
+        -- y 12..182); cardul are 380 de unitati, deci se poate muta cel mult 95 (un sfert)
         local HUD = { x = 20, y = 12, w = 482, h = 170 }
-        local function query(over: { [string]: any }): GuideMath.LabelQuery
+        local function query(over: { [string]: any }): GuideMath.CardQuery
             local q: { [string]: any } = {
-                centerX = 538,
+                centerX = 640,
                 aboveY = 200,
                 belowY = 360,
                 width = 380,
                 height = 70,
                 screenW = 1076,
                 screenH = 605,
-                blockers = {},
+                blockers = { HUD },
                 current = "above",
             }
             for k, v in over do
@@ -939,33 +990,34 @@ return function()
         end
 
         test.case("loc liber: deasupra, pe loc (ca pana acum)", function()
-            local place, shift = GuideMath.cardPlacement(query({}))
+            local place, shift = GuideMath.cardPlacement(query({ blockers = {} }))
             check.equal(place, "above")
             check.equal(shift, 0)
         end)
 
-        test.case("sub cifre: se muta la dreapta lor, intreg pe ecran", function()
-            local place, shift =
-                GuideMath.cardPlacement(query({ centerX = 400, aboveY = 120, blockers = { HUD } }))
+        test.case("atinge putin cifrele: se muta langa ele, tot peste obiectul lui", function()
+            -- incepea la 450; langa bloc incepe la 502 + 8 = 510, deci 60 (sub sfertul de 95)
+            local place, shift = GuideMath.cardPlacement(query({ aboveY = 120 }))
             check.equal(place, "above")
-            -- marginea stanga ajunge la 8 dupa bloc: 20 + 482 + 8 = 510; locul firesc incepea la 400 - 190 = 210
-            check.equal(shift, 510 - 210)
+            check.equal(shift, 60)
         end)
 
-        test.case("lat cat nu incape langa cifre: trece sub obiect", function()
-            local place, shift = GuideMath.cardPlacement(
-                query({ centerX = 538, aboveY = 120, width = 600, blockers = { HUD } })
-            )
-            check.equal(place, "below")
-            check.equal(shift, 0)
-        end)
+        test.case(
+            "ar trebui mutat departe de obiectul lui: trece sub obiect, nu peste cladirea vecina",
+            function()
+                -- incepea la 210: langa bloc ar fi o mutare de 300, peste sfertul cardului
+                local place, shift = GuideMath.cardPlacement(query({ centerX = 400, aboveY = 120 }))
+                check.equal(place, "below")
+                check.equal(shift, 0)
+            end
+        )
 
         test.case(
             "ocupat peste tot: ramane deasupra, ca pana acum (cardul se apasa, nu se ascunde)",
             function()
                 local low = { x = 0, y = 330, w = 1076, h = 160 }
                 local place, shift = GuideMath.cardPlacement(
-                    query({ centerX = 538, aboveY = 120, width = 600, blockers = { HUD, low } })
+                    query({ centerX = 400, aboveY = 120, blockers = { HUD, low } })
                 )
                 check.equal(place, "above")
                 check.equal(shift, 0)
@@ -973,20 +1025,44 @@ return function()
         )
 
         test.case(
-            "nu sare la fiecare pas: de sub obiect inapoi deasupra doar cu loc in plus",
+            "nu sare pe lateral la fiecare pas: inapoi pe locul firesc doar cu loc in plus",
             function()
-                -- deasupra, la 10 px sub bloc (y 192): ajunge margin 8, nu si margin + return 20
-                local blocker = { x = 300, y = 12, w = 476, h = 170 }
-                local stay = GuideMath.cardPlacement(
-                    query({ aboveY = 192, width = 1000, current = "below", blockers = { blocker } })
-                )
-                check.equal(stay, "below")
-                local keep = GuideMath.cardPlacement(
-                    query({ aboveY = 192, width = 1000, current = "above", blockers = { blocker } })
-                )
-                check.equal(keep, "above")
+                -- la 192 locul firesc e liber cu margin 8 (182 + 8 = 190), dar nu si cu margin + return (202)
+                local fresh = GuideMath.cardPlacement(query({ aboveY = 192 }))
+                check.equal(fresh, "above")
+                local _, natural = GuideMath.cardPlacement(query({ aboveY = 192 }))
+                check.equal(natural, 0)
+                -- mutat in cadrul trecut: ramane mutat la ±2 in jurul marginii
+                for _, y in { 188, 192, 190, 194 } do
+                    local place, shift =
+                        GuideMath.cardPlacement(query({ aboveY = y, currentShift = 60 }))
+                    check.equal(place, "above")
+                    check.equal(shift, 60)
+                end
+                -- cu loc in plus se intoarce
+                local _, home = GuideMath.cardPlacement(query({ aboveY = 205, currentShift = 60 }))
+                check.equal(home, 0)
             end
         )
+
+        test.case("nu tresare: locul mutat e acelasi, venit de dedesubt sau de deasupra", function()
+            local _, fromBelow = GuideMath.cardPlacement(query({ aboveY = 120, current = "below" }))
+            local _, fromAbove = GuideMath.cardPlacement(query({ aboveY = 120, current = "above" }))
+            check.equal(fromBelow, 60)
+            check.equal(fromAbove, 60)
+        end)
+
+        test.case("de sub obiect inapoi deasupra doar cu loc in plus", function()
+            local wide = { x = 300, y = 12, w = 476, h = 170 }
+            local stay = GuideMath.cardPlacement(
+                query({ aboveY = 192, width = 1000, current = "below", blockers = { wide } })
+            )
+            check.equal(stay, "below")
+            local keep = GuideMath.cardPlacement(
+                query({ aboveY = 192, width = 1000, current = "above", blockers = { wide } })
+            )
+            check.equal(keep, "above")
+        end)
     end)
 
     test.suite("GuideMath.labelPlacement [D52]", function()
