@@ -118,12 +118,10 @@ def compose(src, lit, turbine_art=True):
     foam = frame(load(src, "prop_dam_foam"), 2, 0)
     img.alpha_composite(foam, (wx + round(wall["w"] / D) - 2, sy))
     if turbine_art:
-        # [verificatorul A1] ca NetController: mijlocul la (tb.x, tb.y); aici, la scara plansei (detaliul la rezolutia
-        # jocului e in turbine_inset)
-        turbine = load(src, "prop_turbine")
-        k = min(tb["w"] / D / turbine.width, tb["h"] / D / turbine.height)
-        turbine = turbine.resize((round(turbine.width * k), round(turbine.height * k)), Image.NEAREST)
-        img.alpha_composite(turbine, (round(tb["x"] / D - turbine.width / 2), round(tb["y"] / D - turbine.height / 2)))
+        # [verificatorul A1] fata turbinei barajului (a1_turbine.py), pe grila zidului, cu mijlocul la (tb.x, tb.y), ca
+        # NetController
+        face = load(src, "prop_dam_turbine")
+        img.alpha_composite(face, (round(tb["x"] / D - face.width / 2), round(tb["y"] / D - face.height / 2)))
     town = {"x": 2202, "y": 405, "w": 1020, "h": 132}  # TycoonConfig.WORLDS[2].paintedTown
     tx, ty = round((town["x"] - town["w"] / 2) / D), round((town["y"] - town["h"]) / D)
     img.alpha_composite(load(src, "prop_painted_town"), (tx, ty))
@@ -133,9 +131,8 @@ def compose(src, lit, turbine_art=True):
 
 
 def turbine_inset(src, G, img_no_turbine):
-    """[verificatorul A1] Gura turbinei la rezolutia jocului: piatra zidului are pixeli de 3 px de lume, iar turbina din
-    zid (desenul de 48 px al turbinei Erei 3, TURBINE_SCALE 2, potrivit in cutia ei: 56 x 56) are pixeli de ~1,2 px. Asa
-    o deseneaza NetController, cu mijlocul la (tb.x, tb.y)."""
+    """[verificatorul A1] Gura turbinei la rezolutia jocului: in stanga fata turbinei barajului (pe grila zidului, ca
+    piatra), in dreapta turbina Erei 3 pe care o punea jocul inainte (pixeli de ~1,2 px de lume, calca pe pila din stanga)."""
     tb = G["dam"]["turbine"]
     x0, y0, x1, y1 = 760, 630, 960, 820
     part = img_no_turbine.crop((x0 // D, y0 // D, x1 // D, y1 // D))
@@ -144,7 +141,15 @@ def turbine_inset(src, G, img_no_turbine):
     k = min(tb["w"] / turbine.width, tb["h"] / turbine.height)
     turbine = turbine.resize((round(turbine.width * k), round(turbine.height * k)), Image.NEAREST)
     part.alpha_composite(turbine, (round(tb["x"] - x0 - turbine.width / 2), round(tb["y"] - y0 - turbine.height / 2)))
-    return part.resize((part.width * 3, part.height * 3), Image.NEAREST)
+    face = load(src, "prop_dam_turbine")
+    new = img_no_turbine.crop((x0 // D, y0 // D, x1 // D, y1 // D))
+    new = new.resize((new.width * D, new.height * D), Image.NEAREST)
+    face = face.resize((face.width * D, face.height * D), Image.NEAREST)
+    new.alpha_composite(face, (round(tb["x"] - x0 - face.width / 2), round(tb["y"] - y0 - face.height / 2)))
+    both = Image.new("RGBA", (new.width * 2 + 8, new.height), (24, 28, 30, 255))
+    both.paste(new, (0, 0))
+    both.paste(part, (new.width + 8, 0))
+    return both.resize((both.width * 2, both.height * 2), Image.NEAREST)
 
 
 def crop(img, x0, y0, x1, y1, scale):
@@ -160,12 +165,13 @@ def main():
         ("DAM TOWN AND THE WALL", "stone wall A, spillway, foam, Old Bells, Memory Wall, cottages", crop(dark, 120, 300, 1260, 1700, 2)),
         ("THE RELAY BANK, DARK", "canal, Relay (borrowed art), pylons; painted town before any power is sold", crop(dark, 1560, 240, 2860, 1480, 2)),
         ("THE RELAY BANK, LIT", "after the first power is sold at the Switch House (lights reveal left to right)", crop(lit, 1560, 240, 2860, 1480, 2)),
-        ("THE TURBINE ARCH, GAME PIXELS (x3)", "the Era 3 turbine drawn in the wall as the game does: finer pixels than the stone", inset),
+        ("THE TURBINE ARCH, GAME PIXELS (x2)", "left: the dam's own turbine face on the wall's grid; right: the Era 3 turbine it replaces", inset),
     ]
     sheet_names = [
         ("prop_dam_wall", 1), ("prop_dam_spill", 3), ("prop_dam_foam", 2), ("prop_old_bells", 1), ("prop_memory_wall", 1),
         ("prop_dam_cottage_1", 1), ("prop_dam_cottage_2", 1), ("prop_dam_cottage_3", 1), ("prop_pylon_tall", 1),
-        ("prop_pylon_lane", 1), ("prop_pylon_post", 1), ("prop_river_crystal", 2),
+        ("prop_pylon_lane", 1), ("prop_pylon_post", 1), ("prop_river_crystal", 2), ("prop_dam_turbine", 1),
+        ("prop_dam_turbine_spin", 4),
     ]
     tiles = []
     for name, n in sheet_names:
