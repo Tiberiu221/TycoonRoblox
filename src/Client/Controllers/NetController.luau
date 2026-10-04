@@ -124,6 +124,49 @@ local sackCount = 0
 local sackCapacity = 0
 -- [D75, lotul A2] filmul barajului: plasele de pe linia zidului (x0..x1) urca spre varful stalpului si ies din apa (k 0..1)
 local filmLift: { x0: number, x1: number, k: number }? = nil
+-- [verificatorul A2] la stingere, tot ce sta in plasa (plasa, bustenii din ea, pastila, eticheta) se stinge la fel; aici
+-- transparentele de dinainte, puse inapoi cand plasa revine (filmul oprit fara reincarcare)
+local FADE_PROPS: { [string]: { string } } = {
+    ImageLabel = { "ImageTransparency", "BackgroundTransparency" },
+    TextLabel = { "TextTransparency", "TextStrokeTransparency", "BackgroundTransparency" },
+    Frame = { "BackgroundTransparency" },
+    UIStroke = { "Transparency" },
+}
+local bobFaded: { [string]: { [Instance]: { [string]: number } } } = {}
+local function fadeBob(padId: string, bob: Frame, fade: number)
+    local saved = bobFaded[padId]
+    if fade <= 0 then
+        if saved ~= nil then
+            for inst, props in saved do
+                for prop, value in props do
+                    (inst :: any)[prop] = value
+                end
+            end
+            bobFaded[padId] = nil
+        end
+        return
+    end
+    if saved == nil then
+        local made: { [Instance]: { [string]: number } } = {}
+        for _, inst in bob:GetDescendants() do
+            local names = FADE_PROPS[inst.ClassName]
+            if names ~= nil then
+                local props: { [string]: number } = {}
+                for _, name in names do
+                    props[name] = (inst :: any)[name]
+                end
+                made[inst] = props
+            end
+        end
+        bobFaded[padId] = made
+        saved = made
+    end
+    for inst, props in saved :: { [Instance]: { [string]: number } } do
+        for prop, value in props do
+            (inst :: any)[prop] = 1 - (1 - value) * (1 - fade)
+        end
+    end
+end
 local sackRaw = 0 -- cati busteni bruti duci: decide unde te trimite mesajul de traista plina [D49]
 local sackRawScrap = 0 -- [D55] cat scrap brut duci: el merge la forja, nu la gater
 local sackIron = 0 -- [D56] cat fier duci: mesajul spune "planks", "iron" sau amandoua [D40]
@@ -807,12 +850,8 @@ local function updateNetMotion(now: number)
         if assembly.bob.Visible == hidden then
             assembly.bob.Visible = not hidden
         end
-        local liftArt = assembly.art
-        if liftArt ~= nil then
-            local fade = math.clamp((liftK - 0.7) / 0.3, 0, 1)
-            if liftArt.ImageTransparency ~= fade then
-                liftArt.ImageTransparency = fade
-            end
+        if lifted or bobFaded[padId] ~= nil then
+            fadeBob(padId, assembly.bob, math.clamp((liftK - 0.7) / 0.3, 0, 1))
         end
         netDy[padId] = dy
         assembly.bob.Position = UDim2.fromOffset(math.round(baseX), math.round(baseY + dy))
@@ -913,7 +952,7 @@ local function updateFloaters()
             rec.frame.Position = UDim2.fromOffset(math.round(x), math.round(y))
             rec.icon.ImageTransparency = math.max(alpha, calm)
             rec.scale.Scale = scale
-            local visible = alpha < 0.98
+            local visible = alpha < 0.98 and calm < 0.95 -- [verificatorul A2] si inelul gasirilor pleaca
             if rec.frame.Visible ~= visible then
                 rec.frame.Visible = visible
             end

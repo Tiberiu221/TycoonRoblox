@@ -217,10 +217,25 @@ local function updateCamera(dt: number, gift: DriftMath.Gift?, giftX: number?)
     end
 end
 
+-- [verificatorul A2] filmul barajului: cat urca zidul, raul se linisteste si darurile lui se sting (0..1; la 1 nu se mai
+-- deseneaza, nu se mai anunta si nu se mai pot lua). 0 = ca de obicei.
+local calm = 0
+function DriftController.SetCalm(k: number)
+    calm = math.clamp(k, 0, 1)
+end
+
 local function render(dt: number)
     local d = deps
     local s = seed
     if d == nil or s == nil then
+        return
+    end
+    if calm >= 1 then
+        for id in views do
+            dropView(id)
+        end
+        inReach = nil
+        updateCamera(dt, nil, nil)
         return
     end
     local now = serverNow()
@@ -249,10 +264,18 @@ local function render(dt: number)
         view.holder.Position = UDim2.fromOffset(math.round(x), math.round(gift.y + bob))
         local glow = view.glow
         if glow ~= nil then
-            glow.BackgroundTransparency = 0.7 + math.sin(now * 3.1 + gift.id) * 0.1
+            local pulse = 0.7 + math.sin(now * 3.1 + gift.id) * 0.1
+            glow.BackgroundTransparency = 1 - (1 - pulse) * (1 - calm)
+        end
+        if calm > 0 then
+            for _, child in view.holder:GetChildren() do
+                if child:IsA("ImageLabel") then
+                    child.ImageTransparency = calm
+                end
+            end
         end
         -- primul dar al sesiunii si orice bustean de aur se anunta: altfel, pe un ecran mic, nici nu stii ca trece
-        if not announced[gift.id] and x >= announceX(px) - 120 then
+        if not announced[gift.id] and calm == 0 and x >= announceX(px) - 120 then
             announced[gift.id] = true
             if gift.kind == "golden" then
                 SoundController.Play("chime", 1.25)
@@ -263,6 +286,7 @@ local function render(dt: number)
             firstSeen = true
         end
         local reachable = onDeck
+            and calm == 0
             and gift.id > lastTaken
             and DriftMath.canGrab(gift, now, spans)
             and math.abs(x - px) <= DriftMath.REACH

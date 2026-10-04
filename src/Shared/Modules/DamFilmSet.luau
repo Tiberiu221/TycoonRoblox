@@ -22,7 +22,6 @@ DamFilmSet.CELL_H = 24
 DamFilmSet.BANK_OVERLAP = 12 -- cat intra zidul in fiecare mal
 DamFilmSet.WALKERS = 14
 DamFilmSet.WALK_SPEED = 120 -- px pe secunda: filmul strange drumul, dar nu alearga
-DamFilmSet.WALK_DELAY = 1.0 -- cel mai tarziu pleaca un om, dupa inceputul fazei „people”
 DamFilmSet.WALK_FPS = 8 -- ca walk_side (AnimConfig)
 DamFilmSet.LIFT_MARGIN = 60 -- plasele de langa linia zidului ies din apa
 DamFilmSet.BAR = 0.12 -- benzile negre ale filmului, sus si jos (DamFilm), din inaltimea ecranului
@@ -32,33 +31,6 @@ DamFilmSet.FADE_IN = 0.5 -- siluetele apar din amurg, nu dintr-odata
 DamFilmSet.POST_CLEAR = 48
 DamFilmSet.WALKER_GAP_X = 34
 DamFilmSet.WALKER_ROWS = { 808, 828, 850 } -- talpile, pe punte (DECK y 772-856)
--- oamenii se strang langa zid, la rasarit de taverna (de acolo drumul spre punte o ocoleste)
-DamFilmSet.SPOT_X0 = 540
--- unde nu trec oamenii in drum spre rau: taverna (TycoonConfig.TAVERN) si taraba negustorului de la Landing (desenul ei e
--- cel mult 64 x 44, la x2, pe baza platformei), cu cate 8 px de margine
-local function avoidRects(): { { x0: number, x1: number, y0: number, y1: number } }
-    local tav = TycoonConfig.TAVERN
-    local out = {
-        {
-            x0 = tav.x - tav.w / 2 - 8,
-            x1 = tav.x + tav.w / 2 + 8,
-            y0 = tav.y - tav.h - 8,
-            y1 = tav.y + 8,
-        },
-    }
-    local stall = TycoonConfig.byId.dock_trader
-    if stall ~= nil and stall.x ~= nil then
-        local base = TycoonConfig.buildingBase(stall)
-        table.insert(out, {
-            x0 = (stall.x :: number) - 72,
-            x1 = (stall.x :: number) + 72,
-            y0 = base - 96,
-            y1 = base + 8,
-        })
-    end
-    return out
-end
-DamFilmSet.AVOID = avoidRects()
 
 local function grid(v: number): number
     return math.round(v / DamFilmSet.SCALE) * DamFilmSet.SCALE
@@ -108,7 +80,7 @@ end
 
 -- Unde se uita camera cand urca la rau (faza „build”), dupa inaltimea de lume vazuta (`visibleH`, CameraController). Intre
 -- benzile negre trebuie sa incapa zidul de la malul de nord pana la puntea cu oamenii; pe un ecran prea scund (telefonul)
--- ramane zidul intreg, care e subiectul, iar puntea iese pe jumatate [verificatorul A2].
+-- ramane zidul intreg, care e subiectul, iar puntea cu oamenii iese din cadru [verificatorul A2].
 function DamFilmSet.camera(visibleH: number?): (number, number)
     local wall = DamFilmSet.wall()
     local x = (wall.x0 + wall.x1) / 2
@@ -126,9 +98,13 @@ function DamFilmSet.liftRange(): (number, number)
     return wall.x0 - DamFilmSet.LIFT_MARGIN, wall.x1 + DamFilmSet.LIFT_MARGIN
 end
 
--- Oamenii care pleaca spre rau, de pe strada si din curti, si se strang pe punte, in fata zidului. `kind`: randul din foaia
--- siluetelor (0 fara nimic, 1 grinda, 2 piatra, 3 felinar). Determinist: acelasi film la fiecare vizionare.
+-- Oamenii care pleaca spre rau: urca in sir pe cele doua alei ale Landing-ului (a tavernei si a fierului) pana pe punte, apoi
+-- merg pe punte la locul lor, in fata zidului [verificatorul A2: in linie dreapta treceau peste depozit, gramada lui si
+-- gater]. `path`: drumul (talpile), pe drumuri si pe punte; `kind`: randul din foaia siluetelor (0 fara nimic, 1 grinda,
+-- 2 piatra, 3 felinar). Determinist: acelasi film la fiecare vizionare.
+export type Point = { x: number, y: number }
 export type Walker = {
+    path: { Point },
     fromX: number,
     fromY: number,
     toX: number,
@@ -136,6 +112,10 @@ export type Walker = {
     delay: number,
     kind: number,
 }
+DamFilmSet.ALLEYS = { "tavern_link", "iron_lane" } -- TycoonConfig.ROADS
+DamFilmSet.DECK_WALK_Y = 864 -- pe marginea de jos a puntii, unde aleile intra in ea
+DamFilmSet.COLUMN_STEP = 72 -- cat de departe merge un om de cel din fata lui, pe alee
+DamFilmSet.ROW_SHIFT = { 0, 17, -9 } -- randurile de pe punte, decalate: nimeni nu sta exact in spatele altuia
 
 -- Stalpii plaselor de pe puntea Landing-ului (x), din config.
 function DamFilmSet.deckPosts(): { number }
@@ -182,72 +162,91 @@ local function overlaps(a: Box, b: Box): boolean
     return a.x0 < b.x1 and b.x0 < a.x1 and a.y0 < b.y1 and b.y0 < a.y1
 end
 
-local function segmentHits(ax: number, ay: number, bx: number, by: number, r: Box): boolean
-    for i = 0, 40 do
-        local k = i / 40
-        local x, y = ax + (bx - ax) * k, ay + (by - ay) * k
-        if x > r.x0 and x < r.x1 and y > r.y0 and y < r.y1 then
-            return true
+-- Ce mai sta pe punte, in afara de stalpi: roata si avizierul satului (desenele lor, ancorate jos-mijloc).
+function DamFilmSet.deckObstacles(): { Box }
+    local out: { Box } = {}
+    local wheel, board = TycoonConfig.WHEEL_STAND, TycoonConfig.VILLAGE_BOARD
+    table.insert(out, { x0 = wheel.x - 40, x1 = wheel.x + 40, y0 = wheel.y - 96, y1 = wheel.y })
+    table.insert(out, { x0 = board.x - 40, x1 = board.x + 40, y0 = board.y - 88, y1 = board.y })
+    return out
+end
+
+local function alleyX(id: string): number
+    for _, r in TycoonConfig.ROADS do
+        if r.id == id then
+            return (r.x0 + r.x1) / 2
         end
     end
-    return false
+    error("aleea lipseste: " .. id)
 end
-DamFilmSet.segmentHits = segmentHits
+DamFilmSet.alleyX = alleyX
 
--- Locurile de pe punte: cat mai aproape de piciorul zidului, departe de stalpi si de recuzita, nu unul peste altul.
-function DamFilmSet.spots(): { { x: number, y: number } }
+-- Un loc de pe punte e liber: departe de stalpi, de recuzita, de roata si de avizier.
+local function spotFree(x: number, y: number, posts: { number }, blocked: { Box }): boolean
+    for _, px in posts do
+        if math.abs(x - px) < DamFilmSet.POST_CLEAR then
+            return false
+        end
+    end
+    local box = DamFilmSet.personBox(x, y)
+    for _, b in blocked do
+        if overlaps(box, b) then
+            return false
+        end
+    end
+    return true
+end
+
+-- Locurile de pe punte, pe grupuri: cei de pe aleea tavernei stau cat mai aproape de piciorul zidului, cei de pe aleea
+-- fierului cat mai aproape de aleea lor. Nu unul peste altul, iar pe randuri vecine nu exact unul in spatele altuia.
+export type Spot = { x: number, y: number, alley: string }
+function DamFilmSet.spots(): { Spot }
     local wall = DamFilmSet.wall()
     local deck = TycoonConfig.DECK
     local posts = DamFilmSet.deckPosts()
-    local props = DamFilmSet.propBoxes()
-    local cx = (wall.x0 + wall.x1) / 2
-    local candidates: { { x: number, y: number, d: number } } = {}
-    for x = math.max(deck.x0 + 24, DamFilmSet.SPOT_X0), deck.x1 - 24, 2 do
-        local clear = true
-        for _, px in posts do
-            if math.abs(x - px) < DamFilmSet.POST_CLEAR then
-                clear = false
-                break
-            end
-        end
-        if clear then
-            for _, y in DamFilmSet.WALKER_ROWS do
-                local box = DamFilmSet.personBox(x, y)
-                local free = true
-                for _, b in props do
-                    if overlaps(box, b) then
-                        free = false
-                        break
-                    end
-                end
-                if free then
+    local blocked = DamFilmSet.propBoxes()
+    for _, b in DamFilmSet.deckObstacles() do
+        table.insert(blocked, b)
+    end
+    local out: { Spot } = {}
+    local per = math.ceil(DamFilmSet.WALKERS / #DamFilmSet.ALLEYS)
+    for g, alley in DamFilmSet.ALLEYS do
+        local anchor = if g == 1 then (wall.x0 + wall.x1) / 2 else alleyX(alley)
+        local candidates: { { x: number, y: number, d: number } } = {}
+        for row, y in DamFilmSet.WALKER_ROWS do
+            local shift = DamFilmSet.ROW_SHIFT[row] or 0
+            for x = deck.x0 + 24 + shift, deck.x1 - 24, 2 do
+                if spotFree(x, y, posts, blocked) then
                     table.insert(
                         candidates,
-                        { x = x, y = y, d = math.abs(x - cx) + (y - 808) * 0.5 }
+                        { x = x, y = y, d = math.abs(x - anchor) + (row - 1) * 10 }
                     )
                 end
             end
         end
-    end
-    table.sort(candidates, function(a, b)
-        if a.d ~= b.d then
-            return a.d < b.d
-        end
-        return a.x < b.x
-    end)
-    local out: { { x: number, y: number } } = {}
-    for _, c in candidates do
-        local ok = true
-        for _, o in out do
-            if math.abs(c.x - o.x) < DamFilmSet.WALKER_GAP_X and math.abs(c.y - o.y) < 18 then
-                ok = false
-                break
+        table.sort(candidates, function(a, b)
+            if a.d ~= b.d then
+                return a.d < b.d
             end
-        end
-        if ok then
-            table.insert(out, { x = c.x, y = c.y })
-            if #out >= DamFilmSet.WALKERS then
-                break
+            return a.x < b.x
+        end)
+        local taken = 0
+        for _, c in candidates do
+            local ok = true
+            for _, o in out do
+                local dy = math.abs(c.y - o.y)
+                local dx = math.abs(c.x - o.x)
+                if (dy < 18 and dx < DamFilmSet.WALKER_GAP_X) or (dy < 30 and dx < 12) then
+                    ok = false
+                    break
+                end
+            end
+            if ok then
+                table.insert(out, { x = c.x, y = c.y, alley = alley })
+                taken += 1
+                if taken >= per or #out >= DamFilmSet.WALKERS then
+                    break
+                end
             end
         end
     end
@@ -256,48 +255,63 @@ end
 
 function DamFilmSet.walkers(): { Walker }
     local out: { Walker } = {}
+    local column: { [string]: number } = {}
     for i, spot in DamFilmSet.spots() do
-        local k = (i - 1) // 2
-        local dir = if i % 2 == 1 then -1 else 1
-        local fromY = 1180 + (k * 53) % 260
-        local fromX = spot.x + dir * (130 + (k % 3) * 50)
-        -- drumul ocoleste taverna si taraba: intai pe partea cealalta, apoi mai departe
-        for _ = 1, 6 do
-            local hit = false
-            for _, r in DamFilmSet.AVOID do
-                hit = hit or segmentHits(fromX, fromY, spot.x, spot.y, r)
-            end
-            if not hit then
-                break
-            end
-            dir = -dir
-            fromX = spot.x + dir * (130 + (k % 3) * 50 + 60)
-        end
+        local ax = alleyX(spot.alley)
+        -- in sir pe aleea lui: primul loc (cel mai bun) e al primului om din sir
+        local k = column[spot.alley] or 0
+        column[spot.alley] = k + 1
+        local fromY = DamFilmSet.DECK_WALK_Y + 120 + k * DamFilmSet.COLUMN_STEP
         table.insert(out, {
-            fromX = fromX,
+            path = {
+                { x = ax, y = fromY },
+                { x = ax, y = DamFilmSet.DECK_WALK_Y },
+                { x = spot.x, y = spot.y },
+            },
+            fromX = ax,
             fromY = fromY,
             toX = spot.x,
             toY = spot.y,
-            delay = ((i * 0.6180339887) % 1) * DamFilmSet.WALK_DELAY,
+            delay = 0,
             kind = (i - 1) % 4,
         })
     end
     return out
 end
 
--- Unde e omul `w` la `t` secunde de la inceputul fazei „people”: pozitia (talpile), daca merge si incotro priveste.
+local function pathLength(path: { Point }): number
+    local total = 0
+    for i = 2, #path do
+        total += math.sqrt((path[i].x - path[i - 1].x) ^ 2 + (path[i].y - path[i - 1].y) ^ 2)
+    end
+    return total
+end
+
+-- Unde e omul `w` la `t` secunde de la inceputul fazei „people”: pozitia (talpile), daca merge si incotro priveste (pe
+-- alee, spre locul lui de pe punte).
 function DamFilmSet.walkerAt(w: Walker, t: number): (number, number, boolean, string)
-    local dx, dy = w.toX - w.fromX, w.toY - w.fromY
-    local d = math.sqrt(dx * dx + dy * dy)
-    local s = math.clamp((t - w.delay) * DamFilmSet.WALK_SPEED, 0, d)
-    local k = if d > 0 then s / d else 1
-    return w.fromX + dx * k, w.fromY + dy * k, s > 0 and s < d, if dx >= 0 then "right" else "left"
+    local total = pathLength(w.path)
+    local s = math.clamp((t - w.delay) * DamFilmSet.WALK_SPEED, 0, total)
+    local moving = s > 0 and s < total
+    local facing = if w.toX >= w.fromX then "right" else "left"
+    for i = 2, #w.path do
+        local a, b = w.path[i - 1], w.path[i]
+        local len = math.sqrt((b.x - a.x) ^ 2 + (b.y - a.y) ^ 2)
+        if s <= len or i == #w.path then
+            local k = if len > 0 then math.min(1, s / len) else 1
+            if math.abs(b.x - a.x) >= 1 then
+                facing = if b.x > a.x then "right" else "left"
+            end
+            return a.x + (b.x - a.x) * k, a.y + (b.y - a.y) * k, moving, facing
+        end
+        s -= len
+    end
+    return w.toX, w.toY, false, facing
 end
 
 -- Cand ajunge omul `w` (secunde de la inceputul fazei „people”).
 function DamFilmSet.arrivesAt(w: Walker): number
-    local dx, dy = w.toX - w.fromX, w.toY - w.fromY
-    return w.delay + math.sqrt(dx * dx + dy * dy) / DamFilmSet.WALK_SPEED
+    return w.delay + pathLength(w.path) / DamFilmSet.WALK_SPEED
 end
 
 -- Oamenii de pe zid, la capetele neterminate ale celor doua jumatati (talpile), cu randul lor din foaia de lucru (0
@@ -318,15 +332,16 @@ function DamFilmSet.workers(built: number): { Worker }
 end
 
 -- Unde stau lucrurile de pe mal (baza, ancorate jos-mijloc), pe punte, in golurile dintre stalpii plaselor
--- [verificatorul A2]: macaraua langa piciorul de est al zidului (intre Second si Third Net), gramada spre apus (inainte de
--- First Net), caruta dupa Far Lane Net; oamenii au locurile dintre First si Second Net si dintre Third si Far Lane Net.
+-- [verificatorul A2]: macaraua langa piciorul de est al zidului (intre Second si Third Net), caruta dupa Far Lane Net, gramada
+-- dupa Fifth Net (inainte de First Net ar fi stat peste avizierul satului); oamenii au locurile dintre First si Second Net si
+-- dintre Third si Far Lane Net.
 export type Prop = { x: number, y: number }
 function DamFilmSet.props(): { crane: Prop, cart: Prop, pile: Prop }
     local wall = DamFilmSet.wall()
     return {
         crane = { x = 920, y = wall.bottom + 40 },
         cart = { x = 1320, y = wall.bottom + 52 },
-        pile = { x = 520, y = wall.bottom + 60 },
+        pile = { x = 1500, y = wall.bottom + 60 },
     }
 end
 
@@ -338,6 +353,16 @@ function DamFilmSet.bell(): Prop?
         return nil
     end
     return { x = pad.x :: number, y = TycoonConfig.buildingBase(pad) }
+end
+
+-- [verificatorul A2] Inaltimea de la care porneste camera la clopot: mijlocul desenului lui Works Bell (pe telefon, la
+-- strada, banda neagra de sus ii taia corpul); de acolo coboara lin spre strada cat trece privirea.
+function DamFilmSet.bellMidY(): number?
+    local bell = DamFilmSet.bell()
+    if bell == nil then
+        return nil
+    end
+    return bell.y - Assets.tycoon.works_bell.height * DamFilmSet.SCALE / 2
 end
 
 -- Cadrul leganarii la `t` secunde (0 stanga, 1 mijloc, 2 dreapta): dus-intors, cate 0,18 s pe cadru.

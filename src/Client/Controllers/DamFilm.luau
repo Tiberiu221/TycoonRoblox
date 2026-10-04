@@ -23,6 +23,7 @@ local CameraController = require(script.Parent.CameraController)
 local CharacterController = require(script.Parent.CharacterController)
 local MusicController = require(script.Parent.MusicController)
 local NetController = require(script.Parent.NetController)
+local DriftController = require(script.Parent.DriftController)
 local RiverRenderController = require(script.Parent.RiverRenderController)
 local Panels = require(script.Parent.Panels)
 local SoundController = require(script.Parent.SoundController)
@@ -67,6 +68,8 @@ local reduced = false
 
 -- unde trece camera: de la mijlocul ultimului cartier al satului (Wire Works) la primul (Landing), pe strada; [D75, lotul
 -- A2] apoi (`rise`) urca la rau, in dreptul zidului care creste
+local STREET_Y = 1100 -- camera trece pe strada satului, de la clopot la Landing
+
 -- [verificatorul A2] pornirea e in dreptul clopotului Works Bell (la clopot se leagana el), nu in mijlocul cartierului: de
 -- acolo, pe 16:9 si pe telefon, clopotul ramanea in afara cadrului
 local function panPoint(pan: number, rise: number): (number, number)
@@ -76,7 +79,8 @@ local function panPoint(pan: number, rise: number): (number, number)
     local eastX = if bell ~= nil then bell.x else (last.x0 + last.x1) / 2
     local westX = (first.x0 + first.x1) / 2
     local origin = TycoonConfig.PLOT_ORIGIN
-    local x, y = eastX + (westX - eastX) * pan, 1100
+    local startY = DamFilmSet.bellMidY() or STREET_Y
+    local x, y = eastX + (westX - eastX) * pan, startY + (STREET_Y - startY) * pan
     local _, visibleH = CameraController.VisibleSize()
     local riverX, riverY = DamFilmSet.camera(visibleH)
     return origin.x + x + (riverX - x) * rise, origin.y + y + (riverY - y) * rise
@@ -385,6 +389,7 @@ local function clearSet()
     end
     NetController.SetFilmLift(nil, nil, nil)
     RiverRenderController.SetCalm(0)
+    DriftController.SetCalm(0)
 end
 
 local function renderSet(frame: DamMath.FilmFrame, t: number)
@@ -395,6 +400,7 @@ local function renderSet(frame: DamMath.FilmFrame, t: number)
     NetController.SetFilmLift(x0, x1, lift)
     -- [verificatorul A2] cat urca zidul, raul se linisteste: nimic nu mai pluteste prin zid sau spre plasele scoase
     RiverRenderController.SetCalm(lift)
+    DriftController.SetCalm(lift) -- si darurile de pe rau
     if s == nil then
         return
     end
@@ -527,7 +533,7 @@ end
 
 local function render(t: number)
     local frame = DamMath.frameAt(t, seenBefore, reduced)
-    local barH = 0.12 * frame.bars
+    local barH = DamFilmSet.BAR * frame.bars
     topBar.Size = UDim2.fromScale(1, barH)
     bottomBar.Size = UDim2.fromScale(1, barH)
     panNow = frame.pan

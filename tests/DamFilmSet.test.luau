@@ -117,9 +117,11 @@ return function()
                 check.is_true(DamFilmSet.arrivesAt(w) <= card.from - people.from)
                 check.is_true(w.toX >= deck.x0 and w.toX <= deck.x1)
                 check.is_true(w.toY >= deck.y0 and w.toY <= deck.y1)
-                -- pornesc de pe strada si din curti, sub punte, si merg si intr-o parte (mersul din profil se vede)
+                -- pornesc de pe o alee, sub punte, si merg si intr-o parte (mersul din profil se vede)
                 check.is_true(w.fromY > deck.y1)
                 check.is_true(math.abs(w.toX - w.fromX) >= 60)
+                check.equal(w.path[1].x, w.fromX)
+                check.equal(w.path[#w.path].x, w.toX)
                 local x, y, moving = DamFilmSet.walkerAt(w, 0)
                 check.equal(x, w.fromX)
                 check.equal(y, w.fromY)
@@ -145,7 +147,7 @@ return function()
             end
         end)
         test.case(
-            "pe punte nimeni nu sta pe stalpi, insigne sau recuzita; drumul ocoleste taverna si taraba",
+            "pe punte nimeni nu sta pe stalpi, insigne, recuzita, roata sau avizier",
             function()
                 local posts = DamFilmSet.deckPosts()
                 check.is_true(#posts >= 4)
@@ -159,19 +161,57 @@ return function()
                         local hit = me.x0 < b.x1 and b.x0 < me.x1 and me.y0 < b.y1 and b.y0 < me.y1
                         check.is_false(hit)
                     end
-                    for _, r in DamFilmSet.AVOID do
-                        check.is_false(DamFilmSet.segmentHits(w.fromX, w.fromY, w.toX, w.toY, r))
+                    for _, b in DamFilmSet.deckObstacles() do
+                        local hit = me.x0 < b.x1 and b.x0 < me.x1 and me.y0 < b.y1 and b.y0 < me.y1
+                        check.is_false(hit)
                     end
                 end
-                -- recuzita nu sta nici ea pe stalpi (cu insignele lor)
+                -- recuzita nu sta nici ea pe stalpi (cu insignele lor), pe roata sau pe avizierul satului
                 for _, b in boxes do
                     for _, px in posts do
                         check.is_true(b.x1 <= px - 28 or b.x0 >= px + 28)
+                    end
+                    for _, o in DamFilmSet.deckObstacles() do
+                        check.is_false(b.x0 < o.x1 and o.x0 < b.x1 and b.y0 < o.y1 and o.y0 < b.y1)
                     end
                 end
                 check.is_true(DamFilmSet.FADE_IN > 0 and DamFilmSet.FADE_IN <= 1)
             end
         )
+        -- [verificatorul A2] in linie dreapta, siluetele treceau peste depozit, gramada lui si gater: acum talpile stau tot
+        -- drumul pe un drum al satului sau pe punte (unde nu e construit nimic)
+        test.case("drumul fiecarui om e pe drumuri si pe punte, nu prin cladiri", function()
+            local people, card = phase("people"), phase("card")
+            local deck = TycoonConfig.DECK
+            local function onWay(x: number, y: number): boolean
+                if x >= deck.x0 and x <= deck.x1 and y >= deck.y0 and y <= deck.y1 + 12 then
+                    return true
+                end
+                for _, r in TycoonConfig.ROADS do
+                    if x >= r.x0 and x <= r.x1 and y >= r.y0 - 12 and y <= r.y1 then
+                        return true
+                    end
+                end
+                return false
+            end
+            for _, w in DamFilmSet.walkers() do
+                for i = 0, 100 do
+                    local x, y = DamFilmSet.walkerAt(w, (card.from - people.from) * i / 100)
+                    check.is_true(onWay(x, y))
+                end
+            end
+        end)
+        test.case("pe randuri vecine nimeni nu sta exact in spatele altuia", function()
+            local walkers = DamFilmSet.walkers()
+            for i = 1, #walkers do
+                for j = i + 1, #walkers do
+                    local a, b = walkers[i], walkers[j]
+                    if a.toY ~= b.toY and math.abs(a.toY - b.toY) < 30 then
+                        check.is_true(math.abs(a.toX - b.toX) >= 12)
+                    end
+                end
+            end
+        end)
         test.case("oamenii de pe zid stau pe capetele neterminate", function()
             local wall = DamFilmSet.wall()
             for _, built in { 0.15, 0.5, 0.9 } do
@@ -256,6 +296,15 @@ return function()
             for _, vw in { 993, 1205, 1600, 2276 } do
                 local camX = math.clamp(bell.x - vw / 2, 0, math.max(0, worldW - vw))
                 check.is_true(bell.x - 60 >= camX and bell.x + 60 <= camX + vw)
+            end
+            -- [verificatorul A2] si pe verticala: tot clopotul intre benzile negre, si pe telefonul cel mai mic
+            local worldH = (RiverConfig.WORLDS :: any)[1].WORLD_HEIGHT
+            local midY = DamFilmSet.bellMidY() :: number
+            local top = bell.y - 56 * 3
+            for _, vh in { 459, 506, 684, 900 } do
+                local camY = math.clamp(midY - vh / 2, 0, math.max(0, worldH - vh))
+                check.is_true(top >= camY + DamFilmSet.BAR * vh)
+                check.is_true(bell.y <= camY + vh - DamFilmSet.BAR * vh)
             end
         end)
     end)
