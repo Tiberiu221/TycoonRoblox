@@ -838,7 +838,7 @@ TycoonConfig.SELLER_PLACES = {
     town = {
         door = { x = 2059, y = 1130 },
         stand = { x = 2109, y = 1152 },
-        lookAcross = true, -- [verificatorul A1, provizoriu] cardul ei priveste spre oraselul pictat (cumparatorul curentului)
+        lookAcross = true, -- [verificatorul A1, D76] cardul ei priveste spre oraselul pictat (cumparatorul curentului)
         pile = { x = 1901, y = 1086 },
         building = TycoonConfig.DAM_SWITCH_HOUSE,
         secondOffset = { x = 48, y = 0 },

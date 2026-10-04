@@ -587,39 +587,44 @@ local function refreshContents(padId: string)
     end
 end
 
+-- Traista plina: unde sa te duci depinde de ce duci, bustenii la gater, scandurile la taverna [D49].
+-- [D65] marfa bruta a oricarei linii merge la atelierul ei; ce se vinde doar la Piata, la Piata.
+-- [D76] aceeasi fraza pe toast si pe cardul plasei: dupa ce ghidajul tace (D50), cardul e singurul care arata drumul.
+local function fullText(): string
+    local rawLine: string? = nil
+    for _, line in StationConfig.LINE_ORDER do
+        if (sackRawBy[line] or 0) > 0 then
+            rawLine = line
+            break
+        end
+    end
+    local atDock = if sackSellBy.dock ~= nil then sackSellBy.dock.count else 0
+    -- [D65, D67] marfa gata a unui vanzator al erelor noi (Piata, Depoul), cand taverna n-are nimic de luat
+    local sellAt: string? = nil
+    for _, seller in StationConfig.SELLER_ORDER do
+        local entry = sackSellBy[seller]
+        if seller ~= "dock" and entry ~= nil and entry.count > 0 then
+            sellAt = seller
+            break
+        end
+    end
+    return if sackRaw > 0
+        then Strings.SACK_FULL_LOGS
+        elseif sackRawScrap > 0 then Strings.SACK_FULL_SCRAP
+        elseif rawLine ~= nil then Strings.sackFullRaw(rawLine)
+        elseif sackPartsFull ~= nil then sackPartsFull
+        elseif sellAt ~= nil and atDock == 0 then Strings.sackFullSell(sellAt)
+        elseif sackIron > 0 and sackCount - sackIron - sackFinds > 0 then Strings.SACK_FULL_BOTH
+        elseif sackIron > 0 then Strings.SACK_FULL_IRON
+        elseif sackFinds >= sackCount then Strings.SACK_FULL_FINDS -- [D56] fara nicio scandura
+        else Strings.SACK_FULL_PLANKS
+end
+
 -- Colecteaza plasa asta. Nu exista un remot care sa spuna "refuzat, traista plina" -- verificam AICI,
 -- pe ultimul TycoonState cunoscut, inainte sa tragem CollectNet [instructiuni F0, sectiunea lipsa].
 local function collect(padId: string)
     if sackCapacity > 0 and sackCount >= sackCapacity then
-        -- unde sa te duci depinde de ce duci: bustenii la gater, scandurile la taverna [D49]
-        -- [D65] marfa bruta a oricarei linii merge la atelierul ei; ce se vinde doar la Piata, la Piata
-        local rawLine: string? = nil
-        for _, line in StationConfig.LINE_ORDER do
-            if (sackRawBy[line] or 0) > 0 then
-                rawLine = line
-                break
-            end
-        end
-        local atDock = if sackSellBy.dock ~= nil then sackSellBy.dock.count else 0
-        -- [D65, D67] marfa gata a unui vanzator al erelor noi (Piata, Depoul), cand taverna n-are nimic de luat
-        local sellAt: string? = nil
-        for _, seller in StationConfig.SELLER_ORDER do
-            local entry = sackSellBy[seller]
-            if seller ~= "dock" and entry ~= nil and entry.count > 0 then
-                sellAt = seller
-                break
-            end
-        end
-        deps.OnToast(if sackRaw > 0
-            then Strings.SACK_FULL_LOGS
-            elseif sackRawScrap > 0 then Strings.SACK_FULL_SCRAP
-            elseif rawLine ~= nil then Strings.sackFullRaw(rawLine)
-            elseif sackPartsFull ~= nil then sackPartsFull
-            elseif sellAt ~= nil and atDock == 0 then Strings.sackFullSell(sellAt)
-            elseif sackIron > 0 and sackCount - sackIron - sackFinds > 0 then Strings.SACK_FULL_BOTH
-            elseif sackIron > 0 then Strings.SACK_FULL_IRON
-            elseif sackFinds >= sackCount then Strings.SACK_FULL_FINDS -- [D56] fara nicio scandura
-            else Strings.SACK_FULL_PLANKS)
+        deps.OnToast(fullText())
         return
     end
     deps.Remotes.CollectNet:FireServer(padId)
@@ -653,7 +658,7 @@ function NetController.Focus(px: number, py: number): Focus.Focus?
         status = Strings.netFilling(snap.count, snap.capacity)
     elseif snap.count > 0 then
         if sackCapacity > 0 and sackCount >= sackCapacity then
-            status = Strings.CARD_SACK_FULL
+            status = fullText()
         else
             local keyHint = if UserInputService.KeyboardEnabled then " (E)" else ""
             action = Strings.promptCollect(keyHint)

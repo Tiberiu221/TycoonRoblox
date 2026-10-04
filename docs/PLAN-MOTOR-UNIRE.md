@@ -1423,10 +1423,10 @@ explicit.**
   - **Întrebare pentru owner:** pe telefon, malul de nord (orășelul) nu intră niciodată în cadru de pe punte (râul are 290 px,
     iar pe telefon se vede o înălțime de 459 px). Orășelul se vede doar prin Look-ul bannerului, ~2 s. Recomandarea: un loc de
     privit permanent, de exemplu „Look across (E)” pe cardul clopotniței Old Bells, care stă la râu. Alternativa (orășelul mai
-    jos) nu încape: sub el e râul. **[2026-10-04, provizoriu, „continua dezvoltarea”]** Făcut pe cardul **Switch House**
+    jos) nu încape: sub el e râul. **[2026-10-04, D76: rămâne]** Făcut pe cardul **Switch House**
     (vânzătorul curentului, deci cumpărătorul din orășel), nu pe Old Bells: acolo cardul ar fi pierdut rândul cu bonusul
     clopotelor. Apare doar când n-ai nimic de vândut sau de spus acolo și doar cu desenul orășelului urcat
-    (`SELLER_PLACES.town.lookAcross`, `LineController`, `Strings.lookAcross`). Se scoate ușor dacă owner-ul nu-l vrea.
+    (`SELLER_PLACES.town.lookAcross`, `LineController`, `Strings.lookAcross`).
 - **A2 (filmul; planșa și mixul sonor trimise owner-ului pe 2026-10-04, așteaptă aprobarea și acordul de urcare):**
   `scripts/art/a2_build.py`, `a2_people.py`, `scripts/audio/a2_film.py` (13 desene, piesa de 17 s, două sunete), planșa
   `python3 scripts/art/a2_plate.py`. Legătura în cod, cu ID 0:
@@ -1446,7 +1446,8 @@ explicit.**
   într-o fereastră de un cadru. Direcția o dă săgeata ghidajului doar cât ghidajul vorbește: după ce toate meseriile au om
   (D50) ghidajul tace și rămân doar „Sack full” pe card și sacul roșu din HUD (în sat la fel, cu buștenii). **Întrebare pentru
   owner, la l2/l3:** textul care spune unde duci marfa merge pe cardul plasei pline? Statusul ar lua aceeași alegere ca
-  toast-ul (atenție la lățime pe telefonul mic).
+  toast-ul (atenție la lățime pe telefonul mic). **[2026-10-04, D76: da, făcut]** `NetController` alege fraza o singură dată
+  (`fullText`), pentru toast și pentru card; placa cardului crește până la 320 și se rupe pe rânduri (`fitStatus`).
 - **A4 (2026-10-04; planșa trimisă owner-ului, așteaptă aprobarea și acordul de urcare):** 70 de desene. Generatoarele sunt
   `scripts/art/a4_works.py`, `a4_halls.py`, `a4_goods.py`, `a4_huts_power.py`, `a4_huts_cable.py` și `a4_outfits.py`, iar planșa
   se face cu `python3 scripts/art/a4_plate.py`. Inventarul e în `scratchpad/a4_inventory.json`. Legătura în cod e făcută, cu ID 0:
@@ -1461,6 +1462,8 @@ explicit.**
   - Umbrele platformelor barajului nu mai stau pe dala Erei 1.
 - **Urcarea, după aprobare:** desenele se scriu din generatoare în `assets/sprites`, sunetele în `assets/audio`, apoi
   `upload_assets.py` (fiecare urcare cu acordul owner-ului), ID-urile în `Assets.luau` și moderarea.
+- **[2026-10-04, D76] A1, A2 și A4 sunt aprobate, cu acordul de urcare în ordinea A1 → A4 → A2.** A3 (pământul copt) se cere
+  separat.
 **[2026-10-03] A0, planșele sunt gata și așteaptă owner-ul** (`python3 scripts/art/a0_dam.py [wall|film]`, în scratchpad):
 - **`a0_dam_wall.png`:** zidul la locul lui, în două variante. **A** e de piatră, zidit din satul vechi, cu fața în trepte (recomandat:
   e ce spune filmul). **B** e de beton, cu trei stavile. Ambele au coama cu parapetul spre lac, fața din aval, panza

@@ -11,6 +11,23 @@ Convenție: în tot proiectul, „server" înseamnă o instanță Roblox efemer�
 
 ---
 
+## D76 — Loturile A1, A2, A4 aprobate și de urcat; „Look across” rămâne; cardul plasei pline spune unde duci marfa
+**DECIS de owner pe 2026-10-04:** *„da la toate”*, la cele trei recomandări de după planșele A1, A2 și A4.
+
+1. **Planșele A1 (reperele lumii 2), A2 (filmul, cu piesa și cele două sunete) și A4 (clădirile, colibele, mărfurile,
+   ținutele) sunt aprobate**, cu acordul de urcare pe Roblox în ordinea **A1 → A4 → A2**. După fiecare lot se citește
+   moderarea (`upload_assets.py --status`). Rândurile de împrumut (`GOOD_LOOKS_LIKE`, `PAD_LOOKS_LIKE`, `OUTFIT_LOOKS_LIKE`)
+   rămân ca plasă de siguranță: un desen respins de moderare se vede gol, iar jocul n-are cum să știe.
+2. **„Look across (E)” pe cardul Switch House rămâne** (nu mai e provizoriu). E singurul loc de privit permanent spre
+   orășelul pictat: pe telefon malul de nord nu intră în cadru de pe punte.
+3. **Cardul plasei cu sacul plin spune unde duci marfa**, cu aceeași alegere ca toast-ul (în sat buștenii sau scrap-ul, la
+   baraj `GuideMath.partsFullText`). Până acum cardul scria doar „Sack full”, iar după ce ghidajul tace (D50) nimic nu mai
+   arăta drumul. Schimbare voită și în sat (D43).
+4. **Nu intră aici:** urcarea pământului copt al barajului (`prop_dam_ground`, `prop_dam_ground_2`, lotul A3). D75 a lăsat-o
+   cerere separată și rămâne așa.
+
+---
+
 ## D75 — Planșele barajului (A0): zidul de piatră, filmul, pământul; săgeata ghidajului rămâne cum e
 **DECIS de owner pe 2026-10-03:** *„alege recomandatele și continuă dezvoltarea”*, la planșele A0 și la întrebarea despre
 indicatorul de margine al ghidajului.

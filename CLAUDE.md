@@ -108,18 +108,18 @@ stylua/selene o prind. Rulează-le mereu pe toate, nu înlănțuite după o eroa
   bâlciul doar în 114983498774894); serverul Rojo al satului rulează detașat pe 34872 și trebuie repornit ca să citească
   o schimbare de proiect. Ce a rulat în Studio se vede în `~/Library/Logs/Roblox/*_last.log` (`CreatorOutput`, `open place`).
 
-## Stare (2026-10-04) [D75, loturile A1–A2–A4]
+## Stare (2026-10-04) [D75, D76, loturile A1–A2–A4]
 
-**Arta barajului e desenată și legată în cod cu ID 0; planșele A1, A2 (cu mixul sonor) și A4 așteaptă aprobarea owner-ului.**
-A4 (`scripts/art/a4_*.py`, planșa `a4_plate.py`): clădirile, casele, marfa și ținutele barajului (70). „Look across (E)” e pe
-cardul Switch House (provizoriu).
+**Arta barajului e desenată și legată în cod; owner-ul a aprobat planșele A1, A2 și A4 și urcarea lor, în ordinea A1 → A4 → A2
+[D76].** Pământul copt (A3, `prop_dam_ground` / `_2`) nu intră în acord: se cere separat. A4 (`scripts/art/a4_*.py`, planșa
+`a4_plate.py`): clădirile, casele, marfa și ținutele barajului (70). „Look across (E)” rămâne pe cardul Switch House.
+- **Schimbări voite în sat [D76, A4]:** cardul plasei cu sacul plin spune unde duci marfa (aceeași frază ca toast-ul,
+  `fullText` din `NetController`); clienții tavernei, ai Pieței și ai Depoului pleacă cu marfa vândută (`FlowMath.soldGood`).
 Detaliile, rundele de verificator și ce urmează la urcare: `docs/PLAN-MOTOR-UNIRE.md`, nota „A1 și A2, starea”.
 - **A1** (`scripts/art/a1_*.py`, planșa `a1_plate.py`): zidul de piatră, deversorul, spuma, fața turbinei (pe grila zidului),
   Old Bells, Memory Wall, căsuțele, stâlpii, orășelul pictat (se aprinde cu primul curent, cu Look (V); LookController pornește
   în orice lume), cristalul pe curentul din larg.
 - **A2** (`scripts/art/a2_*.py`, `scripts/audio/a2_film.py`, planșa `a2_plate.py`): filmul, cu decorul pur în `DamFilmSet`.
-- **Întrebare deschisă:** pe telefon, malul de nord al barajului nu intră niciodată în cadru de pe punte (recomandat: „Look
-  across (E)” la Old Bells).
 - **Capcană:** stylua a căzut o dată cu „Abort trap” în poartă; rulat din nou, trece. Verificatorii primesc intervalul de
   commit-uri (`base: "A B"`), ca lucrul necomis să nu le intre în diff.
 

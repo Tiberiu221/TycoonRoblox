@@ -42,7 +42,7 @@ export type Deps = {
     Plot: Frame,
     Remotes: { UsePlace: RemoteEvent, AtPlace: RemoteEvent, Sold: RemoteEvent },
     CharacterPos: () -> (number, number),
-    -- [verificatorul A1, provizoriu] o privire (LookController.Look) spre un loc al terenului; nil = fara privire
+    -- [verificatorul A1, D76] o privire (LookController.Look) spre un loc al terenului; nil = fara privire
     LookAt: ((x: number, y: number) -> ())?,
     -- [verificatorul A1] privirea nu se ofera cat bannerul oraselului (cu Look-ul lui) inca asteapta
     LookAcrossReady: (() -> boolean)?,
