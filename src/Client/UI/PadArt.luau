@@ -514,6 +514,13 @@ PadArt.CHIMNEY = {
     hut_wiredrawer_2 = { 0.6875, 0.03 },
     hut_electrician_1 = { 0.703, 0.03 },
     hut_electrician_2 = { 0.6875, 0.03 },
+    -- [D75, lotul A4] casele barajului cu horn (doar procesatorii), masurate de generatoare (a4_huts_power.py, a4_huts_cable.py)
+    hut_switchman_1 = { 0.7031, 0.03 },
+    hut_switchman_2 = { 0.6375, 0.03 },
+    hut_cablemaker_1 = { 0.703, 0.03 },
+    hut_cablemaker_2 = { 0.688, 0.03 },
+    hut_crystalsmith_1 = { 0.734, 0.03 },
+    hut_crystalsmith_2 = { 0.713, 0.03 },
 } :: { [string]: { number } }
 
 -- Hornul casei desenate acum pentru platforma asta (dupa cati oameni are meseria), sau nil.
