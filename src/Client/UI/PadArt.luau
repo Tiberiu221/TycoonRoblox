@@ -59,12 +59,29 @@ PadArt.HOME_SPRITES = {
     hire_battery_porter = { "hut_battery_porter_1", "hut_battery_porter_2" },
     hire_electrician = { "hut_electrician_1", "hut_electrician_2" },
     hire_power_hauler = { "hut_power_hauler_1", "hut_power_hauler_2" },
+    -- [D75, lotul A4] oamenii barajului. Cat casele lor nu sunt urcate, platforma o poarta pe a perechii (PAD_LOOKS_LIKE).
+    hire_dam_collector = { "hut_dam_collector_1", "hut_dam_collector_2" },
+    hire_dam_porter = { "hut_dam_porter_1", "hut_dam_porter_2" },
+    hire_switchman = { "hut_switchman_1", "hut_switchman_2" },
+    hire_barrel_hauler = { "hut_barrel_hauler_1", "hut_barrel_hauler_2" },
+    hire_cable_collector = { "hut_cable_collector_1", "hut_cable_collector_2" },
+    hire_cable_porter = { "hut_cable_porter_1", "hut_cable_porter_2" },
+    hire_cablemaker = { "hut_cablemaker_1", "hut_cablemaker_2" },
+    hire_cable_hauler = { "hut_cable_hauler_1", "hut_cable_hauler_2" },
+    hire_relay_keeper = { "hut_relay_keeper_1", "hut_relay_keeper_2" },
+    hire_pylon_runner = { "hut_pylon_runner_1", "hut_pylon_runner_2" },
+    hire_crystal_collector = { "hut_crystal_collector_1", "hut_crystal_collector_2" },
+    hire_crystal_porter = { "hut_crystal_porter_1", "hut_crystal_porter_2" },
+    hire_crystalsmith = { "hut_crystalsmith_1", "hut_crystalsmith_2" },
+    hire_ingot_hauler = { "hut_ingot_hauler_1", "hut_ingot_hauler_2" },
+    hire_dispatcher = { "stall_dispatcher", "stall_dispatcher_2" },
 } :: { [string]: { string } }
 -- taraba ramane recuzita mica (x2); colibele sunt cladiri (x3)
 PadArt.HOME_SCALE = {
     dock_trader = TycoonConfig.PROP_SCALE,
     hire_merchant = TycoonConfig.PROP_SCALE,
     hire_clerk = TycoonConfig.PROP_SCALE,
+    hire_dispatcher = TycoonConfig.PROP_SCALE, -- [D75, lotul A4] taraba Dispatcher-ului, x2 ca a Clerk-ului (128 x 80)
 } :: { [string]: number }
 
 -- Avizierele: pe oameni ii angajezi, nu ii reconstruiesti. Pictograma meseriei pe avizierul curat.
@@ -339,6 +356,10 @@ local OWN_BUILT: { [string]: string } = {
     power_house = "power_house",
     battery_shed = "battery_shed",
     works_bell = "works_bell",
+    -- [D75, lotul A4] cladirile de pe platformele barajului; cat nu sunt urcate, a perechii (lantul de imprumut)
+    crystal_shed = "crystal_shed",
+    crystal_kiln = "crystal_kiln",
+    dam_bell = "dam_bell",
 }
 local OWN_RUIN: { [string]: string } = {
     water_wheel = "ruin_water_wheel",

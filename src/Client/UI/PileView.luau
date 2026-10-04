@@ -57,6 +57,12 @@ local PILE_OF: { [string]: string } = {
     coils = "pile_coils",
     battery = "pile_battery",
     cell = "pile_cell",
+    -- [D75, lotul A4] marfa barajului; cat fasia ei nu e urcata, gramada o poarta pe a perechii (UI/GoodArt)
+    barrel = "pile_barrel",
+    cable = "pile_cable",
+    grid = "pile_grid",
+    crystal = "pile_crystal",
+    ingot = "pile_ingot",
 }
 -- al doilea fel: la 70%, lipit in dreapta, cel mult treapta 2 -- se citeste "si asta", nu "a doua gramada"
 local SECOND_SCALE = 0.7

@@ -55,7 +55,8 @@ local BORROWED = {
 } :: { [string]: string }
 local COTTAGE = "runner_hut"
 -- [D75, lotul A1] desenele proprii ale orasului; pana la urcare (ID 0), cele de imprumut de mai sus
-local OWN = { bellTower = "old_bells", memoryWall = "memory_wall" } :: { [string]: string }
+local OWN =
+    { bellTower = "old_bells", memoryWall = "memory_wall", canteen = "canteen" } :: { [string]: string }
 local OWN_COTTAGES = { "dam_cottage_1", "dam_cottage_2", "dam_cottage_3" }
 -- stalpii lumii 2 (TycoonConfig.WORLDS[2].pylons), dupa nume: cel de langa rau, cel de pe alee, cei de pe pod
 local PYLON_ART = {

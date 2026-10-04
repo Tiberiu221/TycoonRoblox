@@ -81,6 +81,12 @@ local LOAD_SPRITE: { [string]: string } = {
     coils = "load_coils",
     battery = "load_battery",
     cell = "load_cell",
+    -- [D75, lotul A4] marfa barajului; cat fasia ei nu e urcata, caruciorul o poarta pe a perechii (UI/GoodArt)
+    barrel = "load_barrel",
+    cable = "load_cable",
+    grid = "load_grid",
+    crystal = "load_crystal",
+    ingot = "load_ingot",
 }
 
 local function rgbOf(triple: { number }): Color3
