@@ -1483,6 +1483,12 @@ explicit.**
     cel mai puțin acoperit (`GuideMath.cardDepth`, adâncimea pe latura scurtă a suprapunerii, nu aria), și respectă plafonul.
     **[A șaptea rundă]** Și aria: cel mult `LABEL_MARGIN / 2` pe latura lungă a suprapunerii. Adâncimea se oprește la
     înălțimea cardului, așa că pe telefonul mic cardul Pieței aluneca sub tot joystick-ul (170 de unități, acum cel mult 57).
+  - **Limită acceptată (verificatorul, a opta rundă, toate de gravitate mică):** pe telefonul cel mai mic (667x375), cardurile
+    mai late decât golul dintre joystick și E (peste ~530 px de lume: o frază de ~30 de litere plus Upgrade, la Piață, Depou,
+    tavernă) n-au niciun loc liber dedesubt. Într-o fâșie îngustă de poziții (~6 px de lume pe verticală, la 50–90 px deasupra
+    ușii), cardul de sub tine se poate dezlipi de joystick, merge 3–20 de pași cu clădirea (cel mult ~20–40 de unități) și
+    revine. Nu tremură pe loc și nu clipește un singur cadru. Cele două variante încercate de verificatori mută problema (mai
+    multe clipiri sau un plafon mai adânc sub joystick), deci rămâne așa. De judecat la l2, pe un telefon mic din emulator.
   - Pulsul pastilei Sack nu mai mută cardul: panourile se citesc fără `UIScale` (și la indicatorul ghidajului).
   - Testele măsoară și suprapunerea pe plimbări, plus un tremur la colțul NEXT–joystick. În scratchpad, pe 250.776 de puncte
     cu tremur pe loc, cardul nu mai schimbă locul după ce s-a așezat.
