@@ -1078,7 +1078,9 @@ return function()
                 return true
             end
             local b = bestSpot :: GuideMath.CardSpot
-            return GuideMath.cardDepth(q, x, y) <= GuideMath.cardDepth(q, b.x, b.y) + DEPTH
+            local depth, long = GuideMath.cardDepth(q, x, y)
+            return depth <= GuideMath.cardDepth(q, b.x, b.y) + DEPTH
+                and chosen <= best + DEPTH * long
         end
 
         test.case(
@@ -1115,6 +1117,27 @@ return function()
                 check.equal(backKey, freshKey)
             end
         )
+
+        test.case("cardul Pietei pe telefonul mic nu aluneca sub tot joystick-ul", function()
+            -- 667x375: „Ore goes to the Copper Furnace” + Upgrade, 755 de unitati, mai lat decat golul dintre joystick si E;
+            -- deasupra il opresc cifrele. Mergand spre dreapta, sub joystick (44..214) ramane cel mult cat la locul cel mai
+            -- putin acoperit (53) plus DEPTH.
+            local key: string? = nil
+            local worst = 0
+            for cx = 620, 250, -1.371 do
+                local q = query(
+                    SE,
+                    { centerX = cx, aboveY = 78, belowY = 467, width = 755, currentKey = key }
+                )
+                local place, shift, k = GuideMath.cardPlacement(q)
+                key = k
+                if place == "below" then
+                    local x = q.centerX - q.width / 2 + shift
+                    worst = math.max(worst, math.min(x + q.width, 214) - math.max(x, 44))
+                end
+            end
+            check.is_true(worst <= 53 + DEPTH + 0.5)
+        end)
 
         test.case(
             "un card nou ia locul firesc liber cu LABEL_MARGIN, nu coboara sub tine",

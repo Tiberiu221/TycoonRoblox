@@ -1481,6 +1481,8 @@ explicit.**
   - Un loc lateral se numește după marginea la care stă (NEXT și AWAY se termină la același x).
   - Rezerva cardului prea lat ține locul vechi doar cât intră cel mult `LABEL_MARGIN / 2` mai adânc sub un panou decât locul
     cel mai puțin acoperit (`GuideMath.cardDepth`, adâncimea pe latura scurtă a suprapunerii, nu aria), și respectă plafonul.
+    **[A șaptea rundă]** Și aria: cel mult `LABEL_MARGIN / 2` pe latura lungă a suprapunerii. Adâncimea se oprește la
+    înălțimea cardului, așa că pe telefonul mic cardul Pieței aluneca sub tot joystick-ul (170 de unități, acum cel mult 57).
   - Pulsul pastilei Sack nu mai mută cardul: panourile se citesc fără `UIScale` (și la indicatorul ghidajului).
   - Testele măsoară și suprapunerea pe plimbări, plus un tremur la colțul NEXT–joystick. În scratchpad, pe 250.776 de puncte
     cu tremur pe loc, cardul nu mai schimbă locul după ce s-a așezat.

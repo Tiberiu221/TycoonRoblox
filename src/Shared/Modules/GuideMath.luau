@@ -1153,16 +1153,18 @@ end
 
 -- Cat de adanc intra cardul (la x, y) sub un panou: cea mai mare dintre suprapuneri, masurata pe latura ei scurta. O arie
 -- n-ar spune asta: un card intrat de jos in linia NEXT acopera sute de unitati pe fiecare unitate de adancime.
-function GuideMath.cardDepth(q: CardQuery, x: number, y: number): number
-    local depth = 0
+-- Al doilea rezultat: latura lunga a celei mai mari suprapuneri (cat de lunga e fasia ascunsa).
+function GuideMath.cardDepth(q: CardQuery, x: number, y: number): (number, number)
+    local depth, long = 0, 0
     for _, b in q.blockers do
         local w = math.min(x + q.width, b.x + b.w) - math.max(x, b.x)
         local h = math.min(y + q.height, b.y + b.h) - math.max(y, b.y)
         if w > 0 and h > 0 then
             depth = math.max(depth, math.min(w, h))
+            long = math.max(long, math.max(w, h))
         end
     end
-    return depth
+    return depth, long
 end
 
 -- Locurile cu nume ale cardului (vezi mai sus), in ordinea treptelor.
@@ -1284,13 +1286,18 @@ function GuideMath.cardPlacement(q: CardQuery): (string, number, string)
         pick = least
         local l = least
         local prev = previous
-        if
-            prev ~= nil
-            and l ~= nil
-            and GuideMath.cardDepth(q, prev.x, prev.y)
-                <= GuideMath.cardDepth(q, l.x, l.y) + margin / 2
-        then
-            pick = prev
+        if prev ~= nil and l ~= nil then
+            -- [verificatorul D76, a saptea runda] amandoua: adancimea (nu ramane doua treimi sub linia NEXT) si aria pe
+            -- latura lunga a suprapunerii (adancimea se opreste la inaltimea cardului, iar cardul aluneca sub tot joystick-ul)
+            local prevDepth, prevLong = GuideMath.cardDepth(q, prev.x, prev.y)
+            local leastDepth = GuideMath.cardDepth(q, l.x, l.y)
+            local prevArea = GuideMath.cardCovered(q, prev.x, prev.y, 0, 0)
+            if
+                prevDepth <= leastDepth + margin / 2
+                and prevArea <= leastArea + margin / 2 * prevLong
+            then
+                pick = prev
+            end
         end
     end
     local chosen = pick or spots[1]
