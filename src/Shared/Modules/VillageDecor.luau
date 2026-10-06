@@ -22,18 +22,27 @@ function VillageDecor.items(world: number?): { WorldDecor.Item }
     local w = WorldConfig.sanitize(world)
     local river = (RiverConfig.WORLDS :: any)[w]
     -- [D65] partea veche a satului isi tine copacii pe loc, fasia noua isi primeste ai ei
-    return WorldDecor.village(VillageDecor.SEED, VillageDecor.COUNT, {
-        width = river.WORLD_WIDTH,
-        height = river.WORLD_HEIGHT,
-        oldWidth = river.ERA1_WORLD_WIDTH,
-        strips = river.DECOR_STRIPS, -- [D67]
-    }, {
-        -- Decorul trebuie sa stie cat de departe poate ajunge APA, nu unde e banda nominala:
-        -- de cand malurile serpuiesc, raul urca pana la 392 si coboara pana la 824, iar un copac
-        -- asezat dupa vechile 480/768 ar sta cu radacinile in rau.
-        riverTop = river.SHORE_FAR.baseY - river.SHORE_FAR.amp,
-        riverBottom = river.SHORE_NEAR.baseY + river.SHORE_NEAR.amp,
-    }, river.PLOT, river.PLOT_ERA1, TycoonConfig.homeClearRects(w))
+    return WorldDecor.village(
+        VillageDecor.SEED,
+        VillageDecor.COUNT,
+        {
+            width = river.WORLD_WIDTH,
+            height = river.WORLD_HEIGHT,
+            oldWidth = river.ERA1_WORLD_WIDTH,
+            strips = river.DECOR_STRIPS, -- [D67]
+        },
+        {
+            -- Decorul trebuie sa stie cat de departe poate ajunge APA, nu unde e banda nominala:
+            -- de cand malurile serpuiesc, raul urca pana la 392 si coboara pana la 824, iar un copac
+            -- asezat dupa vechile 480/768 ar sta cu radacinile in rau.
+            riverTop = river.SHORE_FAR.baseY - river.SHORE_FAR.amp,
+            riverBottom = river.SHORE_NEAR.baseY + river.SHORE_NEAR.amp,
+        },
+        river.PLOT,
+        river.PLOT_ERA1,
+        TycoonConfig.homeClearRects(w),
+        if w == 2 then WorldDecor.DAM_KINDS else nil
+    )
 end
 
 return VillageDecor

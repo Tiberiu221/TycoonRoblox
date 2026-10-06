@@ -307,8 +307,8 @@ local Assets = {
         -- (scripts/art/village_ground.py --world 2). 0 = coapta, inca neurcata: harta barajului se deseneaza din dale si
         -- din zidul provizoriu. Se urca doar cu acordul owner-ului, iar odata cu ID-urile intra si cartierele barajului in
         -- TycoonConfig.BAKED_DISTRICTS (testul din World2Layout le tine impreuna).
-        dam_ground = sprite(79406566788085, 960, 640),
-        dam_ground_2 = sprite(79473120135825, 168, 640),
+        dam_ground = sprite(129235478896668, 960, 640),
+        dam_ground_2 = sprite(124029783746317, 168, 640),
         -- [D75, lotul A1] reperele lumii 2 (scripts/art/a1_*.py). 0 = desenate, inca neurcate: jocul pastreaza desenul
         -- provizoriu (zidul din dale, cladirile de imprumut). Foile cu cadre au cadrele unul langa altul, pe orizontala.
         dam_wall = sprite(96593467839415, 80, 189), -- zidul de piatra (varianta A, D75), cu gura turbinei

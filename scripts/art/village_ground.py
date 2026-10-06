@@ -94,6 +94,18 @@ BANK_SHADE = (16, 40, 66)
 
 REED = ((52, 74, 40), (84, 108, 52), (156, 160, 92))  # [k12] stuful lacului: radacina, tulpina, spicul
 
+# [owner, 2026-10-06: „tot iarba ramane? parca nu a evoluat deloc jocul"] BARAJUL E PAMANT LUCRAT, NU PAJISTE: iarba
+# uscata si calcata, cu pete mari de pamant batatorit; strazile pavate cu piatra zidului, cu borduri; curtile de prundis.
+# Satul (lumea 1) nu atinge nimic de aici.
+DRY = ((84, 90, 56), (100, 104, 64), (116, 118, 74), (132, 130, 84), (148, 144, 96))
+DRY_BLADE_DARK = (74, 80, 48)
+DRY_BLADE_LIGHT = (166, 158, 104)
+PACKED = ((112, 98, 80), (126, 112, 92), (140, 126, 104), (154, 140, 116), (168, 154, 128))
+GRAVEL = ((90, 88, 84), (108, 104, 98), (126, 122, 114), (144, 140, 130), (162, 158, 148))
+SETT = ((104, 100, 96), (122, 118, 110), (138, 134, 124), (156, 150, 138), (176, 170, 156))
+MORTAR = (72, 70, 68)
+KERB_DARK, KERB_LIGHT = (78, 76, 74), (184, 178, 164)
+
 # [verificatorul k12] platformele barajului care nu sunt plase sau case, cu perechea lor din TycoonConfig.PAD_LOOKS_LIKE
 # (pana la desenele lor, lotul A4): fara ele planse lasa goale curtile Kiln-ului, Crystal Shed-ului si Dam Bell-ului
 DAM_PAD_ART = {
@@ -317,6 +329,12 @@ def bake(G):
             x0 = max(x0, x1)
         return out
     n_tone, n_mid, n_fine, n_edge = Noise(11), Noise(12), Noise(13), Noise(14)
+    # [2026-10-06] la baraj, aceleasi trepte, alta iarba (uscata) si pamant batatorit unde a fost pajiste
+    grass_ramp = DRY if dam else GRASS
+    blade_dark = DRY_BLADE_DARK if dam else GRASS_BLADE_DARK
+    blade_light = DRY_BLADE_LIGHT if dam else GRASS_BLADE_LIGHT
+    trodden = PACKED if dam else DIRT
+    n_bare = Noise(15)
 
     def world(ix, iy):
         return ix * D + D / 2, iy * D + D / 2
@@ -333,12 +351,24 @@ def bake(G):
             if wy < far["y"][ix]:
                 shade = 1 - min(1.0, max(0.0, (wy - tree[ix]) / 70))
                 v -= 0.34 * shade
-            col = ramp_pick(GRASS, max(0.0, min(0.999, v)), ix, iy)
+            col = ramp_pick(grass_ramp, max(0.0, min(0.999, v)), ix, iy)
             h = hash01(ix, iy, 1)
             if h < 0.014:
-                col = GRASS_BLADE_DARK
+                col = blade_dark
             elif h > 0.988:
-                col = GRASS_BLADE_LIGHT
+                col = blade_light
+            if dam and wy > far["y"][ix]:
+                # pete mari de pamant batatorit pe malul de sud, cu margine roasa (iarba ramane in smocuri pe ea)
+                b = 0.62 * n_bare.at(wx, wy, 300) + 0.38 * n_mid.at(wx, wy, 110)
+                t = (b - 0.50) / 0.07
+                if t > 1 or (t > 0 and hash01(ix, iy, 61) < t):
+                    q = 0.30 + 0.55 * n_fine.at(wx, wy, 34) + 0.2 * (n_mid.at(wx, wy, 70) - 0.5)
+                    col = ramp_pick(PACKED, max(0.0, min(0.999, q)), ix, iy, 1.1)
+                    g = hash01(ix, iy, 62)
+                    if g < 0.07:
+                        col = GRAVEL[3] if g < 0.03 else GRAVEL[1]  # pietris scapat de pe drum
+                    cv.set(ix, iy, col, MAT_DIRT)
+                    continue
             cv.set(ix, iy, col, MAT_GRASS)
 
     # ---- 2. plajele: nisip uscat spre iarba, ud langa apa; unde nu e plaja, mal de pamant ---------------------
@@ -464,8 +494,8 @@ def bake(G):
                 wx, wy = world(ix, iy)
                 q = ((wx - cx) / rx) ** 2 + ((wy - cy) / ry) ** 2 + (n_fine.at(wx, wy, 18) - 0.5) * 0.5
                 if q < 1:
-                    shade = GRASS[0] if q > 0.55 or wy < cy - 6 else GRASS[1]
-                    cv.set(ix, iy, shade if hash01(ix, iy, 4) > 0.05 else GRASS_BLADE_DARK, MAT_GRASS)
+                    shade = grass_ramp[0] if q > 0.55 or wy < cy - 6 else grass_ramp[1]
+                    cv.set(ix, iy, shade if hash01(ix, iy, 4) > 0.05 else blade_dark, MAT_GRASS)
 
     # umbra padurii pe iarba de sub ea
     for ix in range(W):
@@ -476,7 +506,48 @@ def bake(G):
                 cv.blend(ix, iy, (18, 36, 30), 0.30 * (1 - k / 9))
 
     # ---- 4. pamantul batatorit: curtile, apoi drumurile peste ele ---------------------------------------------
-    def dirt_area(r, radius, ragged, darker, ruts=None, flavour=None):
+    def paved(roads):
+        """[2026-10-06] Strazile barajului: pietre cubice pe randuri de 3 px, cu rost intre ele, asezate de-a lungul
+        drumului; la marginea pavajului, bordura (un rand inchis, unul luminat). Masca e a tuturor drumurilor, deci la
+        o rascruce bordura nu taie strada, iar pietrele se intalnesc pe aceeasi grila a lumii."""
+        mask = bytearray(W * H)  # 0 = nu e drum, 1 = drum de-a lungul (orizontal), 2 = drum de-a latul (vertical)
+        for r in roads:
+            horiz = (r["x1"] - r["x0"]) >= (r["y1"] - r["y0"])
+            for iy in range(round(r["y0"] / D), round(r["y1"] / D)):
+                for ix in range(round(r["x0"] / D), round(r["x1"] / D)):
+                    if cv.inside(ix, iy) and cv.mat[iy * W + ix] != MAT_WATER and not mask[iy * W + ix]:
+                        mask[iy * W + ix] = 1 if horiz else 2
+
+        def off(ix, iy):
+            return not cv.inside(ix, iy) or not mask[iy * W + ix]
+
+        for iy in range(H):
+            for ix in range(W):
+                m = mask[iy * W + ix]
+                if not m:
+                    continue
+                if off(ix - 1, iy) or off(ix + 1, iy) or off(ix, iy - 1) or off(ix, iy + 1):
+                    col = KERB_DARK
+                elif off(ix - 2, iy) or off(ix + 2, iy) or off(ix, iy - 2) or off(ix, iy + 2):
+                    col = KERB_LIGHT if (ix + iy) % 5 else KERB_DARK  # rostul dintre bordurile lungi
+                else:
+                    a, c = (ix, iy) if m == 1 else (iy, ix)
+                    row, in_row = c // 3, c % 3
+                    k = (a + (row % 2) * 3) % 6
+                    if in_row == 2 or k == 5:
+                        col = MORTAR
+                    else:
+                        stone = hash01(row, (a + (row % 2) * 3) // 6, 51)
+                        t = 0.15 + 0.6 * stone + (0.22 if in_row == 0 else 0.0)  # muchia de sus prinde lumina
+                        col = SETT[min(4, int(t * 5))]
+                cv.set(ix, iy, col, MAT_BUILT)
+        # umbra bordurii pe pamantul de sub strada (lumina vine de sus)
+        for iy in range(1, H):
+            for ix in range(W):
+                if mask[(iy - 1) * W + ix] and not mask[iy * W + ix] and cv.mat[iy * W + ix] not in (MAT_WATER, MAT_BUILT):
+                    cv.blend(ix, iy, (30, 30, 26), 0.35)
+
+    def dirt_area(r, radius, ragged, darker, ruts=None, flavour=None, ramp=DIRT, rim=DIRT_RIM):
         pad = 14
         for iy in range(int((r["y0"] - pad) // D), int((r["y1"] + pad) // D) + 1):
             for ix in range(int((r["x0"] - pad) // D), int((r["x1"] + pad) // D) + 1):
@@ -487,13 +558,13 @@ def bake(G):
                 d += (n_edge.at(wx, wy, 34) - 0.5) * ragged + (n_fine.at(wx, wy, 11) - 0.5) * ragged * 0.4
                 if d > 0:
                     if d < 6 and hash01(ix, iy, 7) < 0.16:
-                        cv.set(ix, iy, DIRT[1], MAT_DIRT)  # pamant scapat in iarba
+                        cv.set(ix, iy, ramp[1], MAT_DIRT)  # pamant scapat in iarba
                     continue
                 if d > -7 and hash01(ix, iy, 8) < 0.30:
                     continue  # iarba intra peste margine
                 v = 0.30 + 0.55 * n_mid.at(wx, wy, 90) + 0.25 * (n_fine.at(wx, wy, 20) - 0.5) - darker
                 v += min(0.0, (d + 16) / 60)  # spre mijloc e mai calcat, deci mai deschis; la margine mai inchis
-                col = DIRT_RIM if d > -3 else ramp_pick(DIRT, max(0.0, min(0.999, v)), ix, iy, 1.1)
+                col = rim if d > -3 else ramp_pick(ramp, max(0.0, min(0.999, v)), ix, iy, 1.1)
                 if ruts is not None:
                     axis, centre, half = ruts
                     off = abs((wy if axis == "h" else wx) - centre)
@@ -512,7 +583,7 @@ def bake(G):
                 elif h < 0.018:
                     col = STONE[1]
                 elif h > 0.985:
-                    col = DIRT[4]
+                    col = ramp[4]
                 cv.set(ix, iy, col, MAT_DIRT)
 
     all_yards = [y for dist in G["districts"] for y in dist["yards"]]
@@ -520,8 +591,13 @@ def bake(G):
     for yard in all_yards:
         # [k12] la baraj, ce se vede pe jos se alege dupa curtea adevarata (`own`), nu dupa perechea ei din The Landing
         flavour = DAM_FLAVOUR.get(yard.get("own")) if dam else yard["id"]
-        dirt_area(yard, 16, 12, 0.0, None, flavour)
-    for road in all_roads:
+        if dam:
+            dirt_area(yard, 10, 6, 0.0, None, flavour, GRAVEL, GRAVEL[0])  # [2026-10-06] curtile barajului: prundis
+        else:
+            dirt_area(yard, 16, 12, 0.0, None, flavour)
+    if dam:
+        paved(all_roads)
+    for road in [] if dam else all_roads:
         wide = (road["x1"] - road["x0"]) >= (road["y1"] - road["y0"])
         if wide:
             ruts = ("h", (road["y0"] + road["y1"]) / 2, (road["y1"] - road["y0"]) * 0.24)
@@ -545,7 +621,7 @@ def bake(G):
                         wx, wy = world(ix, iy)
                         q = math.hypot(wx - cx, wy - cy) / r
                         if q < 1 and hash01(ix, iy, 17) < strength * (1 - q * q) * 1.9:
-                            cv.set(ix, iy, ramp_pick(DIRT, 0.25 + 0.4 * n_fine.at(wx, wy, 24), ix, iy), MAT_DIRT)
+                            cv.set(ix, iy, ramp_pick(trodden, 0.25 + 0.4 * n_fine.at(wx, wy, 24), ix, iy), MAT_DIRT)
 
     # [D65] o data pe CARTIER: id-urile curtilor si ale drumurilor vin canonice (cele din The Landing), deci Moara isi
     # primeste aceleasi poteci intre case, spre taraba negustorului si spre clopot
@@ -729,10 +805,10 @@ def bake(G):
             i = iy * W + ix
             if cv.mat[i] != MAT_GRASS or cv.mat[i - 1] != MAT_GRASS or cv.mat[i + 1] != MAT_GRASS:
                 continue
-            cv.set(ix, iy, GRASS_BLADE_DARK)
-            cv.set(ix - 1, iy - 1, GRASS_BLADE_DARK)
-            cv.set(ix + 1, iy - 1, GRASS_BLADE_LIGHT if rnd.random() < 0.5 else GRASS_BLADE_DARK)
-        for rnd in each_try(seed + 7, int(260 * share)):
+            cv.set(ix, iy, blade_dark)
+            cv.set(ix - 1, iy - 1, blade_dark)
+            cv.set(ix + 1, iy - 1, blade_light if rnd.random() < 0.5 else blade_dark)
+        for rnd in each_try(seed + 7, 0 if dam else int(260 * share)):  # [2026-10-06] la baraj nu mai cresc flori
             cx, cy = x_from + rnd.randrange(span), rnd.randrange(flower_top, H)
             wx, wy = world(cx, cy)
             if n_tone.at(wx, wy, 430) < 0.52:

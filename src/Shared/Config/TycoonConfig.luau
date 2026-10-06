@@ -2753,16 +2753,19 @@ function TycoonConfig.homeClearRects(w: number?): { HomeClear }
     end
     -- [D75, verificatorul A1] oraselul pictat de pe malul de nord: nimic din decorul imprastiat nu sta peste el (doi
     -- busteni si o piatra cadeau in cutia lui). Tot ce o atinge iese, oricat de jos ii e baza.
+    -- [verificatorul, 2026-10-06] Si ce sta LIPIT de el: orasul e desenat mic (departe), deci un ciot sau un bustean la
+    -- cativa pixeli de case arata cat o casa. Cu cioturile si bustenii barajului, unul statea la 10 px de ultima casa si
+    -- altul la 4 px deasupra acoperisurilor; marginea de 40 px in laturi si 10 px deasupra ii scoate doar pe ei.
     local world = if w ~= nil then TycoonConfig.WORLDS[w] else nil
     local town = if world ~= nil then world.paintedTown else nil
     if town ~= nil then
         local top = town.y - town.h
         table.insert(out, {
-            x0 = town.x - town.w / 2,
-            x1 = town.x + town.w / 2,
-            y0 = top,
+            x0 = town.x - town.w / 2 - 40,
+            x1 = town.x + town.w / 2 + 40,
+            y0 = top - 10,
             y1 = town.y,
-            frontOf = top,
+            frontOf = top - 10,
         })
     end
     return out

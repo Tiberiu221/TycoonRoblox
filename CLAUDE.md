@@ -129,6 +129,9 @@ Detaliile, rundele de verificator și ce urmează la urcare: `docs/PLAN-MOTOR-UN
 - **l1 și l3 făcute [D77]:** barajul e în joc (`ENGINE_ERAS = 4`, 23 de platforme `live`; comutatorul local a ieșit).
   l1 = jucat cap-coadă cu sonda, fără erori. A3 (pământul copt al barajului) e urcat și aprobat (2026-10-06), cu
   `BAKED_DISTRICTS.dam_town` / `dam`. Owner-ul s-a uitat în joc: „pare ok”. **Lansarea:** producția se publică manual (D77).
+  **Recopt și urcat din nou tot pe 2026-10-06** (owner: „tot iarba rămâne? parcă nu a evoluat deloc jocul”): la baraj, iarbă
+  uscată cu pete de pământ bătătorit, străzi pavate cu borduri, curți de prundiș, fără flori (`village_ground.py`, doar sub
+  `dam`); decorul împrăștiat are felurile lui (`WorldDecor.DAM_KINDS`: cioturi, bușteni, pietre, butoaie). Satul, neatins.
 - **Folderul de lucru al scripturilor de artă și sunet:** `scripts/art/scratch.py` (`DRIFTWOOD_SCRATCH`, altfel `.scratch/` din
   repo, ignorat de git). Nicio cale de scratchpad al unei sesiuni nu mai e scrisă în scripturi. Desenele loturilor urcate se
   citesc din `assets/sprites` când lipsește copia de lucru (`scratch.sprite`).

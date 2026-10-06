@@ -23,6 +23,17 @@ local FIELD_KINDS =
     { "tree_round", "tree_pine", "bush", "bush", "rock_small", "flowers", "flowers" }
 local EDGE_KINDS = { "tree_pine", "tree_round", "tree_round", "bush" }
 
+-- Felurile de decor pe zone (mal, camp, margine). Fara ele, cele ale satului de mai sus.
+export type Kinds = { bank: { string }, field: { string }, edge: { string } }
+WorldDecor.VILLAGE_KINDS = { bank = BANK_KINDS, field = FIELD_KINDS, edge = EDGE_KINDS } :: Kinds
+-- [owner, 2026-10-06: „tot iarba ramane? parca nu a evoluat deloc jocul"] La baraj, padurea s-a taiat pentru zid si
+-- pentru case: pe camp raman cioturi, busteni, pietre si butoaie, fara flori; copacii mai stau doar spre margini.
+WorldDecor.DAM_KINDS = {
+    bank = { "rock_small", "rock_large", "log", "stump", "cattails" },
+    field = { "stump", "stump", "log", "rock_small", "rock_large", "barrel" },
+    edge = { "tree_pine", "tree_round", "tree_pine", "stump" },
+} :: Kinds
+
 -- [D65] Cat ocupa pe ecran fiecare fel de decor (latime, inaltime, in pixeli de lume): desenul lui din Assets.props la
 -- PIXEL_SCALE 3, prins de baza. Modulul ramane pur, deci cifrele stau aici; un test le tine legate de Assets.
 WorldDecor.FOOTPRINT = {
@@ -34,6 +45,8 @@ WorldDecor.FOOTPRINT = {
     log = { 108, 54 },
     cattails = { 84, 114 },
     flowers = { 78, 66 },
+    rock_large = { 96, 96 },
+    barrel = { 66, 84 },
 } :: { [string]: { number } }
 
 -- Un loc pe care decorul n-are voie sa-l ACOPERE (casa unui om si numele de sub ea): un lucru e scos daca desenul lui
@@ -70,7 +83,8 @@ local function edgeness(x: number, y: number, b: Bounds): number
 end
 
 -- Toate obiectele de decor, in ordinea in care trebuie desenate (mai sus = mai in spate).
-function WorldDecor.build(seed: number, b: Bounds, count: number): { Item }
+function WorldDecor.build(seed: number, b: Bounds, count: number, kindsOf: Kinds?): { Item }
+    local zones = kindsOf or WorldDecor.VILLAGE_KINDS
     local rng = Prng.new(seed)
     local items: { Item } = {}
     local placed: { Item } = {}
@@ -106,11 +120,11 @@ function WorldDecor.build(seed: number, b: Bounds, count: number): { Item }
         local kinds: { string }
         local minDist: number
         if nearBank then
-            kinds, minDist = BANK_KINDS, 120
+            kinds, minDist = zones.bank, 120
         elseif edge > 0.55 or rng:nextNumber() < edge then
-            kinds, minDist = EDGE_KINDS, 130
+            kinds, minDist = zones.edge, 130
         else
-            kinds, minDist = FIELD_KINDS, 190
+            kinds, minDist = zones.field, 190
         end
 
         if not farEnough(x, y, minDist) then
@@ -165,7 +179,8 @@ function WorldDecor.village(
     river: { riverTop: number, riverBottom: number },
     plot: { x: number, y: number, w: number, h: number },
     oldPlot: { x: number, y: number, w: number, h: number },
-    clear: { Clear }?
+    clear: { Clear }?,
+    kindsOf: Kinds?
 ): { Item }
     local items: { Item } = {}
     local old = WorldDecor.build(seed, {
@@ -174,7 +189,7 @@ function WorldDecor.village(
         riverTop = river.riverTop,
         riverBottom = river.riverBottom,
         plot = oldPlot,
-    }, count)
+    }, count, kindsOf)
     for _, item in old do
         if not inRect(item.x, item.y, plot, KEEP_CLEAR) then
             table.insert(items, item)
@@ -197,7 +212,7 @@ function WorldDecor.village(
                     w = strip.plot.w,
                     h = strip.plot.h,
                 },
-            }, math.floor(count * width / world.oldWidth + 0.5))
+            }, math.floor(count * width / world.oldWidth + 0.5), kindsOf)
             for _, item in extra do
                 -- [D67] ca la partea veche: ce cade pe terenul de azi (un cartier construit dupa fasia asta) se scoate
                 local wx = item.x + x0
