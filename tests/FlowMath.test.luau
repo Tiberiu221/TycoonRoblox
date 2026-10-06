@@ -103,7 +103,9 @@ return function()
                 check.is_true(piles[pile] == nil)
                 piles[pile] = true
             end
-            check.equal(#FlowConfig.PILES, 6 * 3 + 3) -- [D67] sase linii, trei vanzatori
+            -- [D67] sase linii, trei vanzatori; [l3] plus barajul: trei linii cu magazie (butoaie, cablu, cristal), unirea
+            -- (doua intrari si iesirea) si orasul
+            check.equal(#FlowConfig.PILES, 34)
             -- gramezile Erei 1 sunt campurile pe care le are deja profilul
             for _, pile in
                 {
@@ -776,10 +778,10 @@ return function()
         local LA = FlowConfig.LINES_ALL
 
         test.case(
-            "un rand al barajului cerut cu modelul jocului pica, nu „nu face nimic”",
+            "[l3] un rand al barajului merge si cu modelul jocului (barajul e in joc)",
             function()
                 local items = sack({}, { barrel = 1 })
-                check.is_false((pcall(FlowMath.split, items, LA.grid)))
+                check.is_true((pcall(FlowMath.split, items, LA.grid)))
                 check.is_true((pcall(FlowMath.split, items, LA.grid, F)))
             end
         )

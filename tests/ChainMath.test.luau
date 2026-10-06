@@ -3307,9 +3307,11 @@ return function()
             end
         )
 
-        test.case("jocul ruleaza inca Erele 1-3; FULL are si barajul", function()
-            check.equal(StationConfig.ENGINE_ERAS, 3)
-            check.equal(table.find(ChainMath.GAME.lineOrder, "barrels"), nil)
+        test.case("[l3] jocul ruleaza Erele 1-4: modelul jocului are si barajul", function()
+            check.equal(StationConfig.ENGINE_ERAS, 4)
+            check.not_nil(table.find(ChainMath.GAME.lineOrder, "barrels"))
+            check.not_nil(table.find(ChainMath.GAME.lineOrder, "grid"))
+            check.equal(ChainMath.GAME.consumerOf.barrels, "grid")
             check.not_nil(table.find(ChainMath.FULL.lineOrder, "grid"))
             check.equal(ChainMath.FULL.consumerOf.barrels, "grid")
             check.equal(ChainMath.FULL.consumerOf.cable, "grid")
@@ -4209,10 +4211,27 @@ return function()
                     "batteryPort",
                     "powerhouse",
                     "powerHaul",
+                    -- [l3] Era 4, barajul: in joc de la comutator
+                    "damCollect",
+                    "damPort",
+                    "switchyard",
+                    "barrelHaul",
+                    "cableCollect",
+                    "cablePort",
+                    "cableworks",
+                    "cableHaul",
+                    "relay",
+                    "pylonRun",
+                    "crystalCollect",
+                    "crystalPort",
+                    "kiln",
+                    "ingotHaul",
                     "dock",
                     "market",
                     "depot",
+                    "town",
                 })
+                check.table.equal(GAME.links, ChainMath.FULL.links)
                 check.table.equal(StationConfig.ERA_LINKS[1], {
                     "nets",
                     "collect",
@@ -4276,6 +4295,20 @@ return function()
                     "batteryPorter",
                     "electrician",
                     "powerHauler",
+                    "damCollector",
+                    "damPorter",
+                    "switchman",
+                    "barrelHauler",
+                    "cableCollector",
+                    "cablePorter",
+                    "cablemaker",
+                    "cableHauler",
+                    "relayKeeper",
+                    "pylonRunner",
+                    "crystalCollector",
+                    "crystalPorter",
+                    "crystalsmith",
+                    "ingotHauler",
                 })
                 check.equal(StationConfig.LINK_OF.merchant, "market")
                 check.equal(StationConfig.LINK_OF.clerk, "depot")

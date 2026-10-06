@@ -1635,6 +1635,11 @@ Totalul, ~92–97 de imagini și 3 sunete până se joacă Era 4 (PLAN-HARTA §7
   lui pentru publicare.
 
 **l3. Comutatorul: singurul commit care schimbă jocul.** Depinde de: l1, l2.
+- **[l3 făcut, 2026-10-06, D77]** `ENGINE_ERAS = 4`, cele 23 de platforme `live`; comutatorul local și testul lui scoase;
+  testele de adormire rescrise (ChainMath: modelul jocului are barajul și verigile lui în lista de aur; FlowConfig 34 de
+  grămezi; FlowMath: rândul barajului merge cu modelul jocului; HandRoutes și World2Layout: oamenii barajului au drumuri;
+  PassMath: meseriile barajului sunt în lanț; TycoonConfig: Era 4 e în joc). `world1.txt` identic, `engine.txt` rescris și
+  citit rând cu rând. l2 (owner-ul în Studio) a fost sărit la cererea lui: se judecă pe staging.
 - `ENGINE_ERAS = 4` și `live = true` pe cele 23 de platforme.
 - **[Făcut pe 2026-10-04]** Textul sacului plin la unire e acum „Sack full — barrels and cable to the Relay” (42 de litere;
   `LINE_WORDS.grid.processorShort`), iar piesele „Sack full — take the barrels to the Relay”. Toate trei sunt în `GUIDE_TEXTS`.

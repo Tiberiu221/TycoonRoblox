@@ -216,7 +216,7 @@ StationConfig.ERA4_ROLES = {
 -- serverul, la pasul j al planului motorului (docs/PLAN-MOTOR-UNIRE.md: barajul, profilul v19). Pana atunci listele pe care
 -- le citesc serverul, meniurile si ghidajul (ERA_ROLES, ROLES, ERA_LINES, LINE_ORDER, SELLER_ORDER si tot ce se deriva din
 -- ele) sunt ale Erelor 1-3, iar cele `_ALL` au si barajul: din ele socoteste ChainMath.FULL (testele de aur ale barajului).
-StationConfig.ENGINE_ERAS = 3
+StationConfig.ENGINE_ERAS = 4
 StationConfig.ERA_ROLES_ALL = {
     StationConfig.ERA1_ROLES,
     StationConfig.ERA2_ROLES,

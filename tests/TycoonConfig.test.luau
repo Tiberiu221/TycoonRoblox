@@ -127,18 +127,18 @@ return function()
         )
 
         test.case(
-            "[D70] Era 4 sta adormita: niciun rand in joc, iar ce vine gratis cu barajul costa 0",
+            "[l3] Era 4 e in joc: toate randurile ei, iar ce vine gratis cu barajul costa 0",
             function()
                 local free = 0
                 for _, p in TycoonConfig.PADS do
                     if p.era == 4 then
-                        check.is_false(p.live)
+                        check.is_true(p.live)
                         if p.price == 0 then
                             free += 1
                         end
                     end
                 end
-                check.is_false(TycoonConfig.eraIsLive(4))
+                check.is_true(TycoonConfig.eraIsLive(4))
                 check.equal(free, 7)
                 for _, id in
                     {

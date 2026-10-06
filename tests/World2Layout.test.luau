@@ -182,7 +182,7 @@ return function()
             for _, p in TycoonConfig.padsOfWorld(W) do
                 check.not_nil(p.x)
                 check.not_nil(p.y)
-                check.is_false(p.live) -- adormite pana la l3
+                check.is_true(p.live) -- [l3] in joc
             end
             -- zona barajului fara gard, ceata Erei 5 dupa ea, pana la capatul lumii
             local zones = TycoonConfig.zonesOf(W)
@@ -1199,12 +1199,12 @@ return function()
                         check.equal(HandRoutes.standFor(role, 1, ctx), nil)
                     end
                 end
-                -- contextul satului nu mai cara locurile barajului; meseriile barajului adormite (implicit: al jocului)
+                -- contextul satului nu cara locurile barajului; [l3] meseriile barajului au contextul lumii lor (implicit pe meserie)
                 check.equal(HandRoutes.GAME.linePlaces.barrels, nil)
                 check.equal(HandRoutes.GAME.joinPlaces.grid, nil)
                 check.equal(HandRoutes.GAME.sellerPlaces.town, nil)
-                check.equal(HandRoutes.jobOf("damCollector"), nil)
-                check.equal(HandRoutes.standFor("relayKeeper", 1), nil)
+                check.not_nil(HandRoutes.jobOf("damCollector"))
+                check.not_nil(HandRoutes.standFor("relayKeeper", 1))
             end
         )
 

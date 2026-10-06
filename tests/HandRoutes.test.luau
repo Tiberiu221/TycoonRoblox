@@ -743,14 +743,13 @@ return function()
         end)
 
         test.case(
-            "jocul nu-i vede pe oamenii barajului; ai Erelor 1-3 merg exact ca in lumea FULL",
+            "[l3] jocul ii vede pe oamenii barajului; ai Erelor 1-3 merg exact ca in lumea FULL",
             function()
-                if StationConfig.ENGINE_ERAS < 4 then
-                    for _, role in StationConfig.ERA4_ROLES do
-                        check.is_true(HandRoutes.jobOf(role) == nil)
-                        check.is_false(HandRoutes.isWalker(role))
-                        check.is_true(HandRoutes.standFor(role, 1) == nil)
-                    end
+                -- fiecare om al barajului are un drum sau un loc unde sta
+                for _, role in StationConfig.ERA4_ROLES do
+                    check.is_true(
+                        HandRoutes.jobOf(role) ~= nil or HandRoutes.standFor(role, 1) ~= nil
+                    )
                 end
                 local full = HandRoutes.context(
                     FlowConfig.FULL,
@@ -761,6 +760,10 @@ return function()
                 )
                 local nets = { "first_net", "second_net", "third_net", "far_lane_net", "fifth_net" }
                 for _, role in StationConfig.ROLES do
+                    -- contextul FULL de aici e pe locurile satului; oamenii barajului au contextul lumii 2 (testele lor)
+                    if StationConfig.ERA_OF_ROLE[role] == 4 then
+                        continue
+                    end
                     check.equal(
                         (HandRoutes.jobOf(role) :: any).job,
                         (HandRoutes.jobOf(role, full) :: any).job

@@ -253,31 +253,39 @@ return function()
             )
         end)
     end)
-    -- [D70, verificator] meseriile barajului au rand in CREWS, dar nu sunt in lant: serverul le refuza, nu crapa
-    test.suite("Meseriile barajului adormit [D70]", function()
-        test.case("CrewMath nu le are; UpgradeCrew si Hire le refuza inainte de .count", function()
-            local CrewMath = require("../src/Shared/Modules/CrewMath")
-            local StationConfig = require("../src/Shared/Config/StationConfig")
-            local crews = CrewMath.fromProfile({}, {})
-            for _, role in StationConfig.ERA4_ROLES do
-                check.equal(crews[role], nil)
+    -- [D70, verificator] o meserie fara rand in lant e refuzata de server, nu-l face sa crape. [l3] De la comutator,
+    -- meseriile barajului sunt in lant; garda ramane pentru orice meserie a unei ere viitoare.
+    test.suite("Meseriile barajului in lant [l3]", function()
+        test.case(
+            "CrewMath le are; UpgradeCrew si Hire refuza tot o meserie necunoscuta, inainte de .count",
+            function()
+                local CrewMath = require("../src/Shared/Modules/CrewMath")
+                local StationConfig = require("../src/Shared/Config/StationConfig")
+                local crews = CrewMath.fromProfile({}, {})
+                for _, role in StationConfig.ERA4_ROLES do
+                    check.not_nil(crews[role])
+                end
+                local fs = require("@lune/fs")
+                local station = fs.readFile("src/Server/Services/StationService.luau")
+                local upgrade =
+                    string.match(station, "function StationService%.UpgradeCrew%(.-\nend") :: string
+                local guard = string.find(upgrade, "if crew == nil then", 1, true) :: number
+                check.not_nil(guard)
+                check.is_true(guard < (string.find(upgrade, "canUpgradeTier", 1, true) :: number))
+                local hands = fs.readFile("src/Server/Services/HandService.luau")
+                local hire = string.match(hands, "function HandService%.Hire%(.-\nend") :: string
+                check.is_true(string.find(hire, "if crew == nil then", 1, true) ~= nil)
+                check.is_true(string.find(hire, "crews[role].count", 1, true) == nil)
+                local dev = fs.readFile("src/Server/Services/DevService.luau")
+                check.is_true(
+                    string.find(
+                        dev,
+                        "table.find(StationConfig.ROLES, role :: string) == nil",
+                        1,
+                        true
+                    ) ~= nil
+                )
             end
-            local fs = require("@lune/fs")
-            local station = fs.readFile("src/Server/Services/StationService.luau")
-            local upgrade =
-                string.match(station, "function StationService%.UpgradeCrew%(.-\nend") :: string
-            local guard = string.find(upgrade, "if crew == nil then", 1, true) :: number
-            check.not_nil(guard)
-            check.is_true(guard < (string.find(upgrade, "canUpgradeTier", 1, true) :: number))
-            local hands = fs.readFile("src/Server/Services/HandService.luau")
-            local hire = string.match(hands, "function HandService%.Hire%(.-\nend") :: string
-            check.is_true(string.find(hire, "if crew == nil then", 1, true) ~= nil)
-            check.is_true(string.find(hire, "crews[role].count", 1, true) == nil)
-            local dev = fs.readFile("src/Server/Services/DevService.luau")
-            check.is_true(
-                string.find(dev, "table.find(StationConfig.ROLES, role :: string) == nil", 1, true)
-                    ~= nil
-            )
-        end)
+        )
     end)
 end

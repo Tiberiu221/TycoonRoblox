@@ -126,9 +126,9 @@ Detaliile, rundele de verificator și ce urmează la urcare: `docs/PLAN-MOTOR-UN
   Old Bells, Memory Wall, căsuțele, stâlpii, orășelul pictat (se aprinde cu primul curent, cu Look (V); LookController pornește
   în orice lume), cristalul pe curentul din larg.
 - **A2** (`scripts/art/a2_*.py`, `scripts/audio/a2_film.py`, planșa `a2_plate.py`): filmul, cu decorul pur în `DamFilmSet`.
-- **l1 făcut (PLAN §16):** barajul jucat cap-coadă cu sonda pe comutator, fără erori. Reparate: numele Kiln-ului, pasul
-  quest-ului de venit (`AmbitionMath`, `gainOnly`), „Your Dam keeps earning”. **Urmează:** l2 (owner-ul în Studio: filmul,
-  bannerele, mersul, telefonul), acordul pentru A3 (pământul copt), apoi l3.
+- **l1 și l3 făcute [D77]:** barajul e în joc (`ENGINE_ERAS = 4`, 23 de platforme `live`; comutatorul local a ieșit).
+  l1 = jucat cap-coadă cu sonda, fără erori. Rămân: owner-ul pe staging (filmul, bannerele, mersul, telefonul) și acordul
+  pentru A3 (pământul copt; până atunci, dale simple la baraj). **Lansarea:** producția se publică manual (D77, pct. 4).
 - **Sonda duce profilul de la un Play la altul:** `probe.py export F`, apoi `probe.py play --profile F` (doar pe profil de
   probă; `ProbeCarry` refuză un profil pe care JSON l-ar schimba). Așa se face Stop/Play-ul de după „Build the Dam” (l1).
 - **Capcană:** stylua a căzut o dată cu „Abort trap” în poartă; rulat din nou, trece. Verificatorii primesc intervalul de
@@ -168,8 +168,7 @@ recomandările owner-ului luate (O1, provizoriu).
   Depou, refuzul „raw_only” e al lor, iar cardurile atelierelor și vânzătorilor spun unde merge marfa adusă greșit. [2026-10-04]
   Clienții tavernei, ai Pieței și ai Depoului pleacă acasă cu marfa care tocmai a plecat din grămadă (`FlowMath.soldGood`; o
   găsire, ca ladă). Înainte: la tavernă mereu scândura, la Piață și la Depou mereu piesa de mașină a Morii.
-- **Comutatorul local:** `python3 scripts/era4_flip.py on|off|status` (nu se comite; un test îl prinde). Cu el pornit, pe o
-  copie, pică 11 teste: doar adormirile de rescris la l3 și marcajul comutatorului (lista în PLAN, la l3).
+- **Comutatorul local** (`era4_flip.py`) a ieșit la l3 [D77]: barajul e în joc.
 - **Capcane noi:** `rojo serve` pica pe o legătură `Packages/Packages -> Packages` (ștearsă; caut-o întâi dacă serve nu
   pornește). Proba j13 cu Studio e amânată: pluginul Rojo se reconectează doar la Connect. `check_requires` ia drept câmp
   și un comentariu de forma `Modul.camp` (scrie altfel). Nunito n-are „→”.

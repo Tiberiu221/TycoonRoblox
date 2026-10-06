@@ -11,6 +11,23 @@ Convenție: în tot proiectul, „server" înseamnă o instanță Roblox efemer�
 
 ---
 
+## D77 — Barajul intră în joc (l3); lansarea poate porni cu Erele 1–3
+**DECIS de owner pe 2026-10-06:** *„poți continua l3-ul”*, după l1 (proba cap-coadă cu sonda, fără erori).
+
+1. **l3 e făcut:** `StationConfig.ENGINE_ERAS = 4`, iar cele 23 de platforme ale Erei 4 sunt `live`. Comutatorul local
+   (`scripts/era4_flip.py`) și testul lui au ieșit, iar testele de adormire spun acum că barajul e în joc. Martorul lumii 1
+   (`tests/witness/world1.txt`) a rămas identic, iar `engine.txt` e rescris (liniile, meseriile, vânzătorul și capitolele
+   barajului).
+2. **Ce intră în joc:** după Works Bell, masa Dam Plans ridică barajul („Build the Dam”), cu filmul și reîncărcarea în lumea
+   2. Pământul copt al barajului (A3) încă nu e urcat, deci acolo se văd dalele simple până la acordul owner-ului.
+3. **Ce n-a văzut owner-ul (l2):** filmul cu muzica, bannerele (orășelul care se aprinde, clopotul), mersul oamenilor și
+   cardurile pe telefonul mic. Sunt pe staging de la acest commit.
+4. **Lansarea:** producția se publică manual, separat de staging, deci poate porni dintr-un commit dinainte de l3 (Erele 1–3,
+   cu „The Dam is coming soon!”) sau de după. Recomandarea: Erele 1–3 întâi, barajul ca primă actualizare după ce owner-ul
+   îl vede. Salvările se migrează aditiv (profil v19), deci jocul se poate dezvolta cât joacă oamenii.
+
+---
+
 ## D76 — Loturile A1, A2, A4 aprobate și de urcat; „Look across” rămâne; cardul plasei pline spune unde duci marfa
 **DECIS de owner pe 2026-10-04:** *„da la toate”*, la cele trei recomandări de după planșele A1, A2 și A4.
 

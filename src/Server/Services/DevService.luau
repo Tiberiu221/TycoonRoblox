@@ -420,7 +420,7 @@ local HANDLERS: { [string]: Handler } = {
         player:SetAttribute("World", w)
         PadService.Invalidate(player)
         StationService.Invalidate(player)
-        return `world {w} on the server only: this client is built for one map and freezes now (a probe save is gone at Stop). To see the Dam in the client: era4_flip on, then dam build and the reload (k8)`
+        return `world {w} on the server only: this client is built for one map and freezes now (a probe save is gone at Stop). To see the Dam in the client: dam build, then the reload (k8)`
     end,
 
     -- [D70, pasul j15] BARAJUL: `dam` arata chitanta de acum (DamMath.preview); `dam build` il ridica pe drumul adevarat.
