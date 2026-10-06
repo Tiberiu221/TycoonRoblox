@@ -2,7 +2,7 @@
 """Foaie de comparatie pentru cele 7 sprite-uri noi din tycoon.py, la 4x, langa 3 sprite-uri
 existente (b_workshop, prop_barrel, crate_common) ca sa se vada daca se potrivesc la stil.
 
-Scrie DOAR in scratchpad-ul sesiunii, nu in assets/sprites -- e o previzualizare de lucru, nu un
+Scrie DOAR in folderul de lucru (scripts/art/scratch.py), nu in assets/sprites -- e o previzualizare de lucru, nu un
 sprite de joc. Foloseste load() din preview_scene.py (acelasi decodor PNG) si fontul in blocuri
 din preview_items.py (aceeasi eticheta sub fiecare piesa).
 
@@ -95,10 +95,8 @@ def draw_text(c, x, y, text, color, scale=1):
                         c.rect(cx + gx * scale, y + gy * scale, scale, scale, color)
         cx += (GLYPH_W + 1) * scale
 
-DEST = (
-    "/private/tmp/claude-501/-Users-tiberiubojan-Desktop-Driftwood/"
-    "b9d4df87-0fc9-4d56-a2d7-bd3169d84806/scratchpad/art_f1_preview.png"
-)
+import scratch  # noqa: E402  (folderul de lucru: DRIFTWOOD_SCRATCH sau .scratch/)
+DEST = os.path.join(scratch.folder(), "art_f1_preview.png")
 SCALE = 4
 BG = hexc("242226")
 CARD = (255, 255, 255, 16)

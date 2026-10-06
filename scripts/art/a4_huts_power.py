@@ -35,7 +35,7 @@ Reguli ca in d65_crew / d67_crew: panze exacte (mica 32x28 pentru un om, mare 40
 (outline_trace), niciodata negru pur, semnele raman in panza. Usa poarta camasa omului, CITITA din lotul de tinute
 (a4_outfits.RECIPES, prin OUTFIT_OF / _door_cloth, ca in a4_huts_cable.py): trepta de umbra, camasa si trepta de lumina a tinutei,
 deci o usa nu mai poate ramane in urma tinutei ei; la fel haina Dispatcher-ului (stalpii tarabei, verde-maslin). Caruciorul din semnele Porter-ului, Hauler-ului si Linewalker-ului e cel de FIER
-(prop_barrow_iron), nu roaba de lemn. Scrie DOAR in --out (implicit scratchpad-ul sesiunii), nu in assets/sprites.
+(prop_barrow_iron), nu roaba de lemn. Scrie DOAR in --out (implicit folderul de lucru (scripts/art/scratch.py)), nu in assets/sprites.
 
 Dupa recenzia directorului de arta: conturul exterior e unul singur (`_trace` nu creste din inelele obiectelor, deci nu mai
 apare contur dublu de 6 px de lume); catargul Relay-ului are doua randuri de tija libera intre traversa si coama (acoperisul
@@ -75,9 +75,8 @@ try:  # marfa lotului "goods" (acelasi baril, aceleasi blocuri de curent, acelas
 except ImportError:
     G = None
 
-DEFAULT_OUT = (
-    "/private/tmp/claude-501/-Users-tiberiubojan-Desktop-Driftwood/b9d4df87-0fc9-4d56-a2d7-bd3169d84806/scratchpad/a4"
-)
+import scratch  # noqa: E402  (folderul de lucru: DRIFTWOOD_SCRATCH sau .scratch/)
+DEFAULT_OUT = scratch.folder("a4")
 SPR = "/Users/tiberiubojan/Desktop/Driftwood/assets/sprites"
 FONT = "/Applications/RobloxStudio.app/Contents/Resources/content/fonts/PressStart2P-Regular.ttf"
 
@@ -1044,7 +1043,7 @@ def stage_stall(imgs, name, box):
 
 def preview(out_dir, imgs):
     sheet = sheet_sprites(imgs)
-    cott = [(os.path.join(DEFAULT_OUT, "..", "a1", f"prop_dam_cottage_{i}.png"), wx, 1620) for i, wx in ((1, 290), (2, 430), (3, 570))]
+    cott = [(scratch.sprite(f"prop_dam_cottage_{i}", "a1"), wx, 1620) for i, wx in ((1, 290), (2, 430), (3, 570))]
     cott = [(p, wx, wy) for p, wx, wy in cott if os.path.exists(p)]
     boxA = (70, 488, 432, 552)  # de la prima casuta A1 (x lume 290) pana dincolo de Cooper (1210)
     boxB = (676, 488, 832, 552)

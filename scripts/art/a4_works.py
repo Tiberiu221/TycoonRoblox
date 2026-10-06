@@ -38,7 +38,7 @@ cu usa mare, cu gramada jocului pe peretele din stanga; atelierul are masinarie 
                           e valoarea gaterului; turnatoria de imprumut are hornul la {0.79, 0.02}.)
 
 Aceleasi reguli ca restul conductei: culori din palette.ramp(), umbra moale, contur trasat automat (outline_trace), lumina
-din stanga-sus, niciodata negru pur. Scrie DOAR in --out (implicit scratchpad-ul sesiunii), nu in assets/sprites.
+din stanga-sus, niciodata negru pur. Scrie DOAR in --out (implicit folderul de lucru (scripts/art/scratch.py)), nu in assets/sprites.
 
 Rulare: python3 scripts/art/a4_works.py [--out DIR] [--zoom nume ...]
 """
@@ -62,7 +62,8 @@ import d67_works as W  # noqa: E402
 import a1_town as T  # noqa: E402
 import a4_goods as G  # noqa: E402  [directorul A4] tamburul de cablu, acelasi ca marfa jocului
 
-SCRATCH = "/private/tmp/claude-501/-Users-tiberiubojan-Desktop-Driftwood/b9d4df87-0fc9-4d56-a2d7-bd3169d84806/scratchpad/a4"
+import scratch  # noqa: E402  (folderul de lucru: DRIFTWOOD_SCRATCH sau .scratch/)
+SCRATCH = scratch.folder("a4")
 SPR = "/Users/tiberiubojan/Desktop/Driftwood/assets/sprites"
 FONT = "/Applications/RobloxStudio.app/Contents/Resources/content/fonts/PressStart2P-Regular.ttf"
 

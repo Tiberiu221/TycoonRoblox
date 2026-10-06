@@ -99,10 +99,9 @@ FILM_SECONDS = 17.0
 # Fazele filmului, ca in DamMath.FILM (de la, pana la, nume)
 PHASES = [(0, 2, "bells"), (2, 7, "look"), (7, 11, "people"), (11, 14, "build"), (14, 17, "card")]
 # caietul de lucru al lotului A2 (vezi antetul)
-DEFAULT_OUT = (
-    "/private/tmp/claude-501/-Users-tiberiubojan-Desktop-Driftwood/"
-    "b9d4df87-0fc9-4d56-a2d7-bd3169d84806/scratchpad/a2"
-)
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "art"))
+import scratch  # noqa: E402  (folderul de lucru: DRIFTWOOD_SCRATCH sau .scratch/)
+DEFAULT_OUT = scratch.folder("a2")
 LAME = mm.LAME
 
 

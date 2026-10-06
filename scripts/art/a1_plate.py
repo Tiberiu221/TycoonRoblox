@@ -2,7 +2,7 @@
 """[D75, lotul A1] PLANSA reperelor lumii 2, pentru aprobarea owner-ului. Scrie DOAR in scratchpad; nimic nu se urca.
 
 Pune desenele lotului A1 (PNG-urile native scrise de scripts/art/a1_wall.py, a1_town.py, a1_pylons.py, a1_painted.py in
-scratchpad-ul sesiunii) la locurile lor din TycoonConfig.WORLDS[2], pe pamantul copt al barajului, cu cladirile de imprumut
+folderul de lucru (scripts/art/scratch.py)) la locurile lor din TycoonConfig.WORLDS[2], pe pamantul copt al barajului, cu cladirile de imprumut
 ale jocului unde arta lor (lotul A4) inca lipseste:
 
   a1_dam_plate.png  -- (1) zidul cu deversorul si spuma, clopotnita, Memory Wall si casutele din Dam Town;

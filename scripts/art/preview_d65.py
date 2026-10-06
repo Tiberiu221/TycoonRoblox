@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Previzualizarea artei D65 (Moara), inainte de urcare. Scrie DOAR in scratchpad-ul sesiunii.
+"""Previzualizarea artei D65 (Moara), inainte de urcare. Scrie DOAR in folderul de lucru (scripts/art/scratch.py).
 
   d65_buildings.png -- fiecare cladire a Morii la marimea din joc (x3), pe iarba, intre RUINA ei si PERECHEA din
                        Era 1 (al carei desen il poarta azi, de imprumut): se vede dintr-o privire ca e alt loc?

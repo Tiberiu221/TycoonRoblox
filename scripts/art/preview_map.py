@@ -7,7 +7,7 @@ screenshot din Studio costa si cere ca jocul sa ruleze; asta ruleaza in cateva s
 foloseste ACELEASI formule (Shoreline portat una la una) si ACELEASI fisiere din assets/sprites.
 Daca aici arata prost, arata prost si in joc.
 
-NU scrie in assets/: iese un singur PNG in scratchpad-ul sesiunii.
+NU scrie in assets/: iese un singur PNG in folderul de lucru (scripts/art/scratch.py).
 Rulare: python3 scripts/art/preview_map.py
 """
 import math
@@ -17,10 +17,8 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from preview_tycoon import load, write_png  # noqa: E402
 
-DEST = (
-    "/private/tmp/claude-501/-Users-tiberiubojan-Desktop-Driftwood/"
-    "b9d4df87-0fc9-4d56-a2d7-bd3169d84806/scratchpad/map_preview.png"
-)
+import scratch  # noqa: E402  (folderul de lucru: DRIFTWOOD_SCRATCH sau .scratch/)
+DEST = os.path.join(scratch.folder(), "map_preview.png")
 
 # ---- aceleasi cifre ca in config -------------------------------------------------------------
 W, H = 2880, 1920

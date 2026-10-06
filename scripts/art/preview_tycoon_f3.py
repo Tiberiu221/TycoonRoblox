@@ -8,7 +8,7 @@ aceeasi compunere, ca diferenta sa se vada direct, nu doar una langa alta in gri
 fost aprobat initial, apoi respins la evaluare -- citea ca o lada cu capac; prop_pier3 e al doilea
 rescris.)
 
-Scrie DOAR in scratchpad-ul sesiunii, nu in assets/sprites -- e o previzualizare de lucru.
+Scrie DOAR in folderul de lucru (scripts/art/scratch.py), nu in assets/sprites -- e o previzualizare de lucru.
 Refoloseste load()/write_png()/blit_scaled()/draw_text() din preview_tycoon.py, nu le copiaza.
 
 Rulare: python3 scripts/art/preview_tycoon_f3.py
@@ -20,10 +20,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from buildings import C, hexc  # noqa: E402
 from preview_tycoon import load, write_png, blit_scaled, draw_text, text_width, GLYPH_H  # noqa: E402
 
-DEST = (
-    "/private/tmp/claude-501/-Users-tiberiubojan-Desktop-Driftwood/"
-    "b9d4df87-0fc9-4d56-a2d7-bd3169d84806/scratchpad/art_f3_preview.png"
-)
+import scratch  # noqa: E402  (folderul de lucru: DRIFTWOOD_SCRATCH sau .scratch/)
+DEST = os.path.join(scratch.folder(), "art_f3_preview.png")
 SCALE = 4
 BG = hexc("242226")
 CARD = (255, 255, 255, 16)

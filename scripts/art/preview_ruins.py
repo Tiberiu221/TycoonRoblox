@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Previzualizarea ruinelor si a atelierului nou [D53], inainte de urcare.
 
-Doua imagini, in scratchpad-ul sesiunii (nimic in assets/):
+Doua imagini, in folderul de lucru (scripts/art/scratch.py) (nimic in assets/):
   1. ruins_pairs.png -- fiecare ruina langa ce devine, la marimea din joc (x2 recuzita, x3 cladirile),
      pe iarba, iar plasele pe ponton si apa; atelierul vechi (b_workshop) langa cel nou, pentru comparatie;
   2. ruins_shore.png -- malul din primul minut, cu toate ruinele pe locul lor, la jumatate din marime:
@@ -18,7 +18,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from preview_tycoon import load, write_png, draw_text, text_width  # noqa: E402
 import ruins_d53  # noqa: E402
 
-SCRATCH = "/private/tmp/claude-501/-Users-tiberiubojan-Desktop-Driftwood/b9d4df87-0fc9-4d56-a2d7-bd3169d84806/scratchpad"
+import scratch  # noqa: E402  (folderul de lucru: DRIFTWOOD_SCRATCH sau .scratch/)
+SCRATCH = scratch.folder()
 PIXEL_SCALE, PROP_SCALE = 3, 2
 LANE_Y = {1: 732, 2: 660, 3: 588}
 DECK = (240, 1560, 772, 856)

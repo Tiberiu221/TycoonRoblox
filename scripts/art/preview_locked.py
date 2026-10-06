@@ -6,7 +6,7 @@ DE CE: schimbarea asta se judeca doar cu ochiul -- "se vede ce cumperi?" si "se 
 apa, ca sa le pot compara eu inainte sa fie deschis Studio.
 
 Cifrele si tintele sunt copiate din PadController (GHOST_TINT, GHOST_FADE, READY_FADE).
-Scrie un singur PNG in scratchpad-ul sesiunii. Rulare: python3 scripts/art/preview_locked.py
+Scrie un singur PNG in folderul de lucru (scripts/art/scratch.py). Rulare: python3 scripts/art/preview_locked.py
 """
 import os
 import sys
@@ -14,10 +14,8 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from preview_tycoon import load, write_png, draw_text, text_width  # noqa: E402
 
-DEST = (
-    "/private/tmp/claude-501/-Users-tiberiubojan-Desktop-Driftwood/"
-    "b9d4df87-0fc9-4d56-a2d7-bd3169d84806/scratchpad/locked_preview.png"
-)
+import scratch  # noqa: E402  (folderul de lucru: DRIFTWOOD_SCRATCH sau .scratch/)
+DEST = os.path.join(scratch.folder(), "locked_preview.png")
 
 PIXEL_SCALE, PROP_SCALE = 3, 2
 PAD_SIZE, HALF = 96, 48

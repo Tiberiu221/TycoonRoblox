@@ -22,3 +22,9 @@
 
 # Duplicate din prima rulare de research (pastrate local, nu in repo)
 /docs/research/_dup/
+
+# Folderul de lucru al scripturilor de arta si sunet (scripts/art/scratch.py): planse, previzualizari
+/.scratch/
+
+# Python
+__pycache__/

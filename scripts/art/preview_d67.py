@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Previzualizarea artei D67 (Wire Works), inainte de urcare. Scrie DOAR in scratchpad-ul sesiunii.
+"""Previzualizarea artei D67 (Wire Works), inainte de urcare. Scrie DOAR in folderul de lucru (scripts/art/scratch.py).
 
   d67_buildings.png -- fiecare cladire a Erei 3 la marimea din joc (x3), pe iarba, intre RUINA ei si PERECHEA din
                        Moara (al carei desen il poarta azi, de imprumut): se vede dintr-o privire ca e alt loc?

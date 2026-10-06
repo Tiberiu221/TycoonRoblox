@@ -57,9 +57,8 @@ import d65_mill as M  # noqa: E402
 import d67_works as W  # noqa: E402
 import a1_pylons as A1  # noqa: E402
 
-DEFAULT_OUT = (
-    "/private/tmp/claude-501/-Users-tiberiubojan-Desktop-Driftwood/b9d4df87-0fc9-4d56-a2d7-bd3169d84806/scratchpad/a4"
-)
+import scratch  # noqa: E402  (folderul de lucru: DRIFTWOOD_SCRATCH sau .scratch/)
+DEFAULT_OUT = scratch.folder("a4")
 SPR = os.path.join(os.path.dirname(os.path.dirname(HERE)), "assets", "sprites")
 
 # ---------------------------------------------------------------------------------------------

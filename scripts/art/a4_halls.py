@@ -41,7 +41,7 @@ CRYS_VIO din a1_pylons). Un pas dupa Wire Works (caramida, tabla, fier nituit): 
                              cu turnul de zabrele (Works) si nici cu turnul subtire Old Bells.
 
 Aceleasi reguli ca restul conductei: culori din palette.ramp(), umbra moale, contur trasat automat (outline_trace),
-lumina din stanga-sus, niciodata negru pur. Scrie DOAR in --out (implicit scratchpad-ul sesiunii), nu in assets/sprites.
+lumina din stanga-sus, niciodata negru pur. Scrie DOAR in --out (implicit folderul de lucru (scripts/art/scratch.py)), nu in assets/sprites.
 
 Rulare: python3 scripts/art/a4_halls.py [--out DIR] [--only NUME]
 """
@@ -63,9 +63,8 @@ import d67_works as W  # noqa: E402
 import a1_town as T  # noqa: E402
 import a1_pylons as P  # noqa: E402
 
-DEFAULT_OUT = (
-    "/private/tmp/claude-501/-Users-tiberiubojan-Desktop-Driftwood/b9d4df87-0fc9-4d56-a2d7-bd3169d84806/scratchpad/a4"
-)
+import scratch  # noqa: E402  (folderul de lucru: DRIFTWOOD_SCRATCH sau .scratch/)
+DEFAULT_OUT = scratch.folder("a4")
 SPR = "/Users/tiberiubojan/Desktop/Driftwood/assets/sprites"
 FONT = "/Applications/RobloxStudio.app/Contents/Resources/content/fonts/PressStart2P-Regular.ttf"
 
@@ -1324,7 +1323,7 @@ def preview(out_dir, imgs):
         boxes[n] = place(placed, imgs[n], n)
     # stalpul de culoar (A1), ca sa se vada unde pleaca curentul din Relay
     pl = os.path.join(out_dir, "prop_pylon_lane.png")
-    pl_a1 = "/private/tmp/claude-501/-Users-tiberiubojan-Desktop-Driftwood/b9d4df87-0fc9-4d56-a2d7-bd3169d84806/scratchpad/a1/prop_pylon_lane.png"
+    pl_a1 = scratch.sprite("prop_pylon_lane", "a1")
     pyl = None
     for cand in (pl, pl_a1):
         if os.path.exists(cand):

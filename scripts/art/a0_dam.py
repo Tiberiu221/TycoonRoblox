@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """[D70, lotul A0] PLANSE FARA URCARE pentru barajul lumii 2 (docs/PLAN-MOTOR-UNIRE.md §16, PLAN-HARTA §7 pasul 1).
-Scrie DOAR in scratchpad-ul sesiunii; nimic nu intra in assets/sprites si nimic nu se urca.
+Scrie DOAR in folderul de lucru (scripts/art/scratch.py); nimic nu intra in assets/sprites si nimic nu se urca.
 
   a0_dam_wall.png -- zidul barajului la locul lui (lumea 2, x 640-880), cu fata din aval si spuma de la picior, ca sa nu
                      para pod. Doua variante: A, piatra (zidit din satul vechi, cum spune filmul); B, beton cu trei stavile.

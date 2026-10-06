@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""[D70] Plansele modernizarii Erei 3, inainte de urcare. Scrie DOAR in scratchpad-ul sesiunii.
+"""[D70] Plansele modernizarii Erei 3, inainte de urcare. Scrie DOAR in folderul de lucru (scripts/art/scratch.py).
 
   d70_stage1.png .. d70_stage5.png  -- fiecare treapta: INAINTE (desenul urcat azi, din assets/sprites) si DUPA (d70_modern,
                                        in memorie), la marimea din joc (x3 cladirile, x2 recuzita), pe iarba

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Moara, asa cum ar trebui sa arate in joc cu arta ei [D65]: pamantul copt (cele doua felii), cladirile si casele la
-locurile din TycoonConfig, copacii imprastiati. Scrie DOAR in scratchpad-ul sesiunii.
+locurile din TycoonConfig, copacii imprastiati. Scrie DOAR in folderul de lucru (scripts/art/scratch.py).
 
 Nu e jocul: fara oameni, fara gramezi, fara HUD, iar casele sunt cele MARI (doi oameni). E o proba de ASEZARE, facuta
 din aceleasi cifre ca jocul (scripts/art/village_geometry.luau + un mic export Lune al locurilor Morii): roata de apa

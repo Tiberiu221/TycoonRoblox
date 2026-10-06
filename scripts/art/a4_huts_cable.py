@@ -44,7 +44,7 @@ CHIMNEYS. Doar procesatorii au horn (Cablemaker, Crystalsmith), la ambele varian
 ramana loc de contur.
 
 Aceleasi reguli ca restul conductei: culori din palette.ramp() si ale vecinilor, lumina din stanga-sus, niciodata negru pur.
-Scrie DOAR in --out (implicit scratchpad-ul sesiunii), nu in assets/sprites. Verifica singur ca nimic nu iese din panza si nu
+Scrie DOAR in --out (implicit folderul de lucru (scripts/art/scratch.py)), nu in assets/sprites. Verifica singur ca nimic nu iese din panza si nu
 se lipeste de margine fara contur (mesajele ATENTIE).
 
 Rulare: python3 scripts/art/a4_huts_cable.py [--out DIR] [--regen-ground]
@@ -73,7 +73,8 @@ import a1_pylons as P  # noqa: E402
 import a4_goods as G  # noqa: E402  (marfa lotului de marfa: tamburul de cablu si lingoul de cristal sunt ale ei)
 import a4_outfits as O  # noqa: E402  (tinutele lotului de tinute: usa fiecarei case e camasa omului ei)
 
-SCRATCH = "/private/tmp/claude-501/-Users-tiberiubojan-Desktop-Driftwood/b9d4df87-0fc9-4d56-a2d7-bd3169d84806/scratchpad/a4"
+import scratch  # noqa: E402  (folderul de lucru: DRIFTWOOD_SCRATCH sau .scratch/)
+SCRATCH = scratch.folder("a4")
 SPR = os.path.join(os.path.dirname(os.path.dirname(HERE)), "assets", "sprites")
 FONT = "/Applications/RobloxStudio.app/Contents/Resources/content/fonts/PressStart2P-Regular.ttf"
 

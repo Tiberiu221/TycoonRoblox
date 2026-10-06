@@ -25,10 +25,8 @@ from preview_tycoon import load, write_png, blit_scaled, draw_text, text_width, 
 from preview_tycoon_f2 import slice_stretch  # noqa: E402
 
 SPR = "/Users/tiberiubojan/Desktop/Driftwood/assets/sprites"
-DEST = (
-    "/private/tmp/claude-501/-Users-tiberiubojan-Desktop-Driftwood/"
-    "b9d4df87-0fc9-4d56-a2d7-bd3169d84806/scratchpad/layout_mockup.png"
-)
+import scratch  # noqa: E402  (folderul de lucru: DRIFTWOOD_SCRATCH sau .scratch/)
+DEST = os.path.join(scratch.folder(), "layout_mockup.png")
 
 # Cateva glife de punctuatie care nu existau in fontul in blocuri (litere + cifre): pretul,
 # rata si etichetele plaselor au nevoie de "+", "." si "/". Adaugate in dictionarul PARTAJAT

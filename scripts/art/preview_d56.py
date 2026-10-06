@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Previzualizarea artei D56, inainte de urcare. Scrie DOAR in scratchpad-ul sesiunii.
+"""Previzualizarea artei D56, inainte de urcare. Scrie DOAR in folderul de lucru (scripts/art/scratch.py).
 
   d56_people.png  -- Scrap Collector, Scrap Porter si Iron Hauler cu roaba (mersul in trei directii, incarcatul,
                      rasturnatul), Smelter-ul la ciocan si stand -- la x4, pe iarba, compusi din straturi ca in joc;

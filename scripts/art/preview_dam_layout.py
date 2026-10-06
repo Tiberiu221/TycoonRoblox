@@ -17,7 +17,8 @@ from PIL import Image, ImageDraw, ImageFont
 
 # [2026-10-03] Propunerea de asezare a cartierului barajului (docs/PLAN-HARTA.md, sectiunea 9), NEAPROBATA. Planse in
 # scratchpad, ca celelalte preview_*.py; nimic nu se urca.
-SCRATCH = "/private/tmp/claude-501/-Users-tiberiubojan-Desktop-Driftwood/b9d4df87-0fc9-4d56-a2d7-bd3169d84806/scratchpad"
+import scratch  # noqa: E402  (folderul de lucru: DRIFTWOOD_SCRATCH sau .scratch/)
+SCRATCH = scratch.folder()
 OUT_PNG = os.path.join(SCRATCH, "dam_layout_preview.png")
 OUT_JSON = os.path.join(SCRATCH, "dam_layout.json")
 OUT_ZOOM = os.path.join(SCRATCH, "dam_town_decor_zoom.png")

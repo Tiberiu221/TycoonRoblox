@@ -19,7 +19,7 @@ retrasi. Barajul e de piatra (varianta A din a0_dam.py), deci orasul de langa el
                                care sunt de busteni cu stuf.
 
 Aceleasi reguli ca restul conductei: culori din palette.ramp(), umbra moale, contur trasat automat (outline_trace),
-lumina din stanga-sus, niciodata negru pur. Scrie DOAR in --out (implicit scratchpad-ul sesiunii), nu in assets/sprites.
+lumina din stanga-sus, niciodata negru pur. Scrie DOAR in --out (implicit folderul de lucru (scripts/art/scratch.py)), nu in assets/sprites.
 
 Rulare: python3 scripts/art/a1_town.py [--out DIR]
 """
@@ -38,7 +38,8 @@ from ruins_d53 import MOSS, line  # noqa: E402
 import d65_mill as M  # noqa: E402
 import d67_works as W  # noqa: E402
 
-SCRATCH = "/private/tmp/claude-501/-Users-tiberiubojan-Desktop-Driftwood/b9d4df87-0fc9-4d56-a2d7-bd3169d84806/scratchpad/a1"
+import scratch  # noqa: E402  (folderul de lucru: DRIFTWOOD_SCRATCH sau .scratch/)
+SCRATCH = scratch.folder("a1")
 SPR = "/Users/tiberiubojan/Desktop/Driftwood/assets/sprites"
 FONT = "/Applications/RobloxStudio.app/Contents/Resources/content/fonts/PressStart2P-Regular.ttf"
 
@@ -786,6 +787,8 @@ def preview(out_dir):
     # arata daca fusul se desprinde de piatra din spate
     wall_tower = None
     wall_path = os.path.join(out_dir, "prop_dam_wall.png")
+    if not os.path.exists(wall_path):
+        wall_path = scratch.sprite("prop_dam_wall", "a1")  # zidul urcat, cand copia de lucru lipseste
     if os.path.exists(wall_path):
         wall = Image.open(wall_path).convert("RGBA")
         comp = Image.new("RGBA", wall.size, bg)

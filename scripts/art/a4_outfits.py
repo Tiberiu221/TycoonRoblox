@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """[D75, lotul A4, grupul "outfits"] Cele 15 foi de tinuta ale oamenilor barajului (Era 4). Scrie DOAR in --out (implicit
-scratchpad-ul sesiunii); nimic nu intra in assets/sprites si nimic nu se urca. Nu editeaza settlers.py: IMPORTA desenatorul lui
+folderul de lucru (scripts/art/scratch.py)); nimic nu intra in assets/sprites si nimic nu se urca. Nu editeaza settlers.py: IMPORTA desenatorul lui
 (`build_sheet`) si ii da 15 retete noi, adaugate in dictionarul OUTFITS doar in memorie (register()).
 
 Fiecare foaie e 64x480 = 4 cadre de 16x24 x 20 randuri (settlers.ROWS), STRATUL tinutei, fara tinta de culoare, exact ca
@@ -135,7 +135,8 @@ from palette import hsv, shade  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(HERE))
 SPR = os.path.join(ROOT, "assets", "sprites")
-SCRATCH = "/private/tmp/claude-501/-Users-tiberiubojan-Desktop-Driftwood/b9d4df87-0fc9-4d56-a2d7-bd3169d84806/scratchpad/a4"
+import scratch  # noqa: E402  (folderul de lucru: DRIFTWOOD_SCRATCH sau .scratch/)
+SCRATCH = scratch.folder("a4")
 FONT = "/Applications/RobloxStudio.app/Contents/Resources/content/fonts/PressStart2P-Regular.ttf"
 GROUND = os.path.join(SPR, "prop_dam_ground.png")
 

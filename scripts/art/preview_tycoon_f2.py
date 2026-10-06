@@ -5,7 +5,7 @@ un bloc separat care INTINDE cele trei piese cu 9 felii (ui_plaque, ui_card, ui_
 mari, exact cum ar face Roblox cu ScaleType.Slice. Asta e verificarea ceruta de spec: o rama cu 9
 felii gresita se vede abia cand e intinsa, nu la marimea nativa.
 
-Scrie DOAR in scratchpad-ul sesiunii, nu in assets/sprites -- e o previzualizare de lucru.
+Scrie DOAR in folderul de lucru (scripts/art/scratch.py), nu in assets/sprites -- e o previzualizare de lucru.
 Refoloseste load()/write_png()/blit_scaled()/draw_text() din preview_tycoon.py (F1) in loc sa le
 copieze din nou.
 
@@ -19,10 +19,8 @@ from buildings import C, hexc  # noqa: E402
 from preview_tycoon import load, write_png, blit_scaled, draw_text, text_width, GLYPH_H  # noqa: E402
 
 SPR = "/Users/tiberiubojan/Desktop/Driftwood/assets/sprites"
-DEST = (
-    "/private/tmp/claude-501/-Users-tiberiubojan-Desktop-Driftwood/"
-    "b9d4df87-0fc9-4d56-a2d7-bd3169d84806/scratchpad/art_f2_preview.png"
-)
+import scratch  # noqa: E402  (folderul de lucru: DRIFTWOOD_SCRATCH sau .scratch/)
+DEST = os.path.join(scratch.folder(), "art_f2_preview.png")
 SCALE = 4
 BG = hexc("242226")
 CARD = (255, 255, 255, 16)

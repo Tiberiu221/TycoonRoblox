@@ -129,6 +129,9 @@ Detaliile, rundele de verificator și ce urmează la urcare: `docs/PLAN-MOTOR-UN
 - **l1 și l3 făcute [D77]:** barajul e în joc (`ENGINE_ERAS = 4`, 23 de platforme `live`; comutatorul local a ieșit).
   l1 = jucat cap-coadă cu sonda, fără erori. Rămân: owner-ul pe staging (filmul, bannerele, mersul, telefonul) și acordul
   pentru A3 (pământul copt; până atunci, dale simple la baraj). **Lansarea:** producția se publică manual (D77, pct. 4).
+- **Folderul de lucru al scripturilor de artă și sunet:** `scripts/art/scratch.py` (`DRIFTWOOD_SCRATCH`, altfel `.scratch/` din
+  repo, ignorat de git). Nicio cale de scratchpad al unei sesiuni nu mai e scrisă în scripturi. Desenele loturilor urcate se
+  citesc din `assets/sprites` când lipsește copia de lucru (`scratch.sprite`).
 - **Sonda duce profilul de la un Play la altul:** `probe.py export F`, apoi `probe.py play --profile F` (doar pe profil de
   probă; `ProbeCarry` refuză un profil pe care JSON l-ar schimba). Așa se face Stop/Play-ul de după „Build the Dam” (l1).
 - **Capcană:** stylua a căzut o dată cu „Abort trap” în poartă; rulat din nou, trece. Verificatorii primesc intervalul de
@@ -175,7 +178,7 @@ recomandările owner-ului luate (O1, provizoriu).
 - **k12 (fără urcare):** `village_ground.py --world 2` coace `prop_dam_ground` / `_2` (`dam_ground.lock`; `--check` pe ambele lumi),
   `SceneArt.BAKED_GROUND` pe lume. ID-urile rămân 0 până la acordul owner-ului. Odată cu urcarea intră și `BAKED_DISTRICTS` `dam_town`
   / `dam` (testul World2Ground le ține împreună).
-- **A0, planșele (așteaptă owner-ul):** `python3 scripts/art/a0_dam.py` scrie în scratchpad `a0_dam_wall.png` (A piatră,
+- **A0, planșele (așteaptă owner-ul):** `python3 scripts/art/a0_dam.py` scrie în folderul de lucru `a0_dam_wall.png` (A piatră,
   recomandat; B beton cu stavile) și `a0_dam_film.png` (șase cadre-cheie). Pământul lumii 2 se vede cu `--world 2 --preview`.
 - **Verificatorii k6–k11 sunt reparați** (pagina „Your people” era goală, filmul cădea la `Init`, oamenii retrași stăteau unul
   peste altul; notele sunt în PLAN §16). **Schimbări voite în sat:** cardul unui vânzător fără ce vinde spune unde merge marfa

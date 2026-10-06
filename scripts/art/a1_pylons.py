@@ -42,9 +42,8 @@ from ruins_d53 import line  # noqa: E402
 import d67_works as W  # noqa: E402
 from d59 import in_water  # noqa: E402
 
-DEFAULT_OUT = (
-    "/private/tmp/claude-501/-Users-tiberiubojan-Desktop-Driftwood/b9d4df87-0fc9-4d56-a2d7-bd3169d84806/scratchpad/a1"
-)
+import scratch  # noqa: E402  (folderul de lucru: DRIFTWOOD_SCRATCH sau .scratch/)
+DEFAULT_OUT = scratch.folder("a1")
 GRASS_BG = (86, 128, 64, 255)
 # conturul fierului: ACELASI maro ca la restul fierului din sat (felinarul, Power House); testat si cu unul neutru: pe
 # iarba si pe piatra podului, maroul ramane in familia desenelor vecine, iar zabrelele galvanizate se desprind mai bine din el

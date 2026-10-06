@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """[D75, lotul A1, grupul "turbine"] Fata turbinei BARAJULUI, desenata pe aceeasi grila de 3 px ca zidul de piatra.
-Scrie DOAR in scratchpad-ul sesiunii (--out); nimic nu intra in assets/sprites si nimic nu se urca.
+Scrie DOAR in folderul de lucru (scripts/art/scratch.py) (--out); nimic nu intra in assets/sprites si nimic nu se urca.
 
 Pana acum jocul punea in gura boltii turbina Erei 3 (prop_turbine, 48x48, pixeli de 1 px de lume) la 48x48 de lume: pixelii ei
 erau de trei ori mai fini decat piatra si arata ca un abtibild. Aici e turbina barajului insusi, la grila zidului (1 px de arta
@@ -47,6 +47,7 @@ D = 3  # pixeli de lume pe pixel de arta
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
 SPR = os.path.join(ROOT, "assets", "sprites")
+import scratch  # noqa: E402  (folderul de lucru: DRIFTWOOD_SCRATCH sau .scratch/)
 SCRATCH = AW.SCRATCH
 OUTDIR = SCRATCH  # unde se scriu sprite-urile; main() il schimba dupa --out
 
@@ -54,7 +55,7 @@ OUTDIR = SCRATCH  # unde se scriu sprite-urile; main() il schimba dupa --out
 def src_png(name):
     """Zidul, panza si spuma pentru previzualizare: din --out daca sunt acolo, altfel din scratchpad-ul A1."""
     p = os.path.join(OUTDIR, name + ".png")
-    return Image.open(p if os.path.exists(p) else os.path.join(SCRATCH, name + ".png")).convert("RGBA")
+    return Image.open(p if os.path.exists(p) else scratch.sprite(name, "a1")).convert("RGBA")
 
 # ---- locul in zid (coloana 64, randul 102 = lume 831 x 699) -------------------------------------------------------------------
 TW, TH = 16, 20

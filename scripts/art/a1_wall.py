@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """[D75, lotul A1, grupul "wall"] Zidul barajului de piatra (varianta A aprobata la A0) si cele doua suprapuneri animate.
-Scrie DOAR in scratchpad-ul sesiunii (--out); nimic nu intra in assets/sprites si nimic nu se urca.
+Scrie DOAR in folderul de lucru (scripts/art/scratch.py) (--out); nimic nu intra in assets/sprites si nimic nu se urca.
 
   prop_dam_wall   80x189  zidul de piatra, vazut de sus in 3/4, lumina din stanga-sus. De la stanga la dreapta: coama
                           (parapetul spre lacul linistit, lespezi mari de pavaj, balustrada de lemn spre aval), fata din aval
@@ -42,7 +42,8 @@ D = 3  # pixeli de lume pe pixel de arta (Assets.PIXEL_SCALE)
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
 SPR = os.path.join(ROOT, "assets", "sprites")
-SCRATCH = "/private/tmp/claude-501/-Users-tiberiubojan-Desktop-Driftwood/b9d4df87-0fc9-4d56-a2d7-bd3169d84806/scratchpad/a1"
+import scratch  # noqa: E402  (folderul de lucru: DRIFTWOOD_SCRATCH sau .scratch/)
+SCRATCH = scratch.folder("a1")
 FONT = "/Applications/RobloxStudio.app/Contents/Resources/content/fonts/PressStart2P-Regular.ttf"
 
 # ---- geometria (TycoonConfig.WORLDS[2].wall, deversorul si turbina, prin village_ground) -------------------------------

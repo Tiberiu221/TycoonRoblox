@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """[D75, lotul A2, grupul "build"] Santierul filmului barajului (DamMath.FILM, faza "build", 11-14 s): schela peste rau, zidul
 care creste din ambele maluri, cele doua capete neterminate, macaraua, caruciorul, gramada de piatra si praful de ciocan.
-Arta e desenata in culori de ZI: jocul pune amurgul (70,34,52) la 45% peste tot. Scrie DOAR in scratchpad-ul sesiunii (--out);
+Arta e desenata in culori de ZI: jocul pune amurgul (70,34,52) la 45% peste tot. Scrie DOAR in folderul de lucru (scripts/art/scratch.py) (--out);
 nimic nu intra in assets/sprites si nimic nu se urca.
 
 NUMERELE FILMULUI (DamFilmSet, in pixeli de arta = lume / 3): zidul sta pe x 213-293 si de la y 127 (malul de nord) la y 257 (malul
@@ -79,8 +79,9 @@ import village_ground as VG  # noqa: E402
 D = 3  # pixeli de lume pe pixel de arta (Assets.PIXEL_SCALE)
 ROOT = os.path.dirname(os.path.dirname(HERE))
 SPR = os.path.join(ROOT, "assets", "sprites")
-SCRATCH = "/private/tmp/claude-501/-Users-tiberiubojan-Desktop-Driftwood/b9d4df87-0fc9-4d56-a2d7-bd3169d84806/scratchpad/a2"
-A1_WALL_PNG = "/private/tmp/claude-501/-Users-tiberiubojan-Desktop-Driftwood/b9d4df87-0fc9-4d56-a2d7-bd3169d84806/scratchpad/a1/prop_dam_wall.png"
+import scratch  # noqa: E402  (folderul de lucru: DRIFTWOOD_SCRATCH sau .scratch/)
+SCRATCH = scratch.folder("a2")
+A1_WALL_PNG = scratch.sprite("prop_dam_wall", "a1")
 FONT = "/Applications/RobloxStudio.app/Contents/Resources/content/fonts/PressStart2P-Regular.ttf"
 
 # ---- numerele filmului (DamFilmSet.wall(): x0 639, top 381, bottom 771 lume) --------------------------------------------------

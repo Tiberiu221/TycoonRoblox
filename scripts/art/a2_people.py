@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """[D75, lotul A2, grupul "people and bells"] Oamenii si clopotul filmului barajului (DamMath.FILM, DamFilm).
-Scrie DOAR in scratchpad-ul sesiunii (--out); nimic nu intra in assets/sprites si nimic nu se urca.
+Scrie DOAR in folderul de lucru (scripts/art/scratch.py) (--out); nimic nu intra in assets/sprites si nimic nu se urca.
 
   prop_film_walkers  64x96  4 randuri x 4 cadre de 16x24 (aceeasi grila ca foile oamenilor body_a / outfit_*; in joc, x2,5):
                             SILUETE la apus care merg spre DREAPTA. Corpul (38,24,42), bratul dinspre noi un pic mai deschis si
@@ -58,7 +58,8 @@ from palette import mix  # noqa: E402,F401
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
 SPR = os.path.join(ROOT, "assets", "sprites")
-SCRATCH = "/private/tmp/claude-501/-Users-tiberiubojan-Desktop-Driftwood/b9d4df87-0fc9-4d56-a2d7-bd3169d84806/scratchpad/a2"
+import scratch  # noqa: E402  (folderul de lucru: DRIFTWOOD_SCRATCH sau .scratch/)
+SCRATCH = scratch.folder("a2")
 FONT = "/Applications/RobloxStudio.app/Contents/Resources/content/fonts/PressStart2P-Regular.ttf"
 
 CW, CH = 16, 24  # celula unui om (AnimConfig.FRAME_WIDTH / FRAME_HEIGHT)

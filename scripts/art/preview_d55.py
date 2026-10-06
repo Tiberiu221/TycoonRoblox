@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Previzualizarea artei D55, inainte de urcare. Scrie DOAR in scratchpad-ul sesiunii.
+"""Previzualizarea artei D55, inainte de urcare. Scrie DOAR in folderul de lucru (scripts/art/scratch.py).
 
   d55_people.png  -- un Collector, un Porter si un Hauler cu roaba: mersul in cele patru directii, incarcatul
                      si rasturnatul, cadru cu cadru, cu fiecare incarcatura -- la x4, pe iarba;
@@ -21,7 +21,8 @@ from preview_tycoon import load, write_png, draw_text, text_width  # noqa: E402
 import settlers as S  # noqa: E402
 import d55  # noqa: E402
 
-SCRATCH = "/private/tmp/claude-501/-Users-tiberiubojan-Desktop-Driftwood/b9d4df87-0fc9-4d56-a2d7-bd3169d84806/scratchpad"
+import scratch  # noqa: E402  (folderul de lucru: DRIFTWOOD_SCRATCH sau .scratch/)
+SCRATCH = scratch.folder()
 INK = (240, 234, 216, 255)
 GRASS_BG = (86, 128, 64, 255)
 
