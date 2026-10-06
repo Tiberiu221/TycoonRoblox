@@ -178,7 +178,7 @@ return function()
             for _, case in
                 {
                     { 50e12, 0 }, -- peste suma: darul
-                    { 10e12, 0 }, -- sub suma: satul completeaza
+                    { 5e12, 0 }, -- sub suma (9T, D78): satul completeaza
                     { START, 0 }, -- exact suma
                     { 50e12, 3e12 }, -- monede Robux in mana: raman peste suma
                     { 2e12, 5e12 }, -- contorul mai mare decat monedele: R = C
@@ -200,9 +200,9 @@ return function()
             local over = DamMath.build(village(50e12), ctx()) :: DamMath.Receipt
             check.equal(over.gift, 50e12 - START)
             check.equal(over.topUp, 0)
-            local under = DamMath.build(village(10e12), ctx()) :: DamMath.Receipt
+            local under = DamMath.build(village(5e12), ctx()) :: DamMath.Receipt
             check.equal(under.gift, 0)
-            check.equal(under.topUp, START - 10e12)
+            check.equal(under.topUp, START - 5e12)
         end)
 
         test.case(

@@ -1282,10 +1282,10 @@ for role, crew in TycoonConfig.CREWS do
 end
 TycoonConfig.CREW_OF_PAD = crewOfPad
 
--- [D70, D74] Suma cu care porneste oricine la baraj (lumea 2): din simulator (`DamRun.start_sum`, cea mai mare dintre
--- costul primelor 5 minute ale erei si o noapte la Works Bell), verificata de `check_config_dam`. Monedele cumparate cu
--- Robux trec intregi peste ea (D74, punctul 8).
-TycoonConfig.DAM_START_COINS = 35000000000000
+-- [D70, D74, D78] Suma cu care porneste oricine la baraj (lumea 2): din simulator (`DamRun.start_sum`, costul primelor 5
+-- minute ale erei, rotunjit in sus), verificata de `check_config_dam`. Pana la D78 era 35T (o noapte la Works Bell): cu ea
+-- cumparai din prima jumatate din baraj. Monedele cumparate cu Robux trec intregi peste ea (D74, punctul 8).
+TycoonConfig.DAM_START_COINS = 9000000000000
 
 -- Platformele, in ordine. Preturile NU se calculeaza aici -- vin exact din simulator (sim_tycoon.py, lacom), care le
 -- si verifica la fiecare rulare. Era 1, Era 2 si Era 3 [D67]; erele urmatoare nu exista inca [D64].

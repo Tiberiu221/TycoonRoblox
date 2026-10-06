@@ -11,6 +11,24 @@ Convenție: în tot proiectul, „server" înseamnă o instanță Roblox efemer�
 
 ---
 
+## D78 — La baraj pornești cu 9T, nu cu 35T
+**DECIS de owner pe 2026-10-06** (varianta 1 din trei): *„cu banii pe care-i primești la început poți să cumperi direct etapa
+2/2 din era 4, este ciudat”*.
+
+1. **Suma de start a barajului e costul primelor 5 minute ale erei**, rotunjit în sus: **9T** (simulatorul: 8,13T). Regula
+   veche (D70 Runda 4) lua cea mai mare dintre asta și „o noapte fără pass-uri la Works Bell” (34,86T → 35T): cu ea cumpărai
+   din prima cei șase oameni, Cable Net II și Cable Net III, adică jumătate din baraj.
+2. **Acum:** din banii de start iei cei șase oameni ai cablului (1,58T) și Cable Net II (1,5T), restul intră în niveluri.
+   Cable Net III (16T) e primul lucru pentru care strângi. Era 4 ține 48m39s reali (înainte 45m16s) și trece `--robust`.
+3. **Prețul, spus dinainte:** cine ridică barajul după o noapte de lipsă lasă în baraj banii nopții de peste 9T. Îi recuperează
+   în ~20–25 de minute, fiindcă venitul de la baraj e de 16 ori mai mare. Regula din D70 rămâne: toți pornesc cu aceeași sumă,
+   ce e peste ea intră în construcție, e scris pe ecranul „Build the Dam” și nimic plătit nu se taie (monedele Robux trec
+   peste sumă, D74 pct. 8).
+4. **Porțile simulatorului:** „cei șase costă puțin din sumă” trece de la 10% la 25% (acum 17,6%: îi iei din prima și îți
+   rămân bani de joc).
+
+---
+
 ## D77 — Barajul intră în joc (l3); lansarea poate porni cu Erele 1–3
 **DECIS de owner pe 2026-10-06:** *„poți continua l3-ul”*, după l1 (proba cap-coadă cu sonda, fără erori).
 

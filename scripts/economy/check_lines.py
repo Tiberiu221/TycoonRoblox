@@ -590,7 +590,7 @@ def config_era4_problems(expect):
 
     T = load()
     expect("Era 4: randurile din joc, neatinse", (T.check_config_era4(), T.check_era4_after(T.State())), ([], []))
-    expect("Era 4: suma de start, neatinsa", T.check_config_dam_start(35e12), [])
+    expect("Era 4: suma de start, neatinsa", T.check_config_dam_start(9e12), [])  # [D78]
     expect("Era 4: alta suma de start", len(T.check_config_dam_start(40e12)), 1)
     T = broken('id = "dam_turbine",\n        index = 55,', 'id = "dam_turbine",\n        index = 55,\n        price = 7,')
     expect("Era 4: turbina cu pret", len(T.check_config_era4()) >= 1, True)

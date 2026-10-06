@@ -153,7 +153,7 @@ return function()
                 do
                     check.equal(TycoonConfig.byId[id].price, 0)
                 end
-                check.equal(TycoonConfig.DAM_START_COINS, 35000000000000)
+                check.equal(TycoonConfig.DAM_START_COINS, 9000000000000) -- [D78]
             end
         )
 

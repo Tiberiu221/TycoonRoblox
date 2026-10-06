@@ -30,7 +30,7 @@ Arhivat, nu în proiect: masterplanul vechi, direcțiile concurente, documentele
 
 - **Nimic nu se pierde.** Fără dezastre, fără furt, fără scădere; offline doar binevoitor. **Singura excepție scrisă
   [D70]:** la schimbarea de hartă aleasă de jucător („Build the Dam", drumul spre Era 8) toți pornesc cu aceeași sumă
-  (35T: `DamRun.start_sum` din `sim_tycoon.py`, în joc `TycoonConfig.DAM_START_COINS`). Ce e peste ea intră în construcție,
+  (9T [D78]: `DamRun.start_sum` din `sim_tycoon.py`, în joc `TycoonConfig.DAM_START_COINS`). Ce e peste ea intră în construcție,
   e scris pe placă și e anunțat dinainte. Nimic plătit nu se taie, iar venitul crește.
 - **Banii cumpără viteză, spațiu, aspect.** Niciodată noroc **care scade ceva ce ai** [D46]. Roata
   zilnică e gratuită, dă doar în plus, și își afișează șansele. Rotiri plătite nu există [D20].
@@ -279,7 +279,7 @@ picioare se repară înainte de push.
 - **Harta se schimbă [D70], DECIS în regulile mari:**
   - Era 3 se modernizează treptat.
   - La Era 4, un film scurt în care oamenii desfac satul și ridică barajul. Primii cinci lucrează mai departe, ceilalți
-    pleacă. Toți pornesc cu 35T (`DamRun.start_sum`; în joc `TycoonConfig.DAM_START_COINS`).
+    pleacă. Toți pornesc cu aceeași sumă (`DamRun.start_sum`; în joc `TycoonConfig.DAM_START_COINS`): 9T de la D78.
   - De la Era 4: 3 linii pe eră (două fac piese, a treia le unește), iar marfa erei vechi o duce un om pe drum în era nouă.
   - Fiecare eră are alt cumpărător. Din Era 6, roboții iau locul unor oameni.
   - La Era 8, un drum spre o hartă SF, iar racheta se construiește pe etape. Planul: `docs/PLAN-HARTA.md`.

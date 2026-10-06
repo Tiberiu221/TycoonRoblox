@@ -595,7 +595,7 @@ def tier_mult(tier: int) -> float:
 # [D64] Treptele costa fix (25 / 75 / 225 / 675) pentru oamenii Erei 1. Oamenii unei ere noi muta marfa de zeci de ori
 # mai scumpa, deci si uneltele lor costa pe masura: rolul -> de cate ori. Gol = toti la 1 (Era 1, neschimbata).
 # [D70] UNELTELE UNEI ERE pot costa mai mult decat cadrul ei (`ERA_TOOL_MULT`, lipsa = 1). Ale barajului costa dublu: cu
-# suma de start (35T), la pretul cadrului colectorii ajungeau la treapta 5 pe la minutul 9-11, iar venitul crestea sub 10%
+# suma de start (35T, inainte de D78), la pretul cadrului colectorii ajungeau la treapta 5 pe la minutul 9-11, iar venitul crestea sub 10%
 # timp de 23m16s (poarta cere cel mult cat in Erele 1-3). Jocul trebuie sa aiba acelasi factor, cu nume:
 # StationConfig.TOOL_COST_MULT (check_config_constants il compara pe erele din configuratie).
 ERA_TOOL_MULT = {4: 2.0}
@@ -2174,8 +2174,8 @@ OFFLINE_HOURS = 8.0
 OFFLINE_HOURS_LONG = 16.0
 OFFLINE_STOP_HOURS = 24.0
 OFFLINE_SLOW = 0.25
-# [D70 Runda 4] "o noapte fara pass-uri la Works Bell", din care vine suma de start a barajului (35T): opt ore la viteza
-# intreaga, oricum s-ar schimba curba de mai sus.
+# [D70 Runda 4] "o noapte fara pass-uri la Works Bell": opt ore la viteza intreaga, oricum s-ar schimba curba de mai sus.
+# Din ea venea suma de start a barajului (35T) pana la D78; acum e doar cifra de raport de langa suma (9T).
 NIGHT_HOURS = 8.0
 WINDFALL_MAX_SHARE = 0.25  # partea din timpul erei urmatoare pe care o poate sari cea mai lunga absenta
 
@@ -2713,11 +2713,12 @@ class DamRun:
         self.start_zero = dam_transform(s3, 0.0)
         (self.s_zero, self.rows_zero, self.prices, self.idle_zero, self.final_zero, self.shares_zero,
          _) = run(era=ERA4, start=clone(self.start_zero), max_seconds=max_seconds)
-        # suma de start: cea mai mare dintre costul primelor 5 minute reale ale erei si o noapte fara pass-uri la clopot
-        # (regula owner-ului, D70 Runda 4), rotunjita in sus
+        # suma de start: costul primelor 5 minute reale ale erei, rotunjit in sus. [D78] Pana pe 2026-10-06 era cea mai mare
+        # dintre asta si o noapte fara pass-uri la clopot (35T): cu ea cumparai din prima cei sase, Cable Net II si Cable
+        # Net III, adica jumatate din baraj (owner: „este ciudat”). Noaptea ramane doar ca cifra de raport.
         self.c5 = sum(r[2] for r in self.rows_zero if (r[3] - self.start_zero.t) * REAL <= 300)
         self.night = income(s3) * NIGHT_HOURS * 3600
-        self.start_sum = nice_up(max(self.c5, self.night))
+        self.start_sum = nice_up(self.c5)
         # 2. CU SUMA: cronologia adevarata, pe aceleasi preturi
         era = dict(ERA4)
         era["seed_prices"] = dict(self.prices)
@@ -2745,7 +2746,8 @@ DAM_CHAPTER = ("cableNet2", "cableNet3")
 # ea venea la 47m, desi pasul de venit era atins la 37m.
 DAM_CHAPTER_PATIENCE = 60.0
 ERA_JUMP_MIN, ERA_JUMP_MAX = 8.0, 30.0  # venitul la baraj / venitul la Works Bell
-DAM_HIRES_MAX_SHARE = 0.10  # cei sase costa cel mult atat din suma de start
+# cei sase costa cel mult atat din suma de start: ii iei din prima si iti raman bani de joc. [D78] Era 10% pe suma de 35T.
+DAM_HIRES_MAX_SHARE = 0.25
 
 
 def spend_share(budget, rows, started_at, ended_at):
@@ -3036,8 +3038,8 @@ def report_era4(d: DamRun, flats: dict, crawls: dict):
     print(f"\nEra 4: {len(rows)} cumparaturi ({len(unlocks)} deblocari, {len(rows) - len(unlocks)} niveluri si trepte)")
     print(f"  terminata in {fmt(d.s4.t - started)} lacom  ->  {fmt((d.s4.t - started) * REAL)} real, de la baraj "
           f"(fara bani: {fmt((d.s_zero.t - d.start_zero.t) * REAL)} real)")
-    print(f"  suma de start: {big(d.start_sum)} = max(primele 5 minute {big(d.c5)}, o noapte la Works Bell {big(d.night)}), "
-          f"rotunjita in sus")
+    print(f"  suma de start: {big(d.start_sum)} = primele 5 minute {big(d.c5)}, rotunjita in sus [D78] "
+          f"(o noapte la Works Bell ar fi dat {big(d.night)})")
     print(f"  venit: la Works Bell {rate_txt(income(d.s3))}/s -> la baraj {rate_txt(income(d.start))}/s "
           f"(x{income(d.start) / income(d.s3):.1f}) -> la Dam Bell {rate_txt(d.final)}/s")
     hired = clone(d.start)
