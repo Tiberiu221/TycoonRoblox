@@ -127,8 +127,8 @@ Detaliile, rundele de verificator și ce urmează la urcare: `docs/PLAN-MOTOR-UN
   în orice lume), cristalul pe curentul din larg.
 - **A2** (`scripts/art/a2_*.py`, `scripts/audio/a2_film.py`, planșa `a2_plate.py`): filmul, cu decorul pur în `DamFilmSet`.
 - **l1 și l3 făcute [D77]:** barajul e în joc (`ENGINE_ERAS = 4`, 23 de platforme `live`; comutatorul local a ieșit).
-  l1 = jucat cap-coadă cu sonda, fără erori. Rămân: owner-ul pe staging (filmul, bannerele, mersul, telefonul) și acordul
-  pentru A3 (pământul copt; până atunci, dale simple la baraj). **Lansarea:** producția se publică manual (D77, pct. 4).
+  l1 = jucat cap-coadă cu sonda, fără erori. A3 (pământul copt al barajului) e urcat și aprobat (2026-10-06), cu
+  `BAKED_DISTRICTS.dam_town` / `dam`. Owner-ul s-a uitat în joc: „pare ok”. **Lansarea:** producția se publică manual (D77).
 - **Folderul de lucru al scripturilor de artă și sunet:** `scripts/art/scratch.py` (`DRIFTWOOD_SCRATCH`, altfel `.scratch/` din
   repo, ignorat de git). Nicio cale de scratchpad al unei sesiuni nu mai e scrisă în scripturi. Desenele loturilor urcate se
   citesc din `assets/sprites` când lipsește copia de lucru (`scratch.sprite`).

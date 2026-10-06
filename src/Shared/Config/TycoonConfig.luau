@@ -925,8 +925,14 @@ local worksYards = districtYards({
 -- noi (scripts/art/village_ground.py, cu acordul owner-ului), nu la coacere.
 -- [2026-09-21] Coacerea cu Moara e urcata (ambele felii), deci si cartierul ei vine din imagine.
 -- [D67] La fel Wire Works: felia 2, recoapta cu cartierul, e urcata (880 px, pana la capatul lumii).
-TycoonConfig.BAKED_DISTRICTS =
-    { landing = true, mill = true, works = true } :: { [string]: boolean }
+-- [D77] Pamantul copt al barajului e urcat (ambele felii), deci si Dam Town si barajul vin din imagine.
+TycoonConfig.BAKED_DISTRICTS = {
+    landing = true,
+    mill = true,
+    works = true,
+    dam_town = true,
+    dam = true,
+} :: { [string]: boolean }
 
 TycoonConfig.DISTRICTS = {
     {
