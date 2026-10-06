@@ -79,11 +79,6 @@ function TycoonMath.applyEffect(s: State, e: TycoonConfig.Effect)
     local kind = e.kind
     if kind == "net" then
         table.insert(s.nets, e.rate :: number)
-        -- pragul de plase, exact ca in simulator: intai intra plasa, apoi se aplica sporul
-        local bonus = TycoonConfig.NET_MILESTONES[#s.nets]
-        if bonus ~= nil then
-            s.rateMult *= bonus
-        end
     elseif kind == "flag" then
         dyn[e.field] = true
     elseif kind == "mul" then

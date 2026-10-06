@@ -1640,6 +1640,9 @@ Totalul, ~92–97 de imagini și 3 sunete până se joacă Era 4 (PLAN-HARTA §7
   grămezi; FlowMath: rândul barajului merge cu modelul jocului; HandRoutes și World2Layout: oamenii barajului au drumuri;
   PassMath: meseriile barajului sunt în lanț; TycoonConfig: Era 4 e în joc). `world1.txt` identic, `engine.txt` rescris și
   citit rând cu rând. l2 (owner-ul în Studio) a fost sărit la cererea lui: se judecă pe staging.
+  **[Verificatorul l3, o rundă]** Toast-ul „Net 4. Every net now catches 10% more.” mințea: sporul de prag nu exista nici în
+  simulator, nici în lanț (exista din Era 1, iar l3 îl aducea și la baraj). Au ieșit toast-ul, `NET_MILESTONES` și ramura lui
+  din `TycoonMath.applyEffect`. Consola de dev din Studio are butonul „go to the Dam” (capitolul 10).
 - `ENGINE_ERAS = 4` și `live = true` pe cele 23 de platforme.
 - **[Făcut pe 2026-10-04]** Textul sacului plin la unire e acum „Sack full — barrels and cable to the Relay” (42 de litere;
   `LINE_WORDS.grid.processorShort`), iar piesele „Sack full — take the barrels to the Relay”. Toate trei sunt în `GUIDE_TEXTS`.

@@ -348,6 +348,13 @@ function DevPanelController.Init(deps: {
                 send("keepsave", nil)
             end,
         },
+        {
+            -- [l3] satul terminat, Works Bell sunat: sageata duce la masa Dam Plans (cu „keep save”, barajul ramane dupa Stop)
+            label = "go to the Dam",
+            run = function()
+                send("chapter", 10)
+            end,
+        },
     })
 
     groupLabel("replies", 406)

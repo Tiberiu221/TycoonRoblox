@@ -295,12 +295,8 @@ TycoonConfig.TARGET_WAIT = { base = 20, growth = 1.125, cap = 420 }
 TycoonConfig.NICE =
     { 1, 1.1, 1.2, 1.3, 1.5, 1.6, 1.8, 2, 2.2, 2.5, 2.8, 3, 3.5, 4, 4.5, 5, 5.5, 6, 7, 7.5, 8, 9 }
 
--- Praguri pe plase [nota 43, pct.7]: a 4-a, a 8-a si a 12-a plasa dau un spor GRATUIT de rata,
--- peste efectul lor. A patra cumparare de acelasi fel e cea la care jucatorul incepe sa se
--- plictiseasca; tocmai acolo primeste mai mult decat a platit. Aceleasi cifre ca in simulator
--- (NET_MILESTONES din sim_tycoon.py) -- daca se schimba acolo, se schimba si aici, altfel
--- testul de paritate pica.
-TycoonConfig.NET_MILESTONES = { [4] = 1.10, [8] = 1.10, [12] = 1.10 }
+-- [verificatorul l3] Pragurile de plase (+10% la a 4-a, a 8-a si a 12-a plasa) au iesit: simulatorul nu le avea, lantul
+-- (ChainMath) nu le citea, iar toast-ul care le anunta mintea [D40]. Un spor adevarat se pune intai in sim_tycoon.py.
 
 TycoonConfig.NET_CAPACITY = 12
 -- Cat tine o plasa, in secunde de prindere [D49]. Cu 12 locuri fixe, o plasa de nivel 50 se umplea

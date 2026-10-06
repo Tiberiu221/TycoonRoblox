@@ -468,35 +468,6 @@ local function popStation(kind: string, id: string?)
     end
 end
 
--- A cata plasa e cea tocmai cumparata: numaram platformele cu efect de plasa marcate "bought" in
--- ultima stare. Snapshot-ul vine dupa PadBought, deci ea insasi e deja numarata.
-local function netCountAfter(snapshot: Snapshot?): number
-    if snapshot == nil then
-        return 0
-    end
-    local n = 0
-    for _, p in TycoonConfig.PADS do
-        if snapshot.pads[p.id] == "bought" then
-            for _, e in p.effects do
-                if e.kind == "net" then
-                    n += 1
-                    break
-                end
-            end
-        end
-    end
-    return n
-end
-
-local function isNetPad(pad: TycoonConfig.Pad): boolean
-    for _, e in pad.effects do
-        if e.kind == "net" then
-            return true
-        end
-    end
-    return false
-end
-
 -- [D73] Linia al carei atelier il porneste platforma asta (roata de apa -> piesele, Copper Furnace -> cuprul, ...), sau nil.
 -- Forge (`workshop`) isi are toastul ei din Era 1 (FORGE_LIT).
 local function openedLine(pad: TycoonConfig.Pad): string?
@@ -916,19 +887,6 @@ function Overlay.Init(d: Deps)
                 if text ~= nil then
                     HUDController.Toast(text)
                 end
-            end
-        end
-
-        -- pragul de plase: se anunta SEPARAT de efectul platformei, fiindca e un al doilea lucru
-        -- primit la aceeasi cumparare -- si e gratuit [TycoonConfig.NET_MILESTONES]
-        if isNetPad(pad) then
-            local n = netCountAfter(lastSnapshot)
-            local bonus = TycoonConfig.NET_MILESTONES[n]
-            if bonus ~= nil then
-                local pct = math.floor((bonus - 1) * 100 + 0.5)
-                task.delay(0.9, function()
-                    HUDController.Toast(Strings.netMilestone(n, pct), Theme.COLOR.good)
-                end)
             end
         end
     end)

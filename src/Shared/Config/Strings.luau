@@ -28,11 +28,6 @@ function Strings.riverNamedCatch(name: string): string -- [B] -- idem, NetContro
 end
 Strings.RIVER_NET_FULL = "Net full" -- [E] -- azi: eticheta "FULL" din NetController.refreshLabel
 Strings.RIVER_NET_UPGRADED = "Nets cast wider now" -- [C]
--- Pragul de plase (a 4-a, a 8-a, a 12-a): sporul e gratuit si vine peste efectul platformei, deci
--- trebuie SPUS, altfel jucatorul nu afla niciodata ca l-a primit [D43].
-function Strings.netMilestone(n: number, pct: number): string -- [C]
-    return `Net {n}. Every net now catches {pct}% more.`
-end
 
 -- ---- [6-8] Sac -------------------------------------------------------------------------------
 function Strings.sackAdd(n: number): string -- [A]
