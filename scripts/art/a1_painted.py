@@ -38,7 +38,7 @@ from world import soft_shadow  # noqa: E402
 
 import scratch  # noqa: E402  (folderul de lucru: DRIFTWOOD_SCRATCH sau .scratch/)
 DEFAULT_OUT = scratch.folder("a1")
-GROUND_PNG = "/Users/tiberiubojan/Desktop/Driftwood/assets/sprites/prop_dam_ground.png"
+GROUND_PNG = os.path.join(scratch.SPRITES, "prop_dam_ground.png")
 
 W, H = 340, 44  # panza finala (px de arta; 1 px = 3 px de lume)
 ANCHOR = (2202, 405)  # jos-mijloc, in coordonate de lume (la fel ca TycoonConfig.WORLDS[2].paintedTown)

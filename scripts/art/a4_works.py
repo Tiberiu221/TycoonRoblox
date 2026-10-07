@@ -64,7 +64,7 @@ import a4_goods as G  # noqa: E402  [directorul A4] tamburul de cablu, acelasi c
 
 import scratch  # noqa: E402  (folderul de lucru: DRIFTWOOD_SCRATCH sau .scratch/)
 SCRATCH = scratch.folder("a4")
-SPR = "/Users/tiberiubojan/Desktop/Driftwood/assets/sprites"
+SPR = scratch.SPRITES
 FONT = "/Applications/RobloxStudio.app/Contents/Resources/content/fonts/PressStart2P-Regular.ttf"
 
 # ---------------------------------------------------------------------------------------------

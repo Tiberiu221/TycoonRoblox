@@ -29,7 +29,8 @@ from tycoon_f3 import WEATHERED  # noqa: E402
 from tycoon_e1 import PLANK, LOGW, SHINGLE, STEEL, GOLD, GOLD_HI, WARM, TAVERN_ROOF, outline_trace  # noqa: E402
 from ruins_d53 import CHAR, MOSS, line, beam, weeds, erase  # noqa: E402
 
-OUT = "/Users/tiberiubojan/Desktop/Driftwood/assets/sprites"
+import scratch  # noqa: E402  (scripts/art/scratch.py: radacina repo-ului, fara cai de pe Mac)
+OUT = scratch.SPRITES
 
 IRON = ramp(212, 0.24, 0.60)  # lingoul: otel albastrui, curat -- tabla scrap-ului e gri si patata
 TIN = ramp(205, 0.08, 0.66)  # tabla acoperisului shed-ului

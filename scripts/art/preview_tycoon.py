@@ -20,7 +20,8 @@ from preview_items import FONT, GLYPH_H, GLYPH_W  # noqa: E402
 # NU importam load() din preview_scene.py: acel fisier deseneaza o scena la nivelul modulului
 # (fara `if __name__ == "__main__"`), deci un simplu import ar scrie _scene_preview.png ca efect
 # secundar. Acelasi decodor PNG, copiat, ca sa ramana fara efecte secundare.
-SPR = "/Users/tiberiubojan/Desktop/Driftwood/assets/sprites"
+import scratch  # noqa: E402  (folderul de lucru: DRIFTWOOD_SCRATCH sau .scratch/)
+SPR = scratch.SPRITES
 
 
 def load(name):
@@ -95,7 +96,6 @@ def draw_text(c, x, y, text, color, scale=1):
                         c.rect(cx + gx * scale, y + gy * scale, scale, scale, color)
         cx += (GLYPH_W + 1) * scale
 
-import scratch  # noqa: E402  (folderul de lucru: DRIFTWOOD_SCRATCH sau .scratch/)
 DEST = os.path.join(scratch.folder(), "art_f1_preview.png")
 SCALE = 4
 BG = hexc("242226")

@@ -18,8 +18,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from buildings import C, hexc  # noqa: E402
 from preview_tycoon import load, write_png, blit_scaled, draw_text, text_width, GLYPH_H  # noqa: E402
 
-SPR = "/Users/tiberiubojan/Desktop/Driftwood/assets/sprites"
 import scratch  # noqa: E402  (folderul de lucru: DRIFTWOOD_SCRATCH sau .scratch/)
+SPR = scratch.SPRITES
 DEST = os.path.join(scratch.folder(), "art_f2_preview.png")
 SCALE = 4
 BG = hexc("242226")

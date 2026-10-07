@@ -1,5 +1,5 @@
 --!strict
--- Deschiderea jocului [pozele Idle Miner ale owner-ului, D51]:
+-- Deschiderea jocului [D51]:
 --
 --   1. un CARD DE CAPITOL pe tot ecranul: "Chapter 1 · The Landing", o fraza, "tap anywhere".
 --   2. mana arata prima plasa-fantoma. Mergi acolo si o cumperi; de aici conduce ghidajul (dara,

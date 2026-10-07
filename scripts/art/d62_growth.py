@@ -18,7 +18,8 @@ from palette import ramp, hsv, mix  # noqa: E402
 from tycoon_e1 import GOLD, GOLD_HI, STEEL  # noqa: E402
 from tycoon_f3 import _net_water, NET_THREAD  # noqa: E402
 
-OUT = "/Users/tiberiubojan/Desktop/Driftwood/assets/sprites"
+import scratch  # noqa: E402  (scripts/art/scratch.py: radacina repo-ului, fara cai de pe Mac)
+OUT = scratch.SPRITES
 
 FLOAT_RED = ramp(6, 0.66, 0.70)
 BRONZE = ramp(26, 0.58, 0.60)

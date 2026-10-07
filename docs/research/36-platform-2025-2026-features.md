@@ -637,7 +637,7 @@ devforum/create.roblox.com inainte de a fi tratata ca adevarata.
   https://devforum.roblox.com/t/client-beta-acoustic-simulation-emit-audio-with-presence
 - devforum.roblox.com, "Weekly Recap: July 6-10, 2026", 2026-07-10 —
   https://devforum.roblox.com/t/weekly-recap-july-6-10-33-more-games-entering-kids-select/4730771
-- Fisier local: /Users/tiberiubojan/Downloads/CLAUDE.md — context de proiect Driftwood, citit
+- Fisier local: CLAUDE.md (brieful proiectului) — context de proiect Driftwood, citit
   2026-09-08 (sursa interna, nu web).
 
 ## Verificare independenta (2026-09-08)

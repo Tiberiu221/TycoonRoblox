@@ -1,6 +1,6 @@
 --!strict
 -- Panoul statiilor: cele trei debite ale lantului sus, apoi cate un rand pentru fiecare statie pe
--- care o poti urca. Copiaza panoul de nivel din Idle Miner, rand cu rand [capturile owner-ului]:
+-- care o poti urca. Panoul de nivel, in tiparul genului idle (inspirat de Idle Miner):
 --
 --   * fiecare rand arata CE ARE ACUM si CE-AR AVEA LA NIVELUL URMATOR, cu diferenta in verde.
 --     Nimic ascuns: cifra din dreapta e exact ce primesti pe banii aia [D40].

@@ -43,7 +43,8 @@ from palette import WOOD, STONE, WATER, WATER_DEEP, FOAM, ramp, hsv, mix  # noqa
 from world import soft_shadow, outline_bottom, Tile, scatter  # noqa: E402
 from tycoon_f2 import round_corners, ROPE  # noqa: E402
 
-OUT = "/Users/tiberiubojan/Desktop/Driftwood/assets/sprites"
+import scratch  # noqa: E402  (scripts/art/scratch.py: radacina repo-ului, fara cai de pe Mac)
+OUT = scratch.SPRITES
 
 # Rampe noi (aceeasi reteta palette.ramp), pentru materiale care nu existau inca.
 WEATHERED = ramp(hue=34, sat=0.20, val=0.58, steps=5, hue_shift=8, val_span=0.32)  # lemn de doc

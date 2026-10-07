@@ -3,7 +3,8 @@
 Folosire: python3 scripts/art/buildings.py && python3 scripts/art/settlers.py"""
 import zlib, struct, os, math
 
-OUT = "/Users/tiberiubojan/Desktop/Driftwood/assets/sprites"
+import scratch  # noqa: E402  (scripts/art/scratch.py: radacina repo-ului, fara cai de pe Mac)
+OUT = scratch.SPRITES
 
 
 def png(path, w, h, px):

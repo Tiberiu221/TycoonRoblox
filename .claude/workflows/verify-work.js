@@ -10,11 +10,11 @@ export const meta = {
 
 // [owner, 2026-09-24] verificatorii (logica, aspect, reguli, scepticii) ruleaza pe Opus 5.5, nu pe Sonnet.
 // args: { what: "ce s-a lucrat, pe scurt", base: "HEAD" (lucru necomis) sau un commit mai vechi (interval deja comis) }
-const ROOT = '/Users/tiberiubojan/Desktop/Driftwood'
+const ROOT = '.' // radacina repo-ului: agentii pornesc in ea
 const what = (args && args.what) || 'the latest change'
 const base = (args && args.base) || 'HEAD'
 
-const COMMON = `Project: Driftycoon, a 2D Roblox river tycoon in ${ROOT} (you already have its CLAUDE.md).
+const COMMON = `Project: Driftycoon, a 2D Roblox river tycoon; the repo root is your working directory (you already have its CLAUDE.md).
 The work to check: ${what}
 See it with \`git -C ${ROOT} diff ${base}\` (plus \`git -C ${ROOT} status --short\` for new files; read new files whole).
 Read the surrounding code too, not only the diff: a change is wrong if it breaks a caller or a reader elsewhere.

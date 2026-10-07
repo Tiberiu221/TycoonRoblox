@@ -33,7 +33,8 @@ from tycoon_f3 import WEATHERED  # noqa: E402
 from tycoon_e1 import PLANK, WARM, GOLD, GOLD_HI, STEEL, outline_trace  # noqa: E402
 from ruins_d53 import MOSS, PATINA, CHAR, beam, line, weeds  # noqa: E402
 
-OUT = "/Users/tiberiubojan/Desktop/Driftwood/assets/sprites"
+import scratch  # noqa: E402  (scripts/art/scratch.py: radacina repo-ului, fara cai de pe Mac)
+OUT = scratch.SPRITES
 
 # materialele Morii
 BRICK = ramp(12, 0.50, 0.56, hue_shift=8)  # caramida arsa: rosu-caramiziu, nu sindrila gaterului

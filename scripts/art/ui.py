@@ -18,7 +18,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from buildings import C, png, Rng  # noqa: E402
 from palette import WOOD, SAND, STONE, GRASS, WATER, OUTLINE, mix, shade, hsv  # noqa: E402
 
-OUT = "/Users/tiberiubojan/Desktop/Driftwood/assets/sprites"
+import scratch  # noqa: E402  (scripts/art/scratch.py: radacina repo-ului, fara cai de pe Mac)
+OUT = scratch.SPRITES
 
 PARCHMENT = hsv(40, 0.16, 0.93)
 PARCHMENT_D = hsv(38, 0.22, 0.84)

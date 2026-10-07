@@ -13,3 +13,5 @@ stylua --check src/ && selene src/
 rojo build default.project.json -o Driftwood.rbxl
 rojo serve                    # apoi Rojo plugin -> Connect in Studio
 ```
+
+Licență: toate drepturile rezervate, vezi `LICENSE`.

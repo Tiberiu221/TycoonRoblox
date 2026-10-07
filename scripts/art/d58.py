@@ -22,7 +22,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from buildings import C, png  # noqa: E402
 from palette import WOOD, ramp, hsv  # noqa: E402
 
-OUT = "/Users/tiberiubojan/Desktop/Driftwood/assets/sprites"
+import scratch  # noqa: E402  (scripts/art/scratch.py: radacina repo-ului, fara cai de pe Mac)
+OUT = scratch.SPRITES
 T = (0, 0, 0, 0)
 
 # rosul semnalului "nu / inchide" (Theme.COLOR.bad 190,74,62), putin mai stins pe fata unui buton

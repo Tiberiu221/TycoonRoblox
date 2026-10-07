@@ -27,7 +27,8 @@ from d60 import CLOTH_BLUE, CLOTH_GREEN, CLOTH_RED, CREAM, OUT, WOOD, WOOD_D, pl
 from palette import hsv, mix  # noqa: E402
 from tycoon_e1 import outline_trace  # noqa: E402
 
-OUT_DIR = "/Users/tiberiubojan/Desktop/Driftwood/assets/sprites"
+import scratch  # noqa: E402  (scripts/art/scratch.py: radacina repo-ului, fara cai de pe Mac)
+OUT_DIR = scratch.SPRITES
 SKIN = hsv(28, 0.40, 0.88)
 SKIN_D = hsv(24, 0.46, 0.72)
 GOLD = hsv(44, 0.70, 0.90)

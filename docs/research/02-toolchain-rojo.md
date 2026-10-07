@@ -247,7 +247,7 @@ sau prin Rokit (`rokit add upliftgames/wally@0.3.2`).
 
 ```toml
 [package]
-name = "tiberiu2bojan/driftwood"
+name = "driftwood/game"
 version = "0.1.0"
 registry = "https://github.com/UpliftGames/wally-index"
 realm = "shared"

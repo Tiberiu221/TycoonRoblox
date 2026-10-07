@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Simulatorul economiei. Se ruleaza INAINTE de orice cod de balans [23].
 
-MODELUL (2026-09-12 dupa Idle Miner Tycoon; oamenii din 2026-09-13, D49). Pana la D46 era o lista de
+MODELUL (2026-09-12, pe tiparul genului idle; oamenii din 2026-09-13, D49). Pana la D46 era o lista de
 48 de platforme cumparate o singura data, iar venitul era o suma. Acum sunt DOUA axe si o GATUIRE:
 
   1. DEBLOCARI -- plasa noua, oamenii (Collector, Porter, Sawyer, Hauler, Negustorul), traista mare,
@@ -131,7 +131,7 @@ CATCH = {
 AVG = {kind: sum(share * GOODS[good] for good, share in parts) for kind, parts in CATCH.items()}
 
 # ---- scara nivelurilor -----------------------------------------------------------------------
-# Forma e copiata din Idle Miner si verificata pe capturi: acolo, un nivel adauga "+0.1" la un
+# Forma e inspirata de Idle Miner (tiparul genului): acolo, un nivel adauga "+0.1" la un
 # "3.3/s", adica vreo 3% -- crestere LINIARA, mica. Cresterea mare vine din praguri. Costul
 # creste exponential, deci nivelurile devin tot mai scumpe pe unitatea de castig: exact motivul
 # pentru care, la un moment dat, trebuie sa deblochezi ceva nou in loc sa tot urci acelasi lucru.
@@ -1238,9 +1238,8 @@ def ladder_step(bought: set) -> int:
 def target_wait(k: int) -> float:
     """Asteptarea tinta (secunde, jucator lacom) inaintea deblocarii k.
 
-    RITMUL LOR, masurat pe capturi: deschizi primul put in secunda 0, apoi urci NIVELURI cateva
-    minute, iar "New Shaft" costa 2.6K cand tu ai 152 -- adica de vreo 20 de ori venitul tau de
-    atunci. Deblocarea e o TINTA departata, nu urmatorul buton. Rafala de apasari din primele
+    RITMUL GENULUI: deschizi primul loc in secunda 0, apoi urci NIVELURI cateva minute, iar
+    deblocarea urmatoare costa de vreo 20 de ori venitul tau de atunci. Deblocarea e o TINTA departata, nu urmatorul buton. Rafala de apasari din primele
     minute vine din niveluri, nu din deblocari.
     Prima varianta avea 20s si crestere 1.22: deblocarile ieseau atat de ieftine incat jucatorul
     lacom le lua pe toate la rand si nu urca niciun nivel pana in minutul 3."""

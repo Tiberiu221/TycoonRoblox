@@ -1,8 +1,8 @@
 --!strict
--- Roata norocului, copiata dupa Idle Miner [poza 7, la cererea explicita a owner-ului].
+-- Roata norocului, un tipar al genului idle (inspirat de Idle Miner).
 --
 -- ASTA SCHIMBA O REGULA A PROIECTULUI. P4 spunea "banii cumpara viteza, spatiu, aspect; niciodata
--- noroc". Owner-ul a decis sa o luam ca la ei, deci regula se restrange: niciodata noroc care
+-- noroc". Owner-ul a decis sa intre in joc, deci regula se restrange: niciodata noroc care
 -- SCADE ceva ce ai. Vezi D46 in docs/DECIZII.md. Doua limite raman, si nu se negociaza:
 --   * niciun premiu nu ia nimic -- toate sunt in plus [P2 intact];
 --   * rotirea e GRATUITA, o data la 24h. Rotiri cumparate nu intra: D20 spune "zero paid random

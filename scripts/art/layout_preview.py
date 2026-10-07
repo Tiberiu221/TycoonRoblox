@@ -24,8 +24,8 @@ from buildings import C, hexc, STONE  # noqa: E402
 from preview_tycoon import load, write_png, blit_scaled, draw_text, text_width, FULL_FONT, GLYPH_H  # noqa: E402
 from preview_tycoon_f2 import slice_stretch  # noqa: E402
 
-SPR = "/Users/tiberiubojan/Desktop/Driftwood/assets/sprites"
 import scratch  # noqa: E402  (folderul de lucru: DRIFTWOOD_SCRATCH sau .scratch/)
+SPR = scratch.SPRITES
 DEST = os.path.join(scratch.folder(), "layout_mockup.png")
 
 # Cateva glife de punctuatie care nu existau in fontul in blocuri (litere + cifre): pretul,

@@ -496,7 +496,7 @@ Notă: apelul suplimentar `profile:Save()` la fiecare 2 minute costă câte un `
 - ProfileStore — wally.toml (raw) — https://raw.githubusercontent.com/MadStudioRoblox/ProfileStore/main/wally.toml — accesat 2026-09-08
 - "ProfileStore - Save your player data easy and safe (DataStore Module)" — DevForum, autor loleris — https://devforum.roblox.com/t/profilestore-save-your-player-data-easy-and-safe-datastore-module/3190543 — publicat 11 octombrie 2024, accesat 2026-09-08
 - ProfileService — repo GitHub (MadStudioRoblox, descontinuat) — https://github.com/MadStudioRoblox/ProfileService — accesat 2026-09-08
-- Proiect Driftwood — brief intern — /Users/tiberiubojan/Downloads/CLAUDE.md — context, nu sursă externă
+- Proiect Driftwood — brief intern — CLAUDE.md (brieful proiectului) — context, nu sursă externă
 
 ## Verificare independenta (2026-09-08)
 

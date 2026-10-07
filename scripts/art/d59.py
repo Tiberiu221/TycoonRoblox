@@ -37,7 +37,8 @@ from tycoon_f3 import WEATHERED, GAP_LINE, water_ripple  # noqa: E402
 from tycoon_e1 import outline_trace, GOLD, GOLD_HI, PEARL, STEEL, BRASS, PARCH, PARCH_D, INK, WARM, SHINGLE, PLANK  # noqa: E402
 from ruins_d53 import line, MOSS  # noqa: E402
 
-OUT = "/Users/tiberiubojan/Desktop/Driftwood/assets/sprites"
+import scratch  # noqa: E402  (scripts/art/scratch.py: radacina repo-ului, fara cai de pe Mac)
+OUT = scratch.SPRITES
 
 GLASS = ramp(158, 0.34, 0.62)  # sticla verzuie a sticlei
 BLUE_PAINT = ramp(206, 0.46, 0.62)  # vopseaua barcii legate: alta decat barca vanzarii (lemn gol)

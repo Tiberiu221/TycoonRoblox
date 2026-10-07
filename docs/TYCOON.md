@@ -743,7 +743,7 @@ rămân în repo, neconectate, până atunci.
 | **F6** | Era 3 | — |
 | **F7** | Era 4 + Charter | — |
 | **F8** | Conținut și finisaj: siluete, catalog spre 200, sunet, artă | — |
-| **F9** | Pregătirea lansării: F0-ul owner-ului (universuri, W-8BEN; fără grup, D01), dashboard-uri, soft launch | D1 ≥ 15% în soft launch (D25) |
+| **F9** | Pregătirea lansării: F0-ul owner-ului (universuri, pașii de cont; fără grup, D01), dashboard-uri, soft launch | D1 ≥ 15% în soft launch (D25) |
 
 **Regula de fază, din [anti]:** nu se adaugă un sistem de progresie nou înainte ca bucla de 3–5
 minute să fie testată pe oameni din afara echipei. Deci **Era 2 începe abia după poarta F1.**

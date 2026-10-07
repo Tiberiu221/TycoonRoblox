@@ -1,5 +1,5 @@
 --!strict
--- Lista de quest-uri. Copiaza panoul din Idle Miner [poza 4 si 12]: titlul capitolului cu bara lui,
+-- Lista de quest-uri, in stilul genului idle (ca la Idle Miner): titlul capitolului cu bara lui,
 -- apoi quest-urile -- terminate sus cu butonul auriu `Claim`, activul cu `Go!`, restul `Quest locked` cu
 -- lacat. [owner, 2026-09-14] Cele revendicate coboara la coada (QuestMath.displayOrder), iar recompensa nu mai
 -- e un rand de text: sta pe buton, "Claim 1 (perla)".

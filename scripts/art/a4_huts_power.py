@@ -77,7 +77,7 @@ except ImportError:
 
 import scratch  # noqa: E402  (folderul de lucru: DRIFTWOOD_SCRATCH sau .scratch/)
 DEFAULT_OUT = scratch.folder("a4")
-SPR = "/Users/tiberiubojan/Desktop/Driftwood/assets/sprites"
+SPR = scratch.SPRITES
 FONT = "/Applications/RobloxStudio.app/Contents/Resources/content/fonts/PressStart2P-Regular.ttf"
 
 # ---------------------------------------------------------------------------------------------

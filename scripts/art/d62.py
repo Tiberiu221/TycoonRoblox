@@ -16,7 +16,8 @@ from palette import WOOD, WATER  # noqa: E402
 from tycoon_e1 import outline_trace, STEEL  # noqa: E402
 from d59 import in_water  # noqa: E402
 
-OUT = "/Users/tiberiubojan/Desktop/Driftwood/assets/sprites"
+import scratch  # noqa: E402  (scripts/art/scratch.py: radacina repo-ului, fara cai de pe Mac)
+OUT = scratch.SPRITES
 
 
 def barrel():

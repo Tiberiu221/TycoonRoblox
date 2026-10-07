@@ -4,7 +4,8 @@ import zlib, struct, sys, os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from buildings import C, png, hexc
 
-SPR = "/Users/tiberiubojan/Desktop/Driftwood/assets/sprites"
+import scratch  # noqa: E402  (scripts/art/scratch.py: radacina repo-ului, fara cai de pe Mac)
+SPR = scratch.SPRITES
 
 
 def load(name):

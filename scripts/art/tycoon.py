@@ -16,7 +16,8 @@ from buildings import C, Rng, png  # noqa: E402
 from palette import WOOD, STONE, FOAM, LEAF_WARM, ramp, hsv  # noqa: E402
 from world import soft_shadow, outline_bottom  # noqa: E402
 
-OUT = "/Users/tiberiubojan/Desktop/Driftwood/assets/sprites"
+import scratch  # noqa: E402  (scripts/art/scratch.py: radacina repo-ului, fara cai de pe Mac)
+OUT = scratch.SPRITES
 
 # Rampe noi, aceeasi reteta (palette.ramp): material care nu exista inca in palette.py.
 RUST = ramp(hue=18, sat=0.55, val=0.40, steps=5, hue_shift=9, val_span=0.40)     # scrap ruginit

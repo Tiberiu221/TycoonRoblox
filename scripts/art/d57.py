@@ -21,7 +21,8 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from buildings import C, Rng, png  # noqa: E402
 
-OUT = "/Users/tiberiubojan/Desktop/Driftwood/assets/sprites"
+import scratch  # noqa: E402  (scripts/art/scratch.py: radacina repo-ului, fara cai de pe Mac)
+OUT = scratch.SPRITES
 
 # iarba: exact nuantele din grass_tile (cele mai dese), plus varfurile luminate
 GRASS_DARK = (77, 111, 57, 255)

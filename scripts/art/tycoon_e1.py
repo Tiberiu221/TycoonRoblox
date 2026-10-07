@@ -22,7 +22,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from buildings import C, png, hexc, shadow  # noqa: E402
 from palette import ramp, hsv, mix, OUTLINE, SHADOW, WOOD, STONE  # noqa: E402
 
-OUT = "/Users/tiberiubojan/Desktop/Driftwood/assets/sprites"
+import scratch  # noqa: E402  (scripts/art/scratch.py: radacina repo-ului, fara cai de pe Mac)
+OUT = scratch.SPRITES
 
 # Rampe noi, toate prin ramp(): opt felii trebuie sa se deosebeasca la 40x40, deci nuantele sunt
 # departate, dar saturatia si valoarea raman in aceeasi familie ca restul jocului.

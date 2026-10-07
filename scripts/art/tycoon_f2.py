@@ -22,7 +22,8 @@ from palette import WOOD, STONE, SAND, LEAF_WARM, ramp, hsv, mix  # noqa: E402
 from world import soft_shadow, outline_bottom  # noqa: E402
 from ui import PARCHMENT, PARCHMENT_D, PARCHMENT_L  # noqa: E402
 
-OUT = "/Users/tiberiubojan/Desktop/Driftwood/assets/sprites"
+import scratch  # noqa: E402  (scripts/art/scratch.py: radacina repo-ului, fara cai de pe Mac)
+OUT = scratch.SPRITES
 
 # Rampe noi, aceeasi reteta (palette.ramp), pentru materiale care nu existau inca.
 WOOD_LIGHT = ramp(hue=30, sat=0.38, val=0.60, steps=5, hue_shift=9, val_span=0.34)  # rama cardului

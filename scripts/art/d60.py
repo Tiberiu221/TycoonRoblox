@@ -38,7 +38,8 @@ from buildings import C, Rng, T, png  # noqa: E402
 from palette import hsv, mix, ramp  # noqa: E402
 from tycoon_e1 import outline_trace  # noqa: E402
 
-OUT_DIR = "/Users/tiberiubojan/Desktop/Driftwood/assets/sprites"  # `OUT` e culoarea conturului, mai jos
+import scratch  # noqa: E402  (scripts/art/scratch.py: radacina repo-ului, fara cai de pe Mac)
+OUT_DIR = scratch.SPRITES  # `OUT` e culoarea conturului, mai jos
 
 WOOD = ramp(hue=26, sat=0.52, val=0.46, val_span=0.42)
 WOOD_D = ramp(hue=22, sat=0.50, val=0.30, val_span=0.32)

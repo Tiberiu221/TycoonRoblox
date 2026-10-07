@@ -26,7 +26,8 @@ from tycoon_f2 import ROPE, THATCH  # noqa: E402
 from tycoon_f3 import WEATHERED, NET_THREAD  # noqa: E402
 from tycoon_e1 import PLANK, LOGW, WARM, GOLD, GOLD_HI, STEEL, outline_trace  # noqa: E402
 
-OUT = "/Users/tiberiubojan/Desktop/Driftwood/assets/sprites"
+import scratch  # noqa: E402  (scripts/art/scratch.py: radacina repo-ului, fara cai de pe Mac)
+OUT = scratch.SPRITES
 
 MOSS = ramp(98, 0.42, 0.44)  # muschi pe lemnul si pe piatra vechi
 PATINA = ramp(165, 0.34, 0.54)  # bronzul clopotului, verzui de vreme (BRONZE e clopotul intreg)

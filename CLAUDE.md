@@ -389,8 +389,8 @@ e gata. Detaliile și sursele sunt în DECIZII D63. **Nimic din ce urmează n-a 
 - **Cifrele din colțul HUD-ului stau pe o grilă** (`Shared/Modules/HudLayout`, cu test): monede, perle și sac pe
   rândul de sus, rata și AWAY dedesubt, linia NEXT cât blocul. Văzut în Play-ul owner-ului cu sonda: cutiile cad pe
   grilă. Pozițiile pastilelor nu se mai scriu de mână în `HUDController`.
-- **Colțul cu Robux e viu pe staging (2026-09-19):** owner-ul a dat cheii API (`bebe`) permisiunile `game-pass` și
-  `developer-product`; `python3 scripts/create_monetization.py` a creat cele patru pass-uri și cele două produse
+- **Colțul cu Robux e viu pe staging (2026-09-19):** owner-ul a dat cheii API permisiunile pentru pass-uri și
+  produse; `python3 scripts/create_monetization.py` a creat cele patru pass-uri și cele două produse
   (fără dubluri: întâi listează) și a scris ID-urile în `MonetizationConfig.IDS`. Prețurile se citesc de la Roblox;
   magazinul arată `R$ 799 / 149 / 349 / 199 / 99`. Pe producție se creează la lansare (`--universe production`).
   **Creatorul deține automat pass-urile lui:** în Play-urile owner-ului toate patru sunt active (venit dublu, pas iute),
@@ -640,6 +640,5 @@ butonul „keep save" din consola de dev păstrează salvarea reală pentru Play
 Bâlciul [D60] = place-ul **114983498774894** din același univers (creat pe 2026-09-16; numele din Creator Hub e încă
 cel automat, cheia locală n-are `universe.place:write` ca să-l schimbe). Producția =
 universul 10766553412 (place 101083147721008), „Driftycoon", gol și privat, fără acces la API din Studio. Ambele pe
-contul personal (userId 11640386677). Rămas la owner: numele, terenuri multiple, lobby/DevEx, D19 (2FA + ID făcute pe
-2026-09-11; grupul Roblox abandonat pe 2026-09-15, vezi D01). **Fiscalul (W-8BEN):** pagina Finances → Taxes nu apare pe
-cont (0 Robux câștigați, 2026-09-15); se depune când apare, **înainte de primul cash-out** — de verificat la primele vânzări.
+contul owner-ului (fără grup Roblox, vezi D01). Rămas la owner: numele, terenuri multiple, lobby. Pașii de cont și
+cei fiscali ai owner-ului se țin în afara repo-ului.

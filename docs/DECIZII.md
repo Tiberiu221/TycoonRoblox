@@ -1931,8 +1931,8 @@ odată cu primii bani, nu la predare.
 ---
 
 ## D46 — Era 1 pe structura Idle Miner: stații cu niveluri, lanț cu gâtuire, roată zilnică
-**DECIS** (2026-09-12) — owner-ul a jucat Idle Miner Tycoon, a trimis 18 capturi progresive și a
-cerut explicit bucla și ghidajul lor, cu NPC-urile noastre. Era 1 se face ca **șablon**; Era 2 e
+**DECIS** (2026-09-12) — owner-ul a cerut bucla și ghidajul genului idle (stații cu
+niveluri, lanț cu gâtuire), cu NPC-urile noastre. Era 1 se face ca **șablon**; Era 2 e
 aceeași structură cu alte cifre.
 
 **Ce se schimbă față de D45:**
@@ -1988,11 +1988,8 @@ D43 (nimic în tăcere), D44, D20 (fără pay-to-win, fără obiecte aleatorii p
   „Communities" (100 Robux). Publicarea pentru copiii sub 16 cere, pentru jocurile grupului, ca **owner-ul** să aibă ID,
   2FA, chestionarul de maturitate și fie taxa de 1.000 Robux per joc (returnată după 90 de zile), fie Roblox Plus sau
   Premium activ de cel puțin 2 luni; jocul pornește la 16+ și trece la copii după 250 de jucători implicați în 60 de zile.
-  Taxele se depun din Creator Hub → Finances → Taxes; în tabelul IRS (Table 1), România are 10% la redevențele de
-  copyright și 15% la cele industriale, doar pe partea din jucătorii din SUA. **Pe contul owner-ului pagina Taxes nu apare**
-  (verificat de el pe 2026-09-15, cu 0 Robux câștigați; „Account information" din Finances e doar pentru facturi la
-  servicii de business, nu pentru reținerea DevEx). Formularul se depune când apare pagina, înainte de primul cash-out
-  (minimum 30.000 Robux) — până atunci nu există nicio plată DevEx căreia să i se aplice reținerea.
+  Taxele se depun din Creator Hub → Finances → Taxes. Starea contului owner-ului (verificări, formulare) se ține în afara
+  repo-ului.
 
 ### D02 — Roblox Studio pe Mac · DECIS
 - Se instalează build-ul **nativ Apple Silicon** (installer-ul public livrează build Intel sub Rosetta); se verifică în Activity Monitor coloana Kind = Apple. [studio-mac]
@@ -2409,7 +2406,7 @@ Trei locuri unde interfața promitea un lucru și jocul făcea altul. Regula pe 
 ### D22 — Legal și nume · PROVIZORIU
 - Mecanicile se pot copia; expresia nu (Legea 8/1996 art. 9; Tetris v. Xio). Toată arta, textele, numele și muzica sunt originale. [legal-ip-tax]
 - Numele „Driftwood": niciun joc Roblox major cu numele exact; căutarea de marcă USPTO/EUIPO a fost neexhaustivă → **audit de marcă plătit înainte de marketing** (DE DECIS: buget). [legal-ip-tax]
-- Structură fiscală RO (PFA vs SRL micro, plafon 60k vs 100k EUR incert) → **contabil înainte de primul cash-out**. Venit DevEx declarat în D212. [legal-ip-tax]
+- Fiscalitatea owner-ului se hotărăște cu un contabil, în afara repo-ului. [legal-ip-tax]
 
 ---
 

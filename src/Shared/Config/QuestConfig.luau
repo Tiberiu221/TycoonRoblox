@@ -1,5 +1,5 @@
 --!strict
--- Capitolele si quest-urile. Copiaza structura din Idle Miner [capturile owner-ului]: un capitol
+-- Capitolele si quest-urile, in tiparul genului idle (inspirat de Idle Miner): un capitol
 -- are un titlu, o bara de progres si o lista de quest-uri care se deschid IN ORDINE -- unul singur
 -- activ, restul "Quest locked" cu lacat, iar cele terminate raman in lista cu butonul `Claim`.
 --
