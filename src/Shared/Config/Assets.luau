@@ -642,7 +642,9 @@ local Assets = {
         booth = sprite(90436942055073, 46, 40),
         arch = sprite(125405145209167, 76, 58),
         dock = sprite(71587394039128, 40, 64),
-        ferry = sprite(77116352932467, 62, 30),
+        ferry = sprite(101454495659789, 62, 30),
+        -- [2026-10-07] salupa cu aburi a barajului (scripts/art/d60.py `launch`), aceeasi marime ca barca balciului
+        launch = sprite(107552466052819, 62, 30),
         bonfire = sprite(77625323861703, 40, 34),
         brazier = sprite(116599557369227, 22, 32),
         table = sprite(89717753669884, 40, 22),

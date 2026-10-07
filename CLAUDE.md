@@ -132,6 +132,10 @@ Detaliile, rundele de verificator și ce urmează la urcare: `docs/PLAN-MOTOR-UN
   **Recopt și urcat din nou tot pe 2026-10-06** (owner: „tot iarba rămâne? parcă nu a evoluat deloc jocul”): la baraj, iarbă
   uscată cu pete de pământ bătătorit, străzi pavate cu borduri, curți de prundiș, fără flori (`village_ground.py`, doar sub
   `dam`); decorul împrăștiat are felurile lui (`WorldDecor.DAM_KINDS`: cioturi, bușteni, pietre, butoaie). Satul, neatins.
+- **Barca spre bâlci (2026-10-07):** barca bâlciului redesenată și salupa cu aburi a barajului (`d60.py` `ferry` / `launch`,
+  62x30, urcate și aprobate), la pixelul hărții (×3; `FERRY` la x 449, `FERRY_TAG_BASE`). `RideMath.Vessel`: salupa face
+  drumul în 4 s; `RideScene` alege desenul, textul și fumul pe drum; la debarcaderul bâlciului, fiecare își vede barca lui
+  (atributul `World`). Auditul bâlciului: satul așteaptă profilul până la 150 s, cu „Still loading your save...”.
 - **Folderul de lucru al scripturilor de artă și sunet:** `scripts/art/scratch.py` (`DRIFTWOOD_SCRATCH`, altfel `.scratch/` din
   repo, ignorat de git). Nicio cale de scratchpad al unei sesiuni nu mai e scrisă în scripturi. Desenele loturilor urcate se
   citesc din `assets/sprites` când lipsește copia de lucru (`scratch.sprite`).

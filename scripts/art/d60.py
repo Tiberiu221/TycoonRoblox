@@ -415,33 +415,123 @@ def dock(w=40, h=64):
     return c
 
 
-def ferry(w=62, h=30):
-    """Barca cu care vii in amonte, vazuta de sus-lateral: bord, interior, banca, vasla si felinar la prova."""
-    c = C(w, h)
-    # coca: contur de scanduri, cu bordul mai deschis si interiorul in umbra
-    for i in range(w):
-        d = abs(i - w / 2) / (w / 2)
-        height = int(15 * (1 - d ** 2.4))
-        if height <= 2:
+def hull(c, w, h, sheer_mid, bow_rise, stern_rise, keel, upper, lower, stripe=None):
+    """[2026-10-07] Coca vazuta din lateral si putin de sus, ca barca vanzarii (prop_boat): bordul de sus e o linie
+    aproape dreapta care urca spre prova (dreapta) si spre pupa, sub ea scandurile bordului, iar fundul se strange spre
+    chila. Intoarce, pe coloane, linia bordului (y), ca restul desenului sa stea pe ea."""
+    tops = {}
+    for x in range(w):
+        t = x / (w - 1)  # 0 = pupa, 1 = prova
+        rise = bow_rise * max(0.0, (t - 0.55) / 0.45) ** 2 + stern_rise * max(0.0, (0.25 - t) / 0.25) ** 2
+        top = round(sheer_mid - rise)
+        # fundul: rotunjit spre capete, prova mai ascutita (taie apa)
+        d = (t - 0.47) / (0.53 if t > 0.47 else 0.47)
+        bottom = round(keel - (keel - sheer_mid - 2) * max(0.0, abs(d)) ** (1.8 if t > 0.47 else 2.6))
+        if bottom <= top + 1:
             continue
-        top = h - 7 - height
-        c.rect(i, top, 1, height + 4, WOOD[2 + (i // 7) % 2])          # bordul exterior
-        c.rect(i, top, 1, 2, mix(WOOD[3], (255, 240, 210), 0.35))
-        if height > 6:                                                  # interiorul, mai inchis
-            c.rect(i, top + 3, 1, height - 5, WOOD_D[1 + (i // 9) % 2])
-    for i in range(6, w - 6, 8):                                        # coastele barcii
-        c.rect(i, h - 16, 1, 9, WOOD_D[3])
-    c.rect(10, h - 14, w - 20, 3, WOOD[3])                              # banca
-    c.rect(10, h - 12, w - 20, 1, WOOD_D[2])
-    c.rect(4, h - 8, w - 8, 3, WOOD[3])                                 # bordura de sus
-    c.rect(4, h - 6, w - 8, 1, WOOD_D[1])
-    c.rect(w - 26, h - 24, 3, 14, WOOD_D[3])                            # vasla
-    c.rect(w - 36, h - 26, 12, 3, WOOD_D[2])
-    rope(c, 6, h - 10, 18, h - 13)
+        tops[x] = top
+        for y in range(top, bottom + 1):
+            k = (y - top) / max(1, bottom - top)
+            if y == top:
+                col = mix(upper[3], (255, 244, 220), 0.25)  # muchia bordului prinde lumina
+            elif y == top + 1:
+                col = upper[2]
+            elif stripe is not None and y in (top + 3, top + 4):
+                col = stripe[2] if y == top + 3 else stripe[1]
+            elif k < 0.62:
+                col = upper[2 + (y - top) // 3 % 2]  # scandurile bordului, pe randuri de 3 px
+            else:
+                col = lower[2] if k < 0.85 else lower[1]  # sub linia apei, mai inchis
+            c.put(x, y, col)
+    return tops
+
+
+def ferry(w=62, h=30):
+    """[2026-10-07] Barca balciului (rescrisa: cea veche era o cupola, iar felinarul plutea in aer). Din lateral, ca
+    barca vanzarii: bord drept care urca spre prova, interiorul inchis deasupra bordului (acolo sta omul, la x ~25),
+    vasla sprijinita, la pupa un fanion, iar la prova un stalp cu brat de care atarna felinarul (x ~55, y 6-11: acolo
+    pune codul lumina lui)."""
+    c = C(w, h)
+    tops = hull(c, w, h, sheer_mid=17, bow_rise=6, stern_rise=3, keel=27, upper=WOOD, lower=WOOD_D)
+    # interiorul: bordul din partea cealalta se vede deasupra, inchis, cu doua banci luminate
+    for x, top in tops.items():
+        if 3 < x < w - 5:
+            for y in range(top - 3, top):
+                c.put(x, y, WOOD_D[1] if y > top - 3 else WOOD_D[2])
+    for bx in (18, 36):
+        c.rect(bx, tops[bx] - 3, 4, 1, WOOD[3])  # bancile
+    c.rect(4, tops[4] - 1, w - 9, 1, WOOD_D[3])  # muchia bordului departat
+    # vasla sprijinita peste bord, cu pana in apa spre pupa
+    for i in range(16):
+        c.put(30 - i, tops[30] - 4 + i * 0.6, WOOD[3] if i % 4 else WOOD[2])
+    c.rect(11, 23, 5, 3, WOOD[2])
+    # fanionul de la pupa: catarg mic si un triunghi rosu
+    c.rect(4, 4, 1, tops[4] - 4, WOOD_D[3])
+    for y in range(4, 10):
+        c.rect(5, y, max(1, 6 - abs(y - 6) * 2 + (1 if y < 7 else 0)), 1, CLOTH_RED[2] if y < 7 else CLOTH_RED[1])
+    # stalpul felinarului la prova, cu bratul spre inapoi; felinarul atarna de el
+    c.rect(58, 3, 1, tops[58] - 3, WOOD_D[3])
+    c.rect(54, 3, 5, 1, WOOD_D[3])
+    c.rect(55, 4, 1, 1, IRON[2])  # carligul
+    rope(c, 2, tops[2] + 1, 7, tops[7] + 3)
     outline_trace(c)
-    rim(c, 0.20)
-    c.rect(w - 10, h - 24, 6, 7, IRON[3])                               # felinarul de la prova
-    c.rect(w - 9, h - 23, 4, 5, GLASS)
+    rim(c, 0.16)
+    c.rect(53, 5, 5, 7, IRON[3])  # felinarul, dupa contur ca sa ramana curat
+    c.rect(54, 6, 3, 4, GLASS)
+    c.rect(54, 10, 3, 1, GLASS_D)
+    c.rect(54, 5, 3, 1, IRON[1])
+    return c
+
+
+# [2026-10-07] Barca barajului: o salupa cu aburi, vopsita (alb, dunga rosie, carena verde inchis), cu cabina si cos
+# spre prova, cockpitul deschis la pupa (omul sta la x ~25) si felinarul la prova, in acelasi loc ca la barca balciului.
+PAINT = ramp(hue=40, sat=0.10, val=0.86, val_span=0.26)
+KEEL_GREEN = ramp(hue=160, sat=0.40, val=0.30, val_span=0.24)
+BRASS = ramp(hue=42, sat=0.62, val=0.70, val_span=0.38)
+
+
+def launch(w=62, h=30):
+    c = C(w, h)
+    tops = hull(c, w, h, sheer_mid=17, bow_rise=5, stern_rise=1, keel=27, upper=PAINT, lower=KEEL_GREEN,
+                stripe=CLOTH_RED)
+    # puntea si cockpitul: interior de lemn lacuit, cu balustrada de alama
+    for x, top in tops.items():
+        if 3 < x < w - 4:
+            for y in range(top - 2, top):
+                c.put(x, y, WOOD[1] if y == top - 1 else WOOD[2])
+    for x in range(5, w - 6, 5):
+        c.rect(x, tops[x] - 4, 1, 2, BRASS[2])
+    c.rect(5, tops[5] - 5, w - 12, 1, BRASS[3])
+    # cabina spre prova, cu doua ferestre luminate si acoperis cu streasina
+    cx0, cx1 = 34, 49
+    roof = 7
+    c.rect(cx0, roof + 2, cx1 - cx0, tops[cx0] - roof - 2, PAINT[2])
+    c.rect(cx0, roof + 2, 1, tops[cx0] - roof - 2, PAINT[1])
+    for wx in (37, 43):
+        c.rect(wx, roof + 4, 4, 3, GLASS)
+        c.rect(wx, roof + 7, 4, 1, GLASS_D)
+    c.rect(cx0 - 1, roof, cx1 - cx0 + 3, 2, KEEL_GREEN[2])
+    c.rect(cx0 - 1, roof + 2, cx1 - cx0 + 3, 1, KEEL_GREEN[0])
+    # cosul: negru, cu inel de alama, putin aplecat spre pupa (fumul il pune codul, din RideScene.FUNNEL = 40.5, 3);
+    # incepe la y 3, ca placuta „Ferry to the Fair” (pana la y 678 in lume) sa nu-l atinga
+    for y in range(3, roof):
+        x = 40 - (roof - y) // 4
+        c.rect(x, y, 3, 1, IRON[0] if y > 3 else IRON[1])
+    c.rect(39, 4, 4, 1, BRASS[3])
+    # pupa: fanion si roata carmei
+    c.rect(3, 5, 1, tops[3] - 5, WOOD_D[3])
+    for y in range(5, 10):
+        c.rect(4, y, max(1, 5 - abs(y - 7) * 2 + (1 if y < 8 else 0)), 1, CLOTH_BLUE[2] if y < 8 else CLOTH_BLUE[1])
+    c.ellipse(15, tops[15] - 4, 2, 2, BRASS[1])
+    c.put(15, tops[15] - 4, BRASS[3])
+    # felinarul de la prova, pe un catarg scurt
+    c.rect(57, 3, 1, tops[57] - 3, IRON[1])
+    c.rect(54, 3, 4, 1, IRON[1])
+    outline_trace(c)
+    rim(c, 0.14)
+    c.rect(53, 5, 5, 7, BRASS[1])
+    c.rect(54, 6, 3, 4, GLASS)
+    c.rect(54, 10, 3, 1, GLASS_D)
     return c
 
 
@@ -699,6 +789,7 @@ SPRITES = {
     "prop_fair_arch": arch,
     "prop_fair_dock": dock,
     "prop_fair_ferry": ferry,
+    "prop_fair_launch": launch,  # [2026-10-07] barca barajului spre balci
     "prop_fair_bonfire": bonfire,
     "prop_fair_brazier": brazier,
     "prop_fair_table": table,

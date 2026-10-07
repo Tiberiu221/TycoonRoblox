@@ -1502,8 +1502,12 @@ end
 Strings.FAIR_ROW_HOME = "Row home"
 Strings.FAIR_FERRY_TAG = "Ferry home"
 Strings.FAIR_ROWING_HOME = "Rowing home..."
-function Strings.fairRowHomeCard(keyHint: string): string
-    return `Row home{keyHint}`
+-- [2026-10-07] `vessel` (RideMath.Vessel): de la baraj vii si pleci cu salupa, deci nu vaslesti
+function Strings.fairRowHomeCard(keyHint: string, vessel: string?): string
+    return if vessel == "launch" then `Sail home{keyHint}` else `Row home{keyHint}`
+end
+function Strings.fairRideHome(vessel: string?): string
+    return if vessel == "launch" then "Sailing home..." else Strings.FAIR_ROWING_HOME
 end
 -- [D60] Titlurile: ce scrie sub numele tau in balci. Panoul spune de unde vine fiecare.
 Strings.TITLES_TITLE = "Titles"
@@ -1890,11 +1894,16 @@ end
 Strings.FAIR_OPENS_SOON = "Opens soon"
 -- Barca de la ponton, in amonte, spre balci. Eticheta de pe apa, cardul si drumul.
 Strings.FERRY_TAG = "Ferry to the Fair"
-function Strings.ferryCard(keyHint: string): string
-    return `Row up to the fair{keyHint}`
+function Strings.ferryCard(keyHint: string, vessel: string?): string
+    return if vessel == "launch"
+        then `Sail up to the fair{keyHint}`
+        else `Row up to the fair{keyHint}`
 end
 Strings.FERRY_SKIP = "Skip"
 Strings.FERRY_ROWING = "Rowing up to the fair..."
+function Strings.ferryRide(vessel: string?): string
+    return if vessel == "launch" then "Sailing up to the fair..." else Strings.FERRY_ROWING
+end
 -- De ce n-a plecat barca (FerryService). Spune ce s-a intamplat si ce poti face; satul merge mai departe [D40, D43].
 function Strings.ferryFailed(reason: string): string
     if reason == "studio" then

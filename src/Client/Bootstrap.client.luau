@@ -1282,6 +1282,7 @@ safeInit("FerryController", function()
         PlayerGui = playerGui,
         Remotes = { RowUp = Net.Get("RowUp"), FerryFailed = Net.Get("FerryFailed") },
         OnToast = HUDController.Toast,
+        World = world, -- [2026-10-07] la baraj, salupa cu aburi
     })
 end)
 

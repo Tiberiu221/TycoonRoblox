@@ -1014,7 +1014,7 @@ tavern={x=262,y=1086}
 ## spots
 BOBBER_AT={x=435,y=652}
 DOCK={x=420,y=1130}
-FERRY={x=418,y=762}
+FERRY={x=449,y=762}
 FERRY_BOARD={x=330,y=734}
 FISH_STAND={x=318,y=640}
 PIER={x=300,y=758}

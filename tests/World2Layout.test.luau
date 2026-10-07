@@ -777,8 +777,8 @@ return function()
                 solid.ferry = box(
                     TycoonConfig.FERRY.x,
                     TycoonConfig.FERRY.y,
-                    ferryArt.width * 2,
-                    ferryArt.height * 2
+                    ferryArt.width * Assets.PIXEL_SCALE,
+                    ferryArt.height * Assets.PIXEL_SCALE
                 )
                 -- ce se citeste pe ecran: numele de sub casele oamenilor, casa cu treapta ei (HomeClear), etichetele rotii si
                 -- avizierului (sub indicator si sub avizier, baza + 2)

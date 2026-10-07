@@ -742,16 +742,25 @@ return function()
         test.case(
             "[D60] barca balciului sta pe apa, intre plutitor si mal, fara sa atinga nimic de pe ponton",
             function()
-                -- FerryController: 62x30 la x2, prinsa de baza, oglindita (prova in amonte); eticheta deasupra ei.
+                -- FerryController: 62x30 la pixelul hartii (x3), prinsa de baza, oglindita (prova in amonte); eticheta deasupra ei.
                 local things = placed()
                 local art = Assets.fair.ferry
-                local ferry =
-                    box(TycoonConfig.FERRY.x, TycoonConfig.FERRY.y, art.width * 2, art.height * 2)
+                local ferry = box(
+                    TycoonConfig.FERRY.x,
+                    TycoonConfig.FERRY.y,
+                    art.width * Assets.PIXEL_SCALE,
+                    art.height * Assets.PIXEL_SCALE
+                )
                 local top, bottom = RiverConfig.RIVER_TOP, RiverConfig.RIVER_BOTTOM
                 check.is_true(ferry.y0 > top and ferry.y1 <= bottom)
                 -- sub plutitor (8x8) si sub fir, care coboara pana la el
                 local bob = TycoonConfig.BOBBER_AT
                 check.is_true(ferry.y0 > bob.y + 8)
+                -- [2026-10-07] placuta (18 px, baza la FERRY_TAG_BASE) sub plutitor (8x10 la x3, ancora 0,8: pana la
+                -- bob.y + 6) si deasupra desenului: primele trei randuri ale lui sunt goale (cosul salupei incepe la 3)
+                local tagBase = TycoonConfig.FERRY_TAG_BASE
+                check.is_true(tagBase - 18 >= bob.y + 6)
+                check.is_true(tagBase <= ferry.y0 + 3 * Assets.PIXEL_SCALE)
                 -- ponton, avizier, indicator; niciun lucru adus de rau, niciun decor de pe apa
                 for _, name in { "pier", "board", "wheel" } do
                     check.is_false(hit(ferry, things[name]))

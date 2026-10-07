@@ -40,6 +40,9 @@ export type Ride = {
     OnPushOff: (number) -> (), -- 0..1: barca din lume se desprinde de mal
     OnLeft: () -> (), -- drumul a acoperit lumea: barca din lume se ascunde
     OnArrived: () -> (), -- s-a terminat drumul, pe negru: acum se cere teleportul
+    -- [2026-10-07] cu ce mergi (RideMath.Vessel): de la baraj, salupa cu aburi, mai iute; fara ea, barca cu vasle
+    Vessel: string?,
+    Text: string?, -- textul de pe negru pentru drumul asta; fara el, cel din Options
 }
 
 local RideScene = {}
@@ -69,6 +72,7 @@ type Wake = { f: Frame, x: number, y: number, age: number }
 local opts: Options? = nil
 local state = "idle" -- "idle" | "riding" | "waiting"
 local ride: Ride? = nil
+local vessel = "row" -- [2026-10-07] barca drumului de acum (RideMath.Vessel)
 local rideT = 0
 local waitingSince = 0
 local left = false
@@ -80,7 +84,10 @@ local canvas: Frame
 local cover: Frame
 local rowingLabel: TextLabel
 local skipButton: TextButton
-local vessel: Frame
+local vesselFrame: Frame
+local boatImage: ImageLabel
+local smokeHost: Frame
+local travelText: TextLabel? = nil
 local boatLantern: Frame
 local tint: Frame
 local setRiderPose: SceneArt.Pose
@@ -113,6 +120,35 @@ end
 function RideScene.Mirror(img: ImageLabel, s: Assets.Sprite)
     img.ImageRectOffset = Vector2.new(s.width, 0)
     img.ImageRectSize = Vector2.new(-s.width, s.height)
+end
+
+-- [2026-10-07] Desenul unei barci: salupa barajului cand e urcata, altfel barca balciului (au aceeasi marime, 62x30,
+-- deci locurile din lume si din balci raman aceleasi).
+function RideScene.SpriteFor(v: string): Assets.Sprite
+    local launch = Assets.fair.launch
+    if v == "launch" and Assets.has(launch) then
+        return launch
+    end
+    return Assets.fair.ferry
+end
+
+-- Gura cosului salupei, in pixelii desenului nerasturnat (prova in dreapta): de aici iese fumul, si in lume, si pe drum.
+RideScene.FUNNEL = { x = 40.5, y = 3 }
+
+-- Fumul salupei: o gazda mica, cu baza in gura cosului, in care SceneArt.AddSmoke pune rotocoalele (marimea lor vine
+-- din latimea gazdei, cat urca din inaltimea ei). `x`, `y`: gura cosului in parintele ei.
+function RideScene.Smoke(parent: GuiObject, x: number, y: number, z: number, size: Vector2?): Frame
+    local host = Instance.new("Frame")
+    host.Name = "Smoke"
+    host.BackgroundTransparency = 1
+    host.AnchorPoint = Vector2.new(0.5, 1)
+    local s = size or Vector2.new(40, 70)
+    host.Size = UDim2.fromOffset(s.X, s.Y)
+    host.Position = UDim2.fromOffset(x, y)
+    host.ZIndex = z
+    host.Parent = parent
+    SceneArt.AddSmoke(host, 0.5, 1)
+    return host
 end
 
 -- Lumina calda a unui felinar, peste amurg: trei discuri unul in altul, tot mai dese spre mijloc. Taria o pune
@@ -267,7 +303,7 @@ local function coverAlpha(t: number): number
     elseif t < PUSH_OFF + FADE_IN then
         return 1 - (t - PUSH_OFF) / FADE_IN
     end
-    return RideMath.fade(t)
+    return RideMath.fade(t, vessel)
 end
 
 local function spawnWake(boatX: number, boatY: number)
@@ -281,7 +317,9 @@ local function spawnWake(boatX: number, boatY: number)
     local side = if #wakes % 2 == 0 then -1 else 1
     -- pupa e in spatele barcii: in dreapta cand mergi spre stanga, si invers
     local stern = boatX - dir * Assets.fair.ferry.width * ART * 0.45
-    table.insert(wakes, { f = f, x = stern, y = boatY - 12 + side * 8, age = 0 })
+    -- salupa lasa o dara mai lata (elicea), barca cu vasle doar doua dungi
+    local spread = if vessel == "launch" then 12 else 8
+    table.insert(wakes, { f = f, x = stern, y = boatY - 12 + side * spread, age = 0 })
 end
 
 local function clearWakes()
@@ -293,7 +331,7 @@ end
 
 local function draw(dt: number)
     local w = canvas.Size.X.Offset
-    local travelled = RideMath.DISTANCE * RideMath.progress(rideT)
+    local travelled = RideMath.DISTANCE * RideMath.progress(rideT, vessel)
     -- barca sta pe loc in cadru; malurile trec pe langa ea, in sens invers drumului
     local boatX = if dir < 0 then w * BOAT_AT else w * (1 - BOAT_AT)
     local shift = -dir * travelled
@@ -308,19 +346,19 @@ local function draw(dt: number)
     for _, p in props do
         p.obj.Position = UDim2.fromOffset(boatX + p.rel + shift, p.obj.Position.Y.Offset)
     end
-    local at = RideMath.at(rideT, { x = 0, y = 0 })
+    local at = RideMath.at(rideT, { x = 0, y = 0 }, vessel)
     local boatY = BOAT_BASE + math.sin(rideT * 2.4) * 3 + at.y * 0.4
-    vessel.Position = UDim2.fromOffset(boatX, boatY)
-    vessel.Rotation = at.tilt
+    vesselFrame.Position = UDim2.fromOffset(boatX, boatY)
+    vesselFrame.Rotation = at.tilt
     boatLantern.Position =
         UDim2.fromOffset(boatX + dir * Assets.fair.ferry.width * ART * 0.4, boatY - 60)
     setRiderPose(false, if dir < 0 then "left" else "right", dt, false, nil)
-    local night = math.clamp(rideT / RideMath.SECONDS, 0, 1)
+    local night = math.clamp(rideT / RideMath.secondsOf(vessel), 0, 1)
     tint.BackgroundTransparency = 0.92 - 0.47 * night
     setNight(night)
 
     wakeClock += dt
-    if wakeClock >= WAKE_EVERY then
+    if wakeClock >= (if vessel == "launch" then WAKE_EVERY * 0.6 else WAKE_EVERY) then
         wakeClock = 0
         spawnWake(boatX, boatY)
     end
@@ -359,8 +397,8 @@ local function update(dt: number)
     end
     skipButton.Visible = r.CanSkip
         and RideMath.canSkip(rideT)
-        and rideT < RideMath.SECONDS - RideMath.FADE
-    if RideMath.done(rideT) then
+        and rideT < RideMath.secondsOf(vessel) - RideMath.FADE
+    if RideMath.done(rideT, vessel) then
         state = "waiting"
         waitingSince = os.clock()
         cover.BackgroundTransparency = 0
@@ -384,13 +422,33 @@ local function armTravel()
     end
 end
 
+-- [2026-10-07] Desenul barcii si fumul cosului, dupa barca drumului (ambele desene au 62x30, deci cadrul ramane).
+local function setVessel(v: string)
+    local sprite = RideScene.SpriteFor(v)
+    if Assets.has(sprite) then
+        boatImage.Image = Assets.url(sprite)
+        if dir < 0 then
+            RideScene.Mirror(boatImage, sprite)
+        end
+    end
+    smokeHost.Visible = sprite == Assets.fair.launch
+end
+
 -- Porneste drumul. Intoarce false daca un drum e deja in curs.
 function RideScene.Start(r: Ride): boolean
     if opts == nil or state ~= "idle" then
         return false
     end
-    armTravel()
     ride = r
+    vessel = r.Vessel or "row"
+    setVessel(vessel)
+    local text = r.Text or (opts :: Options).RowingText
+    rowingLabel.Text = text
+    local tt = travelText
+    if tt ~= nil then
+        tt.Text = text
+    end
+    armTravel()
     state = "riding"
     rideT = 0
     wakeClock = 0
@@ -408,7 +466,7 @@ end
 function RideScene.Skip()
     local r = ride
     if state == "riding" and r ~= nil and r.CanSkip and RideMath.canSkip(rideT) then
-        rideT = math.max(rideT, RideMath.SECONDS - RideMath.FADE)
+        rideT = math.max(rideT, RideMath.secondsOf(vessel) - RideMath.FADE)
     end
 end
 
@@ -495,24 +553,32 @@ function RideScene.Init(o: Options)
 
     -- barca, cu tine in ea: omul in spatele bordului, ca bordul sa-i acopere picioarele
     local ferry = Assets.fair.ferry
-    vessel = Instance.new("Frame")
-    vessel.Name = "Vessel"
-    vessel.BackgroundTransparency = 1
-    vessel.AnchorPoint = Vector2.new(0.5, 1)
-    vessel.Size = UDim2.fromOffset(ferry.width * ART, ferry.height * ART + 60)
-    vessel.ZIndex = 6
-    vessel.Parent = canvas
-    local rider, pose, setOutfit, setLook = SceneArt.MakeCharacter(vessel)
-    rider.Position = UDim2.new(0.5, -dir * 18, 1, -44)
+    local hull = Instance.new("Frame")
+    hull.Name = "Vessel"
+    hull.BackgroundTransparency = 1
+    hull.AnchorPoint = Vector2.new(0.5, 1)
+    hull.Size = UDim2.fromOffset(ferry.width * ART, ferry.height * ART + 60)
+    hull.ZIndex = 6
+    hull.Parent = canvas
+    vesselFrame = hull
+    local rider, pose, setOutfit, setLook = SceneArt.MakeCharacter(hull)
+    -- [verificatorul, 2026-10-07] talpile pe randul ~21 al desenului: bordul departat (randul 13 la barca, 11 la salupa)
+    -- taie omul la mijloc; la -44, cu desenele noi, statea in picioare pe marginea barcii
+    rider.Position = UDim2.new(0.5, -dir * 18, 1, -26)
     rider.ZIndex = 1
     setRiderPose = pose
     setRiderOutfit = setOutfit
     setRiderLook = setLook
-    local boat = spriteImage(vessel, ferry, 2)
+    local boat = spriteImage(hull, ferry, 2)
     boat.Position = UDim2.fromScale(0.5, 1)
     if dir < 0 and Assets.has(ferry) then
         RideScene.Mirror(boat, ferry)
     end
+    boatImage = boat
+    -- fumul salupei, din gura cosului (oglindita cand mergi spre stanga); se vede doar pe salupa
+    local funnelX = if dir < 0 then ferry.width - RideScene.FUNNEL.x else RideScene.FUNNEL.x
+    smokeHost = RideScene.Smoke(hull, funnelX * ART, 60 + RideScene.FUNNEL.y * ART, 3)
+    smokeHost.Visible = false
 
     -- amurgul se lasa pe tot drumul; luminile stau peste el
     tint = Instance.new("Frame")
@@ -566,6 +632,7 @@ function RideScene.Init(o: Options)
     local text = rowingLabel:Clone()
     text.Visible = true
     text.Parent = black
+    travelText = text
     travelGui = travel
     armTravel()
 

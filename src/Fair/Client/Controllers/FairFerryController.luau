@@ -3,12 +3,16 @@
 -- `Row home (E)`. Drumul pictat (UI/RideScene) merge acum in aval, cu curentul, iar la capat se vad casele si felinarele
 -- satului. Pe negru, serverul te duce acasa (FerryService); satul te primeste cu banii de cat ai lipsit, ca offline.
 -- Daca barca nu pleaca, ramai in balci, iar toastul spune de ce [D43].
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
+local Assets = require(ReplicatedStorage.Shared.Config.Assets)
 local LookMath = require(ReplicatedStorage.Shared.Modules.LookMath)
+local RideMath = require(ReplicatedStorage.Shared.Modules.RideMath)
 local Strings = require(ReplicatedStorage.Shared.Config.Strings)
+local WorldConfig = require(ReplicatedStorage.Shared.Config.WorldConfig)
 
 local CharacterController = require(script.Parent.CharacterController)
 local FairScene = require(script.Parent.FairScene)
@@ -35,9 +39,32 @@ local visits = 0
 local outfit = "keeper"
 local look: LookMath.Look? = nil -- [D61]
 local ferryX, ferryY, _, ferryH = 0, 0, 0, 0
+local vessel: RideMath.Vessel = "row"
+local smoke: Frame? = nil
 
 local function boat(): ImageLabel?
     return FairScene.SpriteOf("ferry")
+end
+
+-- [owner, 2026-10-07] La debarcader te asteapta barca cu care ai venit: de la baraj, salupa cu aburi. Lumea vine din
+-- profil (atributul `World`, pus de DataService la incarcare, in ambele place-uri); fiecare jucator isi vede barca lui.
+local function dockVessel()
+    vessel = RideMath.vesselOfWorld(WorldConfig.sanitize(Players.LocalPlayer:GetAttribute("World")))
+    local b = boat()
+    local sprite = RideScene.SpriteFor(vessel)
+    if b == nil or not Assets.has(sprite) then
+        return
+    end
+    b.Image = Assets.url(sprite)
+    local launch = sprite == Assets.fair.launch
+    if launch and smoke == nil then
+        local scale = b.Size.X.Offset / sprite.width
+        smoke = RideScene.Smoke(b, RideScene.FUNNEL.x * scale, RideScene.FUNNEL.y * scale, b.ZIndex)
+    end
+    local s = smoke
+    if s ~= nil then
+        s.Visible = launch
+    end
 end
 
 local function place(x: number, y: number, visible: boolean)
@@ -75,7 +102,7 @@ function FairFerryController.Focus(px: number, py: number): Focus.Focus?
         -- deasupra barcii si a placutei ei, in dreapta locului de urcat (omul nu sta sub card)
         x = ferryX + 30,
         y = ferryY - ferryH - 30,
-        action = Strings.fairRowHomeCard(keyHint),
+        action = Strings.fairRowHomeCard(keyHint, vessel),
         act = FairFerryController.Board,
     }
 end
@@ -89,6 +116,8 @@ function FairFerryController.Board()
         Outfit = outfit,
         Look = look,
         CanSkip = visits > 1, -- prima vizita e si primul drum inapoi
+        Vessel = vessel,
+        Text = Strings.fairRideHome(vessel),
         OnPushOff = function(k: number)
             place(ferryX + 24 * k, ferryY + 12 * k, true)
         end,
@@ -113,6 +142,7 @@ function FairFerryController.Apply(newOutfit: string, fairVisits: number, newLoo
     outfit = newOutfit
     visits = fairVisits
     look = newLook
+    dockVessel()
 end
 
 function FairFerryController.Init(d: Deps)
@@ -132,6 +162,8 @@ function FairFerryController.Init(d: Deps)
             comeBack("timeout")
         end
     end)
+    Players.LocalPlayer:GetAttributeChangedSignal("World"):Connect(dockVessel)
+    dockVessel()
 end
 
 return FairFerryController

@@ -340,11 +340,16 @@ TycoonConfig.PIER_WALK = { x0 = 264, x1 = 336, y0 = 612 }
 TycoonConfig.FISH_STAND = { x = 318, y = 640 }
 -- Unde cade plutitorul: in aval de capat, departe de plase (prima e la x 620) si sub curentul bustenilor (y 552).
 TycoonConfig.BOBBER_AT = { x = 435, y = 652 }
--- [D60] BARCA BALCIULUI, legata in aval de ponton, intre plutitor si mal: 62x30 la x2 (124x60), prinsa de baza, deci
--- x 356..480, y 702..762 -- sub firul si plutitorul unditei (y <= 656), peste mal (768), fara sa atinga avizierul
--- (y >= 762) sau prima plasa (x >= 548). Bustenii trec pe curentul de sus (NEAR_CURRENT_Y), nu pe aici. Barca vanzarii
--- (DockController) pleaca din spatele ei. Pe apa nu se merge: urci din marginea pontonului, de la FERRY_BOARD.
-TycoonConfig.FERRY = { x = 418, y = 762 }
+-- [D60] BARCA BALCIULUI, legata in aval de ponton, intre plutitor si mal. [2026-10-07] La pixelul hartii, ca restul
+-- lumii: 62x30 la x3 (186x90), prinsa de baza, deci x 356..542, y 672..762 -- in dreapta pontonului (x <= 348), sub
+-- plutitor (y <= 658), peste mal (768), fara sa atinga avizierul (y >= 762) sau prima plasa (x >= 548). La x2 ar fi
+-- incaput la x 418, dar pixelii ei erau mai mici decat ai lumii si barca parea „ciudata” (owner). Bustenii trec pe
+-- curentul de sus (NEAR_CURRENT_Y), nu pe aici. Barca vanzarii (DockController) pleaca din spatele ei. Pe apa nu se
+-- merge: urci din marginea pontonului, de la FERRY_BOARD.
+TycoonConfig.FERRY = { x = 449, y = 762 }
+-- Baza placutei „Ferry to the Fair” (18 px inalta): intre plutitor (pana la y 658) si varful desenului (cosul salupei
+-- incepe la y 681).
+TycoonConfig.FERRY_TAG_BASE = 678
 TycoonConfig.FERRY_BOARD = { x = 330, y = 734 }
 -- Locurile lucrurilor aduse de rau, in amonte, lipite de ponton: vin din stanga si se opresc in el. Centrele (cutia
 -- cea mai mare, 60x48, nu atinge pontonul si nici vecinul).

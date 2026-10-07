@@ -54,6 +54,34 @@ return function()
             check.is_true(RideMath.canSkip(RideMath.SKIP_AFTER))
         end)
 
+        -- [2026-10-07] salupa barajului: mai iute, fara lupta cu curentul; barca satului ramane exact cum era
+        test.case("salupa barajului face drumul mai repede, tot pana la capat", function()
+            check.equal(RideMath.vesselOfWorld(1), "row")
+            check.equal(RideMath.vesselOfWorld(2), "launch")
+            check.equal(RideMath.secondsOf(nil), RideMath.SECONDS)
+            check.equal(RideMath.secondsOf("row"), RideMath.SECONDS)
+            local fast = RideMath.secondsOf("launch")
+            check.is_true(fast < RideMath.SECONDS)
+            check.is_true(fast > RideMath.SKIP_AFTER + RideMath.FADE + 1) -- drumul se mai vede
+            check.equal(RideMath.progress(fast, "launch"), 1)
+            check.is_true(RideMath.progress(fast / 2, "launch") > RideMath.progress(fast / 2))
+            local prev = -1
+            for i = 0, 40 do
+                local p = RideMath.progress(i * fast / 40, "launch")
+                check.is_true(p >= prev - 1e-9)
+                prev = p
+            end
+            check.is_true(RideMath.done(fast, "launch"))
+            check.is_false(RideMath.done(fast, "row"))
+            check.equal(RideMath.fade(fast, "launch"), 1)
+            check.equal(RideMath.fade(fast - RideMath.FADE, "launch"), 0)
+            -- aceeasi barca a satului, cu sau fara nume
+            for i = 0, 12 do
+                local t = i * 0.5
+                check.equal(RideMath.progress(t, "row"), RideMath.progress(t))
+            end
+        end)
+
         test.case("schimbarea de loc se face pe negru, nu in mijlocul apei", function()
             check.equal(RideMath.fade(0), 0)
             check.equal(RideMath.fade(RideMath.SECONDS - RideMath.FADE), 0)
