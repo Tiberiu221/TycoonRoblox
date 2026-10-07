@@ -175,13 +175,16 @@ do
             game:GetService("ContentProvider"):PreloadAsync(urls)
         end)
     end)
+    -- [auditul balciului, 2026-10-07] cat il asteapta si serverul (incarcat sau Kick la 120 s): cu limita de 25 s, un
+    -- jucator de la baraj cu profilul intarziat (predarea sesiunii dupa barca) primea satul vechi, inghetat si mut.
+    -- Cortina (Loading) ramane pe ecran tot timpul asta si spune ca inca se incarca.
     local started = os.clock()
-    while player:GetAttribute("SaveLoaded") ~= true and os.clock() - started < 25 do
+    while player:GetAttribute("SaveLoaded") ~= true and os.clock() - started < 150 do
         task.wait(0.1)
     end
     world = WorldConfig.sanitize(player:GetAttribute("World"))
     if player:GetAttribute("SaveLoaded") ~= true then
-        warn("[Driftwood] profilul n-a venit in 25 s: clientul porneste pe harta satului")
+        warn("[Driftwood] profilul n-a venit in 150 s: clientul porneste pe harta satului")
     end
 end
 

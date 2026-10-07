@@ -13,6 +13,10 @@ local TeleportService = game:GetService("TeleportService")
 ReplicatedFirst:RemoveDefaultLoadingScreen()
 
 local WAIT_LIMIT = 25 -- secunde: dupa atat, ecranul pleaca oricum (jocul arata singur ce lipseste)
+-- [auditul balciului, 2026-10-07] In sat, harta se construieste pe lumea din profil: fara profil, un jucator de la baraj
+-- ar fi primit satul vechi, inghetat si fara niciun cuvant. Satul asteapta deci profilul cat il asteapta si serverul
+-- (DataService: incarcat sau Kick „Could not load your save” la 120 s), iar dupa 25 s spune ca inca se incarca.
+local VILLAGE_WAIT_LIMIT = 150
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui") :: PlayerGui
 local placeValue = script.Parent:FindFirstChild("Place")
@@ -62,15 +66,33 @@ if not game:IsLoaded() then
     game.Loaded:Wait()
 end
 local started = os.clock()
-while player:GetAttribute("SaveLoaded") ~= true and os.clock() - started < WAIT_LIMIT do
-    task.wait(0.1)
+local limit = if isFair then WAIT_LIMIT else VILLAGE_WAIT_LIMIT
+local still: TextLabel? = nil
+local function waitFor(attribute: string)
+    while player:GetAttribute(attribute) ~= true and os.clock() - started < limit do
+        if still == nil and os.clock() - started >= WAIT_LIMIT then
+            -- nimic nu se intampla in tacere [D43]: un rand jos, peste orice cortina (si peste cea a drumului cu barca)
+            local label = Instance.new("TextLabel")
+            label.AnchorPoint = Vector2.new(0.5, 1)
+            label.Position = UDim2.new(0.5, 0, 1, -32)
+            label.Size = UDim2.fromScale(0.8, 0.04)
+            label.BackgroundTransparency = 1
+            label.TextColor3 = Color3.fromRGB(196, 186, 168)
+            label.Font = Enum.Font.Arcade
+            label.TextScaled = true
+            label.Text = "Still loading your save..."
+            label.ZIndex = 50
+            label.Parent = gui
+            still = label
+        end
+        task.wait(0.1)
+    end
 end
+waitFor("SaveLoaded")
 -- [D70, verificatorul k1] in sat, harta se construieste abia dupa profil: cortina pleaca dupa ce e gata (atributul local
 -- ClientBuilt, pus de Bootstrap.client), in aceeasi limita de timp. Balciul nu-l pune.
 if not isFair then
-    while player:GetAttribute("ClientBuilt") ~= true and os.clock() - started < WAIT_LIMIT do
-        task.wait(0.1)
-    end
+    waitFor("ClientBuilt")
 end
 task.wait(0.25)
 gui:Destroy()
