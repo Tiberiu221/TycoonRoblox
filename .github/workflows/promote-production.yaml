@@ -11,7 +11,23 @@ jobs:
   promote:
     runs-on: ubuntu-latest
     environment: production
+    permissions:
+      actions: read
+      contents: read
     steps:
+      # [2026-10-07, auditul de dinainte de repo-ul public] Se promoveaza doar un build al CI-ului facut la un push pe
+      # main, in repo-ul asta: un run id de la un PR dintr-un fork n-ajunge pe productie.
+      - name: Check the staging run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN: ${{ inputs.staging_run_id }}
+        run: |
+          [[ "$RUN" =~ ^[0-9]+$ ]] || { echo "staging_run_id nu e un numar"; exit 1; }
+          got=$(gh api "repos/${{ github.repository }}/actions/runs/$RUN" \
+            --jq '[.event, .head_branch, .head_repository.full_name, .path] | @tsv')
+          want=$(printf 'push\tmain\t%s\t.github/workflows/ci.yaml' "${{ github.repository }}")
+          [[ "$got" == "$want" ]] || { echo "run-ul $RUN nu e un build CI de pe main: $got"; exit 1; }
+
       - name: Download staged build artifact
         uses: actions/download-artifact@v4
         with:
@@ -24,8 +40,11 @@ jobs:
         env:
           ROBLOX_API_KEY: ${{ secrets.ROBLOX_PRODUCTION_API_KEY }}
         run: |
-          FILE=$(find ./build -name '*.rbxl' | head -n1)
-          curl -sSL --fail \
+          # satul, exact: artefactul are si Driftwood.rbxl si DriftwoodFair.rbxl, iar `head -n1` il alegea pe oricare
+          mapfile -t files < <(find ./build -name Driftwood.rbxl)
+          [[ ${#files[@]} -eq 1 ]] || { echo "astept exact un Driftwood.rbxl, am ${#files[@]}"; exit 1; }
+          FILE=${files[0]}
+          curl -sSL --fail-with-body \
             --header "x-api-key: $ROBLOX_API_KEY" \
             --header "Content-Type: application/octet-stream" \
             --data-binary "@$FILE" \

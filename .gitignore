@@ -3,9 +3,21 @@
 *.rbxl.lock
 *.rbxlx.lock
 
-# Build-uri locale (regenerate cu `rojo build`)
-/*.rbxl
-/*.rbxlx
+# Build-uri locale (regenerate cu `rojo build`), oriunde ar fi, si modelele exportate din Studio
+*.rbxl
+*.rbxlx
+*.rbxm
+*.rbxmx
+
+# [2026-10-07] Chei si setari locale: nu intra niciodata in repo (cheile stau in ~/.driftwood_*)
+.env*
+*.key
+*.pem
+.driftwood_*
+.mcp.json
+# din .claude, doar workflow-urile verificatorilor; setarile locale, planurile si worktree-urile raman pe Mac
+.claude/*
+!.claude/workflows/
 
 # Pachete Wally (regenerate din wally.toml + wally.lock)
 /Packages/

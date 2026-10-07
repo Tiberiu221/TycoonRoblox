@@ -1,9 +1,13 @@
 name: CI
 
+# [2026-10-07, inainte de repo-ul public] Doar push-urile pe main: fara `pull_request`, un PR dintr-un fork nu porneste
+# nimic (owner-ul lucreaza direct pe main). Jobul `report` isi cere singur dreptul de scriere pe ci-status.
 on:
   push:
     branches: [main]
-  pull_request:
+
+permissions:
+  contents: read
 
 jobs:
   lint-format-test:
